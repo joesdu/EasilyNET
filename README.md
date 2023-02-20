@@ -1,24 +1,10 @@
-﻿#### Hoyo.AutoDependencyInjectionModule
-
-```text
-
-     ____  ____
-    |_   ||   _|
-      | |__| |   .--.   _   __   .--.
-      |  __  | / .'`\ \[ \ [  ]/ .'`\ \
-     _| |  | |_| \__. | \ '/ / | \__. |
-    |____||____|'.__.'[\_:  /   '.__.'
-                       \__.'
-      Welcome to the Hoyo Libraries
-  Github:https://github.com/joesdu/Hoyo
-
-```
+﻿#### EasilyNET.DependencyInjection
 
 自动注入模块,参考 ABP 的代码实现.
 
 ##### 如何使用
 
-- 使用 Nuget 包管理工具添加依赖包 Hoyo.AutoDependencyInjectionModule
+- 使用 Nuget 包管理工具添加依赖包 EasilyNET.DependencyInjection
 - 等待下载完成和同意开源协议后,即可使用本库.
 - a.使用特性注入服务
 
@@ -153,5 +139,3 @@ app.MapControllers();
 
 app.Run();
 ```
-
-- 使用详情可以参考本项目[example.net7.api](https://github.com/joesdu/Hoyo)
