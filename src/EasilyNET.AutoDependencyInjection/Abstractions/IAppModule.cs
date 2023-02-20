@@ -1,6 +1,6 @@
-﻿using EasilyNET.DependencyInjection.Contexts;
+﻿using EasilyNET.AutoDependencyInjection.Contexts;
 
-namespace EasilyNET.DependencyInjection.Abstractions;
+namespace EasilyNET.AutoDependencyInjection.Abstractions;
 
 /// <summary>
 /// 定义模块加载接口

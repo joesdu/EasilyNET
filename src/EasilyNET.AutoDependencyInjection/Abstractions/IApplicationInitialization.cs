@@ -1,6 +1,6 @@
-﻿using EasilyNET.DependencyInjection.Contexts;
+﻿using EasilyNET.AutoDependencyInjection.Contexts;
 
-namespace EasilyNET.DependencyInjection.Abstractions;
+namespace EasilyNET.AutoDependencyInjection.Abstractions;
 
 /// <summary>
 /// 应用初始化接口

@@ -1,12 +1,12 @@
-﻿using EasilyNET.DependencyInjection.Abstractions;
-using EasilyNET.DependencyInjection.Modules;
+﻿using EasilyNET.AutoDependencyInjection.Abstractions;
+using EasilyNET.AutoDependencyInjection.Modules;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.DependencyInjection.Extensions;
+namespace EasilyNET.AutoDependencyInjection.Extensions;
 /// <summary>
 /// 应用模块扩展.
 /// </summary>

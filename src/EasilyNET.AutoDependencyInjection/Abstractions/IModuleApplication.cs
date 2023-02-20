@@ -2,7 +2,7 @@
 
 // ReSharper disable UnusedMemberInSuper.Global
 
-namespace EasilyNET.DependencyInjection.Abstractions;
+namespace EasilyNET.AutoDependencyInjection.Abstractions;
 /// <summary>
 /// 模块化应用
 /// </summary>

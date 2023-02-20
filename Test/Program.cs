@@ -1,5 +1,5 @@
-using EasilyNET.DependencyInjection.Extensions;
-using example.api;
+using EasilyNET.AutoDependencyInjection.Extensions;
+using Test;
 
 var builder = WebApplication.CreateBuilder(args);
 

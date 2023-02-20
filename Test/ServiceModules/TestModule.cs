@@ -1,4 +1,4 @@
-using EasilyNET.DependencyInjection.Abstractions;
+using EasilyNET.AutoDependencyInjection.Abstractions;
 
 namespace Test.ServiceModules;
 

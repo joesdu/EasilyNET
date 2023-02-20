@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
-namespace EasilyNET.DependencyInjection.Contexts;
+namespace EasilyNET.AutoDependencyInjection.Contexts;
 
 /// <summary>
 /// 自定义配置服务上下文

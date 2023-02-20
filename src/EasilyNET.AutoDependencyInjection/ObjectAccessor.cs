@@ -1,6 +1,6 @@
-﻿using EasilyNET.DependencyInjection.Abstractions;
+﻿using EasilyNET.AutoDependencyInjection.Abstractions;
 
-namespace EasilyNET.DependencyInjection;
+namespace EasilyNET.AutoDependencyInjection;
 /// <summary>
 /// 对象存取器
 /// </summary>

@@ -1,14 +1,14 @@
-﻿using EasilyNET.DependencyInjection.Abstractions;
-using EasilyNET.DependencyInjection.Attributes;
-using EasilyNET.DependencyInjection.Contexts;
-using EasilyNET.DependencyInjection.Extensions;
+﻿using EasilyNET.AutoDependencyInjection.Abstractions;
+using EasilyNET.AutoDependencyInjection.Attributes;
+using EasilyNET.AutoDependencyInjection.Contexts;
+using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.DependencyInjection.Modules;
+namespace EasilyNET.AutoDependencyInjection.Modules;
 
 /// <summary>
 /// 自动注入模块，继承与AppModuleBase类进行实现
