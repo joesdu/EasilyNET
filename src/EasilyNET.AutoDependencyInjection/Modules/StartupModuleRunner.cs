@@ -1,8 +1,8 @@
-﻿using EasilyNET.DependencyInjection.Abstractions;
-using EasilyNET.DependencyInjection.Contexts;
+﻿using EasilyNET.AutoDependencyInjection.Abstractions;
+using EasilyNET.AutoDependencyInjection.Contexts;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EasilyNET.DependencyInjection.Modules;
+namespace EasilyNET.AutoDependencyInjection.Modules;
 /// <summary>
 /// 启动模块运行器
 /// </summary>

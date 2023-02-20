@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
-namespace EasilyNET.DependencyInjection.Abstractions;
+namespace EasilyNET.AutoDependencyInjection.Abstractions;
 
 /// <summary>
 /// 模块运行器

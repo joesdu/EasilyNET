@@ -1,6 +1,6 @@
-﻿using EasilyNET.DependencyInjection.Abstractions;
+﻿using EasilyNET.AutoDependencyInjection.Abstractions;
 
-namespace EasilyNET.DependencyInjection.Contexts;
+namespace EasilyNET.AutoDependencyInjection.Contexts;
 
 /// <summary>
 /// 自定义应用上下文

@@ -5,9 +5,9 @@ VisualStudioVersion = 17.5.33402.96
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{1EA5CB17-A582-4817-8D06-39D50D65419F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.DependencyInjection", "src\EasilyNET.AutoDependencyInjection\EasilyNET.DependencyInjection.csproj", "{B6DFBBBD-4B4F-4AE2-8D65-4B9F51FB5CA2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.AutoDependencyInjection", "src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj", "{B6DFBBBD-4B4F-4AE2-8D65-4B9F51FB5CA2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{BBA1C4B3-FE2F-4B7C-BDEB-7D2A5D09E3BF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test", "Test\Test.csproj", "{BBA1C4B3-FE2F-4B7C-BDEB-7D2A5D09E3BF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

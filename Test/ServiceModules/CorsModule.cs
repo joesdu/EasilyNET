@@ -1,8 +1,8 @@
-﻿using EasilyNET.DependencyInjection.Contexts;
-using EasilyNET.DependencyInjection.Extensions;
-using EasilyNET.DependencyInjection.Modules;
+﻿using EasilyNET.AutoDependencyInjection.Contexts;
+using EasilyNET.AutoDependencyInjection.Extensions;
+using EasilyNET.AutoDependencyInjection.Modules;
 
-namespace example.api;
+namespace Test;
 
 /// <summary>
 /// 配置跨域服务及中间件

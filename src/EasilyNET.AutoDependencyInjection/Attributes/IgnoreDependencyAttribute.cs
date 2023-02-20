@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.DependencyInjection.Attributes;
+﻿namespace EasilyNET.AutoDependencyInjection.Attributes;
 
 /// <summary>
 /// 配置此特性将忽略依赖注入自动映射

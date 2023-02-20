@@ -1,11 +1,11 @@
-﻿using EasilyNET.DependencyInjection.Abstractions;
+﻿using EasilyNET.AutoDependencyInjection.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
 // ReSharper disable UnusedMember.Global
 
-namespace EasilyNET.DependencyInjection.Extensions;
+namespace EasilyNET.AutoDependencyInjection.Extensions;
 /// <summary>
 /// IServiceCollection扩展
 /// </summary>

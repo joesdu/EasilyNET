@@ -1,4 +1,4 @@
-﻿#### EasilyNET.DependencyInjection
+﻿#### EasilyNET.AutoDependencyInjection
 
 自动注入模块,参考 ABP 的代码实现.
 

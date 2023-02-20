@@ -1,11 +1,11 @@
-﻿using EasilyNET.DependencyInjection.Attributes;
-using EasilyNET.DependencyInjection.Contexts;
-using EasilyNET.DependencyInjection.Extensions;
-using EasilyNET.DependencyInjection.Modules;
+﻿using EasilyNET.AutoDependencyInjection.Attributes;
+using EasilyNET.AutoDependencyInjection.Contexts;
+using EasilyNET.AutoDependencyInjection.Extensions;
+using EasilyNET.AutoDependencyInjection.Modules;
 
 // ReSharper disable ClassNeverInstantiated.Global
 
-namespace example.api;
+namespace Test;
 
 /**
  * 要实现自动注入,一定要在这个地方添加,由于中间件的注册顺序会对程序产生巨大影响,因此请注意模块的注入顺序,服务配置的顺序无所谓.

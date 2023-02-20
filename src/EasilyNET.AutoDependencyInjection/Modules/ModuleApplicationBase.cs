@@ -1,10 +1,10 @@
-﻿using EasilyNET.DependencyInjection.Abstractions;
-using EasilyNET.DependencyInjection.Extensions;
+﻿using EasilyNET.AutoDependencyInjection.Abstractions;
+using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq.Expressions;
 
-namespace EasilyNET.DependencyInjection.Modules;
+namespace EasilyNET.AutoDependencyInjection.Modules;
 /// <summary>
 /// 模块应用基础
 /// </summary>

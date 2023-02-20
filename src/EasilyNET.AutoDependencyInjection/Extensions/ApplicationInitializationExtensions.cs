@@ -1,9 +1,9 @@
-﻿using EasilyNET.DependencyInjection.Abstractions;
-using EasilyNET.DependencyInjection.Contexts;
+﻿using EasilyNET.AutoDependencyInjection.Abstractions;
+using EasilyNET.AutoDependencyInjection.Contexts;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EasilyNET.DependencyInjection.Extensions;
+namespace EasilyNET.AutoDependencyInjection.Extensions;
 /// <summary>
 /// ApplicationInitialization扩展
 /// </summary>

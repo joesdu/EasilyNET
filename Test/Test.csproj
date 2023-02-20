@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\EasilyNET.AutoDependencyInjection\EasilyNET.DependencyInjection.csproj" />
+    <ProjectReference Include="..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
   </ItemGroup>
 
 </Project>
