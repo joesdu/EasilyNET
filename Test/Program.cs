@@ -11,7 +11,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Add services to the container.
-// 自动注入服务模块
+// 鑷姩娉ㄥ叆鏈嶅姟妯″潡
 builder.Services.AddApplication<AppWebModule>();
 
 var app = builder.Build();
@@ -22,7 +22,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-// 添加自动化注入的一些中间件.
+
+// 娣诲姞鑷姩鍖栨敞鍏ョ殑涓�浜涗腑闂翠欢.
 app.InitializeApplication();
 
 app.MapControllers();

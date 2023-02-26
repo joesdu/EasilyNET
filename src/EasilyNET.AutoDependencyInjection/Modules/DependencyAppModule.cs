@@ -1,10 +1,9 @@
-﻿using EasilyNET.AutoDependencyInjection.Abstractions;
+﻿using System.Reflection;
+using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Attributes;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Extensions;
-using EasilyNET.Extensions;
 using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
 
 // ReSharper disable UnusedType.Global
 
@@ -25,14 +24,15 @@ public sealed class DependencyAppModule : AppModule
         var services = context.Services;
         AddAutoInjection(services);
     }
+
     /// <summary>
     /// 添加自动注入
     /// </summary>
     /// <param name="services"></param>
     private static void AddAutoInjection(IServiceCollection services)
     {
-        var baseTypes = new[] { typeof(IScopedDependency), typeof(ITransientDependency), typeof(ISingletonDependency) };
-        var types = AssemblyHelper.FindTypes(type => (type is { IsClass: true, IsAbstract: false } && baseTypes.Any(b => b.IsAssignableFrom(type))) || type.GetCustomAttribute<DependencyInjectionAttribute>() is not null);
+        var baseTypes = new[] {typeof(IScopedDependency), typeof(ITransientDependency), typeof(ISingletonDependency)};
+        var types = AssemblyHelper.FindTypes(type => (type is {IsClass: true, IsAbstract: false} && baseTypes.Any(b => b.IsAssignableFrom(type))) || type.GetCustomAttribute<DependencyInjectionAttribute>() is not null);
         foreach (var implementedInterType in types)
         {
             var attr = implementedInterType.GetCustomAttribute<DependencyInjectionAttribute>();
@@ -45,16 +45,13 @@ public sealed class DependencyAppModule : AppModule
                 services.Add(new(implementedInterType, implementedInterType, lifetime.Value));
                 continue;
             }
-            if (attr?.AddSelf is true)
-            {
-                services.Add(new(implementedInterType, implementedInterType, lifetime.Value));
-            }
-            foreach (var serviceType in serviceTypes.Where(o => !o.HasAttribute<IgnoreDependencyAttribute>()))
-            {
-                services.Add(new(serviceType, implementedInterType, lifetime.Value));
-            }
+
+            if (attr?.AddSelf is true) services.Add(new(implementedInterType, implementedInterType, lifetime.Value));
+
+            foreach (var serviceType in serviceTypes.Where(o => !o.HasAttribute<IgnoreDependencyAttribute>())) services.Add(new(serviceType, implementedInterType, lifetime.Value));
         }
     }
+
     /// <summary>
     /// 获取服务生命周期
     /// </summary>
@@ -67,11 +64,17 @@ public sealed class DependencyAppModule : AppModule
             ? ServiceLifetime.Scoped
             : typeof(ITransientDependency).IsAssignableFrom(type)
                 ? ServiceLifetime.Transient
-                : typeof(ISingletonDependency).IsAssignableFrom(type) ? ServiceLifetime.Singleton : null);
+                : typeof(ISingletonDependency).IsAssignableFrom(type)
+                    ? ServiceLifetime.Singleton
+                    : null);
     }
+
     /// <summary>
     /// 应用初始化,通常用来注册中间件.
     /// </summary>
     /// <param name="context"></param>
-    public override void ApplicationInitialization(ApplicationContext context) => context.GetApplicationBuilder();
+    public override void ApplicationInitialization(ApplicationContext context)
+    {
+        context.GetApplicationBuilder();
+    }
 }

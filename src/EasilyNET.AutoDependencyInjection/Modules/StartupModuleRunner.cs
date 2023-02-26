@@ -3,6 +3,7 @@ using EasilyNET.AutoDependencyInjection.Contexts;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EasilyNET.AutoDependencyInjection.Modules;
+
 /// <summary>
 /// 启动模块运行器
 /// </summary>
@@ -32,6 +33,7 @@ internal class StartupModuleRunner : ModuleApplicationBase, IStartupModuleRunner
             config.ConfigureServices(context);
         }
     }
+
     /// <summary>
     /// 初始化
     /// </summary>
@@ -41,21 +43,16 @@ internal class StartupModuleRunner : ModuleApplicationBase, IStartupModuleRunner
         SetServiceProvider(service);
         using var scope = ServiceProvider?.CreateScope();
         var ctx = new ApplicationContext(scope?.ServiceProvider);
-        foreach (var cfg in Modules)
-        {
-            cfg.ApplicationInitialization(ctx);
-        }
+        foreach (var cfg in Modules) cfg.ApplicationInitialization(ctx);
     }
+
     /// <summary>
     /// Dispose
     /// </summary>
     public new void Dispose()
     {
         base.Dispose();
-        if (ServiceProvider is IDisposable disposableServiceProvider)
-        {
-            disposableServiceProvider.Dispose();
-        }
+        if (ServiceProvider is IDisposable disposableServiceProvider) disposableServiceProvider.Dispose();
         GC.SuppressFinalize(this);
     }
 }

@@ -12,6 +12,7 @@ internal interface IStartupModuleRunner : IModuleApplication
     /// </summary>
     /// <param name="services"></param>
     void ConfigureServices(IServiceCollection services);
+
     /// <summary>
     /// 初始化
     /// </summary>

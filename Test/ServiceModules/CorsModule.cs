@@ -14,6 +14,7 @@ public class CorsModule : AppModule
         // 使模块在自动注入的时候忽略.
         Enable = !false;
     }
+
     /// <summary>
     /// 注册和配置服务
     /// </summary>
@@ -24,6 +25,7 @@ public class CorsModule : AppModule
         var allow = config["AllowedHosts"] ?? "*";
         _ = context.Services.AddCors(c => c.AddPolicy("AllowedHosts", s => s.WithOrigins(allow.Split(",")).AllowAnyMethod().AllowAnyHeader()));
     }
+
     /// <summary>
     /// 注册中间件
     /// </summary>

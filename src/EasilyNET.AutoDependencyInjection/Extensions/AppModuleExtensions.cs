@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 // ReSharper disable UnusedType.Global
 
 namespace EasilyNET.AutoDependencyInjection.Extensions;
+
 /// <summary>
 /// 应用模块扩展.
 /// </summary>
@@ -28,6 +29,7 @@ public static class AppModuleExtensions
         runner.ConfigureServices(services);
         return services;
     }
+
     /// <summary>
     /// 初始化应用
     /// </summary>

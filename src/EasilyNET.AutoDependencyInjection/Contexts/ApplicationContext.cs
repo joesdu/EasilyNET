@@ -16,6 +16,7 @@ public sealed class ApplicationContext : IServiceProviderAccessor
     {
         ServiceProvider = serviceProvider ?? throw new ArgumentNullException($"参数“{nameof(serviceProvider)}”不能为空引用");
     }
+
     /// <summary>
     /// IServiceProvider
     /// </summary>
