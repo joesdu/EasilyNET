@@ -35,12 +35,12 @@ public class AppModule : IAppModule
     {
         moduleType ??= GetType();
         var dependedTypes = moduleType.GetCustomAttributes().OfType<IDependedTypesProvider>().ToArray();
-        if (!dependedTypes.Any()) return Array.Empty<Type>();
+        if (dependedTypes.Length == 0) return Array.Empty<Type>();
         List<Type> dependList = new();
         foreach (var dependedType in dependedTypes)
         {
             var depends = dependedType.GetDependedTypes().ToArray();
-            if (!depends.Any()) continue;
+            if (depends.Length == 0) continue;
             dependList.AddRange(depends);
             foreach (var type in depends) dependList.AddRange(GetDependedTypes(type));
         }

@@ -21,11 +21,15 @@ public static class AppModuleExtensions
     /// <returns></returns>
     public static IServiceCollection AddApplication<T>(this IServiceCollection services) where T : AppModule
     {
+#if NETSTANDARD2_1
         if (services is null) throw new ArgumentNullException(nameof(services));
+#else
+        ArgumentNullException.ThrowIfNull(services);
+#endif
         var obj = new ObjectAccessor<IApplicationBuilder>();
         services.Add(ServiceDescriptor.Singleton(typeof(ObjectAccessor<IApplicationBuilder>), obj));
         services.Add(ServiceDescriptor.Singleton(typeof(IObjectAccessor<IApplicationBuilder>), obj));
-        IStartupModuleRunner runner = new StartupModuleRunner(typeof(T), services);
+        var runner = new StartupModuleRunner(typeof(T), services);
         runner.ConfigureServices(services);
         return services;
     }
