@@ -46,15 +46,9 @@ public sealed class DependencyAppModule : AppModule
                 continue;
             }
 
-            if (attr?.AddSelf is true)
-            {
-                services.Add(new(implementedInterType, implementedInterType, lifetime.Value));
-            }
+            if (attr?.AddSelf is true) services.Add(new(implementedInterType, implementedInterType, lifetime.Value));
 
-            foreach (var serviceType in serviceTypes.Where(o => !o.HasAttribute<IgnoreDependencyAttribute>()))
-            {
-                services.Add(new(serviceType, implementedInterType, lifetime.Value));
-            }
+            foreach (var serviceType in serviceTypes.Where(o => !o.HasAttribute<IgnoreDependencyAttribute>())) services.Add(new(serviceType, implementedInterType, lifetime.Value));
         }
     }
 
@@ -79,5 +73,8 @@ public sealed class DependencyAppModule : AppModule
     /// 应用初始化,通常用来注册中间件.
     /// </summary>
     /// <param name="context"></param>
-    public override void ApplicationInitialization(ApplicationContext context) => context.GetApplicationBuilder();
+    public override void ApplicationInitialization(ApplicationContext context)
+    {
+        context.GetApplicationBuilder();
+    }
 }

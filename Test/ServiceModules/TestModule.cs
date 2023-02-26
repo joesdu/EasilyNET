@@ -15,10 +15,10 @@ public class Test : ITest, IScopedDependency
         Console.WriteLine("Test");
     }
 }
+
 /// <summary>
 /// 测试
 /// </summary>
-
 public interface ITest
 {
     /// <summary>

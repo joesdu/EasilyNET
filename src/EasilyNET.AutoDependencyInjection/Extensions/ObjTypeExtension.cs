@@ -2,11 +2,13 @@
 
 namespace EasilyNET.AutoDependencyInjection.Extensions;
 
-/// <summary>一些扩展方法,用来实现一些类型的检测和Object数据类型的扩展.</summary>
+/// <summary>
+/// 一些扩展方法,用来实现一些类型的检测和Object数据类型的扩展.
+/// </summary>
 internal static class ObjTypeExtension
 {
     /// <summary>
-    ///     判断特性相应是否存在
+    /// 判断特性相应是否存在
     /// </summary>
     /// <typeparam name="T">动态类型要判断的特性</typeparam>
     /// <param name="memberInfo"></param>
@@ -19,7 +21,7 @@ internal static class ObjTypeExtension
     }
 
     /// <summary>
-    ///     获取注册类型
+    /// 获取注册类型
     /// </summary>
     /// <param name="interfaceType">接口类型.</param>
     /// <param name="typeInfo">对象类型</param>
@@ -34,7 +36,7 @@ internal static class ObjTypeExtension
     }
 
     /// <summary>
-    ///     具有相匹配的通用类型
+    /// 具有相匹配的通用类型
     /// </summary>
     /// <param name="interfaceType">接口类型</param>
     /// <param name="typeInfo">对象类型</param>

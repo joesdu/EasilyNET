@@ -1,8 +1,9 @@
-﻿using EasilyNET.AutoDependencyInjection.Abstractions;
+﻿using System.Reflection;
+using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Contexts;
-using System.Reflection;
 
 namespace EasilyNET.AutoDependencyInjection.Modules;
+
 /// <summary>
 /// AppModule
 /// </summary>
@@ -12,16 +13,19 @@ public class AppModule : IAppModule
     /// 是否启用,默认为true
     /// </summary>
     public bool Enable { get; set; } = true;
+
     /// <summary>
     /// 配置服务
     /// </summary>
     /// <param name="context"></param>
     public virtual void ConfigureServices(ConfigureServicesContext context) { }
+
     /// <summary>
     /// 应用程序初始化
     /// </summary>
     /// <param name="context"></param>
     public virtual void ApplicationInitialization(ApplicationContext context) { }
+
     /// <summary>
     /// 获取模块程序集
     /// </summary>
@@ -38,13 +42,12 @@ public class AppModule : IAppModule
             var depends = dependedType.GetDependedTypes().ToArray();
             if (!depends.Any()) continue;
             dependList.AddRange(depends);
-            foreach (var type in depends)
-            {
-                dependList.AddRange(collection: GetDependedTypes(type));
-            }
+            foreach (var type in depends) dependList.AddRange(GetDependedTypes(type));
         }
+
         return dependList.Distinct();
     }
+
     /// <summary>
     /// 判断是否是模块
     /// </summary>
@@ -53,6 +56,6 @@ public class AppModule : IAppModule
     public static bool IsAppModule(Type type)
     {
         var typeInfo = type.GetTypeInfo();
-        return typeInfo is { IsClass: true, IsAbstract: false, IsGenericType: false } && typeof(IAppModule).GetTypeInfo().IsAssignableFrom(type);
+        return typeInfo is {IsClass: true, IsAbstract: false, IsGenericType: false} && typeof(IAppModule).GetTypeInfo().IsAssignableFrom(type);
     }
 }

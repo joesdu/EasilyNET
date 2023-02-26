@@ -54,7 +54,10 @@ internal class ModuleApplicationBase : IModuleApplication
     /// <summary>
     /// Dispose
     /// </summary>
-    public virtual void Dispose() => GC.SuppressFinalize(this);
+    public virtual void Dispose()
+    {
+        GC.SuppressFinalize(this);
+    }
 
     /// <summary>
     /// 获取所有启用的模块

@@ -14,14 +14,22 @@ public sealed class DependsOnAttribute : Attribute, IDependedTypesProvider
     /// 构造函数
     /// </summary>
     /// <param name="dependedTypes"></param>
-    public DependsOnAttribute(params Type[] dependedTypes) => DependedTypes = dependedTypes;
+    public DependsOnAttribute(params Type[] dependedTypes)
+    {
+        DependedTypes = dependedTypes;
+    }
+
     /// <summary>
     /// 依赖类型集合
     /// </summary>
     private Type[] DependedTypes { get; }
+
     /// <summary>
     /// 得到依赖类型集合
     /// </summary>
     /// <returns></returns>
-    public IEnumerable<Type> GetDependedTypes() => DependedTypes;
+    public IEnumerable<Type> GetDependedTypes()
+    {
+        return DependedTypes;
+    }
 }
