@@ -40,7 +40,7 @@ public sealed class DependencyAppModule : AppModule
             var serviceTypes = typeInfo.ImplementedInterfaces.Where(x => x.HasMatchingGenericArity(typeInfo) && !x.HasAttribute<IgnoreDependencyAttribute>() && x != typeof(IDisposable)).Select(t => t.GetRegistrationType(typeInfo)).ToList();
             var lifetime = GetServiceLifetime(implementedInterType);
             if (lifetime is null) break;
-            if (!serviceTypes.Any())
+            if (serviceTypes.Count == 0)
             {
                 services.Add(new(implementedInterType, implementedInterType, lifetime.Value));
                 continue;
