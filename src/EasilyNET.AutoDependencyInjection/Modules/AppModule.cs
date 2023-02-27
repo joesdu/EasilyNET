@@ -1,6 +1,6 @@
-﻿using System.Reflection;
-using EasilyNET.AutoDependencyInjection.Abstractions;
+﻿using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Contexts;
+using System.Reflection;
 
 namespace EasilyNET.AutoDependencyInjection.Modules;
 
@@ -44,7 +44,6 @@ public class AppModule : IAppModule
             dependList.AddRange(depends);
             foreach (var type in depends) dependList.AddRange(GetDependedTypes(type));
         }
-
         return dependList.Distinct();
     }
 
@@ -56,6 +55,6 @@ public class AppModule : IAppModule
     public static bool IsAppModule(Type type)
     {
         var typeInfo = type.GetTypeInfo();
-        return typeInfo is {IsClass: true, IsAbstract: false, IsGenericType: false} && typeof(IAppModule).GetTypeInfo().IsAssignableFrom(type);
+        return typeInfo is { IsClass: true, IsAbstract: false, IsGenericType: false } && typeof(IAppModule).GetTypeInfo().IsAssignableFrom(type);
     }
 }

@@ -15,10 +15,8 @@ internal static class ObjTypeExtension
     /// <param name="inherit"></param>
     /// <returns>如果存在还在返回true，否则返回false</returns>
     internal static bool HasAttribute<T>(this ICustomAttributeProvider memberInfo, bool inherit = true)
-        where T : Attribute
-    {
-        return memberInfo.IsDefined(typeof(T), inherit);
-    }
+        where T : Attribute =>
+        memberInfo.IsDefined(typeof(T), inherit);
 
     /// <summary>
     /// 获取注册类型
@@ -31,8 +29,8 @@ internal static class ObjTypeExtension
         if (!typeInfo.IsGenericTypeDefinition) return interfaceType;
         var interfaceTypeInfo = interfaceType.GetTypeInfo();
         return interfaceTypeInfo.IsGenericType
-            ? interfaceType.GetGenericTypeDefinition()
-            : interfaceType;
+                   ? interfaceType.GetGenericTypeDefinition()
+                   : interfaceType;
     }
 
     /// <summary>

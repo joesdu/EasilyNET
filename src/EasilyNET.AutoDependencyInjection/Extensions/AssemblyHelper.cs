@@ -1,5 +1,5 @@
-﻿using System.Reflection;
-using Microsoft.Extensions.DependencyModel;
+﻿using Microsoft.Extensions.DependencyModel;
+using System.Reflection;
 
 // ReSharper disable UnusedMember.Global
 
@@ -10,7 +10,7 @@ namespace EasilyNET.AutoDependencyInjection.Extensions;
 /// </summary>
 internal static class AssemblyHelper
 {
-    private static readonly string[] Filters = {"dotnet-", "Microsoft.", "mscorlib", "netstandard", "System", "Windows"};
+    private static readonly string[] Filters = { "dotnet-", "Microsoft.", "mscorlib", "netstandard", "System", "Windows" };
     private static readonly IEnumerable<Type>? _allTypes;
 
     /// <summary>
@@ -25,8 +25,5 @@ internal static class AssemblyHelper
     /// <summary>
     /// 查找指定条件的类型
     /// </summary>
-    internal static IEnumerable<Type> FindTypes(Func<Type, bool> predicate)
-    {
-        return _allTypes!.Where(predicate).ToArray();
-    }
+    internal static IEnumerable<Type> FindTypes(Func<Type, bool> predicate) => _allTypes!.Where(predicate).ToArray();
 }

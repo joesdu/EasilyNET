@@ -1,7 +1,7 @@
-﻿using System.Reflection;
-using EasilyNET.AutoDependencyInjection.Abstractions;
+﻿using EasilyNET.AutoDependencyInjection.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 
 // ReSharper disable UnusedMember.Global
 
@@ -18,20 +18,14 @@ public static class ServiceCollectionExtension
     /// <typeparam name="T"></typeparam>
     /// <param name="services"></param>
     /// <returns></returns>
-    public static T? GetService<T>(this IServiceCollection services)
-    {
-        return services.BuildServiceProvider().GetService<T>();
-    }
+    public static T? GetService<T>(this IServiceCollection services) => services.BuildServiceProvider().GetService<T>();
 
     /// <summary>
     /// 获取IServiceCollection服务
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
-    public static IConfiguration GetConfiguration(this IServiceCollection services)
-    {
-        return services.GetBuildService<IConfiguration>() ?? throw new("未找到IConfiguration服务");
-    }
+    public static IConfiguration GetConfiguration(this IServiceCollection services) => services.GetBuildService<IConfiguration>() ?? throw new("未找到IConfiguration服务");
 
     /// <summary>
     /// 得到注入服务
@@ -52,10 +46,10 @@ public static class ServiceCollectionExtension
     {
         var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(T) && d.Lifetime == ServiceLifetime.Singleton);
         return descriptor?.ImplementationInstance is not null
-            ? (T) descriptor.ImplementationInstance
-            : descriptor?.ImplementationFactory is not null
-                ? (T) descriptor.ImplementationFactory.Invoke(null!)
-                : default;
+                   ? (T)descriptor.ImplementationInstance
+                   : descriptor?.ImplementationFactory is not null
+                       ? (T)descriptor.ImplementationFactory.Invoke(null!)
+                       : default;
     }
 
     /// <summary>
@@ -80,8 +74,8 @@ public static class ServiceCollectionExtension
     internal static ObjectAccessor<T> TryAddObjectAccessor<T>(this IServiceCollection services)
     {
         return services.Any(s => s.ServiceType == typeof(ObjectAccessor<T>))
-            ? services.GetSingletonInstance<ObjectAccessor<T>>()
-            : services.AddObjectAccessor<T>();
+                   ? services.GetSingletonInstance<ObjectAccessor<T>>()
+                   : services.AddObjectAccessor<T>();
     }
 
     /// <summary>
@@ -90,10 +84,7 @@ public static class ServiceCollectionExtension
     /// <typeparam name="T"></typeparam>
     /// <param name="services"></param>
     /// <returns></returns>
-    private static ObjectAccessor<T> AddObjectAccessor<T>(this IServiceCollection services)
-    {
-        return services.AddObjectAccessor(new ObjectAccessor<T>());
-    }
+    private static ObjectAccessor<T> AddObjectAccessor<T>(this IServiceCollection services) => services.AddObjectAccessor(new ObjectAccessor<T>());
 
     /// <summary>
     /// 添加对象适配器
@@ -121,19 +112,18 @@ public static class ServiceCollectionExtension
         foreach (var service in services)
         {
             var factoryInterface = service.ImplementationInstance?.GetType()
-                .GetTypeInfo()
-                .GetInterfaces()
-                .FirstOrDefault(i => i.GetTypeInfo().IsGenericType && i.GetGenericTypeDefinition() == typeof(IServiceProviderFactory<>));
+                                          .GetTypeInfo()
+                                          .GetInterfaces()
+                                          .FirstOrDefault(i => i.GetTypeInfo().IsGenericType && i.GetGenericTypeDefinition() == typeof(IServiceProviderFactory<>));
             if (factoryInterface is null) continue;
             var containerBuilderType = factoryInterface.GenericTypeArguments[0];
-            return (IServiceProvider) typeof(ServiceCollectionExtension)
-                .GetTypeInfo()
-                .GetMethods()
-                .Single(m => m is {Name: nameof(BuildServiceProviderFromFactory), IsGenericMethod: true})
-                .MakeGenericMethod(containerBuilderType)
-                .Invoke(null, new object[] {services, null!})!;
+            return (IServiceProvider)typeof(ServiceCollectionExtension)
+                                     .GetTypeInfo()
+                                     .GetMethods()
+                                     .Single(m => m is { Name: nameof(BuildServiceProviderFromFactory), IsGenericMethod: true })
+                                     .MakeGenericMethod(containerBuilderType)
+                                     .Invoke(null, new object[] { services, null! })!;
         }
-
         return services.BuildServiceProvider();
     }
 }

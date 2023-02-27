@@ -1,7 +1,7 @@
-﻿using System.Linq.Expressions;
-using EasilyNET.AutoDependencyInjection.Abstractions;
+﻿using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyInjection;
+using System.Linq.Expressions;
 
 namespace EasilyNET.AutoDependencyInjection.Modules;
 
@@ -97,7 +97,6 @@ internal class ModuleApplicationBase : IModuleApplication
             if (dependModule is null) continue;
             if (!modules.Contains(dependModule)) modules.Add(dependModule);
         }
-
         return modules;
     }
 
@@ -110,7 +109,7 @@ internal class ModuleApplicationBase : IModuleApplication
     /// <returns></returns>
     private static IAppModule? CreateModule(IServiceCollection services, Type moduleType)
     {
-        var module = (IAppModule) Expression.Lambda(Expression.New(moduleType)).Compile().DynamicInvoke()! ?? throw new ArgumentNullException(nameof(moduleType));
+        var module = (IAppModule)Expression.Lambda(Expression.New(moduleType)).Compile().DynamicInvoke()! ?? throw new ArgumentNullException(nameof(moduleType));
         if (!module.Enable) return null;
         _ = services.AddSingleton(moduleType, module);
         return module;
