@@ -16,8 +16,5 @@ public static class ApplicationInitializationExtensions
     /// <param name="applicationContext"></param>
     /// <returns></returns>
     // ReSharper disable once UnusedMethodReturnValue.Global
-    public static IApplicationBuilder GetApplicationBuilder(this ApplicationContext applicationContext)
-    {
-        return applicationContext.ServiceProvider.GetRequiredService<IObjectAccessor<IApplicationBuilder>>().Value!;
-    }
+    public static IApplicationBuilder GetApplicationBuilder(this ApplicationContext applicationContext) => applicationContext.ServiceProvider.GetRequiredService<IObjectAccessor<IApplicationBuilder>>().Value!;
 }

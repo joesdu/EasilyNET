@@ -28,8 +28,5 @@ public sealed class DependsOnAttribute : Attribute, IDependedTypesProvider
     /// 得到依赖类型集合
     /// </summary>
     /// <returns></returns>
-    public IEnumerable<Type> GetDependedTypes()
-    {
-        return DependedTypes;
-    }
+    public IEnumerable<Type> GetDependedTypes() => DependedTypes;
 }
