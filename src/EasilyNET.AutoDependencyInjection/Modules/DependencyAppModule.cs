@@ -32,12 +32,16 @@ public sealed class DependencyAppModule : AppModule
     private static void AddAutoInjection(IServiceCollection services)
     {
         var baseTypes = new[] {typeof(IScopedDependency), typeof(ITransientDependency), typeof(ISingletonDependency)};
-        var types = AssemblyHelper.FindTypes(type => (type is {IsClass: true, IsAbstract: false} && baseTypes.Any(b => b.IsAssignableFrom(type))) || type.GetCustomAttribute<DependencyInjectionAttribute>() is not null);
+        var types = AssemblyHelper.FindTypes(type =>
+            type is {IsClass: true, IsAbstract: false} && baseTypes.Any(b => b.IsAssignableFrom(type)) ||
+            type.GetCustomAttribute<DependencyInjectionAttribute>() is not null);
         foreach (var implementedInterType in types)
         {
             var attr = implementedInterType.GetCustomAttribute<DependencyInjectionAttribute>();
             var typeInfo = implementedInterType.GetTypeInfo();
-            var serviceTypes = typeInfo.ImplementedInterfaces.Where(x => x.HasMatchingGenericArity(typeInfo) && !x.HasAttribute<IgnoreDependencyAttribute>() && x != typeof(IDisposable)).Select(t => t.GetRegistrationType(typeInfo)).ToList();
+            var serviceTypes = typeInfo.ImplementedInterfaces
+                .Where(x => x.HasMatchingGenericArity(typeInfo) && !x.HasAttribute<IgnoreDependencyAttribute>() && x != typeof(IDisposable))
+                .Select(t => t.GetRegistrationType(typeInfo)).ToList();
             var lifetime = GetServiceLifetime(implementedInterType);
             if (lifetime is null) break;
             if (serviceTypes.Count == 0)
@@ -48,7 +52,8 @@ public sealed class DependencyAppModule : AppModule
 
             if (attr?.AddSelf is true) services.Add(new(implementedInterType, implementedInterType, lifetime.Value));
 
-            foreach (var serviceType in serviceTypes.Where(o => !o.HasAttribute<IgnoreDependencyAttribute>())) services.Add(new(serviceType, implementedInterType, lifetime.Value));
+            foreach (var serviceType in serviceTypes.Where(o => !o.HasAttribute<IgnoreDependencyAttribute>()))
+                services.Add(new(serviceType, implementedInterType, lifetime.Value));
         }
     }
 
@@ -60,13 +65,14 @@ public sealed class DependencyAppModule : AppModule
     private static ServiceLifetime? GetServiceLifetime(Type type)
     {
         var attr = type.GetCustomAttribute<DependencyInjectionAttribute>();
-        return attr?.Lifetime ?? (typeof(IScopedDependency).IsAssignableFrom(type)
-            ? ServiceLifetime.Scoped
-            : typeof(ITransientDependency).IsAssignableFrom(type)
-                ? ServiceLifetime.Transient
-                : typeof(ISingletonDependency).IsAssignableFrom(type)
-                    ? ServiceLifetime.Singleton
-                    : null);
+        return attr?.Lifetime ??
+            (typeof(IScopedDependency).IsAssignableFrom(type)
+                ? ServiceLifetime.Scoped
+                : typeof(ITransientDependency).IsAssignableFrom(type)
+                    ? ServiceLifetime.Transient
+                    : typeof(ISingletonDependency).IsAssignableFrom(type)
+                        ? ServiceLifetime.Singleton
+                        : null);
     }
 
     /// <summary>
