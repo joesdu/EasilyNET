@@ -24,7 +24,7 @@ jobs:
       - name: Push to NuGet
         env:
           NUGET_URL: https://api.nuget.org/v3/index.json
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ NUGET_EVN.NUGET_API_KEY }}
         run: ./Push.ps1
         shell: pwsh
       - name: Artifacts
