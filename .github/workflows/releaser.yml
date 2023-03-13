@@ -9,7 +9,8 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: ubuntu-latest
-    environment: NUGET_ENV
+    environment: 
+      name: NUGET_ENV
     steps:
       - name: Checkout
         uses: actions/checkout@v3.3.0
