@@ -5,7 +5,6 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <Authors>joesdu</Authors>
-        <LangVersion>preview</LangVersion>
         <RepositoryUrl>https://github.com/EasilyNET/EasilyNET.WebCore</RepositoryUrl>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.WebCore</PackageProjectUrl>
         <Description>实现统一接口返回,全局异常以及接口执行消耗时间等功能,以及添加一些Swagger的一些配置.</Description>
