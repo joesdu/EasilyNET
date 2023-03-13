@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>preview</LangVersion>
+        <Authors>joesdu</Authors>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Tools</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/EasilyNET/EasilyNET.Tools</RepositoryUrl>
+        <Description>一些基础库,如数据类型,一些公共静态方法,工具函数.包含数组,日期,字符串,中国农历,拼音,身份证验证,Ini文件操作等</Description>
+        <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include=".\README.md" Pack="true" PackagePath="" />
+        <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
+      <ProjectReference Include="..\EasilyNET.Extensions\EasilyNET.Extensions.csproj" />
+    </ItemGroup>
+
+</Project>

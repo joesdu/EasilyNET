@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0-preview.1.23112.2" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
+      <ProjectReference Include="..\..\src\EasilyNET.Extensions\EasilyNET.Extensions.csproj" />
+      <ProjectReference Include="..\..\src\EasilyNET.Mongo.ConsoleDebug\EasilyNET.Mongo.ConsoleDebug.csproj" />
+      <ProjectReference Include="..\..\src\EasilyNET.Mongo.Extension\EasilyNET.Mongo.Extension.csproj" />
+      <ProjectReference Include="..\..\src\EasilyNET.Mongo.GridFS\EasilyNET.Mongo.GridFS.csproj" />
+      <ProjectReference Include="..\..\src\EasilyNET.Mongo\EasilyNET.Mongo.csproj" />
+      <ProjectReference Include="..\..\src\EasilyNET.RabbitBus\EasilyNET.RabbitBus.csproj" />
+      <ProjectReference Include="..\..\src\EasilyNET.WebCore\EasilyNET.WebCore.csproj" />
+    </ItemGroup>
+
+    <!--<ItemGroup>
+      <ProjectReference Include="..\src\Core\EasilyNET.WebCore\EasilyNET.WebCore.csproj" />
+      <ProjectReference Include="..\src\Framework\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
+      <ProjectReference Include="..\src\Framework\EasilyNET.Extensions\EasilyNET.Extensions.csproj" />
+      <ProjectReference Include="..\src\Framework\EasilyNET.RabbitBus\EasilyNET.RabbitBus.csproj" />
+      <ProjectReference Include="..\src\Mongo\EasilyNET.Mongo.ConsoleDebug\EasilyNET.Mongo.ConsoleDebug.csproj" />
+      <ProjectReference Include="..\src\Mongo\EasilyNET.Mongo.Extension\EasilyNET.Mongo.Extension.csproj" />
+      <ProjectReference Include="..\src\Mongo\EasilyNET.Mongo.GridFS\EasilyNET.Mongo.GridFS.csproj" />
+      <ProjectReference Include="..\src\Mongo\EasilyNET.Mongo\EasilyNET.Mongo.csproj" />
+    </ItemGroup>-->
+
+</Project>

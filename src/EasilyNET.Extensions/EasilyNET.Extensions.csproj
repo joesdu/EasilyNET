@@ -4,24 +4,28 @@
         <TargetFrameworks>netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
         <LangVersion>preview</LangVersion>
         <Authors>joesdu</Authors>
-        <RepositoryUrl>https://github.com/EasilyNET/EasilyNET.AutoDependencyInjection</RepositoryUrl>
-        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection</PackageProjectUrl>
-        <Description>类似于ABP框架的自动模块注入,独立出来单独维护.</Description>
+        <RepositoryUrl>https://github.com/EasilyNET/EasilyNET.Extensions</RepositoryUrl>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Extensions</PackageProjectUrl>
+        <Description>用于扩展一些方法,增强基础类的功能</Description>
         <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
     </PropertyGroup>
+
     <ItemGroup>
         <None Include=".\README.md" Pack="true" PackagePath="" />
         <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
     </ItemGroup>
+
+    <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.1'">
+        <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
+    </ItemGroup>
+
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0-preview.1.23110.8" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0-preview.1.23110.8" />
         <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0-preview.1.23110.8" />
     </ItemGroup>
 

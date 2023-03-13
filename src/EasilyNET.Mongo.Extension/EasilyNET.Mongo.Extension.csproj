@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <LangVersion>preview</LangVersion>
+        <Nullable>enable</Nullable>
+        <Authors>joesdu</Authors>
+        <RepositoryUrl>https://github.com/EasilyNET/EasilyNET.Mongo</RepositoryUrl>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.Extension</PackageProjectUrl>
+        <Description>为MongoDB添加.Net 6+ Date/Time Only类型支持.</Description>
+        <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include=".\README.md" Pack="true" PackagePath="" />
+        <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0-preview.1.23110.8" />
+        <PackageReference Include="MongoDB.Bson" Version="2.19.0" />
+    </ItemGroup>
+
+</Project>
