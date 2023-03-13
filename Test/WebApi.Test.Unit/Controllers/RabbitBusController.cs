@@ -4,7 +4,7 @@ using WebApi.Test.Unit.Events;
 
 namespace WebApi.Test.Unit.Controllers;
 
-[ApiController, Route("[controller]")]
+[ApiController, Route("api/[controller]")]
 public class RabbitBusController : ControllerBase
 {
     private static readonly string[] Summaries = { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };

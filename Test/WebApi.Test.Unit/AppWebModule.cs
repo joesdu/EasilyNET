@@ -15,7 +15,7 @@ namespace WebApi.Test.Unit;
 [DependsOn(typeof(DependencyAppModule),
     typeof(CorsModule),
     typeof(ControllersModule),
-    typeof(EasilyNETMongoModule),
+    typeof(MongoModule),
     typeof(SwaggerModule))]
 public class AppWebModule : AppModule
 {

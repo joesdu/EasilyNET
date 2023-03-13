@@ -9,12 +9,6 @@ namespace WebApi.Test.Unit;
 /// </summary>
 public class CorsModule : AppModule
 {
-    private CorsModule()
-    {
-        // 使模块在自动注入的时候忽略.
-        Enable = !false;
-    }
-
     /// <summary>
     /// 注册和配置服务
     /// </summary>

@@ -12,7 +12,7 @@ namespace WebApi.Test.Unit;
 /// <summary>
 /// MongoDB驱动模块
 /// </summary>
-public class EasilyNETMongoModule : AppModule
+public class MongoModule : AppModule
 {
     /// <summary>
     /// 配置和注册服务
@@ -40,7 +40,7 @@ public class EasilyNETMongoModule : AppModule
         context.Services
                .AddMongoContext<DbContext>(new MongoClientSettings
                {
-                   Servers = new List<MongoServerAddress> { new("127.0.0.1", 27017) },
+                   Servers = new List<MongoServerAddress> { new("192.168.2.17", 27017) },
                    Credential = MongoCredential.CreateCredential("admin", "oneblogs", "&oneblogs789"),
                    // 新版驱动使用V3版本,有可能会出现一些Linq表达式客户端函数无法执行,需要调整代码,但是工作量太大了,所以可以先使用V2兼容.
                    LinqProvider = LinqProvider.V3
@@ -48,6 +48,7 @@ public class EasilyNETMongoModule : AppModule
                    //ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber())
                }, c =>
                {
+                   c.DatabaseName = "test";
                    c.Options = op =>
                    {
                        // 配置不需要将Id字段存储为ObjectID的类型.使用$unwind操作符的时候,ObjectId在转换上会有一些问题.
@@ -62,7 +63,7 @@ public class EasilyNETMongoModule : AppModule
                    // HoyoMongoParams.Options 中的 LinqProvider, ClusterBuilder
                    // 会覆盖 MongoClientSettings 中的 LinqProvider 和 ClusterConfigurator 的值,
                    // 所以使用MongoClientSettings注册服务时,可仅赋值其中一个
-                   c.LinqProvider = LinqProvider.V2;
+                   c.LinqProvider = LinqProvider.V3;
                    //c.ClusterBuilder = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber());
                    c.ClusterBuilder = cb => cb.Subscribe(new ActivityEventSubscriber());
                })

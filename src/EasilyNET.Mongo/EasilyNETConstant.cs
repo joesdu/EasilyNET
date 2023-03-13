@@ -13,5 +13,5 @@ internal static class EasilyNETConstant
     /// <summary>
     /// 默认数据库名称
     /// </summary>
-    internal const string DbName = "easily.net";
+    internal const string DbName = "easilynet";
 }

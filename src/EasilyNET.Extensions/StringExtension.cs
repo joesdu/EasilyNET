@@ -14,6 +14,167 @@ namespace EasilyNET.Extensions;
 /// </summary>
 public static class StringExtension
 {
+    #region 以特定字符串间隔的字符串转化为字符串集合
+
+    /// <summary>
+    /// 以特定字符间隔的字符串转化为字符串集合
+    /// </summary>
+    /// <param name="value">需要处理的字符串</param>
+    /// <param name="separator">分隔此实例中子字符串</param>
+    /// <returns>转化后的字符串集合，如果传入数组为null则返回空集合</returns>
+    // ReSharper disable once MemberCanBePrivate.Global
+    public static StringCollection ToStringCollection(this string value, string separator)
+    {
+        var col = new StringCollection();
+        if (string.IsNullOrEmpty(separator) || string.IsNullOrEmpty(value) || string.IsNullOrEmpty(value.Trim()))
+        {
+            return col;
+        }
+        var index = 0;
+        var pos = 0;
+        var len = separator.Length;
+        while (pos >= 0)
+        {
+            pos = value.IndexOf(separator, index, StringComparison.CurrentCultureIgnoreCase);
+            _ = pos >= 0 ? col.Add(value[index..pos]) : col.Add(value[index..]);
+            index = pos + len;
+        }
+        return col;
+    }
+
+    #endregion
+
+    #region 将字符串中的单词首字母大写或者小写
+
+    /// <summary>
+    /// 将字符串中的单词首字母大写或者小写
+    /// </summary>
+    /// <param name="value">单词</param>
+    /// <param name="lower">是否小写? 默认:true</param>
+    /// <returns></returns>
+    public static string ToTitleUpperCase(this string value, bool lower = true)
+    {
+        var regex = new Regex(@"\w+");
+        return regex.Replace(value,
+            delegate(Match m)
+            {
+                var str = m.ToString();
+                if (!char.IsLower(str[0])) return str;
+                var header = lower ? char.ToLower(str[0], CultureInfo.CurrentCulture) : char.ToUpper(str[0], CultureInfo.CurrentCulture);
+                return $"{header}{str[1..]}";
+            });
+    }
+
+    #endregion
+
+    #region 字符串插入指定分隔符
+
+    /// <summary>
+    /// 字符串插入指定分隔符
+    /// </summary>
+    /// <param name="text">字符串</param>
+    /// <param name="spacingString">分隔符</param>
+    /// <param name="spacingIndex">隔多少个字符插入分隔符</param>
+    /// <returns></returns>
+    public static string Spacing(this string text, string spacingString, int spacingIndex)
+    {
+        var sb = new StringBuilder(text);
+        for (var i = spacingIndex; i <= sb.Length; i += spacingIndex + 1)
+        {
+            if (i >= sb.Length) break;
+            _ = sb.Insert(i, spacingString);
+        }
+        return sb.ToString();
+    }
+
+    #endregion
+
+    #region 检查一个字符串是否是纯数字构成的，一般用于查询字符串参数的有效性验证
+
+    /// <summary>
+    /// 检查一个字符串是否是纯数字构成的,一般用于查询字符串参数的有效性验证
+    /// </summary>
+    /// <param name="value">需验证的字符串</param>
+    /// <returns>是否合法的bool值</returns>
+    public static bool IsNumber(this string value) => Validate(value, @"^\d+$");
+
+    #endregion
+
+    #region 验证一个字符串是否符合指定的正则表达式
+
+    /// <summary>
+    /// 快速验证一个字符串是否符合指定的正则表达式
+    /// </summary>
+    /// <param name="value">需验证的字符串</param>
+    /// <param name="express">正则表达式的内容</param>
+    /// <returns>是否合法的bool值</returns>
+    // ReSharper disable once MemberCanBePrivate.Global
+    public static bool Validate(this string value, string express)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        var myRegex = new Regex(express);
+        return myRegex.IsMatch(value);
+    }
+
+    #endregion
+
+    /// <summary>
+    /// 从字符串的开头得到一个字符串的子串 len参数不能大于给定字符串的长度
+    /// </summary>
+    /// <param name="str"></param>
+    /// <param name="len"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public static string Left(this string str, int len) => str.Length < len ? throw new ArgumentException("len参数不能大于给定字符串的长度") : str[..len];
+
+    /// <summary>
+    /// 从字符串的末尾得到一个字符串的子串 len参数不能大于给定字符串的长度
+    /// </summary>
+    /// <param name="str"></param>
+    /// <param name="len"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public static string Right(this string str, int len) => str.Length < len ? throw new ArgumentException("len参数不能大于给定字符串的长度") : str.Substring(str.Length - len, len);
+
+    /// <summary>
+    /// len参数大于给定字符串是返回原字符串
+    /// </summary>
+    /// <param name="str"></param>
+    /// <param name="len"></param>
+    /// <returns></returns>
+    public static string MaxLeft(this string str, int len) => str.Length < len ? str : str[..len];
+
+    /// <summary>
+    /// 从字符串的末尾得到一个字符串的子串
+    /// </summary>
+    /// <param name="str"></param>
+    /// <param name="len"></param>
+    /// <returns></returns>
+    public static string MaxRight(this string str, int len) => str.Length < len ? str : str.Substring(str.Length - len, len);
+
+    /// <summary>
+    /// 字符串掩码[俗称:脱敏]
+    /// </summary>
+    /// <param name="value">字符串</param>
+    /// <param name="mask">掩码符</param>
+    /// <returns></returns>
+    public static string Mask(this string value, char mask = '*')
+    {
+        if (string.IsNullOrWhiteSpace(value.Trim())) return value;
+        value = value.Trim();
+        var masks = mask.ToString().PadLeft(4, mask);
+        return value.Length switch
+        {
+            >= 11 => Regex.Replace(value, "(.{3}).*(.{4})", $"$1{masks}$2"),
+            10    => Regex.Replace(value, "(.{3}).*(.{3})", $"$1{masks}$2"),
+            9     => Regex.Replace(value, "(.{2}).*(.{3})", $"$1{masks}$2"),
+            8     => Regex.Replace(value, "(.{2}).*(.{2})", $"$1{masks}$2"),
+            7     => Regex.Replace(value, "(.{1}).*(.{2})", $"$1{masks}$2"),
+            6     => Regex.Replace(value, "(.{1}).*(.{1})", $"$1{masks}$2"),
+            _     => Regex.Replace(value, "(.{1}).*", $"$1{masks}")
+        };
+    }
+
     #region 字符串转为日期
 
     /// <summary>
@@ -83,59 +244,6 @@ public static class StringExtension
     /// <returns></returns>
     public static TimeOnly ToTimeOnly(this string value) => TimeOnly.FromDateTime($"{DateTime.Now:yyyy-MM-dd} {value}".ToDateTime());
 #endif
-
-    #endregion
-
-    #region 以特定字符串间隔的字符串转化为字符串集合
-
-    /// <summary>
-    /// 以特定字符间隔的字符串转化为字符串集合
-    /// </summary>
-    /// <param name="value">需要处理的字符串</param>
-    /// <param name="separator">分隔此实例中子字符串</param>
-    /// <returns>转化后的字符串集合，如果传入数组为null则返回空集合</returns>
-    // ReSharper disable once MemberCanBePrivate.Global
-    public static StringCollection ToStringCollection(this string value, string separator)
-    {
-        var col = new StringCollection();
-        if (string.IsNullOrEmpty(separator) || string.IsNullOrEmpty(value) || string.IsNullOrEmpty(value.Trim()))
-        {
-            return col;
-        }
-        var index = 0;
-        var pos = 0;
-        var len = separator.Length;
-        while (pos >= 0)
-        {
-            pos = value.IndexOf(separator, index, StringComparison.CurrentCultureIgnoreCase);
-            _ = pos >= 0 ? col.Add(value[index..pos]) : col.Add(value[index..]);
-            index = pos + len;
-        }
-        return col;
-    }
-
-    #endregion
-
-    #region 将字符串中的单词首字母大写或者小写
-
-    /// <summary>
-    /// 将字符串中的单词首字母大写或者小写
-    /// </summary>
-    /// <param name="value">单词</param>
-    /// <param name="lower">是否小写? 默认:true</param>
-    /// <returns></returns>
-    public static string ToTitleUpperCase(this string value, bool lower = true)
-    {
-        var regex = new Regex(@"\w+");
-        return regex.Replace(value,
-            delegate(Match m)
-            {
-                var str = m.ToString();
-                if (!char.IsLower(str[0])) return str;
-                var header = lower ? char.ToLower(str[0], CultureInfo.CurrentCulture) : char.ToUpper(str[0], CultureInfo.CurrentCulture);
-                return $"{header}{str[1..]}";
-            });
-    }
 
     #endregion
 
@@ -213,28 +321,6 @@ public static class StringExtension
 
     #endregion
 
-    #region 字符串插入指定分隔符
-
-    /// <summary>
-    /// 字符串插入指定分隔符
-    /// </summary>
-    /// <param name="text">字符串</param>
-    /// <param name="spacingString">分隔符</param>
-    /// <param name="spacingIndex">隔多少个字符插入分隔符</param>
-    /// <returns></returns>
-    public static string Spacing(this string text, string spacingString, int spacingIndex)
-    {
-        var sb = new StringBuilder(text);
-        for (var i = spacingIndex; i <= sb.Length; i += spacingIndex + 1)
-        {
-            if (i >= sb.Length) break;
-            _ = sb.Insert(i, spacingString);
-        }
-        return sb.ToString();
-    }
-
-    #endregion
-
     #region 半角全角相互转换
 
     /// <summary>
@@ -279,35 +365,6 @@ public static class StringExtension
             }
         }
         return new(c);
-    }
-
-    #endregion
-
-    #region 检查一个字符串是否是纯数字构成的，一般用于查询字符串参数的有效性验证
-
-    /// <summary>
-    /// 检查一个字符串是否是纯数字构成的,一般用于查询字符串参数的有效性验证
-    /// </summary>
-    /// <param name="value">需验证的字符串</param>
-    /// <returns>是否合法的bool值</returns>
-    public static bool IsNumber(this string value) => Validate(value, @"^\d+$");
-
-    #endregion
-
-    #region 验证一个字符串是否符合指定的正则表达式
-
-    /// <summary>
-    /// 快速验证一个字符串是否符合指定的正则表达式
-    /// </summary>
-    /// <param name="value">需验证的字符串</param>
-    /// <param name="express">正则表达式的内容</param>
-    /// <returns>是否合法的bool值</returns>
-    // ReSharper disable once MemberCanBePrivate.Global
-    public static bool Validate(this string value, string express)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return false;
-        var myRegex = new Regex(express);
-        return myRegex.IsMatch(value);
     }
 
     #endregion
@@ -362,61 +419,4 @@ public static class StringExtension
     }
 
     #endregion
-
-    /// <summary>
-    /// 从字符串的开头得到一个字符串的子串 len参数不能大于给定字符串的长度
-    /// </summary>
-    /// <param name="str"></param>
-    /// <param name="len"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentException"></exception>
-    public static string Left(this string str, int len) => str.Length < len ? throw new ArgumentException("len参数不能大于给定字符串的长度") : str[..len];
-
-    /// <summary>
-    /// 从字符串的末尾得到一个字符串的子串 len参数不能大于给定字符串的长度
-    /// </summary>
-    /// <param name="str"></param>
-    /// <param name="len"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentException"></exception>
-    public static string Right(this string str, int len) => str.Length < len ? throw new ArgumentException("len参数不能大于给定字符串的长度") : str.Substring(str.Length - len, len);
-
-    /// <summary>
-    /// len参数大于给定字符串是返回原字符串
-    /// </summary>
-    /// <param name="str"></param>
-    /// <param name="len"></param>
-    /// <returns></returns>
-    public static string MaxLeft(this string str, int len) => str.Length < len ? str : str[..len];
-
-    /// <summary>
-    /// 从字符串的末尾得到一个字符串的子串
-    /// </summary>
-    /// <param name="str"></param>
-    /// <param name="len"></param>
-    /// <returns></returns>
-    public static string MaxRight(this string str, int len) => str.Length < len ? str : str.Substring(str.Length - len, len);
-
-    /// <summary>
-    /// 字符串掩码[俗称:脱敏]
-    /// </summary>
-    /// <param name="value">字符串</param>
-    /// <param name="mask">掩码符</param>
-    /// <returns></returns>
-    public static string Mask(this string value, char mask = '*')
-    {
-        if (string.IsNullOrWhiteSpace(value.Trim())) return value;
-        value = value.Trim();
-        var masks = mask.ToString().PadLeft(4, mask);
-        return value.Length switch
-        {
-            >= 11 => Regex.Replace(value, "(.{3}).*(.{4})", $"$1{masks}$2"),
-            10    => Regex.Replace(value, "(.{3}).*(.{3})", $"$1{masks}$2"),
-            9     => Regex.Replace(value, "(.{2}).*(.{3})", $"$1{masks}$2"),
-            8     => Regex.Replace(value, "(.{2}).*(.{2})", $"$1{masks}$2"),
-            7     => Regex.Replace(value, "(.{1}).*(.{2})", $"$1{masks}$2"),
-            6     => Regex.Replace(value, "(.{1}).*(.{1})", $"$1{masks}$2"),
-            _     => Regex.Replace(value, "(.{1}).*", $"$1{masks}")
-        };
-    }
 }
