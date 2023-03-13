@@ -9,6 +9,7 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: ubuntu-latest
+    environment: NUGET_ENV
     steps:
       - name: Checkout
         uses: actions/checkout@v3.3.0
@@ -23,8 +24,8 @@ jobs:
         shell: pwsh
       - name: Push to NuGet
         env:
-          NUGET_URL: https://api.nuget.org/v3/index.json
-          NUGET_API_KEY: ${{ NUGET_EVN.NUGET_API_KEY }}
+          NUGET_URL: ${{ secrets.NUGET_URL }}
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: ./Push.ps1
         shell: pwsh
       - name: Artifacts
