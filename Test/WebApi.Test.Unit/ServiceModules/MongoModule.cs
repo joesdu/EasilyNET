@@ -41,7 +41,7 @@ public class MongoModule : AppModule
         context.Services
                .AddMongoContext<DbContext>(new MongoClientSettings
                {
-                   Servers = new List<MongoServerAddress> { new("101.34.26.221", 40004) },
+                   Servers = new List<MongoServerAddress> { new("192.168.2.17", 27017) },
                    Credential = MongoCredential.CreateCredential("admin", "oneblogs", "&oneblogs789"),
                    // 新版驱动使用V3版本,有可能会出现一些Linq表达式客户端函数无法执行,需要调整代码,但是工作量太大了,所以可以先使用V2兼容.
                    LinqProvider = LinqProvider.V3

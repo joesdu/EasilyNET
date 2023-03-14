@@ -1,4 +1,5 @@
-﻿using EasilyNET.Extensions;
+﻿using EasilyNET.Core.Enums;
+using EasilyNET.Extensions;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -107,12 +108,12 @@ public static class Lunar
     /// 计算属相的索引，注意虽然属相是以农历年来区别的，但是目前在实际使用中是按公历来计算的
     /// 鼠年为1,其它类推
     /// </summary>
-    public static string Animal
+    public static EZodiac Animal
     {
         get
         {
             var offset = _date.Year - 1900; //1900年为鼠年
-            return Animals.AnimalConfig[offset % 12];
+            return (EZodiac)(offset % 12);
         }
     }
 
@@ -579,7 +580,7 @@ public static class Lunar
     /// <summary>
     /// 获取该日期所属星座
     /// </summary>
-    public static string Constellation
+    public static EConstellation Constellation
     {
         get
         {
@@ -594,7 +595,7 @@ public static class Lunar
     /// </summary>
     /// <param name="date">时间</param>
     /// <returns></returns>
-    private static string GetConstellation(DateTime date)
+    private static EConstellation GetConstellation(DateTime date)
     {
         // 定義一個陣列，儲存每個星座的起始日期
         var dic = new[] { 119, 218, 320, 419, 520, 621, 722, 822, 922, 1023, 1122, 1221 };
@@ -608,7 +609,7 @@ public static class Lunar
         var index = Array.BinarySearch(dic, y);
         if (index < 0) index = ~index;
         if (index == 12) index = 0;
-        return Constellations.ConstellationConfig[index];
+        return (EConstellation)index;
     }
 
     #endregion

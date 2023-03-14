@@ -101,15 +101,13 @@ public static class Utils
     {
         var (subStart, subEnd) = sub;
         var (validateStart, validateEnd) = validate;
-        return subStart >= subEnd | validateStart >= validateEnd
-                   ? throw new("时间段不合法")
-                   : subStart >= validateStart && subStart < validateEnd && subEnd <= validateEnd && subEnd > validateStart
-                       ? ETimeOverlap.包含或等于
-                       : subStart < validateStart && subEnd >= validateStart && subEnd < validateEnd
-                           ? ETimeOverlap.后段包含于
-                           : subStart > validateStart && subStart >= validateEnd && subEnd > validateEnd
-                               ? ETimeOverlap.前段包含于
-                               : ETimeOverlap.不在范围内;
+        return (subStart < validateEnd && validateStart < subEnd) switch
+        {
+            true when subStart >= validateStart && subEnd <= validateEnd                          => ETimeOverlap.完全重合,
+            true when subStart < validateStart && subEnd >= validateStart && subEnd < validateEnd => ETimeOverlap.后段重合,
+            true when subStart > validateStart && subStart < validateEnd && subEnd > validateEnd  => ETimeOverlap.前段重合,
+            _                                                                                     => ETimeOverlap.完全不重合
+        };
     }
 
     /// <summary>

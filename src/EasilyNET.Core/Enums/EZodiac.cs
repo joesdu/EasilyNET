@@ -8,7 +8,7 @@ namespace EasilyNET.Core.Enums;
 /// 十二生肖
 /// </summary>
 // ReSharper disable once UnusedType.Global
-public enum ChineseZodiac
+public enum EZodiac
 {
     /// <summary>
     /// Rat:🐁
