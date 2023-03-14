@@ -8,7 +8,7 @@ namespace EasilyNET.IdentityServer.MongoStorage;
 /// </summary>
 public class MongoRepository : IRepository
 {
-    private const string prefix = "hoyo.";
+    private const string prefix = "easilynet.";
     private readonly IMongoDatabase _database;
 
     /// <summary>

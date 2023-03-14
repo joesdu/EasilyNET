@@ -21,7 +21,7 @@ public sealed class ExceptionFilter : ExceptionFilterAttribute
 
     public override Task OnExceptionAsync(ExceptionContext context)
     {
-        _logger.LogError("{stacktrace}", context.Exception.ToString());
+        _logger.LogError("{Stacktrace}", context.Exception.ToString());
         context.ExceptionHandled = true;
         context.Result = new ObjectResult(new
         {

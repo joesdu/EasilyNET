@@ -26,7 +26,7 @@ internal static class IntegrationEventExtension
         return RabbitDictionariesByDic(rabbitArgAttributes);
     }
 
-    private static IDictionary<string, object> RabbitDictionariesByDic(this IEnumerable<RabbitDictionaryAttribute> rabbitDictionaryAttributes)
+    private static Dictionary<string, object> RabbitDictionariesByDic(this IEnumerable<RabbitDictionaryAttribute> rabbitDictionaryAttributes)
     {
         return rabbitDictionaryAttributes.ToDictionary(rabbitDictionaryAttribute => rabbitDictionaryAttribute.Key,
             rabbitDictionaryAttribute => rabbitDictionaryAttribute.Value);

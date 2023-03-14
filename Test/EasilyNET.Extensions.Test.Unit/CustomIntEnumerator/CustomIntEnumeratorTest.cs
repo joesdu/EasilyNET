@@ -1,6 +1,6 @@
 using EasilyNET.Extensions.Language;
 
-namespace TestExtensions;
+namespace EasilyNET.Extensions.Test.Unit.CustomIntEnumerator;
 
 public class Tests
 {

@@ -23,6 +23,7 @@ public sealed class EasilyNETMongoParams
     /// <summary>
     /// LinqProvider版本,用来设置以兼容Linq V2的代码.默认为V3
     /// </summary>
+    // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
     public LinqProvider LinqProvider { get; set; } = LinqProvider.V3;
 
     /// <summary>

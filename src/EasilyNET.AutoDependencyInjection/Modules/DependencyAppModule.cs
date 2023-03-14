@@ -33,7 +33,9 @@ public sealed class DependencyAppModule : AppModule
     {
         var baseTypes = new[] { typeof(IScopedDependency), typeof(ITransientDependency), typeof(ISingletonDependency) };
         var types = AssemblyHelper.FindTypes(type =>
+#pragma warning disable IDE0048
             type is { IsClass: true, IsAbstract: false } && baseTypes.Any(b => b.IsAssignableFrom(type)) ||
+#pragma warning restore IDE0048
             type.GetCustomAttribute<DependencyInjectionAttribute>() is not null);
         foreach (var implementedInterType in types)
         {

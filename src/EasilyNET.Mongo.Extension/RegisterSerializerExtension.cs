@@ -22,12 +22,12 @@ public static class RegisterSerializerExtension
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
-    public static IServiceCollection RegisterHoyoSerializer(this IServiceCollection services)
+    public static IServiceCollection RegisterEasilyNETSerializer(this IServiceCollection services)
     {
-        services.RegisterHoyoSerializer(new DateTimeSerializer(DateTimeKind.Local)); //to local time
-        services.RegisterHoyoSerializer(new DecimalSerializer(BsonType.Decimal128)); //decimal to decimal default
-        services.RegisterHoyoSerializer(new DateOnlySerializer());
-        services.RegisterHoyoSerializer(new TimeOnlySerializer());
+        services.RegisterEasilyNETSerializer(new DateTimeSerializer(DateTimeKind.Local)); //to local time
+        services.RegisterEasilyNETSerializer(new DecimalSerializer(BsonType.Decimal128)); //decimal to decimal default
+        services.RegisterEasilyNETSerializer(new DateOnlySerializer());
+        services.RegisterEasilyNETSerializer(new TimeOnlySerializer());
         return services;
     }
 
@@ -38,7 +38,7 @@ public static class RegisterSerializerExtension
     /// <param name="services">IServiceCollection</param>
     /// <param name="serializer">自定义序列化类</param>
     /// <returns></returns>
-    public static IServiceCollection RegisterHoyoSerializer<T>(this IServiceCollection services, IBsonSerializer<T> serializer) where T : struct
+    public static IServiceCollection RegisterEasilyNETSerializer<T>(this IServiceCollection services, IBsonSerializer<T> serializer) where T : struct
     {
         BsonSerializer.RegisterSerializer(serializer);
         return services;

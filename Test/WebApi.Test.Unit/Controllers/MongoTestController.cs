@@ -19,11 +19,11 @@ public class MongoTestController : ControllerBase
     /// <summary>
     /// 构造函数
     /// </summary>
-    /// <param name="dbContext">db1</param>
+    /// <param name="db1">db1</param>
     /// <param name="db2">db2</param>
-    public MongoTestController(DbContext dbContext, DbContext2 db2)
+    public MongoTestController(DbContext db1, DbContext2 db2)
     {
-        db = dbContext;
+        db = db1;
         this.db2 = db2;
     }
 
@@ -103,6 +103,27 @@ public class MongoTestController : ControllerBase
     {
         var result = await db.Test2.Find(c => c.Date >= search.Start && c.Date <= search.End).ToListAsync();
         return result;
+    }
+
+    /// <summary>
+    /// 初始化Db2Test
+    /// </summary>
+    /// <returns></returns>
+    [HttpPost("Db2Test")]
+    public async Task Db2Test()
+    {
+        var os = new List<MongoTest>();
+        for (var i = 0; i < 30; i++)
+        {
+            os.Add(new()
+            {
+                DateTime = DateTime.Now,
+                TimeSpan = TimeSpan.FromMilliseconds(50000d),
+                DateOnly = DateOnly.FromDateTime(DateTime.Now.AddDays(i)),
+                TimeOnly = TimeOnly.FromDateTime(DateTime.Now.AddDays(i))
+            });
+        }
+        await db2.Test.InsertManyAsync(os);
     }
 }
 

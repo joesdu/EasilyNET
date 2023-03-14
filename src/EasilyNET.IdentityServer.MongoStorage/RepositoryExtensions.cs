@@ -14,7 +14,7 @@ namespace EasilyNET.IdentityServer.MongoStorage;
 public static class RepositoryExtensions
 {
     /// <summary>
-    /// 添加Mongo持久化
+    /// 添加Mongo持久化,请确保已经注册IMongoDatabase和IMongoClient
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="dbName"></param>

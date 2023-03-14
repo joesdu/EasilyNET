@@ -56,7 +56,7 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
         }
         catch (IOException ex)
         {
-            _logger.LogCritical("{message}", ex.Message);
+            _logger.LogCritical("{Message}", ex.Message);
         }
     }
 

@@ -1,4 +1,6 @@
-﻿namespace EasilyNET.Core.Enums;
+﻿using System.ComponentModel;
+
+namespace EasilyNET.Core.Enums;
 
 /// <summary>
 /// 性别枚举
@@ -6,17 +8,14 @@
 public enum EGender
 {
     /// <summary>
-    /// 女
+    /// Female: ♀
     /// </summary>
+    [Description("Female")]
     女 = 0,
 
     /// <summary>
-    /// 男
+    /// Male: ♂
     /// </summary>
-    男 = 1,
-
-    /// <summary>
-    /// 保密
-    /// </summary>
-    保密 = 2
+    [Description("Male")]
+    男 = 1
 }

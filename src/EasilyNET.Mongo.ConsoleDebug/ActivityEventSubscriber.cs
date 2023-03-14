@@ -4,7 +4,6 @@ using System.Reflection;
 
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Local
-// ReSharper disable UnusedMember.Global
 
 namespace EasilyNET.Mongo.ConsoleDebug;
 
@@ -58,7 +57,9 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
     /// <returns></returns>
     public bool TryGetEventHandler<TEvent>(out Action<TEvent> handler) => _subscriber.TryGetEventHandler(out handler);
 
+#pragma warning disable IDE0051
     private void Handle(CommandStartedEvent @event)
+#pragma warning restore IDE0051
     {
         if (_options.ShouldStartActivity is not null && !_options.ShouldStartActivity(@event)) return;
         if (!CommandsWithCollectionNameAsValue.Contains(@event.CommandName)) return;
@@ -69,7 +70,9 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
         Console.ForegroundColor = ConsoleColor.White;
     }
 
+#pragma warning disable IDE0051
     private void Handle(CommandSucceededEvent @event)
+#pragma warning restore IDE0051
     {
         if (!CommandsWithCollectionNameAsValue.Contains(@event.CommandName)) return;
         Console.Write($"[{DateTime.Now:HH:mm:ss} INF] MongoRequest: {@event.RequestId},Status: ");
@@ -78,7 +81,9 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
         Console.ForegroundColor = ConsoleColor.White;
     }
 
+#pragma warning disable IDE0051
     private void Handle(CommandFailedEvent @event)
+#pragma warning restore IDE0051
     {
         if (!CommandsWithCollectionNameAsValue.Contains(@event.CommandName)) return;
         Console.Write($"[{DateTime.Now:HH:mm:ss} INF] MongoRequest: {@event.RequestId},Status: ");
