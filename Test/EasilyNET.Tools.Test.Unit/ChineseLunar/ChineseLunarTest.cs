@@ -1,4 +1,4 @@
-using EasilyNET.Core.Enums;
+ï»¿using EasilyNET.Core.Enums;
 using EasilyNET.Extensions;
 using FluentAssertions;
 
@@ -11,8 +11,8 @@ public class ChineseLunarTest
     {
         var date = "1994-11-15".ToDateTime();
         Lunar.Init(date);
-        Lunar.Constellation.Should().Be(EConstellation.ÌìĞ«×ù);
-        Lunar.Animal.Should().Be(EZodiac.¹·);
-        Lunar.ChineseLunar.Should().Be("Ò»¾Å¾ÅËÄÄêÊ®ÔÂÊ®Èı");
+        Lunar.Constellation.Should().Be(EConstellation.å¤©èåº§);
+        Lunar.Animal.Should().Be(EZodiac.ç‹—);
+        Lunar.ChineseLunar.Should().Be("ä¸€ä¹ä¹å››å¹´åæœˆåä¸‰");
     }
 }
