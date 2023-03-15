@@ -17,10 +17,11 @@ public static class RepositoryExtensions
     /// 添加Mongo持久化,请确保已经注册IMongoDatabase和IMongoClient
     /// </summary>
     /// <param name="builder"></param>
-    /// <param name="dbName"></param>
+    /// <param name="dbName">数据库名称</param>
+    /// <param name="prefix">集合前缀,默认添加: easilynet.</param>
     /// <returns></returns>
     /// <exception cref="NullReferenceException"></exception>
-    public static IIdentityServerBuilder AddMongoRepository(this IIdentityServerBuilder builder, string? dbName = null)
+    public static IIdentityServerBuilder AddMongoRepository(this IIdentityServerBuilder builder, string? dbName = null, string? prefix = "easilynet.")
     {
         var db = builder.Services.BuildServiceProvider().GetService<IMongoDatabase>() ?? throw new NullReferenceException("mongo database not found!");
         if (dbName is not null)
@@ -28,7 +29,7 @@ public static class RepositoryExtensions
             var client = builder.Services.BuildServiceProvider().GetService<IMongoClient>() ?? throw new NullReferenceException("mongo client not found!");
             db = client.GetDatabase(dbName);
         }
-        _ = builder.Services.AddTransient<IRepository, MongoRepository>(_ => new(db));
+        _ = builder.Services.AddTransient<IRepository, MongoRepository>(_ => new(db, prefix));
         return builder;
     }
 
