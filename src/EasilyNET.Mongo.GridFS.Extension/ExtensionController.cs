@@ -31,22 +31,23 @@ public class ExtensionController : GridFSController
     /// 获取虚拟目录的文件路径
     /// </summary>
     /// <param name="id">文件ID</param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpGet("FileUri/{id}")]
-    public virtual async Task<object> FileUri(string id)
+    public virtual async Task<object> FileUri(string id, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(FileSetting.PhysicalPath)) throw new("RealPath is null");
-        var fi = await (await Bucket.FindAsync(gbf.Eq(c => c.Id, ObjectId.Parse(id)))).SingleOrDefaultAsync() ?? throw new("no data find");
+        var fi = await (await Bucket.FindAsync(gbf.Eq(c => c.Id, ObjectId.Parse(id)), cancellationToken: cancellationToken)).SingleOrDefaultAsync(cancellationToken) ?? throw new("no data find");
         // ReSharper disable once UseAwaitUsing
-        using var mongoStream = await Bucket.OpenDownloadStreamAsync(ObjectId.Parse(id), new() { Seekable = true });
+        using var mongoStream = await Bucket.OpenDownloadStreamAsync(ObjectId.Parse(id), new() { Seekable = true }, cancellationToken);
         if (!Directory.Exists(FileSetting.PhysicalPath)) _ = Directory.CreateDirectory(FileSetting.PhysicalPath);
         // ReSharper disable once UseAwaitUsing
         using var fsWrite = new FileStream($"{FileSetting.PhysicalPath}{Path.DirectorySeparatorChar}{fi.Filename}", FileMode.Create);
         var buffer = new byte[1024 * 1024];
         while (true)
         {
-            var readCount = await mongoStream.ReadAsync(buffer, 0, buffer.Length);
-            fsWrite.Write(buffer, 0, readCount);
+            var readCount = await mongoStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+            await fsWrite.WriteAsync(buffer, 0, readCount, cancellationToken);
             if (readCount < buffer.Length) break;
         }
         return new { Uri = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}{FileSetting.VirtualPath}/{fi.Filename}" };
@@ -76,26 +77,28 @@ public class ExtensionController : GridFSController
     /// </summary>
     /// <param name="id">文件ID</param>
     /// <param name="newName">新名称</param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPut("{id}/Rename/{newName}")]
-    public override Task Rename(string id, string newName)
+    public override Task Rename(string id, string newName, CancellationToken cancellationToken)
     {
-        var filename = Coll.Find(c => c.FileId == id).Project(c => c.FileName).SingleOrDefaultAsync().Result;
+        var filename = Coll.Find(c => c.FileId == id).Project(c => c.FileName).SingleOrDefaultAsync(cancellationToken).GetAwaiter().GetResult();
         var path = $"{FileSetting.PhysicalPath}{Path.DirectorySeparatorChar}{filename}";
         if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
-        _ = base.Rename(id, newName);
+        _ = base.Rename(id, newName, cancellationToken);
         return Task.CompletedTask;
     }
 
     /// <summary>
     /// 删除文件
     /// </summary>
+    /// <param name="cancellationToken"></param>
     /// <param name="ids">文件ID集合</param>
     /// <returns></returns>
     [HttpDelete]
-    public override async Task<IEnumerable<string>> Delete(params string[] ids)
+    public override async Task<IEnumerable<string>> Delete(CancellationToken cancellationToken, params string[] ids)
     {
-        var files = (await base.Delete(ids)).ToList();
+        var files = (await base.Delete(cancellationToken, ids)).ToList();
 
         Task DeleteSingleFile()
         {
@@ -104,7 +107,7 @@ public class ExtensionController : GridFSController
             return Task.CompletedTask;
         }
 
-        _ = files.Count > 6 ? Task.Run(DeleteSingleFile) : DeleteSingleFile();
+        _ = files.Count > 6 ? Task.Run(DeleteSingleFile, cancellationToken) : DeleteSingleFile();
         return files;
     }
 }

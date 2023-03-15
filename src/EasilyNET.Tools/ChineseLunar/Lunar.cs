@@ -1,4 +1,5 @@
-﻿using EasilyNET.Extensions;
+﻿using EasilyNET.Core.Enums;
+using EasilyNET.Extensions;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -13,7 +14,7 @@ namespace EasilyNET.Tools;
 /// <summary>
 /// 公历转农历类(1700年-3100年)这个时间应该够用好几代人了.
 /// </summary>
-public static class ToLunar
+public static class Lunar
 {
     //将月份第十三位规定为闰月大小
     private static int First_Year = -1;
@@ -52,7 +53,7 @@ public static class ToLunar
     {
         get
         {
-            if (!string.IsNullOrEmpty(_Year.Trim())) return _Year;
+            if (!string.IsNullOrWhiteSpace(_Year.Trim())) return _Year;
             Init(DateTime.Now);
             return _Year;
         }
@@ -66,7 +67,7 @@ public static class ToLunar
     {
         get
         {
-            if (!string.IsNullOrEmpty(_Month.Trim())) return _Month;
+            if (!string.IsNullOrWhiteSpace(_Month.Trim())) return _Month;
             Init(DateTime.Now);
             return _Month;
         }
@@ -80,7 +81,7 @@ public static class ToLunar
     {
         get
         {
-            if (!string.IsNullOrEmpty(_Day.Trim())) return _Day;
+            if (!string.IsNullOrWhiteSpace(_Day.Trim())) return _Day;
             Init(DateTime.Now);
             return _Day;
         }
@@ -94,7 +95,7 @@ public static class ToLunar
     {
         get
         {
-            if (!string.IsNullOrEmpty(_ChineseLunar.Trim())) return _ChineseLunar;
+            if (!string.IsNullOrWhiteSpace(_ChineseLunar.Trim())) return _ChineseLunar;
             Init(DateTime.Now);
             return _ChineseLunar;
         }
@@ -107,12 +108,12 @@ public static class ToLunar
     /// 计算属相的索引，注意虽然属相是以农历年来区别的，但是目前在实际使用中是按公历来计算的
     /// 鼠年为1,其它类推
     /// </summary>
-    public static string Animal
+    public static EZodiac Animal
     {
         get
         {
             var offset = _date.Year - 1900; //1900年为鼠年
-            return Animals.AnimalConfig[offset % 12];
+            return (EZodiac)(offset % 12);
         }
     }
 
@@ -337,7 +338,9 @@ public static class ToLunar
                 }
                 else
                 {
+#pragma warning disable IDE0048
                     if (lastLeap == 11 && result[1] == 12 || lastLeap == 12 && result[1] == 11)
+#pragma warning restore IDE0048
                         result[1] = 12;
                 }
             }
@@ -508,7 +511,9 @@ public static class ToLunar
         var day = date[2];
         return month is <= 12 and >= 1 &&
                day is <= 31 and >= 1 &&
+#pragma warning disable IDE0048
                (day != 31 || month != 2 && month != 4 && month != 6 && month != 9 && month != 11) &&
+#pragma warning restore IDE0048
                (month != 2 ||
                 day switch
                 {
@@ -575,10 +580,11 @@ public static class ToLunar
     /// <summary>
     /// 获取该日期所属星座
     /// </summary>
-    public static string Constellation
+    public static EConstellation Constellation
     {
         get
         {
+            if (!string.IsNullOrWhiteSpace(_ChineseLunar.Trim())) return GetConstellation(_date);
             Init(DateTime.Now);
             return GetConstellation(_date);
         }
@@ -589,26 +595,21 @@ public static class ToLunar
     /// </summary>
     /// <param name="date">时间</param>
     /// <returns></returns>
-    private static string GetConstellation(DateTime date)
+    private static EConstellation GetConstellation(DateTime date)
     {
+        // 定義一個陣列，儲存每個星座的起始日期
+        var dic = new[] { 119, 218, 320, 419, 520, 621, 722, 822, 922, 1023, 1122, 1221 };
+        //var dic = new[] { 120, 219, 321, 420, 521, 622, 723, 823, 923, 1023, 1122, 1222 };
         var m = date.Month;
         var d = date.Day;
+#pragma warning disable IDE0048
+        // 計算日期的索引值
         var y = m * 100 + d;
-        var index = y switch
-        {
-            >= 321 and <= 419   => 0,
-            >= 420 and <= 520   => 1,
-            >= 521 and <= 620   => 2,
-            >= 621 and <= 722   => 3,
-            >= 723 and <= 822   => 4,
-            >= 823 and <= 922   => 5,
-            >= 923 and <= 1022  => 6,
-            >= 1023 and <= 1121 => 7,
-            >= 1122 and <= 1221 => 8,
-            >= 1222 or <= 119   => 9,
-            _                   => y is >= 120 and <= 218 ? 10 : 11
-        };
-        return Constellations.ConstellationConfig[index];
+#pragma warning restore IDE0048
+        var index = Array.BinarySearch(dic, y);
+        if (index < 0) index = ~index;
+        if (index == 12) index = 0;
+        return (EConstellation)index;
     }
 
     #endregion

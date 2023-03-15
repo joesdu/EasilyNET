@@ -1,4 +1,6 @@
-﻿namespace EasilyNET.Core.Enums;
+﻿using System.ComponentModel;
+
+namespace EasilyNET.Core.Enums;
 
 /// <summary>
 /// 时间重合情况
@@ -6,22 +8,26 @@
 public enum ETimeOverlap
 {
     /// <summary>
-    /// 前段包含于
+    /// Front Section Overlap
     /// </summary>
-    前段包含于,
+    [Description("FrontSectionOverlap")]
+    前段重合,
 
     /// <summary>
-    /// 包含或等于
+    /// Exact overlap
     /// </summary>
-    包含或等于,
+    [Description("ExactOverlap")]
+    完全重合,
 
     /// <summary>
-    /// 后端包含于
+    /// Rear Section Overlap
     /// </summary>
-    后段包含于,
+    [Description("RearSectionOverlap")]
+    后段重合,
 
     /// <summary>
-    /// 不在范围内
+    /// No overlap at all
     /// </summary>
-    不在范围内
+    [Description("AllNontOverlap")]
+    完全不重合
 }

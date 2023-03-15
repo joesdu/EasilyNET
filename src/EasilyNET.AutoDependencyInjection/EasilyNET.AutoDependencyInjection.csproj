@@ -19,9 +19,9 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0-preview.1.23110.8" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0-preview.1.23110.8" />
-        <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0-preview.1.23110.8" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0-preview.2.23128.3" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0-preview.2.23128.3" />
+        <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0-preview.2.23128.3" />
     </ItemGroup>
 
 </Project>

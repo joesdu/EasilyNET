@@ -5,5 +5,5 @@
 - 配合 EasilyNET.Mongo 使用
 
 ```csharp
-builder.Services.AddMongoContext<DbContext>(builder.Configuration).RegisterHoyoSerializer();
+builder.Services.AddMongoContext<DbContext>(builder.Configuration).RegisterEasilyNETSerializer();
 ```

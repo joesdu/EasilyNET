@@ -233,7 +233,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                 var message = Encoding.UTF8.GetString(ea.Body.Span);
                 try
                 {
-                    if (message.ToLowerInvariant().Contains("throw-fake-exception")) throw new InvalidOperationException($"假异常请求:{message}");
+                    if (message.Contains("throw-fake-exception", StringComparison.InvariantCultureIgnoreCase)) throw new InvalidOperationException($"假异常请求:{message}");
                     await ProcessEvent(eventType, message);
                 }
                 catch (Exception ex)
@@ -260,7 +260,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         {
             var policy = Policy.Handle<BrokerUnreachableException>().Or<SocketException>()
                                .WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                                   (ex, time) => _logger.LogError(ex, "无法消费事件: {eventName} 超时 {Timeout}s ({ExceptionMessage})", eventName, $"{time.TotalSeconds:n1}",
+                                   (ex, time) => _logger.LogError(ex, "无法消费事件: {EventName} 超时 {Timeout}s ({ExceptionMessage})", eventName, $"{time.TotalSeconds:n1}",
                                        ex.Message));
             await policy.Execute(async () =>
             {

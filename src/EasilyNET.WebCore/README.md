@@ -1,6 +1,6 @@
 # EasilyNET.WebCore
 
-一些.Net 6 的 WebApi 常用中间件和一些 Filter,以及部分数据类型到 Json 的转换
+一些.Net 6+ 的 WebApi 常用中间件和一些 Filter,以及部分数据类型到 Json 的转换
 
 # EasilyNET.WebCore Filter 使用?
 

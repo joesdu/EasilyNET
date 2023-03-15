@@ -1,4 +1,6 @@
-﻿namespace EasilyNET.Tools.Initialization;
+﻿// ReSharper disable UnusedMember.Global
+
+namespace EasilyNET.Tools.Initialization;
 
 /// <summary>
 /// 内容

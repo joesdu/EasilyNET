@@ -60,8 +60,8 @@ builder.Services.AddMongoContext<DbContext>(builder.Configuration, c =>
     // 新版的MongoDB驱动使用了 Linq3 的模式,所以原有的程序会出现一些问题,为了避免大改.可以调整为V2,默认为V3
     // 若是使用MongoClientSettings配置的话,该参数不生效,将使用MongoClientSettings中的LinqProvider版本.
     c.LinqProvider = LinqProvider.V2;
-})).RegisterHoyoSerializer();
-_ = context.Services.RegisterHoyoSerializer(new DoubleSerializer(BsonType.Double));
+})).RegisterEasilyNETSerializer();
+_ = context.Services.RegisterEasilyNETSerializer(new DoubleSerializer(BsonType.Double));
 ...
 var app = builder.Build();
 ```
@@ -88,15 +88,15 @@ public class EasilyNETMongoModule : AppModule
         //    {
         //        c.Options = op =>
         //        {
-        //            op.ObjectIdToStringTypes = new() { typeof(MongoTest2) };
+        //            op.ObjIdToStringTypes = new() { typeof(MongoTest2) };
         //            op.DefaultConventionRegistry = true;
         //        };
         //        //c.LinqProvider = MongoDB.Driver.Linq.LinqProvider.V2;
         //    })
         //    .AddMongoContext<DbContext2>(config)
         //    // 添加Guid序列化.但是不加竟然也可以正常工作.
-        //    //.RegisterHoyoSerializer(new GuidSerializer(GuidRepresentation.Standard))
-        //    .RegisterHoyoSerializer();
+        //    //.RegisterEasilyNETSerializer(new GuidSerializer(GuidRepresentation.Standard))
+        //    .RegisterEasilyNETSerializer();
 
         context.Services
             .AddMongoContext<DbContext>(new MongoClientSettings()
@@ -114,10 +114,11 @@ public class EasilyNETMongoModule : AppModule
                 //ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber())
             }, c =>
             {
+                c.DatabaseName = "test";
                 c.Options = op =>
                 {
                     // 配置不需要将Id字段存储为ObjectID的类型.使用$unwind操作符的时候,ObjectId在转换上会有一些问题.
-                    op.ObjectIdToStringTypes = new() { typeof(MongoTest2) };
+                    op.ObjIdToStringTypes = new() { typeof(MongoTest2) };
                     // 是否使用HoyoMongo的一些默认转换配置.包含如下内容:
                     // 1.小驼峰字段名称 如: pageSize ,linkPhone
                     // 2.忽略代码中未定义的字段
@@ -125,7 +126,7 @@ public class EasilyNETMongoModule : AppModule
                     // 4.将枚举类型存储为字符串, 如: Gender.男 存储到数据中为 男,而不是 int 类型
                     op.DefaultConventionRegistry = true;
                 };
-                // HoyoMongoParams.Options 中的 LinqProvider, ClusterBuilder
+                // EasilyNETMongoParams.Options 中的 LinqProvider, ClusterBuilder
                 // 会覆盖 MongoClientSettings 中的 LinqProvider 和 ClusterConfigurator 的值,
                 // 所以使用MongoClientSettings注册服务时,可仅赋值其中一个
                 c.LinqProvider = MongoDB.Driver.Linq.LinqProvider.V2;
@@ -135,8 +136,8 @@ public class EasilyNETMongoModule : AppModule
             // ClusterBuilder 也没有配置,所以使用 SkyAPM 也无法捕获到 Context2 的信息
             .AddMongoContext<DbContext2>(config)
             // 添加Guid序列化.但是不加竟然也可以正常工作.
-            //.RegisterHoyoSerializer(new GuidSerializer(GuidRepresentation.Standard))
-            .RegisterHoyoSerializer();
+            //.RegisterEasilyNETSerializer(new GuidSerializer(GuidRepresentation.Standard))
+            .RegisterEasilyNETSerializer();
     }
 }
 ```
