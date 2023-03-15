@@ -1,11 +1,11 @@
 ### EasilyNET
 
-[![LICENSE](https://img.shields.io/github/license/joesdu/Hoyo)](https://img.shields.io/github/license/joesdu/Hoyo)
-[![ISSUES](https://img.shields.io/github/issues/joesdu/Hoyo)](https://img.shields.io/github/issues/joesdu/Hoyo)
-[![FORKS](https://img.shields.io/github/forks/joesdu/Hoyo)](https://img.shields.io/github/forks/joesdu/Hoyo)
-[![STARS](https://img.shields.io/github/stars/joesdu/Hoyo)](https://img.shields.io/github/stars/joesdu/Hoyo)
-![GitHub commit activity](https://img.shields.io/github/commit-activity/y/joesdu/Hoyo)
-![GitHub last commit](https://img.shields.io/github/last-commit/joesdu/Hoyo)
+[![LICENSE](https://img.shields.io/github/license/EasilyNET/EasilyNET)](https://img.shields.io/github/license/EasilyNET/EasilyNET)
+[![ISSUES](https://img.shields.io/github/issues/EasilyNET/EasilyNET)](https://img.shields.io/github/issues/EasilyNET/EasilyNET)
+[![FORKS](https://img.shields.io/github/forks/EasilyNET/EasilyNET)](https://img.shields.io/github/forks/EasilyNET/EasilyNET)
+[![STARS](https://img.shields.io/github/stars/EasilyNET/EasilyNET)](https://img.shields.io/github/stars/EasilyNET/EasilyNET)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/y/EasilyNET/EasilyNET)
+![GitHub last commit](https://img.shields.io/github/last-commit/EasilyNET/EasilyNET)
 
 EasilyNET Packages
 
