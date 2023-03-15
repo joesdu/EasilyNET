@@ -16,18 +16,6 @@ EasilyNET Packages
 - MongoDB GridFS usage simplification support.
 - Integration of some common filters, middleware in WebApi
 
-### Supported Versions
-
-| Version           | Supported          |
-| ----------------- | ------------------ |
-| .NET 8            | :white_check_mark: |
-| .NET 7            | :white_check_mark: |
-| .NET 6            | :white_check_mark: |
-| .NET 5            | :x:                |
-| .NET Core 3.x     | :x:                |
-| .NET Standard 2.0 | :white_check_mark: |
-| .NET Standard 2.1 | :white_check_mark: |
-
 | NuGet Package                                                                                                 | Version                                                                        | Download                                                                        | Description                                                           |
 | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | [EasilyNET.AutoDependencyInjection](https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection)         | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.AutoDependencyInjection)     | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection)     | 类似于 ABP 模块化自动注入服务的一个工具包                                  |
