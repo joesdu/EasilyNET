@@ -3,7 +3,7 @@
 <Project>
 
 	<PropertyGroup>
-		<Version>1.0.8</Version>
+		<Version>1.0.9</Version>
 		<LangVersion>preview</LangVersion>
 	</PropertyGroup>
 

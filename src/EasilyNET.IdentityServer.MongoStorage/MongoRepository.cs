@@ -8,16 +8,18 @@ namespace EasilyNET.IdentityServer.MongoStorage;
 /// </summary>
 public class MongoRepository : IRepository
 {
-    private const string prefix = "easilynet.";
+    private static string pre = string.Empty;
     private readonly IMongoDatabase _database;
 
     /// <summary>
     /// 构造函数
     /// </summary>
     /// <param name="db"></param>
-    public MongoRepository(IMongoDatabase db)
+    /// <param name="prefix">集合前缀</param>
+    public MongoRepository(IMongoDatabase db, string? prefix = "")
     {
         _database = db;
+        pre = prefix ?? "";
     }
 
     /// <summary>
@@ -25,7 +27,7 @@ public class MongoRepository : IRepository
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    public IQueryable<T> All<T>() where T : class, new() => _database.GetCollection<T>($"{prefix}{typeof(T).Name.ToLower()}").AsQueryable();
+    public IQueryable<T> All<T>() where T : class, new() => _database.GetCollection<T>($"{pre}{typeof(T).Name.ToLower()}").AsQueryable();
 
     /// <summary>
     /// Where查询表达式
@@ -40,7 +42,7 @@ public class MongoRepository : IRepository
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="expression"></param>
-    public void Delete<T>(Expression<Func<T, bool>> expression) where T : class, new() => _database.GetCollection<T>($"{prefix}{typeof(T).Name.ToLower()}").DeleteMany(expression);
+    public void Delete<T>(Expression<Func<T, bool>> expression) where T : class, new() => _database.GetCollection<T>($"{pre}{typeof(T).Name.ToLower()}").DeleteMany(expression);
 
     /// <summary>
     /// 获取单条数据
@@ -55,12 +57,12 @@ public class MongoRepository : IRepository
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="item"></param>
-    public void Add<T>(T item) where T : class, new() => _database.GetCollection<T>($"{prefix}{typeof(T).Name.ToLower()}").InsertOne(item);
+    public void Add<T>(T item) where T : class, new() => _database.GetCollection<T>($"{pre}{typeof(T).Name.ToLower()}").InsertOne(item);
 
     /// <summary>
     /// 批量添加
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="items"></param>
-    public void Add<T>(IEnumerable<T> items) where T : class, new() => _database.GetCollection<T>($"{prefix}{typeof(T).Name.ToLower()}").InsertMany(items);
+    public void Add<T>(IEnumerable<T> items) where T : class, new() => _database.GetCollection<T>($"{pre}{typeof(T).Name.ToLower()}").InsertMany(items);
 }
