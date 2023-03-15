@@ -10,12 +10,28 @@ namespace EasilyNET.Mongo;
 /// </summary>
 public sealed class EasilyNETMongoOptions
 {
+    private static bool First { get; set; }
+
     /// <summary>
     /// ObjectId到String转换的类型[该列表中的对象,不会将Id,ID字段转化为ObjectId类型.在数据库中存为字符串格式]
     /// </summary>
     // ReSharper disable once CollectionNeverUpdated.Global
     // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
-    public static List<Type> ObjIdToStringTypes { get; set; } = new();
+    internal static List<Type> ObjIdToStringTypes { get; private set; } = new();
+
+    /// <summary>
+    /// ObjectId到String转换的类型[该列表中的对象,不会将Id,ID字段转化为ObjectId类型.在数据库中存为字符串格式]
+    /// </summary>
+    public List<Type> ObjectIdToStringTypes
+    {
+        get => ObjIdToStringTypes;
+        set
+        {
+            if (First) throw new("请在应用启动的时候初始化,不要动态调整.");
+            First = true;
+            ObjIdToStringTypes = value;
+        }
+    }
 
     /// <summary>
     /// 是否使用本库提供的默认转换,默认:true

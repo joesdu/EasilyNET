@@ -53,7 +53,7 @@ public class MongoModule : AppModule
                    c.Options = op =>
                    {
                        // 配置不需要将Id字段存储为ObjectID的类型.使用$unwind操作符的时候,ObjectId在转换上会有一些问题.
-                       EasilyNETMongoOptions.ObjIdToStringTypes = new() { typeof(MongoTest2) };
+                       op.ObjectIdToStringTypes = new() { typeof(MongoTest2) };
                        // 是否使用HoyoMongo的一些默认转换配置.包含如下内容:
                        // 1.小驼峰字段名称 如: pageSize ,linkPhone 
                        // 2.忽略代码中未定义的字段
