@@ -1,6 +1,7 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
 
+// ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 // ReSharper disable UnusedMember.Global
 
 namespace EasilyNET.Mongo;
