@@ -8,8 +8,15 @@ namespace EasilyNET.WebCore.Attributes;
 [AttributeUsage(AttributeTargets.Class)]
 // ReSharper disable once UnusedMember.Global
 // ReSharper disable once UnusedType.Global
+// ReSharper disable once ClassNeverInstantiated.Global
 public sealed class ApiGroupAttribute : Attribute
 {
+    /// <summary>
+    /// 构造函数
+    /// </summary>
+    /// <param name="title"></param>
+    /// <param name="version"></param>
+    /// <param name="description"></param>
     public ApiGroupAttribute(string title, string version, string description = "")
     {
         Title = title;

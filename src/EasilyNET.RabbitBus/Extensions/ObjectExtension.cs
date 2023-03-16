@@ -15,7 +15,11 @@ internal static class ObjectExtension
     private static void Require<TException>(bool assertion, string message) where TException : Exception
     {
         if (assertion) return;
+#if NET6_0
         if (string.IsNullOrWhiteSpace(message)) throw new ArgumentNullException(nameof(message));
+#else
+        ArgumentException.ThrowIfNullOrEmpty(message, nameof(message));
+#endif
         throw (TException)Activator.CreateInstance(typeof(TException), message)!;
     }
 

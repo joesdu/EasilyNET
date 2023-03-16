@@ -10,6 +10,7 @@ namespace EasilyNET.Extensions;
 /// <summary>
 /// 程序集帮助类
 /// </summary>
+// ReSharper disable once UnusedType.Global
 public static class AssemblyHelper
 {
     private static readonly string[] Filters = { "dotnet-", "Microsoft.", "mscorlib", "netstandard", "System", "Windows" };

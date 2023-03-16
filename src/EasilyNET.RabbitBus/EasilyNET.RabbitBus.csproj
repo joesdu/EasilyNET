@@ -2,24 +2,11 @@
 
     <PropertyGroup>
         <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <Authors>joesdu</Authors>
-        <RepositoryUrl>https://github.com/EasilyNET/EasilyNET.RabbitBus</RepositoryUrl>
-        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.RabbitBus</PackageProjectUrl>
-        <Description>EasilyNET.RabbitBus</Description>
-        <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-        <PackageLicenseFile>LICENSE</PackageLicenseFile>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
-        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+	    <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.RabbitBus</PackageProjectUrl>
+        <Description>基于RabbitMQ实现的消息总线,参考eShop EventBus</Description>
     </PropertyGroup>
 
-    <ItemGroup>
-        <None Include=".\README.md" Pack="true" PackagePath="" />
-        <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
-    </ItemGroup>
-
-    <ItemGroup>
+	<ItemGroup>
         <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0-preview.2.23128.3" />
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0-preview.2.23128.3" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0-preview.2.23128.3" />

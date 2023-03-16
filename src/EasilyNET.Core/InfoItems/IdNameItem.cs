@@ -1,11 +1,13 @@
 ﻿// ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
+// ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 
 namespace EasilyNET.Core;
 
 /// <summary>
 /// 包含Id和Name字段的对象
 /// </summary>
+// ReSharper disable once UnusedType.Global
 public class IdNameItem
 {
     /// <summary>

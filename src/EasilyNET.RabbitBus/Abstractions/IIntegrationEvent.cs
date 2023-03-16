@@ -13,6 +13,6 @@ public interface IIntegrationEvent
     /// <summary>
     /// 事件创建时间
     /// </summary>
-    // ReSharper disable once UnusedMember.Global
+    // ReSharper disable once UnusedMemberInSuper.Global
     DateTime EventCreateDate { get; }
 }

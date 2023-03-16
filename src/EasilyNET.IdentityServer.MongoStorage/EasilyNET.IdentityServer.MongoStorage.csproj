@@ -2,22 +2,9 @@
 
     <PropertyGroup>
         <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <Authors>joesdu</Authors>
-        <RepositoryUrl>https://github.com/EasilyNET/EasilyNET.IdentityServer.MongoStorage</RepositoryUrl>
-        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.IdentityServer.MongoStorage</PackageProjectUrl>
+	    <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.IdentityServer.MongoStorage</PackageProjectUrl>
         <Description>support identityserver 6.x data persistence to mongodb</Description>
-        <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-        <PackageLicenseFile>LICENSE</PackageLicenseFile>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
-        <GenerateDocumentationFile>True</GenerateDocumentationFile>
     </PropertyGroup>
-
-    <ItemGroup>
-        <None Include=".\README.md" Pack="true" PackagePath="" />
-        <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
-    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Duende.IdentityServer" Version="6.2.3" />

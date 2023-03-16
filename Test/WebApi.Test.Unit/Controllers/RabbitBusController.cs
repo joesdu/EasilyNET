@@ -4,6 +4,9 @@ using WebApi.Test.Unit.Events;
 
 namespace WebApi.Test.Unit.Controllers;
 
+/// <summary>
+/// 消息总线测试控制器
+/// </summary>
 [ApiController, Route("api/[controller]")]
 public class RabbitBusController : ControllerBase
 {
@@ -11,11 +14,18 @@ public class RabbitBusController : ControllerBase
 
     private readonly IIntegrationEventBus _ibus;
 
+    /// <summary>
+    /// 构造函数
+    /// </summary>
+    /// <param name="ibus"></param>
     public RabbitBusController(IIntegrationEventBus ibus)
     {
         _ibus = ibus;
     }
 
+    /// <summary>
+    /// 发送消息
+    /// </summary>
     [HttpPost(Name = "WeatherForecast")]
     public void Post()
     {

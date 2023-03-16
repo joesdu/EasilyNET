@@ -19,6 +19,7 @@ public sealed class IniContext
     /// <summary>
     /// 所有节
     /// </summary>
+    // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
     public Content Sections { get; set; } = new();
 
     /// <summary>

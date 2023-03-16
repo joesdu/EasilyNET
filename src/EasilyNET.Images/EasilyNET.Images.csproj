@@ -2,21 +2,10 @@
 
     <PropertyGroup>
         <TargetFrameworks>netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <Authors>joesdu</Authors>
-        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Images</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/EasilyNET/EasilyNET.Images</RepositoryUrl>
+	    <RepositoryUrl>https://github.com/EasilyNET/EasilyNET.Images</RepositoryUrl>
         <Description>含QRCode创建和解析工具,无需自行使用apt等工具安装组件</Description>
-        <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-        <PackageLicenseFile>LICENSE</PackageLicenseFile>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
-        <GenerateDocumentationFile>True</GenerateDocumentationFile>
     </PropertyGroup>
-    <ItemGroup>
-        <None Include=".\README.md" Pack="true" PackagePath="" />
-        <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
-    </ItemGroup>
+
     <ItemGroup>
         <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.3" />
         <PackageReference Include="ZXing.Net" Version="0.16.9" />

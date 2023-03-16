@@ -3,6 +3,8 @@ using EasilyNET.AutoDependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq.Expressions;
 
+// ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
+
 namespace EasilyNET.AutoDependencyInjection.Modules;
 
 /// <summary>
@@ -23,7 +25,31 @@ internal class ModuleApplicationBase : IModuleApplication
         _ = services.AddSingleton<IModuleApplication>(this);
         _ = services.TryAddObjectAccessor<IServiceProvider>();
         Source = GetEnabledAllModule(services);
-        Modules = LoadModules();
+        Modules = LoadModules;
+    }
+
+    /// <summary>
+    /// 获取所有需要加载的模块
+    /// </summary>
+    /// <returns></returns>
+    private IReadOnlyList<IAppModule> LoadModules
+    {
+        get
+        {
+            List<IAppModule> modules = new();
+            var module = Source.FirstOrDefault(o => o.GetType() == StartupModuleType) ?? throw new($"类型为“{StartupModuleType.FullName}”的模块实例无法找到");
+            modules.Add(module);
+            var depends = module.GetDependedTypes();
+            foreach (var dependType in depends.Where(AppModule.IsAppModule))
+            {
+                var dependModule = Source.ToList().Find(m => m.GetType() == dependType);
+                if (dependModule is null)
+                    continue;
+                if (!modules.Contains(dependModule))
+                    modules.Add(dependModule);
+            }
+            return modules;
+        }
     }
 
     /// <summary>
@@ -82,25 +108,6 @@ internal class ModuleApplicationBase : IModuleApplication
     }
 
     /// <summary>
-    /// 获取所有需要加载的模块
-    /// </summary>
-    /// <returns></returns>
-    private IReadOnlyList<IAppModule> LoadModules()
-    {
-        List<IAppModule> modules = new();
-        var module = Source.FirstOrDefault(o => o.GetType() == StartupModuleType) ?? throw new($"类型为“{StartupModuleType.FullName}”的模块实例无法找到");
-        modules.Add(module);
-        var depends = module.GetDependedTypes();
-        foreach (var dependType in depends.Where(AppModule.IsAppModule))
-        {
-            var dependModule = Source.ToList().Find(m => m.GetType() == dependType);
-            if (dependModule is null) continue;
-            if (!modules.Contains(dependModule)) modules.Add(dependModule);
-        }
-        return modules;
-    }
-
-    /// <summary>
     /// 创建模块
     /// </summary>
     /// <param name="services"></param>
@@ -109,7 +116,12 @@ internal class ModuleApplicationBase : IModuleApplication
     /// <returns></returns>
     private static IAppModule? CreateModule(IServiceCollection services, Type moduleType)
     {
-        var module = (IAppModule)Expression.Lambda(Expression.New(moduleType)).Compile().DynamicInvoke()! ?? throw new ArgumentNullException(nameof(moduleType));
+#if NETSTANDARD
+        var module = Expression.Lambda(Expression.New(moduleType)).Compile().DynamicInvoke() as IAppModule ?? throw new ArgumentNullException(nameof(moduleType));
+#else
+        var module = Expression.Lambda(Expression.New(moduleType)).Compile().DynamicInvoke() as IAppModule;
+        ArgumentNullException.ThrowIfNull(module, nameof(moduleType));
+#endif
         if (!module.Enable) return null;
         _ = services.AddSingleton(moduleType, module);
         return module;

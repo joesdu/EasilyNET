@@ -3,8 +3,8 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 
+// ReSharper disable UnusedMethodReturnValue.Global
 // ReSharper disable MemberCanBePrivate.Global
-
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 

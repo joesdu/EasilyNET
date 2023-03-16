@@ -95,6 +95,20 @@ public class MongoTestController : ControllerBase
     }
 
     /// <summary>
+    /// 发送长数据,试试MongoDB.ConsoleDebug输出的JSON字符串,是否会截断
+    /// </summary>
+    /// <returns></returns>
+    [HttpPost("LongData")]
+    public async Task PostLongData()
+    {
+        var data = "10086".PadLeft(100).PadRight(100);
+        await db.Database.GetCollection<dynamic>("long.data").InsertOneAsync(new
+        {
+            Data = data
+        });
+    }
+
+    /// <summary>
     /// 查询测试
     /// </summary>
     /// <returns></returns>

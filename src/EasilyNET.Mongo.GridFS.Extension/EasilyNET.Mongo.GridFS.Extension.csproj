@@ -2,24 +2,11 @@
 
     <PropertyGroup>
         <TargetFrameworks>netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <Authors>joesdu</Authors>
-        <RepositoryUrl>https://github.com/EasilyNET/EasilyNET.Mongo.GridFS</RepositoryUrl>
-        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.GridFS.Extension</PackageProjectUrl>
+	    <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.GridFS.Extension</PackageProjectUrl>
         <Description>EasilyNET.Mongo.GridFS扩展,添加虚拟目录,让数据库中流式文件变成本地文件进行静态伺服.</Description>
-        <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-        <PackageLicenseFile>LICENSE</PackageLicenseFile>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
-        <GenerateDocumentationFile>True</GenerateDocumentationFile>
     </PropertyGroup>
 
-    <ItemGroup>
-        <None Include=".\README.md" Pack="true" PackagePath="" />
-        <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
-    </ItemGroup>
-
-    <ItemGroup>
+	<ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
         <PackageReference Include="Microsoft.Extensions.FileProviders.Physical" Version="8.0.0-preview.2.23128.3" />
     </ItemGroup>

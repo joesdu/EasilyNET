@@ -10,6 +10,7 @@ internal interface IAppModule : IApplicationInitialization
     /// <summary>
     /// 是否启用
     /// </summary>
+    // ReSharper disable once UnusedMember.Global
     bool Enable { get; set; }
 
     /// <summary>

@@ -30,6 +30,7 @@ EasilyNET Packages
 | [EasilyNET.Mongo.GridFS.Extension](https://www.nuget.org/packages/EasilyNET.Mongo.GridFS.Extension)           | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Mongo.GridFS.Extension)      | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Mongo.GridFS.Extension)      | EasilyNET.Mongo.GridFS 扩展,添加虚拟文件系统,便于文件在线查看              |
 | [EasilyNET.Tools](https://www.nuget.org/packages/EasilyNET.Tools)                                             | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Tools)                       | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Tools)                       | 一些工具包,如 RMB 大写,农历,身份证号码校验等                               |
 | [EasilyNET.WebCore](https://www.nuget.org/packages/EasilyNET.WebCore)                                         | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.WebCore)                     | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.WebCore)                     | 提供 Swagger 的一些 Filtter,以及 JsonConverter,和全局统一返回和异常处理支持 |
+| [EasilyNET.Security](https://www.nuget.org/packages/EasilyNET.Security)                                       | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Security)                    | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Security)                    | 一个常用加密算法的封装库,从使用简单的目的出发                               |
 
 ![微信公众号](https://github.com/joesdu/joesdu/blob/main/wechat-official-account.png#pic_center)
 

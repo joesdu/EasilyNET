@@ -19,7 +19,11 @@ public static class ObjectExtension
     public static void Require<TException>(bool assertion, string message) where TException : Exception
     {
         if (assertion) return;
+#if NET7_0_OR_GREATER
+        ArgumentException.ThrowIfNullOrEmpty(message, nameof(message));
+#else
         if (string.IsNullOrWhiteSpace(message)) throw new ArgumentNullException(nameof(message));
+#endif
         throw (TException)Activator.CreateInstance(typeof(TException), message)!;
     }
 
@@ -31,7 +35,11 @@ public static class ObjectExtension
     /// <param name="message">异常消息</param>
     public static void Required<T>(this T value, Func<T, bool> assertionFunc, string message)
     {
+#if NETSTANDARD
         if (assertionFunc is null) throw new ArgumentNullException(nameof(assertionFunc));
+#else
+        ArgumentNullException.ThrowIfNull(assertionFunc, nameof(assertionFunc));
+#endif
         Require<Exception>(assertionFunc(value), message);
     }
 
@@ -45,7 +53,11 @@ public static class ObjectExtension
     /// <param name="message">异常消息</param>
     public static void Required<T, TException>(this T value, Func<T, bool> assertionFunc, string message) where TException : Exception
     {
+#if NETSTANDARD
         if (assertionFunc is null) throw new ArgumentNullException(nameof(assertionFunc));
+#else
+        ArgumentNullException.ThrowIfNull(assertionFunc, nameof(assertionFunc));
+#endif
         Require<TException>(assertionFunc(value), message);
     }
 

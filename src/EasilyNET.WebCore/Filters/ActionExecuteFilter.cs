@@ -9,8 +9,13 @@ namespace EasilyNET.WebCore.Filters;
 /// <summary>
 /// Action过滤器,主要用于统一格式化返回数据结构.
 /// </summary>
+// ReSharper disable once ClassNeverInstantiated.Global
 public sealed class ActionExecuteFilter : ActionFilterAttribute
 {
+    /// <summary>
+    /// 当方法执行完成
+    /// </summary>
+    /// <param name="context"></param>
     public override void OnActionExecuted(ActionExecutedContext context)
     {
         switch (context.Result)

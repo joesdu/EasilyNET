@@ -9,12 +9,25 @@ namespace EasilyNET.WebCore.JsonConverters;
 /// <summary>
 /// 可空DateOnly类型Json转换(用于将字符串类型的日期转化成后端可识别的DateOnly类型)
 /// </summary>
-public class DateOnlyNullJsonConverter : JsonConverter<DateOnly?>
+public sealed class DateOnlyNullJsonConverter : JsonConverter<DateOnly?>
 {
+    /// <summary>
+    /// Read
+    /// </summary>
+    /// <param name="reader"></param>
+    /// <param name="typeToConvert"></param>
+    /// <param name="options"></param>
+    /// <returns></returns>
     public override DateOnly? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
         string.IsNullOrWhiteSpace(reader.GetString())
             ? null
             : DateOnly.Parse(reader.GetString()!);
 
+    /// <summary>
+    /// Write
+    /// </summary>
+    /// <param name="writer"></param>
+    /// <param name="value"></param>
+    /// <param name="options"></param>
     public override void Write(Utf8JsonWriter writer, DateOnly? value, JsonSerializerOptions options) => writer.WriteStringValue(value?.ToString(Constant.DateFormat));
 }

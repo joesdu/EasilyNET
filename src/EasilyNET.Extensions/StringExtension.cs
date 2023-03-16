@@ -1,6 +1,7 @@
 ﻿using System.Collections.Specialized;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 // ReSharper disable MemberCanBePrivate.Global
@@ -54,7 +55,9 @@ public static class StringExtension
     /// <returns></returns>
     public static string ToTitleUpperCase(this string value, bool lower = true)
     {
+#pragma warning disable SYSLIB1045 // 转换为“GeneratedRegexAttribute”。
         var regex = new Regex(@"\w+");
+#pragma warning restore SYSLIB1045 // 转换为“GeneratedRegexAttribute”。
         return regex.Replace(value,
             delegate(Match m)
             {
@@ -163,6 +166,7 @@ public static class StringExtension
         if (string.IsNullOrWhiteSpace(value.Trim())) return value;
         value = value.Trim();
         var masks = mask.ToString().PadLeft(4, mask);
+#pragma warning disable SYSLIB1045 // 转换为“GeneratedRegexAttribute”。
         return value.Length switch
         {
             >= 11 => Regex.Replace(value, "(.{3}).*(.{4})", $"$1{masks}$2"),
@@ -173,6 +177,61 @@ public static class StringExtension
             6     => Regex.Replace(value, "(.{1}).*(.{1})", $"$1{masks}$2"),
             _     => Regex.Replace(value, "(.{1}).*", $"$1{masks}")
         };
+#pragma warning restore SYSLIB1045 // 转换为“GeneratedRegexAttribute”。
+    }
+
+    /// <summary>
+    /// 截断一个字符串,并在末尾添加一个后缀
+    /// </summary>
+    /// <param name="value">原始字符串</param>
+    /// <param name="maxLength">最大长度(添加后缀后的长度)</param>
+    /// <param name="suffix">后缀,默认: ...</param>
+    /// <returns></returns>
+    public static string Truncate(this string value, int maxLength, string suffix = "...") =>
+        string.IsNullOrEmpty(value) || value.Length <= maxLength
+            ? value
+            : maxLength - suffix.Length <= 0
+                ? suffix[..maxLength]
+                : $"{value[..(maxLength - suffix.Length)]}{suffix}";
+
+    /// <summary>
+    /// 将JSON字符串符合条件的字段,按照最大长度截断
+    /// </summary>
+    /// <param name="json"></param>
+    /// <param name="predicate">筛选字段名</param>
+    /// <param name="maxLength">最大长度(添加后缀后的长度)</param>
+    /// <param name="suffix">后缀,默认: ...</param>
+    /// <returns></returns>
+    public static string TruncateJson(this string json, Func<string, bool> predicate, int maxLength, string suffix = "...")
+    {
+        // Parse the json string into a JsonDocument
+        using var doc = JsonDocument.Parse(json);
+        // Get the root element of the document
+        var root = doc.RootElement;
+        // Create a StringBuilder to store the truncated json string
+        var sb = new StringBuilder();
+        // Write the opening brace of the object
+        sb.Append('{');
+        // Loop through all the properties in the root element
+        foreach (var property in root.EnumerateObject())
+        {
+            // Get the name and value of the property as strings
+            var name = property.Name;
+            var value = property.Value.ToString();
+            // If the predicate function returns true for the property name, and the value is longer than the max length, truncate it and add a suffix
+            if (predicate(name) && value.Length > maxLength)
+            {
+                value = value.Truncate(maxLength - suffix.Length, suffix);
+            }
+            // Write the property name and value to the StringBuilder with quotes and comma
+            sb.Append($"\"{name}\":\"{value}\",");
+        }
+        // Remove the last comma from the StringBuilder
+        sb.Length--;
+        // Write the closing brace of the object
+        sb.Append('}');
+        // Return the truncated json string
+        return sb.ToString();
     }
 
     #region 字符串转为日期

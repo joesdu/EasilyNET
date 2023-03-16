@@ -102,8 +102,6 @@ public static class Lunar
         private set => _ChineseLunar = value;
     }
 
-    #region 属相
-
     /// <summary>
     /// 计算属相的索引，注意虽然属相是以农历年来区别的，但是目前在实际使用中是按公历来计算的
     /// 鼠年为1,其它类推
@@ -117,7 +115,43 @@ public static class Lunar
         }
     }
 
-    #endregion
+    /// <summary>
+    /// 获取该日期所属星座
+    /// </summary>
+    public static EConstellation Constellation
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(_ChineseLunar.Trim()))
+                return GetConstellation(_date);
+            Init(DateTime.Now);
+            return GetConstellation(_date);
+        }
+    }
+
+    /// <summary>
+    /// 获取星座
+    /// </summary>
+    /// <param name="date">时间</param>
+    /// <returns></returns>
+    private static EConstellation GetConstellation(DateTime date)
+    {
+        // 定義一個陣列，儲存每個星座的起始日期
+        var dic = new[] { 119, 218, 320, 419, 520, 621, 722, 822, 922, 1023, 1122, 1221 };
+        //var dic = new[] { 120, 219, 321, 420, 521, 622, 723, 823, 923, 1023, 1122, 1222 };
+        var m = date.Month;
+        var d = date.Day;
+#pragma warning disable IDE0048
+        // 計算日期的索引值
+        var y = m * 100 + d;
+#pragma warning restore IDE0048
+        var index = Array.BinarySearch(dic, y);
+        if (index < 0)
+            index = ~index;
+        if (index == 12)
+            index = 0;
+        return (EConstellation)index;
+    }
 
     /// <summary>
     /// 传入的公历日期
@@ -454,6 +488,7 @@ public static class Lunar
         int year;
         int month;
         int day;
+#pragma warning disable SYSLIB1045 // 转换为“GeneratedRegexAttribute”。
         if (new Regex(@"\d{8}").Match(date).Success)
         {
             year = int.Parse(date[..4]);
@@ -492,6 +527,7 @@ public static class Lunar
         {
             throw new("error date");
         }
+#pragma warning restore SYSLIB1045 // 转换为“GeneratedRegexAttribute”。
         var result = new int[3];
         result[0] = year;
         result[1] = month;
@@ -574,43 +610,4 @@ public static class Lunar
         LunarDay = FormatDay(result[2]);
         return sb.ToString();
     }
-
-    #region 星座
-
-    /// <summary>
-    /// 获取该日期所属星座
-    /// </summary>
-    public static EConstellation Constellation
-    {
-        get
-        {
-            if (!string.IsNullOrWhiteSpace(_ChineseLunar.Trim())) return GetConstellation(_date);
-            Init(DateTime.Now);
-            return GetConstellation(_date);
-        }
-    }
-
-    /// <summary>
-    /// 获取星座
-    /// </summary>
-    /// <param name="date">时间</param>
-    /// <returns></returns>
-    private static EConstellation GetConstellation(DateTime date)
-    {
-        // 定義一個陣列，儲存每個星座的起始日期
-        var dic = new[] { 119, 218, 320, 419, 520, 621, 722, 822, 922, 1023, 1122, 1221 };
-        //var dic = new[] { 120, 219, 321, 420, 521, 622, 723, 823, 923, 1023, 1122, 1222 };
-        var m = date.Month;
-        var d = date.Day;
-#pragma warning disable IDE0048
-        // 計算日期的索引值
-        var y = m * 100 + d;
-#pragma warning restore IDE0048
-        var index = Array.BinarySearch(dic, y);
-        if (index < 0) index = ~index;
-        if (index == 12) index = 0;
-        return (EConstellation)index;
-    }
-
-    #endregion
 }

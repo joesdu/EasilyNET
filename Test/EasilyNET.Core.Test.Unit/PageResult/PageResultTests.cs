@@ -2,8 +2,14 @@
 
 namespace EasilyNET.Core.Tests.Unit;
 
+/// <summary>
+/// 分页返回测试
+/// </summary>
 public class PageResultTests
 {
+    /// <summary>
+    /// 分页返回数组
+    /// </summary>
     [Fact]
     public void Wrap_ReturnsPageResultWithCorrectTotalAndList()
     {
@@ -19,6 +25,9 @@ public class PageResultTests
         result.List.Should().BeEquivalentTo(list);
     }
 
+    /// <summary>
+    /// 分页返回动态类型
+    /// </summary>
     [Fact]
     public void WrapDynamic_ReturnsPageResultWithCorrectTotalAndList()
     {
@@ -34,6 +43,9 @@ public class PageResultTests
         result.List.Should().BeEquivalentTo(list);
     }
 
+    /// <summary>
+    /// 测试total为空
+    /// </summary>
     [Fact]
     public void Wrap_ReturnsPageResultWithZeroTotal_WhenNullTotalIsPassed()
     {
@@ -49,6 +61,9 @@ public class PageResultTests
         result.List.Should().BeEquivalentTo(list);
     }
 
+    /// <summary>
+    /// 测试数据列表为空
+    /// </summary>
     [Fact]
     public void Wrap_ReturnsPageResultWithEmptyList_WhenNullListIsPassed()
     {
@@ -64,6 +79,9 @@ public class PageResultTests
         result.List.Should().BeNull();
     }
 
+    /// <summary>
+    /// 测试total为空和动态类型
+    /// </summary>
     [Fact]
     public void WrapDynamic_ReturnsPageResultWithZeroTotal_WhenNullTotalIsPassed()
     {
@@ -79,6 +97,9 @@ public class PageResultTests
         result.List.Should().BeEquivalentTo(list);
     }
 
+    /// <summary>
+    /// 测试动态数据为空
+    /// </summary>
     [Fact]
     public void WrapDynamic_ReturnsPageResultWithEmptyList_WhenNullListIsPassed()
     {

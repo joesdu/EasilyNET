@@ -5,6 +5,7 @@ namespace EasilyNET.Core;
 /// <summary>
 /// 操作人
 /// </summary>
+// ReSharper disable once UnusedType.Global
 public class Operator : ReferenceItem
 {
     /// <summary>

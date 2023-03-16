@@ -10,8 +10,14 @@ namespace EasilyNET.WebCore.SwaggerFilters;
 /// 在Swagger文档中给需要Authorize的接口添加🔒
 /// </summary>
 // ReSharper disable once UnusedMember.Global
+// ReSharper disable once ClassNeverInstantiated.Global
 public sealed class SwaggerAuthorizeFilter : IOperationFilter
 {
+    /// <summary>
+    /// Apply
+    /// </summary>
+    /// <param name="operation"></param>
+    /// <param name="context"></param>
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
         var authAttributes = context.MethodInfo.DeclaringType?.GetCustomAttributes(true)

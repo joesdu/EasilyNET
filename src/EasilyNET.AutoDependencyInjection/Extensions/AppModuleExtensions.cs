@@ -3,6 +3,7 @@ using EasilyNET.AutoDependencyInjection.Modules;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
+// ReSharper disable UnusedMethodReturnValue.Global
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 
@@ -21,10 +22,10 @@ public static class AppModuleExtensions
     /// <returns></returns>
     public static IServiceCollection AddApplication<T>(this IServiceCollection services) where T : AppModule
     {
-#if NETSTANDARD2_1
+#if NETSTANDARD
         if (services is null) throw new ArgumentNullException(nameof(services));
 #else
-        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(services, nameof(services));
 #endif
         var obj = new ObjectAccessor<IApplicationBuilder>();
         services.Add(ServiceDescriptor.Singleton(typeof(ObjectAccessor<IApplicationBuilder>), obj));
