@@ -6,6 +6,7 @@ namespace EasilyNET.Core;
 /// <summary>
 /// 操作信息
 /// </summary>
+// ReSharper disable once UnusedType.Global
 public class OperationInfo
 {
     /// <summary>

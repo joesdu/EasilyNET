@@ -98,11 +98,4 @@ public class ReferenceItem : IEquatable<ReferenceItem>
     /// <param name="y"></param>
     /// <returns></returns>
     public static bool operator !=(ReferenceItem x, ReferenceItem y) => !Equals(x, y);
-
-    /// <summary>
-    /// GetHashCode
-    /// </summary>
-    /// <param name="obj"></param>
-    /// <returns></returns>
-    public int GetHashCode(ReferenceItem obj) => obj.GetHashCode();
 }

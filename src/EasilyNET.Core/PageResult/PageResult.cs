@@ -5,7 +5,7 @@ namespace HEasilyNET.Core;
 /// <summary>
 /// 分页数据返回
 /// </summary>
-public class PageResult
+public static class PageResult
 {
     /// <summary>
     /// 泛型类型分页数据返回
@@ -29,7 +29,7 @@ public class PageResult
 /// 分页数据返回
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public class PageResult<T>
+public sealed class PageResult<T>
 {
     /// <summary>
     /// 构造函数

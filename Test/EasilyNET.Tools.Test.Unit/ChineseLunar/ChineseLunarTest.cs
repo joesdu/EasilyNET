@@ -4,8 +4,14 @@ using FluentAssertions;
 
 namespace EasilyNET.Tools.Test.Unit.ChineseLunar;
 
+/// <summary>
+/// 中国农历测试
+/// </summary>
 public class ChineseLunarTest
 {
+    /// <summary>
+    /// 中国农历
+    /// </summary>
     [Fact]
     public void ChineseLunar()
     {

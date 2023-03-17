@@ -2,24 +2,11 @@
 
     <PropertyGroup>
         <TargetFrameworks>netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <Authors>joesdu</Authors>
-        <RepositoryUrl>https://github.com/EasilyNET/EasilyNET.Mongo.ConsoleDebug</RepositoryUrl>
-        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug</PackageProjectUrl>
+	    <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug</PackageProjectUrl>
         <Description>MongoDB.ConsoleDebug,用来实现类似EF将命令语句输出到控制台的功能.</Description>
-        <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-        <PackageLicenseFile>LICENSE</PackageLicenseFile>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
-        <GenerateDocumentationFile>True</GenerateDocumentationFile>
     </PropertyGroup>
 
-    <ItemGroup>
-        <None Include=".\README.md" Pack="true" PackagePath="" />
-        <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
-    </ItemGroup>
-
-    <ItemGroup>
+	<ItemGroup>
         <PackageReference Include="MongoDB.Driver.Core" Version="2.19.0" />
     </ItemGroup>
 

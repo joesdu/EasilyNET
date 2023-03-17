@@ -22,9 +22,7 @@ public static class GridFSExtensions
     /// <param name="db">IMongoDatabase,为空情况下使用默认数据库hoyofs</param>
     /// <param name="fsOptions"></param>
     /// <returns></returns>
-    public static void AddEasilyNETGridFS(this IServiceCollection services,
-        IMongoDatabase? db = null,
-        Action<EasilyNETGridFSOptions>? fsOptions = null)
+    public static void AddEasilyNETGridFS(this IServiceCollection services, IMongoDatabase? db = null, Action<EasilyNETGridFSOptions>? fsOptions = null)
     {
         var client = services.BuildServiceProvider().GetService<IMongoClient>();
         var options = new EasilyNETGridFSOptions();
@@ -35,7 +33,7 @@ public static class GridFSExtensions
             if (client is null) throw new("无法从IOC容器中获取IMongoClient的服务依赖,请考虑显示传入db参数.");
         }
         BusinessApp = options.BusinessApp;
-        var hoyo_db = options.DefaultDB ? client!.GetDatabase("easily.fs") : db;
+        var hoyo_db = options.DefaultDB ? client!.GetDatabase("easilyfs") : db;
         _ = services.Configure<FormOptions>(c =>
         {
             c.MultipartBodyLengthLimit = long.MaxValue;

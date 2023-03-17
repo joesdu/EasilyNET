@@ -14,11 +14,16 @@ public sealed class ApplicationContext : IServiceProviderAccessor
     /// <exception cref="ArgumentNullException">参数{<code>nameof(serviceProvider)</code>}不能为空</exception>
     public ApplicationContext(IServiceProvider? serviceProvider)
     {
+#if NETSTANDARD
         ServiceProvider = serviceProvider ?? throw new ArgumentNullException($"参数“{nameof(serviceProvider)}”不能为空引用");
+#else
+        ArgumentNullException.ThrowIfNull(serviceProvider, nameof(serviceProvider));
+        ServiceProvider = serviceProvider;
+#endif
     }
 
     /// <summary>
     /// IServiceProvider
     /// </summary>
-    public IServiceProvider ServiceProvider { get; set; }
+    public IServiceProvider ServiceProvider { get; private set; }
 }

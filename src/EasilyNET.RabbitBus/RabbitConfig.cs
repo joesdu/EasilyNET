@@ -1,4 +1,6 @@
-﻿namespace EasilyNET.RabbitBus;
+﻿// ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
+
+namespace EasilyNET.RabbitBus;
 
 /// <summary>
 /// RabbitMQ配置

@@ -12,8 +12,14 @@ namespace EasilyNET.WebCore.SwaggerFilters;
 /// 添加默认值显示
 /// </summary>
 // ReSharper disable once UnusedMember.Global
+// ReSharper disable once ClassNeverInstantiated.Global
 public sealed class SwaggerSchemaFilter : ISchemaFilter
 {
+    /// <summary>
+    /// Apply
+    /// </summary>
+    /// <param name="schema"></param>
+    /// <param name="context"></param>
     public void Apply(OpenApiSchema schema, SchemaFilterContext context)
     {
         if (schema.Properties is null) return;

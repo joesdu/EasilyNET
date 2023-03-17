@@ -9,6 +9,7 @@ namespace EasilyNET.Mongo.GridFS.Extension;
 /// <summary>
 /// 配置虚拟文件路径扩展
 /// </summary>
+// ReSharper disable once UnusedType.Global
 public static class GridFSVirtualPathExtension
 {
     /// <summary>

@@ -2,8 +2,14 @@
 
 namespace EasilyNET.Core.Tests.Unit;
 
+/// <summary>
+/// ReferenceItem 测试
+/// </summary>
 public class ReferenceItemTest
 {
+    /// <summary>
+    /// Equals Test
+    /// </summary>
     [Fact]
     public void ReferenceItemEquals()
     {

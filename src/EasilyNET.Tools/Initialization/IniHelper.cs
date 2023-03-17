@@ -33,7 +33,7 @@ public static class IniHelper
         {
             var item = lines[i].TrimStart();
             //为注解
-            if (item.IndexOf(';') == 0 || item.IndexOf('；') == 0 || string.IsNullOrEmpty(item))
+            if (item.StartsWith(';') || item.StartsWith('；') || string.IsNullOrEmpty(item))
             {
                 continue;
             }

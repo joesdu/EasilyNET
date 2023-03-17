@@ -12,11 +12,20 @@ public sealed class ResponseTimeMiddleware
     private const string ResponseTime = "EasilyNET-Response-Time";
     private readonly RequestDelegate _next;
 
+    /// <summary>
+    /// 构造函数
+    /// </summary>
+    /// <param name="next"></param>
     public ResponseTimeMiddleware(RequestDelegate next)
     {
         _next = next;
     }
 
+    /// <summary>
+    /// Invoke
+    /// </summary>
+    /// <param name="context"></param>
+    /// <returns></returns>
     public async Task Invoke(HttpContext context)
     {
         var watch = new Stopwatch();
@@ -38,6 +47,11 @@ public sealed class ResponseTimeMiddleware
 // ReSharper disable once UnusedType.Global
 public static class ResponseTimeMiddlewareExtensions
 {
+    /// <summary>
+    /// 使用全局API耗时监控中间件
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <returns></returns>
     // ReSharper disable once UnusedMember.Global
     public static IApplicationBuilder UseEasilyNETResponseTime(this IApplicationBuilder builder) => builder.UseMiddleware<ResponseTimeMiddleware>();
 }
