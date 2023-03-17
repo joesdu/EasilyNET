@@ -26,13 +26,13 @@ public class MongoTestController : ControllerBase
     }
 
     /// <summary>
-    /// 添加一个动态数据
+    /// 添加一个动态数据,新版MongoDB不支持动态类型了,后期想办法看看能不能自己支持.若是所有对象都创建一个实体,可便于快速测试一些代码.
     /// </summary>
     /// <returns></returns>
     [HttpPost("PostOneTest")]
     public async Task PostOneTest()
     {
-        var coll = db.Client.GetDatabase("newdb1").GetCollection<dynamic>("test.new1");
+        var coll = db.Client.GetDatabase("newdb1").GetCollection<object>("test.new1");
         await coll.InsertOneAsync(new
         {
             Data = "test"

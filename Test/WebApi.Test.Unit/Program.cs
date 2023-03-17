@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 //添加Serilog配置
 _ = builder.Host.UseSerilog((hbc, lc) =>
 {
-    const LogEventLevel logLevel = LogEventLevel.Warning;
+    const LogEventLevel logLevel = LogEventLevel.Information;
     _ = lc.ReadFrom.Configuration(hbc.Configuration)
           .MinimumLevel.Override("Microsoft", logLevel)
           .MinimumLevel.Override("System", logLevel)
