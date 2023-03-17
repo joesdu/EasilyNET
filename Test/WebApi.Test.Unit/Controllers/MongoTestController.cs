@@ -46,7 +46,13 @@ public class MongoTestController : ControllerBase
     [HttpPost("MongoPost")]
     public Task MongoPost()
     {
-        var o = new MongoTest { DateTime = DateTime.Now, TimeSpan = TimeSpan.FromMilliseconds(50000d), DateOnly = DateOnly.FromDateTime(DateTime.Now), TimeOnly = TimeOnly.FromDateTime(DateTime.Now) };
+        var o = new MongoTest
+        {
+            DateTime = DateTime.Now,
+            TimeSpan = TimeSpan.FromMilliseconds(50000d),
+            DateOnly = DateOnly.FromDateTime(DateTime.Now),
+            TimeOnly = TimeOnly.FromDateTime(DateTime.Now)
+        };
         _ = db.Test.InsertOneAsync(o);
         return Task.CompletedTask;
     }
