@@ -1,3 +1,3 @@
-##### EasilyNET.Core.Test.Unit
+ï»¿##### EasilyNET.Core.Test.Unit
 
-EasilyNET.Core ²âÊÔµ¥Ôª
+EasilyNET.Core æµ‹è¯•å•å…ƒ

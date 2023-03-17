@@ -1,8 +1,6 @@
-using EasilyNET.Extensions.Language;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using System.ComponentModel;
-using System.Diagnostics;
 
 namespace WebApi.Test.Unit.Controllers;
 
@@ -28,24 +26,17 @@ public class MongoTestController : ControllerBase
     }
 
     /// <summary>
-    /// 插入大量数据,看看性能如何
+    /// 添加一个动态数据
     /// </summary>
     /// <returns></returns>
-    [HttpPost("InsertManyElement")]
-    public async Task<long> InsertManyElement()
+    [HttpPost("PostOneTest")]
+    public async Task PostOneTest()
     {
-        var objs = new List<dynamic>();
-        for (var i = 0; i < 10; i++)
+        var coll = db.Client.GetDatabase("newdb1").GetCollection<dynamic>("test.new1");
+        await coll.InsertOneAsync(new
         {
-            var obj = new { Text = "Test", Index = i, Elements = new List<int>() };
-            foreach (var j in ..10000) obj.Elements.Add(j);
-            objs.Add(obj);
-        }
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-        await db.Database.GetCollection<object>("manydata").InsertManyAsync(objs);
-        stopwatch.Stop();
-        return stopwatch.ElapsedMilliseconds;
+            Data = "test"
+        });
     }
 
     /// <summary>

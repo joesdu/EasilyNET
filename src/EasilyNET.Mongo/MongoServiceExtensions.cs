@@ -85,9 +85,10 @@ public static class MongoServiceExtensions
 
     private static void RegistryConventionPack(EasilyNETMongoOptions options)
     {
-        foreach (var item in options.ConventionRegistry) ConventionRegistry.Register(item.Key, item.Value, _ => true);
-        if (!options.DefaultConventionRegistry) ConventionRegistry.Remove(EasilyNETConstant.Pack);
-        ConventionRegistry.Register($"hoyo-id-pack-{ObjectId.GenerateNewId()}", new ConventionPack
+        foreach (var item in options.ConventionRegistry)
+            ConventionRegistry.Register(item.Key, item.Value, _ => true);
+        if (!options.DefaultConventionRegistry) ConventionRegistry.Remove(options.ConventionRegistry.First().Key);
+        ConventionRegistry.Register($"easily-id-pack-{ObjectId.GenerateNewId()}", new ConventionPack
         {
             new StringObjectIdIdGeneratorConvention() //ObjectId → String mapping ObjectId
         }, x => !EasilyNETMongoOptions.ObjIdToStringTypes.Contains(x));

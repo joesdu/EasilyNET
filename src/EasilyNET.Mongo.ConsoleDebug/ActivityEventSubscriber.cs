@@ -1,4 +1,5 @@
-﻿using MongoDB.Driver.Core.Events;
+﻿using MongoDB.Bson;
+using MongoDB.Driver.Core.Events;
 using System.Reflection;
 
 // ReSharper disable UnusedType.Global
@@ -66,8 +67,8 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
             return;
         Console.WriteLine($"[{DateTime.Now:HH:mm:ss} INF] MongoRequest: {@event.RequestId},Command: ");
         Console.ForegroundColor = ConsoleColor.Magenta;
-        var json = @event.Command.Elements;
-        //Console.WriteLine($"{json}");
+        var json = @event.Command.ToJson(new() { Indent = true });
+        Console.WriteLine($"{json}");
         Console.ForegroundColor = ConsoleColor.White;
     }
 
