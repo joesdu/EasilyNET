@@ -24,8 +24,7 @@ public static class RSAKeyConverter
         using var rsa = new RSACryptoServiceProvider();
         rsa.FromXmlString(xmlPrivateKey);
         var param = rsa.ExportParameters(true);
-        var privateKeyParam = new RsaPrivateCrtKeyParameters(
-            new(1, param.Modulus), new(1, param.Exponent),
+        var privateKeyParam = new RsaPrivateCrtKeyParameters(new(1, param.Modulus), new(1, param.Exponent),
             new(1, param.D), new(1, param.P),
             new(1, param.Q), new(1, param.DP),
             new(1, param.DQ), new(1, param.InverseQ));
@@ -57,7 +56,7 @@ public static class RSAKeyConverter
     {
         var privateKeyParams = (RsaPrivateCrtKeyParameters)PrivateKeyFactory.CreateKey(Convert.FromBase64String(privateKey));
         using var rsa = new RSACryptoServiceProvider();
-        var rsaParams = new RSAParameters()
+        var rsaParams = new RSAParameters
         {
             Modulus = privateKeyParams.Modulus.ToByteArrayUnsigned(),
             Exponent = privateKeyParams.PublicExponent.ToByteArrayUnsigned(),

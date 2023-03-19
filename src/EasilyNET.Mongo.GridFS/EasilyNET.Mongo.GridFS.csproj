@@ -2,11 +2,11 @@
 
     <PropertyGroup>
         <TargetFrameworks>netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
-	    <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.GridFS</PackageProjectUrl>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.GridFS</PackageProjectUrl>
         <Description>几行代码创建一个MongoGridFS服务</Description>
     </PropertyGroup>
 
-	<ItemGroup>
+    <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
         <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
         <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel.Core" Version="2.2.0" />
@@ -15,7 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
+        <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
     </ItemGroup>
 
 </Project>

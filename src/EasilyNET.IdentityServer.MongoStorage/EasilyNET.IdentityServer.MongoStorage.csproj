@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
-	    <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.IdentityServer.MongoStorage</PackageProjectUrl>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.IdentityServer.MongoStorage</PackageProjectUrl>
         <Description>support identityserver 6.x data persistence to mongodb</Description>
     </PropertyGroup>
 

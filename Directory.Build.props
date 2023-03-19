@@ -2,22 +2,22 @@
 
 <Project>
 
-	<PropertyGroup>
-		<Version>1.1.0</Version>
-		<LangVersion>preview</LangVersion>
-		<RepositoryUrl>https://github.com/EasilyNET/EasilyNET</RepositoryUrl>
-		<Nullable>enable</Nullable>
-		<Authors>joesdu</Authors>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<GenerateDocumentationFile>True</GenerateDocumentationFile>
-		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-		<PackageLicenseFile>LICENSE</PackageLicenseFile>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-	</PropertyGroup>
+    <PropertyGroup>
+        <Version>1.1.0</Version>
+        <LangVersion>preview</LangVersion>
+        <RepositoryUrl>https://github.com/EasilyNET/EasilyNET</RepositoryUrl>
+        <Nullable>enable</Nullable>
+        <Authors>joesdu</Authors>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+        <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
 
-	<ItemGroup>
-		<None Include=".\README.md" Pack="true" PackagePath="" />
-		<None Include="..\..\LICENSE" Pack="true" PackagePath="" />
-	</ItemGroup>
+    <ItemGroup>
+        <None Include=".\README.md" Pack="true" PackagePath="" />
+        <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
+    </ItemGroup>
 
 </Project>

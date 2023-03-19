@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFrameworks>netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
-	    <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection</PackageProjectUrl>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection</PackageProjectUrl>
         <Description>类似于ABP框架的自动模块注入,独立出来单独维护.</Description>
     </PropertyGroup>
 

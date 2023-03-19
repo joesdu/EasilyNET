@@ -1,4 +1,5 @@
 ﻿namespace Hoyo.Security;
+
 /// <summary>
 /// AES加密的密钥算法模式
 /// </summary>

@@ -2,11 +2,11 @@
 
     <PropertyGroup>
         <TargetFrameworks>netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
-	    <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo</PackageProjectUrl>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo</PackageProjectUrl>
         <Description>MongoDB 驱动的服务包,方便使用 Mongo 数据库.</Description>
     </PropertyGroup>
 
-	<ItemGroup>
+    <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0-preview.2.23128.3" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0-preview.2.23128.3" />
         <PackageReference Include="MongoDB.Driver" Version="2.19.0" />

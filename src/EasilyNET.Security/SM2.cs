@@ -29,6 +29,7 @@ public static class SM2
         publicKey = Hex.ToHexString(a);
         privateKey = Hex.ToHexString(b);
     }
+
     /// <summary>
     /// 构建公钥和私钥
     /// </summary>
@@ -42,6 +43,7 @@ public static class SM2
         publicKey = ((ECPublicKeyParameters)k.Public).Q.GetEncoded(false);
         privateKey = ((ECPrivateKeyParameters)k.Private).D.ToByteArray();
     }
+
     /// <summary>
     /// SM2加密
     /// </summary>
@@ -58,6 +60,7 @@ public static class SM2
         if (model == SM2Model.C1C3C2) data = C123ToC132(data);
         return data;
     }
+
     /// <summary>
     /// SM2解密
     /// </summary>
@@ -105,6 +108,7 @@ public static class SM2
         sm2.BlockUpdate(msg, 0, msg.Length);
         return sm2.VerifySignature(signature);
     }
+
     /// <summary>
     /// C123转成C132
     /// </summary>
@@ -113,14 +117,15 @@ public static class SM2
     private static byte[] C123ToC132(byte[] c1c2c3)
     {
         var gn = GMNamedCurves.GetByName("SM2P256V1");
-        var c1Len = ((gn.Curve.FieldSize + 7) / 8 * 2) + 1; //sm2p256v1的这个固定65。可看GMNamedCurves、ECCurve代码。
-        const int c3Len = 32; //new SM3Digest().getDigestSize();
+        var c1Len = (gn.Curve.FieldSize + 7) / 8 * 2 + 1; //sm2p256v1的这个固定65。可看GMNamedCurves、ECCurve代码。
+        const int c3Len = 32;                             //new SM3Digest().getDigestSize();
         var result = new byte[c1c2c3.Length];
-        Array.Copy(c1c2c3, 0, result, 0, c1Len); //c1
-        Array.Copy(c1c2c3, c1c2c3.Length - c3Len, result, c1Len, c3Len); //c3
+        Array.Copy(c1c2c3, 0, result, 0, c1Len);                                         //c1
+        Array.Copy(c1c2c3, c1c2c3.Length - c3Len, result, c1Len, c3Len);                 //c3
         Array.Copy(c1c2c3, c1Len, result, c1Len + c3Len, c1c2c3.Length - c1Len - c3Len); //c2
         return result;
     }
+
     /// <summary>
     /// C132转成C123
     /// </summary>
@@ -129,12 +134,12 @@ public static class SM2
     private static byte[] C132ToC123(byte[] c1c3c2)
     {
         var gn = GMNamedCurves.GetByName("SM2P256V1");
-        var c1Len = ((gn.Curve.FieldSize + 7) / 8 * 2) + 1;
+        var c1Len = (gn.Curve.FieldSize + 7) / 8 * 2 + 1;
         const int c3Len = 32; //new SM3Digest().getDigestSize();
         var result = new byte[c1c3c2.Length];
-        Array.Copy(c1c3c2, 0, result, 0, c1Len); //c1: 0->65
+        Array.Copy(c1c3c2, 0, result, 0, c1Len);                                         //c1: 0->65
         Array.Copy(c1c3c2, c1Len + c3Len, result, c1Len, c1c3c2.Length - c1Len - c3Len); //c2
-        Array.Copy(c1c3c2, c1Len, result, c1c3c2.Length - c3Len, c3Len); //c3
+        Array.Copy(c1c3c2, c1Len, result, c1c3c2.Length - c3Len, c3Len);                 //c3
         return result;
     }
 }

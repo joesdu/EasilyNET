@@ -36,11 +36,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
     /// <param name="retryCount"></param>
     /// <param name="subsManager"></param>
     /// <param name="serviceProvider"></param>
-    internal IntegrationEventBus(IPersistentConnection persistentConnection,
-        ILogger<IntegrationEventBus> logger,
-        int retryCount,
-        ISubscriptionsManager subsManager,
-        IServiceProvider serviceProvider)
+    internal IntegrationEventBus(IPersistentConnection persistentConnection, ILogger<IntegrationEventBus> logger, int retryCount, ISubscriptionsManager subsManager, IServiceProvider serviceProvider)
     {
         _persistentConnection = persistentConnection;
         _logger = logger;
@@ -69,10 +65,8 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
     {
         if (!_persistentConnection.IsConnected) _ = _persistentConnection.TryConnect();
         var type = @event.GetType();
-        var policy = Policy.Handle<BrokerUnreachableException>().Or<SocketException>()
-                           .WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                               (ex, time) => _logger.LogError(ex, "无法发布事件: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}",
-                                   ex.Message));
+        var policy = Policy.Handle<BrokerUnreachableException>().Or<SocketException>().WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+            (ex, time) => _logger.LogError(ex, "无法发布事件: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
         _logger.LogTrace("创建RabbitMQ通道来发布事件: {EventId} ({EventName})", @event.EventId, type.Name);
         var rabbitAttr = type.GetCustomAttribute<RabbitAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(RabbitAttribute)}>,无法发布事件");
         if (!rabbitAttr.Enable) return;
@@ -88,8 +82,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         {
             properties.DeliveryMode = 2;
             _logger.LogTrace("向RabbitMQ发布事件: {EventId}", @event.EventId);
-            channel.BasicPublish(rabbitAttr.Exchange, rabbitAttr.RoutingKey, true, properties,
-                JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType(), new JsonSerializerOptions { WriteIndented = true }));
+            channel.BasicPublish(rabbitAttr.Exchange, rabbitAttr.RoutingKey, true, properties, JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType(), new JsonSerializerOptions { WriteIndented = true }));
             channel.Close();
         });
     }
@@ -104,10 +97,8 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
     {
         if (!_persistentConnection.IsConnected) _ = _persistentConnection.TryConnect();
         var type = @event.GetType();
-        var policy = Policy.Handle<BrokerUnreachableException>().Or<SocketException>()
-                           .WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                               (ex, time) => _logger.LogError(ex, "无法发布事件: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}",
-                                   ex.Message));
+        var policy = Policy.Handle<BrokerUnreachableException>().Or<SocketException>().WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+            (ex, time) => _logger.LogError(ex, "无法发布事件: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
         _logger.LogTrace("创建RabbitMQ通道来发布事件: {EventId} ({EventName})", @event.EventId, type.Name);
         var rabbitAttr = type.GetCustomAttribute<RabbitAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(RabbitAttribute)}>,无法发布事件");
         if (!rabbitAttr.Enable) return;
@@ -131,8 +122,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         {
             properties.DeliveryMode = 2;
             _logger.LogTrace("向RabbitMQ发布事件: {EventId}", @event.EventId);
-            channel.BasicPublish(rabbitAttr.Exchange, rabbitAttr.RoutingKey, true, properties,
-                JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType(), new JsonSerializerOptions { WriteIndented = true }));
+            channel.BasicPublish(rabbitAttr.Exchange, rabbitAttr.RoutingKey, true, properties, JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType(), new JsonSerializerOptions { WriteIndented = true }));
             channel.Close();
         });
     }
@@ -152,8 +142,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
             if (eventType is null) continue;
             CheckEventType(eventType);
             CheckHandlerType(handlerType);
-            var rabbitAttr = eventType.GetCustomAttribute<RabbitAttribute>() ??
-                             throw new($"{nameof(eventType)}未设置<{nameof(RabbitAttribute)}>,无法发布事件");
+            var rabbitAttr = eventType.GetCustomAttribute<RabbitAttribute>() ?? throw new($"{nameof(eventType)}未设置<{nameof(RabbitAttribute)}>,无法发布事件");
             if (!rabbitAttr.Enable) continue;
             _ = Task.Factory.StartNew(() =>
             {
@@ -258,18 +247,15 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         _logger.LogTrace("处理RabbitMQ事件: {EventName}", eventName);
         if (_subsManager.HasSubscriptionsForEvent(eventName))
         {
-            var policy = Policy.Handle<BrokerUnreachableException>().Or<SocketException>()
-                               .WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                                   (ex, time) => _logger.LogError(ex, "无法消费事件: {EventName} 超时 {Timeout}s ({ExceptionMessage})", eventName, $"{time.TotalSeconds:n1}",
-                                       ex.Message));
+            var policy = Policy.Handle<BrokerUnreachableException>().Or<SocketException>().WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                (ex, time) => _logger.LogError(ex, "无法消费事件: {EventName} 超时 {Timeout}s ({ExceptionMessage})", eventName, $"{time.TotalSeconds:n1}", ex.Message));
             await policy.Execute(async () =>
             {
                 using var scope = _serviceProvider.GetService<IServiceScopeFactory>()?.CreateScope();
                 var subscriptionTypes = _subsManager.GetHandlersForEvent(eventName);
                 foreach (var subscriptionType in subscriptionTypes)
                 {
-                    var integrationEvent =
-                        JsonSerializer.Deserialize(message, eventType, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var integrationEvent = JsonSerializer.Deserialize(message, eventType, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                     var concreteType = typeof(IIntegrationEventHandler<>).MakeGenericType(eventType);
                     if (integrationEvent is null) throw new("集成事件不能为空");
                     var method = concreteType.GetMethod(HandleName);
