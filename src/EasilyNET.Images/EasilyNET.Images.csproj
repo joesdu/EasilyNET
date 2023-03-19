@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFrameworks>netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
-	    <RepositoryUrl>https://github.com/EasilyNET/EasilyNET.Images</RepositoryUrl>
+        <RepositoryUrl>https://github.com/EasilyNET/EasilyNET.Images</RepositoryUrl>
         <Description>含QRCode创建和解析工具,无需自行使用apt等工具安装组件</Description>
     </PropertyGroup>
 

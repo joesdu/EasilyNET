@@ -15,8 +15,9 @@ public static class TripleDES
     /// 盐
     /// </summary>
     private const string slat = "HosW[A1]ew0sVtVzf[DfQ~x%hk2+ifMlg;)Wsf[9@Fh{_z$jNC";
+
     /// <summary>
-    /// 处理key 
+    /// 处理key
     /// </summary>
     /// <param name="pwd">输入的密码</param>
     /// <returns></returns>
@@ -34,11 +35,12 @@ public static class TripleDES
 #endif
         return new(Key, IV);
     }
+
     /// <summary>
     /// 使用给定密钥加密
     /// </summary>
-    /// <param name="content">待加密的字符串</param> 
-    /// <param name="pwd">加密密钥</param> 
+    /// <param name="content">待加密的字符串</param>
+    /// <param name="pwd">加密密钥</param>
     /// <returns>加密后的字符串</returns>
     public static string Encrypt(string content, string pwd)
     {
@@ -59,9 +61,9 @@ public static class TripleDES
     /// <summary>
     /// 使用给定密钥解密数据
     /// </summary>
-    /// <param name="secret">待解密的字符串</param> 
-    /// <param name="pwd">解密密钥</param> 
-    /// <returns>解密后的字符串</returns> 
+    /// <param name="secret">待解密的字符串</param>
+    /// <param name="pwd">解密密钥</param>
+    /// <returns>解密后的字符串</returns>
     public static string Decrypt(string secret, string pwd)
     {
         var (Key, IV) = GetEesKey(pwd);

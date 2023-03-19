@@ -2,11 +2,11 @@
 
     <PropertyGroup>
         <TargetFrameworks>netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
-	    <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug</PackageProjectUrl>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug</PackageProjectUrl>
         <Description>MongoDB.ConsoleDebug,用来实现类似EF将命令语句输出到控制台的功能.</Description>
     </PropertyGroup>
 
-	<ItemGroup>
+    <ItemGroup>
         <PackageReference Include="MongoDB.Driver.Core" Version="2.19.0" />
     </ItemGroup>
 

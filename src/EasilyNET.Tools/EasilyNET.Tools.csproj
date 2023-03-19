@@ -2,13 +2,13 @@
 
     <PropertyGroup>
         <TargetFrameworks>netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
-	    <RepositoryUrl>https://github.com/EasilyNET/EasilyNET.Tools</RepositoryUrl>
+        <RepositoryUrl>https://github.com/EasilyNET/EasilyNET.Tools</RepositoryUrl>
         <Description>一些基础库,如数据类型,一些公共静态方法,工具函数.包含数组,日期,字符串,中国农历,拼音,身份证验证,Ini文件操作等</Description>
     </PropertyGroup>
 
-	<ItemGroup>
-      <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
-      <ProjectReference Include="..\EasilyNET.Extensions\EasilyNET.Extensions.csproj" />
+    <ItemGroup>
+        <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
+        <ProjectReference Include="..\EasilyNET.Extensions\EasilyNET.Extensions.csproj" />
     </ItemGroup>
 
 </Project>

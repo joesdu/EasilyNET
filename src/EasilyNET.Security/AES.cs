@@ -18,7 +18,7 @@ public static class AES
     private const string slat = "Q+OFqu]luparUP;Xn^_ktHX^FoWiK4C#;daRV(b1bbT_;HrrAL";
 
     /// <summary>
-    /// 处理key 
+    /// 处理key
     /// </summary>
     /// <param name="pwd">输入的密码</param>
     /// <param name="model">Key和IV模式</param>
@@ -29,23 +29,24 @@ public static class AES
         switch (model)
         {
             case AESModel.AES256:
-                {
-                    var hash2 = $"{hash1}-{slat}".To32MD5();
-                    var hash3 = $"{hash2}-{slat}".To16MD5();
-                    var Key = Encoding.UTF8.GetBytes($"{hash1}{hash2}".To32MD5());
-                    var IV = Encoding.UTF8.GetBytes(hash3);
-                    return new(Key, IV);
-                }
+            {
+                var hash2 = $"{hash1}-{slat}".To32MD5();
+                var hash3 = $"{hash2}-{slat}".To16MD5();
+                var Key = Encoding.UTF8.GetBytes($"{hash1}{hash2}".To32MD5());
+                var IV = Encoding.UTF8.GetBytes(hash3);
+                return new(Key, IV);
+            }
             case AESModel.AES128:
-                {
-                    var hash2 = $"{hash1}-{slat}".To16MD5();
-                    var Key = Encoding.UTF8.GetBytes(hash1);
-                    var IV = Encoding.UTF8.GetBytes(hash2);
-                    return new(Key, IV);
-                }
+            {
+                var hash2 = $"{hash1}-{slat}".To16MD5();
+                var Key = Encoding.UTF8.GetBytes(hash1);
+                var IV = Encoding.UTF8.GetBytes(hash2);
+                return new(Key, IV);
+            }
             default: throw new("不支持的类型");
         }
     }
+
     /// <summary>
     /// AES加密
     /// </summary>
@@ -65,6 +66,7 @@ public static class AES
         var cTransform = aes.CreateEncryptor();
         return cTransform.TransformFinalBlock(content, 0, content.Length);
     }
+
     /// <summary>
     /// AES解密
     /// </summary>
@@ -84,6 +86,7 @@ public static class AES
         var cTransform = aes.CreateDecryptor();
         return cTransform.TransformFinalBlock(toEncryptArray, 0, toEncryptArray.Length);
     }
+
     /// <summary>
     /// 使用AES加密字符串
     /// </summary>
@@ -95,6 +98,7 @@ public static class AES
         var resultArray = Encrypt(content, pwd, AESModel.AES256);
         return Convert.ToBase64String(resultArray);
     }
+
     /// <summary>
     /// 使用AES解密字符串
     /// </summary>
@@ -106,6 +110,7 @@ public static class AES
         var resultArray = Decrypt(secret, pwd, AESModel.AES256);
         return Encoding.UTF8.GetString(resultArray);
     }
+
     /// <summary>
     /// 使用AES加密字符串
     /// </summary>
@@ -117,6 +122,7 @@ public static class AES
         var resultArray = Encrypt(content, pwd, AESModel.AES128);
         return Convert.ToBase64String(resultArray);
     }
+
     /// <summary>
     /// 使用AES解密字符串
     /// </summary>

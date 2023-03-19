@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
-	    <IsPackable>false</IsPackable>
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>
@@ -20,7 +20,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\EasilyNET.Core\EasilyNET.Core.csproj" />
+        <ProjectReference Include="..\..\src\EasilyNET.Core\EasilyNET.Core.csproj" />
     </ItemGroup>
 
 </Project>

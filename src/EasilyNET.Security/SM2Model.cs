@@ -1,4 +1,5 @@
 ﻿// ReSharper disable UnusedMember.Global
+
 namespace Hoyo.Security;
 
 /// <summary>
@@ -10,6 +11,7 @@ public enum SM2Model
     /// C1C2C3
     /// </summary>
     C1C2C3,
+
     /// <summary>
     /// C1C3C2
     /// </summary>
