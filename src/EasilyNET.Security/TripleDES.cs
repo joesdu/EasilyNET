@@ -26,7 +26,7 @@ public static class TripleDES
         var hash1 = $"{pwd}-{slat}".To32MD5();
         var hash2 = $"{hash1}-{slat}".To32MD5();
         var hash3 = $"{hash2}-{slat}".To16MD5();
-#if NETSTANDARD2_0_OR_GREATER
+#if NETSTANDARD
         var Key = Encoding.UTF8.GetBytes($"{hash1}{hash2}".To32MD5().Substring(0, 24));
         var IV = Encoding.UTF8.GetBytes(hash3.Substring(0, 8));
 #else

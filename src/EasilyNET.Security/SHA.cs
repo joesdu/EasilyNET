@@ -20,7 +20,7 @@ public static class SHA
     public static string SHA1(this string content)
     {
         var bytes = Encoding.UTF8.GetBytes(content);
-#if NETSTANDARD2_0_OR_GREATER
+#if NETSTANDARD
         var sha = System.Security.Cryptography.SHA1.Create();
         var encrypt = sha.ComputeHash(bytes);
 #else
@@ -37,7 +37,7 @@ public static class SHA
     public static string SHA256(this string content)
     {
         var bytes = Encoding.UTF8.GetBytes(content);
-#if NETSTANDARD2_0_OR_GREATER
+#if NETSTANDARD
         var sha = System.Security.Cryptography.SHA256.Create();
         var encrypt = sha.ComputeHash(bytes);
 #else
@@ -54,7 +54,7 @@ public static class SHA
     public static string SHA384(this string content)
     {
         var bytes = Encoding.UTF8.GetBytes(content);
-#if NETSTANDARD2_0_OR_GREATER
+#if NETSTANDARD
         var sha = System.Security.Cryptography.SHA384.Create();
         var encrypt = sha.ComputeHash(bytes);
 #else
@@ -71,7 +71,7 @@ public static class SHA
     public static string SHA512(this string content)
     {
         var bytes = Encoding.UTF8.GetBytes(content);
-#if NETSTANDARD2_0_OR_GREATER
+#if NETSTANDARD
         var sha = System.Security.Cryptography.SHA512.Create();
         var encrypt = sha.ComputeHash(bytes);
 #else
