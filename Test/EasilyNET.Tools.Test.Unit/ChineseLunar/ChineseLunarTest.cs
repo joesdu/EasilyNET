@@ -1,5 +1,5 @@
 ﻿using EasilyNET.Core.Enums;
-using EasilyNET.Extensions;
+using EasilyNET.Extensions.BaseType;
 using FluentAssertions;
 
 namespace EasilyNET.Tools.Test.Unit.ChineseLunar;

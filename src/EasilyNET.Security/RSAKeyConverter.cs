@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
-namespace Hoyo.Security;
+namespace EasilyNET.Security;
 
 /// <summary>
 /// RSAKey转化扩展类,用于将XML格式和Base64这种互转.如C#和Java的编码就不一样.

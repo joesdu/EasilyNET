@@ -3,7 +3,7 @@ using System.Text;
 
 // ReSharper disable UnusedMember.Global
 
-namespace Hoyo.Security;
+namespace EasilyNET.Security;
 
 /// <summary>
 /// DES加密解密

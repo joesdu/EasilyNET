@@ -2,7 +2,7 @@
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.Extensions;
+namespace EasilyNET.Extensions.BaseType;
 
 /// <summary>
 /// DateTime扩展

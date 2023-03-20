@@ -1,5 +1,5 @@
 ﻿using EasilyNET.Core.Enums;
-using EasilyNET.Extensions;
+using EasilyNET.Extensions.BaseType;
 using System.Text;
 using System.Text.RegularExpressions;
 

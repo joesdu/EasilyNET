@@ -5,7 +5,7 @@ using System.Text;
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
-namespace Hoyo.Security;
+namespace EasilyNET.Security;
 
 /// <summary>
 /// AES加密解密

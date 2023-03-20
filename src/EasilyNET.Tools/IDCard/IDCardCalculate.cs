@@ -1,5 +1,5 @@
 ﻿using EasilyNET.Core.Enums;
-using EasilyNET.Extensions;
+using EasilyNET.Extensions.BaseType;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global

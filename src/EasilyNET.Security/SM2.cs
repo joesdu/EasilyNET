@@ -11,7 +11,7 @@ using Org.BouncyCastle.Utilities.Encoders;
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 
-namespace Hoyo.Security;
+namespace EasilyNET.Security;
 
 /// <summary>
 /// BouncyCastle(BC) 实现SM2国密加解密、签名、验签

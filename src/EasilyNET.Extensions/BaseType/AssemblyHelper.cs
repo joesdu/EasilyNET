@@ -5,7 +5,7 @@ using System.Runtime.Loader;
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
 
-namespace EasilyNET.Extensions;
+namespace EasilyNET.Extensions.BaseType;
 
 /// <summary>
 /// 程序集帮助类

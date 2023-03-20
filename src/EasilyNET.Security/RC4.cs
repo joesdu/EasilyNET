@@ -3,7 +3,7 @@
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
-namespace Hoyo.Security;
+namespace EasilyNET.Security;
 
 /// 参考: https://www.cnblogs.com/billyme/p/14772881.html
 /// <summary>

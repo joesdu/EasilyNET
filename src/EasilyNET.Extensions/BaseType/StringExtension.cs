@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
-namespace EasilyNET.Extensions;
+namespace EasilyNET.Extensions.BaseType;
 
 /// <summary>
 /// 字符串String扩展
@@ -99,7 +99,7 @@ public static class StringExtension
     /// </summary>
     /// <param name="value">需验证的字符串</param>
     /// <returns>是否合法的bool值</returns>
-    public static bool IsNumber(this string value) => Validate(value, @"^\d+$");
+    public static bool IsNumber(this string value) => value.Validate(@"^\d+$");
 
     #endregion
 
@@ -181,6 +181,15 @@ public static class StringExtension
     }
 
     /// <summary>
+    /// 根据正则替换
+    /// </summary>
+    /// <param name="input"></param>
+    /// <param name="regex">正则表达式</param>
+    /// <param name="replacement">新内容</param>
+    /// <returns></returns>
+    public static string Replace(this string input, Regex regex, string replacement) => regex.Replace(input, replacement);
+
+    /// <summary>
     /// 截断一个字符串,并在末尾添加一个后缀
     /// </summary>
     /// <param name="value">原始字符串</param>
@@ -234,6 +243,49 @@ public static class StringExtension
         return sb.ToString();
     }
 
+    /// <summary>
+    /// 将字符串集合链接起来
+    /// </summary>
+    /// <param name="strs"></param>
+    /// <param name="separate">分隔符</param>
+    /// <param name="removeEmpty">是否移除空白字符</param>
+    /// <returns></returns>
+    public static string Join(this IEnumerable<string> strs, string separate = ", ", bool removeEmpty = false) => string.Join(separate, removeEmpty ? strs.Where(s => !string.IsNullOrEmpty(s)) : strs);
+
+    /// <summary>
+    /// 转成非null
+    /// </summary>
+    /// <param name="s"></param>
+    /// <returns></returns>
+    public static string AsNotNull(this string s) => string.IsNullOrEmpty(s) ? "" : s;
+
+    /// <summary>
+    /// 转成非null
+    /// </summary>
+    /// <param name="s"></param>
+    /// <param name="value">为空时的替换值</param>
+    /// <returns></returns>
+    public static string IfNullOrEmpty(this string s, string value) => string.IsNullOrEmpty(s) ? value : s;
+
+    /// <summary>
+    /// 转成非null
+    /// </summary>
+    /// <param name="s"></param>
+    /// <param name="valueFactory">为空时的替换值函数</param>
+    /// <returns></returns>
+    public static string IfNullOrEmpty(this string s, Func<string> valueFactory) => string.IsNullOrEmpty(s) ? valueFactory() : s;
+
+    #region 校验手机号码的正确性
+
+    /// <summary>
+    /// 匹配手机号码
+    /// </summary>
+    /// <param name="s">源字符串</param>
+    /// <returns>是否匹配成功</returns>
+    public static bool MatchPhoneNumber(this string s) => !string.IsNullOrEmpty(s) && s[0] == '1' && (s[1] > '2' || s[1] <= '9');
+
+    #endregion 校验手机号码的正确性
+
     #region 字符串转为日期
 
     /// <summary>
@@ -242,7 +294,7 @@ public static class StringExtension
     /// </summary>
     /// <param name="value">日期格式化串</param>
     /// <returns>转换后的日期，对于不能转化的返回DateTime.MinValue</returns>
-    public static DateTime ToDateTime(this string value) => ToDateTime(value, DateTime.MinValue);
+    public static DateTime ToDateTime(this string value) => value.ToDateTime(DateTime.MinValue);
 
     /// <summary>
     /// 将格式化日期串转化为相应的日期
@@ -330,14 +382,14 @@ public static class StringExtension
     /// <param name="value">需转换的字符串</param>
     /// <param name="charset">字符集代码</param>
     /// <returns>字节流</returns>
-    public static MemoryStream ToStream(this string value, string charset) => ToStream(value, Encoding.GetEncoding(charset));
+    public static MemoryStream ToStream(this string value, string charset) => value.ToStream(Encoding.GetEncoding(charset));
 
     /// <summary>
     /// 将字符串以默认编码转化为内存字节流
     /// </summary>
     /// <param name="value">需转换的字符串</param>
     /// <returns>字节流</returns>
-    public static MemoryStream ToStream(this string value) => ToStream(value, Encoding.UTF8);
+    public static MemoryStream ToStream(this string value) => value.ToStream(Encoding.UTF8);
 
     /// <summary>
     /// 将字符串拆分为数组
@@ -478,4 +530,119 @@ public static class StringExtension
     }
 
     #endregion
+
+    #region 检测字符串中是否包含列表中的关键词
+
+    /// <summary>
+    /// 检测字符串中是否包含列表中的关键词(快速匹配)
+    /// </summary>
+    /// <param name="s">源字符串</param>
+    /// <param name="keys">关键词列表</param>
+    /// <param name="ignoreCase">忽略大小写</param>
+    /// <returns></returns>
+    public static bool Contains(this string s, IEnumerable<string> keys, bool ignoreCase = true)
+    {
+        if (keys is not ICollection<string> array)
+        {
+            array = keys.ToArray();
+        }
+        return array.Count != 0 && !string.IsNullOrEmpty(s) && (ignoreCase ? array.Any(item => s.IndexOf(item, StringComparison.InvariantCultureIgnoreCase) >= 0) : array.Any(s.Contains));
+    }
+
+    /// <summary>
+    /// 检测字符串中是否包含列表中的关键词(安全匹配)
+    /// </summary>
+    /// <param name="s">源字符串</param>
+    /// <param name="keys">关键词列表</param>
+    /// <param name="ignoreCase">忽略大小写</param>
+    /// <returns></returns>
+    public static bool ContainsSafety(this string s, IEnumerable<string> keys, bool ignoreCase = true)
+    {
+        if (keys is not ICollection<string> array)
+        {
+            array = keys.ToArray();
+        }
+        if (array.Count == 0 || string.IsNullOrEmpty(s))
+            return false;
+        var flag = false;
+        if (ignoreCase)
+        {
+            foreach (var item in array)
+            {
+                if (s.Contains(item)) flag = true;
+            }
+        }
+        else
+        {
+            foreach (var item in array)
+            {
+                if (s?.IndexOf(item, StringComparison.InvariantCultureIgnoreCase) >= 0) flag = true;
+            }
+        }
+        return flag;
+    }
+
+    /// <summary>
+    /// 检测字符串中是否以列表中的关键词结尾
+    /// </summary>
+    /// <param name="s">源字符串</param>
+    /// <param name="keys">关键词列表</param>
+    /// <param name="ignoreCase">忽略大小写</param>
+    /// <returns></returns>
+    public static bool EndsWith(this string s, IEnumerable<string> keys, bool ignoreCase = true)
+    {
+        if (keys is not ICollection<string> array)
+        {
+            array = keys.ToArray();
+        }
+        if (array.Count == 0 || string.IsNullOrEmpty(s))
+            return false;
+        var pattern = $"({array.Select(Regex.Escape).Join("|")})$";
+        return ignoreCase ? Regex.IsMatch(s, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(s, pattern);
+    }
+
+    /// <summary>
+    /// 检测字符串中是否以列表中的关键词开始
+    /// </summary>
+    /// <param name="s">源字符串</param>
+    /// <param name="keys">关键词列表</param>
+    /// <param name="ignoreCase">忽略大小写</param>
+    /// <returns></returns>
+    public static bool StartsWith(this string s, IEnumerable<string> keys, bool ignoreCase = true)
+    {
+        if (keys is not ICollection<string> array)
+        {
+            array = keys.ToArray();
+        }
+        if (array.Count == 0 || string.IsNullOrEmpty(s))
+            return false;
+        var pattern = $"^({array.Select(Regex.Escape).Join("|")})";
+        return ignoreCase ? Regex.IsMatch(s, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(s, pattern);
+    }
+
+    /// <summary>
+    /// 检测字符串中是否包含列表中的关键词
+    /// </summary>
+    /// <param name="s">源字符串</param>
+    /// <param name="regex">关键词列表</param>
+    /// <param name="ignoreCase">忽略大小写</param>
+    /// <returns></returns>
+    public static bool RegexMatch(this string s, string regex, bool ignoreCase = true)
+    {
+#pragma warning disable IDE0046
+        if (string.IsNullOrEmpty(regex) || string.IsNullOrEmpty(s))
+#pragma warning restore IDE0046
+            return false;
+        return ignoreCase ? Regex.IsMatch(s, regex, RegexOptions.IgnoreCase) : Regex.IsMatch(s, regex);
+    }
+
+    /// <summary>
+    /// 检测字符串中是否包含列表中的关键词
+    /// </summary>
+    /// <param name="s">源字符串</param>
+    /// <param name="regex">关键词列表</param>
+    /// <returns></returns>
+    public static bool RegexMatch(this string s, Regex regex) => !string.IsNullOrEmpty(s) && regex.IsMatch(s);
+
+    #endregion 检测字符串中是否包含列表中的关键词
 }

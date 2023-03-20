@@ -4,7 +4,7 @@ using System.Text;
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
-namespace Hoyo.Security;
+namespace EasilyNET.Security;
 
 /// <summary>
 /// TripleDES加密解密
@@ -26,7 +26,7 @@ public static class TripleDES
         var hash1 = $"{pwd}-{slat}".To32MD5();
         var hash2 = $"{hash1}-{slat}".To32MD5();
         var hash3 = $"{hash2}-{slat}".To16MD5();
-#if NETSTANDARD
+#if NETSTANDARD2_0
         var Key = Encoding.UTF8.GetBytes($"{hash1}{hash2}".To32MD5().Substring(0, 24));
         var IV = Encoding.UTF8.GetBytes(hash3.Substring(0, 8));
 #else

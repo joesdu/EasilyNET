@@ -1,7 +1,7 @@
 ﻿// ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
-namespace EasilyNET.Extensions;
+namespace EasilyNET.Extensions.Coordinate;
 
 /// ## 当前互联网地图的坐标系现状
 /// ### 地球坐标(WGS84)

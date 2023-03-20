@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using EasilyNET.Extensions.BaseType;
+using FluentAssertions;
 
 namespace EasilyNET.Extensions.Test.Unit;
 

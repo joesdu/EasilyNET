@@ -1,7 +1,7 @@
 ﻿// ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.Extensions;
+namespace EasilyNET.Extensions.BaseType;
 
 /// <summary>
 /// 扩展枚举
