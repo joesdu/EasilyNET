@@ -22,7 +22,7 @@ public static class MD5
     /// <returns></returns>
     public static string To32MD5(this string value)
     {
-#if NETSTANDARD2_0_OR_GREATER
+#if NETSTANDARD
         using var md5 = System.Security.Cryptography.MD5.Create();
         var data = md5.ComputeHash(Encoding.UTF8.GetBytes(value));
 #else
