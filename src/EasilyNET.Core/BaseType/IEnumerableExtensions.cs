@@ -147,14 +147,7 @@ public static class IEnumerableExtensions
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(keySelector);
 #endif
-        var set = new HashSet<TKey>();
-        foreach (var item in source)
-        {
-            if (set.Add(keySelector(item)))
-            {
-                yield return item;
-            }
-        }
+        return source.GroupBy(keySelector).Select(x => x.First());
     }
 
     /// <summary>
@@ -235,17 +228,8 @@ public static class IEnumerableExtensions
         ArgumentNullException.ThrowIfNull(second);
         ArgumentNullException.ThrowIfNull(keySelector);
 #endif
-        return ExceptByIterator(first, second, keySelector, comparer);
-    }
-
-    private static IEnumerable<TSource> ExceptByIterator<TSource, TKey>(IEnumerable<TSource> first, IEnumerable<TKey> second, Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer)
-    {
         var set = new HashSet<TKey>(second, comparer);
-        foreach (var source in first)
-        {
-            if (set.Add(keySelector(source)))
-                yield return source;
-        }
+        return first.Where(item => set.Add(keySelector(item)));
     }
 
     /// <summary>
@@ -663,7 +647,7 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="selector"></param>
     /// <returns></returns>
-    public static TResult MaxOrDefault<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector) => source.Select(selector).DefaultIfEmpty().Max();
+    public static TResult? MaxOrDefault<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector) => source.Select(selector).DefaultIfEmpty().Max();
 
     /// <summary>
     /// 取最大值
@@ -674,7 +658,7 @@ public static class IEnumerableExtensions
     /// <param name="selector"></param>
     /// <param name="defaultValue"></param>
     /// <returns></returns>
-    public static TResult MaxOrDefault<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector, TResult defaultValue) => source.Select(selector).DefaultIfEmpty(defaultValue).Max();
+    public static TResult? MaxOrDefault<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector, TResult defaultValue) => source.Select(selector).DefaultIfEmpty(defaultValue).Max();
 
     /// <summary>
     /// 取最大值
@@ -682,7 +666,7 @@ public static class IEnumerableExtensions
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
     /// <returns></returns>
-    public static TSource MaxOrDefault<TSource>(this IQueryable<TSource> source) => source.DefaultIfEmpty().Max();
+    public static TSource? MaxOrDefault<TSource>(this IQueryable<TSource> source) => source.DefaultIfEmpty().Max();
 
     /// <summary>
     /// 取最大值
@@ -691,7 +675,7 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="defaultValue"></param>
     /// <returns></returns>
-    public static TSource MaxOrDefault<TSource>(this IQueryable<TSource> source, TSource defaultValue) => source.DefaultIfEmpty(defaultValue).Max();
+    public static TSource? MaxOrDefault<TSource>(this IQueryable<TSource> source, TSource defaultValue) => source.DefaultIfEmpty(defaultValue).Max();
 
     /// <summary>
     /// 取最大值
@@ -702,7 +686,7 @@ public static class IEnumerableExtensions
     /// <param name="selector"></param>
     /// <param name="defaultValue"></param>
     /// <returns></returns>
-    public static TResult MaxOrDefault<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector, TResult defaultValue) => source.Select(selector).DefaultIfEmpty(defaultValue).Max();
+    public static TResult? MaxOrDefault<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector, TResult defaultValue) => source.Select(selector).DefaultIfEmpty(defaultValue).Max();
 
     /// <summary>
     /// 取最大值
@@ -712,7 +696,7 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="selector"></param>
     /// <returns></returns>
-    public static TResult MaxOrDefault<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector) => source.Select(selector).DefaultIfEmpty().Max();
+    public static TResult? MaxOrDefault<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector) => source.Select(selector).DefaultIfEmpty().Max();
 
     /// <summary>
     /// 取最大值
@@ -720,7 +704,7 @@ public static class IEnumerableExtensions
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
     /// <returns></returns>
-    public static TSource MaxOrDefault<TSource>(this IEnumerable<TSource> source) => source.DefaultIfEmpty().Max();
+    public static TSource? MaxOrDefault<TSource>(this IEnumerable<TSource> source) => source.DefaultIfEmpty().Max();
 
     /// <summary>
     /// 取最大值
@@ -729,7 +713,7 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="defaultValue"></param>
     /// <returns></returns>
-    public static TSource MaxOrDefault<TSource>(this IEnumerable<TSource> source, TSource defaultValue) => source.DefaultIfEmpty(defaultValue).Max();
+    public static TSource? MaxOrDefault<TSource>(this IEnumerable<TSource> source, TSource defaultValue) => source.DefaultIfEmpty(defaultValue).Max();
 
     /// <summary>
     /// 取最小值
@@ -739,45 +723,7 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="selector"></param>
     /// <returns></returns>
-    public static TResult MinOrDefault<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector) => source.Select(selector).DefaultIfEmpty().Min();
-
-    /// <summary>
-    /// 取最小值
-    /// </summary>
-    /// <typeparam name="TSource"></typeparam>
-    /// <typeparam name="TResult"></typeparam>
-    /// <param name="source"></param>
-    /// <param name="selector"></param>
-    /// <param name="defaultValue"></param>
-    /// <returns></returns>
-    public static TResult MinOrDefault<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector, TResult defaultValue) => source.Select(selector).DefaultIfEmpty(defaultValue).Min();
-
-    /// <summary>
-    /// 取最小值
-    /// </summary>
-    /// <typeparam name="TSource"></typeparam>
-    /// <param name="source"></param>
-    /// <returns></returns>
-    public static TSource MinOrDefault<TSource>(this IQueryable<TSource> source) => source.DefaultIfEmpty().Min();
-
-    /// <summary>
-    /// 取最小值
-    /// </summary>
-    /// <typeparam name="TSource"></typeparam>
-    /// <param name="source"></param>
-    /// <param name="defaultValue"></param>
-    /// <returns></returns>
-    public static TSource MinOrDefault<TSource>(this IQueryable<TSource> source, TSource defaultValue) => source.DefaultIfEmpty(defaultValue).Min();
-
-    /// <summary>
-    /// 取最小值
-    /// </summary>
-    /// <typeparam name="TSource"></typeparam>
-    /// <typeparam name="TResult"></typeparam>
-    /// <param name="source"></param>
-    /// <param name="selector"></param>
-    /// <returns></returns>
-    public static TResult MinOrDefault<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector) => source.Select(selector).DefaultIfEmpty().Min();
+    public static TResult? MinOrDefault<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector) => source.Select(selector).DefaultIfEmpty().Min();
 
     /// <summary>
     /// 取最小值
@@ -788,7 +734,7 @@ public static class IEnumerableExtensions
     /// <param name="selector"></param>
     /// <param name="defaultValue"></param>
     /// <returns></returns>
-    public static TResult MinOrDefault<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector, TResult defaultValue) => source.Select(selector).DefaultIfEmpty(defaultValue).Min();
+    public static TResult? MinOrDefault<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector, TResult defaultValue) => source.Select(selector).DefaultIfEmpty(defaultValue).Min();
 
     /// <summary>
     /// 取最小值
@@ -796,7 +742,7 @@ public static class IEnumerableExtensions
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
     /// <returns></returns>
-    public static TSource MinOrDefault<TSource>(this IEnumerable<TSource> source) => source.DefaultIfEmpty().Min();
+    public static TSource? MinOrDefault<TSource>(this IQueryable<TSource> source) => source.DefaultIfEmpty().Min();
 
     /// <summary>
     /// 取最小值
@@ -805,7 +751,45 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="defaultValue"></param>
     /// <returns></returns>
-    public static TSource MinOrDefault<TSource>(this IEnumerable<TSource> source, TSource defaultValue) => source.DefaultIfEmpty(defaultValue).Min();
+    public static TSource? MinOrDefault<TSource>(this IQueryable<TSource> source, TSource defaultValue) => source.DefaultIfEmpty(defaultValue).Min();
+
+    /// <summary>
+    /// 取最小值
+    /// </summary>
+    /// <typeparam name="TSource"></typeparam>
+    /// <typeparam name="TResult"></typeparam>
+    /// <param name="source"></param>
+    /// <param name="selector"></param>
+    /// <returns></returns>
+    public static TResult? MinOrDefault<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector) => source.Select(selector).DefaultIfEmpty().Min();
+
+    /// <summary>
+    /// 取最小值
+    /// </summary>
+    /// <typeparam name="TSource"></typeparam>
+    /// <typeparam name="TResult"></typeparam>
+    /// <param name="source"></param>
+    /// <param name="selector"></param>
+    /// <param name="defaultValue"></param>
+    /// <returns></returns>
+    public static TResult? MinOrDefault<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector, TResult defaultValue) => source.Select(selector).DefaultIfEmpty(defaultValue).Min();
+
+    /// <summary>
+    /// 取最小值
+    /// </summary>
+    /// <typeparam name="TSource"></typeparam>
+    /// <param name="source"></param>
+    /// <returns></returns>
+    public static TSource? MinOrDefault<TSource>(this IEnumerable<TSource> source) => source.DefaultIfEmpty().Min();
+
+    /// <summary>
+    /// 取最小值
+    /// </summary>
+    /// <typeparam name="TSource"></typeparam>
+    /// <param name="source"></param>
+    /// <param name="defaultValue"></param>
+    /// <returns></returns>
+    public static TSource? MinOrDefault<TSource>(this IEnumerable<TSource> source, TSource defaultValue) => source.DefaultIfEmpty(defaultValue).Min();
 
     /// <summary>
     /// 标准差
@@ -961,27 +945,6 @@ public static class IEnumerableExtensions
         var remove = secondSource.ExceptBy(firstSource, (s, f) => condition(f, s)).ToList();
         var update = firstSource.IntersectBy(secondSource, condition).ToList();
         return (add, remove, update);
-    }
-
-    /// <summary>
-    /// 对比两个集合哪些是新增的、删除的、修改的
-    /// </summary>
-    /// <typeparam name="T1"></typeparam>
-    /// <typeparam name="T2"></typeparam>
-    /// <param name="first"></param>
-    /// <param name="second"></param>
-    /// <param name="condition">对比因素条件</param>
-    /// <returns></returns>
-    public static (List<T1> adds, List<T2> remove, List<(T1 first, T2 second)> updates) CompareChangesPlus<T1, T2>(this IEnumerable<T1>? first, IEnumerable<T2>? second, Func<T1, T2, bool> condition)
-    {
-        first ??= new List<T1>();
-        second ??= new List<T2>();
-        var firstSource = first as ICollection<T1> ?? first.ToList();
-        var secondSource = second as ICollection<T2> ?? second.ToList();
-        var add = firstSource.ExceptBy(secondSource, condition).ToList();
-        var remove = secondSource.ExceptBy(firstSource, (s, f) => condition(f, s)).ToList();
-        var updates = firstSource.IntersectBy(secondSource, condition).Select(t1 => (t1, secondSource.FirstOrDefault(t2 => condition(t1, t2)))).ToList();
-        return (add, remove, updates);
     }
 
     /// <summary>
