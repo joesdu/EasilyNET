@@ -14,7 +14,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
-        <ProjectReference Include="..\..\src\EasilyNET.Extensions\EasilyNET.Extensions.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.Mongo.ConsoleDebug\EasilyNET.Mongo.ConsoleDebug.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.Mongo.Extension\EasilyNET.Mongo.Extension.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.Mongo.GridFS\EasilyNET.Mongo.GridFS.csproj" />

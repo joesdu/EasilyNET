@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Runtime.CompilerServices;
 
+// ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedType.Global
 
@@ -299,7 +300,6 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
         }
     }
 
-#if !NETSTANDARD2_0
     /// <summary>
     /// 获取Span
     /// </summary>
@@ -311,5 +311,4 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     /// </summary>
     /// <returns></returns>
     public Memory<byte> GetMemory() => _data.AsMemory(0, _length);
-#endif
 }

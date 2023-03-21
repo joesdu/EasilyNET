@@ -1,5 +1,6 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
+
 #if !NETSTANDARD
 #pragma warning disable CA1822
 #endif

@@ -26,13 +26,8 @@ public static class DES
         var hash1 = $"{pwd}-{slat}".To32MD5();
         var hash2 = $"{hash1}-{slat}".To32MD5();
         var hash3 = $"{hash2}-{slat}".To16MD5();
-#if NETSTANDARD2_0
-        var Key = Encoding.UTF8.GetBytes($"{hash1}{hash2}".To16MD5().Substring(0, 8));
-        var IV = Encoding.UTF8.GetBytes(hash3.Substring(0, 8));
-#else
         var Key = Encoding.UTF8.GetBytes($"{hash1}{hash2}".To16MD5()[..8]);
         var IV = Encoding.UTF8.GetBytes(hash3[..8]);
-#endif
         return new(Key, IV);
     }
 
