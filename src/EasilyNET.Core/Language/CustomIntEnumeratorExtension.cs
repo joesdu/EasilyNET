@@ -1,5 +1,4 @@
 ﻿// ReSharper disable UnusedMember.Global
-
 // ReSharper disable UnusedType.Global
 
 namespace EasilyNET.Core.Language;
@@ -26,7 +25,8 @@ public static class CustomIntEnumeratorExtension
     /// <summary>
     /// 自定义枚举器
     /// </summary>
-    public ref struct CustomIntEnumerator
+    /// public ref struct CustomIntEnumerator,其中ref标识符是否有必要?
+    public struct CustomIntEnumerator
     {
         private readonly int _end;
 

@@ -35,7 +35,7 @@ public static class IDictionaryExtensions
     /// <param name="this"></param>
     /// <param name="that">另一个字典集</param>
     /// <returns></returns>
-    public static void AddOrUpdate<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, IDictionary<TKey, TValue> that)
+    public static void AddOrUpdate<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, IDictionary<TKey, TValue> that) where TKey : notnull
     {
         foreach (var item in that)
         {
@@ -67,7 +67,7 @@ public static class IDictionaryExtensions
     /// <param name="this"></param>
     /// <param name="that">另一个字典集</param>
     /// <returns></returns>
-    public static void AddOrUpdateTo<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, IDictionary<TKey, TValue> that)
+    public static void AddOrUpdateTo<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, IDictionary<TKey, TValue> that) where TKey : notnull
     {
         foreach (var item in @this)
         {
@@ -103,7 +103,7 @@ public static class IDictionaryExtensions
     /// <param name="addValue">添加时的值</param>
     /// <param name="updateValueFactory">更新时的操作</param>
     /// <returns></returns>
-    public static void AddOrUpdate<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, TKey key, TValue addValue, Func<TKey, TValue, TValue> updateValueFactory)
+    public static void AddOrUpdate<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, TKey key, TValue addValue, Func<TKey, TValue, TValue> updateValueFactory) where TKey : notnull
     {
         if (!@this.ContainsKey(key))
             @this.TryAdd(key, addValue);
@@ -144,7 +144,7 @@ public static class IDictionaryExtensions
     /// <param name="addValue">添加时的值</param>
     /// <param name="updateValueFactory">更新时的操作</param>
     /// <returns></returns>
-    public static async Task<TValue> AddOrUpdateAsync<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, TKey key, TValue addValue, Func<TKey, TValue, Task<TValue>> updateValueFactory)
+    public static async Task<TValue> AddOrUpdateAsync<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, TKey key, TValue addValue, Func<TKey, TValue, Task<TValue>> updateValueFactory) where TKey : notnull
     {
         if (!@this.ContainsKey(key))
         {
@@ -190,7 +190,7 @@ public static class IDictionaryExtensions
     /// <param name="addValue">添加时的值</param>
     /// <param name="updateValue">更新时的值</param>
     /// <returns></returns>
-    public static TValue AddOrUpdate<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, TKey key, TValue addValue, TValue updateValue)
+    public static TValue AddOrUpdate<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, TKey key, TValue addValue, TValue updateValue) where TKey : notnull
     {
         if (!@this.ContainsKey(key))
         {
@@ -229,7 +229,7 @@ public static class IDictionaryExtensions
     /// <param name="that">另一个字典集</param>
     /// <param name="updateValueFactory">更新时的操作</param>
     /// <returns></returns>
-    public static void AddOrUpdate<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, IDictionary<TKey, TValue> that, Func<TKey, TValue, TValue> updateValueFactory)
+    public static void AddOrUpdate<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, IDictionary<TKey, TValue> that, Func<TKey, TValue, TValue> updateValueFactory) where TKey : notnull
     {
         foreach (var item in that)
         {
@@ -260,7 +260,7 @@ public static class IDictionaryExtensions
     /// <param name="that">另一个字典集</param>
     /// <param name="updateValueFactory">更新时的操作</param>
     /// <returns></returns>
-    public static Task AddOrUpdateAsync<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, IDictionary<TKey, TValue> that, Func<TKey, TValue, Task<TValue>> updateValueFactory)
+    public static Task AddOrUpdateAsync<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, IDictionary<TKey, TValue> that, Func<TKey, TValue, Task<TValue>> updateValueFactory) where TKey : notnull
     {
         return that.ForeachAsync(item => AddOrUpdateAsync(@this, item.Key, item.Value, updateValueFactory));
     }
@@ -291,7 +291,7 @@ public static class IDictionaryExtensions
     /// <param name="that">另一个字典集</param>
     /// <param name="updateValueFactory">更新时的操作</param>
     /// <returns></returns>
-    public static void AddOrUpdateTo<TKey, TValue>(this IDictionary<TKey, TValue> @this, ConcurrentDictionary<TKey, TValue> that, Func<TKey, TValue, TValue> updateValueFactory)
+    public static void AddOrUpdateTo<TKey, TValue>(this IDictionary<TKey, TValue> @this, ConcurrentDictionary<TKey, TValue> that, Func<TKey, TValue, TValue> updateValueFactory) where TKey : notnull
     {
         foreach (var item in @this)
         {
@@ -322,7 +322,7 @@ public static class IDictionaryExtensions
     /// <param name="that">另一个字典集</param>
     /// <param name="updateValueFactory">更新时的操作</param>
     /// <returns></returns>
-    public static Task AddOrUpdateAsyncTo<TKey, TValue>(this IDictionary<TKey, TValue> @this, ConcurrentDictionary<TKey, TValue> that, Func<TKey, TValue, Task<TValue>> updateValueFactory)
+    public static Task AddOrUpdateAsyncTo<TKey, TValue>(this IDictionary<TKey, TValue> @this, ConcurrentDictionary<TKey, TValue> that, Func<TKey, TValue, Task<TValue>> updateValueFactory) where TKey : notnull
     {
         return @this.ForeachAsync(item => AddOrUpdateAsync(that, item.Key, item.Value, updateValueFactory));
     }
@@ -360,7 +360,7 @@ public static class IDictionaryExtensions
     /// <param name="addValueFactory">添加时的操作</param>
     /// <param name="updateValueFactory">更新时的操作</param>
     /// <returns></returns>
-    public static TValue AddOrUpdate<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, TKey key, Func<TKey, TValue> addValueFactory, Func<TKey, TValue, TValue> updateValueFactory)
+    public static TValue AddOrUpdate<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, TKey key, Func<TKey, TValue> addValueFactory, Func<TKey, TValue, TValue> updateValueFactory) where TKey : notnull
     {
         if (!@this.ContainsKey(key))
         {
@@ -406,7 +406,7 @@ public static class IDictionaryExtensions
     /// <param name="addValueFactory">添加时的操作</param>
     /// <param name="updateValueFactory">更新时的操作</param>
     /// <returns></returns>
-    public static async Task<TValue> AddOrUpdateAsync<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, TKey key, Func<TKey, Task<TValue>> addValueFactory, Func<TKey, TValue, Task<TValue>> updateValueFactory)
+    public static async Task<TValue> AddOrUpdateAsync<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, TKey key, Func<TKey, Task<TValue>> addValueFactory, Func<TKey, TValue, Task<TValue>> updateValueFactory) where TKey : notnull
     {
         if (!@this.ContainsKey(key))
         {
@@ -504,7 +504,7 @@ public static class IDictionaryExtensions
     /// <param name="source"></param>
     /// <param name="keySelector">键选择器</param>
     /// <returns></returns>
-    public static ConcurrentDictionary<TKey, TSource> ToConcurrentDictionary<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
+    public static ConcurrentDictionary<TKey, TSource> ToConcurrentDictionary<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector) where TKey : notnull
     {
         var dic = new ConcurrentDictionary<TKey, TSource>();
         foreach (var item in source)
@@ -524,7 +524,7 @@ public static class IDictionaryExtensions
     /// <param name="keySelector">键选择器</param>
     /// <param name="elementSelector">值选择器</param>
     /// <returns></returns>
-    public static ConcurrentDictionary<TKey, TElement> ToConcurrentDictionary<TSource, TKey, TElement>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector, Func<TSource, TElement> elementSelector)
+    public static ConcurrentDictionary<TKey, TElement> ToConcurrentDictionary<TSource, TKey, TElement>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector, Func<TSource, TElement> elementSelector) where TKey : notnull
     {
         var dic = new ConcurrentDictionary<TKey, TElement>();
         foreach (var item in source)
@@ -546,7 +546,7 @@ public static class IDictionaryExtensions
     /// <returns></returns>
     public static async Task<ConcurrentDictionary<TKey, TElement>> ToConcurrentDictionaryAsync<TSource, TKey, TElement>(this IEnumerable<TSource> source,
         Func<TSource, TKey> keySelector,
-        Func<TSource, Task<TElement>> elementSelector)
+        Func<TSource, Task<TElement>> elementSelector) where TKey : notnull
     {
         var dic = new ConcurrentDictionary<TKey, TElement>();
         await source.ForeachAsync(async item => dic[keySelector(item)] = await elementSelector(item));
@@ -560,7 +560,7 @@ public static class IDictionaryExtensions
     /// <typeparam name="TValue"></typeparam>
     /// <param name="dic"></param>
     /// <returns></returns>
-    public static ConcurrentDictionary<TKey, TValue> AsConcurrentDictionary<TKey, TValue>(this Dictionary<TKey, TValue> dic)
+    public static ConcurrentDictionary<TKey, TValue> AsConcurrentDictionary<TKey, TValue>(this Dictionary<TKey, TValue> dic) where TKey : notnull
     {
         var nullableDictionary = new ConcurrentDictionary<TKey, TValue>();
         foreach (var p in dic)
