@@ -1,4 +1,4 @@
-﻿namespace Hoyo.Security;
+﻿namespace EasilyNET.Security;
 
 /// <summary>
 /// AES加密的密钥算法模式

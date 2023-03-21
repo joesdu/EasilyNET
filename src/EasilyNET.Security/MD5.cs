@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Hoyo.Security;
+namespace EasilyNET.Security;
 
 /// MD5本身不属于密码范畴,但是介于大部分人使用他作为一些加密的功能,所以也放进到这里.
 /// <summary>

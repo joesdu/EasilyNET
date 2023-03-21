@@ -1,6 +1,6 @@
 ﻿// ReSharper disable UnusedMember.Global
 
-namespace Hoyo.Security;
+namespace EasilyNET.Security;
 
 /// <summary>
 /// RSA密钥
@@ -32,7 +32,8 @@ public struct RSASecretKey
     /// ToSting
     /// </summary>
     /// <returns></returns>
-    public override string ToString() => $"""
+    public override string ToString() =>
+        $"""
         PrivateKey: {PrivateKey}
         PublicKey: {PublicKey}
         """;

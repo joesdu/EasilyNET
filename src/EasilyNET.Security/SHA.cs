@@ -3,7 +3,7 @@
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
-namespace Hoyo.Security;
+namespace EasilyNET.Security;
 
 /// <summary>
 /// SHA,全称SecureHashAlgorithm,是一种数据加密算法,该算法的思想是接收一段明文,
