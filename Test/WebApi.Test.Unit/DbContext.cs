@@ -11,6 +11,33 @@ namespace WebApi.Test.Unit;
 public class DbContext : EasilyNETMongoContext
 {
     /// <summary>
+    /// 默认无参构造函数
+    /// </summary>
+    public DbContext()
+    {
+        Console.WriteLine("DbContext无参构造函数");
+    }
+
+    /// <summary>
+    /// 测试DbContext非无参构造函数
+    /// </summary>
+    /// <param name="test"></param>
+    public DbContext(string test)
+    {
+        Console.WriteLine($"DbContext非无参构造函数:{test}");
+    }
+
+    /// <summary>
+    /// 测试DbContext非无参构造函数
+    /// </summary>
+    /// <param name="test"></param>
+    /// <param name="i1"></param>
+    public DbContext(string test, int i1)
+    {
+        Console.WriteLine($"DbContext非无参构造函数:{test},{i1}");
+    }
+
+    /// <summary>
     /// MongoTest
     /// </summary>
     public IMongoCollection<MongoTest> Test => Database.GetCollection<MongoTest>("mongo.test");

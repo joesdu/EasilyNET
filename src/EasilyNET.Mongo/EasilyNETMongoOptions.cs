@@ -15,14 +15,14 @@ namespace EasilyNET.Mongo;
 /// </summary>
 public sealed class EasilyNETMongoOptions
 {
-    private static bool First { get; set; }
+    private static bool TypesFirst { get; set; }
 
     /// <summary>
     /// ObjectId到String转换的类型[该列表中的对象,不会将Id,ID字段转化为ObjectId类型.在数据库中存为字符串格式]
     /// </summary>
     // ReSharper disable once CollectionNeverUpdated.Global
     // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
-    internal static List<Type> ObjIdToStringTypes { get; private set; } = new();
+    internal static List<Type> ObjIdToStringTypes { get; } = new();
 
     /// <summary>
     /// ObjectId到String转换的类型[该列表中的对象,不会将Id,ID字段转化为ObjectId类型.在数据库中存为字符串格式]
@@ -33,9 +33,9 @@ public sealed class EasilyNETMongoOptions
         get => ObjIdToStringTypes;
         set
         {
-            if (First) throw new("请在应用启动的时候初始化,不要动态调整.");
-            First = true;
-            ObjIdToStringTypes = value;
+            if (TypesFirst) throw new("请在应用启动的时候初始化,不要动态调整.");
+            TypesFirst = true;
+            ObjIdToStringTypes.AddRange(value);
         }
     }
 
@@ -54,7 +54,7 @@ public sealed class EasilyNETMongoOptions
             $"{EasilyNETConstant.Pack}-{ObjectId.GenerateNewId()}", new()
             {
                 new CamelCaseElementNameConvention(),             // 驼峰名称格式
-                new IgnoreExtraElementsConvention(true),          //
+                new IgnoreExtraElementsConvention(true),          // 忽略掉实体中不存在的字段
                 new NamedIdMemberConvention("Id", "ID"),          // _id映射为实体中的ID或者Id
                 new EnumRepresentationConvention(BsonType.String) // 将枚举类型存储为字符串格式
             }

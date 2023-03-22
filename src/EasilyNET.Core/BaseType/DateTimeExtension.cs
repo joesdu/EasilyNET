@@ -116,6 +116,13 @@ public static class DateTimeExtension
     public static ValueTuple<DateTime, DateTime> MonthStartEndByMonth(this int month, int year) => month < 1 | month > 13 ? throw new("非法月份") : new DateTime(year, month, 2).MonthStartEnd();
 
     /// <summary>
+    /// 转化为年份
+    /// </summary>
+    /// <param name="year"></param>
+    /// <returns></returns>
+    internal static DateTime YearToDateTime(object year) => new(Convert.ToInt32(year), 1, 1);
+
+    /// <summary>
     /// 获取整周的星期数字形式
     /// </summary>
     /// <param name="day"></param>

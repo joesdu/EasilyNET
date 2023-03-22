@@ -1,4 +1,5 @@
-﻿using MongoDB.Driver;
+﻿using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Driver;
 
 // ReSharper disable ClassNeverInstantiated.Global
 
@@ -15,13 +16,15 @@ public class EasilyNETMongoContext
     public IMongoClient Client { get; private set; } = default!;
 
     /// <summary>
-    /// 获取链接字符串或者HoyoMongoSettings中配置的特定名称数据库或默认数据库hoyo
+    /// 获取链接字符串或者HoyoMongoSettings中配置的特定名称数据库或默认数据库
     /// </summary>
     public IMongoDatabase Database { get; private set; } = default!;
 
-    internal static T CreateInstance<T>(MongoClientSettings settings, string dbName) where T : EasilyNETMongoContext
+    internal static T CreateInstance<T>(IServiceProvider provider, MongoClientSettings settings, string dbName, params object[] parameters) where T : EasilyNETMongoContext
     {
-        var t = Activator.CreateInstance<T>();
+        // 可支持非默认无参构造函数的DbContext
+        var t = ActivatorUtilities.CreateInstance<T>(provider, parameters);
+        // var t = Activator.CreateInstance<T>();
         t.Client = new MongoClient(settings);
         t.Database = t.Client.GetDatabase(dbName);
         return t;

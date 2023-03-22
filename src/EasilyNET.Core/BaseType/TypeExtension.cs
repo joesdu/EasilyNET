@@ -1,6 +1,8 @@
 ﻿using EasilyNET.Core.Attributes;
 using System.ComponentModel;
 using System.Reflection;
+using System.Text;
+using System.Text.RegularExpressions;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
@@ -166,5 +168,34 @@ public static class TypeExtension
         if (!typeInfo.IsGenericTypeDefinition) return interfaceType;
         var interfaceTypeInfo = interfaceType.GetTypeInfo();
         return interfaceTypeInfo.IsGenericType ? interfaceType.GetGenericTypeDefinition() : interfaceType;
+    }
+
+    /// <summary>
+    /// 获取适合在错误消息中使用的友好类名.
+    /// </summary>
+    /// <param name="type">The type.</param>
+    /// <returns>友好的类名.</returns>
+    public static string GetFriendlyTypeName(this Type type)
+    {
+        var typeInfo = type.GetTypeInfo();
+        if (!typeInfo.IsGenericType)
+        {
+            return type.Name;
+        }
+        var sb = new StringBuilder();
+#if !NETSTANDARD
+#pragma warning disable SYSLIB1045
+#endif
+        sb.Append($"{Regex.Replace(type.Name, @"\`\d+$", "")}<");
+#if !NETSTANDARD
+#pragma warning restore SYSLIB1045
+#endif
+        foreach (var typeParameter in typeInfo.GetGenericArguments())
+        {
+            sb.Append($"{typeParameter.GetFriendlyTypeName()}, ");
+        }
+        sb.Remove(sb.Length - 2, 2);
+        sb.Append('>');
+        return sb.ToString();
     }
 }
