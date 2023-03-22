@@ -37,9 +37,9 @@
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+var provider = builder.Services.BuildServiceProviderFromFactory();
 // 添加Mongodb数据库服务
-builder.Services.AddMongoContext<DbContext>(builder.Configuration, c =>
+builder.Services.AddMongoContext<DbContext>(provider, builder.Configuration, c =>
 {
     c.Options = op =>
     {
@@ -60,8 +60,10 @@ builder.Services.AddMongoContext<DbContext>(builder.Configuration, c =>
     // 新版的MongoDB驱动使用了 Linq3 的模式,所以原有的程序会出现一些问题,为了避免大改.可以调整为V2,默认为V3
     // 若是使用MongoClientSettings配置的话,该参数不生效,将使用MongoClientSettings中的LinqProvider版本.
     c.LinqProvider = LinqProvider.V2;
-})).RegisterEasilyNETSerializer();
-_ = context.Services.RegisterEasilyNETSerializer(new DoubleSerializer(BsonType.Double));
+    // 传递DbContext构造函数的参数.
+    //c.ContextParams = new() { "DbContext测试参数", 1, obj1, ... };
+}).RegisterEasilyNETSerializer();
+builder.Services.RegisterEasilyNETSerializer(new DoubleSerializer(BsonType.Double));
 ...
 var app = builder.Build();
 ```
@@ -81,10 +83,9 @@ public class EasilyNETMongoModule : AppModule
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var config = context.Services.GetConfiguration();
-
+        var provider = context.Services.BuildServiceProviderFromFactory();
         // 使用 IConfiguration 的方式注册例子,使用链接字符串,仅需将config替换成连接字符即可.
-        //context.Services
-        //    .AddMongoContext<DbContext>(config, c =>
+        //context.Services.AddMongoContext<DbContext>(provider, config, c =>
         //    {
         //        c.Options = op =>
         //        {
@@ -92,14 +93,14 @@ public class EasilyNETMongoModule : AppModule
         //            op.DefaultConventionRegistry = true;
         //        };
         //        //c.LinqProvider = MongoDB.Driver.Linq.LinqProvider.V2;
+        //        // 传递DbContext构造函数的参数.
+        //        //c.ContextParams = new() { "DbContext测试参数" };
         //    })
         //    .AddMongoContext<DbContext2>(config)
-        //    // 添加Guid序列化.但是不加竟然也可以正常工作.
         //    //.RegisterEasilyNETSerializer(new GuidSerializer(GuidRepresentation.Standard))
         //    .RegisterEasilyNETSerializer();
 
-        context.Services
-            .AddMongoContext<DbContext>(new MongoClientSettings()
+        context.Services.AddMongoContext<DbContext>(provider, new MongoClientSettings
             {
                 Servers = new List<MongoServerAddress>
                 {
@@ -131,10 +132,12 @@ public class EasilyNETMongoModule : AppModule
                 // 所以使用MongoClientSettings注册服务时,可仅赋值其中一个
                 c.LinqProvider = MongoDB.Driver.Linq.LinqProvider.V2;
                 //c.ClusterBuilder = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber());
+                // 传递DbContext构造函数的参数.
+                //c.ContextParams = new() { "DbContext测试参数" };
             })
             // DbContext2 由于没有配置 LinqProvider 所以默认为V3版本,
             // ClusterBuilder 也没有配置,所以使用 SkyAPM 也无法捕获到 Context2 的信息
-            .AddMongoContext<DbContext2>(config)
+            .AddMongoContext<DbContext2>(provider, config)
             // 添加Guid序列化.但是不加竟然也可以正常工作.
             //.RegisterEasilyNETSerializer(new GuidSerializer(GuidRepresentation.Standard))
             .RegisterEasilyNETSerializer();

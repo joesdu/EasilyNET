@@ -657,4 +657,95 @@ public static class StringExtension
     public static bool RegexMatch(this string s, Regex regex) => !string.IsNullOrEmpty(s) && regex.IsMatch(s);
 
     #endregion 检测字符串中是否包含列表中的关键词
+
+    /// <summary>
+    /// 将十六进制字符串解析为其等效字节数组
+    /// </summary>
+    /// <param name="s">要分析的十六进制字符串</param>
+    /// <returns>十六进制字符串的字节等效项</returns>
+    public static byte[] ParseHexString(this string s) =>
+        string.IsNullOrWhiteSpace(s)
+            ? throw new ArgumentNullException(nameof(s))
+            : !s.TryParseHexString(out var bytes)
+                ? throw new FormatException("String should contain only hexadecimal digits.")
+                : bytes!;
+
+    /// <summary>
+    /// 尝试将十六进制字符串解析为字节数组
+    /// </summary>
+    /// <param name="s">十六进制字符串</param>
+    /// <param name="bytes">A byte array.</param>
+    /// <returns>如果成功解析十六进制字符串，则为 True</returns>
+    public static bool TryParseHexString(this string s, out byte[]? bytes)
+    {
+        bytes = null;
+        if (string.IsNullOrWhiteSpace(s)) return false;
+        var buffer = new byte[(s.Length + 1) / 2];
+        var i = 0;
+        var j = 0;
+        if (s.Length % 2 == 1)
+        {
+            // if s has an odd length assume an implied leading "0"
+            if (!TryParseHexChar(s[i++], out var y)) return false;
+            buffer[j++] = (byte)y;
+        }
+        while (i < s.Length)
+        {
+            if (!TryParseHexChar(s[i++], out var x)) return false;
+            if (!TryParseHexChar(s[i++], out var y)) return false;
+#pragma warning disable IDE0048
+            buffer[j++] = (byte)(x << 4 | y);
+#pragma warning restore IDE0048
+        }
+        bytes = buffer;
+        return true;
+    }
+
+    private static bool TryParseHexChar(char c, out int value)
+    {
+        switch (c)
+        {
+            case >= '0' and <= '9':
+                value = c - '0';
+                return true;
+            case >= 'a' and <= 'f':
+                value = 10 + (c - 'a');
+                return true;
+            case >= 'A' and <= 'F':
+                value = 10 + (c - 'A');
+                return true;
+            default:
+                value = 0;
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// 将值转换为十六进制字符
+    /// </summary>
+    /// <param name="value">值(假定介于 0 和 15 之间)</param>
+    /// <returns>十六进制字符</returns>
+    public static char ToHexChar(this int value) => (char)(value + (value < 10 ? '0' : 'a' - 10));
+
+    /// <summary>
+    /// 将字节数组转换为十六进制字符串
+    /// </summary>
+    /// <param name="bytes">字节数组</param>
+    /// <returns>十六进制字符串</returns>
+    public static string ToHexString(this byte[] bytes)
+    {
+        if (bytes == null)
+        {
+            throw new ArgumentNullException(nameof(bytes));
+        }
+        var length = bytes.Length;
+        var c = new char[length * 2];
+        for (int i = 0, j = 0; i < length; i++)
+        {
+            var b = bytes[i];
+            c[j++] = ToHexChar(b >> 4);
+            c[j++] = ToHexChar(b & 0x0f);
+        }
+        return new(c);
+    }
 }

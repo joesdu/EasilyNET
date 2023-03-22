@@ -24,13 +24,15 @@ public static class MongoServiceExtensions
     /// </summary>
     /// <typeparam name="T">DbContext</typeparam>
     /// <param name="services">IServiceCollection</param>
+    /// <param name="provider">IServiceProvider</param>
     /// <param name="configuration">IConfiguration</param>
     /// <param name="param">其他参数</param>
     /// <returns></returns>
-    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, IConfiguration configuration, Action<EasilyNETMongoParams>? param = null) where T : EasilyNETMongoContext
+    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, IServiceProvider provider, IConfiguration configuration, Action<EasilyNETMongoParams>? param = null)
+        where T : EasilyNETMongoContext
     {
         var connStr = ConnectionString(configuration);
-        _ = services.AddMongoContext<T>(connStr, param);
+        _ = services.AddMongoContext<T>(provider, connStr, param);
         return services;
     }
 
@@ -39,10 +41,12 @@ public static class MongoServiceExtensions
     /// </summary>
     /// <typeparam name="T">DbContext</typeparam>
     /// <param name="services">IServiceCollection</param>
+    /// <param name="provider">IServiceProvider</param>
     /// <param name="settings">HoyoMongoClientSettings</param>
     /// <param name="param">其他参数</param>
     /// <returns></returns>
-    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, MongoClientSettings settings, Action<EasilyNETMongoParams>? param = null) where T : EasilyNETMongoContext
+    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, IServiceProvider provider, MongoClientSettings settings, Action<EasilyNETMongoParams>? param = null)
+        where T : EasilyNETMongoContext
     {
         if (!settings.Servers.Any()) throw new("mongo server address can't be empty!");
         var dbOptions = new EasilyNETMongoOptions();
@@ -51,7 +55,7 @@ public static class MongoServiceExtensions
         options.Options?.Invoke(dbOptions);
         RegistryConventionPack(dbOptions);
         settings.ClusterConfigurator = options.ClusterBuilder ?? settings.ClusterConfigurator;
-        var db = EasilyNETMongoContext.CreateInstance<T>(settings, options.DatabaseName);
+        var db = EasilyNETMongoContext.CreateInstance<T>(provider, settings, options.DatabaseName, options.ContextParams.ToArray());
         _ = services.AddSingleton(db).AddSingleton(db.Database).AddSingleton(db.Client);
         return services;
     }
@@ -61,10 +65,12 @@ public static class MongoServiceExtensions
     /// </summary>
     /// <typeparam name="T">DbContext</typeparam>
     /// <param name="services">IServiceCollection</param>
+    /// <param name="provider">IServiceProvider</param>
     /// <param name="connStr">链接字符串</param>
     /// <param name="param">其他参数</param>
     /// <returns></returns>
-    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, string connStr, Action<EasilyNETMongoParams>? param = null) where T : EasilyNETMongoContext
+    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, IServiceProvider provider, string connStr, Action<EasilyNETMongoParams>? param = null)
+        where T : EasilyNETMongoContext
     {
         var options = new EasilyNETMongoParams();
         var dbOptions = new EasilyNETMongoOptions();
@@ -75,10 +81,11 @@ public static class MongoServiceExtensions
         var settings = MongoClientSettings.FromUrl(mongoUrl);
         settings.LinqProvider = options.LinqProvider;
         var dbName = !string.IsNullOrWhiteSpace(mongoUrl.DatabaseName) ? mongoUrl.DatabaseName : options.DatabaseName;
-        _ = services.AddMongoContext<T>(settings, c =>
+        _ = services.AddMongoContext<T>(provider, settings, c =>
         {
             c.ClusterBuilder = options.ClusterBuilder;
             c.DatabaseName = dbName;
+            c.ContextParams = options.ContextParams;
         });
         return services;
     }

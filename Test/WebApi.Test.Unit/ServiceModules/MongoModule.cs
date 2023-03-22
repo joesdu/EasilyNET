@@ -22,7 +22,8 @@ public class MongoModule : AppModule
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var config = context.Services.GetConfiguration();
-        context.Services.AddMongoContext<DbContext>(new MongoClientSettings
+        var provider = context.Services.BuildServiceProviderFromFactory();
+        context.Services.AddMongoContext<DbContext>(provider, new MongoClientSettings
         {
             Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
             Credential = MongoCredential.CreateCredential("admin", "oneblogs", "oneblogs789")
@@ -57,7 +58,9 @@ public class MongoModule : AppModule
             c.LinqProvider = LinqProvider.V3;
             //c.ClusterBuilder = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber());
             c.ClusterBuilder = cb => cb.Subscribe(new ActivityEventSubscriber());
-        }).AddMongoContext<DbContext2>(config, c =>
+            // 传递DbContext构造函数的参数.
+            //c.ContextParams = new() { "DbContext测试参数" };
+        }).AddMongoContext<DbContext2>(provider, config, c =>
         {
             c.Options = op =>
             {

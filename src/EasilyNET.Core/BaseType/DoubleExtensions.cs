@@ -69,4 +69,11 @@ public static class DoubleExtensions
     /// <param name="number">金额</param>
     /// <returns>返回大写形式</returns>
     public static string ToRMB(this int number) => ToRMB((decimal)number);
+
+    /// <summary>
+    /// 年份👉DateTime(某年的初始时间)
+    /// </summary>
+    /// <param name="year">年份</param>
+    /// <returns></returns>
+    public static DateTime YearToDateTime(this int year) => DateTimeExtension.YearToDateTime(year);
 }
