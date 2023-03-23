@@ -73,11 +73,11 @@ file class TestAttribute : AttributeBase
 [Test]
 file class MyClass1
 {
-    public string a { get; set; }
+    public string? B { get; set; } = string.Empty;
 }
 
 [Test]
 file class MyClass2
 {
-    public string a { get; set; }
+    public string? A { get; set; } = string.Empty;
 }
