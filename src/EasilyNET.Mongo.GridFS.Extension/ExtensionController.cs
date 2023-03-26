@@ -46,8 +46,13 @@ public class ExtensionController : GridFSController
         var buffer = new byte[1024 * 1024];
         while (true)
         {
+#if NETSTANDARD
             var readCount = await mongoStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
             await fsWrite.WriteAsync(buffer, 0, readCount, cancellationToken);
+#else
+            var readCount = await mongoStream.ReadAsync(buffer, cancellationToken);
+            await fsWrite.WriteAsync(buffer.AsMemory(0, readCount), cancellationToken);
+#endif
             if (readCount < buffer.Length) break;
         }
         return new { Uri = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}{FileSetting.VirtualPath}/{fi.Filename}" };

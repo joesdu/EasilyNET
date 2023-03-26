@@ -168,7 +168,9 @@ public class GridFSController : ControllerBase
     public virtual async Task<FileStreamResult> Download(string id, CancellationToken cancellationToken)
     {
         var stream = await Bucket.OpenDownloadStreamAsync(ObjectId.Parse(id), new() { Seekable = true }, cancellationToken);
-        return File(stream, stream.FileInfo.Metadata["contentType"].AsString, stream.FileInfo.Filename);
+        var content_type = stream.FileInfo.Metadata["contentType"].AsString;
+        if (string.IsNullOrWhiteSpace(content_type)) content_type = "application/octet-stream";
+        return File(stream, content_type, stream.FileInfo.Filename);
     }
 
     /// <summary>
@@ -181,7 +183,9 @@ public class GridFSController : ControllerBase
     public virtual async Task<FileStreamResult> DownloadByName(string name, CancellationToken cancellationToken)
     {
         var stream = await Bucket.OpenDownloadStreamByNameAsync(name, new() { Seekable = true }, cancellationToken);
-        return File(stream, stream.FileInfo.Metadata["contentType"].AsString, stream.FileInfo.Filename);
+        var content_type = stream.FileInfo.Metadata["contentType"].AsString;
+        if (string.IsNullOrWhiteSpace(content_type)) content_type = "application/octet-stream";
+        return File(stream, content_type, stream.FileInfo.Filename);
     }
 
     /// <summary>
@@ -195,7 +199,10 @@ public class GridFSController : ControllerBase
     {
         var fi = await (await Bucket.FindAsync(gbf.Eq(c => c.Id, ObjectId.Parse(id)), cancellationToken: cancellationToken)).SingleOrDefaultAsync(cancellationToken) ?? throw new("no data find");
         var bytes = await Bucket.DownloadAsBytesAsync(ObjectId.Parse(id), new() { Seekable = true }, cancellationToken);
-        return File(bytes, fi.Metadata["contentType"].AsString, fi.Filename);
+        var content_type = fi.Metadata["contentType"].AsString;
+        return string.IsNullOrWhiteSpace(content_type)
+                   ? throw new("The file ContentType cannot be determined, please confirm whether the file type is specified when uploading the file, or view it after downloaded.")
+                   : File(bytes, content_type, fi.Filename);
     }
 
     /// <summary>
@@ -209,7 +216,10 @@ public class GridFSController : ControllerBase
     {
         var fi = await (await Bucket.FindAsync(gbf.Eq(c => c.Filename, name), cancellationToken: cancellationToken)).FirstOrDefaultAsync(cancellationToken) ?? throw new("can't find this file");
         var bytes = await Bucket.DownloadAsBytesByNameAsync(name, new() { Seekable = true }, cancellationToken);
-        return File(bytes, fi.Metadata["contentType"].AsString, fi.Filename);
+        var content_type = fi.Metadata["contentType"].AsString;
+        return string.IsNullOrWhiteSpace(content_type)
+                   ? throw new("The file ContentType cannot be determined, please confirm whether the file type is specified when uploading the file, or view it after downloaded.")
+                   : File(bytes, content_type, fi.Filename);
     }
 
     /// <summary>
