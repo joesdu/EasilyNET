@@ -19,7 +19,7 @@ public static class GridFSExtensions
     /// 注册GridFS服务
     /// </summary>
     /// <param name="services"></param>
-    /// <param name="db">IMongoDatabase,为空情况下使用默认数据库hoyofs</param>
+    /// <param name="db">IMongoDatabase,为空情况下使用默认数据库easilyfs</param>
     /// <param name="fsOptions"></param>
     /// <returns></returns>
     public static void AddEasilyNETGridFS(this IServiceCollection services, IMongoDatabase? db = null, Action<EasilyNETGridFSOptions>? fsOptions = null)
@@ -30,15 +30,15 @@ public static class GridFSExtensions
         if (db is null)
         {
             options.DefaultDB = true;
-            if (client is null) throw new("无法从IOC容器中获取IMongoClient的服务依赖,请考虑显示传入db参数.");
+            if (client is null) throw new("无法从容器中获取服务依赖,请传入db参数.");
         }
         BusinessApp = options.BusinessApp;
-        var hoyo_db = options.DefaultDB ? client!.GetDatabase("easilyfs") : db;
+        var easily_db = options.DefaultDB ? client!.GetDatabase("easilyfs") : db;
         _ = services.Configure<FormOptions>(c =>
         {
             c.MultipartBodyLengthLimit = long.MaxValue;
             c.ValueLengthLimit = int.MaxValue;
-        }).Configure<KestrelServerOptions>(c => c.Limits.MaxRequestBodySize = int.MaxValue).AddSingleton(new GridFSBucket(hoyo_db, options.Options));
-        _ = services.AddSingleton(hoyo_db!.GetCollection<GridFSItemInfo>(options.ItemInfo));
+        }).Configure<KestrelServerOptions>(c => c.Limits.MaxRequestBodySize = int.MaxValue).AddSingleton(new GridFSBucket(easily_db, options.Options));
+        _ = services.AddSingleton(easily_db!.GetCollection<GridFSItemInfo>(options.ItemInfo));
     }
 }

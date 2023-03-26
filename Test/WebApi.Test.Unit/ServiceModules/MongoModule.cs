@@ -1,6 +1,7 @@
 ﻿using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.AutoDependencyInjection.Modules;
+using EasilyNET.Core.BaseType;
 using EasilyNET.Mongo;
 using EasilyNET.Mongo.ConsoleDebug;
 using EasilyNET.Mongo.Extension;
@@ -26,7 +27,7 @@ public class MongoModule : AppModule
         context.Services.AddMongoContext<DbContext>(provider, new MongoClientSettings
         {
             Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
-            Credential = MongoCredential.CreateCredential("admin", "oneblogs", "oneblogs789")
+            Credential = MongoCredential.CreateCredential("admin", "oneblogs", "&oneblogs789")
             // 新版驱动使用V3版本,有可能会出现一些Linq表达式客户端函数无法执行,需要调整代码,但是工作量太大了,所以可以先使用V2兼容.
             //LinqProvider = LinqProvider.V3
             // 对接 SkyAPM 的 MongoDB探针
@@ -47,7 +48,7 @@ public class MongoModule : AppModule
                 op.AppendConventionRegistry(new()
                 {
                     {
-                        $"{Guid.NewGuid()}",
+                        $"{SnowId.GenerateNewId()}",
                         new() { new IgnoreIfDefaultConvention(true) }
                     }
                 });
@@ -68,7 +69,7 @@ public class MongoModule : AppModule
                 op.AppendConventionRegistry(new()
                 {
                     {
-                        $"{Guid.NewGuid()}",
+                        $"{SnowId.GenerateNewId()}",
                         new() { new IgnoreIfDefaultConvention(true) }
                     }
                 });
