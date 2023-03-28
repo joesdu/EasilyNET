@@ -11,7 +11,7 @@
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0-preview.2.23128.3" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0-preview.2.23128.3" />
         <PackageReference Include="Polly" Version="7.2.3" />
-        <PackageReference Include="RabbitMQ.Client" Version="6.4.0" />
+        <PackageReference Include="RabbitMQ.Client" Version="6.5.0" />
     </ItemGroup>
 
 </Project>
