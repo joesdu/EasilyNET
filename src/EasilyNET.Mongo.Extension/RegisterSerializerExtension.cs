@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 
@@ -16,18 +15,14 @@ namespace EasilyNET.Mongo.Extension;
 public static class RegisterSerializerExtension
 {
     /// <summary>
-    /// 添加常用MongoDB类型转化支持
-    /// DateTime,Decimal,DateOnly,TimeOnly
-    /// 默认将时间本地化
+    /// 添加(DateOnly,TimeOnly)类型序列化支持
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
-    public static IServiceCollection RegisterEasilyNETSerializer(this IServiceCollection services)
+    public static IServiceCollection RegisterSerializer(this IServiceCollection services)
     {
-        services.RegisterEasilyNETSerializer(new DateTimeSerializer(DateTimeKind.Local)); //to local time
-        services.RegisterEasilyNETSerializer(new DecimalSerializer(BsonType.Decimal128)); //decimal to decimal default
-        services.RegisterEasilyNETSerializer(new DateOnlySerializer());
-        services.RegisterEasilyNETSerializer(new TimeOnlySerializer());
+        BsonSerializer.RegisterSerializer(new DateOnlySerializer());
+        BsonSerializer.RegisterSerializer(new TimeOnlySerializer());
         return services;
     }
 
@@ -38,9 +33,23 @@ public static class RegisterSerializerExtension
     /// <param name="services">IServiceCollection</param>
     /// <param name="serializer">自定义序列化类</param>
     /// <returns></returns>
-    public static IServiceCollection RegisterEasilyNETSerializer<T>(this IServiceCollection services, IBsonSerializer<T> serializer) where T : struct
+    public static IServiceCollection RegisterSerializer<T>(this IServiceCollection services, IBsonSerializer<T> serializer) where T : struct
     {
         BsonSerializer.RegisterSerializer(serializer);
+        return services;
+    }
+
+    /// <summary>
+    /// 注册动态类型(dynamic|object)序列化支持
+    /// </summary>
+    /// <param name="services"></param>
+    /// <returns></returns>
+    public static IServiceCollection RegisterDynamicSerializer(this IServiceCollection services)
+    {
+#pragma warning disable IDE0048
+        var objectSerializer = new ObjectSerializer(type => ObjectSerializer.DefaultAllowedTypes(type) || type.FullName is not null && type.FullName.StartsWith("<>f__AnonymousType"));
+#pragma warning restore IDE0048
+        BsonSerializer.RegisterSerializer(objectSerializer);
         return services;
     }
 }

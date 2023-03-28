@@ -1,7 +1,9 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 
 // ReSharper disable UnusedType.Global
@@ -19,6 +21,11 @@ namespace EasilyNET.Mongo;
 /// </summary>
 public static class MongoServiceExtensions
 {
+    /// <summary>
+    /// 是否是第一次注册BsonSerializer
+    /// </summary>
+    private static bool first;
+
     /// <summary>
     /// 通过默认连接字符串名称添加DbContext
     /// </summary>
@@ -99,6 +106,10 @@ public static class MongoServiceExtensions
         {
             new StringObjectIdIdGeneratorConvention() //ObjectId → String mapping ObjectId
         }, x => !EasilyNETMongoOptions.ObjIdToStringTypes.Contains(x));
+        if (first) return;
+        BsonSerializer.RegisterSerializer(new DateTimeSerializer(DateTimeKind.Local)); //to local time
+        BsonSerializer.RegisterSerializer(new DecimalSerializer(BsonType.Decimal128)); //decimal to decimal default
+        first = !first;
     }
 
     private static string ConnectionString(IConfiguration configuration)

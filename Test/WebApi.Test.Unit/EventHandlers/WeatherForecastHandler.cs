@@ -1,4 +1,5 @@
-﻿using EasilyNET.RabbitBus.Abstractions;
+﻿using EasilyNET.AutoDependencyInjection.Attributes;
+using EasilyNET.RabbitBus.Abstractions;
 using System.Text.Json;
 using WebApi.Test.Unit.Events;
 
@@ -7,6 +8,7 @@ namespace WebApi.Test.Unit.EventHandlers;
 /// <summary>
 /// 天气消息处理
 /// </summary>
+[DependencyInjection(ServiceLifetime.Transient, AddSelf = true)]
 public class WeatherForecastHandler : IIntegrationEventHandler<WeatherForecastEvent>
 {
     private readonly ILogger<WeatherForecastHandler> _logger;
