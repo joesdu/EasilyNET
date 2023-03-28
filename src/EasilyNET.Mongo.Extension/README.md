@@ -1,6 +1,6 @@
 #### EasilyNET.Mongo.Extension
 
-EasilyNET.Mongo扩展,用于支持一些非默认类型的序列化方案.
+EasilyNET.Mongo扩展,用于支持一些非默认类型的序列化方案.就算是没有使用 EasilyNET.Mongo 也能使用这个库进行如下内容的扩展.
 
 ##### ChangeLogs
 
