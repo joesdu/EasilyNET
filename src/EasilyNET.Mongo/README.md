@@ -62,8 +62,8 @@ builder.Services.AddMongoContext<DbContext>(provider, builder.Configuration, c =
     c.LinqProvider = LinqProvider.V2;
     // 传递DbContext构造函数的参数.
     //c.ContextParams = new() { "DbContext测试参数", 1, obj1, ... };
-}).RegisterEasilyNETSerializer();
-builder.Services.RegisterEasilyNETSerializer(new DoubleSerializer(BsonType.Double));
+}).RegisterSerializer();
+builder.Services.RegisterSerializer(new DoubleSerializer(BsonType.Double));
 ...
 var app = builder.Build();
 ```
@@ -97,8 +97,8 @@ public class EasilyNETMongoModule : AppModule
         //        //c.ContextParams = new() { "DbContext测试参数" };
         //    })
         //    .AddMongoContext<DbContext2>(config)
-        //    //.RegisterEasilyNETSerializer(new GuidSerializer(GuidRepresentation.Standard))
-        //    .RegisterEasilyNETSerializer();
+        //    //.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard))
+        //    .RegisterSerializer();
 
         context.Services.AddMongoContext<DbContext>(provider, new MongoClientSettings
             {
@@ -139,8 +139,8 @@ public class EasilyNETMongoModule : AppModule
             // ClusterBuilder 也没有配置,所以使用 SkyAPM 也无法捕获到 Context2 的信息
             .AddMongoContext<DbContext2>(provider, config)
             // 添加Guid序列化.但是不加竟然也可以正常工作.
-            //.RegisterEasilyNETSerializer(new GuidSerializer(GuidRepresentation.Standard))
-            .RegisterEasilyNETSerializer();
+            //.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard))
+            .RegisterSerializer();
     }
 }
 ```

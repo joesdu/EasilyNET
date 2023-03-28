@@ -17,6 +17,7 @@ namespace WebApi.Test.Unit;
     typeof(ControllersModule),
     typeof(MongoModule),
     typeof(MongoGridFSModule),
+    typeof(RabbitModule),
     typeof(SwaggerModule))]
 public class AppWebModule : AppModule
 {

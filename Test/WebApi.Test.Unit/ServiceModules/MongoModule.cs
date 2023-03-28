@@ -76,6 +76,6 @@ public class MongoModule : AppModule
             };
             c.LinqProvider = LinqProvider.V3;
             c.ClusterBuilder = cb => cb.Subscribe(new ActivityEventSubscriber());
-        }).RegisterEasilyNETSerializer();
+        }).RegisterSerializer().RegisterDynamicSerializer();
     }
 }
