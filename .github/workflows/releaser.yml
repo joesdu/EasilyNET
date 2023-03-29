@@ -6,15 +6,9 @@ on:
       - '*.*.*'
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        environment: [NUGET_ENV]
-        exclude:
-          - os: ubuntu-latest
-            environment: NUGET_ENV
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
+    environment: 
+      name: NUGET_ENV
     steps:
       - name: Checkout
         uses: actions/checkout@v3.3.0
