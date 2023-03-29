@@ -31,17 +31,17 @@ public sealed class RabbitAttribute : Attribute
     /// <summary>
     /// 交换机
     /// </summary>
-    public string Exchange { get; set; }
+    public string Exchange { get; }
 
     /// <summary>
     /// 交换机模式
     /// </summary>
-    public string Type { get; set; }
+    public string Type { get; }
 
     /// <summary>
     /// 路由键《路由键和队列名称配合使用》
     /// </summary>
-    public string RoutingKey { get; set; }
+    public string RoutingKey { get; }
 
     /// <summary>
     /// 队列名称《队列名称和路由键配合使用》
@@ -51,5 +51,5 @@ public sealed class RabbitAttribute : Attribute
     /// <summary>
     /// 是否启用队列
     /// </summary>
-    public bool Enable { get; set; }
+    public bool Enable { get; }
 }

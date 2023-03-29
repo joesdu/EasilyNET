@@ -216,6 +216,8 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         _logger.LogTrace("启动RabbitMQ基本消费");
         if (consumerChannel is not null)
         {
+            // 是否有必要添加限流.可以讨论.
+            // consumerChannel.BasicQos(prefetchCount: 5, prefetchSize: 3, global: false);
             var consumer = new AsyncEventingBasicConsumer(consumerChannel);
             consumer.Received += async (_, ea) =>
             {

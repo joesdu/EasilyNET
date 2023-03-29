@@ -1,5 +1,7 @@
 ### EasilyNET
 
+**注意:** 由于本项目一般会试用和支持最新版本的.NET SDK,所以为了保证你能正常编译,请确保运行之前安装当前最新版本的SDK预览版,如现在为: .NET8 preview-2
+
 [![LICENSE](https://img.shields.io/github/license/EasilyNET/EasilyNET)](https://img.shields.io/github/license/EasilyNET/EasilyNET)
 [![ISSUES](https://img.shields.io/github/issues/EasilyNET/EasilyNET)](https://img.shields.io/github/issues/EasilyNET/EasilyNET)
 [![FORKS](https://img.shields.io/github/forks/EasilyNET/EasilyNET)](https://img.shields.io/github/forks/EasilyNET/EasilyNET)
@@ -9,12 +11,15 @@
 
 EasilyNET Packages
 
-- Simplifying the use of MongoDB drivers
-- Some common tool extensions
-- ABP-like framework for automatic module injection
-- Mongo Storage support for IdentityServer 6
-- MongoDB GridFS usage simplification support.
-- Integration of some common filters, middleware in WebApi
+- simple qrcode
+- eventbus with rabbitmq
+- simplifying the use of mongodb drivers
+- some common tool extensions
+- automatic module injection
+- mongodb adds (dynamic|object) serialization support (mongodb.driver 2.19.0+ onwards has removed it) 
+- mongodb storage support for identityserver 6
+- mongodb gridfs usage simplification support
+- integration of some common filters, middleware in webapi
 
 | NuGet Package                                                                                                 | Version                                                                        | Download                                                                        | Description                                                                    |
 | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
@@ -35,9 +40,8 @@ EasilyNET Packages
 
 ## How to participate in this project
 
-- First Fork the project to your own repository.
-- Then create a branch of your own, name it whatever you want, such as your nickname, or the name of the feature you are
-  working on.
-- Then commit to your own repository.
-- Then go to this project and create Pull Requests.
-- Wait for the administrator to merge the project and then delete your own repository Fork
+- fork the project to your own repository.
+- then create a branch of your own, name it whatever you want, such as your nickname, or the name of the feature you are working on.
+- then commit to your own repository.
+- then go to this project and create pull requests.
+- wait for the administrator to merge the project and then delete your own repository fork.
