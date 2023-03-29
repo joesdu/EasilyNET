@@ -31,9 +31,9 @@ public class RabbitBusController : ControllerBase
     public void Post()
     {
         var temp = new List<List<WeatherForecastEvent>>();
-        foreach (var _ in ..30)
+        foreach (var _ in ..29)
         {
-            var weathers = Enumerable.Range(1, 5000).Select(index => new WeatherForecastEvent
+            var weathers = Enumerable.Range(1, 50000).Select(index => new WeatherForecastEvent
             {
                 Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
                 TemperatureC = Random.Shared.Next(-20, 55),
