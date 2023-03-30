@@ -69,6 +69,7 @@ public class RabbitBusController : ControllerBase
             TemperatureC = Random.Shared.Next(-20, 55),
             Summary = Summaries[Random.Shared.Next(Summaries.Length)]
         }, (byte)rand.Next(0, 9));
+        _ibus.Publish(new TestEvent());
     }
 
     /// <summary>

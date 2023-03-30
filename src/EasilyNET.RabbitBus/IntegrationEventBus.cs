@@ -237,11 +237,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                 try
                 {
                     if (message.Contains("throw-fake-exception", StringComparison.InvariantCultureIgnoreCase)) throw new InvalidOperationException($"假异常请求:{message}");
-                    var result = await ProcessEvent(eventType, message);
-                    if (result)
-                    {
-                        consumerChannel.BasicAck(ea.DeliveryTag, false);
-                    }
+                    await ProcessEvent(eventType, message, () => consumerChannel.BasicAck(ea.DeliveryTag, false));
                 }
                 catch (Exception ex)
                 {
@@ -257,13 +253,19 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         _logger.LogError("当_consumerChannel为null时StartBasicConsume不能调用");
     }
 
-    private async Task<bool> ProcessEvent(Type eventType, string message)
+    /// <summary>
+    /// 事件处理程序
+    /// </summary>
+    /// <param name="eventType">事件类型</param>
+    /// <param name="message">消息</param>
+    /// <param name="ack">消息消费回调</param>
+    /// <returns></returns>
+    private async Task ProcessEvent(Type eventType, string message, Action ack)
     {
         var eventName = _subsManager.GetEventKey(eventType);
         _logger.LogTrace("处理RabbitMQ事件: {EventName}", eventName);
         if (_subsManager.HasSubscriptionsForEvent(eventName))
         {
-            var result = false;
             var policy = Policy.Handle<BrokerUnreachableException>().Or<SocketException>().WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
                 (ex, time) => _logger.LogError(ex, "无法消费事件: {EventName} 超时 {Timeout}s ({ExceptionMessage})", eventName, $"{time.TotalSeconds:n1}", ex.Message));
             await policy.Execute(async () =>
@@ -287,12 +289,13 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                     var obj = method.Invoke(handler, new[] { integrationEvent });
                     if (obj is null) continue;
                     await (Task)obj;
-                    result = true;
+                    ack.Invoke();
                 }
             });
-            return result;
         }
-        _logger.LogError("没有订阅RabbitMQ事件:{EventName}", eventName);
-        return false;
+        else
+        {
+            _logger.LogError("没有订阅RabbitMQ事件:{EventName}", eventName);
+        }
     }
 }

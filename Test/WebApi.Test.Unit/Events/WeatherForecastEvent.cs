@@ -30,3 +30,9 @@ public class WeatherForecastEvent : IntegrationEvent
     /// </summary>
     public string? Summary { get; set; }
 }
+
+/// <summary>
+/// 测试消息
+/// </summary>
+[Rabbit("rabbit.bus.test1", EExchange.Routing, "test1", "test")]
+public class TestEvent : IntegrationEvent { }
