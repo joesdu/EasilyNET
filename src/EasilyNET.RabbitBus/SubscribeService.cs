@@ -19,7 +19,7 @@ internal class SubscribeService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken cancelToken)
     {
         using var scope = _rootServiceProvider.CreateScope();
-        var eventBus = (IntegrationEventBus)scope.ServiceProvider.GetService<IIntegrationEventBus>()! ?? throw new("RabbitMQ集成事件总线没有注册");
+        var eventBus = scope.ServiceProvider.GetService<IIntegrationEventBus>() as IntegrationEventBus ?? throw new("RabbitMQ集成事件总线没有注册");
         eventBus.Subscribe();
         while (!cancelToken.IsCancellationRequested) await Task.Delay(5000, cancelToken);
     }

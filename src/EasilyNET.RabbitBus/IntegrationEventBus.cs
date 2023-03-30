@@ -58,10 +58,11 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
     /// <summary>
     /// 发布消息
     /// </summary>
+    /// <typeparam name="T">消息实体</typeparam>
     /// <param name="event"></param>
-    /// <typeparam name="T"></typeparam>
+    /// <param name="priority">使用优先级需要先使用RabbitArg特性为队列声明"x-max-priority"参数否则也不会生效,推荐设置1-10之间的数值</param>
     /// <exception cref="ArgumentNullException"></exception>
-    public void Publish<T>(T @event) where T : IIntegrationEvent
+    public void Publish<T>(T @event, byte? priority = 1) where T : IIntegrationEvent
     {
         if (!_persistentConnection.IsConnected) _ = _persistentConnection.TryConnect();
         var type = @event.GetType();
@@ -74,10 +75,11 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         var channel = _persistentConnection.CreateModel();
         var properties = channel.CreateBasicProperties();
         properties.Persistent = true;
+        properties.Priority = priority.GetValueOrDefault();
         var headers = @event.GetHeaderAttributes();
         if (headers.Any()) properties.Headers = headers;
-        var args = @event.GetArgAttributes();
-        channel.ExchangeDeclare(rabbitAttr.Exchange, rabbitAttr.Type, true, arguments: args);
+        var exchange_args = @event.GetExchangeArgAttributes();
+        channel.ExchangeDeclare(rabbitAttr.Exchange, rabbitAttr.Type, true, arguments: exchange_args);
         policy.Execute(() =>
         {
             properties.DeliveryMode = 2;
@@ -93,7 +95,8 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
     /// <typeparam name="T"></typeparam>
     /// <param name="event"></param>
     /// <param name="ttl">若是未指定ttl以及RabbitMQHeader('x-delay',uint)特性将立即消费</param>
-    public void Publish<T>(T @event, uint ttl) where T : IIntegrationEvent
+    /// <param name="priority">使用优先级需要先使用RabbitArg特性为队列声明"x-max-priority"参数否则也不会生效,推荐设置1-10之间的数值</param>
+    public void Publish<T>(T @event, uint ttl, byte? priority = 1) where T : IIntegrationEvent
     {
         if (!_persistentConnection.IsConnected) _ = _persistentConnection.TryConnect();
         var type = @event.GetType();
@@ -112,12 +115,13 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         var xDelay = headers.TryGetValue("x-delay", out var delay);
         headers["x-delay"] = xDelay && ttl == 0 && delay is not null ? delay : ttl;
         properties.Headers = headers;
+        properties.Priority = priority.GetValueOrDefault();
         // x-delayed-type 必须加
-        var args = @event.GetArgAttributes();
-        var xDelayedType = args.TryGetValue("x-delayed-type", out var delayedType);
-        args["x-delayed-type"] = !xDelayedType || delayedType is null ? "direct" : delayedType;
+        var exchange_args = @event.GetExchangeArgAttributes();
+        var xDelayedType = exchange_args.TryGetValue("x-delayed-type", out var delayedType);
+        exchange_args["x-delayed-type"] = !xDelayedType || delayedType is null ? "direct" : delayedType;
         ////创建延时交换机,type类型为x-delayed-message
-        channel.ExchangeDeclare(rabbitAttr.Exchange, rabbitAttr.Type, true, false, args);
+        channel.ExchangeDeclare(rabbitAttr.Exchange, rabbitAttr.Type, true, false, exchange_args);
         policy.Execute(() =>
         {
             properties.DeliveryMode = 2;
@@ -186,22 +190,23 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
     }
 
     /// <summary>
-    /// 创建通道
+    /// 创建消费者通道和队列
     /// </summary>
-    /// <param name="rabbitMqAttribute"></param>
+    /// <param name="rabbitAttr"></param>
     /// <param name="eventType"></param>
     /// <returns></returns>
-    private IModel CreateConsumerChannel(RabbitAttribute rabbitMqAttribute, Type eventType)
+    private IModel CreateConsumerChannel(RabbitAttribute rabbitAttr, Type eventType)
     {
         _logger.LogTrace("创建RabbitMQ消费者通道");
         var channel = _persistentConnection.CreateModel();
-        var args = eventType.GetArgAttributes();
-        var success = args.TryGetValue("x-delayed-type", out _);
-        if (!success && rabbitMqAttribute.Type == EExchange.Delayed.ToDescription()) args.Add("x-delayed-type", "direct"); //x-delayed-type必须加
+        var exchange_args = eventType.GetExchangeArgAttributes();
+        var success = exchange_args.TryGetValue("x-delayed-type", out _);
+        if (!success && rabbitAttr.Type == EExchange.Delayed.ToDescription()) exchange_args.Add("x-delayed-type", "direct"); //x-delayed-type必须加
         //创建交换机
-        channel.ExchangeDeclare(rabbitMqAttribute.Exchange, rabbitMqAttribute.Type, true, false, args);
+        channel.ExchangeDeclare(rabbitAttr.Exchange, rabbitAttr.Type, true, false, exchange_args);
         //创建队列
-        _ = channel.QueueDeclare(rabbitMqAttribute.Queue, true, false, false);
+        var queue_args = eventType.GetQueueArgAttributes();
+        _ = channel.QueueDeclare(rabbitAttr.Queue, true, false, false, queue_args);
         channel.CallbackException += (_, ea) =>
         {
             _logger.LogWarning(ea.Exception, "重新创建RabbitMQ消费者通道");
@@ -211,6 +216,13 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         return channel;
     }
 
+    /// <summary>
+    /// 启动消费者
+    /// </summary>
+    /// <param name="eventType"></param>
+    /// <param name="rabbitMqAttribute"></param>
+    /// <param name="consumerChannel"></param>
+    /// <exception cref="InvalidOperationException"></exception>
     private void StartBasicConsume(Type eventType, RabbitAttribute rabbitMqAttribute, IModel? consumerChannel)
     {
         _logger.LogTrace("启动RabbitMQ基本消费");
@@ -225,17 +237,19 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                 try
                 {
                     if (message.Contains("throw-fake-exception", StringComparison.InvariantCultureIgnoreCase)) throw new InvalidOperationException($"假异常请求:{message}");
-                    await ProcessEvent(eventType, message);
+                    var result = await ProcessEvent(eventType, message);
+                    if (result)
+                    {
+                        consumerChannel.BasicAck(ea.DeliveryTag, false);
+                    }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "错误处理消息:{Message}", message);
                 }
-
                 // Even on exception we take the message off the queue.
                 // in a REAL WORLD app this should be handled with a Dead Letter Exchange (DLX). 
                 // For more information see: https://www.rabbitmq.com/dlx.html
-                consumerChannel.BasicAck(ea.DeliveryTag, false);
             };
             _ = consumerChannel.BasicConsume(rabbitMqAttribute.Queue, false, consumer);
             while (true) Thread.Sleep(100000);
@@ -243,12 +257,13 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         _logger.LogError("当_consumerChannel为null时StartBasicConsume不能调用");
     }
 
-    private async Task ProcessEvent(Type eventType, string message)
+    private async Task<bool> ProcessEvent(Type eventType, string message)
     {
         var eventName = _subsManager.GetEventKey(eventType);
         _logger.LogTrace("处理RabbitMQ事件: {EventName}", eventName);
         if (_subsManager.HasSubscriptionsForEvent(eventName))
         {
+            var result = false;
             var policy = Policy.Handle<BrokerUnreachableException>().Or<SocketException>().WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
                 (ex, time) => _logger.LogError(ex, "无法消费事件: {EventName} 超时 {Timeout}s ({ExceptionMessage})", eventName, $"{time.TotalSeconds:n1}", ex.Message));
             await policy.Execute(async () =>
@@ -272,12 +287,12 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                     var obj = method.Invoke(handler, new[] { integrationEvent });
                     if (obj is null) continue;
                     await (Task)obj;
+                    result = true;
                 }
             });
+            return result;
         }
-        else
-        {
-            _logger.LogError("没有订阅RabbitMQ事件:{EventName}", eventName);
-        }
+        _logger.LogError("没有订阅RabbitMQ事件:{EventName}", eventName);
+        return false;
     }
 }
