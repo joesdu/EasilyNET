@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.RabbitBus.Abstractions;
+﻿namespace EasilyNET.RabbitBus.Abstraction;
 
 /// <summary>
 /// 订阅管理器接口

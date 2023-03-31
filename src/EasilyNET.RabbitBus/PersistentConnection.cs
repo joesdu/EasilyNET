@@ -1,4 +1,4 @@
-﻿using EasilyNET.RabbitBus.Abstractions;
+﻿using EasilyNET.RabbitBus.Abstraction;
 using Microsoft.Extensions.Logging;
 using Polly;
 using RabbitMQ.Client;

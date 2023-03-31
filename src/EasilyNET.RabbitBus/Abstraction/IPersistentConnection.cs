@@ -1,6 +1,6 @@
 ﻿using RabbitMQ.Client;
 
-namespace EasilyNET.RabbitBus.Abstractions;
+namespace EasilyNET.RabbitBus.Abstraction;
 
 /// <summary>
 /// RabbitMQ链接

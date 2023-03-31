@@ -2,7 +2,7 @@
 
 // ReSharper disable UnusedMember.Global
 
-namespace EasilyNET.RabbitBus.Enums;
+namespace EasilyNET.RabbitBus.Core.Enums;
 
 /// <summary>
 /// 交换机类型

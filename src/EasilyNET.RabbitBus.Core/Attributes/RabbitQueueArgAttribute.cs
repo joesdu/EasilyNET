@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.RabbitBus.Attributes;
+﻿namespace EasilyNET.RabbitBus.Core.Attributes;
 
 /// <summary>
 /// 作用于队列的Arguments

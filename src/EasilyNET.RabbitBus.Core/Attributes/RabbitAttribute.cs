@@ -1,9 +1,9 @@
-﻿using EasilyNET.RabbitBus.Enums;
-using EasilyNET.RabbitBus.Extensions;
+﻿// ReSharper disable ClassNeverInstantiated.Global
 
-// ReSharper disable ClassNeverInstantiated.Global
+using EasilyNET.RabbitBus.Core.Enums;
+using EasilyNET.RabbitBus.Core.Extensions;
 
-namespace EasilyNET.RabbitBus.Attributes;
+namespace EasilyNET.RabbitBus.Core.Attributes;
 
 /// <summary>
 /// 应用交换机队列等参数

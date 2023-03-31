@@ -1,4 +1,4 @@
-﻿using EasilyNET.RabbitBus.Abstractions;
+﻿using EasilyNET.RabbitBus.Core;
 using System.Text.Json.Serialization;
 
 namespace EasilyNET.RabbitBus;
