@@ -50,7 +50,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Security", "src\EasilyNET.Security\EasilyNET.Security.csproj", "{81F28F9F-77CF-43C2-8732-8B03B54F185F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.RabbitBus.Core", "src\EasilyNET.RabbitBus.Core\EasilyNET.RabbitBus.Core.csproj", "{D39C32BF-85C7-41FA-968A-88CE4AEB41B9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.RabbitBus.Core", "src\EasilyNET.RabbitBus.Core\EasilyNET.RabbitBus.Core.csproj", "{D39C32BF-85C7-41FA-968A-88CE4AEB41B9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
