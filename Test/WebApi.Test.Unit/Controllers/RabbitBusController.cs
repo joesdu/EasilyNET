@@ -1,5 +1,5 @@
 using EasilyNET.Core.Language;
-using EasilyNET.RabbitBus.Abstractions;
+using EasilyNET.RabbitBus.Core;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Test.Unit.Events;
 

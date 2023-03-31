@@ -1,6 +1,6 @@
 using EasilyNET.RabbitBus;
-using EasilyNET.RabbitBus.Attributes;
-using EasilyNET.RabbitBus.Enums;
+using EasilyNET.RabbitBus.Core.Attributes;
+using EasilyNET.RabbitBus.Core.Enums;
 
 namespace WebApi.Test.Unit.Events;
 

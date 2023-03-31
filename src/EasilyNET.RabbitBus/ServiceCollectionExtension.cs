@@ -1,4 +1,5 @@
-﻿using EasilyNET.RabbitBus.Abstractions;
+﻿using EasilyNET.RabbitBus.Abstraction;
+using EasilyNET.RabbitBus.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;

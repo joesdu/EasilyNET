@@ -1,6 +1,7 @@
-﻿using EasilyNET.RabbitBus.Abstractions;
-using EasilyNET.RabbitBus.Attributes;
-using EasilyNET.RabbitBus.Enums;
+﻿using EasilyNET.RabbitBus.Abstraction;
+using EasilyNET.RabbitBus.Core;
+using EasilyNET.RabbitBus.Core.Attributes;
+using EasilyNET.RabbitBus.Core.Enums;
 using EasilyNET.RabbitBus.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -153,6 +154,10 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                 using var consumerChannel = CreateConsumerChannel(rabbitAttr, eventType);
                 var eventName = _subsManager.GetEventKey(eventType);
                 DoInternalSubscription(eventName, rabbitAttr, consumerChannel);
+                using var scope = _serviceProvider.GetService<IServiceScopeFactory>()?.CreateScope();
+                // 检查消费者是否已经注册,若是未注册则不启动消费.
+                var handler = scope?.ServiceProvider.GetService(implementedType!);
+                if (handler is null) return;
                 _subsManager.AddSubscription(eventType, handlerType);
                 StartBasicConsume(eventType, rabbitAttr, consumerChannel);
             });

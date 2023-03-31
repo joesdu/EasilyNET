@@ -1,5 +1,5 @@
-﻿using EasilyNET.RabbitBus.Abstractions;
-using EasilyNET.RabbitBus.Attributes;
+﻿using EasilyNET.RabbitBus.Core;
+using EasilyNET.RabbitBus.Core.Attributes;
 using System.Reflection;
 
 namespace EasilyNET.RabbitBus.Extensions;

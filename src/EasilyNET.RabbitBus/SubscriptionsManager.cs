@@ -1,4 +1,4 @@
-﻿using EasilyNET.RabbitBus.Abstractions;
+﻿using EasilyNET.RabbitBus.Abstraction;
 using System.Collections.Concurrent;
 
 namespace EasilyNET.RabbitBus;

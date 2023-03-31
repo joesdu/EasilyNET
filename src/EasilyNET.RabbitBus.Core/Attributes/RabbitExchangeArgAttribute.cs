@@ -1,6 +1,6 @@
 ﻿// ReSharper disable ClassNeverInstantiated.Global
 
-namespace EasilyNET.RabbitBus.Attributes;
+namespace EasilyNET.RabbitBus.Core.Attributes;
 
 /// <summary>
 /// RabbitMQ参数特性
