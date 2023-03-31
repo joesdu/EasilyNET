@@ -3,7 +3,11 @@
   <PropertyGroup>
 	  <TargetFrameworks>netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
 	  <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.RabbitBus.Core</PackageProjectUrl>
-	  <Description>EventBus抽象</Description>
+	  <Description>抽离一些EasilyNET.RabbitBus到Core库,便于消息事件实体复用.</Description>
   </PropertyGroup>
+
+	<ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.1' OR '$(TargetFramework)' == 'netstandard2.0'">
+		<PackageReference Include="System.Text.Json" Version="7.0.2" />
+	</ItemGroup>
 
 </Project>
