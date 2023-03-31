@@ -1,7 +1,6 @@
-﻿using EasilyNET.RabbitBus.Core;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
-namespace EasilyNET.RabbitBus;
+namespace EasilyNET.RabbitBus.Core;
 
 /// <summary>
 /// 事件基本对象,所有的事件均需要继承此类
