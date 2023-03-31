@@ -61,7 +61,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
     /// </summary>
     /// <typeparam name="T">消息实体</typeparam>
     /// <param name="event"></param>
-    /// <param name="priority">使用优先级需要先使用RabbitArg特性为队列声明"x-max-priority"参数否则也不会生效,推荐设置1-10之间的数值</param>
+    /// <param name="priority">使用优先级需要先使用RabbitQueueArg特性为队列声明"x-max-priority"参数否则也不会生效,推荐设置1-10之间的数值</param>
     /// <exception cref="ArgumentNullException"></exception>
     public void Publish<T>(T @event, byte? priority = 1) where T : IIntegrationEvent
     {
@@ -96,7 +96,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
     /// <typeparam name="T"></typeparam>
     /// <param name="event"></param>
     /// <param name="ttl">若是未指定ttl以及RabbitMQHeader('x-delay',uint)特性将立即消费</param>
-    /// <param name="priority">使用优先级需要先使用RabbitArg特性为队列声明"x-max-priority"参数否则也不会生效,推荐设置1-10之间的数值</param>
+    /// <param name="priority">使用优先级需要先使用RabbitQueueArg特性为队列声明"x-max-priority"参数否则也不会生效,推荐设置1-10之间的数值</param>
     public void Publish<T>(T @event, uint ttl, byte? priority = 1) where T : IIntegrationEvent
     {
         if (!_persistentConnection.IsConnected) _ = _persistentConnection.TryConnect();
@@ -156,7 +156,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                 DoInternalSubscription(eventName, rabbitAttr, consumerChannel);
                 using var scope = _serviceProvider.GetService<IServiceScopeFactory>()?.CreateScope();
                 // 检查消费者是否已经注册,若是未注册则不启动消费.
-                var handler = scope?.ServiceProvider.GetService(implementedType!);
+                var handler = scope?.ServiceProvider.GetService(handlerType);
                 if (handler is null) return;
                 _subsManager.AddSubscription(eventType, handlerType);
                 StartBasicConsume(eventType, rabbitAttr, consumerChannel);
