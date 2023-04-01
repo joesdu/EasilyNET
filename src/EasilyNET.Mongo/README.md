@@ -5,8 +5,7 @@
 - 可配置部分类的 Id 字段不存为 ObjectId,而存为 string 类型.
 - 自动本地化 MongoDB 时间类型
 - 添加.Net6 Date/Time Only 类型支持(TimeOnly 理论上应该是兼容原 TimeSpan 数据类型).
-- Date/Time Only 类型可结合[Hoyo.WebCore](https://github.com/joesdu/Hoyo.WebCore)使用,前端可直接传字符串类型的 Date/Time
-  Only 的值.
+- Date/Time Only 类型可结合[Hoyo.WebCore](https://github.com/joesdu/Hoyo.WebCore)使用,前端可直接传字符串类型的 Date/Time Only 的值.
 - 添加 SkyWalking-APM 探针支持,未依赖 Agent,所以需要手动传入参数.
 
 ---
@@ -14,13 +13,10 @@
 #### 使用
 
 - Nuget 安装 EasilyNET.Mongo
-- 推荐同时安装 EasilyNET.Mongo.Extension 包,添加了对.Net6+的 Date/Time Only 类型
-- .Net 6 +
-- 在系统环境变量或者 Docker 容器中设置环境变量名称为: CONNECTIONSTRINGS_MONGO = mongodb 链接字符串 或者在
-  appsettings.json 中添加,
+- 推荐同时安装 EasilyNET.Mongo.Extension 包,添加了对 .Net6+ 的 Date/Time Only 类型
+- 在系统环境变量或者 Docker 容器中设置环境变量名称为: CONNECTIONSTRINGS_MONGO = mongodb 链接字符串 或者在 appsettings.json 中添加,
 - 现在你也可以参考 example.api 项目查看直接传入相关数据.
-- 添加 APM
-  探针支持,根据 [SkyApm.Diagnostics.MongoDB](https://github.com/SkyAPM/SkyAPM-dotnet/tree/main/src/SkyApm.Diagnostics.MongoDB)
+- 添加 APM 探针支持,根据 [SkyApm.Diagnostics.MongoDB](https://github.com/SkyAPM/SkyAPM-dotnet/tree/main/src/SkyApm.Diagnostics.MongoDB)
 
 ```json
 {

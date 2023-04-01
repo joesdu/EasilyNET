@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
 
-namespace EasilyNET.Core.BaseType;
+namespace EasilyNET.Core.Misc;
 
 /// <summary>
 /// Type扩展.
@@ -82,7 +82,7 @@ public static class TypeExtension
     /// <returns> </returns>
     public static Type GetUnNullableType(this Type type)
     {
-        if (!IsNullable(type)) return type;
+        if (!type.IsNullable()) return type;
         NullableConverter nullableConverter = new(type);
         return nullableConverter.UnderlyingType;
     }

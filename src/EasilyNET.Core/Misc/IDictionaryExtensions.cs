@@ -4,7 +4,7 @@
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
-namespace EasilyNET.Core.BaseType;
+namespace EasilyNET.Core.Misc;
 
 /// <summary>
 /// 字典扩展
@@ -216,7 +216,7 @@ public static class IDictionaryExtensions
     {
         foreach (var item in that)
         {
-            AddOrUpdate(@this, item.Key, item.Value, updateValueFactory);
+            @this.AddOrUpdate(item.Key, item.Value, updateValueFactory);
         }
     }
 
@@ -248,7 +248,7 @@ public static class IDictionaryExtensions
     /// <returns></returns>
     public static Task AddOrUpdateAsync<TKey, TValue>(this IDictionary<TKey, TValue> @this, IDictionary<TKey, TValue> that, Func<TKey, TValue, Task<TValue>> updateValueFactory)
     {
-        return that.ForeachAsync(item => AddOrUpdateAsync(@this, item.Key, item.Value, updateValueFactory));
+        return that.ForeachAsync(item => @this.AddOrUpdateAsync(item.Key, item.Value, updateValueFactory));
     }
 
     /// <summary>
@@ -262,7 +262,7 @@ public static class IDictionaryExtensions
     /// <returns></returns>
     public static Task AddOrUpdateAsync<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> @this, IDictionary<TKey, TValue> that, Func<TKey, TValue, Task<TValue>> updateValueFactory) where TKey : notnull
     {
-        return that.ForeachAsync(item => AddOrUpdateAsync(@this, item.Key, item.Value, updateValueFactory));
+        return that.ForeachAsync(item => @this.AddOrUpdateAsync(item.Key, item.Value, updateValueFactory));
     }
 
     /// <summary>
@@ -278,7 +278,7 @@ public static class IDictionaryExtensions
     {
         foreach (var item in @this)
         {
-            AddOrUpdate(that, item.Key, item.Value, updateValueFactory);
+            that.AddOrUpdate(item.Key, item.Value, updateValueFactory);
         }
     }
 
@@ -310,7 +310,7 @@ public static class IDictionaryExtensions
     /// <returns></returns>
     public static Task AddOrUpdateAsyncTo<TKey, TValue>(this IDictionary<TKey, TValue> @this, IDictionary<TKey, TValue> that, Func<TKey, TValue, Task<TValue>> updateValueFactory)
     {
-        return @this.ForeachAsync(item => AddOrUpdateAsync(that, item.Key, item.Value, updateValueFactory));
+        return @this.ForeachAsync(item => that.AddOrUpdateAsync(item.Key, item.Value, updateValueFactory));
     }
 
     /// <summary>
@@ -324,7 +324,7 @@ public static class IDictionaryExtensions
     /// <returns></returns>
     public static Task AddOrUpdateAsyncTo<TKey, TValue>(this IDictionary<TKey, TValue> @this, ConcurrentDictionary<TKey, TValue> that, Func<TKey, TValue, Task<TValue>> updateValueFactory) where TKey : notnull
     {
-        return @this.ForeachAsync(item => AddOrUpdateAsync(that, item.Key, item.Value, updateValueFactory));
+        return @this.ForeachAsync(item => that.AddOrUpdateAsync(item.Key, item.Value, updateValueFactory));
     }
 
     /// <summary>

@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.Core.Systems;
+namespace EasilyNET.Core.BaseType;
 
 /// <summary>
 /// 池化内存流

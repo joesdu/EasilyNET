@@ -4,7 +4,7 @@
 
 using EasilyNET.Core.Enums;
 
-namespace EasilyNET.Core.BaseType;
+namespace EasilyNET.Core.Misc;
 
 /// <summary>
 /// DateTime扩展
@@ -116,11 +116,11 @@ public static class DateTimeExtension
     public static ValueTuple<DateTime, DateTime> MonthStartEndByMonth(this int month, int year) => month < 1 | month > 13 ? throw new("非法月份") : new DateTime(year, month, 2).MonthStartEnd();
 
     /// <summary>
-    /// 转化为年份
+    /// 年份👉DateTime(某年的初始时间)
     /// </summary>
-    /// <param name="year"></param>
+    /// <param name="year">年份</param>
     /// <returns></returns>
-    internal static DateTime YearToDateTime(object year) => new(Convert.ToInt32(year), 1, 1);
+    public static DateTime YearToDateTime(this int year) => new(year, 1, 1);
 
     /// <summary>
     /// 获取整周的星期数字形式

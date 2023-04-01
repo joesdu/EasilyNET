@@ -1,5 +1,5 @@
 ﻿using EasilyNET.Core.Attributes;
-using EasilyNET.Core.BaseType;
+using EasilyNET.Core.Misc;
 using System.Runtime.Loader;
 
 namespace EasilyNET.Core.Test.Unit.BaseType;

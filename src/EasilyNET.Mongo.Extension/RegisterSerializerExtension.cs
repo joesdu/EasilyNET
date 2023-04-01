@@ -15,14 +15,14 @@ namespace EasilyNET.Mongo.Extension;
 public static class RegisterSerializerExtension
 {
     /// <summary>
-    /// 添加(DateOnly,TimeOnly)类型序列化支持
+    /// 添加(DateOnly,TimeOnly)类型序列化支持,并使用默认格式,若是需要自定义格式,请使用重载方法自行添加.
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
     public static IServiceCollection RegisterSerializer(this IServiceCollection services)
     {
-        BsonSerializer.RegisterSerializer(new DateOnlySerializer());
-        BsonSerializer.RegisterSerializer(new TimeOnlySerializer());
+        services.RegisterSerializer(new DateOnlySerializer());
+        services.RegisterSerializer(new TimeOnlySerializer());
         return services;
     }
 
