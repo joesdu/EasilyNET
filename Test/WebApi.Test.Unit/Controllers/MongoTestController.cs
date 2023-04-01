@@ -32,7 +32,7 @@ public class MongoTestController : ControllerBase
     [HttpPost("PostOneTest")]
     public async Task PostOneTest()
     {
-        var coll = db.Client.GetDatabase("newdb1").GetCollection<object>("test.new1");
+        var coll = db.GetDatabase("newdb1").GetCollection<object>("test.new1");
         await coll.InsertOneAsync(new
         {
             Data = "test"

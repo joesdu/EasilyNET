@@ -233,6 +233,8 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         _logger.LogTrace("启动RabbitMQ基本消费");
         if (consumerChannel is not null)
         {
+            var qos = eventType.GetCustomAttribute<RabbitQosAttribute>();
+            if (qos is not null) consumerChannel.BasicQos(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
             var consumer = new AsyncEventingBasicConsumer(consumerChannel);
             consumer.Received += async (_, ea) =>
             {

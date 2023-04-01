@@ -1,7 +1,7 @@
 ﻿using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.Core.BaseType;
+using EasilyNET.Core.Misc;
 using EasilyNET.WebCore.Attributes;
 using EasilyNET.WebCore.SwaggerFilters;
 using Microsoft.OpenApi.Models;

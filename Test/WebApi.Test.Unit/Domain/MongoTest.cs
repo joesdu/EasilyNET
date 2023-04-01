@@ -6,11 +6,6 @@
 public class MongoTest
 {
     /// <summary>
-    /// Id
-    /// </summary>
-    public string Id { get; set; } = string.Empty;
-
-    /// <summary>
     /// 完整DateTime
     /// </summary>
     public DateTime DateTime { get; set; }

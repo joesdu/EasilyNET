@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
-namespace EasilyNET.Core.BaseType;
+namespace EasilyNET.Core.Misc;
 
 /// <summary>
 /// 字符串String扩展
@@ -743,8 +743,8 @@ public static class StringExtension
         for (int i = 0, j = 0; i < length; i++)
         {
             var b = bytes[i];
-            c[j++] = ToHexChar(b >> 4);
-            c[j++] = ToHexChar(b & 0x0f);
+            c[j++] = (b >> 4).ToHexChar();
+            c[j++] = (b & 0x0f).ToHexChar();
         }
         return new(c);
     }

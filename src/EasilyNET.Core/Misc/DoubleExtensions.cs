@@ -3,7 +3,7 @@
 
 using System.Text.RegularExpressions;
 
-namespace EasilyNET.Core.BaseType;
+namespace EasilyNET.Core.Misc;
 
 /// <summary>
 /// double 扩展
@@ -14,24 +14,10 @@ public static class DoubleExtensions
     /// 转decimal
     /// </summary>
     /// <param name="num"></param>
-    /// <returns></returns>
-    public static decimal ToDecimal(this double num) => (decimal)num;
-
-    /// <summary>
-    /// 转decimal
-    /// </summary>
-    /// <param name="num"></param>
     /// <param name="precision">小数位数</param>
     /// <param name="mode">四舍五入策略</param>
     /// <returns></returns>
     public static decimal ToDecimal(this double num, int precision, MidpointRounding mode = MidpointRounding.AwayFromZero) => Math.Round((decimal)num, precision, mode);
-
-    /// <summary>
-    /// 转decimal
-    /// </summary>
-    /// <param name="num"></param>
-    /// <returns></returns>
-    public static decimal ToDecimal(this float num) => (decimal)num;
 
     /// <summary>
     /// 转decimal
@@ -65,19 +51,5 @@ public static class DoubleExtensions
     /// </summary>
     /// <param name="number">金额</param>
     /// <returns>返回大写形式</returns>
-    public static string ToRMB(this double number) => ToRMB((decimal)number);
-
-    /// <summary>
-    /// 转换人民币大小金额
-    /// </summary>
-    /// <param name="number">金额</param>
-    /// <returns>返回大写形式</returns>
-    public static string ToRMB(this int number) => ToRMB((decimal)number);
-
-    /// <summary>
-    /// 年份👉DateTime(某年的初始时间)
-    /// </summary>
-    /// <param name="year">年份</param>
-    /// <returns></returns>
-    public static DateTime YearToDateTime(this int year) => DateTimeExtension.YearToDateTime(year);
+    public static string ToRMB(this double number) => ((decimal)number).ToRMB();
 }

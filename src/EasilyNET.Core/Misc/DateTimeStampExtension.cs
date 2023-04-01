@@ -1,8 +1,11 @@
 ﻿// ReSharper disable UnusedMember.Global
-
 // ReSharper disable MemberCanBePrivate.Global
 
-namespace EasilyNET.Core.BaseType;
+using System.Globalization;
+
+#pragma warning disable IDE0046
+
+namespace EasilyNET.Core.Misc;
 
 /// <summary>
 /// 时间戳相关扩展
@@ -84,5 +87,90 @@ public static class DateTimeStampExtension
     {
         var utcDateTime = dateTime.ToUniversalTime();
         return (utcDateTime - UnixEpoch).Ticks / TimeSpan.TicksPerSecond;
+    }
+
+    /// <summary>
+    /// 将TimeSpan转化成字符串
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    public static string ToString(TimeSpan value)
+    {
+        const int msInOneSecond = 1000;
+        const int msInOneMinute = 60 * msInOneSecond;
+        const int msInOneHour = 60 * msInOneMinute;
+        var ms = (long)value.TotalMilliseconds;
+        if (ms % msInOneHour == 0)
+        {
+            return $"{ms / msInOneHour}h";
+        }
+        if (ms % msInOneMinute == 0 && ms < msInOneHour)
+        {
+            return $"{ms / msInOneMinute}m";
+        }
+        if (ms % msInOneSecond == 0 && ms < msInOneMinute)
+        {
+            return $"{ms / msInOneSecond}s";
+        }
+        return ms < 1000 ? $"{ms}ms" : value.ToString();
+    }
+
+    /// <summary>
+    /// 将字符串转化成TimeSpan
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    /// <exception cref="FormatException"></exception>
+    public static TimeSpan Parse(string value) => !TryParse(value, out var result) ? throw new FormatException($"Invalid TimeSpan value: \"{value}\".") : result;
+
+    /// <summary>
+    /// 尝试将字符串转化成TimeSpan
+    /// </summary>
+    /// <param name="value"></param>
+    /// <param name="result"></param>
+    /// <returns></returns>
+    public static bool TryParse(string value, out TimeSpan result)
+    {
+        if (!string.IsNullOrEmpty(value))
+        {
+            value = value.ToLowerInvariant();
+            var end = value.Length - 1;
+            var multiplier = 1000; // default units are seconds
+            switch (value[end])
+            {
+                case 's' when value[end - 1] == 'm':
+                    value = value[..^2];
+                    multiplier = 1;
+                    break;
+                case 's':
+                    value = value[..^1];
+                    multiplier = 1000;
+                    break;
+                case 'm':
+                    value = value[..^1];
+                    multiplier = 60 * 1000;
+                    break;
+                case 'h':
+                    value = value[..^1];
+                    multiplier = 60 * 60 * 1000;
+                    break;
+                default:
+                {
+                    if (value.IndexOf(':') != -1)
+                    {
+                        return TimeSpan.TryParse(value, out result);
+                    }
+                    break;
+                }
+            }
+            const NumberStyles numberStyles = NumberStyles.None;
+            if (double.TryParse(value, numberStyles, CultureInfo.InvariantCulture, out var multiplicand))
+            {
+                result = TimeSpan.FromMilliseconds(multiplicand * multiplier);
+                return true;
+            }
+        }
+        result = default;
+        return false;
     }
 }

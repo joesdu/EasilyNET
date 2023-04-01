@@ -13,9 +13,12 @@
 * limitations under the License.
 */
 
+using EasilyNET.Core.Misc;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Security;
+
+#pragma warning disable IDE0048
 
 // ReSharper disable UnusedMember.Global
 
@@ -40,10 +43,11 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     /// <param name="bytes">The bytes.</param>
     public SnowId(byte[] bytes)
     {
-        if (bytes == null)
-        {
-            throw new ArgumentNullException(nameof(bytes));
-        }
+#if NET7_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(bytes, nameof(bytes));
+#else
+        if (bytes is null) throw new ArgumentNullException(nameof(bytes));
+#endif
         if (bytes.Length != 12)
         {
             throw new ArgumentException("Byte array must be 12 bytes long", nameof(bytes));

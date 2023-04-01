@@ -3,7 +3,7 @@ using System.Globalization;
 
 // ReSharper disable MemberCanBePrivate.Global
 
-namespace EasilyNET.Core.BaseType;
+namespace EasilyNET.Core.Misc;
 
 /// <summary>
 /// 类型是否可直接转换扩展
@@ -18,18 +18,18 @@ public static class IConvertibleExtensions
     public static bool IsNumeric(this Type type) =>
         Type.GetTypeCode(type) switch
         {
-            TypeCode.Byte    => true,
-            TypeCode.SByte   => true,
-            TypeCode.UInt16  => true,
-            TypeCode.UInt32  => true,
-            TypeCode.UInt64  => true,
-            TypeCode.Int16   => true,
-            TypeCode.Int32   => true,
-            TypeCode.Int64   => true,
+            TypeCode.Byte => true,
+            TypeCode.SByte => true,
+            TypeCode.UInt16 => true,
+            TypeCode.UInt32 => true,
+            TypeCode.UInt64 => true,
+            TypeCode.Int16 => true,
+            TypeCode.Int32 => true,
+            TypeCode.Int64 => true,
             TypeCode.Decimal => true,
-            TypeCode.Double  => true,
-            TypeCode.Single  => true,
-            _                => false
+            TypeCode.Double => true,
+            TypeCode.Single => true,
+            _ => false
         };
 
     /// <summary>
@@ -64,5 +64,5 @@ public static class IConvertibleExtensions
     /// <param name="value"></param>
     /// <param name="defaultValue">转换失败的默认值</param>
     /// <returns></returns>
-    public static T TryConvertTo<T>(this IConvertible value, T defaultValue = default!) where T : IConvertible => ConvertTo<T>(value) ?? defaultValue;
+    public static T TryConvertTo<T>(this IConvertible value, T defaultValue = default!) where T : IConvertible => value.ConvertTo<T>() ?? defaultValue;
 }

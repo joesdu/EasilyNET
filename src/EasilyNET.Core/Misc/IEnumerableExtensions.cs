@@ -6,7 +6,7 @@ using System.Text;
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
 
-namespace EasilyNET.Core.BaseType;
+namespace EasilyNET.Core.Misc;
 
 /// <summary>
 /// </summary>
@@ -502,10 +502,10 @@ public static class IEnumerableExtensions
     {
         if (source is ICollection<T> collection)
         {
-            return ForeachAsync(collection, action, collection.Count, cancellationToken);
+            return collection.ForeachAsync(action, collection.Count, cancellationToken);
         }
         var list = source.ToList();
-        return ForeachAsync(list, action, list.Count, cancellationToken);
+        return list.ForeachAsync(action, list.Count, cancellationToken);
     }
 
     /// <summary>
@@ -633,10 +633,10 @@ public static class IEnumerableExtensions
     {
         if (source is ICollection<T> collection)
         {
-            return ForAsync(collection, selector, collection.Count, cancellationToken);
+            return collection.ForAsync(selector, collection.Count, cancellationToken);
         }
         var list = source.ToList();
-        return ForAsync(list, selector, list.Count, cancellationToken);
+        return list.ForAsync(selector, list.Count, cancellationToken);
     }
 
     /// <summary>
@@ -801,7 +801,7 @@ public static class IEnumerableExtensions
     /// <returns></returns>
     public static TResult? StandardDeviation<T, TResult>(this IEnumerable<T> source, Func<T, TResult> selector) where TResult : IConvertible
     {
-        return StandardDeviation(source.Select(t => selector(t).ConvertTo<double>())).ConvertTo<TResult>();
+        return source.Select(t => selector(t).ConvertTo<double>()).StandardDeviation().ConvertTo<TResult>();
     }
 
     /// <summary>
@@ -812,7 +812,7 @@ public static class IEnumerableExtensions
     /// <returns></returns>
     public static T? StandardDeviation<T>(this IEnumerable<T> source) where T : IConvertible
     {
-        return StandardDeviation(source.Select(t => t.ConvertTo<double>())).ConvertTo<T>();
+        return source.Select(t => t.ConvertTo<double>()).StandardDeviation().ConvertTo<T>();
     }
 
     /// <summary>

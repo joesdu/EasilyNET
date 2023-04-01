@@ -1,10 +1,10 @@
-﻿using EasilyNET.Core.Systems;
+﻿using EasilyNET.Core.BaseType;
 using System.Text;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.Core.BaseType;
+namespace EasilyNET.Core.Misc;
 
 /// <summary>
 /// 流扩展
