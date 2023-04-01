@@ -7,7 +7,7 @@
   </PropertyGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.1' OR '$(TargetFramework)' == 'netstandard2.0'">
-		<PackageReference Include="System.Text.Json" Version="7.0.2" />
+		<PackageReference Include="System.Text.Json" Version="8.0.0-preview.2.23128.3" />
 	</ItemGroup>
 
 </Project>
