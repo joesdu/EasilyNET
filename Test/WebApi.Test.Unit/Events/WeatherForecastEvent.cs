@@ -34,5 +34,5 @@ public class WeatherForecastEvent : IntegrationEvent
 /// <summary>
 /// 测试消息
 /// </summary>
-[Rabbit("rabbit.bus.test1", EExchange.Routing, "test1", "test")]
+[Rabbit("rabbit.bus.test1", EExchange.Routing, "test1", "test"), RabbitQos]
 public class TestEvent : IntegrationEvent { }
