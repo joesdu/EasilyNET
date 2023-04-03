@@ -17,7 +17,12 @@ namespace EasilyNET.Core.Misc;
 /// </summary>
 public static class StringExtension
 {
-    #region 以特定字符串间隔的字符串转化为字符串集合
+    /// <summary>
+    /// 移除字符串中所有空白符
+    /// </summary>
+    /// <param name="value">字符串</param>
+    /// <returns></returns>
+    public static string RemoveWhiteSpace(this string value) => Regex.Replace(value, @"\s", string.Empty);
 
     /// <summary>
     /// 以特定字符间隔的字符串转化为字符串集合
@@ -45,10 +50,6 @@ public static class StringExtension
         return col;
     }
 
-    #endregion
-
-    #region 将字符串中的单词首字母大写或者小写
-
     /// <summary>
     /// 将字符串中的单词首字母大写或者小写
     /// </summary>
@@ -70,10 +71,6 @@ public static class StringExtension
             });
     }
 
-    #endregion
-
-    #region 字符串插入指定分隔符
-
     /// <summary>
     /// 字符串插入指定分隔符
     /// </summary>
@@ -92,20 +89,12 @@ public static class StringExtension
         return sb.ToString();
     }
 
-    #endregion
-
-    #region 检查一个字符串是否是纯数字构成的，一般用于查询字符串参数的有效性验证
-
     /// <summary>
     /// 检查一个字符串是否是纯数字构成的,一般用于查询字符串参数的有效性验证
     /// </summary>
     /// <param name="value">需验证的字符串</param>
     /// <returns>是否合法的bool值</returns>
     public static bool IsNumber(this string value) => value.Validate(@"^\d+$");
-
-    #endregion
-
-    #region 验证一个字符串是否符合指定的正则表达式
 
     /// <summary>
     /// 快速验证一个字符串是否符合指定的正则表达式
@@ -120,8 +109,6 @@ public static class StringExtension
         var myRegex = new Regex(express);
         return myRegex.IsMatch(value);
     }
-
-    #endregion
 
     /// <summary>
     /// 从字符串的开头得到一个字符串的子串 len参数不能大于给定字符串的长度
@@ -277,8 +264,6 @@ public static class StringExtension
     /// <returns></returns>
     public static string IfNullOrEmpty(this string s, Func<string> valueFactory) => string.IsNullOrEmpty(s) ? valueFactory() : s;
 
-    #region 校验手机号码的正确性
-
     /// <summary>
     /// 匹配手机号码
     /// </summary>
@@ -286,20 +271,12 @@ public static class StringExtension
     /// <returns>是否匹配成功</returns>
     public static bool MatchPhoneNumber(this string s) => !string.IsNullOrEmpty(s) && s[0] == '1' && (s[1] > '2' || s[1] <= '9');
 
-    #endregion 校验手机号码的正确性
-
-    #region 转化成人民币汉字形式
-
     /// <summary>
     /// 转换人民币大小金额 .
     /// </summary>
     /// <param name="numStr">金额</param>
     /// <returns>返回大写形式</returns>
     public static string ToRMB(this string numStr) => numStr.ConvertTo<decimal>().ToRMB();
-
-    #endregion
-
-    #region 字符串转为日期
 
     /// <summary>
     /// 将格式化日期串转化为相应的日期
@@ -375,10 +352,6 @@ public static class StringExtension
     public static TimeOnly ToTimeOnly(this string value) => TimeOnly.FromDateTime($"{DateTime.Now:yyyy-MM-dd} {value}".ToDateTime());
 #endif
 
-    #endregion
-
-    #region 将字符串转为整数,数组,内存流,GUID(GUID需要字符串本身为GUID格式)
-
     /// <summary>
     /// 将字符串转化为内存字节流
     /// </summary>
@@ -431,10 +404,6 @@ public static class StringExtension
     /// <returns></returns>
     public static Guid ToGuid(this string str) => Guid.TryParse(str, out var guid) ? guid : Guid.Empty;
 
-    #endregion
-
-    #region Base64-String互转
-
     /// <summary>
     /// 将字符串转换成Base64字符串
     /// </summary>
@@ -448,10 +417,6 @@ public static class StringExtension
     /// <param name="value">Base64字符串</param>
     /// <returns></returns>
     public static string Base64ToString(this string value) => Encoding.UTF8.GetString(Convert.FromBase64String(value));
-
-    #endregion
-
-    #region 半角全角相互转换
 
     /// <summary>
     /// 转全角的函数(SBC case)
@@ -496,10 +461,6 @@ public static class StringExtension
         }
         return new(c);
     }
-
-    #endregion
-
-    #region 字符串反转
 
     /// <summary>
     /// 使用指针的方式反转字符串,该函数会修改原字符串.
@@ -547,10 +508,6 @@ public static class StringExtension
         Array.Reverse(arr);
         return new(arr);
     }
-
-    #endregion
-
-    #region 检测字符串中是否包含列表中的关键词
 
     /// <summary>
     /// 检测字符串中是否包含列表中的关键词(快速匹配)
@@ -655,8 +612,6 @@ public static class StringExtension
     /// <param name="regex">关键词列表</param>
     /// <returns></returns>
     public static bool RegexMatch(this string s, Regex regex) => !string.IsNullOrEmpty(s) && regex.IsMatch(s);
-
-    #endregion 检测字符串中是否包含列表中的关键词
 
     /// <summary>
     /// 将十六进制字符串解析为其等效字节数组
