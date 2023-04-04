@@ -1,4 +1,4 @@
-name: 🐞 上报 BUG (Report bug)
+name: 🐛 上报 BUG (Report bug)
 description: 烦请您帮助我们进步(Create a report to help us improve).
 title: "[Bug]: "
 labels: ["bug"]
@@ -11,7 +11,7 @@ body:
   - type: dropdown
     id: os
     attributes:
-      label: ⚙ OS
+      label: ⚙️ OS
       description: 您用的是什么系统?
       options:
         - Windows(Default)
@@ -89,7 +89,7 @@ body:
   - type: input
     id: contact
     attributes:
-      label: 📞 您的联系方式(Contact Details).
+      label: 📱 您的联系方式(Contact Details).
       description: 如果我们需要进一步的沟通,如何找到您? (How can we get in touch with you if we need more info?)
       placeholder: ex. email@example.com
     validations:
