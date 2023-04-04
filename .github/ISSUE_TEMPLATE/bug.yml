@@ -11,7 +11,7 @@ body:
   - type: dropdown
     id: os
     attributes:
-      label: ⚙️ OS
+      label: ⚙ OS
       description: 您用的是什么系统?
       options:
         - Windows(Default)
@@ -42,7 +42,8 @@ body:
       multiple: true
       description: What version of our software are you running?
       options:
-        - .NET7(STS) (Default)
+        - .NET8(Preview) (Default)
+        - .NET7(STS)
         - .NET6(LTS)
         - .NET5
         - .NET Core 3.1(LTS)
@@ -93,4 +94,3 @@ body:
       placeholder: ex. email@example.com
     validations:
       required: false
-
