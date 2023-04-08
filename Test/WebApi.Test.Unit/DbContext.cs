@@ -40,12 +40,12 @@ public class DbContext : EasilyNETMongoContext
     /// <summary>
     /// MongoTest
     /// </summary>
-    public IMongoCollection<MongoTest> Test => Collection<MongoTest>("mongo.test");
+    public IMongoCollection<MongoTest> Test => GetCollection<MongoTest>("mongo.test");
 
     /// <summary>
     /// MongoTest2
     /// </summary>
-    public IMongoCollection<MongoTest2> Test2 => Collection<MongoTest2>("mongo.test2");
+    public IMongoCollection<MongoTest2> Test2 => GetCollection<MongoTest2>("mongo.test2");
 }
 
 /// <summary>
@@ -56,5 +56,5 @@ public class DbContext2 : EasilyNETMongoContext
     /// <summary>
     /// MongoTest
     /// </summary>
-    public IMongoCollection<MongoTest> Test => Collection<MongoTest>("mongo.test2");
+    public IMongoCollection<MongoTest> Test => GetCollection<MongoTest>("mongo.test2");
 }
