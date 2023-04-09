@@ -3,7 +3,7 @@
 /// <summary>
 /// MongoDb的一些静态默认参数
 /// </summary>
-internal static class EasilyNETConstant
+internal static class Constant
 {
     /// <summary>
     /// MongoDB一些转换配置

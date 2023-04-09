@@ -35,8 +35,8 @@ public static class MongoServiceExtensions
     /// <param name="configuration">IConfiguration</param>
     /// <param name="param">其他参数</param>
     /// <returns></returns>
-    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, IServiceProvider provider, IConfiguration configuration, Action<EasilyNETMongoParams>? param = null)
-        where T : EasilyNETMongoContext
+    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, IServiceProvider provider, IConfiguration configuration, Action<EasilyMongoParams>? param = null)
+        where T : EasilyMongoContext
     {
         var connStr = ConnectionString(configuration);
         _ = services.AddMongoContext<T>(provider, connStr, param);
@@ -52,17 +52,17 @@ public static class MongoServiceExtensions
     /// <param name="settings">HoyoMongoClientSettings</param>
     /// <param name="param">其他参数</param>
     /// <returns></returns>
-    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, IServiceProvider provider, MongoClientSettings settings, Action<EasilyNETMongoParams>? param = null)
-        where T : EasilyNETMongoContext
+    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, IServiceProvider provider, MongoClientSettings settings, Action<EasilyMongoParams>? param = null)
+        where T : EasilyMongoContext
     {
         if (!settings.Servers.Any()) throw new("mongo server address can't be empty!");
-        var dbOptions = new EasilyNETMongoOptions();
-        var options = new EasilyNETMongoParams();
+        var dbOptions = new EasilyMongoOptions();
+        var options = new EasilyMongoParams();
         param?.Invoke(options);
         options.Options?.Invoke(dbOptions);
         RegistryConventionPack(dbOptions);
         settings.ClusterConfigurator = options.ClusterBuilder ?? settings.ClusterConfigurator;
-        var db = EasilyNETMongoContext.CreateInstance<T>(provider, settings, options.DatabaseName, options.ContextParams.ToArray());
+        var db = EasilyMongoContext.CreateInstance<T>(provider, settings, options.DatabaseName, options.ContextParams.ToArray());
         _ = services.AddSingleton(db).AddSingleton(db.Database).AddSingleton(db.Client);
         return services;
     }
@@ -76,11 +76,11 @@ public static class MongoServiceExtensions
     /// <param name="connStr">链接字符串</param>
     /// <param name="param">其他参数</param>
     /// <returns></returns>
-    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, IServiceProvider provider, string connStr, Action<EasilyNETMongoParams>? param = null)
-        where T : EasilyNETMongoContext
+    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, IServiceProvider provider, string connStr, Action<EasilyMongoParams>? param = null)
+        where T : EasilyMongoContext
     {
-        var options = new EasilyNETMongoParams();
-        var dbOptions = new EasilyNETMongoOptions();
+        var options = new EasilyMongoParams();
+        var dbOptions = new EasilyMongoOptions();
         param?.Invoke(options);
         options.Options?.Invoke(dbOptions);
         RegistryConventionPack(dbOptions);
@@ -97,7 +97,7 @@ public static class MongoServiceExtensions
         return services;
     }
 
-    private static void RegistryConventionPack(EasilyNETMongoOptions options)
+    private static void RegistryConventionPack(EasilyMongoOptions options)
     {
         foreach (var item in options.ConventionRegistry)
             ConventionRegistry.Register(item.Key, item.Value, _ => true);
@@ -105,7 +105,7 @@ public static class MongoServiceExtensions
         ConventionRegistry.Register($"easily-id-pack-{ObjectId.GenerateNewId()}", new ConventionPack
         {
             new StringObjectIdIdGeneratorConvention() //ObjectId → String mapping ObjectId
-        }, x => !EasilyNETMongoOptions.ObjIdToStringTypes.Contains(x));
+        }, x => !EasilyMongoOptions.ObjIdToStringTypes.Contains(x));
         if (first) return;
         BsonSerializer.RegisterSerializer(new DateTimeSerializer(DateTimeKind.Local)); //to local time
         BsonSerializer.RegisterSerializer(new DecimalSerializer(BsonType.Decimal128)); //decimal to decimal default

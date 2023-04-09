@@ -74,7 +74,7 @@ public class GridFSController : ControllerBase
                          .FindAsync(f, new()
                          {
                              Sort = Builders<GridFSItemInfo>.Sort.Descending(c => c.CreateTime),
-                             Limit = info.PageSize,
+                             Limit = info.Size,
                              Skip = info.Skip
                          }, cancellationToken)
                          .GetAwaiter().GetResult().ToListAsync(cancellationToken);

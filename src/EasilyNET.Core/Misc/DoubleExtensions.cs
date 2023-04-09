@@ -33,7 +33,7 @@ public static class DoubleExtensions
     /// </summary>
     /// <param name="number">金额</param>
     /// <returns>返回大写形式</returns>
-    public static string ToRMB(this decimal number)
+    public static string ToRmb(this decimal number)
     {
         var s = number.ToString("#L#E#D#C#K#E#D#C#J#E#D#C#I#E#D#C#H#E#D#C#G#E#D#C#F#E#D#C#.0B0A");
 #if !NETSTANDARD
@@ -51,5 +51,5 @@ public static class DoubleExtensions
     /// </summary>
     /// <param name="number">金额</param>
     /// <returns>返回大写形式</returns>
-    public static string ToRMB(this double number) => ((decimal)number).ToRMB();
+    public static string ToRmb(this double number) => ((decimal)number).ToRmb();
 }

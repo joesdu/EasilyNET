@@ -8,7 +8,7 @@ namespace WebApi.Test.Unit;
 /// <summary>
 /// DBContext
 /// </summary>
-public class DbContext : EasilyNETMongoContext
+public class DbContext : EasilyMongoContext
 {
     /// <summary>
     /// 默认无参构造函数
@@ -51,7 +51,7 @@ public class DbContext : EasilyNETMongoContext
 /// <summary>
 /// DBContext2
 /// </summary>
-public class DbContext2 : EasilyNETMongoContext
+public class DbContext2 : EasilyMongoContext
 {
     /// <summary>
     /// MongoTest
