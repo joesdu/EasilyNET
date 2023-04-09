@@ -276,7 +276,7 @@ public static class StringExtension
     /// </summary>
     /// <param name="numStr">金额</param>
     /// <returns>返回大写形式</returns>
-    public static string ToRMB(this string numStr) => numStr.ConvertTo<decimal>().ToRMB();
+    public static string ToRmb(this string numStr) => numStr.ConvertTo<decimal>().ToRmb();
 
     /// <summary>
     /// 将格式化日期串转化为相应的日期

@@ -6,13 +6,13 @@ namespace EasilyNET.Mongo;
 /// <summary>
 /// MongoDB注册时使用的一些参数配置
 /// </summary>
-public sealed class EasilyNETMongoParams
+public sealed class EasilyMongoParams
 {
     /// <summary>
     /// DbContextOptions
     /// </summary>
     // ReSharper disable once UnusedAutoPropertyAccessor.Global
-    public Action<EasilyNETMongoOptions>? Options { get; set; }
+    public Action<EasilyMongoOptions>? Options { get; set; }
 
     /// <summary>
     /// 当前主要用于支持 SkyAPMSkyApm.Diagnostics.MongoDB,请直接填入: cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber());
@@ -29,7 +29,7 @@ public sealed class EasilyNETMongoParams
     /// <summary>
     /// 数据库名称
     /// </summary>
-    public string DatabaseName { get; set; } = EasilyNETConstant.DbName;
+    public string DatabaseName { get; set; } = Constant.DbName;
 
     /// <summary>
     /// DBContext的构造函数参数,用于支持自定义非无参构造函数的DbContext

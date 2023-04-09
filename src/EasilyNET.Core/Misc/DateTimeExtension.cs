@@ -207,12 +207,12 @@ public static class DateTimeExtension
     /// 验证时间段和另一个时间段的重合情况
     /// </summary>
     /// <param name="sub">需要验证的时间段</param>
-    /// <param name="validate">所属源</param>
+    /// <param name="source">所属源</param>
     /// <returns>ETimeOverlap</returns>
-    public static ETimeOverlap TimeOverlap(Tuple<DateTime, DateTime> sub, Tuple<DateTime, DateTime> validate)
+    public static ETimeOverlap TimeOverlap(Tuple<DateTime, DateTime> sub, Tuple<DateTime, DateTime> source)
     {
         var (subStart, subEnd) = sub;
-        var (validateStart, validateEnd) = validate;
+        var (validateStart, validateEnd) = source;
         return (subStart < validateEnd && validateStart < subEnd) switch
         {
             true when subStart >= validateStart && subEnd <= validateEnd                          => ETimeOverlap.完全重合,

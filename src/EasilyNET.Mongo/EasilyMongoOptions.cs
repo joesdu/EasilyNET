@@ -1,6 +1,5 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
-
 #if !NETSTANDARD
 #pragma warning disable CA1822
 #endif
@@ -13,7 +12,7 @@ namespace EasilyNET.Mongo;
 /// <summary>
 /// Mongodb配置选项
 /// </summary>
-public sealed class EasilyNETMongoOptions
+public sealed class EasilyMongoOptions
 {
     private static bool TypesFirst { get; set; }
 
@@ -51,7 +50,7 @@ public sealed class EasilyNETMongoOptions
     internal Dictionary<string, ConventionPack> ConventionRegistry { get; } = new()
     {
         {
-            $"{EasilyNETConstant.Pack}-{ObjectId.GenerateNewId()}", new()
+            $"{Constant.Pack}-{ObjectId.GenerateNewId()}", new()
             {
                 new CamelCaseElementNameConvention(),             // 驼峰名称格式
                 new IgnoreExtraElementsConvention(true),          // 忽略掉实体中不存在的字段

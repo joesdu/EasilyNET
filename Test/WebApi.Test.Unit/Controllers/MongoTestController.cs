@@ -77,7 +77,9 @@ public class MongoTestController : ControllerBase
             var date = DateOnly.FromDateTime(DateTime.Now.AddDays(i));
             os.Add(new() { Id = Guid.NewGuid().ToString(), Date = date, Index = i });
         }
-        await db.Test2.InsertManyAsync(os);
+        var session = await db.GetStartedSessionAsync();
+        await db.Test2.InsertManyAsync(session, os);
+        await session.CommitTransactionAsync();
     }
 
     /// <summary>

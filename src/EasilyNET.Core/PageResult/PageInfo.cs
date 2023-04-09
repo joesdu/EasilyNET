@@ -17,12 +17,12 @@ public class PageInfo
     /// <summary>
     /// 每页数据量
     /// </summary>
-    public int PageSize { get; set; }
+    public int Size { get; set; }
 
     /// <summary>
     /// 跳过的数据量
     /// </summary>
-    public int Skip => (Current - 1) * PageSize;
+    public int Skip => (Current - 1) * Size;
 }
 
 /// <summary>

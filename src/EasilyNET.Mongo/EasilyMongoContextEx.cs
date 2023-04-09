@@ -1,32 +1,21 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace EasilyNET.Mongo;
 
 /// <summary>
-/// mongodb base context
+/// DbContext的一些方法,便于简化代码
 /// </summary>
-public class EasilyNETMongoContext
+public partial class EasilyMongoContext
 {
-    /// <summary>
-    /// MongoClient
-    /// </summary>
-    public IMongoClient Client { get; private set; } = default!;
-
-    /// <summary>
-    /// 获取链接字符串或者HoyoMongoSettings中配置的特定名称数据库或默认数据库
-    /// </summary>
-    public IMongoDatabase Database { get; private set; } = default!;
-
     /// <summary>
     /// 获取IMongoCollection
     /// </summary>
     /// <typeparam name="TDocument">实体</typeparam>
     /// <param name="name">集合名称</param>
     /// <returns></returns>
-    protected IMongoCollection<TDocument> Collection<TDocument>(string name)
+    protected IMongoCollection<TDocument> GetCollection<TDocument>(string name)
     {
 #if NET7_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
@@ -51,13 +40,25 @@ public class EasilyNETMongoContext
         return Client.GetDatabase(name);
     }
 
-    internal static T CreateInstance<T>(IServiceProvider provider, MongoClientSettings settings, string dbName, params object[] parameters) where T : EasilyNETMongoContext
+    /// <summary>
+    /// 同步方式获取一个已开启事务的Session
+    /// </summary>
+    /// <returns></returns>
+    public IClientSessionHandle GetStartedSession()
     {
-        // 可支持非默认无参构造函数的DbContext
-        var t = ActivatorUtilities.CreateInstance<T>(provider, parameters);
-        // var t = Activator.CreateInstance<T>();
-        t.Client = new MongoClient(settings);
-        t.Database = t.Client.GetDatabase(dbName);
-        return t;
+        var session = Client.StartSession();
+        session.StartTransaction();
+        return session;
+    }
+
+    /// <summary>
+    /// 异步方式获取一个已开启事务的Session
+    /// </summary>
+    /// <returns></returns>
+    public async Task<IClientSessionHandle> GetStartedSessionAsync()
+    {
+        var session = await Client.StartSessionAsync();
+        session.StartTransaction();
+        return session;
     }
 }
