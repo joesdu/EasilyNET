@@ -1,5 +1,6 @@
 ﻿using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Extensions;
+using EasilyNET.Core.Misc;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq.Expressions;
 

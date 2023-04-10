@@ -21,11 +21,19 @@ public static class IniHelper
         string[] lines;
         if (File.Exists(path))
         {
+#if !NETSTANDARD2_0
             lines = await File.ReadAllLinesAsync(path);
+#else
+            lines = File.ReadAllLines(path);
+#endif
         }
         else
         {
+#if !NETSTANDARD2_0
             await File.WriteAllTextAsync(path, string.Empty);
+#else
+            File.WriteAllText(path, string.Empty);
+#endif
             return iniContext;
         }
         Section? tempSection = null;
@@ -33,7 +41,7 @@ public static class IniHelper
         {
             var item = lines[i].TrimStart();
             //为注解
-            if (item.StartsWith(';') || item.StartsWith('；') || string.IsNullOrEmpty(item))
+            if (item.StartsWith(";") || item.StartsWith("；") || string.IsNullOrEmpty(item))
             {
                 continue;
             }
@@ -46,7 +54,11 @@ public static class IniHelper
                 {
                     tempSection = new()
                     {
+#if !NETSTANDARD2_0
                         Name = item[(sectionStart + 1)..sectionEnd],
+#else
+                        Name = item.Substring(sectionStart + 1, sectionEnd - sectionStart + 1),
+#endif
                         Line = i,
                         Args = new()
                     };
@@ -60,8 +72,13 @@ public static class IniHelper
                 tempSection = null;
                 goto NextSection;
             }
+#if !NETSTANDARD2_0
             var k = item[..ksIndex];
             var v = item[(ksIndex + 1)..item.Length];
+#else
+            var k = item.Substring(0, ksIndex);
+            var v = item.Substring(ksIndex + 1, item.Length - ksIndex + 1);
+#endif
             if (string.IsNullOrWhiteSpace(k)) continue;
             tempSection.Args?.Add(k, v);
         }
@@ -89,7 +106,11 @@ public static class IniHelper
         if (iniContext.File is null) throw new("文件路径不能为空");
         string? sb = null;
         _ = await Task.Run(() => sb = iniContext.ToString());
+#if !NETSTANDARD2_0
         await File.WriteAllTextAsync(iniContext.File.FullName, sb);
+#else
+        File.WriteAllText(iniContext.File.FullName, sb);
+#endif
     }
 
     /// <summary>
