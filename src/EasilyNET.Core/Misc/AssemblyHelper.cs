@@ -35,6 +35,7 @@ public static class AssemblyHelper
     /// 添加排除项目,该排除项目可能会影响AutoDependenceInjection自动注入,请使用的时候自行测试.
     /// </summary>
     /// <param name="names"></param>
+    // TODO:1.3.9版本中移除
     [Obsolete("AddFilterLibs函数仅在测试版本中使用,下个正式版中将会被移除,请使用AddExcludeLibs函数", true)]
     public static void AddFilterLibs(params string[] names) => FilterLibs.AddRangeIfNotContains(names);
 
