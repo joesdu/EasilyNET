@@ -5,11 +5,11 @@ using Serilog;
 using Serilog.Events;
 using WebApi.Test.Unit;
 
+AssemblyHelper.AddExcludeLibs("Npgsql.");
 var builder = WebApplication.CreateBuilder(args);
 Console.WriteLine("微软爸爸就是牛逼");
 Console.WriteLine(PyTools.GetPinYin("微软爸爸就是牛逼"));
 Console.WriteLine(PyTools.GetInitials("微软爸爸就是牛逼"));
-AssemblyHelper.AddFilterLibs("Npgsql.");
 
 //添加Serilog配置
 _ = builder.Host.UseSerilog((hbc, lc) =>
