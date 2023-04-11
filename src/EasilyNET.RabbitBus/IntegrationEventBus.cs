@@ -1,4 +1,5 @@
-﻿using EasilyNET.RabbitBus.Abstraction;
+﻿using EasilyNET.Core.Misc;
+using EasilyNET.RabbitBus.Abstraction;
 using EasilyNET.RabbitBus.Core;
 using EasilyNET.RabbitBus.Core.Attributes;
 using EasilyNET.RabbitBus.Core.Enums;

@@ -1,7 +1,7 @@
 ﻿// ReSharper disable ClassNeverInstantiated.Global
 
+using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.Core.Enums;
-using EasilyNET.RabbitBus.Core.Extensions;
 
 namespace EasilyNET.RabbitBus.Core.Attributes;
 
