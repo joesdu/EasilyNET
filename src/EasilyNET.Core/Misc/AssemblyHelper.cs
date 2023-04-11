@@ -18,12 +18,26 @@ public static class AssemblyHelper
     private static readonly IEnumerable<Type>? _allTypes;
 
     /// <summary>
+    /// 需要排除的项目
+    /// </summary>
+    private static readonly List<string> FilterLibs = new();
+
+    /// <summary>
     /// 构造函数
     /// </summary>
     static AssemblyHelper()
     {
-        _allAssemblies = DependencyContext.Default?.GetDefaultAssemblyNames().Where(c => c.Name is not null && !Filters.Any(c.Name.StartsWith)).Select(Assembly.Load);
+        _allAssemblies = DependencyContext.Default?.GetDefaultAssemblyNames().Where(c => c.Name is not null && !Filters.Any(c.Name.StartsWith) && !FilterLibs.Any(c.Name.StartsWith)).Select(Assembly.Load);
         _allTypes = _allAssemblies?.SelectMany(c => c.GetTypes());
+    }
+
+    /// <summary>
+    /// 添加排除项目,该排除项目可能会影响AutoDependenceInjection自动注入,请使用的时候自行测试.
+    /// </summary>
+    /// <param name="names"></param>
+    public static void AddFilterLibs(params string[] names)
+    {
+        FilterLibs.AddRangeIfNotContains(names);
     }
 
     /// <summary>
