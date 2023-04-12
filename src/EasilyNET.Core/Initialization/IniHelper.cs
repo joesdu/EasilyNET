@@ -82,7 +82,11 @@ public static class IniHelper
             if (string.IsNullOrWhiteSpace(k)) continue;
             tempSection.Args?.Add(k, v);
         }
+#if !NETSTANDARD2_0
         return iniContext;
+#else
+        return await Task.FromResult(iniContext);
+#endif
     }
 
     /// <summary>
