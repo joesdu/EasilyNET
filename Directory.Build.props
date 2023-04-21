@@ -3,7 +3,7 @@
 <Project>
 
 	<PropertyGroup>
-		<Version>1.3.9</Version>
+		<Version>1.3.8.5</Version>
 		<LangVersion>preview</LangVersion>
 		<RepositoryUrl>https://github.com/EasilyNET/EasilyNET</RepositoryUrl>
 		<Nullable>enable</Nullable>
