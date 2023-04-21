@@ -11,8 +11,6 @@ namespace WebApi.Test.Unit.Controllers;
 [ApiController, Route("api/[controller]/[action]")]
 public class RabbitBusController : ControllerBase
 {
-    private static readonly string[] Summaries = { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };
-
     private readonly IIntegrationEventBus _ibus;
 
     /// <summary>
@@ -25,64 +23,84 @@ public class RabbitBusController : ControllerBase
     }
 
     /// <summary>
-    /// 发送消息
+    /// 发送HelloWorld消息
     /// </summary>
     [HttpPost]
-    public void Post()
+    public void HelloWorld()
     {
-        var temp = new List<List<WeatherForecastEvent>>();
-        foreach (var _ in ..9)
-        {
-            var weathers = Enumerable.Range(1, 5000).Select(index => new WeatherForecastEvent
-            {
-                Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-            }).ToList();
-            temp.Add(weathers);
-        }
         var rand = new Random();
-        foreach (var weathers in temp)
+        _ibus.Publish(new HelloWorldEvent(), priority: (byte)rand.Next(0, 9));
+    }
+
+    /// <summary>
+    /// 发送WorkQueues消息
+    /// </summary>
+    [HttpPost]
+    public void WorkQueues()
+    {
+        foreach (var i in ..10)
         {
-            Task.Run(() =>
+            _ibus.Publish(new WorkQueuesEvent
             {
-                foreach (var weather in weathers)
-                {
-                    _ibus.Publish(weather, (byte)rand.Next(0, 9));
-                }
+                Summary = $"WorkQueuesEvent:{i}"
             });
         }
-        // 发送延时消息,同时交换机类型必须为 EExchange.Delayed
-        //_ibus.Publish(weather, 5000);
     }
 
     /// <summary>
-    /// 发送消息
+    /// Fanout(发布订阅)发送消息,设置两个队列,所以应该输出两条信息
     /// </summary>
     [HttpPost]
-    public void PostOne()
+    public void Fanout()
     {
-        var rand = new Random();
-        _ibus.Publish(new WeatherForecastEvent
-        {
-            Date = DateOnly.FromDateTime(DateTime.Now),
-            TemperatureC = Random.Shared.Next(-20, 55),
-            Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-        }, (byte)rand.Next(0, 9));
-        _ibus.Publish(new TestEvent());
+        _ibus.Publish(new FanoutEventOne());
     }
 
     /// <summary>
-    /// 发送消息
+    /// 路由模式(direct)模式发送消息,只向单一主题发送消息
     /// </summary>
     [HttpPost]
-    public void PostOneWithOutPriority()
+    public void DirectQueue1()
     {
-        _ibus.Publish(new WeatherForecastEvent
-        {
-            Date = DateOnly.FromDateTime(DateTime.Now),
-            TemperatureC = Random.Shared.Next(-20, 55),
-            Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-        });
+        _ibus.Publish(new DirectEventOne(), "direct.queue1");
+    }
+
+    /// <summary>
+    /// 路由模式(direct)发送消息,只向单一主题发送消息
+    /// </summary>
+    [HttpPost]
+    public void DirectQueue2()
+    {
+        _ibus.Publish(new DirectEventOne(), "direct.queue2");
+    }
+
+    /// <summary>
+    /// Topic(主题模式)发送消息,向订阅了,[topic.queue.1]主题的队列发送消息.
+    /// 只配置了topic.queue.*和topic.queue.1,所以该接口应该只输出两条信息.
+    /// </summary>
+    [HttpPost]
+    public void TopicTo1()
+    {
+        _ibus.Publish(new TopicEventOne(), "topic.queue.1");
+    }
+
+    /// <summary>
+    /// Topic(主题模式)发送消息,向订阅了,[topic.queue.2]主题的队列发送消息.
+    /// 只配置了topic.queue.*和topic.queue.1,所以该接口应该只输出一条信息.
+    /// </summary>
+    [HttpPost]
+    public void TopicTo2()
+    {
+        _ibus.Publish(new TopicEventOne(), "topic.queue.2");
+    }
+
+    /// <summary>
+    /// Topic(主题模式)发送消息,向订阅了,[topic.queue.3]主题的队列发送消息.
+    /// 只配置了topic.queue.*和topic.queue.1,所以该接口应该只输出一条信息.
+    /// </summary>
+    [HttpPost]
+    public void TopicTo3()
+    {
+        _ibus.Publish(new TopicEventOne(), "topic.queue.3");
     }
 }

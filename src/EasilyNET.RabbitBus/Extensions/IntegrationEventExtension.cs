@@ -11,7 +11,7 @@ internal static class IntegrationEventExtension
     /// </summary>
     /// <param name="event"></param>
     /// <returns></returns>
-    internal static IDictionary<string, object> GetHeaderAttributes(this IIntegrationEvent @event)
+    internal static IDictionary<string, object>? GetHeaderAttributes(this IIntegrationEvent @event)
     {
         var type = @event.GetType();
         var rabbitHeaderAttributes = type.GetCustomAttributes<RabbitHeaderAttribute>();
@@ -23,7 +23,7 @@ internal static class IntegrationEventExtension
     /// </summary>
     /// <param name="event"></param>
     /// <returns></returns>
-    internal static IDictionary<string, object> GetExchangeArgAttributes(this IIntegrationEvent @event)
+    internal static IDictionary<string, object>? GetExchangeArgAttributes(this IIntegrationEvent @event)
     {
         var type = @event.GetType();
         var exchangeArgs = type.GetCustomAttributes<RabbitExchangeArgAttribute>();
@@ -35,7 +35,7 @@ internal static class IntegrationEventExtension
     /// </summary>
     /// <param name="eventType"></param>
     /// <returns></returns>
-    internal static IDictionary<string, object> GetExchangeArgAttributes(this Type eventType)
+    internal static IDictionary<string, object>? GetExchangeArgAttributes(this Type eventType)
     {
         var exchangeArgs = eventType.GetCustomAttributes<RabbitExchangeArgAttribute>();
         return RabbitDictionariesByDic(exchangeArgs);
@@ -46,7 +46,7 @@ internal static class IntegrationEventExtension
     /// </summary>
     /// <param name="event"></param>
     /// <returns></returns>
-    internal static IDictionary<string, object> GetQueueArgAttributes(this IIntegrationEvent @event)
+    internal static IDictionary<string, object>? GetQueueArgAttributes(this IIntegrationEvent @event)
     {
         var type = @event.GetType();
         var queueArgs = type.GetCustomAttributes<RabbitQueueArgAttribute>();
@@ -58,7 +58,7 @@ internal static class IntegrationEventExtension
     /// </summary>
     /// <param name="eventType"></param>
     /// <returns></returns>
-    internal static IDictionary<string, object> GetQueueArgAttributes(this Type eventType)
+    internal static IDictionary<string, object>? GetQueueArgAttributes(this Type eventType)
     {
         var queueArgs = eventType.GetCustomAttributes<RabbitQueueArgAttribute>();
         return RabbitDictionariesByDic(queueArgs);
@@ -69,9 +69,9 @@ internal static class IntegrationEventExtension
     /// </summary>
     /// <param name="rabbitDictionaryAttributes"></param>
     /// <returns></returns>
-    private static Dictionary<string, object> RabbitDictionariesByDic(this IEnumerable<RabbitDictionaryAttribute> rabbitDictionaryAttributes)
+    private static Dictionary<string, object>? RabbitDictionariesByDic(this IEnumerable<RabbitDictionaryAttribute>? rabbitDictionaryAttributes)
     {
-        return rabbitDictionaryAttributes.ToDictionary(rabbitDictionaryAttribute => rabbitDictionaryAttribute.Key,
+        return rabbitDictionaryAttributes?.ToDictionary(rabbitDictionaryAttribute => rabbitDictionaryAttribute.Key,
             rabbitDictionaryAttribute => rabbitDictionaryAttribute.Value);
     }
 }
