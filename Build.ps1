@@ -33,7 +33,7 @@ exec { & dotnet test -c Release --no-build -l trx --verbosity=normal }
 # Core
 exec { & dotnet pack .\src\EasilyNET.Core\EasilyNET.Core.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.WebCore\EasilyNET.WebCore.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
-#exec { & dotnet pack .\src\EasilyNET.WebCore.Swagger\EasilyNET.WebCore.Swagger.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
+exec { & dotnet pack .\src\EasilyNET.WebCore.Swagger\EasilyNET.WebCore.Swagger.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 
 # Framework
 exec { & dotnet pack .\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
