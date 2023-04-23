@@ -6,7 +6,7 @@
 public interface IIntegrationEvent
 {
     /// <summary>
-    /// 事件ID
+    /// 事件ID,雪花ID算法
     /// </summary>
     string EventId { get; }
 

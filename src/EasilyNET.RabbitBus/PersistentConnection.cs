@@ -82,8 +82,10 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
         _connectionLock.Wait();
         try
         {
-            var policy = Policy.Handle<SocketException>().Or<BrokerUnreachableException>().WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                (ex, time) => _logger.LogWarning(ex, "RabbitMQ客户端在{TimeOut}s超时后无法创建链接,({ExceptionMessage})", $"{time.TotalSeconds:n1}", ex.Message));
+            var policy = Policy.Handle<SocketException>()
+                               .Or<BrokerUnreachableException>()
+                               .WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
+                                   _logger.LogWarning(ex, "RabbitMQ客户端在{TimeOut}s超时后无法创建链接,({ExceptionMessage})", $"{time.TotalSeconds:n1}", ex.Message));
             _ = policy.Execute(() => _connection = _connectionFactory.CreateConnection());
             if (IsConnected && _connection is not null)
             {

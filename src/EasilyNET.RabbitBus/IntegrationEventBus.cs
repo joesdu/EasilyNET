@@ -81,7 +81,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         {
             properties.Headers = headers;
         }
-        if (!string.IsNullOrWhiteSpace(rabbitAttr.WorkModel.ToDescription()))
+        if (rabbitAttr is not { WorkModel: EWorkModel.None })
         {
             var exchange_args = @event.GetExchangeArgAttributes();
             channel.ExchangeDeclare(rabbitAttr.ExchangeName, rabbitAttr.WorkModel.ToDescription(), true, arguments: exchange_args);
@@ -115,7 +115,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         _logger.LogTrace("创建RabbitMQ通道来发布事件: {EventId} ({EventName})", @event.EventId, type.Name);
         var rabbitAttr = type.GetCustomAttribute<RabbitAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(RabbitAttribute)}>,无法发布事件");
         if (!rabbitAttr.Enable) return;
-        if (rabbitAttr.WorkModel != EWorkModel.Delayed) throw new($"延时队列的交换机类型必须为{nameof(EWorkModel.Delayed)}");
+        if (rabbitAttr is not { WorkModel: EWorkModel.Delayed }) throw new($"延时队列的交换机类型必须为{nameof(EWorkModel.Delayed)}");
         var channel = _persistentConnection.CreateModel();
         var properties = channel.CreateBasicProperties();
         properties.Persistent = true;
@@ -158,6 +158,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
     /// <summary>
     /// 集成事件订阅者处理
     /// </summary>
+    /// <exception cref="NotImplementedException"></exception>
     /// <exception cref="ArgumentNullException"></exception>
     internal void Subscribe()
     {
@@ -176,13 +177,13 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
             {
                 using var consumerChannel = CreateConsumerChannel(rabbitAttr, eventType);
                 var eventName = _subsManager.GetEventKey(eventType);
-                if (!string.IsNullOrWhiteSpace(rabbitAttr.WorkModel.ToDescription()))
+                if (rabbitAttr is not { WorkModel: EWorkModel.None })
                 {
                     DoInternalSubscription(eventName, rabbitAttr, consumerChannel);
                 }
                 using var scope = _serviceProvider.GetService<IServiceScopeFactory>()?.CreateScope();
-                // 检查消费者是否已经注册,若是未注册则不启动消费.
                 var handler = scope?.ServiceProvider.GetService(handlerType);
+                // 检查消费者是否已经注册,若是未注册则不启动消费.
                 if (handler is null) return;
                 _subsManager.AddSubscription(eventType, handlerType);
                 StartBasicConsume(eventType, rabbitAttr, consumerChannel);
@@ -242,19 +243,19 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
     {
         _logger.LogTrace("创建RabbitMQ消费者通道");
         var channel = _persistentConnection.CreateModel();
-        if (!string.IsNullOrWhiteSpace(rabbitAttr.WorkModel.ToDescription()))
+        if (rabbitAttr is not { WorkModel: EWorkModel.None })
         {
             var exchange_args = eventType.GetExchangeArgAttributes();
             if (exchange_args is not null)
             {
                 var success = exchange_args.TryGetValue("x-delayed-type", out _);
-                if (!success && rabbitAttr.WorkModel == EWorkModel.Delayed) exchange_args.Add("x-delayed-type", "direct"); //x-delayed-type必须加
+                if (!success && rabbitAttr is { WorkModel: EWorkModel.Delayed }) exchange_args.Add("x-delayed-type", "direct"); //x-delayed-type必须加
             }
             //创建交换机
             channel.ExchangeDeclare(rabbitAttr.ExchangeName, rabbitAttr.WorkModel.ToDescription(), true, false, exchange_args);
         }
-        //创建队列
         var queue_args = eventType.GetQueueArgAttributes();
+        //创建队列
         _ = channel.QueueDeclare(rabbitAttr.Queue, true, false, false, queue_args);
         channel.CallbackException += (_, ea) =>
         {
@@ -279,8 +280,8 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         {
             var qos = eventType.GetCustomAttribute<RabbitQosAttribute>();
             if (qos is not null) consumerChannel.BasicQos(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
-            if (rabbitAttr.WorkModel == EWorkModel.RPC) { }
             var consumer = new AsyncEventingBasicConsumer(consumerChannel);
+            _ = consumerChannel.BasicConsume(rabbitAttr.Queue, false, consumer);
             consumer.Received += async (_, ea) =>
             {
                 var message = Encoding.UTF8.GetString(ea.Body.Span);
@@ -300,7 +301,6 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                 // in a REAL WORLD app this should be handled with a Dead Letter Exchange (DLX). 
                 // For more information see: https://www.rabbitmq.com/dlx.html
             };
-            _ = consumerChannel.BasicConsume(rabbitAttr.Queue, false, consumer);
             while (true) Thread.Sleep(100000);
         }
         _logger.LogError("当_consumerChannel为null时StartBasicConsume不能调用");

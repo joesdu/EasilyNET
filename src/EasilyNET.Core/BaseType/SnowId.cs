@@ -18,8 +18,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Security;
 
-#pragma warning disable IDE0048
-
 // ReSharper disable UnusedMember.Global
 
 namespace EasilyNET.Core.BaseType;
@@ -101,7 +99,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     /// <summary>
     /// 获取创建时间(从时间戳派生)
     /// </summary>
-    public DateTime CreationTime => DateTimeStampExtension.UnixEpoch.AddSeconds((uint)Timestamp);
+    public readonly DateTime CreationTime => DateTimeStampExtension.UnixEpoch.AddSeconds((uint)Timestamp);
 
     // public operators
     /// <summary>
@@ -222,7 +220,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
         var random = new Random(seed);
         var high = random.Next();
         var low = random.Next();
-        var combined = (long)((ulong)(uint)high << 32 | (uint)low);
+        var combined = (long)(((ulong)(uint)high << 32) | (uint)low);
         return combined & 0xffffffffff; // low order 5 bytes
     }
 
@@ -277,11 +275,9 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 
     private static void FromByteArray(IReadOnlyList<byte> bytes, int offset, out int a, out int b, out int c)
     {
-#pragma warning disable IDE0048
-        a = bytes[offset] << 24 | bytes[offset + 1] << 16 | bytes[offset + 2] << 8 | bytes[offset + 3];
-        b = bytes[offset + 4] << 24 | bytes[offset + 5] << 16 | bytes[offset + 6] << 8 | bytes[offset + 7];
-        c = bytes[offset + 8] << 24 | bytes[offset + 9] << 16 | bytes[offset + 10] << 8 | bytes[offset + 11];
-#pragma warning restore IDE0048
+        a = (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+        b = (bytes[offset + 4] << 24) | (bytes[offset + 5] << 16) | (bytes[offset + 6] << 8) | bytes[offset + 7];
+        c = (bytes[offset + 8] << 24) | (bytes[offset + 9] << 16) | (bytes[offset + 10] << 8) | bytes[offset + 11];
     }
 
     // public methods
@@ -380,32 +376,30 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     public readonly override string ToString()
     {
         var c = new char[24];
-#pragma warning disable IDE0048
-        c[0] = (_a >> 28 & 0x0f).ToHexChar();
-        c[1] = (_a >> 24 & 0x0f).ToHexChar();
-        c[2] = (_a >> 20 & 0x0f).ToHexChar();
-        c[3] = (_a >> 16 & 0x0f).ToHexChar();
-        c[4] = (_a >> 12 & 0x0f).ToHexChar();
-        c[5] = (_a >> 8 & 0x0f).ToHexChar();
-        c[6] = (_a >> 4 & 0x0f).ToHexChar();
+        c[0] = ((_a >> 28) & 0x0f).ToHexChar();
+        c[1] = ((_a >> 24) & 0x0f).ToHexChar();
+        c[2] = ((_a >> 20) & 0x0f).ToHexChar();
+        c[3] = ((_a >> 16) & 0x0f).ToHexChar();
+        c[4] = ((_a >> 12) & 0x0f).ToHexChar();
+        c[5] = ((_a >> 8) & 0x0f).ToHexChar();
+        c[6] = ((_a >> 4) & 0x0f).ToHexChar();
         c[7] = (_a & 0x0f).ToHexChar();
-        c[8] = (_b >> 28 & 0x0f).ToHexChar();
-        c[9] = (_b >> 24 & 0x0f).ToHexChar();
-        c[10] = (_b >> 20 & 0x0f).ToHexChar();
-        c[11] = (_b >> 16 & 0x0f).ToHexChar();
-        c[12] = (_b >> 12 & 0x0f).ToHexChar();
-        c[13] = (_b >> 8 & 0x0f).ToHexChar();
-        c[14] = (_b >> 4 & 0x0f).ToHexChar();
+        c[8] = ((_b >> 28) & 0x0f).ToHexChar();
+        c[9] = ((_b >> 24) & 0x0f).ToHexChar();
+        c[10] = ((_b >> 20) & 0x0f).ToHexChar();
+        c[11] = ((_b >> 16) & 0x0f).ToHexChar();
+        c[12] = ((_b >> 12) & 0x0f).ToHexChar();
+        c[13] = ((_b >> 8) & 0x0f).ToHexChar();
+        c[14] = ((_b >> 4) & 0x0f).ToHexChar();
         c[15] = (_b & 0x0f).ToHexChar();
-        c[16] = (_c >> 28 & 0x0f).ToHexChar();
-        c[17] = (_c >> 24 & 0x0f).ToHexChar();
-        c[18] = (_c >> 20 & 0x0f).ToHexChar();
-        c[19] = (_c >> 16 & 0x0f).ToHexChar();
-        c[20] = (_c >> 12 & 0x0f).ToHexChar();
-        c[21] = (_c >> 8 & 0x0f).ToHexChar();
-        c[22] = (_c >> 4 & 0x0f).ToHexChar();
+        c[16] = ((_c >> 28) & 0x0f).ToHexChar();
+        c[17] = ((_c >> 24) & 0x0f).ToHexChar();
+        c[18] = ((_c >> 20) & 0x0f).ToHexChar();
+        c[19] = ((_c >> 16) & 0x0f).ToHexChar();
+        c[20] = ((_c >> 12) & 0x0f).ToHexChar();
+        c[21] = ((_c >> 8) & 0x0f).ToHexChar();
+        c[22] = ((_c >> 4) & 0x0f).ToHexChar();
         c[23] = (_c & 0x0f).ToHexChar();
-#pragma warning restore IDE0048
         return new(c);
     }
 

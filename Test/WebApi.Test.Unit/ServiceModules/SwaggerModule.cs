@@ -1,11 +1,8 @@
 ﻿using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.Core.Misc;
-using EasilyNET.WebCore.Attributes;
-using EasilyNET.WebCore.SwaggerFilters;
+using EasilyNET.WebCore.Extensions;
 using Microsoft.OpenApi.Models;
-using System.Reflection;
 
 namespace WebApi.Test.Unit;
 
@@ -17,12 +14,10 @@ public class SwaggerModule : AppModule
     /**
      * https://github.com/domaindrivendev/Swashbuckle.AspNetCore
      */
-    private const string Name = $"{Title}-{Version}";
+    private const string name = $"{title}-{version}";
 
-    private const string Title = "Test";
-    private const string Version = "v1";
-    private static readonly Dictionary<string, string> docsDic = new();
-    private static readonly Dictionary<string, string> endPointDic = new();
+    private const string version = "v1";
+    private const string title = "WebApi.Test";
 
     /// <summary>
     /// 配置和注册服务
@@ -33,43 +28,16 @@ public class SwaggerModule : AppModule
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         _ = context.Services.AddSwaggerGen(c =>
         {
-            c.SwaggerDoc(Name, new()
+            // 配置默认的文档信息
+            c.SwaggerDoc(name, new()
             {
-                Title = Title,
-                Version = Version,
+                Title = title,
+                Version = version,
                 Description = "Console.WriteLine(\"🐂🍺\")"
             });
-            var controllers = AssemblyHelper.FindTypesByAttribute<ApiGroupAttribute>();
-            foreach (var ctrl in controllers)
-            {
-                var attr = ctrl.GetCustomAttribute<ApiGroupAttribute>();
-                if (attr is null) continue;
-                if (docsDic.ContainsKey(attr.Name)) continue;
-                _ = docsDic.TryAdd(attr.Name, attr.Description);
-                c.SwaggerDoc(attr.Name, new()
-                {
-                    Title = attr.Title,
-                    Version = attr.Version,
-                    Description = attr.Description
-                });
-            }
-            var files = Directory.GetFiles(AppContext.BaseDirectory, "*.xml");
-            foreach (var file in files)
-            {
-                c.IncludeXmlComments(file, true);
-            }
-            c.DocInclusionPredicate((docName, apiDescription) =>
-            {
-                //反射拿到值
-                var actionList = apiDescription.ActionDescriptor.EndpointMetadata.Where(x => x is ApiGroupAttribute).ToList();
-                if (actionList.Count != 0)
-                {
-                    return actionList.FirstOrDefault() is ApiGroupAttribute attr && attr.Name == docName;
-                }
-                var not = apiDescription.ActionDescriptor.EndpointMetadata.Where(x => x is not ApiGroupAttribute).ToList();
-                return not.Count != 0 && docName == Name;
-                //判断是否包含这个分组
-            });
+            // 这里使用EasilyNET提供的扩展配置.
+            c.EasilySwaggerGenOptions(name);
+            // 配置认证方式
             c.AddSecurityDefinition("Bearer", new()
             {
                 Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
@@ -78,10 +46,6 @@ public class SwaggerModule : AppModule
                 Type = SecuritySchemeType.ApiKey,
                 Scheme = "Bearer"
             });
-            // 这里使用预定义的过滤器,避免给所有接口均加锁.
-            c.OperationFilter<SwaggerAuthorizeFilter>();
-            c.DocumentFilter<SwaggerHiddenApiFilter>();
-            c.SchemaFilter<SwaggerSchemaFilter>();
         });
     }
 
@@ -94,16 +58,10 @@ public class SwaggerModule : AppModule
         var app = context.GetApplicationBuilder();
         _ = app.UseSwagger().UseSwaggerUI(c =>
         {
-            c.SwaggerEndpoint($"/swagger/{Name}/swagger.json", $"{Title} {Version}");
-            var controllers = AssemblyHelper.FindTypesByAttribute<ApiGroupAttribute>();
-            foreach (var ctrl in controllers)
-            {
-                var attr = ctrl.GetCustomAttribute<ApiGroupAttribute>();
-                if (attr is null) continue;
-                if (endPointDic.ContainsKey(attr.Name)) continue;
-                _ = endPointDic.TryAdd(attr.Name, attr.Description);
-                c.SwaggerEndpoint($"/swagger/{attr.Name}/swagger.json", $"{attr.Title} {attr.Version}");
-            }
+            // 配置默认文档
+            c.SwaggerEndpoint($"/swagger/{name}/swagger.json", $"{title} {version}");
+            // 使用EasilyNET提供的扩展配置
+            c.EasilySwaggerUIOptions();
         });
     }
 }

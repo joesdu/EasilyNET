@@ -22,27 +22,16 @@ public sealed class RabbitAttribute : Attribute
     {
         ExchangeName = workModel switch
         {
-            EWorkModel.HelloWorld        => "",
-            EWorkModel.WorkQueues        => "",
-            EWorkModel.PublishSubscribe  => string.IsNullOrWhiteSpace(exchangeName) ? "amq.fanout" : exchangeName,
-            EWorkModel.Routing           => string.IsNullOrWhiteSpace(exchangeName) ? "amq.direct" : exchangeName,
-            EWorkModel.Topics            => string.IsNullOrWhiteSpace(exchangeName) ? "amq.topic" : exchangeName,
-            EWorkModel.RPC               => "",
-            EWorkModel.PublisherConfirms => "",
-            EWorkModel.Delayed           => ExchangeNameCheck(exchangeName),
-            _                            => ""
+            EWorkModel.PublishSubscribe => string.IsNullOrWhiteSpace(exchangeName) ? "amq.fanout" : exchangeName,
+            EWorkModel.Routing          => string.IsNullOrWhiteSpace(exchangeName) ? "amq.direct" : exchangeName,
+            EWorkModel.Topics           => string.IsNullOrWhiteSpace(exchangeName) ? "amq.topic" : exchangeName,
+            EWorkModel.Delayed          => ExchangeNameCheck(exchangeName),
+            _                           => ""
         };
         RoutingKey = workModel switch
         {
-            EWorkModel.HelloWorld        => queue,
-            EWorkModel.WorkQueues        => queue,
-            EWorkModel.PublishSubscribe  => routingKey,
-            EWorkModel.Routing           => routingKey,
-            EWorkModel.Topics            => routingKey,
-            EWorkModel.RPC               => routingKey,
-            EWorkModel.PublisherConfirms => routingKey,
-            EWorkModel.Delayed           => routingKey,
-            _                            => routingKey
+            EWorkModel.None => queue,
+            _               => routingKey
         };
         WorkModel = workModel;
         Queue = queue;
