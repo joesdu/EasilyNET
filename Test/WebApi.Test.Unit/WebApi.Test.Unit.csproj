@@ -19,7 +19,7 @@
         <ProjectReference Include="..\..\src\EasilyNET.Mongo.GridFS\EasilyNET.Mongo.GridFS.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.Mongo\EasilyNET.Mongo.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.RabbitBus\EasilyNET.RabbitBus.csproj" />
-        <ProjectReference Include="..\..\src\EasilyNET.WebCore\EasilyNET.WebCore.csproj" />
+        <ProjectReference Include="..\..\src\EasilyNET.WebCore.Swagger\EasilyNET.WebCore.Swagger.csproj" />
     </ItemGroup>
 
 </Project>

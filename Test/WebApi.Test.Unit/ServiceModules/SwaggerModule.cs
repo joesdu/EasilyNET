@@ -1,7 +1,7 @@
 ﻿using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.WebCore.Extensions;
+using EasilyNET.WebCore.Swagger;
 using Microsoft.OpenApi.Models;
 
 namespace WebApi.Test.Unit;

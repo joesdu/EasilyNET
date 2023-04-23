@@ -4,7 +4,7 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.WebCore.SwaggerFilters;
+namespace EasilyNET.WebCore.Swagger.SwaggerFilters;
 
 /// <summary>
 /// 在Swagger文档中给需要Authorize的接口添加🔒
