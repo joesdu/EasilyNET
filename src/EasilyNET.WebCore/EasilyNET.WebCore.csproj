@@ -2,16 +2,15 @@
 
     <PropertyGroup>
         <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
-        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.WebCore.Swagger</PackageProjectUrl>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.WebCore</PackageProjectUrl>
         <Description>包含Swagger的一些扩展的WebCore扩展</Description>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.5.0" />
-        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.5.0" />
+      <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
     </ItemGroup>
 
-    <ItemGroup>
+	<ItemGroup>
       <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
     </ItemGroup>
 

@@ -23,10 +23,7 @@ public sealed class SwaggerHiddenApiFilter : IDocumentFilter
     {
         foreach (var apiDescription in context.ApiDescriptions)
         {
-#pragma warning disable IDE0048
-            if (!apiDescription.TryGetMethodInfo(out var method) || (!method.ReflectedType!.IsDefined(typeof(HiddenApiAttribute)) && !method.IsDefined(typeof(HiddenApiAttribute))))
-#pragma warning restore IDE0048
-                continue;
+            if (!apiDescription.TryGetMethodInfo(out var method) || (!method.ReflectedType!.IsDefined(typeof(HiddenApiAttribute)) && !method.IsDefined(typeof(HiddenApiAttribute)))) continue;
             var key = $"/{apiDescription.RelativePath}";
             if (key.Contains('?'))
             {
