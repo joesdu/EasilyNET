@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
+		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.WebCore</PackageProjectUrl>
+		<Description>实现统一接口返回,全局异常以及接口执行消耗时间等功能,以及添加一些Swagger的一些配置.</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\EasilyNET.WebCore\EasilyNET.WebCore.csproj" />
+	</ItemGroup>
+
+</Project>

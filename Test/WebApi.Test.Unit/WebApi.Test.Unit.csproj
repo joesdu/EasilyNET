@@ -9,7 +9,6 @@
         <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.18.1" />
         <PackageReference Include="Serilog.AspNetCore" Version="6.1.1-dev-00295" />
         <PackageReference Include="Serilog.Sinks.Async" Version="1.5.0" />
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -19,7 +18,7 @@
         <ProjectReference Include="..\..\src\EasilyNET.Mongo.GridFS\EasilyNET.Mongo.GridFS.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.Mongo\EasilyNET.Mongo.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.RabbitBus\EasilyNET.RabbitBus.csproj" />
-        <ProjectReference Include="..\..\src\EasilyNET.WebCore\EasilyNET.WebCore.csproj" />
+        <ProjectReference Include="..\..\src\EasilyNET.WebCore.Swagger\EasilyNET.WebCore.Swagger.csproj" />
     </ItemGroup>
 
 </Project>

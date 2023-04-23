@@ -6,7 +6,7 @@ using System.Reflection;
 
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.WebCore.SwaggerFilters;
+namespace EasilyNET.WebCore.Swagger.SwaggerFilters;
 
 /// <summary>
 /// 添加默认值显示

@@ -1,6 +1,6 @@
 ﻿// ReSharper disable MemberCanBePrivate.Global
 
-namespace EasilyNET.WebCore.Attributes;
+namespace EasilyNET.WebCore.Swagger.Attributes;
 
 /// <summary>
 /// 被此特性标记的控制器可在Swagger文档分组中发挥作用.

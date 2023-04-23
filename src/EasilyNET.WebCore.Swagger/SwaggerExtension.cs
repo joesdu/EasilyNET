@@ -1,6 +1,6 @@
 ﻿using EasilyNET.Core.Misc;
-using EasilyNET.WebCore.Attributes;
-using EasilyNET.WebCore.SwaggerFilters;
+using EasilyNET.WebCore.Swagger.Attributes;
+using EasilyNET.WebCore.Swagger.SwaggerFilters;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -10,7 +10,7 @@ using System.Reflection;
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
-namespace EasilyNET.WebCore.Extensions;
+namespace EasilyNET.WebCore.Swagger;
 
 /// <summary>
 /// Swagger扩展

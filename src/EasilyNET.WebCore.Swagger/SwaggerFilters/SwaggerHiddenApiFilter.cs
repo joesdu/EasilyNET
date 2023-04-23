@@ -1,11 +1,11 @@
-﻿using EasilyNET.WebCore.Attributes;
+﻿using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Reflection;
 
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.WebCore.SwaggerFilters;
+namespace EasilyNET.WebCore.Swagger.SwaggerFilters;
 
 /// <summary>
 /// 在Swagger文档中隐藏接口
@@ -24,7 +24,7 @@ public sealed class SwaggerHiddenApiFilter : IDocumentFilter
         foreach (var apiDescription in context.ApiDescriptions)
         {
 #pragma warning disable IDE0048
-            if (!apiDescription.TryGetMethodInfo(out var method) || !method.ReflectedType!.IsDefined(typeof(HiddenApiAttribute)) && !method.IsDefined(typeof(HiddenApiAttribute)))
+            if (!apiDescription.TryGetMethodInfo(out var method) || (!method.ReflectedType!.IsDefined(typeof(HiddenApiAttribute)) && !method.IsDefined(typeof(HiddenApiAttribute))))
 #pragma warning restore IDE0048
                 continue;
             var key = $"/{apiDescription.RelativePath}";

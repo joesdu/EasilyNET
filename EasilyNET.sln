@@ -52,6 +52,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Security", "src\E
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.RabbitBus.Core", "src\EasilyNET.RabbitBus.Core\EasilyNET.RabbitBus.Core.csproj", "{D39C32BF-85C7-41FA-968A-88CE4AEB41B9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.WebCore.Swagger", "src\EasilyNET.WebCore.Swagger\EasilyNET.WebCore.Swagger.csproj", "{2DC8E076-CC8C-43FB-84A4-CB53E296DF8F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -118,6 +120,10 @@ Global
 		{D39C32BF-85C7-41FA-968A-88CE4AEB41B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D39C32BF-85C7-41FA-968A-88CE4AEB41B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D39C32BF-85C7-41FA-968A-88CE4AEB41B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2DC8E076-CC8C-43FB-84A4-CB53E296DF8F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2DC8E076-CC8C-43FB-84A4-CB53E296DF8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2DC8E076-CC8C-43FB-84A4-CB53E296DF8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2DC8E076-CC8C-43FB-84A4-CB53E296DF8F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -141,6 +147,7 @@ Global
 		{FDE3D67B-FA75-4806-8839-8B080893579C} = {2CB52E13-C7D0-4C8C-BFAD-F1A115AD5373}
 		{81F28F9F-77CF-43C2-8732-8B03B54F185F} = {BD6D1E2B-691E-4E8B-9E8D-E7FD2EDDF1F8}
 		{D39C32BF-85C7-41FA-968A-88CE4AEB41B9} = {BD6D1E2B-691E-4E8B-9E8D-E7FD2EDDF1F8}
+		{2DC8E076-CC8C-43FB-84A4-CB53E296DF8F} = {71FB9978-EB6D-4126-B5D1-FECED3C73D37}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {04F52789-9FF4-4AB9-9132-1789A00E7E4A}
