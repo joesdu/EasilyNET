@@ -7,7 +7,7 @@ namespace WebApi.Test.Unit.Events;
 /// <summary>
 /// 测试HelloWorld模式消息类型
 /// </summary>
-[Rabbit(EWorkModel.HelloWorld, queue: "hello.world")]
+[Rabbit(EWorkModel.None, queue: "hello.world")]
 public class HelloWorldEvent : IntegrationEvent
 {
     /// <summary>
@@ -19,7 +19,7 @@ public class HelloWorldEvent : IntegrationEvent
 /// <summary>
 /// 测试WorkQueues模式消息类型
 /// </summary>
-[Rabbit(EWorkModel.WorkQueues, queue: "work.queue")]
+[Rabbit(EWorkModel.None, queue: "work.queue")]
 public class WorkQueuesEvent : IntegrationEvent
 {
     /// <summary>
@@ -114,15 +114,3 @@ public class TopicEventTwo : IntegrationEvent
 }
 
 #endregion
-
-/// <summary>
-/// 测试RPC模式消息类型
-/// </summary>
-[Rabbit(EWorkModel.RPC, "topic.queue.*", "topic_queue1")]
-public class RPCEvent : IntegrationEvent
-{
-    /// <summary>
-    /// 摘要
-    /// </summary>
-    public string? Summary { get; set; } = "topic_queue1";
-}

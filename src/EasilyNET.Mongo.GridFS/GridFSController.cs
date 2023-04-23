@@ -4,6 +4,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
 
+// ReSharper disable UnusedMemberHierarchy.Global
 // ReSharper disable VirtualMemberNeverOverridden.Global
 // ReSharper disable UnusedMember.Global
 
@@ -40,6 +41,7 @@ public class GridFSController : ControllerBase
     /// </summary>
     /// <param name="bucket"></param>
     /// <param name="collection"></param>
+    // ReSharper disable once MemberCanBeProtected.Global
     public GridFSController(GridFSBucket bucket, IMongoCollection<GridFSItemInfo> collection)
     {
         Bucket = bucket;
@@ -230,6 +232,7 @@ public class GridFSController : ControllerBase
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPut("{id}/Rename/{newName}")]
+    // ReSharper disable once MemberCanBeProtected.Global
     public virtual Task Rename(string id, string newName, CancellationToken cancellationToken)
     {
         _ = Bucket.RenameAsync(ObjectId.Parse(id), newName, cancellationToken);
@@ -244,6 +247,7 @@ public class GridFSController : ControllerBase
     /// <param name="ids">文件ID集合</param>
     /// <returns></returns>
     [HttpDelete]
+    // ReSharper disable once MemberCanBeProtected.Global
     public virtual async Task<IEnumerable<string>> Delete(CancellationToken cancellationToken, params string[] ids)
     {
         var oids = ids.Select(ObjectId.Parse).ToList();

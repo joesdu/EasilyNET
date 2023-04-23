@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using EasilyNET.Core.BaseType;
+using System.Text.Json.Serialization;
 
 namespace EasilyNET.RabbitBus.Core;
 
@@ -8,14 +9,14 @@ namespace EasilyNET.RabbitBus.Core;
 public class IntegrationEvent : IIntegrationEvent
 {
     /// <summary>
-    /// 事件ID
+    /// 事件ID,雪花ID算法
     /// </summary>
     [JsonInclude]
-    public string EventId { get; } = Guid.NewGuid().ToString();
+    public string EventId { get; } = SnowId.GenerateNewId().ToString();
 
     /// <summary>
     /// 事件创建时间
     /// </summary>
     [JsonInclude]
-    public DateTime EventCreateDate { get; } = DateTime.Now;
+    public DateTime EventCreateDate { get; } = DateTime.Now.ToLocalTime();
 }
