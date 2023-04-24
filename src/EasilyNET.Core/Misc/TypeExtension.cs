@@ -198,4 +198,34 @@ public static class TypeExtension
         sb.Append('>');
         return sb.ToString();
     }
+
+    /*
+    /// <summary>
+    /// 使用反射深度克隆一个对象
+    /// </summary>
+    /// <typeparam name="T">非空类型</typeparam>
+    /// <param name="value"></param>
+    /// <param name="args">若无默认构造函数则需要传递参数</param>
+    /// <returns>返回一个新的对象</returns>
+    public static T DepthClone<T>(this T value, params object[] args) where T : notnull
+    {
+        var type = value.GetType();
+        var copy = (T)Activator.CreateInstance(type, args)!;
+        var properties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        foreach (var property in properties)
+        {
+            if (!property.CanWrite) continue;
+            if (property.PropertyType.IsValueType || property.PropertyType == typeof(string))
+            {
+                property.SetValue(copy, property.GetValue(value));
+            }
+            else
+            {
+                var obj = property.GetValue(value);
+                property.SetValue(copy, obj is null ? null : DepthClone(obj));
+            }
+        }
+        return copy;
+    }
+    */
 }
