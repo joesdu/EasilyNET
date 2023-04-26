@@ -1,6 +1,6 @@
 ### EasilyNET
 
-**注意:** 由于本项目一般会试用和支持最新版本的.NET SDK,所以为了保证你能正常编译,请确保运行之前安装当前最新版本的SDK预览版,如现在为: .NET8 preview-2
+**注意:** 由于本项目一般会试用和支持最新版本的.NET SDK,所以为了保证你能正常编译,请确保运行之前安装当前最新版本的 SDK 预览版,如现在为: .NET8 preview-2
 
 [![LICENSE](https://img.shields.io/github/license/EasilyNET/EasilyNET)](https://img.shields.io/github/license/EasilyNET/EasilyNET)
 [![ISSUES](https://img.shields.io/github/issues/EasilyNET/EasilyNET)](https://img.shields.io/github/issues/EasilyNET/EasilyNET)
@@ -16,7 +16,7 @@ EasilyNET Packages
 - simplifying the use of mongodb drivers
 - some common tool extensions
 - automatic module injection
-- mongodb adds (dynamic|object) serialization support (mongodb.driver 2.19.0+ onwards has removed it) 
+- mongodb adds (dynamic|object) serialization support (mongodb.driver 2.19.0+ onwards has removed it)
 - mongodb storage support for identityserver 6
 - mongodb gridfs usage simplification support
 - integration of some common filters, middleware in webapi
@@ -33,7 +33,8 @@ EasilyNET Packages
 | [EasilyNET.Mongo.Extension](https://www.nuget.org/packages/EasilyNET.Mongo.Extension)                         | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Mongo.Extension)             | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Mongo.Extension)             | MongoDB 的类型扩展,以及自定义类型扩展方案                                      |
 | [EasilyNET.Mongo.GridFS](https://www.nuget.org/packages/EasilyNET.Mongo.GridFS)                               | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Mongo.GridFS)                | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Mongo.GridFS)                | MongoDB GridFS 对象存储解决方案,使对象存储操作简便                             |
 | [EasilyNET.Mongo.GridFS.Extension](https://www.nuget.org/packages/EasilyNET.Mongo.GridFS.Extension)           | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Mongo.GridFS.Extension)      | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Mongo.GridFS.Extension)      | EasilyNET.Mongo.GridFS 扩展,添加虚拟文件系统,便于文件在线查看                  |
-| [EasilyNET.WebCore](https://www.nuget.org/packages/EasilyNET.WebCore)                                         | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.WebCore)                     | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.WebCore)                     | 提供 Swagger 的一些 Filter,以及 JsonConverter,和全局统一返回和异常处理支持     |
+| [EasilyNET.WebCore](https://www.nuget.org/packages/EasilyNET.WebCore)                                         | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.WebCore)                     | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.WebCore)                     | 提供 JsonConverter,和全局统一返回和异常处理支持,以及一些 WebAPI 常用的东西     |
+| [EasilyNET.WebCore.Swagger](https://www.nuget.org/packages/EasilyNET.WebCore.Swagger)                         | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.WebCore.Swagger)             | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.WebCore.Swagger)             | 提供 Swagger 的一些 Filter 实现.                                               |
 | [EasilyNET.Security](https://www.nuget.org/packages/EasilyNET.Security)                                       | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Security)                    | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Security)                    | 一个常用加密算法的封装库,从使用简单的目的出发                                  |
 
 ![微信公众号](https://github.com/joesdu/joesdu/blob/main/wechat-official-account.png#pic_center)
