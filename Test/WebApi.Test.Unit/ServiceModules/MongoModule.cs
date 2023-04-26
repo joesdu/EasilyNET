@@ -27,7 +27,7 @@ public class MongoModule : AppModule
         context.Services.AddMongoContext<DbContext>(provider, new MongoClientSettings
         {
             Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
-            Credential = MongoCredential.CreateCredential("admin", "oneblogs", "&oneblogs789")
+            Credential = MongoCredential.CreateCredential("admin", "oneblogs", "test789")
             // 新版驱动使用V3版本,有可能会出现一些Linq表达式客户端函数无法执行,需要调整代码,但是工作量太大了,所以可以先使用V2兼容.
             //LinqProvider = LinqProvider.V3
             // 对接 SkyAPM 的 MongoDB探针
