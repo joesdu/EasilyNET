@@ -1,15 +1,28 @@
 using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.Core.Misc;
 using EasilyNET.Core.PinYin;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Serilog;
 using Serilog.Events;
 using WebApi.Test.Unit;
 
 AssemblyHelper.AddExcludeLibs("Npgsql.");
 var builder = WebApplication.CreateBuilder(args);
+// 汉字转拼音
 Console.WriteLine("微软爸爸就是牛逼");
 Console.WriteLine(PyTools.GetPinYin("微软爸爸就是牛逼"));
 Console.WriteLine(PyTools.GetInitials("微软爸爸就是牛逼"));
+// 配置Kestrel支持HTTP1,2,3
+builder.WebHost.ConfigureKestrel((_, op) =>
+{
+    // 配置监听端口和IP
+    op.ListenAnyIP(443, lo =>
+    {
+        lo.Protocols = HttpProtocols.Http1AndHttp2AndHttp3;
+        lo.UseHttps();
+    });
+    op.ListenAnyIP(80, lo => lo.Protocols = HttpProtocols.Http1);
+});
 
 //添加Serilog配置
 _ = builder.Host.UseSerilog((hbc, lc) =>
