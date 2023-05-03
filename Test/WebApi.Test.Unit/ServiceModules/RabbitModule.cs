@@ -17,7 +17,7 @@ public class RabbitModule : AppModule
     {
         context.Services.AddRabbitBus(c =>
         {
-            c.Host = "localhost";
+            c.Host = "127.0.0.1";
             c.Port = 5672;
             c.UserName = "guest";
             c.PassWord = "guest";
