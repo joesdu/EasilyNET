@@ -1,4 +1,6 @@
-﻿namespace EasilyNET.Mongo.GridFS.Extension;
+﻿// ReSharper disable ClassNeverInstantiated.Global
+
+namespace EasilyNET.Mongo.GridFS.Extension;
 
 /// <summary>
 /// 虚拟文件路径的一些参数配置

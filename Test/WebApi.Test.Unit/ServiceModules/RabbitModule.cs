@@ -1,4 +1,5 @@
 ﻿using EasilyNET.AutoDependencyInjection.Contexts;
+using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.AutoDependencyInjection.Modules;
 using EasilyNET.RabbitBus;
 
@@ -15,14 +16,7 @@ public class RabbitModule : AppModule
     /// <param name="context"></param>
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        context.Services.AddRabbitBus(c =>
-        {
-            c.Host = "127.0.0.1";
-            c.Port = 5672;
-            c.UserName = "guest";
-            c.PassWord = "guest";
-            c.RetryCount = 5;
-            c.VirtualHost = "/";
-        });
+        var config = context.Services.GetConfiguration();
+        context.Services.AddRabbitBus(config);
     }
 }
