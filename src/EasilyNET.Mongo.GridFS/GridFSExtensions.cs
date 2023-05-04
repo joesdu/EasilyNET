@@ -35,10 +35,12 @@ public static class GridFSExtensions
         BusinessApp = options.BusinessApp;
         var easily_db = options.DefaultDB ? client!.GetDatabase("easilyfs") : db;
         _ = services.Configure<FormOptions>(c =>
-        {
-            c.MultipartBodyLengthLimit = long.MaxValue;
-            c.ValueLengthLimit = int.MaxValue;
-        }).Configure<KestrelServerOptions>(c => c.Limits.MaxRequestBodySize = int.MaxValue).AddSingleton(new GridFSBucket(easily_db, options.Options));
-        _ = services.AddSingleton(easily_db!.GetCollection<GridFSItemInfo>(options.ItemInfo));
+                    {
+                        c.MultipartHeadersLengthLimit = int.MaxValue;
+                        c.MultipartBodyLengthLimit = long.MaxValue;
+                        c.ValueLengthLimit = int.MaxValue;
+                    }).Configure<KestrelServerOptions>(c => c.Limits.MaxRequestBodySize = null)
+                    .AddSingleton(new GridFSBucket(easily_db, options.Options))
+                    .AddSingleton(easily_db!.GetCollection<GridFSItemInfo>(options.ItemInfo));
     }
 }
