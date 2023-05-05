@@ -2,7 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace EasilyNET.RabbitBus;
+namespace EasilyNET.RabbitBus.Manager;
 
 /// <summary>
 /// 后台任务进行事件订阅

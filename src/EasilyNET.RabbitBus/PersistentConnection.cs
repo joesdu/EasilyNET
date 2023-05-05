@@ -9,7 +9,7 @@ using System.Net.Sockets;
 namespace EasilyNET.RabbitBus;
 
 /// <summary>
-/// RabbitMQ链接
+/// RabbitMQ持久链接
 /// </summary>
 internal sealed class PersistentConnection : IPersistentConnection, IDisposable
 {
@@ -17,6 +17,7 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly ILogger<PersistentConnection> _logger;
     private readonly int _retryCount;
+    private readonly List<AmqpTcpEndpoint>? _tcpEndpoints;
     private IConnection? _connection;
     private bool _disposed;
 
@@ -25,13 +26,15 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
     /// </summary>
     /// <param name="connectionFactory"></param>
     /// <param name="logger"></param>
+    /// <param name="tcpEndpoints"></param>
     /// <param name="retryCount"></param>
     /// <exception cref="ArgumentNullException"></exception>
-    internal PersistentConnection(IConnectionFactory connectionFactory, ILogger<PersistentConnection> logger, int retryCount = 5)
+    internal PersistentConnection(IConnectionFactory connectionFactory, ILogger<PersistentConnection> logger, int retryCount = 5, List<AmqpTcpEndpoint>? tcpEndpoints = null)
     {
         _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _retryCount = retryCount;
+        _tcpEndpoints = tcpEndpoints;
     }
 
     /// <summary>
@@ -86,7 +89,7 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
                                .Or<BrokerUnreachableException>()
                                .WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
                                    _logger.LogWarning(ex, "RabbitMQ客户端在{TimeOut}s超时后无法创建链接,({ExceptionMessage})", $"{time.TotalSeconds:n1}", ex.Message));
-            _ = policy.Execute(() => _connection = _connectionFactory.CreateConnection());
+            policy.Execute(() => _connection = _tcpEndpoints is not null && _tcpEndpoints.Count > 0 ? _connectionFactory.CreateConnection(_tcpEndpoints) : _connectionFactory.CreateConnection());
             if (IsConnected && _connection is not null)
             {
                 _connection.ConnectionShutdown += OnConnectionShutdown;
