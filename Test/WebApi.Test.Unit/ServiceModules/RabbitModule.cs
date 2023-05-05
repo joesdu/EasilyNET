@@ -17,12 +17,6 @@ public class RabbitModule : AppModule
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var config = context.Services.GetConfiguration();
-        context.Services.AddRabbitBus(c =>
-        {
-            c.AmqpTcpEndpoints = new()
-            {
-                new("localhost")
-            };
-        });
+        context.Services.AddRabbitBus(config);
     }
 }
