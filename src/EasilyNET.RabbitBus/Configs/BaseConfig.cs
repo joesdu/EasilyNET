@@ -1,17 +1,13 @@
 ﻿// ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 
-namespace EasilyNET.RabbitBus;
+namespace EasilyNET.RabbitBus.Configs;
 
 /// <summary>
-/// RabbitMQ配置
+/// Amqp端点
 /// </summary>
-public class RabbitConfig
+// ReSharper disable once ClassNeverInstantiated.Global
+public class BaseConfig
 {
-    /// <summary>
-    /// 主机名(IP地址)
-    /// </summary>
-    public string Host { get; set; } = "localhost";
-
     /// <summary>
     /// 密码
     /// </summary>
@@ -26,11 +22,6 @@ public class RabbitConfig
     /// 尝试重连次数
     /// </summary>
     public int RetryCount { get; set; } = 5;
-
-    /// <summary>
-    /// 端口
-    /// </summary>
-    public int Port { get; set; } = 5672;
 
     /// <summary>
     /// 虚拟主机

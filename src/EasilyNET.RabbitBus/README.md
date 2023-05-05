@@ -7,7 +7,7 @@
 - Step1.在 Program.cs 中配置消息总线
 
 ```csharp
-// 配置服务
+// 配置服务(亦可使用集群模式或者使用配置文件)
 builder.Services.AddRabbitBus(c =>
 {
     c.Host = "192.168.2.110";

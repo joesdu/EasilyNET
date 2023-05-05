@@ -2,6 +2,8 @@
 using EasilyNET.RabbitBus.Core.Attributes;
 using System.Reflection;
 
+// ReSharper disable UnusedMember.Global
+
 namespace EasilyNET.RabbitBus.Extensions;
 
 internal static class IntegrationEventExtension
