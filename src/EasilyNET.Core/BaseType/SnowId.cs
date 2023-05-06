@@ -14,7 +14,6 @@
 */
 
 using EasilyNET.Core.Misc;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Security;
 
@@ -244,7 +243,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     /// 因此,如果我们内联此调用,则调用方法将不会在引发异常之前执行,该异常要求在我们不一定控制的更高级别进行try/catch
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static int GetCurrentProcessId() => Process.GetCurrentProcess().Id;
+    private static int GetCurrentProcessId() => Environment.ProcessId;
 
     private static int GetMachineHash()
     {

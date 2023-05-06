@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.Extension</PackageProjectUrl>
         <Description>为MongoDB添加.Net 6+ Date/Time Only类型支持.</Description>
     </PropertyGroup>

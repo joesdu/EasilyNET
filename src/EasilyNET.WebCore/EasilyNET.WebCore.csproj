@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.WebCore</PackageProjectUrl>
         <Description>包含Swagger的一些扩展的WebCore扩展</Description>
     </PropertyGroup>

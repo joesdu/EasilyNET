@@ -22,7 +22,11 @@ builder.WebHost.ConfigureKestrel((_, op) =>
         lo.UseHttps();
     });
     op.ListenAnyIP(80, lo => lo.Protocols = HttpProtocols.Http1);
+    // 当需要上传文件的时候配置这个东西,防止默认值太小影响大文件上传
+    op.Limits.MaxRequestBodySize = null;
 });
+// 配置IIS上传文件大小限制.
+builder.Services.Configure<IISServerOptions>(c => c.MaxRequestBodySize = null);
 
 //添加Serilog配置
 _ = builder.Host.UseSerilog((hbc, lc) =>

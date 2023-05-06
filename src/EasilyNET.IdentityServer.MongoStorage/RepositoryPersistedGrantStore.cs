@@ -34,7 +34,7 @@ public class RepositoryPersistedGrantStore : IPersistedGrantStore
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
-    public Task<PersistedGrant> GetAsync(string key) => Task.FromResult(Repository.Single<PersistedGrant>(i => i.Key == key));
+    public Task<PersistedGrant?> GetAsync(string key) => Task.FromResult(Repository.Single<PersistedGrant>(i => i.Key == key))!;
 
     /// <summary>
     /// 移除所有

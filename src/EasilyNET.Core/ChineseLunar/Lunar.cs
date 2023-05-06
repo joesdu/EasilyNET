@@ -399,9 +399,7 @@ public static class Lunar
                 }
                 else
                 {
-#pragma warning disable IDE0048
                     if ((lastLeap == 11 && result[1] == 12) || (lastLeap == 12 && result[1] == 11))
-#pragma warning restore IDE0048
                         result[1] = 12;
                 }
             }
@@ -595,9 +593,7 @@ public static class Lunar
         var day = date[2];
         return month is <= 12 and >= 1 &&
                day is <= 31 and >= 1 &&
-#pragma warning disable IDE0048
                (day != 31 || (month != 2 && month != 4 && month != 6 && month != 9 && month != 11)) &&
-#pragma warning restore IDE0048
                (month != 2 ||
                 day switch
                 {
