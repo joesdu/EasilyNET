@@ -138,12 +138,7 @@ public static class PyTools
         foreach (var index in PyHash.Hashes[hash])
         {
             var pos = PyCode.Codes[index].IndexOf(ch, 7);
-            if (pos != -1)
-#if !NETSTANDARD2_0
-                return $"{PyCode.Codes[index][..6].Trim()} ";
-#else
-                return $"{PyCode.Codes[index].Substring(0, 6).Trim()} ";
-#endif
+            if (pos != -1) return $"{PyCode.Codes[index][..6].Trim()} ";
         }
         return ch.ToString();
     }
@@ -162,12 +157,7 @@ public static class PyTools
         foreach (var index in PyHash.Hashes[hash])
         {
             var pos = PyCode.Codes[index].IndexOf(ch, 7);
-            if (pos != -1)
-#if !NETSTANDARD2_0
-                return $"{PyCode.Codes[index][..6].Trim()} ";
-#else
-                return $"{PyCode.Codes[index].Substring(0, 6).Trim()} ";
-#endif
+            if (pos != -1) return $"{PyCode.Codes[index][..6].Trim()} ";
         }
         return defaultStr;
     }
@@ -225,11 +215,7 @@ public static class PyTools
         foreach (var str in PyCode.Codes)
         {
             if (str.StartsWith($"{key} ") || str.StartsWith($"{key}:"))
-#if !NETSTANDARD2_0
                 return str[7..];
-#else
-                return str.Substring(7, str.Length - 7);
-#endif
         }
         return string.Empty;
     }

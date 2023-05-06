@@ -20,12 +20,7 @@ public static class SHA
     public static string SHA1(this string content)
     {
         var bytes = Encoding.UTF8.GetBytes(content);
-#if NETSTANDARD
-        var sha = System.Security.Cryptography.SHA1.Create();
-        var encrypt = sha.ComputeHash(bytes);
-#else
         var encrypt = System.Security.Cryptography.SHA1.HashData(bytes);
-#endif
         return Convert.ToBase64String(encrypt);
     }
 
@@ -37,12 +32,7 @@ public static class SHA
     public static string SHA256(this string content)
     {
         var bytes = Encoding.UTF8.GetBytes(content);
-#if NETSTANDARD
-        var sha = System.Security.Cryptography.SHA256.Create();
-        var encrypt = sha.ComputeHash(bytes);
-#else
         var encrypt = System.Security.Cryptography.SHA256.HashData(bytes);
-#endif
         return Convert.ToBase64String(encrypt);
     }
 
@@ -54,12 +44,7 @@ public static class SHA
     public static string SHA384(this string content)
     {
         var bytes = Encoding.UTF8.GetBytes(content);
-#if NETSTANDARD
-        var sha = System.Security.Cryptography.SHA384.Create();
-        var encrypt = sha.ComputeHash(bytes);
-#else
         var encrypt = System.Security.Cryptography.SHA384.HashData(bytes);
-#endif
         return Convert.ToBase64String(encrypt);
     }
 
@@ -71,12 +56,7 @@ public static class SHA
     public static string SHA512(this string content)
     {
         var bytes = Encoding.UTF8.GetBytes(content);
-#if NETSTANDARD
-        var sha = System.Security.Cryptography.SHA512.Create();
-        var encrypt = sha.ComputeHash(bytes);
-#else
         var encrypt = System.Security.Cryptography.SHA512.HashData(bytes);
-#endif
         return Convert.ToBase64String(encrypt);
     }
 }

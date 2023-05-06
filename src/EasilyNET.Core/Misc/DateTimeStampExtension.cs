@@ -139,35 +139,19 @@ public static class DateTimeStampExtension
             switch (value[end])
             {
                 case 's' when value[end - 1] == 'm':
-#if !NETSTANDARD2_0
                     value = value[..^2];
-#else
-                    value = value.Substring(0, value.Length - 2);
-#endif
                     multiplier = 1;
                     break;
                 case 's':
-#if !NETSTANDARD2_0
                     value = value[..^1];
-#else
-                    value = value.Substring(0, value.Length - 1);
-#endif
                     multiplier = 1000;
                     break;
                 case 'm':
-#if !NETSTANDARD2_0
                     value = value[..^1];
-#else
-                    value = value.Substring(0, value.Length - 1);
-#endif
                     multiplier = 60 * 1000;
                     break;
                 case 'h':
-#if !NETSTANDARD2_0
                     value = value[..^1];
-#else
-                    value = value.Substring(0, value.Length - 1);
-#endif
                     multiplier = 60 * 60 * 1000;
                     break;
                 default:

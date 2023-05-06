@@ -140,13 +140,8 @@ public static class IEnumerableExtensions
     /// <returns></returns>
     public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
     {
-#if NETSTANDARD
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (keySelector == null) throw new ArgumentNullException(nameof(keySelector));
-#else
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(keySelector);
-#endif
         return source.GroupBy(keySelector).Select(x => x.First());
     }
 
@@ -173,15 +168,9 @@ public static class IEnumerableExtensions
     /// <returns></returns>
     public static IEnumerable<TSource> IntersectBy<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TKey> second, Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer)
     {
-#if NETSTANDARD
-        if (first == null) throw new ArgumentNullException(nameof(first));
-        if (second == null) throw new ArgumentNullException(nameof(second));
-        if (keySelector == null) throw new ArgumentNullException(nameof(keySelector));
-#else
         ArgumentNullException.ThrowIfNull(first);
         ArgumentNullException.ThrowIfNull(second);
         ArgumentNullException.ThrowIfNull(keySelector);
-#endif
         return IntersectByIterator(first, second, keySelector, comparer);
     }
 
@@ -219,15 +208,9 @@ public static class IEnumerableExtensions
     /// <exception cref="ArgumentNullException"></exception>
     public static IEnumerable<TSource> ExceptBy<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TKey> second, Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer)
     {
-#if NETSTANDARD
-        if (first == null) throw new ArgumentNullException(nameof(first));
-        if (second == null) throw new ArgumentNullException(nameof(second));
-        if (keySelector == null) throw new ArgumentNullException(nameof(keySelector));
-#else
         ArgumentNullException.ThrowIfNull(first);
         ArgumentNullException.ThrowIfNull(second);
         ArgumentNullException.ThrowIfNull(keySelector);
-#endif
         var set = new HashSet<TKey>(second, comparer);
         return first.Where(item => set.Add(keySelector(item)));
     }

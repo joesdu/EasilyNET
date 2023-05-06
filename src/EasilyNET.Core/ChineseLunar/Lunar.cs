@@ -202,13 +202,8 @@ public static class Lunar
     private static string[] Init()
     {
         var dataTop = LunarConfigs.Config;
-#if !NETSTANDARD2_0
         var year = dataTop[1][..4];
         var lastYearStr = dataTop[^1][..4];
-#else
-        var year = dataTop[1].Substring(0, 4);
-        var lastYearStr = dataTop[dataTop.Length - 1].Substring(0, 4);
-#endif
         First_Year = int.Parse(year);
         Last_Year = int.Parse(lastYearStr);
         return dataTop;
@@ -261,11 +256,7 @@ public static class Lunar
         var year2 = year;
         while (year2 != 0)
         {
-#if !NETSTANDARD2_0
             _ = sb.Append("零一二三四五六七八九".AsSpan(year2 % 10, 1));
-#else
-            _ = sb.Append("零一二三四五六七八九".Substring(year2 % 10, 1));
-#endif
             year2 /= 10;
         }
         var r = sb.ToString();
@@ -311,11 +302,7 @@ public static class Lunar
 
     private static void Load(IList<string> dataInit, string data, int startYear)
     {
-#if !NETSTANDARD2_0
         var temp = data[..4];
-#else
-        var temp = data.Substring(0, 4);
-#endif
         dataInit[int.Parse(temp) - startYear] = data;
     }
 
@@ -338,11 +325,7 @@ public static class Lunar
     private static string AddLastMonth(string thisYear, string lastYear)
     {
         // last=110_07
-#if !NETSTANDARD2_0
         var last = lastYear[19..];
-#else
-        var last = GetNovemberAndDecember(lastYear.Substring(19, lastYear.Length - 19));
-#endif
         var mid = GetNovemberAndDecember(last); //mid=10
         var sb = new StringBuilder(thisYear);
         return sb.Insert(9, mid).ToString();
@@ -350,13 +333,8 @@ public static class Lunar
 
     private static int[] Cast(string start, string now, IReadOnlyList<int> bigOrLitter, int leap)
     {
-#if !NETSTANDARD2_0
         var dateStart = new DateTime(int.Parse(start[..4]), int.Parse(start.Substring(4, 2)), int.Parse(start.Substring(6, 2)));
         var dateNow = new DateTime(int.Parse(now[..4]), int.Parse(now.Substring(4, 2)), int.Parse(now.Substring(6, 2)));
-#else
-        var dateStart = new DateTime(int.Parse(start.Substring(0, 4)), int.Parse(start.Substring(4, 2)), int.Parse(start.Substring(6, 2)));
-        var dateNow = new DateTime(int.Parse(now.Substring(0, 4)), int.Parse(now.Substring(4, 2)), int.Parse(now.Substring(6, 2)));
-#endif
         var numStart = dateStart.DayOfYear; //新年的累计天数
         var numNow = dateNow.DayOfYear;     //当前日期的累计天数
         var dif = numNow - numStart;        //当前日期相对天数,相对新年 新年为0天
@@ -435,11 +413,7 @@ public static class Lunar
 
     private static int[] Cast(string now, string data)
     {
-#if !NETSTANDARD2_0
-        var start = data[..8]; //春节年月日
-#else
-        var start = data.Substring(0, 8);
-#endif
+        var start = data[..8];                      //春节年月日
         var bigOrLitterStr = data.Substring(9, 15); //15个月的大小月 包含去年的两个月与今年的闰月大小
         var leapStr = data.Substring(25, 2);        //闰月闰的月份两位数
         var bigOrLitter = new int[15];              //将15个月的大小转为数组
@@ -457,22 +431,11 @@ public static class Lunar
     /// </summary>
     /// <param name="last"></param>
     /// <returns></returns>
-    private static string GetNovemberAndDecember(string last)
-    {
-#if !NETSTANDARD2_0
-        return last[..2];
-#else
-        return last.Substring(0, 2);
-#endif
-    }
+    private static string GetNovemberAndDecember(string last) => last[..2];
 
     private static int[] Cast(string now, IReadOnlyList<string> dataInit, int startYear)
     {
-#if !NETSTANDARD2_0
         var year = now[..4];
-#else
-        var year = now.Substring(0, 4);
-#endif
         var numYear = int.Parse(year);
         var data = dataInit[numYear - startYear];
         var dataLast = dataInit[numYear - startYear - 1];
@@ -532,11 +495,7 @@ public static class Lunar
 #pragma warning disable SYSLIB1045 // 转换为“GeneratedRegexAttribute”。
         if (new Regex(@"\d{8}").Match(date).Success)
         {
-#if !NETSTANDARD2_0
             year = int.Parse(date[..4]);
-#else
-            year = int.Parse(date.Substring(0, 4));
-#endif
             month = int.Parse(date.Substring(4, 2));
             day = int.Parse(date.Substring(6, 2));
         }
@@ -632,11 +591,7 @@ public static class Lunar
     private static int[] Cast2Array(string now)
     {
         var dataTop = dataTopInit;
-#if !NETSTANDARD2_0
         var year = dataTop[1][..4];
-#else
-        var year = dataTop[1].Substring(0, 4);
-#endif
         var startYear = int.Parse(year);
         var data = new string[dataTop.Length];
         foreach (var t in dataTop) Load(data, t, startYear - 1);
