@@ -1,6 +1,4 @@
-﻿#if !NETSTANDARD2_0
-using EasilyNET.Core.Language;
-#endif
+﻿using EasilyNET.Core.Language;
 
 namespace EasilyNET.Core.IdCard;
 
@@ -37,23 +35,12 @@ public static class IDCardValidation
         if (!DateTime.TryParse(birth, out _)) return false; //生日验证
         var Ai = no.Remove(17).ToCharArray();
         var sum = 0;
-#if !NETSTANDARD2_0
         foreach (var i in ..16)
         {
             sum += Wi[i] * int.Parse(Ai[i].ToString());
         }
-#else
-        for (var i = 0; i < 17; i++)
-        {
-            sum += Wi[i] * int.Parse(Ai[i].ToString());
-        }
-#endif
         _ = Math.DivRem(sum, 11, out var y);
-#if !NETSTANDARD2_0
         return verifyCode[y] == no[17..];
-#else
-        return verifyCode[y] == no.Substring(17);
-#endif
     }
 
     /// <summary>

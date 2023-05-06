@@ -183,13 +183,9 @@ public static class TypeExtension
             return type.Name;
         }
         var sb = new StringBuilder();
-#if !NETSTANDARD
 #pragma warning disable SYSLIB1045
-#endif
         sb.Append($"{Regex.Replace(type.Name, @"\`\d+$", "")}<");
-#if !NETSTANDARD
 #pragma warning restore SYSLIB1045
-#endif
         foreach (var typeParameter in typeInfo.GetGenericArguments())
         {
             sb.Append($"{typeParameter.GetFriendlyTypeName()}, ");

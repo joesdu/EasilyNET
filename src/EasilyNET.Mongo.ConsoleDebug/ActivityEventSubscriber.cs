@@ -73,9 +73,8 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
     }
 
     private static bool Predicate(string name) => !string.IsNullOrWhiteSpace(name);
-#if !NETSTANDARD
-#pragma warning disable CA1822
-#endif
+
+#pragma warning disable CA1822 // 将成员标记为 static
     private void Handle(CommandSucceededEvent @event)
     {
         if (!CommandsWithCollectionNameAsValue.Contains(@event.CommandName))
@@ -95,8 +94,6 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
         Console.WriteLine("Failed");
         Console.ForegroundColor = ConsoleColor.White;
     }
-#if !NETSTANDARD
-#pragma warning restore CA1822
-#endif
+#pragma warning restore CA1822 // 将成员标记为 static
 #pragma warning restore IDE0051
 }

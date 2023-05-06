@@ -117,12 +117,8 @@ internal class ModuleApplicationBase : IModuleApplication
     /// <returns></returns>
     private static IAppModule? CreateModule(IServiceCollection services, Type moduleType)
     {
-#if NETSTANDARD
-        var module = Expression.Lambda(Expression.New(moduleType)).Compile().DynamicInvoke() as IAppModule ?? throw new ArgumentNullException(nameof(moduleType));
-#else
         var module = Expression.Lambda(Expression.New(moduleType)).Compile().DynamicInvoke() as IAppModule;
         ArgumentNullException.ThrowIfNull(module, nameof(moduleType));
-#endif
         if (!module.Enable) return null;
         _ = services.AddSingleton(moduleType, module);
         return module;

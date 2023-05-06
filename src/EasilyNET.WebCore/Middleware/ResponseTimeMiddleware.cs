@@ -7,6 +7,7 @@ namespace EasilyNET.WebCore.Middleware;
 /// <summary>
 /// API耗时监控中间件,应尽量靠前,越靠前越能体现整个管道中所有管道的耗时,越靠后越能体现Action的执行时间.可根据实际情况灵活配置位置.
 /// </summary>
+// ReSharper disable once ClassNeverInstantiated.Global
 public sealed class ResponseTimeMiddleware
 {
     private const string ResponseTime = "EasilyNET-Response-Time";

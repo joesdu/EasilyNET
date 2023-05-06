@@ -214,11 +214,7 @@ public static class StreamExtensions
         sr.Close();
         sr.Dispose();
         stream.Close();
-#if !NETSTANDARD2_0
         await stream.DisposeAsync().ConfigureAwait(false);
-#else
-        stream.Dispose();
-#endif
         return stringList;
     }
 
@@ -237,11 +233,7 @@ public static class StreamExtensions
         sr.Close();
         sr.Dispose();
         stream.Close();
-#if !NETSTANDARD2_0
         await stream.DisposeAsync().ConfigureAwait(false);
-#else
-        stream.Dispose();
-#endif
         return text;
     }
 
@@ -263,13 +255,8 @@ public static class StreamExtensions
         {
             sw.Close();
             stream.Close();
-#if !NETSTANDARD2_0
             await sw.DisposeAsync().ConfigureAwait(false);
             await stream.DisposeAsync().ConfigureAwait(false);
-#else
-            sw.Dispose();
-            stream.Dispose();
-#endif
         }
     }
 
@@ -294,13 +281,8 @@ public static class StreamExtensions
         {
             sw.Close();
             stream.Close();
-#if !NETSTANDARD2_0
             await sw.DisposeAsync().ConfigureAwait(false);
             await stream.DisposeAsync().ConfigureAwait(false);
-#else
-            sw.Dispose();
-            stream.Dispose();
-#endif
         }
     }
 
@@ -313,11 +295,7 @@ public static class StreamExtensions
     {
         stream.Position = 0L;
         var bytes = new byte[stream.Length];
-#if !NETSTANDARD2_0
         _ = await stream.ReadAsync(bytes, cancellationToken);
-#else
-        _ = await stream.ReadAsync(bytes, 0, bytes.Length, cancellationToken);
-#endif
         stream.Seek(0L, SeekOrigin.Begin);
         return bytes;
     }

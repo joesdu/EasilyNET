@@ -44,11 +44,7 @@ public static class StringExtension
         while (pos >= 0)
         {
             pos = value.IndexOf(separator, index, StringComparison.CurrentCultureIgnoreCase);
-#if !NETSTANDARD2_0
             col.Add(pos >= 0 ? value[index..pos] : value[index..]);
-#else
-            col.Add(pos < 0 ? value.Substring(index, value.Length - index) : value.Substring(index, pos - index));
-#endif
             index = pos + len;
         }
         return col;
@@ -71,11 +67,7 @@ public static class StringExtension
                 var str = m.ToString();
                 if (!char.IsLower(str[0])) return str;
                 var header = lower ? char.ToLower(str[0], CultureInfo.CurrentCulture) : char.ToUpper(str[0], CultureInfo.CurrentCulture);
-#if !NETSTANDARD2_0
                 return $"{header}{str[1..]}";
-#else
-                return $"{header}{str.Substring(1)}";
-#endif
             });
     }
 
@@ -125,15 +117,7 @@ public static class StringExtension
     /// <param name="len"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
-    public static string Left(this string str, int len)
-    {
-        if (str.Length < len) throw new ArgumentException("len参数不能大于给定字符串的长度");
-#if !NETSTANDARD2_0
-        return str[..len];
-#else
-        return str.Substring(0, len);
-#endif
-    }
+    public static string Left(this string str, int len) => str.Length < len ? throw new ArgumentException("len参数不能大于给定字符串的长度") : str[..len];
 
     /// <summary>
     /// 从字符串的末尾得到一个字符串的子串 len参数不能大于给定字符串的长度
@@ -150,14 +134,7 @@ public static class StringExtension
     /// <param name="str"></param>
     /// <param name="len"></param>
     /// <returns></returns>
-    public static string MaxLeft(this string str, int len)
-    {
-#if !NETSTANDARD2_0
-        return str.Length < len ? str : str[..len];
-#else
-        return str.Length < len ? str : str.Substring(0, len);
-#endif
-    }
+    public static string MaxLeft(this string str, int len) => str.Length < len ? str : str[..len];
 
     /// <summary>
     /// 从字符串的末尾得到一个字符串的子串
@@ -208,22 +185,12 @@ public static class StringExtension
     /// <param name="maxLength">最大长度(添加后缀后的长度)</param>
     /// <param name="suffix">后缀,默认: ...</param>
     /// <returns></returns>
-    public static string Truncate(this string value, int maxLength, string suffix = "...")
-    {
-#if !NETSTANDARD2_0
-        return string.IsNullOrEmpty(value) || value.Length <= maxLength
-                   ? value
-                   : maxLength - suffix.Length <= 0
-                       ? suffix[..maxLength]
-                       : $"{value[..(maxLength - suffix.Length)]}{suffix}";
-#else
-        return string.IsNullOrEmpty(value) || value.Length <= maxLength
-                   ? value
-                   : maxLength - suffix.Length > 0
-                       ? value.Substring(0, maxLength - suffix.Length) + suffix
-                       : suffix.Substring(0, maxLength);
-#endif
-    }
+    public static string Truncate(this string value, int maxLength, string suffix = "...") =>
+        string.IsNullOrEmpty(value) || value.Length <= maxLength
+            ? value
+            : maxLength - suffix.Length <= 0
+                ? suffix[..maxLength]
+                : $"{value[..(maxLength - suffix.Length)]}{suffix}";
 
     /// <summary>
     /// 将JSON字符串符合条件的字段,按照最大长度截断
@@ -345,11 +312,7 @@ public static class StringExtension
 #pragma warning restore SYSLIB1045
         if (value.Split('-').Length == 1 && value.Length == 8)
         {
-#if !NETSTANDARD2_0
             value = string.Join("-", value[..4], value.Substring(4, 2), value.Substring(6, 2));
-#else
-            value = string.Join("-", value.Substring(0, 4), value.Substring(4, 2), value.Substring(6, 2));
-#endif
         }
         return DateTime.TryParse(value, out var date)
                    ? date
@@ -373,7 +336,7 @@ public static class StringExtension
                        ? throw new ArgumentException("string format is not correct,must like:2020/10/01,2020-10-01,20201001,2020.10.01")
                        : string.Empty;
     }
-#if !NETSTANDARD
+
     /// <summary>
     /// 获取某个日期串的DateOnly
     /// </summary>
@@ -387,7 +350,6 @@ public static class StringExtension
     /// <param name="value">格式如: 23:20:10</param>
     /// <returns></returns>
     public static TimeOnly ToTimeOnly(this string value) => TimeOnly.FromDateTime($"{DateTime.Now:yyyy-MM-dd} {value}".ToDateTime());
-#endif
 
     /// <summary>
     /// 将字符串转化为内存字节流

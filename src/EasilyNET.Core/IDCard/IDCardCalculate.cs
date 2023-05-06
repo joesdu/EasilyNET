@@ -69,7 +69,6 @@ public static class IDCardCalculate
         };
     }
 
-#if !NETSTANDARD
     /// <summary>
     /// 根据身份证号码计算生日日期
     /// </summary>
@@ -99,5 +98,4 @@ public static class IDCardCalculate
         if (now.Month < birthday.Month || now.Month != birthday.Month || now.Day >= birthday.Day) age--;
         return age;
     }
-#endif
 }

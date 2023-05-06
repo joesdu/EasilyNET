@@ -22,11 +22,7 @@ public static class AppModuleExtensions
     /// <returns></returns>
     public static IServiceCollection AddApplication<T>(this IServiceCollection services) where T : AppModule
     {
-#if NETSTANDARD
-        if (services is null) throw new ArgumentNullException(nameof(services));
-#else
         ArgumentNullException.ThrowIfNull(services, nameof(services));
-#endif
         var obj = new ObjectAccessor<IApplicationBuilder>();
         services.Add(ServiceDescriptor.Singleton(typeof(ObjectAccessor<IApplicationBuilder>), obj));
         services.Add(ServiceDescriptor.Singleton(typeof(IObjectAccessor<IApplicationBuilder>), obj));

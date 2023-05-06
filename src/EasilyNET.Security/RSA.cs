@@ -124,11 +124,7 @@ public static class RSA
     /// <returns></returns>
     public static string GetFileSHA256(FileStream objFile)
     {
-#if NETSTANDARD
-        if (objFile == null) throw new ArgumentNullException(nameof(objFile));
-#else
         ArgumentNullException.ThrowIfNull(objFile, nameof(objFile));
-#endif
         var array = SHA256.Create().ComputeHash(objFile);
         objFile.Close();
         return Convert.ToBase64String(array);

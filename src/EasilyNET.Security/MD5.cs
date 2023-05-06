@@ -22,12 +22,7 @@ public static class MD5
     /// <returns></returns>
     public static string To32MD5(this string value)
     {
-#if NETSTANDARD
-        using var md5 = System.Security.Cryptography.MD5.Create();
-        var data = md5.ComputeHash(Encoding.UTF8.GetBytes(value));
-#else
         var data = System.Security.Cryptography.MD5.HashData(Encoding.UTF8.GetBytes(value));
-#endif
         var builder = new StringBuilder();
         // 循环遍历哈希数据的每一个字节并格式化为十六进制字符串 
         foreach (var t in data)
