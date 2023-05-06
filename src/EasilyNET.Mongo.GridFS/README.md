@@ -24,6 +24,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+// 配置Kestrel和IIS的最大文件限制
+builder.WebHost.ConfigureKestrel((_, op) =>
+{
+    // 当需要上传文件的时候配置这个东西,防止默认值太小影响大文件上传
+    op.Limits.MaxRequestBodySize = null;
+});
+// 配置IIS上传文件大小限制.
+builder.Services.Configure<IISServerOptions>(c => c.MaxRequestBodySize = null);
+
 // 添加Mongodb数据库服务
 builder.Services.AddMongoContext<EasilyNETMongoContext>(builder.Configuration);
 // 添加GridFS服务

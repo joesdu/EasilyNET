@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.RabbitBus</PackageProjectUrl>
         <Description>基于RabbitMQ实现的消息总线,参考eShop EventBus</Description>
     </PropertyGroup>

@@ -14,7 +14,7 @@ namespace EasilyNET.Mongo.GridFS.Extension;
 [ApiController, Route("api/[controller]")]
 public class ExtensionController : GridFSController
 {
-    private readonly EasilyNETStaticFileSettings FileSetting;
+    private readonly EasilyFSSettings FileSetting;
 
     /// <summary>
     /// 构造函数
@@ -24,7 +24,11 @@ public class ExtensionController : GridFSController
     /// <param name="config"></param>
     public ExtensionController(GridFSBucket bucket, IMongoCollection<GridFSItemInfo> collection, IConfiguration config) : base(bucket, collection)
     {
-        FileSetting = config.GetSection(EasilyNETStaticFileSettings.Position).Get<EasilyNETStaticFileSettings>();
+        FileSetting = new()
+        {
+            VirtualPath = config[$"{EasilyFSSettings.Position}:VirtualPath"],
+            PhysicalPath = config[$"{EasilyFSSettings.Position}:PhysicalPath"]
+        };
     }
 
     /// <summary>
@@ -34,28 +38,24 @@ public class ExtensionController : GridFSController
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpGet("FileUri/{id}")]
-    public virtual async Task<object> FileUri(string id, CancellationToken cancellationToken)
+    public async Task<object> FileUri(string id, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(FileSetting.PhysicalPath)) throw new("RealPath is null");
-        var fi = await (await Bucket.FindAsync(gbf.Eq(c => c.Id, ObjectId.Parse(id)), cancellationToken: cancellationToken)).SingleOrDefaultAsync(cancellationToken) ?? throw new("no data find");
+        var fi = await Coll.Find(_bf.Eq(c => c.FileId, id)).SingleOrDefaultAsync(cancellationToken) ?? throw new("no data find");
         // ReSharper disable once UseAwaitUsing
         using var mongoStream = await Bucket.OpenDownloadStreamAsync(ObjectId.Parse(id), new() { Seekable = true }, cancellationToken);
         if (!Directory.Exists(FileSetting.PhysicalPath)) _ = Directory.CreateDirectory(FileSetting.PhysicalPath);
         // ReSharper disable once UseAwaitUsing
-        using var fsWrite = new FileStream($"{FileSetting.PhysicalPath}{Path.DirectorySeparatorChar}{fi.Filename}", FileMode.Create);
-        var buffer = new byte[1024 * 1024];
+        using var fsWrite = new FileStream($"{FileSetting.PhysicalPath}{Path.DirectorySeparatorChar}{fi.FileName}", FileMode.Create);
+        // 来个1MB缓冲区
+        var buffer = new byte[1024 * 1024 * 1];
         while (true)
         {
-#if NETSTANDARD
-            var readCount = await mongoStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
-            await fsWrite.WriteAsync(buffer, 0, readCount, cancellationToken);
-#else
             var readCount = await mongoStream.ReadAsync(buffer, cancellationToken);
             await fsWrite.WriteAsync(buffer.AsMemory(0, readCount), cancellationToken);
-#endif
             if (readCount < buffer.Length) break;
         }
-        return new { Uri = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}{FileSetting.VirtualPath}/{fi.Filename}" };
+        return new { Uri = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}{FileSetting.VirtualPath}/{fi.FileName}" };
     }
 
     /// <summary>
@@ -63,7 +63,7 @@ public class ExtensionController : GridFSController
     /// </summary>
     /// <returns></returns>
     [HttpDelete("ClearTempDir")]
-    public virtual Task ClearDir()
+    public Task ClearDir()
     {
         if (!Directory.Exists(FileSetting.PhysicalPath)) return Task.CompletedTask;
         try

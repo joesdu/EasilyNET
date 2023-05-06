@@ -19,7 +19,7 @@ public class GridFSController : ControllerBase
     /// <summary>
     /// 查询过滤器
     /// </summary>
-    private readonly FilterDefinitionBuilder<GridFSItemInfo> _bf = Builders<GridFSItemInfo>.Filter;
+    protected readonly FilterDefinitionBuilder<GridFSItemInfo> _bf = Builders<GridFSItemInfo>.Filter;
 
     /// <summary>
     /// GridFSBucket
@@ -34,7 +34,7 @@ public class GridFSController : ControllerBase
     /// <summary>
     /// GridFSFileInfo Filter
     /// </summary>
-    protected readonly FilterDefinitionBuilder<GridFSFileInfo> gbf = Builders<GridFSFileInfo>.Filter;
+    private readonly FilterDefinitionBuilder<GridFSFileInfo> gbf = Builders<GridFSFileInfo>.Filter;
 
     /// <summary>
     /// 构造函数

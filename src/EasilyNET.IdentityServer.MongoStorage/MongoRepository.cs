@@ -50,7 +50,7 @@ public class MongoRepository : IRepository
     /// <typeparam name="T"></typeparam>
     /// <param name="expression"></param>
     /// <returns></returns>
-    public T Single<T>(Expression<Func<T, bool>> expression) where T : class, new() => All<T>().Where(expression).SingleOrDefault() ?? throw new();
+    public T Single<T>(Expression<Func<T, bool>> expression) where T : class, new() => All<T>().Where(expression).SingleOrDefault() ?? throw new("no data");
 
     /// <summary>
     /// 添加单条数据

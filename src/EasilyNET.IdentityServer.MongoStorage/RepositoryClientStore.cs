@@ -12,5 +12,5 @@ internal class RepositoryClientStore : IClientStore
         Repository = repository;
     }
 
-    public Task<Client> FindClientByIdAsync(string clientId) => Task.FromResult(Repository.Single<Client>(c => c.ClientId == clientId));
+    public Task<Client?> FindClientByIdAsync(string clientId) => Task.FromResult(Repository.Single<Client>(c => c.ClientId == clientId))!;
 }
