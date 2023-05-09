@@ -33,11 +33,11 @@ public sealed class ExceptionFilter : ExceptionFilterAttribute
     {
         _logger.LogError("{Stacktrace}", context.Exception.ToString());
         context.ExceptionHandled = true;
-        context.Result = new ObjectResult(new
+        context.Result = new ObjectResult(new ResultObject
         {
             StatusCode = HttpStatusCode.InternalServerError,
             Msg = context.Exception.Message,
-            Data = default(object)
+            Data = default
         });
         return base.OnExceptionAsync(context);
     }

@@ -11,7 +11,7 @@ namespace WebApi.Test.Unit;
 /// <summary>
 /// GridFS
 /// </summary>
-public class MongoGridFSModule : AppModule
+public class MongoFSModule : AppModule
 {
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)

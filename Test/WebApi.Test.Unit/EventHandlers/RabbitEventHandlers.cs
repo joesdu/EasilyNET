@@ -7,17 +7,11 @@ using WebApi.Test.Unit.Events;
 
 namespace WebApi.Test.Unit.EventHandlers;
 
-/// <summary>
-/// HelloWorld消息处理
-/// </summary>
+/// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
 public class HelloWorldEventHandlers : IIntegrationEventHandler<HelloWorldEvent>
 {
-    /// <summary>
-    /// 当消息到达的时候执行的Action
-    /// </summary>
-    /// <param name="event"></param>
-    /// <returns></returns>
+    /// <inheritdoc />
     public Task HandleAsync(HelloWorldEvent @event)
     {
         Console.WriteLine($"[消息处理自:{nameof(HelloWorldEventHandlers)}]-{JsonSerializer.Serialize(@event)}");
@@ -25,17 +19,11 @@ public class HelloWorldEventHandlers : IIntegrationEventHandler<HelloWorldEvent>
     }
 }
 
-/// <summary>
-/// WorkQueues消息处理
-/// </summary>
+/// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
 public class WorkQueuesEventOneHandlers : IIntegrationEventHandler<WorkQueuesEvent>
 {
-    /// <summary>
-    /// 当消息到达的时候执行的Action
-    /// </summary>
-    /// <param name="event"></param>
-    /// <returns></returns>
+    /// <inheritdoc />
     public Task HandleAsync(WorkQueuesEvent @event)
     {
         Console.WriteLine($"[消息处理自:{nameof(WorkQueuesEventOneHandlers)}]-{JsonSerializer.Serialize(@event)}");
@@ -45,17 +33,11 @@ public class WorkQueuesEventOneHandlers : IIntegrationEventHandler<WorkQueuesEve
 
 #region Fanout(发布/订阅)模式
 
-/// <summary>
-/// FanoutOne消息处理
-/// </summary>
+/// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
 public class FanoutEventOneHandlers : IIntegrationEventHandler<FanoutEventOne>
 {
-    /// <summary>
-    /// 当消息到达的时候执行的Action
-    /// </summary>
-    /// <param name="event"></param>
-    /// <returns></returns>
+    /// <inheritdoc />
     public Task HandleAsync(FanoutEventOne @event)
     {
         Console.WriteLine($"[消息处理自:{nameof(FanoutEventOneHandlers)}]-{JsonSerializer.Serialize(@event)}");
@@ -63,17 +45,11 @@ public class FanoutEventOneHandlers : IIntegrationEventHandler<FanoutEventOne>
     }
 }
 
-/// <summary>
-/// FanoutTwo消息处理
-/// </summary>
+/// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
 public class FanoutEventTwoHandlers : IIntegrationEventHandler<FanoutEventTwo>
 {
-    /// <summary>
-    /// 当消息到达的时候执行的Action
-    /// </summary>
-    /// <param name="event"></param>
-    /// <returns></returns>
+    /// <inheritdoc />
     public Task HandleAsync(FanoutEventTwo @event)
     {
         Console.WriteLine($"[消息处理自:{nameof(FanoutEventTwoHandlers)}]-{JsonSerializer.Serialize(@event)}");
@@ -85,17 +61,11 @@ public class FanoutEventTwoHandlers : IIntegrationEventHandler<FanoutEventTwo>
 
 #region Routing(路由)模式
 
-/// <summary>
-/// FanoutOne消息处理
-/// </summary>
+/// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
 public class DirectEventOneHandlers : IIntegrationEventHandler<DirectEventOne>
 {
-    /// <summary>
-    /// 当消息到达的时候执行的Action
-    /// </summary>
-    /// <param name="event"></param>
-    /// <returns></returns>
+    /// <inheritdoc />
     public Task HandleAsync(DirectEventOne @event)
     {
         Console.WriteLine($"[消息处理自:{nameof(DirectEventOneHandlers)}]-{JsonSerializer.Serialize(@event)}");
@@ -103,17 +73,11 @@ public class DirectEventOneHandlers : IIntegrationEventHandler<DirectEventOne>
     }
 }
 
-/// <summary>
-/// FanoutTwo消息处理
-/// </summary>
+/// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
 public class DirectEventTwoHandlers : IIntegrationEventHandler<DirectEventTwo>
 {
-    /// <summary>
-    /// 当消息到达的时候执行的Action
-    /// </summary>
-    /// <param name="event"></param>
-    /// <returns></returns>
+    /// <inheritdoc />
     public Task HandleAsync(DirectEventTwo @event)
     {
         Console.WriteLine($"[消息处理自:{nameof(DirectEventTwoHandlers)}]-{JsonSerializer.Serialize(@event)}");
@@ -125,17 +89,11 @@ public class DirectEventTwoHandlers : IIntegrationEventHandler<DirectEventTwo>
 
 #region (Topic)主题模式
 
-/// <summary>
-/// FanoutOne消息处理
-/// </summary>
+/// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
 public class TopicEventOneHandlers : IIntegrationEventHandler<TopicEventOne>
 {
-    /// <summary>
-    /// 当消息到达的时候执行的Action
-    /// </summary>
-    /// <param name="event"></param>
-    /// <returns></returns>
+    /// <inheritdoc />
     public Task HandleAsync(TopicEventOne @event)
     {
         Console.WriteLine($"[消息处理自:{nameof(TopicEventOneHandlers)}]-{JsonSerializer.Serialize(@event)}");
@@ -143,17 +101,11 @@ public class TopicEventOneHandlers : IIntegrationEventHandler<TopicEventOne>
     }
 }
 
-/// <summary>
-/// FanoutTwo消息处理
-/// </summary>
+/// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
 public class TopicEventTwoHandlers : IIntegrationEventHandler<TopicEventTwo>
 {
-    /// <summary>
-    /// 当消息到达的时候执行的Action
-    /// </summary>
-    /// <param name="event"></param>
-    /// <returns></returns>
+    /// <inheritdoc />
     public Task HandleAsync(TopicEventTwo @event)
     {
         Console.WriteLine($"[消息处理自:{nameof(TopicEventTwoHandlers)}]-{JsonSerializer.Serialize(@event)}");

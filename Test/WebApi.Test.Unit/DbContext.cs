@@ -5,9 +5,7 @@ using MongoDB.Driver;
 
 namespace WebApi.Test.Unit;
 
-/// <summary>
-/// DBContext
-/// </summary>
+/// <inheritdoc />
 public class DbContext : EasilyMongoContext
 {
     /// <summary>
@@ -48,9 +46,7 @@ public class DbContext : EasilyMongoContext
     public IMongoCollection<MongoTest2> Test2 => GetCollection<MongoTest2>("mongo.test2");
 }
 
-/// <summary>
-/// DBContext2
-/// </summary>
+/// <inheritdoc />
 public class DbContext2 : EasilyMongoContext
 {
     /// <summary>
