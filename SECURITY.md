@@ -12,8 +12,8 @@ currently being supported with security updates.
 | .NET 6            | :white_check_mark: |
 | .NET 5            | :x:                |
 | .NET Core 3.x     | :x:                |
-| .NET Standard 2.0 | :white_check_mark: |
-| .NET Standard 2.1 | :white_check_mark: |
+| .NET Standard 2.0 | :x:                |
+| .NET Standard 2.1 | :x:                |
 
 ## Reporting a Vulnerability
 
