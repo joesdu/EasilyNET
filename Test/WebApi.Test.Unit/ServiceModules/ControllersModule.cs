@@ -11,10 +11,7 @@ namespace WebApi.Test.Unit;
 /// </summary>
 public class ControllersModule : AppModule
 {
-    /// <summary>
-    /// 注册和配置服务
-    /// </summary>
-    /// <param name="context"></param>
+    /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         _ = context.Services.AddControllers(x =>

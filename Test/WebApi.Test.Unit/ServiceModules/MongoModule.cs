@@ -12,10 +12,7 @@ namespace WebApi.Test.Unit;
 /// </summary>
 public class MongoModule : AppModule
 {
-    /// <summary>
-    /// 配置和注册服务
-    /// </summary>
-    /// <param name="context"></param>
+    /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var config = context.Services.GetConfiguration();

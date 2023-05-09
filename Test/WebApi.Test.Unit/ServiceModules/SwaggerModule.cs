@@ -19,10 +19,7 @@ public class SwaggerModule : AppModule
     private const string version = "v1";
     private const string title = "WebApi.Test";
 
-    /// <summary>
-    /// 配置和注册服务
-    /// </summary>
-    /// <param name="context"></param>
+    /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -49,10 +46,7 @@ public class SwaggerModule : AppModule
         });
     }
 
-    /// <summary>
-    /// 注册中间件
-    /// </summary>
-    /// <param name="context"></param>
+    /// <inheritdoc />
     public override void ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationBuilder();

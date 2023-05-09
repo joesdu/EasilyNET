@@ -16,30 +16,25 @@ namespace WebApi.Test.Unit;
     typeof(CorsModule),
     typeof(ControllersModule),
     typeof(MongoModule),
-    typeof(MongoGridFSModule),
+    typeof(MongoFSModule),
     typeof(RabbitModule),
     typeof(SwaggerModule))]
 public class AppWebModule : AppModule
 {
-    /// <summary>
-    /// 注册和配置服务
-    /// </summary>
-    /// <param name="context"></param>
+    /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         base.ConfigureServices(context);
         _ = context.Services.AddHttpContextAccessor();
     }
 
-    /// <summary>
-    /// 注册中间件
-    /// </summary>
-    /// <param name="context"></param>
+    /// <inheritdoc />
     public override void ApplicationInitialization(ApplicationContext context)
     {
         base.ApplicationInitialization(context);
         var app = context.GetApplicationBuilder();
-        _ = app.UseEasilyNETResponseTime();
+        _ = app.UseErrorHandling();
+        _ = app.UseResponseTime();
         _ = app.UseAuthorization();
     }
 }

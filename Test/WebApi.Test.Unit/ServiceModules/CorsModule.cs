@@ -9,10 +9,7 @@ namespace WebApi.Test.Unit;
 /// </summary>
 public class CorsModule : AppModule
 {
-    /// <summary>
-    /// 注册和配置服务
-    /// </summary>
-    /// <param name="context"></param>
+    /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var config = context.Services.GetConfiguration();
@@ -20,10 +17,7 @@ public class CorsModule : AppModule
         _ = context.Services.AddCors(c => c.AddPolicy("AllowedHosts", s => s.WithOrigins(allow.Split(",")).AllowAnyMethod().AllowAnyHeader()));
     }
 
-    /// <summary>
-    /// 注册中间件
-    /// </summary>
-    /// <param name="context"></param>
+    /// <inheritdoc />
     public override void ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationBuilder();

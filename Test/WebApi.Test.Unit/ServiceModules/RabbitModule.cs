@@ -10,10 +10,7 @@ namespace WebApi.Test.Unit;
 /// </summary>
 public class RabbitModule : AppModule
 {
-    /// <summary>
-    /// 配置服务
-    /// </summary>
-    /// <param name="context"></param>
+    /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var config = context.Services.GetConfiguration();
