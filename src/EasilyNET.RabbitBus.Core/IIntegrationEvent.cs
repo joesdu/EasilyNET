@@ -1,18 +1,23 @@
-﻿namespace EasilyNET.RabbitBus.Core;
+﻿// ReSharper disable UnusedMemberInSuper.Global
+
+using EasilyNET.Core.BaseType;
+
+namespace EasilyNET.RabbitBus.Core;
 
 /// <summary>
-/// 自定义事件继承接口
+/// 事件基本对象接口,所有的事件均需要继承
+/// <see cref="IntegrationEvent" />
 /// </summary>
 public interface IIntegrationEvent
 {
     /// <summary>
-    /// 事件ID,雪花ID算法
+    /// 事件ID,使用雪花ID算法
+    /// <see cref="SnowId" />
     /// </summary>
     string EventId { get; }
 
     /// <summary>
     /// 事件创建时间
     /// </summary>
-    // ReSharper disable once UnusedMemberInSuper.Global
     DateTime EventCreateDate { get; }
 }

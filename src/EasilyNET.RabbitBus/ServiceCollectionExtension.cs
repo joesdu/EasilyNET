@@ -76,12 +76,15 @@ public static class ServiceCollectionExtension
                {
                    var rabbitConn = sp.GetRequiredService<IPersistentConnection>();
                    var logger = sp.GetRequiredService<ILogger<IntegrationEventBus>>();
-                   var subsManager = sp.GetRequiredService<ISubscriptionsManager>();
+                   var subsManager = sp.GetRequiredService<SubscriptionsManager>();
+                   var deadLetterManager = sp.GetRequiredService<DeadLetterSubscriptionsManager>();
                    return rabbitConn is null
                               ? throw new(nameof(rabbitConn))
-                              : new IntegrationEventBus(rabbitConn, logger, retry_count, subsManager, sp);
+                              : new IntegrationEventBus(rabbitConn, logger, retry_count, subsManager, deadLetterManager, sp);
                })
-               .AddSingleton<ISubscriptionsManager, SubscriptionsManager>().AddHostedService<SubscribeService>();
+               .AddSingleton<SubscriptionsManager>()
+               .AddSingleton<DeadLetterSubscriptionsManager>()
+               .AddHostedService<SubscribeService>();
     }
 
     private static IServiceCollection RabbitPersistentConnection(this IServiceCollection service, RabbitSingleConfig config)

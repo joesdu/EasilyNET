@@ -14,6 +14,12 @@ namespace WebApi.Test.Unit;
 public class MongoFSModule : AppModule
 {
     /// <inheritdoc />
+    public MongoFSModule()
+    {
+        Enable = false;
+    }
+
+    /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         context.Services.AddEasilyNETGridFS(fsOptions: c =>
