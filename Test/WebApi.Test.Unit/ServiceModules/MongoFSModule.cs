@@ -3,7 +3,6 @@ using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.AutoDependencyInjection.Modules;
 using EasilyNET.Mongo.GridFS;
 using EasilyNET.Mongo.GridFS.Extension;
-using Microsoft.Extensions.FileProviders;
 using MongoDB.Driver;
 
 namespace WebApi.Test.Unit;
@@ -45,12 +44,6 @@ public class MongoFSModule : AppModule
         var app = context.GetApplicationBuilder();
         var config = app.ApplicationServices.GetRequiredService<IConfiguration>();
         // 配置虚拟文件
-        var setting = config.GetSection(EasilyFSSettings.Position).Get<EasilyFSSettings>() ?? throw new("未找到虚拟文件设置");
-        if (!Directory.Exists(setting.PhysicalPath)) _ = Directory.CreateDirectory(setting.PhysicalPath);
-        _ = app.UseStaticFiles(new StaticFileOptions
-        {
-            FileProvider = new PhysicalFileProvider(setting.PhysicalPath),
-            RequestPath = setting.VirtualPath
-        });
+        app.UseGridFSVirtualPath(config);
     }
 }

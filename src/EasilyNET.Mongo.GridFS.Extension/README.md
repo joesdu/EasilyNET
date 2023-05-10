@@ -18,20 +18,12 @@
 
 - 使用 Nuget 安装 EasilyNET.Mongo.GridFS
 - .Net 6 +
+- 已配置Kestrel和IIS的最大文件限制,无需再次配置
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
-// 配置Kestrel和IIS的最大文件限制
-builder.WebHost.ConfigureKestrel((_, op) =>
-{
-    // 当需要上传文件的时候配置这个东西,防止默认值太小影响大文件上传
-    op.Limits.MaxRequestBodySize = null;
-});
-// 配置IIS上传文件大小限制.
-builder.Services.Configure<IISServerOptions>(c => c.MaxRequestBodySize = null);
 
 // 添加Mongodb数据库服务
 builder.Services.AddMongoContext<EasilyNETMongoContext>(builder.Configuration);
@@ -83,13 +75,7 @@ var app = builder.Build();
 ...
 
 // 添加虚拟目录用于缓存文件,便于在线播放等功能.
-var setting = app.Configuration.GetSection(EasilyFSSettings.Position).Get<EasilyFSSettings>() ?? throw new("未找到虚拟文件设置");
-if (!Directory.Exists(setting.PhysicalPath)) _ = Directory.CreateDirectory(setting.PhysicalPath);
-_ = app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(setting.PhysicalPath),
-    RequestPath = setting.VirtualPath
-});
+app.UseGridFSVirtualPath(builder.Configuration);
 
 ...
 
