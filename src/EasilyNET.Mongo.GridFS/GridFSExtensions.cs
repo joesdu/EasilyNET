@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Http.Features;
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
@@ -38,7 +40,10 @@ public static class GridFSExtensions
                         c.MultipartHeadersLengthLimit = int.MaxValue;
                         c.MultipartBodyLengthLimit = long.MaxValue;
                         c.ValueLengthLimit = int.MaxValue;
-                    }).AddSingleton(new GridFSBucket(easily_db, options.Options))
+                    })
+                    .AddSingleton(new GridFSBucket(easily_db, options.Options))
+                    .Configure<KestrelServerOptions>(c => c.Limits.MaxRequestBodySize = null)
+                    .Configure<IISServerOptions>(c => c.MaxRequestBodySize = null)
                     .AddSingleton(easily_db!.GetCollection<GridFSItemInfo>(options.ItemInfo));
     }
 }

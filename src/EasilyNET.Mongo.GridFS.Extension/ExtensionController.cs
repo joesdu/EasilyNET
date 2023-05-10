@@ -24,11 +24,7 @@ public class ExtensionController : GridFSController
     /// <param name="config"></param>
     public ExtensionController(GridFSBucket bucket, IMongoCollection<GridFSItemInfo> collection, IConfiguration config) : base(bucket, collection)
     {
-        FileSetting = new()
-        {
-            VirtualPath = config[$"{EasilyFSSettings.Position}:VirtualPath"],
-            PhysicalPath = config[$"{EasilyFSSettings.Position}:PhysicalPath"]
-        };
+        FileSetting = config.GetSection(EasilyFSSettings.Position).Get<EasilyFSSettings>();
     }
 
     /// <summary>
