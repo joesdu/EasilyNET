@@ -7,7 +7,7 @@ namespace WebApi.Test.Unit.Events;
 /// <summary>
 /// 测试HelloWorld模式消息类型
 /// </summary>
-[Rabbit(EWorkModel.None, queue: "hello.world")]
+[Rabbit(EWorkModel.None, queue: "hello.world"), DeadLetter(EWorkModel.None, "xdl.hello.world", queue: "xdl.hello.world"), RabbitQueueArg("x-message-ttl", 5000)]
 public class HelloWorldEvent : IntegrationEvent
 {
     /// <summary>

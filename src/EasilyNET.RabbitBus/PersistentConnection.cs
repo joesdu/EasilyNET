@@ -37,14 +37,10 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
         _tcpEndpoints = tcpEndpoints;
     }
 
-    /// <summary>
-    /// 是否链接
-    /// </summary>
+    /// <inheritdoc />
     internal override bool IsConnected => _connection is not null && _connection.IsOpen && !_disposed;
 
-    /// <summary>
-    /// Dispose
-    /// </summary>
+    /// <inheritdoc />
     public void Dispose()
     {
         if (_disposed) return;
@@ -63,11 +59,7 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
         }
     }
 
-    /// <summary>
-    /// 创建Model
-    /// </summary>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <inheritdoc />
     internal override IModel CreateModel() =>
         !IsConnected
             ? throw new InvalidOperationException("RabbitMQ连接失败")
@@ -75,10 +67,7 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
                 ? throw new InvalidOperationException("RabbitMQ连接未创建")
                 : _connection.CreateModel();
 
-    /// <summary>
-    /// 尝试链接
-    /// </summary>
-    /// <returns></returns>
+    /// <inheritdoc />
     internal override bool TryConnect()
     {
         _logger.LogInformation("RabbitMQ客户端尝试连接");
@@ -111,11 +100,6 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
         }
     }
 
-    /// <summary>
-    /// 当链接关闭
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
     private void OnConnectionBlocked(object? sender, ConnectionBlockedEventArgs e)
     {
         if (_disposed) return;
@@ -123,11 +107,6 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
         _ = TryConnect();
     }
 
-    /// <summary>
-    /// 当链接抛出异常
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
     private void OnCallbackException(object? sender, CallbackExceptionEventArgs e)
     {
         if (_disposed) return;
@@ -135,11 +114,6 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
         _ = TryConnect();
     }
 
-    /// <summary>
-    /// 当链接关闭
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="reason"></param>
     private void OnConnectionShutdown(object? sender, ShutdownEventArgs reason)
     {
         if (_disposed) return;

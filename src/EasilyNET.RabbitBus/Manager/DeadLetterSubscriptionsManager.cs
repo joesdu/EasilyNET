@@ -1,12 +1,9 @@
 ﻿using EasilyNET.RabbitBus.Abstraction;
 using System.Collections.Concurrent;
 
-namespace EasilyNET.RabbitBus;
+namespace EasilyNET.RabbitBus.Manager;
 
-/// <summary>
-/// RabbitMQ订阅管理器
-/// </summary>
-internal sealed class SubscriptionsManager : ISubscriptionsManager
+internal sealed class DeadLetterSubscriptionsManager : ISubscriptionsManager
 {
     private readonly ConcurrentDictionary<string, List<Type>> _handlers = new();
 

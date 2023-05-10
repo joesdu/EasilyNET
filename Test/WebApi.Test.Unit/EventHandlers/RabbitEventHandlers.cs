@@ -8,6 +8,7 @@ using WebApi.Test.Unit.Events;
 namespace WebApi.Test.Unit.EventHandlers;
 
 /// <inheritdoc />
+/// 若是要测试死信队列,需要将这个注释掉.
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
 public class HelloWorldEventHandlers : IIntegrationEventHandler<HelloWorldEvent>
 {
@@ -15,6 +16,18 @@ public class HelloWorldEventHandlers : IIntegrationEventHandler<HelloWorldEvent>
     public Task HandleAsync(HelloWorldEvent @event)
     {
         Console.WriteLine($"[消息处理自:{nameof(HelloWorldEventHandlers)}]-{JsonSerializer.Serialize(@event)}");
+        return Task.CompletedTask;
+    }
+}
+
+/// <inheritdoc />
+[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
+public class HelloWorldDeadLetterEventHandlers : IIntegrationEventDeadLetterHandler<HelloWorldEvent>
+{
+    /// <inheritdoc />
+    public Task HandleAsync(HelloWorldEvent @event)
+    {
+        Console.WriteLine($"[消息处理自:{nameof(HelloWorldDeadLetterEventHandlers)}]-{JsonSerializer.Serialize(@event)}");
         return Task.CompletedTask;
     }
 }

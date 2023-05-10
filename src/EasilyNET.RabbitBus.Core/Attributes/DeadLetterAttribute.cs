@@ -1,15 +1,15 @@
-﻿// ReSharper disable ClassNeverInstantiated.Global
+﻿using EasilyNET.RabbitBus.Core.Enums;
 
-using EasilyNET.RabbitBus.Core.Enums;
+// ReSharper disable ClassNeverInstantiated.Global
 
 namespace EasilyNET.RabbitBus.Core.Attributes;
 
 /// <summary>
-/// 应用交换机队列等参数
-/// <a href="https://www.rabbitmq.com/getstarted.html">Exchanges</a>
+/// 死信队列配置
+/// <a href="https://www.rabbitmq.com/dlx.html">Dead Letter Exchanges</a>
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class RabbitAttribute : Attribute
+public sealed class DeadLetterAttribute : Attribute
 {
     /// <summary>
     /// 构造函数
@@ -19,15 +19,14 @@ public sealed class RabbitAttribute : Attribute
     /// <param name="routingKey">路由键</param>
     /// <param name="queue">队列名</param>
     /// <param name="enable">是否启用</param>
-    public RabbitAttribute(EWorkModel workModel, string exchangeName = "", string routingKey = "", string queue = "", bool enable = true)
+    public DeadLetterAttribute(EWorkModel workModel, string exchangeName = "", string routingKey = "", string queue = "", bool enable = true)
     {
         ExchangeName = workModel switch
         {
-            EWorkModel.PublishSubscribe => string.IsNullOrWhiteSpace(exchangeName) ? "amq.fanout" : exchangeName,
-            EWorkModel.Routing          => string.IsNullOrWhiteSpace(exchangeName) ? "amq.direct" : exchangeName,
-            EWorkModel.Topics           => string.IsNullOrWhiteSpace(exchangeName) ? "amq.topic" : exchangeName,
-            EWorkModel.Delayed          => ExchangeNameCheck(exchangeName),
-            _                           => ""
+            EWorkModel.PublishSubscribe => string.IsNullOrWhiteSpace(exchangeName) ? "xdl.amq.fanout" : exchangeName,
+            EWorkModel.Routing          => string.IsNullOrWhiteSpace(exchangeName) ? "xdl.amq.direct" : exchangeName,
+            EWorkModel.Topics           => string.IsNullOrWhiteSpace(exchangeName) ? "xdl.amq.topic" : exchangeName,
+            _                           => ExchangeNameCheck(exchangeName)
         };
         RoutingKey = workModel switch
         {
@@ -67,7 +66,7 @@ public sealed class RabbitAttribute : Attribute
     private static string ExchangeNameCheck(string exchangeName)
     {
 #if NET7_0_OR_GREATER
-        ArgumentException.ThrowIfNullOrEmpty(exchangeName,nameof(exchangeName));
+        ArgumentException.ThrowIfNullOrEmpty(exchangeName, nameof(exchangeName));
 #else
         if (string.IsNullOrWhiteSpace(exchangeName)) throw new ArgumentNullException(nameof(exchangeName));
 #endif
