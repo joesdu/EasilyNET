@@ -16,7 +16,7 @@ public class QrCodeController : ControllerBase
     /// <param name="str"></param>
     /// <returns></returns>
     [HttpGet("Encode/{str}")]
-    public string Encode(string str) => QrCode.GetBase64(str);
+    public string Encode(string str) => QrCode.Encode(str);
 
     /// <summary>
     /// 从Base64中解析字符串
@@ -24,5 +24,5 @@ public class QrCodeController : ControllerBase
     /// <param name="base64"></param>
     /// <returns></returns>
     [HttpGet("Decode/{base64}")]
-    public string Decode(string base64) => QrCode.QrDecoder(base64);
+    public string Decode(string base64) => QrCode.Decode(base64);
 }
