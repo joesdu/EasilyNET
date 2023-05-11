@@ -20,7 +20,7 @@ public static class VirtualPathExtension
     /// <returns></returns>
     public static void UseGridFSVirtualPath(this IApplicationBuilder app, IConfiguration config)
     {
-        var setting = config.GetSection(EasilyFSSettings.Position).Get<EasilyFSSettings>();
+        var setting = config.GetSection(EasilyFSSettings.Position).Get<EasilyFSSettings>() ?? throw new($"不存在 {EasilyFSSettings.Position}配置,请添加配置");
         if (!Directory.Exists(setting.PhysicalPath)) _ = Directory.CreateDirectory(setting.PhysicalPath);
         _ = app.UseStaticFiles(new StaticFileOptions
         {

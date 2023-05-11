@@ -1,7 +1,7 @@
 ﻿// ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
 
-namespace HEasilyNET.Core;
+namespace EasilyNET.Core;
 
 /// <summary>
 /// 分页数据返回

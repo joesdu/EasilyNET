@@ -3,6 +3,9 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+#if NET7_0_OR_GREATER
+#pragma warning disable SYSLIB1045
+#endif
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
@@ -183,9 +186,7 @@ public static class TypeExtension
             return type.Name;
         }
         var sb = new StringBuilder();
-#pragma warning disable SYSLIB1045
         sb.Append($"{Regex.Replace(type.Name, @"\`\d+$", "")}<");
-#pragma warning restore SYSLIB1045
         foreach (var typeParameter in typeInfo.GetGenericArguments())
         {
             sb.Append($"{typeParameter.GetFriendlyTypeName()}, ");
@@ -199,7 +200,6 @@ public static class TypeExtension
     /// <summary>
     /// 使用反射深度克隆一个对象
     /// </summary>
-    /// <typeparam name="T">非空类型</typeparam>
     /// <param name="value"></param>
     /// <param name="args">若无默认构造函数则需要传递参数</param>
     /// <returns>返回一个新的对象</returns>

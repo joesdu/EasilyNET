@@ -3,17 +3,18 @@ using EasilyNET.Core.Enums;
 using EasilyNET.Core.Misc;
 using FluentAssertions;
 
-namespace EasilyNET.Tools.Test.Unit.ChineseLunar;
+namespace EasilyNET.Test.Unit;
 
 /// <summary>
 /// 中国农历测试
 /// </summary>
+[TestClass]
 public class ChineseLunarTest
 {
     /// <summary>
     /// 中国农历
     /// </summary>
-    [Fact]
+    [TestMethod]
     public void ChineseLunar()
     {
         var date = "1994-11-15".ToDateTime();
