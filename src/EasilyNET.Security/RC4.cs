@@ -40,7 +40,7 @@ public static class RC4
         var s = Enumerable.Range(0, 256).Select(i => (byte)i).ToArray();
         for (int i = 0, j = 0; i < 256; i++)
         {
-            j = j + key[i % key.Count] + s[i] & 255;
+            j = (j + key[i % key.Count] + s[i]) & 255;
             Swap(s, i, j);
         }
         return s;
@@ -53,10 +53,10 @@ public static class RC4
         var j = 0;
         return data.Select(b =>
         {
-            i = i + 1 & 255;
-            j = j + s[i] & 255;
+            i = (i + 1) & 255;
+            j = (j + s[i]) & 255;
             Swap(s, i, j);
-            return (byte)(b ^ s[s[i] + s[j] & 255]);
+            return (byte)(b ^ s[(s[i] + s[j]) & 255]);
         }).ToArray();
     }
 

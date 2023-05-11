@@ -1,16 +1,17 @@
 ﻿using FluentAssertions;
 
-namespace EasilyNET.Core.Tests.Unit;
+namespace EasilyNET.Tests.Unit;
 
 /// <summary>
 /// 分页返回测试
 /// </summary>
+[TestClass]
 public class PageResultTests
 {
     /// <summary>
     /// 分页返回数组
     /// </summary>
-    [Fact]
+    [TestMethod]
     public void Wrap_ReturnsPageResultWithCorrectTotalAndList()
     {
         // Arrange
@@ -28,7 +29,7 @@ public class PageResultTests
     /// <summary>
     /// 分页返回动态类型
     /// </summary>
-    [Fact]
+    [TestMethod]
     public void WrapDynamic_ReturnsPageResultWithCorrectTotalAndList()
     {
         // Arrange
@@ -46,7 +47,7 @@ public class PageResultTests
     /// <summary>
     /// 测试total为空
     /// </summary>
-    [Fact]
+    [TestMethod]
     public void Wrap_ReturnsPageResultWithZeroTotal_WhenNullTotalIsPassed()
     {
         // Arrange
@@ -64,7 +65,7 @@ public class PageResultTests
     /// <summary>
     /// 测试数据列表为空
     /// </summary>
-    [Fact]
+    [TestMethod]
     public void Wrap_ReturnsPageResultWithEmptyList_WhenNullListIsPassed()
     {
         // Arrange
@@ -82,7 +83,7 @@ public class PageResultTests
     /// <summary>
     /// 测试total为空和动态类型
     /// </summary>
-    [Fact]
+    [TestMethod]
     public void WrapDynamic_ReturnsPageResultWithZeroTotal_WhenNullTotalIsPassed()
     {
         // Arrange
@@ -100,7 +101,7 @@ public class PageResultTests
     /// <summary>
     /// 测试动态数据为空
     /// </summary>
-    [Fact]
+    [TestMethod]
     public void WrapDynamic_ReturnsPageResultWithEmptyList_WhenNullListIsPassed()
     {
         // Arrange

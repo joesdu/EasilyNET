@@ -1,16 +1,17 @@
 ﻿using EasilyNET.Core.Misc;
 using FluentAssertions;
 
-namespace EasilyNET.Core.Test.Unit.BaseType;
+namespace EasilyNET.Core.Test.Unit;
 
 /// <summary>
 /// </summary>
+[TestClass]
 public class StringExtensionsTest
 {
     /// <summary>
     /// Truncate Test
     /// </summary>
-    [Fact]
+    [TestMethod]
     public void TestTruncate()
     {
         // 当suffix长度大于希望的最大长度

@@ -24,7 +24,7 @@ public class ExtensionController : GridFSController
     /// <param name="config"></param>
     public ExtensionController(GridFSBucket bucket, IMongoCollection<GridFSItemInfo> collection, IConfiguration config) : base(bucket, collection)
     {
-        FileSetting = config.GetSection(EasilyFSSettings.Position).Get<EasilyFSSettings>();
+        FileSetting = config.GetSection(EasilyFSSettings.Position).Get<EasilyFSSettings>() ?? throw new($"不存在 {EasilyFSSettings.Position}配置,请添加配置");
     }
 
     /// <summary>

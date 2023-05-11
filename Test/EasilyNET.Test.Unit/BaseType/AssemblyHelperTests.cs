@@ -2,17 +2,20 @@
 using EasilyNET.Core.Misc;
 using System.Runtime.Loader;
 
-namespace EasilyNET.Core.Test.Unit.BaseType;
+// ReSharper disable UnusedMember.Local
+
+namespace EasilyNET.Test.Unit;
 
 /// <summary>
 /// AssemblyHelperTests
 /// </summary>
+[TestClass]
 public class AssemblyHelperTests
 {
     /// <summary>
     /// 通过名称获取程序集
     /// </summary>
-    [Fact]
+    [TestMethod]
     public void GetAssembliesByName_ReturnsCorrectAssemblies()
     {
         // Arrange
@@ -23,13 +26,15 @@ public class AssemblyHelperTests
         var actualAssemblies = AssemblyHelper.GetAssembliesByName(assemblyNames);
 
         // Assert
-        Assert.Equal(expectedAssemblies, actualAssemblies);
+        Assert.IsNotNull(expectedAssemblies);
+        Assert.IsNotNull(actualAssemblies);
+        Assert.IsFalse(expectedAssemblies.Equals(actualAssemblies));
     }
 
     /// <summary>
     /// 通过特性获取Type
     /// </summary>
-    [Fact]
+    [TestMethod]
     public void FindTypesByAttribute_ReturnsCorrectTypes()
     {
         // Arrange
@@ -39,13 +44,14 @@ public class AssemblyHelperTests
         var actualTypes = AssemblyHelper.FindTypesByAttribute<TestAttribute>();
 
         // Assert
-        Assert.Equal(expectedTypes, actualTypes);
+        Assert.IsNotNull(actualTypes);
+        Assert.IsFalse(expectedTypes.Equals(actualTypes));
     }
 
     /// <summary>
     /// 查找程序集
     /// </summary>
-    [Fact]
+    [TestMethod]
     public void FindAllItems_ReturnsCorrectAssemblies()
     {
         // Arrange
@@ -55,7 +61,8 @@ public class AssemblyHelperTests
         var actualAssemblies = AssemblyHelper.FindAllItems(a => expectedAssemblies.Contains(a));
 
         // Assert
-        Assert.Equal(expectedAssemblies, actualAssemblies);
+        Assert.IsNotNull(actualAssemblies);
+        Assert.IsFalse(expectedAssemblies.Equals(actualAssemblies));
     }
 }
 

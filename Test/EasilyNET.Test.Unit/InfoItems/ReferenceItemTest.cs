@@ -1,16 +1,17 @@
 ﻿using FluentAssertions;
 
-namespace EasilyNET.Core.Tests.Unit;
+namespace EasilyNET.Tests.Unit;
 
 /// <summary>
 /// ReferenceItem 测试
 /// </summary>
+[TestClass]
 public class ReferenceItemTest
 {
     /// <summary>
     /// Equals Test
     /// </summary>
-    [Fact]
+    [TestMethod]
     public void ReferenceItemEquals()
     {
         // Arrange
