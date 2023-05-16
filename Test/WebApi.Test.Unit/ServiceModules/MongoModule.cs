@@ -4,6 +4,8 @@ using EasilyNET.AutoDependencyInjection.Modules;
 using EasilyNET.Mongo;
 using EasilyNET.Mongo.ConsoleDebug;
 using EasilyNET.Mongo.Extension;
+using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 
 namespace WebApi.Test.Unit;
 
@@ -15,7 +17,7 @@ public class MongoModule : AppModule
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        var config = context.Services.GetConfiguration();
+        //var config = context.Services.GetConfiguration();
         var provider = context.Services.BuildServiceProviderFromFactory();
         // MongoDB服务初始化完整例子
         //context.Services.AddMongoContext<DbContext>(provider, new MongoClientSettings
@@ -71,10 +73,23 @@ public class MongoModule : AppModule
         //    c.LinqProvider = LinqProvider.V3;
         //    c.ClusterBuilder = cb => cb.Subscribe(new ActivityEventSubscriber());
         //}).RegisterSerializer().RegisterDynamicSerializer();
-        context.Services.AddMongoContext<DbContext>(provider, config, c =>
+        context.Services.AddMongoContext<DbContext>(provider, new MongoClientSettings
         {
-            c.DatabaseName = "test23";
+            Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
+            Credential = MongoCredential.CreateCredential("admin", "oneblogs", "test789")
+        }, c =>
+        {
+            c.DatabaseName = "test1";
+            c.LinqProvider = LinqProvider.V3;
             c.ClusterBuilder = cb => cb.Subscribe(new ActivityEventSubscriber());
-        }).AddMongoContext<DbContext2>(provider, config, c => c.ClusterBuilder = cb => cb.Subscribe(new ActivityEventSubscriber())).RegisterSerializer().RegisterDynamicSerializer();
+        }).AddMongoContext<DbContext2>(provider, new MongoClientSettings
+        {
+            Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
+            Credential = MongoCredential.CreateCredential("admin", "oneblogs", "test789")
+        }, c =>
+        {
+            c.DatabaseName = "test2";
+            c.LinqProvider = LinqProvider.V3;
+        }).RegisterSerializer().RegisterDynamicSerializer();
     }
 }
