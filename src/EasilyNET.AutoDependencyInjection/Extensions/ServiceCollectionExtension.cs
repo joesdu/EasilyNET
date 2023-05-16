@@ -13,22 +13,29 @@ namespace EasilyNET.AutoDependencyInjection.Extensions;
 public static class ServiceCollectionExtension
 {
     /// <summary>
-    /// 得到注入服务
+    /// 得到已注入的服务
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="services"></param>
     /// <returns></returns>
-    public static T? GetService<T>(this IServiceCollection services) => services.BuildServiceProvider().GetService<T>();
+    public static T? GetService<T>(this IServiceCollection services) => services.GetBuildService<T>();
 
     /// <summary>
-    /// 获取IServiceCollection服务
+    /// 获取IConfiguration服务
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
     public static IConfiguration GetConfiguration(this IServiceCollection services) => services.GetBuildService<IConfiguration>() ?? throw new("未找到IConfiguration服务");
 
     /// <summary>
-    /// 得到注入服务
+    /// 获取IConfiguration服务
+    /// </summary>
+    /// <param name="provider"></param>
+    /// <returns></returns>
+    public static IConfiguration GetConfiguration(this IServiceProvider provider) => provider.GetRequiredService<IConfiguration>();
+
+    /// <summary>
+    /// 得到已注入的服务
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="services"></param>
