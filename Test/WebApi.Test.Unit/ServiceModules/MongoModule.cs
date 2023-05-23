@@ -76,7 +76,7 @@ public class MongoModule : AppModule
         context.Services.AddMongoContext<DbContext>(provider, new MongoClientSettings
         {
             Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
-            Credential = MongoCredential.CreateCredential("admin", "oneblogs", "test789")
+            Credential = MongoCredential.CreateCredential("admin", "guest", "guest")
         }, c =>
         {
             c.DatabaseName = "test1";
@@ -85,7 +85,7 @@ public class MongoModule : AppModule
         }).AddMongoContext<DbContext2>(provider, new MongoClientSettings
         {
             Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
-            Credential = MongoCredential.CreateCredential("admin", "oneblogs", "test789")
+            Credential = MongoCredential.CreateCredential("admin", "guest", "guest")
         }, c =>
         {
             c.DatabaseName = "test2";

@@ -4,7 +4,12 @@ WebApi 相关库的测试单元
 
 - 本地使用docker启动MongoDB服务
 ```bash
-docker run --name mongo -p 27018:27017 -d --rm -it -e MONGO_INITDB_ROOT_USERNAME=oneblogs -e MONGO_INITDB_ROOT_PASSWORD="test789" mongo:latest
+docker run --name mongo1 -p 27018:27017 -d --rm -it -e MONGO_INITDB_ROOT_USERNAME=guest -e MONGO_INITDB_ROOT_PASSWORD="guest" mongo:latest
+```
+
+- 本地使用docker启动MSSQL服务
+```bash
+docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=guest" -p 1433:1433 --name sql1 --hostname sql1 --hostname sql1 -d mcr.microsoft.com/mssql/server:2022-latest
 ```
 
 - 本地使用docker启动RabbitMQ服务并添加延时队列

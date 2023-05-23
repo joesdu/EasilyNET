@@ -35,6 +35,9 @@ public class MongoTestController : ControllerBase
         var coll = db.GetDatabase("newdb1").GetCollection<object>("test.new1");
         await coll.InsertOneAsync(new
         {
+            Decimal = 3.235223462346m,
+            Double = 3.14d,
+            Int32 = 123,
             Data = "test"
         });
     }
