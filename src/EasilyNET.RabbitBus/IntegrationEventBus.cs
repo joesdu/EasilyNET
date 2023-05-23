@@ -59,27 +59,27 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
     }
 
     /// <inheritdoc />
-    public void Publish<T>(T @event, string? routingKey = null, byte? priority = 1) where T : IIntegrationEvent
+    public void Publish<T>(T @event, string? routingKey = null, byte? priority = 1, CancellationToken? cancellationToken = null) where T : IIntegrationEvent
     {
+        if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
         if (!_persistentConnection.IsConnected) _ = _persistentConnection.TryConnect();
         var type = @event.GetType();
         _logger.LogTrace("创建通道来发布事件: {EventId} ({EventName})", @event.EventId, type.Name);
-        var rabbitAttr = type.GetCustomAttribute<RabbitAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(RabbitAttribute)}>,无法创建发布事件");
-        if (!rabbitAttr.Enable) return;
+        var r_attr = type.GetCustomAttribute<RabbitAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(RabbitAttribute)}>,无法创建发布事件");
+        if (!r_attr.Enable) return;
         var channel = _persistentConnection.CreateModel();
         var properties = channel.CreateBasicProperties();
         properties.Persistent = true;
+        properties.DeliveryMode = 2;
         properties.Priority = priority.GetValueOrDefault();
         var headers = @event.GetHeaderAttributes();
-        if (headers is not null && headers.Any())
-        {
-            properties.Headers = headers;
-        }
-        if (rabbitAttr is not { WorkModel: EWorkModel.None })
+        if (headers is not null && headers.Count != 0) properties.Headers = headers;
+        if (r_attr is not { WorkModel: EWorkModel.None })
         {
             var exchange_args = @event.GetExchangeArgAttributes();
-            channel.ExchangeDeclare(rabbitAttr.ExchangeName, rabbitAttr.WorkModel.ToDescription(), true, arguments: exchange_args);
+            channel.ExchangeDeclare(r_attr.ExchangeName, r_attr.WorkModel.ToDescription(), true, arguments: exchange_args);
         }
+        var body = JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType(), new JsonSerializerOptions { WriteIndented = true });
         // 创建Policy规则
         var policy = Policy.Handle<BrokerUnreachableException>()
                            .Or<SocketException>()
@@ -87,16 +87,16 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                                _logger.LogError(ex, "无法发布事件: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
         policy.Execute(() =>
         {
-            properties.DeliveryMode = 2;
             _logger.LogTrace("发布事件: {EventId}", @event.EventId);
-            channel.BasicPublish(rabbitAttr.ExchangeName, routingKey ?? rabbitAttr.RoutingKey, true, properties, JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType(), new JsonSerializerOptions { WriteIndented = true }));
+            channel.BasicPublish(r_attr.ExchangeName, routingKey ?? r_attr.RoutingKey, true, properties, body);
             channel.Close();
         });
     }
 
     /// <inheritdoc />
-    public void Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 1) where T : IIntegrationEvent
+    public void Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 1, CancellationToken? cancellationToken = null) where T : IIntegrationEvent
     {
+        if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
         if (!_persistentConnection.IsConnected) _ = _persistentConnection.TryConnect();
         var type = @event.GetType();
         _logger.LogTrace("创建通道来发布事件: {EventId} ({EventName})", @event.EventId, type.Name);
@@ -106,6 +106,8 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         var channel = _persistentConnection.CreateModel();
         var properties = channel.CreateBasicProperties();
         properties.Persistent = true;
+        properties.DeliveryMode = 2;
+        properties.Priority = priority.GetValueOrDefault();
         //延时时间从header赋值
         var headers = @event.GetHeaderAttributes();
         if (headers is not null)
@@ -118,7 +120,6 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         {
             properties.Headers["x-delay"] = ttl;
         }
-        properties.Priority = priority.GetValueOrDefault();
         // x-delayed-type 必须加
         var exchange_args = @event.GetExchangeArgAttributes();
         if (exchange_args is not null)
@@ -128,6 +129,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         }
         ////创建延时交换机,type类型为x-delayed-message
         channel.ExchangeDeclare(rabbitAttr.ExchangeName, rabbitAttr.WorkModel.ToDescription(), true, false, exchange_args);
+        var body = JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType(), new JsonSerializerOptions { WriteIndented = true });
         // 创建Policy规则
         var policy = Policy.Handle<BrokerUnreachableException>()
                            .Or<SocketException>()
@@ -136,8 +138,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         policy.Execute(() =>
         {
             _logger.LogTrace("发布事件: {EventId}", @event.EventId);
-            properties.DeliveryMode = 2;
-            channel.BasicPublish(rabbitAttr.ExchangeName, routingKey ?? rabbitAttr.RoutingKey, true, properties, JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType(), new JsonSerializerOptions { WriteIndented = true }));
+            channel.BasicPublish(rabbitAttr.ExchangeName, routingKey ?? rabbitAttr.RoutingKey, true, properties, body);
             channel.Close();
         });
     }

@@ -52,18 +52,19 @@ public class RabbitBusController : ControllerBase
     /// Fanout(发布订阅)发送消息,设置两个队列,所以应该输出两条信息
     /// </summary>
     [HttpPost]
-    public void Fanout()
+    public void Fanout(CancellationToken cancellationToken)
     {
-        _ibus.Publish(new FanoutEventOne());
+        _ibus.Publish(new FanoutEventOne(), cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// 路由模式(direct)模式发送消息,只向单一主题发送消息
     /// </summary>
     [HttpPost]
-    public void DirectQueue1()
+    public Task DirectQueue1(CancellationToken cancellationToken)
     {
-        _ibus.Publish(new DirectEventOne(), "direct.queue1");
+        Task.Run(() => _ibus.Publish(new DirectEventOne(), "direct.queue1", cancellationToken: cancellationToken), cancellationToken);
+        return Task.CompletedTask;
     }
 
     /// <summary>

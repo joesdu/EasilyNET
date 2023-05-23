@@ -35,6 +35,9 @@ public class AppWebModule : AppModule
         var app = context.GetApplicationBuilder();
         _ = app.UseErrorHandling();
         _ = app.UseResponseTime();
+        // 先认证
+        _ = app.UseAuthentication();
+        // 再授权
         _ = app.UseAuthorization();
     }
 }
