@@ -1,6 +1,6 @@
 ### EasilyNET
 
-**注意:** 由于本项目一般会试用和支持最新版本的.NET SDK,所以为了保证你能正常编译,请确保运行之前安装当前最新版本的 SDK 预览版,如现在为: .NET8 preview-3
+**注意:** 由于本项目一般会试用和支持最新版本的.NET SDK,所以为了保证你能正常编译,请确保运行之前安装当前最新版本的 SDK 预览版,如现在为: .NET8 preview-4
 
 [![LICENSE](https://img.shields.io/github/license/EasilyNET/EasilyNET)](https://img.shields.io/github/license/EasilyNET/EasilyNET)
 [![ISSUES](https://img.shields.io/github/issues/EasilyNET/EasilyNET)](https://img.shields.io/github/issues/EasilyNET/EasilyNET)
