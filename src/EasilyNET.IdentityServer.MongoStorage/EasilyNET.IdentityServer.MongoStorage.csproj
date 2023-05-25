@@ -7,7 +7,7 @@
 
     <ItemGroup>
         <PackageReference Include="Duende.IdentityServer" Version="6.3.0" />
-        <PackageReference Include="MongoDB.Driver" Version="2.19.1" />
+        <PackageReference Include="MongoDB.Driver" Version="2.19.2" />
     </ItemGroup>
 
 </Project>
