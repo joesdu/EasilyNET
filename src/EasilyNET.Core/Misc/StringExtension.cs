@@ -360,7 +360,7 @@ public static class StringExtension
     // ReSharper disable once MemberCanBePrivate.Global
     public static MemoryStream ToStream(this string value, Encoding encoding)
     {
-        using var mStream = new MemoryStream();
+        var mStream = new MemoryStream();
         var data = encoding.GetBytes(value);
         mStream.Write(data, 0, data.Length);
         mStream.Position = 0;
@@ -465,7 +465,6 @@ public static class StringExtension
     /// 使用指针的方式反转字符串,该函数会修改原字符串.
     /// </summary>
     /// <param name="value">待反转字符串</param>
-    /// <returns>反转后的结果</returns>
     public static unsafe void Reverse(this string value)
     {
         fixed (char* pText = value)
@@ -521,7 +520,7 @@ public static class StringExtension
         {
             array = keys.ToArray();
         }
-        return array.Count != 0 && !string.IsNullOrEmpty(s) && (ignoreCase ? array.Any(item => s.IndexOf(item, StringComparison.InvariantCultureIgnoreCase) >= 0) : array.Any(s.Contains));
+        return array.Count != 0 && !string.IsNullOrEmpty(s) && (ignoreCase ? array.Any(item => s.Contains(item, StringComparison.InvariantCultureIgnoreCase)) : array.Any(s.Contains));
     }
 
     /// <summary>
