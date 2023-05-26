@@ -78,17 +78,17 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
     }
 
     /// <inheritdoc />
-    internal override IModel BorrowChannel() =>
+    internal override IModel GetChannel() =>
         !IsConnected
             ? throw new InvalidOperationException("RabbitMQ连接失败")
             : _connection is null
                 ? throw new InvalidOperationException("RabbitMQ连接未创建")
                 : _channelPool is null
                     ? throw new("通道池为空")
-                    : _channelPool.BorrowChannel();
+                    : _channelPool.GetChannel();
 
     /// <inheritdoc />
-    internal override void RepaidChannel(IModel channel) => _channelPool?.RepaidChannel(channel);
+    internal override void ReturnChannel(IModel channel) => _channelPool?.ReturnChannel(channel);
 
     /// <inheritdoc />
     internal override bool TryConnect()

@@ -17,11 +17,19 @@ internal sealed class ChannelPool : IChannelPool
         _channels = new();
     }
 
-    /// <inheritdoc />
-    public IModel BorrowChannel() => _channels.TryTake(out var channel) ? channel : _connection.CreateModel();
+    public void Dispose()
+    {
+        foreach (var channel in _channels)
+        {
+            channel.Dispose();
+        }
+    }
 
     /// <inheritdoc />
-    public void RepaidChannel(IModel channel)
+    public IModel GetChannel() => _channels.TryTake(out var channel) ? channel : _connection.CreateModel();
+
+    /// <inheritdoc />
+    public void ReturnChannel(IModel channel)
     {
         if (_channels.Count <= _maxSize)
         {
@@ -29,13 +37,5 @@ internal sealed class ChannelPool : IChannelPool
             return;
         }
         channel.Dispose();
-    }
-
-    public void Dispose()
-    {
-        foreach (var channel in _channels)
-        {
-            channel.Dispose();
-        }
     }
 }
