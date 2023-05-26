@@ -3,7 +3,7 @@
 <Project>
 
 	<PropertyGroup>
-		<Version>1.5.5.1</Version>
+		<Version>1.5.5.2</Version>
 		<TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
 		<LangVersion>preview</LangVersion>
 		<RepositoryUrl>https://github.com/EasilyNET/EasilyNET</RepositoryUrl>
