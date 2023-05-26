@@ -19,8 +19,13 @@ internal abstract class IPersistentConnection
     internal abstract bool TryConnect();
 
     /// <summary>
-    /// 创建Model
+    /// 从池中获取Channel
     /// </summary>
     /// <returns></returns>
-    internal abstract IModel CreateModel();
+    internal abstract IModel BorrowChannel();
+
+    /// <summary>
+    /// 归还连接池通道
+    /// </summary>
+    internal abstract void RepaidChannel(IModel channel);
 }

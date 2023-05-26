@@ -1,4 +1,5 @@
 ﻿using EasilyNET.RabbitBus.Abstraction;
+using EasilyNET.RabbitBus.Manager;
 using Microsoft.Extensions.Logging;
 using Polly;
 using RabbitMQ.Client;
@@ -18,6 +19,8 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
     private readonly ILogger<PersistentConnection> _logger;
     private readonly int _retryCount;
     private readonly List<AmqpTcpEndpoint>? _tcpEndpoints;
+    private readonly int MaxChannelPoolCount;
+    private IChannelPool? _channelPool;
     private IConnection? _connection;
     private bool _disposed;
 
@@ -26,15 +29,17 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
     /// </summary>
     /// <param name="connectionFactory"></param>
     /// <param name="logger"></param>
+    /// <param name="maxChannelCount">Channel线程数量</param>
     /// <param name="tcpEndpoints"></param>
     /// <param name="retryCount"></param>
     /// <exception cref="ArgumentNullException"></exception>
-    internal PersistentConnection(IConnectionFactory connectionFactory, ILogger<PersistentConnection> logger, int retryCount = 5, List<AmqpTcpEndpoint>? tcpEndpoints = null)
+    internal PersistentConnection(IConnectionFactory connectionFactory, ILogger<PersistentConnection> logger, int retryCount = 5, int maxChannelCount = 10, List<AmqpTcpEndpoint>? tcpEndpoints = null)
     {
         _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _retryCount = retryCount;
         _tcpEndpoints = tcpEndpoints;
+        MaxChannelPoolCount = maxChannelCount;
     }
 
     /// <inheritdoc />
@@ -43,29 +48,47 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        if (_disposed) return;
+        if (!_disposed)
+        {
+            if (_connection is not null)
+            {
+                try
+                {
+                    _connection.ConnectionShutdown -= OnConnectionShutdown;
+                    _connection.CallbackException -= OnCallbackException;
+                    _connection.ConnectionBlocked -= OnConnectionBlocked;
+                    _connection.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogCritical("{Message}", ex.Message);
+                }
+            }
+            if (_channelPool is null) return;
+            try
+            {
+                _channelPool.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("{Message}", ex.Message);
+            }
+        }
         _disposed = true;
-        if (_connection is null) return;
-        try
-        {
-            _connection.ConnectionShutdown -= OnConnectionShutdown;
-            _connection.CallbackException -= OnCallbackException;
-            _connection.ConnectionBlocked -= OnConnectionBlocked;
-            _connection.Dispose();
-        }
-        catch (IOException ex)
-        {
-            _logger.LogCritical("{Message}", ex.Message);
-        }
     }
 
     /// <inheritdoc />
-    internal override IModel CreateModel() =>
+    internal override IModel BorrowChannel() =>
         !IsConnected
             ? throw new InvalidOperationException("RabbitMQ连接失败")
             : _connection is null
                 ? throw new InvalidOperationException("RabbitMQ连接未创建")
-                : _connection.CreateModel();
+                : _channelPool is null
+                    ? throw new("通道池为空")
+                    : _channelPool.BorrowChannel();
+
+    /// <inheritdoc />
+    internal override void RepaidChannel(IModel channel) => _channelPool?.RepaidChannel(channel);
 
     /// <inheritdoc />
     internal override bool TryConnect()
@@ -85,6 +108,7 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
                 _connection.CallbackException += OnCallbackException;
                 _connection.ConnectionBlocked += OnConnectionBlocked;
                 _logger.LogInformation("RabbitMQ客户端获取了与[{HostName}]的持久连接,并订阅了故障事件", _connection.Endpoint.HostName);
+                _channelPool = new ChannelPool(_connection, MaxChannelPoolCount);
                 _disposed = false;
                 return true;
             }

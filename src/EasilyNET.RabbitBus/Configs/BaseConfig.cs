@@ -27,4 +27,9 @@ public class BaseConfig
     /// 虚拟主机
     /// </summary>
     public string VirtualHost { get; set; } = "/";
+
+    /// <summary>
+    /// 最大Channel池数量,默认:10
+    /// </summary>
+    public int MaxChannelPoolCount { get; set; } = 10;
 }
