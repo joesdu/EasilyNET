@@ -260,15 +260,15 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         channel.QueueBind(attr.Queue, attr.ExchangeName, attr.RoutingKey);
     }
 
-    private void StartBasicConsume(Type eventType, RabbitAttribute attr, IModel? consumerChannel)
+    private void StartBasicConsume(Type eventType, RabbitAttribute attr, IModel? channel)
     {
         _logger.LogTrace("启动消费者");
-        if (consumerChannel is not null)
+        if (channel is not null)
         {
             var qos = eventType.GetCustomAttribute<RabbitQosAttribute>();
-            if (qos is not null) consumerChannel.BasicQos(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
-            var consumer = new AsyncEventingBasicConsumer(consumerChannel);
-            _ = consumerChannel.BasicConsume(attr.Queue, false, consumer);
+            if (qos is not null) channel.BasicQos(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
+            var consumer = new AsyncEventingBasicConsumer(channel);
+            _ = channel.BasicConsume(attr.Queue, false, consumer);
             consumer.Received += async (_, ea) =>
             {
                 var message = Encoding.UTF8.GetString(ea.Body.Span);
@@ -278,11 +278,12 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                     {
                         throw new InvalidOperationException($"假异常请求:{message}");
                     }
-                    await ProcessEvent(eventType, message, () => consumerChannel.BasicAck(ea.DeliveryTag, false));
+                    await ProcessEvent(eventType, message, () => channel.BasicAck(ea.DeliveryTag, false));
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "错误处理消息:{Message}", message);
+                    channel.BasicNack(ea.DeliveryTag, false, true);
                 }
                 // Even on exception we take the message off the queue.
                 // in a REAL WORLD app this should be handled with a Dead Letter Exchange (DLX). 
@@ -360,6 +361,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "错误处理消息:{Message}", message);
+                    channel.BasicNack(ea.DeliveryTag, false, true);
                 }
             };
             while (true) Thread.Sleep(100000);
