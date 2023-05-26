@@ -48,10 +48,11 @@ public static class ServiceCollectionExtension
     /// <param name="service"></param>
     /// <param name="config">IConfiguration</param>
     /// <param name="retry_count">重试次数</param>
-    public static void AddRabbitBus(this IServiceCollection service, IConfiguration config, int retry_count = 5)
+    /// <param name="max_channel_count">最大Channel池数量,默认:10</param>
+    public static void AddRabbitBus(this IServiceCollection service, IConfiguration config, int retry_count = 5, int max_channel_count = 10)
     {
         var conn = config.GetConnectionString("Rabbit") ?? throw new("链接字符串不能为空");
-        service.AddRabbitBus(conn, retry_count);
+        service.AddRabbitBus(conn, retry_count, max_channel_count);
     }
 
     /// <summary>
@@ -60,14 +61,15 @@ public static class ServiceCollectionExtension
     /// <param name="service"></param>
     /// <param name="conn_str">AMQP链接字符串</param>
     /// <param name="retry_count">重试次数</param>
-    public static void AddRabbitBus(this IServiceCollection service, string conn_str, int retry_count = 5)
+    /// <param name="max_channel_count">最大Channel池数量,默认:10</param>
+    public static void AddRabbitBus(this IServiceCollection service, string conn_str, int retry_count = 5, int max_channel_count = 10)
     {
 #if NET7_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(conn_str, nameof(conn_str));
 #else
         if (string.IsNullOrWhiteSpace(conn_str)) throw new("链接字符串不能为空");
 #endif
-        service.RabbitPersistentConnection(conn_str, retry_count).AddIntegrationEventBus(retry_count);
+        service.RabbitPersistentConnection(conn_str, retry_count, max_channel_count).AddIntegrationEventBus(retry_count);
     }
 
     private static void AddIntegrationEventBus(this IServiceCollection service, int retry_count)
@@ -100,7 +102,7 @@ public static class ServiceCollectionExtension
                 Port = config.Port,
                 VirtualHost = config.VirtualHost,
                 DispatchConsumersAsync = true
-            }, logger, config.RetryCount);
+            }, logger, config.RetryCount, config.MaxChannelPoolCount);
         });
         return service;
     }
@@ -118,12 +120,12 @@ public static class ServiceCollectionExtension
                 Password = config.PassWord,
                 VirtualHost = config.VirtualHost,
                 DispatchConsumersAsync = true
-            }, logger, config.RetryCount, config.AmqpTcpEndpoints);
+            }, logger, config.RetryCount, config.MaxChannelPoolCount, config.AmqpTcpEndpoints);
         });
         return service;
     }
 
-    private static IServiceCollection RabbitPersistentConnection(this IServiceCollection service, string conn, int retry_count)
+    private static IServiceCollection RabbitPersistentConnection(this IServiceCollection service, string conn, int retry_count, int maxChannel)
     {
         _ = service.AddSingleton<IPersistentConnection>(sp =>
         {
@@ -132,7 +134,7 @@ public static class ServiceCollectionExtension
             {
                 Uri = new(conn),
                 DispatchConsumersAsync = true
-            }, logger, retry_count);
+            }, logger, retry_count, maxChannel);
         });
         return service;
     }

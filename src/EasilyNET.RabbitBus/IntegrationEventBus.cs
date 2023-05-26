@@ -67,7 +67,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         _logger.LogTrace("创建通道来发布事件: {EventId} ({EventName})", @event.EventId, type.Name);
         var r_attr = type.GetCustomAttribute<RabbitAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(RabbitAttribute)}>,无法创建发布事件");
         if (!r_attr.Enable) return;
-        var channel = _persistentConnection.CreateModel();
+        var channel = _persistentConnection.BorrowChannel();
         var properties = channel.CreateBasicProperties();
         properties.Persistent = true;
         properties.DeliveryMode = 2;
@@ -89,7 +89,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         {
             _logger.LogTrace("发布事件: {EventId}", @event.EventId);
             channel.BasicPublish(r_attr.ExchangeName, routingKey ?? r_attr.RoutingKey, true, properties, body);
-            channel.Close();
+            _persistentConnection.RepaidChannel(channel);
         });
     }
 
@@ -103,7 +103,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         var rabbitAttr = type.GetCustomAttribute<RabbitAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(RabbitAttribute)}>,无法发布事件");
         if (!rabbitAttr.Enable) return;
         if (rabbitAttr is not { WorkModel: EWorkModel.Delayed }) throw new($"延时队列的交换机类型必须为{nameof(EWorkModel.Delayed)}");
-        var channel = _persistentConnection.CreateModel();
+        var channel = _persistentConnection.BorrowChannel();
         var properties = channel.CreateBasicProperties();
         properties.Persistent = true;
         properties.DeliveryMode = 2;
@@ -139,7 +139,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         {
             _logger.LogTrace("发布事件: {EventId}", @event.EventId);
             channel.BasicPublish(rabbitAttr.ExchangeName, routingKey ?? rabbitAttr.RoutingKey, true, properties, body);
-            channel.Close();
+            _persistentConnection.RepaidChannel(channel);
         });
     }
 
@@ -207,7 +207,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
     private IModel CreateConsumerChannel(RabbitAttribute attr, Type eventType, DeadLetterAttribute? xdlAttr = null)
     {
         _logger.LogTrace("创建消费者通道");
-        var channel = _persistentConnection.CreateModel();
+        var channel = _persistentConnection.BorrowChannel();
         var queue_args = eventType.GetQueueArgAttributes();
         if (xdlAttr is not null && xdlAttr.Enable)
         {
