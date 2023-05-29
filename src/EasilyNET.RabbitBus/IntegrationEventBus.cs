@@ -283,12 +283,9 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "错误处理消息:{Message}", message);
-                    // 先注释掉,若是大量消息重新入队,容易拖垮MQ
+                    // 先注释掉,若是大量消息重新入队,容易拖垮MQ,这里的处理办法是长时间不确认,所有消息由Unacked重新变为Ready
                     //channel.BasicNack(ea.DeliveryTag, false, true);
                 }
-                // Even on exception we take the message off the queue.
-                // in a REAL WORLD app this should be handled with a Dead Letter Exchange (DLX). 
-                // For more information see: https://www.rabbitmq.com/dlx.html
             };
             while (true) Thread.Sleep(100000);
         }
@@ -362,8 +359,10 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "错误处理消息:{Message}", message);
-                    //channel.BasicNack(ea.DeliveryTag, false, true);
                 }
+                // Even on exception we take the message off the queue.
+                // in a REAL WORLD app this should be handled with a Dead Letter Exchange (DLX). 
+                // For more information see: https://www.rabbitmq.com/dlx.html
             };
             while (true) Thread.Sleep(100000);
         }
