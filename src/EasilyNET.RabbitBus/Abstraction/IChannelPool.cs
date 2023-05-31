@@ -8,11 +8,11 @@ internal interface IChannelPool : IDisposable
     /// 从池中获取Channel
     /// </summary>
     /// <returns></returns>
-    public IModel GetChannel();
+    IModel GetChannel();
 
     /// <summary>
     /// 归还Channel到池或者释放
     /// </summary>
     /// <param name="channel"></param>
-    public void ReturnChannel(IModel channel);
+    void ReturnChannel(IModel channel);
 }

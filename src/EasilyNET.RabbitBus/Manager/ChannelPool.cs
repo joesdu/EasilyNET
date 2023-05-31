@@ -8,9 +8,9 @@ internal sealed class ChannelPool : IChannelPool
 {
     private readonly ConcurrentBag<IModel> _channels;
     private readonly IConnection _connection;
-    private readonly int _maxSize;
+    private readonly uint _maxSize;
 
-    public ChannelPool(IConnection connection, int maxSize)
+    public ChannelPool(IConnection connection, uint maxSize)
     {
         _connection = connection;
         _maxSize = maxSize;

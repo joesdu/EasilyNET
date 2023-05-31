@@ -39,7 +39,7 @@ public class RabbitBusController : ControllerBase
     [HttpPost]
     public void WorkQueues()
     {
-        foreach (var i in ..50000)
+        foreach (var i in ..10_0000)
         {
             _ibus.Publish(new WorkQueuesEvent
             {
