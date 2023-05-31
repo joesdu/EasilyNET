@@ -29,7 +29,7 @@ public class BaseConfig
     public string VirtualHost { get; set; } = "/";
 
     /// <summary>
-    /// 最大Channel池数量,默认:10
+    /// 最大Channel池数量,默认为: 计算机上逻辑处理器的数量
     /// </summary>
-    public int MaxChannelPoolCount { get; set; } = 10;
+    public uint MaxChannelPoolCount { get; set; } = 0;
 }

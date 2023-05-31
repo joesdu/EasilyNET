@@ -48,8 +48,8 @@ public static class ServiceCollectionExtension
     /// <param name="service"></param>
     /// <param name="config">IConfiguration</param>
     /// <param name="retry_count">重试次数</param>
-    /// <param name="max_channel_count">最大Channel池数量,默认:10</param>
-    public static void AddRabbitBus(this IServiceCollection service, IConfiguration config, int retry_count = 5, int max_channel_count = 10)
+    /// <param name="max_channel_count">最大Channel池数量,默认为: 计算机上逻辑处理器的数量</param>
+    public static void AddRabbitBus(this IServiceCollection service, IConfiguration config, int retry_count = 5, uint max_channel_count = 0)
     {
         var conn = config.GetConnectionString("Rabbit") ?? throw new("链接字符串不能为空");
         service.AddRabbitBus(conn, retry_count, max_channel_count);
@@ -61,8 +61,8 @@ public static class ServiceCollectionExtension
     /// <param name="service"></param>
     /// <param name="conn_str">AMQP链接字符串</param>
     /// <param name="retry_count">重试次数</param>
-    /// <param name="max_channel_count">最大Channel池数量,默认:10</param>
-    public static void AddRabbitBus(this IServiceCollection service, string conn_str, int retry_count = 5, int max_channel_count = 10)
+    /// <param name="max_channel_count">最大Channel池数量,默认为: 计算机上逻辑处理器的数量</param>
+    public static void AddRabbitBus(this IServiceCollection service, string conn_str, int retry_count = 5, uint max_channel_count = 0)
     {
 #if NET7_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(conn_str, nameof(conn_str));
@@ -125,7 +125,7 @@ public static class ServiceCollectionExtension
         return service;
     }
 
-    private static IServiceCollection RabbitPersistentConnection(this IServiceCollection service, string conn, int retry_count, int maxChannel)
+    private static IServiceCollection RabbitPersistentConnection(this IServiceCollection service, string conn, int retry_count, uint maxChannel)
     {
         _ = service.AddSingleton<IPersistentConnection>(sp =>
         {

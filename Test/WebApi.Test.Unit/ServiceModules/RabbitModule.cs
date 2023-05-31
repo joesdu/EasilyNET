@@ -14,6 +14,6 @@ public class RabbitModule : AppModule
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var config = context.Services.GetConfiguration();
-        context.Services.AddRabbitBus(config, max_channel_count: 10);
+        context.Services.AddRabbitBus(config, max_channel_count: (uint)Environment.ProcessorCount);
     }
 }
