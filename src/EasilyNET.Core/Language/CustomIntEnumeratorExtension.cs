@@ -3,7 +3,6 @@
 
 namespace EasilyNET.Core.Language;
 
-#if !NETSTANDARD2_0
 /// <summary>
 /// CustomIntEnumeratorExtension
 /// </summary>
@@ -54,4 +53,3 @@ public static class CustomIntEnumeratorExtension
         public bool MoveNext() => Current++ < _end;
     }
 }
-#endif
