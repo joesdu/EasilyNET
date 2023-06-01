@@ -253,15 +253,14 @@ public class GridFSController : ControllerBase
         var oids = ids.Select(ObjectId.Parse).ToList();
         var fi = await (await Bucket.FindAsync(gbf.In(c => c.Id, oids), cancellationToken: cancellationToken)).ToListAsync(cancellationToken);
         var fids = fi.Select(c => new { Id = c.Id.ToString(), FileName = c.Filename }).ToArray();
+        _ = fids.Length > 6 ? Task.Run(DeleteSingleFile, cancellationToken) : DeleteSingleFile();
+        _ = Coll.DeleteManyAsync(c => ids.Contains(c.FileId), cancellationToken);
+        return fids.Select(c => c.FileName);
 
         Task DeleteSingleFile()
         {
             foreach (var item in fids) _ = Bucket.DeleteAsync(ObjectId.Parse(item.Id), cancellationToken);
             return Task.CompletedTask;
         }
-
-        _ = fids.Length > 6 ? Task.Run(DeleteSingleFile, cancellationToken) : DeleteSingleFile();
-        _ = Coll.DeleteManyAsync(c => ids.Contains(c.FileId), cancellationToken);
-        return fids.Select(c => c.FileName);
     }
 }
