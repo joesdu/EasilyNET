@@ -5,6 +5,7 @@ using Serilog;
 using Serilog.Events;
 using WebApi.Test.Unit;
 
+Console.Title = "EasilyNET";
 AssemblyHelper.AddExcludeLibs("Npgsql.");
 var builder = WebApplication.CreateBuilder(args);
 // 汉字转拼音
