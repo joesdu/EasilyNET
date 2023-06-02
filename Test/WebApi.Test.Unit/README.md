@@ -23,3 +23,8 @@ docker cp "C:\Users\Niu\Downloads\rabbitmq_delayed_message_exchange-3.11.1.ez" r
 docker exec -it rabbitmq /bin/bash
 rabbitmq-plugins enable rabbitmq_delayed_message_exchange
 ```
+
+- 本地使用docker启动Minio服务
+```bash
+docker run -d --restart always  -p 9000:9000 -p 9001:9001 --name minio -v F:\data:/data -e "MINIO_ROOT_USER=admin" -e "MINIO_ROOT_PASSWORD=admin123456" minio/minio server /data --console-address ":9001"
+```
