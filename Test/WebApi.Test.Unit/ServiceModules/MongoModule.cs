@@ -17,7 +17,7 @@ public class MongoModule : AppModule
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        //var config = context.Services.GetConfiguration();
+        var config = context.Services.GetConfiguration();
         var provider = context.Services.BuildServiceProviderFromFactory();
         // MongoDB服务初始化完整例子
         //context.Services.AddMongoContext<DbContext>(provider, new MongoClientSettings
@@ -82,11 +82,7 @@ public class MongoModule : AppModule
             c.DatabaseName = "test1";
             c.LinqProvider = LinqProvider.V3;
             c.ClusterBuilder = cb => cb.Subscribe(new ActivityEventSubscriber());
-        }).AddMongoContext<DbContext2>(provider, new MongoClientSettings
-        {
-            Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
-            Credential = MongoCredential.CreateCredential("admin", "guest", "guest")
-        }, c =>
+        }).AddMongoContext<DbContext2>(provider, config, c =>
         {
             c.DatabaseName = "test2";
             c.LinqProvider = LinqProvider.V3;

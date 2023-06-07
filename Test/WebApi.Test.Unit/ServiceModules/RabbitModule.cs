@@ -11,6 +11,12 @@ namespace WebApi.Test.Unit;
 public class RabbitModule : AppModule
 {
     /// <inheritdoc />
+    public RabbitModule()
+    {
+        Enable = false;
+    }
+
+    /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var config = context.Services.GetConfiguration();
