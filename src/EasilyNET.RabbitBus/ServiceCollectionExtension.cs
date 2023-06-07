@@ -46,7 +46,7 @@ public static class ServiceCollectionExtension
     /// 添加消息总线RabbitMQ服务(单节点模式)
     /// </summary>
     /// <param name="service"></param>
-    /// <param name="config">IConfiguration</param>
+    /// <param name="config">IConfiguration,从json配置ConnectionString.Rabbit中获取链接</param>
     /// <param name="retry_count">重试次数</param>
     /// <param name="max_channel_count">最大Channel池数量,默认为: 计算机上逻辑处理器的数量</param>
     public static void AddRabbitBus(this IServiceCollection service, IConfiguration config, int retry_count = 5, uint max_channel_count = 0)

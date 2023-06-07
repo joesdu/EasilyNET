@@ -8,6 +8,7 @@
 		<LangVersion>preview</LangVersion>
 		<RepositoryUrl>https://github.com/EasilyNET/EasilyNET</RepositoryUrl>
 		<Nullable>enable</Nullable>
+		<EnablePreviewFeatures>true</EnablePreviewFeatures>
 		<Authors>joesdu</Authors>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
