@@ -29,7 +29,7 @@ public sealed class EasilyMongoParams
     /// <summary>
     /// 数据库名称
     /// </summary>
-    public string DatabaseName { get; set; } = Constant.DbName;
+    public string? DatabaseName { get; set; }
 
     /// <summary>
     /// DBContext的构造函数参数,用于支持自定义非无参构造函数的DbContext
