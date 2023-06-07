@@ -88,6 +88,7 @@ public static class MongoServiceExtensions
         var settings = MongoClientSettings.FromUrl(mongoUrl);
         settings.LinqProvider = options.LinqProvider;
         var dbName = !string.IsNullOrWhiteSpace(mongoUrl.DatabaseName) ? mongoUrl.DatabaseName : options.DatabaseName;
+        if (options.DatabaseName is not Constant.DbName) dbName = options.DatabaseName;
         _ = services.AddMongoContext<T>(provider, settings, c =>
         {
             c.ClusterBuilder = options.ClusterBuilder;
