@@ -62,7 +62,7 @@ public static class MongoServiceExtensions
         options.Options?.Invoke(dbOptions);
         RegistryConventionPack(dbOptions);
         settings.ClusterConfigurator = options.ClusterBuilder ?? settings.ClusterConfigurator;
-        var db = EasilyMongoContext.CreateInstance<T>(provider, settings, options.DatabaseName, options.ContextParams.ToArray());
+        var db = EasilyMongoContext.CreateInstance<T>(provider, settings, options.DatabaseName ?? Constant.DbName, options.ContextParams.ToArray());
         _ = services.AddSingleton(db).AddSingleton(db.Database).AddSingleton(db.Client);
         return services;
     }
@@ -87,8 +87,8 @@ public static class MongoServiceExtensions
         var mongoUrl = new MongoUrl(connStr);
         var settings = MongoClientSettings.FromUrl(mongoUrl);
         settings.LinqProvider = options.LinqProvider;
-        var dbName = !string.IsNullOrWhiteSpace(mongoUrl.DatabaseName) ? mongoUrl.DatabaseName : options.DatabaseName;
-        if (options.DatabaseName is not Constant.DbName) dbName = options.DatabaseName;
+        var dbName = !string.IsNullOrWhiteSpace(mongoUrl.DatabaseName) ? mongoUrl.DatabaseName : options.DatabaseName ?? Constant.DbName;
+        if (options.DatabaseName is not null) dbName = options.DatabaseName;
         _ = services.AddMongoContext<T>(provider, settings, c =>
         {
             c.ClusterBuilder = options.ClusterBuilder;
