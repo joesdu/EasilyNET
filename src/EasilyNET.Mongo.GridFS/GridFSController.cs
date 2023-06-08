@@ -96,7 +96,7 @@ public class GridFSController : ControllerBase
         foreach (var item in fs.File)
         {
             if (item.ContentType is null) throw new("ContentType in File is null");
-            var bapp = !string.IsNullOrWhiteSpace(fs.App) ? fs.App : GridFSExtensions.BusinessApp;
+            var bapp = !string.IsNullOrWhiteSpace(fs.App) ? fs.App : ServiceCollectionExtensions.BusinessApp;
             if (string.IsNullOrWhiteSpace(bapp)) throw new("BusinessApp can't be null");
             var metadata = new Dictionary<string, object>
             {
@@ -134,7 +134,7 @@ public class GridFSController : ControllerBase
         if (fs.File is null) throw new("no files find");
         if (!string.IsNullOrWhiteSpace(fs.DeleteId)) _ = await Delete(cancellationToken, fs.DeleteId!);
         if (fs.File.ContentType is null) throw new("ContentType in File is null");
-        var bapp = !string.IsNullOrWhiteSpace(fs.App) ? fs.App : GridFSExtensions.BusinessApp;
+        var bapp = !string.IsNullOrWhiteSpace(fs.App) ? fs.App : ServiceCollectionExtensions.BusinessApp;
         if (string.IsNullOrWhiteSpace(bapp)) throw new("BusinessApp can't be null");
         var metadata = new Dictionary<string, object>
         {

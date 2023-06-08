@@ -10,7 +10,7 @@ namespace EasilyNET.Mongo.GridFS.Extension;
 /// <summary>
 /// 配置虚拟文件路径扩展
 /// </summary>
-public static class VirtualPathExtension
+public static class ApplicationBuilderExtension
 {
     /// <summary>
     /// 注册虚拟文件路径中间件.

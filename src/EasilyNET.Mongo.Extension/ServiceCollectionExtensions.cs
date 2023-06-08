@@ -12,7 +12,7 @@ namespace EasilyNET.Mongo.Extension;
 /// <summary>
 /// 服务注册扩展类
 /// </summary>
-public static class RegisterSerializerExtension
+public static class ServiceCollectionExtensions
 {
     /// <summary>
     /// 添加(DateOnly,TimeOnly)类型序列化支持,并使用默认格式,若是需要自定义格式,请使用重载方法自行添加.
@@ -47,7 +47,7 @@ public static class RegisterSerializerExtension
     public static IServiceCollection RegisterDynamicSerializer(this IServiceCollection services)
     {
 #pragma warning disable IDE0048
-        var objectSerializer = new ObjectSerializer(type => ObjectSerializer.DefaultAllowedTypes(type) || type.FullName is not null && type.FullName.StartsWith("<>f__AnonymousType"));
+        var objectSerializer = new ObjectSerializer(type => ObjectSerializer.DefaultAllowedTypes(type) || (type.FullName is not null && type.FullName.StartsWith("<>f__AnonymousType")));
 #pragma warning restore IDE0048
         BsonSerializer.RegisterSerializer(objectSerializer);
         return services;
