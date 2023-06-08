@@ -19,7 +19,7 @@ namespace EasilyNET.Mongo;
 /// 3.Inject IMongoDataBase use services.AddSingleton(db._database);
 /// 4.添加SkyAPM的诊断支持.在添加服务的时候填入 ClusterConfigurator,为减少依赖,所以需手动填入
 /// </summary>
-public static class MongoServiceExtensions
+public static class ServiceCollectionExtensions
 {
     /// <summary>
     /// 是否是第一次注册BsonSerializer

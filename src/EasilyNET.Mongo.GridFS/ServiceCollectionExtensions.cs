@@ -12,7 +12,7 @@ namespace EasilyNET.Mongo.GridFS;
 /// <summary>
 /// 服务注册于配置扩展
 /// </summary>
-public static class GridFSExtensions
+public static class ServiceCollectionExtensions
 {
     internal static string BusinessApp { get; private set; } = string.Empty;
 
