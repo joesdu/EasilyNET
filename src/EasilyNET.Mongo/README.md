@@ -47,8 +47,12 @@ builder.Services.AddMongoContext<DbContext>(provider, builder.Configuration, c =
             }
         });
     };
-    // 目前主要是用于 SkyAPM 使用
-    c.ClusterBuilder = op => op.Subscribe(new DiagnosticsActivityEventSubscriber());
+    // 目前主要是用于 SkyAPM 使用,或者接入我们自己Mongo.ConsoleDebug
+    c.ClusterBuilder = op =>
+    {
+         op.Subscribe(new DiagnosticsActivityEventSubscriber();
+         op.Subscribe(new ActivityEventSubscriber());
+    });
     // 当使用IConfiguration或者ConnectingString的时候,该配置不生效,因为这两个其实都是使用ConnectingString的方式,可以从连接字符串中获取数据库名称.
     // 使用MonogoClientSettings使用该字段配置数据库名.
     // 若是都未设置将使用本库默认数据库名称.

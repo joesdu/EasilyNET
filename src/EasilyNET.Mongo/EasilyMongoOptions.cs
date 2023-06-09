@@ -1,8 +1,6 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
-#if !NETSTANDARD
-#pragma warning disable CA1822
-#endif
+using System.Diagnostics.CodeAnalysis;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 // ReSharper disable UnusedMember.Global
@@ -19,14 +17,12 @@ public sealed class EasilyMongoOptions
     /// <summary>
     /// ObjectId到String转换的类型[该列表中的对象,不会将Id,ID字段转化为ObjectId类型.在数据库中存为字符串格式]
     /// </summary>
-    // ReSharper disable once CollectionNeverUpdated.Global
-    // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
     internal static List<Type> ObjIdToStringTypes { get; } = new();
 
     /// <summary>
     /// ObjectId到String转换的类型[该列表中的对象,不会将Id,ID字段转化为ObjectId类型.在数据库中存为字符串格式]
     /// </summary>
-    // ReSharper disable once MemberCanBeMadeStatic.Global
+    [SuppressMessage("Performance", "CA1822:将成员标记为 static", Justification = "<挂起>")]
     public List<Type> ObjectIdToStringTypes
     {
         get => ObjIdToStringTypes;
