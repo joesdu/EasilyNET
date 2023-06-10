@@ -17,10 +17,10 @@ public partial class EasilyMongoContext
     /// <returns></returns>
     protected IMongoCollection<TDocument> GetCollection<TDocument>(string name)
     {
-#if NET7_0_OR_GREATER
-        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
-#else
+#if NET6_0
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException(nameof(name));
+#else
+        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
 #endif
         return Database.GetCollection<TDocument>(name);
     }
@@ -32,10 +32,10 @@ public partial class EasilyMongoContext
     /// <returns></returns>
     public IMongoDatabase GetDatabase(string name)
     {
-#if NET7_0_OR_GREATER
-        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
-#else
+#if NET6_0
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException(nameof(name));
+#else
+        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
 #endif
         return Client.GetDatabase(name);
     }

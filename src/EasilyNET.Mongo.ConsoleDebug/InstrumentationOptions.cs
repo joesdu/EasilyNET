@@ -8,6 +8,7 @@ namespace EasilyNET.Mongo.ConsoleDebug;
 public sealed class InstrumentationOptions
 {
     /// <summary>
+    /// 是否开启Activity
     /// </summary>
     // ReSharper disable once UnusedAutoPropertyAccessor.Global
     public Func<CommandStartedEvent, bool>? ShouldStartActivity { get; set; }
