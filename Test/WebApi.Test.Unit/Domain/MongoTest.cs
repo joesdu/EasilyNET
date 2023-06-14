@@ -8,7 +8,7 @@ public class MongoTest
     /// <summary>
     /// ID
     /// </summary>
-    public string Id { get; set; }
+    public string Id { get; set; } = string.Empty;
 
     /// <summary>
     /// 完整DateTime
