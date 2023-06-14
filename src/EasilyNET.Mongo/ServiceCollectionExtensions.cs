@@ -88,6 +88,7 @@ public static class ServiceCollectionExtensions
         option?.Invoke(dbOptions);
         RegistryConventionPack(dbOptions);
         settings.ClusterConfigurator = dbOptions.ClusterBuilder ?? settings.ClusterConfigurator;
+        settings.LinqProvider = dbOptions.LinqProvider;
         var db = EasilyMongoContext.CreateInstance<T>(settings, dbOptions.DatabaseName ?? Constant.DbName);
         _ = services.AddSingleton(db).AddSingleton(db.Database).AddSingleton(db.Client);
         return services;
