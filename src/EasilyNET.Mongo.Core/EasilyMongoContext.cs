@@ -1,9 +1,9 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 
+// ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable ClassNeverInstantiated.Global
 
-namespace EasilyNET.Mongo;
+namespace EasilyNET.Mongo.Core;
 
 /// <summary>
 /// mongodb base context
@@ -20,11 +20,16 @@ public partial class EasilyMongoContext
     /// </summary>
     public IMongoDatabase Database { get; private set; } = default!;
 
-    internal static T CreateInstance<T>(IServiceProvider provider, MongoClientSettings settings, string dbName, params object[] parameters) where T : EasilyMongoContext
+    /// <summary>
+    /// 创建EasilyMongoContext实例
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="settings"></param>
+    /// <param name="dbName"></param>
+    /// <returns></returns>
+    public static T CreateInstance<T>(MongoClientSettings settings, string dbName) where T : EasilyMongoContext
     {
-        // 可支持非默认无参构造函数的DbContext
-        var t = ActivatorUtilities.CreateInstance<T>(provider, parameters);
-        // var t = Activator.CreateInstance<T>();
+        var t = Activator.CreateInstance<T>();
         t.Client = new MongoClient(settings);
         t.Database = t.Client.GetDatabase(dbName);
         return t;

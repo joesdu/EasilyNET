@@ -46,9 +46,7 @@ public static class ServiceCollectionExtensions
     /// <returns></returns>
     public static IServiceCollection RegisterDynamicSerializer(this IServiceCollection services)
     {
-#pragma warning disable IDE0048
         var objectSerializer = new ObjectSerializer(type => ObjectSerializer.DefaultAllowedTypes(type) || (type.FullName is not null && type.FullName.StartsWith("<>f__AnonymousType")));
-#pragma warning restore IDE0048
         BsonSerializer.RegisterSerializer(objectSerializer);
         return services;
     }

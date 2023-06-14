@@ -3,7 +3,7 @@
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
-namespace EasilyNET.Mongo;
+namespace EasilyNET.Mongo.Core;
 
 /// <summary>
 /// Unwind 操作符使用的类型

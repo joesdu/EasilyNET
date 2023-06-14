@@ -6,6 +6,11 @@
 public class MongoTest
 {
     /// <summary>
+    /// ID
+    /// </summary>
+    public string Id { get; set; }
+
+    /// <summary>
     /// 完整DateTime
     /// </summary>
     public DateTime DateTime { get; set; }
