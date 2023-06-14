@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using EasilyNET.Mongo.Core;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -31,39 +32,14 @@ public static class ServiceCollectionExtensions
     /// </summary>
     /// <typeparam name="T">DbContext</typeparam>
     /// <param name="services">IServiceCollection</param>
-    /// <param name="provider">IServiceProvider</param>
     /// <param name="configuration">IConfiguration</param>
-    /// <param name="param">其他参数</param>
+    /// <param name="option">其他参数</param>
     /// <returns></returns>
-    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, IServiceProvider provider, IConfiguration configuration, Action<EasilyMongoParams>? param = null)
+    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, IConfiguration configuration, Action<EasilyMongoOptions>? option = null)
         where T : EasilyMongoContext
     {
-        var connStr = ConnectionString(configuration);
-        _ = services.AddMongoContext<T>(provider, connStr, param);
-        return services;
-    }
-
-    /// <summary>
-    /// 使用MongoClientSettings配置添加DbContext
-    /// </summary>
-    /// <typeparam name="T">DbContext</typeparam>
-    /// <param name="services">IServiceCollection</param>
-    /// <param name="provider">IServiceProvider</param>
-    /// <param name="settings">HoyoMongoClientSettings</param>
-    /// <param name="param">其他参数</param>
-    /// <returns></returns>
-    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, IServiceProvider provider, MongoClientSettings settings, Action<EasilyMongoParams>? param = null)
-        where T : EasilyMongoContext
-    {
-        if (!settings.Servers.Any()) throw new("mongo server address can't be empty!");
-        var dbOptions = new EasilyMongoOptions();
-        var options = new EasilyMongoParams();
-        param?.Invoke(options);
-        options.Options?.Invoke(dbOptions);
-        RegistryConventionPack(dbOptions);
-        settings.ClusterConfigurator = options.ClusterBuilder ?? settings.ClusterConfigurator;
-        var db = EasilyMongoContext.CreateInstance<T>(provider, settings, options.DatabaseName ?? Constant.DbName, options.ContextParams.ToArray());
-        _ = services.AddSingleton(db).AddSingleton(db.Database).AddSingleton(db.Client);
+        var connStr = configuration["CONNECTIONSTRINGS_MONGO"] ?? configuration.GetConnectionString("Mongo") ?? throw new("💔:no [CONNECTIONSTRINGS_MONGO] env or ConnectionStrings.Mongo is null in appsettings.json");
+        _ = services.AddMongoContext<T>(connStr, option);
         return services;
     }
 
@@ -72,50 +48,74 @@ public static class ServiceCollectionExtensions
     /// </summary>
     /// <typeparam name="T">DbContext</typeparam>
     /// <param name="services">IServiceCollection</param>
-    /// <param name="provider">IServiceProvider</param>
     /// <param name="connStr">链接字符串</param>
-    /// <param name="param">其他参数</param>
+    /// <param name="option">其他参数</param>
     /// <returns></returns>
-    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, IServiceProvider provider, string connStr, Action<EasilyMongoParams>? param = null)
+    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, string connStr, Action<EasilyMongoOptions>? option = null)
         where T : EasilyMongoContext
     {
-        var options = new EasilyMongoParams();
-        var dbOptions = new EasilyMongoOptions();
-        param?.Invoke(options);
-        options.Options?.Invoke(dbOptions);
-        RegistryConventionPack(dbOptions);
+        var options = new EasilyMongoOptions();
+        option?.Invoke(options);
+        RegistryConventionPack(options);
         var mongoUrl = new MongoUrl(connStr);
         var settings = MongoClientSettings.FromUrl(mongoUrl);
-        settings.LinqProvider = options.LinqProvider;
         var dbName = !string.IsNullOrWhiteSpace(mongoUrl.DatabaseName) ? mongoUrl.DatabaseName : options.DatabaseName ?? Constant.DbName;
         if (options.DatabaseName is not null) dbName = options.DatabaseName;
-        _ = services.AddMongoContext<T>(provider, settings, c =>
+        _ = services.AddMongoContext<T>(settings, c =>
         {
+            c.ObjectIdToStringTypes = options.ObjectIdToStringTypes;
+            c.DefaultConventionRegistry = options.DefaultConventionRegistry;
+            c.ConventionRegistry = options.ConventionRegistry;
             c.ClusterBuilder = options.ClusterBuilder;
+            c.LinqProvider = options.LinqProvider;
             c.DatabaseName = dbName;
-            c.ContextParams = options.ContextParams;
         });
+        return services;
+    }
+
+    /// <summary>
+    /// 使用MongoClientSettings配置添加DbContext
+    /// </summary>
+    /// <typeparam name="T">DbContext</typeparam>
+    /// <param name="services">IServiceCollection</param>
+    /// <param name="settings">HoyoMongoClientSettings</param>
+    /// <param name="option">其他参数</param>
+    /// <returns></returns>
+    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, MongoClientSettings settings, Action<EasilyMongoOptions>? option = null)
+        where T : EasilyMongoContext
+    {
+        var dbOptions = new EasilyMongoOptions();
+        option?.Invoke(dbOptions);
+        RegistryConventionPack(dbOptions);
+        settings.ClusterConfigurator = dbOptions.ClusterBuilder ?? settings.ClusterConfigurator;
+        var db = EasilyMongoContext.CreateInstance<T>(settings, dbOptions.DatabaseName ?? Constant.DbName);
+        _ = services.AddSingleton(db).AddSingleton(db.Database).AddSingleton(db.Client);
         return services;
     }
 
     private static void RegistryConventionPack(EasilyMongoOptions options)
     {
+        if (options.DefaultConventionRegistry)
+        {
+            ConventionRegistry.Register($"{Constant.Pack}-{ObjectId.GenerateNewId()}", new ConventionPack
+            {
+                new CamelCaseElementNameConvention(),             // 驼峰名称格式
+                new IgnoreExtraElementsConvention(true),          // 忽略掉实体中不存在的字段
+                new NamedIdMemberConvention("Id", "ID"),          // _id映射为实体中的ID或者Id
+                new EnumRepresentationConvention(BsonType.String) // 将枚举类型存储为字符串格式
+            }, _ => true);
+        }
         foreach (var item in options.ConventionRegistry)
+        {
             ConventionRegistry.Register(item.Key, item.Value, _ => true);
-        if (!options.DefaultConventionRegistry) ConventionRegistry.Remove(options.ConventionRegistry.First().Key);
+        }
         ConventionRegistry.Register($"easily-id-pack-{ObjectId.GenerateNewId()}", new ConventionPack
         {
             new StringObjectIdIdGeneratorConvention() //ObjectId → String mapping ObjectId
-        }, x => !EasilyMongoOptions.ObjIdToStringTypes.Contains(x));
+        }, x => !options.ObjectIdToStringTypes.Contains(x));
         if (first) return;
         BsonSerializer.RegisterSerializer(new DateTimeSerializer(DateTimeKind.Local)); //to local time
         BsonSerializer.RegisterSerializer(new DecimalSerializer(BsonType.Decimal128)); //decimal to decimal default
         first = !first;
-    }
-
-    private static string ConnectionString(IConfiguration configuration)
-    {
-        var connStr = configuration["CONNECTIONSTRINGS_MONGO"] ?? configuration.GetConnectionString("Mongo");
-        return connStr ?? throw new("💔:no [CONNECTIONSTRINGS_MONGO] env or ConnectionStrings.Mongo is null in appsettings.json");
     }
 }

@@ -33,32 +33,42 @@
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
-var provider = builder.Services.BuildServiceProviderFromFactory();
 // 添加Mongodb数据库服务
-builder.Services.AddMongoContext<DbContext>(provider, builder.Configuration, c =>
+builder.Services.AddMongoContext<DbContext>(builder.Configuration, c =>
 {
-    c.Options = op =>
+    // 配置数据库名称,覆盖掉连接字符串中的数据库名称
+    c.DatabaseName = "test23";
+    // 配置不需要将Id字段存储为ObjectID的类型.使用$unwind操作符的时候,ObjectId在转换上会有一些问题.
+    c.ObjectIdToStringTypes = new()
     {
-        op.AppendConventionRegistry(new()
-        {
-            {
-                "IdentityServer Mongo Conventions",
-                new() {new IgnoreIfDefaultConvention(true)}
-            }
-        });
+        typeof(MongoTest2)
     };
-    // 目前主要是用于 SkyAPM 使用
-    c.ClusterBuilder = op => op.Subscribe(new DiagnosticsActivityEventSubscriber());
-    // 当使用IConfiguration或者ConnectingString的时候,该配置不生效,因为这两个其实都是使用ConnectingString的方式,可以从连接字符串中获取数据库名称.
-    // 使用MonogoClientSettings使用该字段配置数据库名.
-    // 若是都未设置将使用本库默认数据库名称.
-    c.DatabaseName = "easilynet";
-    // 新版的MongoDB驱动使用了 Linq3 的模式,所以原有的程序会出现一些问题,为了避免大改.可以调整为V2,默认为V3
-    // 若是使用MongoClientSettings配置的话,该参数不生效,将使用MongoClientSettings中的LinqProvider版本.
-    c.LinqProvider = LinqProvider.V2;
-    // 传递DbContext构造函数的参数.
-    //c.ContextParams = new() { "DbContext测试参数", 1, obj1, ... };
-}).RegisterSerializer();
+    // 是否使用HoyoMongo的一些默认转换配置.包含如下内容:
+    // 1.小驼峰字段名称 如: pageSize ,linkPhone 
+    // 2.忽略代码中未定义的字段
+    // 3.将ObjectID字段 _id 映射到实体中的ID或者Id字段,反之亦然.在存入数据的时候将Id或者ID映射为 _id
+    // 4.将枚举类型存储为字符串, 如: Gender.男 存储到数据中为 男,而不是 int 类型
+    c.DefaultConventionRegistry = true;
+    c.ConventionRegistry= new()
+    {
+        {
+            $"{SnowId.GenerateNewId()}",
+            new() { new IgnoreIfDefaultConvention(true) }
+        }
+    };
+    // EasilyNETMongoParams.Options 中的 LinqProvider, ClusterBuilder
+    // 会覆盖 MongoClientSettings 中的 LinqProvider 和 ClusterConfigurator 的值,
+    // 所以使用MongoClientSettings注册服务时,可仅赋值其中一个
+    c.LinqProvider = LinqProvider.V3;
+    //c.ClusterBuilder = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber());
+    c.ClusterBuilder = cb =>
+    {
+        cb.Subscribe(new ActivityEventSubscriber());
+    };
+});
+// 添加.NET6+新的TimeOnly和DateOnly数据类型的序列化方案和添加动态类型支持
+builder.Services.RegisterSerializer().RegisterDynamicSerializer();
+// 注册别的序列化方案
 builder.Services.RegisterSerializer(new DoubleSerializer(BsonType.Double));
 ...
 var app = builder.Build();
@@ -79,64 +89,98 @@ public class EasilyNETMongoModule : AppModule
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var config = context.Services.GetConfiguration();
-        var provider = context.Services.BuildServiceProviderFromFactory();
         // 使用 IConfiguration 的方式注册例子,使用链接字符串,仅需将config替换成连接字符即可.
-        //context.Services.AddMongoContext<DbContext>(provider, config, c =>
+        //context.Services.AddMongoContext<DbContext>(config, c =>
+        //{
+        //    // 配置数据库名称,覆盖掉连接字符串中的数据库名称
+        //    c.DatabaseName = "test23";
+        //    // 配置不需要将Id字段存储为ObjectID的类型.使用$unwind操作符的时候,ObjectId在转换上会有一些问题.
+        //    c.ObjectIdToStringTypes = new()
         //    {
-        //        c.Options = op =>
+        //        typeof(MongoTest2)
+        //    };
+        //    // 是否使用HoyoMongo的一些默认转换配置.包含如下内容:
+        //    // 1.小驼峰字段名称 如: pageSize ,linkPhone 
+        //    // 2.忽略代码中未定义的字段
+        //    // 3.将ObjectID字段 _id 映射到实体中的ID或者Id字段,反之亦然.在存入数据的时候将Id或者ID映射为 _id
+        //    // 4.将枚举类型存储为字符串, 如: Gender.男 存储到数据中为 男,而不是 int 类型
+        //    c.DefaultConventionRegistry = true;
+        //    c.ConventionRegistry= new()
+        //    {
         //        {
-        //            op.ObjIdToStringTypes = new() { typeof(MongoTest2) };
-        //            op.DefaultConventionRegistry = true;
-        //        };
-        //        //c.LinqProvider = MongoDB.Driver.Linq.LinqProvider.V2;
-        //        // 传递DbContext构造函数的参数.
-        //        //c.ContextParams = new() { "DbContext测试参数" };
-        //    })
-        //    .AddMongoContext<DbContext2>(config)
-        //    //.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard))
-        //    .RegisterSerializer();
+        //            $"{SnowId.GenerateNewId()}",
+        //            new() { new IgnoreIfDefaultConvention(true) }
+        //        }
+        //    };
+        //    // EasilyNETMongoParams.Options 中的 LinqProvider, ClusterBuilder
+        //    // 会覆盖 MongoClientSettings 中的 LinqProvider 和 ClusterConfigurator 的值,
+        //    // 所以使用MongoClientSettings注册服务时,可仅赋值其中一个
+        //    c.LinqProvider = LinqProvider.V3;
+        //    //c.ClusterBuilder = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber());
+        //    c.ClusterBuilder = cb =>
+        //    {
+        //        cb.Subscribe(new ActivityEventSubscriber());
+        //    };   
+        //});
+        //context.Services.AddMongoContext<DbContext2>(config);
+        //context.Services.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+        //context.Services.RegisterSerializer().RegisterDynamicSerializer();
 
-        context.Services.AddMongoContext<DbContext>(provider, new MongoClientSettings
+        // 例子二:使用MongoClientSettings配置
+        context.Services.AddMongoContext<DbContext>(new MongoClientSettings
+        {
+            Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
+            Credential = MongoCredential.CreateCredential("admin", "guest", "guest")
+            // 新版驱动使用V3版本,有可能会出现一些Linq表达式客户端函数无法执行,需要调整代码,但是工作量太大了,所以可以先使用V2兼容.
+            //LinqProvider = LinqProvider.V3
+            // 对接 SkyAPM 的 MongoDB探针
+            //ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber())
+        }, c =>
+        {
+            // 配置数据库名称,覆盖掉连接字符串中的数据库名称
+            c.DatabaseName = "test23";
+            // 配置不需要将Id字段存储为ObjectID的类型.使用$unwind操作符的时候,ObjectId在转换上会有一些问题.
+            c.ObjectIdToStringTypes = new()
             {
-                Servers = new List<MongoServerAddress>
-                {
-                    new("192.168.2.17",27017),
-                    new("192.168.2.18",27017),
-                    new("192.168.2.19",27017)
-                },
-                Credential = MongoCredential.CreateCredential("admin", "oneblogs", "&oneblogs789"),
-                // 新版驱动使用V3版本,有可能会出现一些Linq表达式客户端函数无法执行,需要调整代码,但是工作量太大了,所以可以先使用V2兼容.
-                LinqProvider = MongoDB.Driver.Linq.LinqProvider.V3,
-                // 对接 SkyAPM 的 MongoDB探针
-                //ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber())
-            }, c =>
+                typeof(MongoTest2)
+            };
+            // 是否使用HoyoMongo的一些默认转换配置.包含如下内容:
+            // 1.小驼峰字段名称 如: pageSize ,linkPhone 
+            // 2.忽略代码中未定义的字段
+            // 3.将ObjectID字段 _id 映射到实体中的ID或者Id字段,反之亦然.在存入数据的时候将Id或者ID映射为 _id
+            // 4.将枚举类型存储为字符串, 如: Gender.男 存储到数据中为 男,而不是 int 类型
+            c.DefaultConventionRegistry = true;
+            c.ConventionRegistry= new()
             {
-                c.DatabaseName = "test";
-                c.Options = op =>
                 {
-                    // 配置不需要将Id字段存储为ObjectID的类型.使用$unwind操作符的时候,ObjectId在转换上会有一些问题.
-                    op.ObjIdToStringTypes = new() { typeof(MongoTest2) };
-                    // 是否使用HoyoMongo的一些默认转换配置.包含如下内容:
-                    // 1.小驼峰字段名称 如: pageSize ,linkPhone
-                    // 2.忽略代码中未定义的字段
-                    // 3.将ObjectID字段 _id 映射到实体中的ID或者Id字段,反之亦然.在存入数据的时候将Id或者ID映射为 _id
-                    // 4.将枚举类型存储为字符串, 如: Gender.男 存储到数据中为 男,而不是 int 类型
-                    op.DefaultConventionRegistry = true;
-                };
-                // EasilyNETMongoParams.Options 中的 LinqProvider, ClusterBuilder
-                // 会覆盖 MongoClientSettings 中的 LinqProvider 和 ClusterConfigurator 的值,
-                // 所以使用MongoClientSettings注册服务时,可仅赋值其中一个
-                c.LinqProvider = MongoDB.Driver.Linq.LinqProvider.V2;
-                //c.ClusterBuilder = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber());
-                // 传递DbContext构造函数的参数.
-                //c.ContextParams = new() { "DbContext测试参数" };
-            })
-            // DbContext2 由于没有配置 LinqProvider 所以默认为V3版本,
-            // ClusterBuilder 也没有配置,所以使用 SkyAPM 也无法捕获到 Context2 的信息
-            .AddMongoContext<DbContext2>(provider, config)
-            // 添加Guid序列化.但是不加竟然也可以正常工作.
-            //.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard))
-            .RegisterSerializer();
+                    $"{SnowId.GenerateNewId()}",
+                    new() { new IgnoreIfDefaultConvention(true) }
+                }
+            };
+            // EasilyNETMongoParams.Options 中的 LinqProvider, ClusterBuilder
+            // 会覆盖 MongoClientSettings 中的 LinqProvider 和 ClusterConfigurator 的值,
+            // 所以使用MongoClientSettings注册服务时,可仅赋值其中一个
+            c.LinqProvider = LinqProvider.V3;
+            //c.ClusterBuilder = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber());
+            c.ClusterBuilder = cb =>
+            {
+                cb.Subscribe(new ActivityEventSubscriber());
+            };
+        });
+        context.Services.AddMongoContext<DbContext2>(config, c =>
+        {
+            c.DefaultConventionRegistry = true;
+            c.ConventionRegistry = new()
+            {
+                {
+                    $"{SnowId.GenerateNewId()}",
+                    new() { new IgnoreIfDefaultConvention(true) }
+                }
+            };
+            c.LinqProvider = LinqProvider.V3;
+            c.ClusterBuilder = cb => cb.Subscribe(new ActivityEventSubscriber());
+        });
+        //context.Services.RegisterSerializer().RegisterDynamicSerializer();
     }
 }
 ```

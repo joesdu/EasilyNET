@@ -1,8 +1,10 @@
 ﻿using MongoDB.Driver;
 
+// ReSharper disable MemberCanBeProtected.Global
+// ReSharper disable UnusedMember.Global
 // ReSharper disable ClassNeverInstantiated.Global
 
-namespace EasilyNET.Mongo;
+namespace EasilyNET.Mongo.Core;
 
 /// <summary>
 /// DbContext的一些方法,便于简化代码
@@ -15,12 +17,12 @@ public partial class EasilyMongoContext
     /// <typeparam name="TDocument">实体</typeparam>
     /// <param name="name">集合名称</param>
     /// <returns></returns>
-    protected IMongoCollection<TDocument> GetCollection<TDocument>(string name)
+    public IMongoCollection<TDocument> GetCollection<TDocument>(string name)
     {
-#if NET7_0_OR_GREATER
-        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
-#else
+#if NET6_0
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException(nameof(name));
+#else
+        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
 #endif
         return Database.GetCollection<TDocument>(name);
     }
@@ -32,10 +34,10 @@ public partial class EasilyMongoContext
     /// <returns></returns>
     public IMongoDatabase GetDatabase(string name)
     {
-#if NET7_0_OR_GREATER
-        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
-#else
+#if NET6_0
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException(nameof(name));
+#else
+        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
 #endif
         return Client.GetDatabase(name);
     }
