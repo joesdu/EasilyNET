@@ -65,11 +65,10 @@ builder.Services.AddMongoContext<DbContext>(builder.Configuration, c =>
     {
         cb.Subscribe(new ActivityEventSubscriber());
     };
-})
-// 添加.NET6+新的TimeOnly和DateOnly数据类型的序列化方案
-.RegisterSerializer()
-// 添加动态类型的支持
-.RegisterDynamicSerializer();
+});
+// 添加.NET6+新的TimeOnly和DateOnly数据类型的序列化方案和添加动态类型支持
+builder.Services.RegisterSerializer().RegisterDynamicSerializer();
+// 注册别的序列化方案
 builder.Services.RegisterSerializer(new DoubleSerializer(BsonType.Double));
 ...
 var app = builder.Build();
@@ -122,11 +121,12 @@ public class EasilyNETMongoModule : AppModule
         //    {
         //        cb.Subscribe(new ActivityEventSubscriber());
         //    };   
-        //})
-        //.AddMongoContext<DbContext2>(config)
-        ////.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard))
-        //.RegisterSerializer().RegisterDynamicSerializer();
+        //});
+        //context.Services.AddMongoContext<DbContext2>(config);
+        //context.Services.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+        //context.Services.RegisterSerializer().RegisterDynamicSerializer();
 
+        // 例子二:使用MongoClientSettings配置
         context.Services.AddMongoContext<DbContext>(new MongoClientSettings
         {
             Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
@@ -166,7 +166,8 @@ public class EasilyNETMongoModule : AppModule
             {
                 cb.Subscribe(new ActivityEventSubscriber());
             };
-        }).AddMongoContext<DbContext2>(config, c =>
+        });
+        context.Services.AddMongoContext<DbContext2>(config, c =>
         {
             c.DefaultConventionRegistry = true;
             c.ConventionRegistry = new()
@@ -178,7 +179,8 @@ public class EasilyNETMongoModule : AppModule
             };
             c.LinqProvider = LinqProvider.V3;
             c.ClusterBuilder = cb => cb.Subscribe(new ActivityEventSubscriber());
-        }).RegisterSerializer().RegisterDynamicSerializer();
+        });
+        //context.Services.RegisterSerializer().RegisterDynamicSerializer();
     }
 }
 ```

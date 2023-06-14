@@ -69,7 +69,7 @@ public class MongoModule : AppModule
             };
             c.LinqProvider = LinqProvider.V3;
             c.ClusterBuilder = cb => cb.Subscribe(new ActivityEventSubscriber());
-        }).RegisterSerializer().RegisterDynamicSerializer();
+        });
         context.Services.AddMongoContext<DbContext>(new MongoClientSettings
         {
             Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
@@ -80,6 +80,7 @@ public class MongoModule : AppModule
             c.LinqProvider = LinqProvider.V3;
             c.ClusterBuilder = cb => cb.Subscribe(new ActivityEventSubscriber());
             c.DefaultConventionRegistry = false;
-        }).AddMongoContext<DbContext2>(config).RegisterSerializer().RegisterDynamicSerializer();
+        }).AddMongoContext<DbContext2>(config);
+        context.Services.RegisterSerializer().RegisterDynamicSerializer();
     }
 }
