@@ -54,7 +54,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.WebCore.Swagger",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Test.Unit", "Test\EasilyNET.Test.Unit\EasilyNET.Test.Unit.csproj", "{1FDD0D1C-991B-45C4-8BB8-E9E27CA53082}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.Mongo.Core", "src\EasilyNET.Mongo.Core\EasilyNET.Mongo.Core.csproj", "{F096FF03-E517-4F1D-8657-7946A5DDC06F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Mongo.Core", "src\EasilyNET.Mongo.Core\EasilyNET.Mongo.Core.csproj", "{F096FF03-E517-4F1D-8657-7946A5DDC06F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,5 +1,4 @@
 ﻿using EasilyNET.Mongo.Core;
-using EasilyNET.Mongo.Core.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
@@ -88,7 +87,7 @@ public static class ServiceCollectionExtensions
         RegistryConventionPack(options);
         settings.MinConnectionPoolSize = Environment.ProcessorCount;
         var db = MongoContext.CreateInstance<T>(settings, options.DatabaseName ?? Constant.DbName);
-        services.AddSingleton<IMongoContext>(db).AddSingleton(db.Database).AddSingleton(db.Client);
+        services.AddSingleton(db).AddSingleton(db.Database).AddSingleton(db.Client);
     }
 
     private static void RegistryConventionPack(BasicClientOptions options)
