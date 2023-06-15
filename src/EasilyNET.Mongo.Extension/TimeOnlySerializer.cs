@@ -4,19 +4,26 @@ using MongoDB.Bson.Serialization.Serializers;
 namespace EasilyNET.Mongo;
 
 /// <summary>
-/// TimeOnly序列化方式,仅存为字符串形式方便人类阅读
+/// <see cref="TimeOnly" /> 序列化方式,仅存为字符串形式方便人类阅读
+/// <example>
+///     <code>
+///  <![CDATA[
+///  BsonSerializer.RegisterSerializer(new TimeOnlySerializer());
+///   ]]>
+///  </code>
+/// </example>
 /// </summary>
 internal sealed class TimeOnlySerializer : StructSerializerBase<TimeOnly>
 {
     private static string Format = "HH:mm:ss";
 
     /// <summary>
-    /// 使用给默认方案: HH:mm:ss
+    /// 使用给默认方案: <see langword="HH:mm:ss" />
     /// </summary>
     public TimeOnlySerializer() { }
 
     /// <summary>
-    /// 可自定义传入TimeOnly格式化字符串格式
+    /// 可自定义传入 <see cref="TimeOnly" /> 格式化字符串格式
     /// </summary>
     /// <param name="format"></param>
     public TimeOnlySerializer(string format)

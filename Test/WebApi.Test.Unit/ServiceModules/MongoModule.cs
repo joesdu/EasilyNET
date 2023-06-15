@@ -22,11 +22,11 @@ public class MongoModule : AppModule
         //context.Services.AddMongoContext<DbContext>(new MongoClientSettings
         //{
         //    Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
-        //    Credential = MongoCredential.CreateCredential("admin", "guest", "guest")
+        //    Credential = MongoCredential.CreateCredential("admin", "guest", "guest"),
         //    // 新版驱动使用V3版本,有可能会出现一些Linq表达式客户端函数无法执行,需要调整代码,但是工作量太大了,所以可以先使用V2兼容.
-        //    //LinqProvider = LinqProvider.V3
+        //    LinqProvider = LinqProvider.V3,
         //    // 对接 SkyAPM 的 MongoDB探针
-        //    //ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber())
+        //    ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber())
         //}, c =>
         //{
         //    // 配置数据库名称,覆盖掉连接字符串中的数据库名称
@@ -49,12 +49,6 @@ public class MongoModule : AppModule
         //            new() { new IgnoreIfDefaultConvention(true) }
         //        }
         //    };
-        //    // EasilyNETMongoParams.Options 中的 LinqProvider, ClusterBuilder
-        //    // 会覆盖 MongoClientSettings 中的 LinqProvider 和 ClusterConfigurator 的值,
-        //    // 所以使用MongoClientSettings注册服务时,可仅赋值其中一个
-        //    c.LinqProvider = LinqProvider.V3;
-        //    //c.ClusterBuilder = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber());
-        //    c.ClusterBuilder = cb => cb.Subscribe(new ActivityEventSubscriber());
         //}).AddMongoContext<DbContext2>(config, c =>
         //{
         //    c.DefaultConventionRegistry = true;
@@ -65,24 +59,24 @@ public class MongoModule : AppModule
         //            new() { new IgnoreIfDefaultConvention(true) }
         //        }
         //    };
-        //    c.LinqProvider = LinqProvider.V3;
-        //    c.ClusterBuilder = cb => cb.Subscribe(new ActivityEventSubscriber());
+        //    c.ClientSettings = cs =>
+        //    {
+        //        cs.LinqProvider = LinqProvider.V2;
+        //        cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber());
+        //    };
         //});
-        context.Services.AddMongoContext<DbContext>(new MongoClientSettings
+        context.Services.AddMongoContext<DbContext>(new()
         {
             Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
-            Credential = MongoCredential.CreateCredential("admin", "guest", "guest")
+            Credential = MongoCredential.CreateCredential("admin", "guest", "guest"),
+            LinqProvider = LinqProvider.V3,
+            ClusterConfigurator = s => s.Subscribe(new ActivityEventSubscriber())
         }, c =>
         {
             c.DatabaseName = "test1";
-            c.LinqProvider = LinqProvider.V2;
-            c.ClusterBuilder = cb => cb.Subscribe(new ActivityEventSubscriber());
+            c.DefaultConventionRegistry = true;
         });
-        context.Services.AddMongoContext<DbContext2>(config, c =>
-        {
-            c.DatabaseName = "test2";
-            c.LinqProvider = LinqProvider.V2;
-        });
+        context.Services.AddMongoContext<DbContext2>(config, c => c.DatabaseName = "test2");
         context.Services.RegisterSerializer().RegisterDynamicSerializer();
     }
 }

@@ -49,6 +49,7 @@ builder.Services.AddMongoContext<DbContext>(builder.Configuration, c =>
     // 3.将ObjectID字段 _id 映射到实体中的ID或者Id字段,反之亦然.在存入数据的时候将Id或者ID映射为 _id
     // 4.将枚举类型存储为字符串, 如: Gender.男 存储到数据中为 男,而不是 int 类型
     c.DefaultConventionRegistry = true;
+    // 配置自定义Convention
     c.ConventionRegistry= new()
     {
         {
@@ -56,14 +57,13 @@ builder.Services.AddMongoContext<DbContext>(builder.Configuration, c =>
             new() { new IgnoreIfDefaultConvention(true) }
         }
     };
-    // EasilyNETMongoParams.Options 中的 LinqProvider, ClusterBuilder
-    // 会覆盖 MongoClientSettings 中的 LinqProvider 和 ClusterConfigurator 的值,
-    // 所以使用MongoClientSettings注册服务时,可仅赋值其中一个
-    c.LinqProvider = LinqProvider.V3;
-    //c.ClusterBuilder = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber());
-    c.ClusterBuilder = cb =>
+    // 通过ClientSettings来配置一些使用特殊的东西
+    c.ClientSettings = cs =>
     {
-        cb.Subscribe(new ActivityEventSubscriber());
+        // 新版的MongoDB驱动默认为V3,老项目会出现一些问题,可设置V2来兼容老项目
+        cs.LinqProvider = LinqProvider.V2;
+        // 对接 SkyAPM 的 MongoDB探针或者别的事件订阅器
+        cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber());
     };
 });
 // 添加.NET6+新的TimeOnly和DateOnly数据类型的序列化方案和添加动态类型支持
@@ -112,15 +112,14 @@ public class EasilyNETMongoModule : AppModule
         //            new() { new IgnoreIfDefaultConvention(true) }
         //        }
         //    };
-        //    // EasilyNETMongoParams.Options 中的 LinqProvider, ClusterBuilder
-        //    // 会覆盖 MongoClientSettings 中的 LinqProvider 和 ClusterConfigurator 的值,
-        //    // 所以使用MongoClientSettings注册服务时,可仅赋值其中一个
-        //    c.LinqProvider = LinqProvider.V3;
-        //    //c.ClusterBuilder = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber());
-        //    c.ClusterBuilder = cb =>
+        //    // 通过ClientSettings来配置一些使用特殊的东西
+        //    c.ClientSettings = cs =>
         //    {
-        //        cb.Subscribe(new ActivityEventSubscriber());
-        //    };   
+        //        // 新版的MongoDB驱动默认为V3,老项目会出现一些问题,可设置V2来兼容老项目
+        //        cs.LinqProvider = LinqProvider.V2;
+        //        // 对接 SkyAPM 的 MongoDB探针或者别的事件订阅器
+        //        cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber());
+        //    };
         //});
         //context.Services.AddMongoContext<DbContext2>(config);
         //context.Services.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
@@ -130,11 +129,11 @@ public class EasilyNETMongoModule : AppModule
         context.Services.AddMongoContext<DbContext>(new MongoClientSettings
         {
             Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
-            Credential = MongoCredential.CreateCredential("admin", "guest", "guest")
+            Credential = MongoCredential.CreateCredential("admin", "guest", "guest"),
             // 新版驱动使用V3版本,有可能会出现一些Linq表达式客户端函数无法执行,需要调整代码,但是工作量太大了,所以可以先使用V2兼容.
-            //LinqProvider = LinqProvider.V3
+            LinqProvider = LinqProvider.V3,
             // 对接 SkyAPM 的 MongoDB探针
-            //ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber())
+            ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber())
         }, c =>
         {
             // 配置数据库名称,覆盖掉连接字符串中的数据库名称
@@ -157,15 +156,6 @@ public class EasilyNETMongoModule : AppModule
                     new() { new IgnoreIfDefaultConvention(true) }
                 }
             };
-            // EasilyNETMongoParams.Options 中的 LinqProvider, ClusterBuilder
-            // 会覆盖 MongoClientSettings 中的 LinqProvider 和 ClusterConfigurator 的值,
-            // 所以使用MongoClientSettings注册服务时,可仅赋值其中一个
-            c.LinqProvider = LinqProvider.V3;
-            //c.ClusterBuilder = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber());
-            c.ClusterBuilder = cb =>
-            {
-                cb.Subscribe(new ActivityEventSubscriber());
-            };
         });
         context.Services.AddMongoContext<DbContext2>(config, c =>
         {
@@ -177,8 +167,6 @@ public class EasilyNETMongoModule : AppModule
                     new() { new IgnoreIfDefaultConvention(true) }
                 }
             };
-            c.LinqProvider = LinqProvider.V3;
-            c.ClusterBuilder = cb => cb.Subscribe(new ActivityEventSubscriber());
         });
         //context.Services.RegisterSerializer().RegisterDynamicSerializer();
     }
