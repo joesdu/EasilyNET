@@ -1,16 +1,12 @@
 ﻿using MongoDB.Bson.Serialization.Conventions;
-using MongoDB.Driver.Core.Configuration;
-using MongoDB.Driver.Linq;
-
-// ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
-// ReSharper disable UnusedMember.Global
+using MongoDB.Driver;
 
 namespace EasilyNET.Mongo;
 
 /// <summary>
 /// Mongodb配置选项
 /// </summary>
-public sealed class EasilyMongoOptions
+public class BasicClientOptions
 {
     /// <summary>
     /// 数据库名称
@@ -36,15 +32,15 @@ public sealed class EasilyMongoOptions
     /// 添加自己的一些Convention配置,用于设置mongodb序列化反序列化的一些表现.
     /// </summary>
     public Dictionary<string, ConventionPack> ConventionRegistry { get; set; } = new();
+}
 
+/// <summary>
+/// MongoClientSettings配置,在不适用MongoClientSettings配置时可通过该对象添加一些特性.
+/// </summary>
+public sealed class ClientOptions : BasicClientOptions
+{
     /// <summary>
-    /// 用于支持一些事件订阅.如:SkyAPM,以及我们自己的DebugConsole
+    /// 配置MongoClientSettings
     /// </summary>
-    public Action<ClusterBuilder>? ClusterBuilder { get; set; }
-
-    /// <summary>
-    /// LinqProvider版本,用来设置以兼容Linq V2的代码.默认为V3
-    /// </summary>
-    // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
-    public LinqProvider LinqProvider { get; set; } = LinqProvider.V3;
+    public Action<MongoClientSettings>? ClientSettings { get; set; }
 }

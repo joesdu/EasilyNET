@@ -35,12 +35,10 @@ public static class ServiceCollectionExtensions
     /// <param name="configuration">IConfiguration</param>
     /// <param name="option">其他参数</param>
     /// <returns></returns>
-    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, IConfiguration configuration, Action<EasilyMongoOptions>? option = null)
-        where T : EasilyMongoContext
+    public static void AddMongoContext<T>(this IServiceCollection services, IConfiguration configuration, Action<ClientOptions>? option = null) where T : EasilyMongoContext
     {
         var connStr = configuration["CONNECTIONSTRINGS_MONGO"] ?? configuration.GetConnectionString("Mongo") ?? throw new("💔:no [CONNECTIONSTRINGS_MONGO] env or ConnectionStrings.Mongo is null in appsettings.json");
-        _ = services.AddMongoContext<T>(connStr, option);
-        return services;
+        services.AddMongoContext<T>(connStr, option);
     }
 
     /// <summary>
@@ -51,26 +49,24 @@ public static class ServiceCollectionExtensions
     /// <param name="connStr">链接字符串</param>
     /// <param name="option">其他参数</param>
     /// <returns></returns>
-    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, string connStr, Action<EasilyMongoOptions>? option = null)
-        where T : EasilyMongoContext
+    public static void AddMongoContext<T>(this IServiceCollection services, string connStr, Action<ClientOptions>? option = null) where T : EasilyMongoContext
     {
-        var options = new EasilyMongoOptions();
-        option?.Invoke(options);
-        RegistryConventionPack(options);
+        // 从字符串解析Url
         var mongoUrl = new MongoUrl(connStr);
         var settings = MongoClientSettings.FromUrl(mongoUrl);
+        // 配置自定义配置
+        var options = new ClientOptions();
+        option?.Invoke(options);
+        options.ClientSettings?.Invoke(settings);
         var dbName = !string.IsNullOrWhiteSpace(mongoUrl.DatabaseName) ? mongoUrl.DatabaseName : options.DatabaseName ?? Constant.DbName;
         if (options.DatabaseName is not null) dbName = options.DatabaseName;
-        _ = services.AddMongoContext<T>(settings, c =>
+        services.AddMongoContext<T>(settings, c =>
         {
             c.ObjectIdToStringTypes = options.ObjectIdToStringTypes;
             c.DefaultConventionRegistry = options.DefaultConventionRegistry;
             c.ConventionRegistry = options.ConventionRegistry;
-            c.ClusterBuilder = options.ClusterBuilder;
-            c.LinqProvider = options.LinqProvider;
             c.DatabaseName = dbName;
         });
-        return services;
     }
 
     /// <summary>
@@ -81,20 +77,17 @@ public static class ServiceCollectionExtensions
     /// <param name="settings">HoyoMongoClientSettings</param>
     /// <param name="option">其他参数</param>
     /// <returns></returns>
-    public static IServiceCollection AddMongoContext<T>(this IServiceCollection services, MongoClientSettings settings, Action<EasilyMongoOptions>? option = null)
-        where T : EasilyMongoContext
+    public static void AddMongoContext<T>(this IServiceCollection services, MongoClientSettings settings, Action<BasicClientOptions>? option = null) where T : EasilyMongoContext
     {
-        var dbOptions = new EasilyMongoOptions();
-        option?.Invoke(dbOptions);
-        RegistryConventionPack(dbOptions);
-        settings.ClusterConfigurator = dbOptions.ClusterBuilder ?? settings.ClusterConfigurator;
-        settings.LinqProvider = dbOptions.LinqProvider;
-        var db = EasilyMongoContext.CreateInstance<T>(settings, dbOptions.DatabaseName ?? Constant.DbName);
-        _ = services.AddSingleton(db).AddSingleton(db.Database).AddSingleton(db.Client);
-        return services;
+        var options = new BasicClientOptions();
+        option?.Invoke(options);
+        RegistryConventionPack(options);
+        settings.MinConnectionPoolSize = Environment.ProcessorCount;
+        var db = EasilyMongoContext.CreateInstance<T>(settings, options.DatabaseName ?? Constant.DbName);
+        services.AddSingleton(db).AddSingleton(db.Database).AddSingleton(db.Client);
     }
 
-    private static void RegistryConventionPack(EasilyMongoOptions options)
+    private static void RegistryConventionPack(BasicClientOptions options)
     {
         if (options.DefaultConventionRegistry)
         {
