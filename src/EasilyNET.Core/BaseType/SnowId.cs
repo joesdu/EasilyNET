@@ -22,7 +22,7 @@ using System.Security;
 namespace EasilyNET.Core.BaseType;
 
 /// <summary>
-/// SnowId.算法兼容MongoDB的ObjectId,因此他们可以互相强制转换
+/// <see cref="SnowId"/> 算法兼容MongoDB的 <see langword="ObjectId"/> ,因此他们可以互相强制转换
 /// </summary>
 [Serializable]
 public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
@@ -35,7 +35,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     private readonly int _c;
 
     /// <summary>
-    /// 初始化 SnowId 类的新实例
+    /// 初始化 <see cref="SnowId"/> 类的新实例
     /// </summary>
     /// <param name="bytes">The bytes.</param>
     public SnowId(byte[] bytes)
@@ -53,19 +53,19 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     }
 
     /// <summary>
-    /// 初始化 SnowId 类的新实例
+    /// 初始化 <see cref="SnowId"/> 类的新实例
     /// </summary>
     /// <param name="bytes">字节数组.</param>
-    /// <param name="index">SnowId 开始的字节数组的索引</param>
+    /// <param name="index"><see cref="SnowId"/> 开始的字节数组的索引</param>
     internal SnowId(byte[] bytes, int index)
     {
         FromByteArray(bytes, index, out _a, out _b, out _c);
     }
 
     /// <summary>
-    /// 初始化 SnowId 类的新实例
+    /// 初始化 <see cref="SnowId"/> 类的新实例
     /// </summary>
-    /// <param name="value">SnowId字符串</param>
+    /// <param name="value"><see cref="SnowId"/> 字符串</param>
     public SnowId(string value)
     {
         if (value == null)
@@ -85,7 +85,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 
     // public static properties
     /// <summary>
-    /// 获取值为空的 SnowId 实例
+    /// 获取值为空的 <see cref="SnowId"/> 实例
     /// </summary>
     public static SnowId Empty => default;
 
@@ -102,72 +102,72 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 
     // public operators
     /// <summary>
-    /// 比较两个 SnowId
+    /// 比较两个 <see cref="SnowId"/>
     /// </summary>
-    /// <param name="lhs">第一个 SnowId</param>
-    /// <param name="rhs">另一个 SnowId</param>
+    /// <param name="lhs">第一个 <see cref="SnowId"/></param>
+    /// <param name="rhs">另一个 <see cref="SnowId"/></param>
     /// <returns>如果第一个 SnowId 小于第二个 SnowId,则为 True</returns>
     public static bool operator <(SnowId lhs, SnowId rhs) => lhs.CompareTo(rhs) < 0;
 
     /// <summary>
-    /// 比较两个 SnowId
+    /// 比较两个 <see cref="SnowId"/>
     /// </summary>
-    /// <param name="lhs">第一个 SnowId</param>
-    /// <param name="rhs">另一个 SnowId</param>
-    /// <returns>如果第一个 SnowId 小于或等于第二个 SnowId,则为 True</returns>
+    /// <param name="lhs">第一个 <see cref="SnowId"/></param>
+    /// <param name="rhs">另一个 <see cref="SnowId"/></param>
+    /// <returns>如果第一个 <see cref="SnowId"/> 小于或等于第二个 <see cref="SnowId"/>,则为 <see langword="true"/></returns>
     public static bool operator <=(SnowId lhs, SnowId rhs) => lhs.CompareTo(rhs) <= 0;
 
     /// <summary>
-    /// 比较两个 SnowId
+    /// 比较两个 <see cref="SnowId"/>
     /// </summary>
-    /// <param name="lhs">第一个 SnowId</param>
-    /// <param name="rhs">另一个 SnowId</param>
-    /// <returns>如果两个 SnowId 相等,则为 True</returns>
+    /// <param name="lhs">第一个 <see cref="SnowId"/></param>
+    /// <param name="rhs">另一个 <see cref="SnowId"/></param>
+    /// <returns>如果两个 <see cref="SnowId"/> 相等,则为 True</returns>
     public static bool operator ==(SnowId lhs, SnowId rhs) => lhs.Equals(rhs);
 
     /// <summary>
-    /// 比较两个 SnowId
+    /// 比较两个 <see cref="SnowId"/>
     /// </summary>
-    /// <param name="lhs">第一个 SnowId</param>
-    /// <param name="rhs">另一个 SnowId</param>
-    /// <returns>如果两个 SnowId 不相等,则为 True</returns>
+    /// <param name="lhs">第一个 <see cref="SnowId"/></param>
+    /// <param name="rhs">另一个 <see cref="SnowId"/></param>
+    /// <returns>如果两个 <see cref="SnowId"/> 不相等,则为 True</returns>
     public static bool operator !=(SnowId lhs, SnowId rhs) => !(lhs == rhs);
 
     /// <summary>
-    /// 比较两个 SnowId
+    /// 比较两个 <see cref="SnowId"/>
     /// </summary>
-    /// <param name="lhs">第一个 SnowId</param>
-    /// <param name="rhs">另一个 SnowId</param>
-    /// <returns>如果第一个 SnowId 大于或等于第二个 SnowId,则为 True</returns>
+    /// <param name="lhs">第一个 <see cref="SnowId"/></param>
+    /// <param name="rhs">另一个 <see cref="SnowId"/></param>
+    /// <returns>如果第一个 <see cref="SnowId"/> 大于或等于第二个 <see cref="SnowId"/>,则为 True</returns>
     public static bool operator >=(SnowId lhs, SnowId rhs) => lhs.CompareTo(rhs) >= 0;
 
     /// <summary>
-    /// 比较两个 SnowId
+    /// 比较两个 <see cref="SnowId"/>
     /// </summary>
-    /// <param name="lhs">第一个 SnowId</param>
-    /// <param name="rhs">另一个 SnowId</param>
-    /// <returns>如果第一个 SnowId 大于第二个 SnowId,则为 True</returns>
+    /// <param name="lhs">第一个 <see cref="SnowId"/></param>
+    /// <param name="rhs">另一个 <see cref="SnowId"/></param>
+    /// <returns>如果第一个 <see cref="SnowId"/> 大于第二个 <see cref="SnowId"/>,则为 True</returns>
     public static bool operator >(SnowId lhs, SnowId rhs) => lhs.CompareTo(rhs) > 0;
 
     // public static methods
     /// <summary>
-    /// 生成具有唯一值的新 SnowId
+    /// 生成具有唯一值的新 <see cref="SnowId"/>
     /// </summary>
-    /// <returns>一个 SnowId</returns>
+    /// <returns>一个 <see cref="SnowId"/></returns>
     public static SnowId GenerateNewId() => GenerateNewId(GetTimestampFromDateTime(DateTime.UtcNow));
 
     /// <summary>
-    /// 生成具有唯一值的新 SnowId (时间戳组件基于给定的日期时间)
+    /// 生成具有唯一值的新 <see cref="SnowId"/> (时间戳组件基于给定的日期时间)
     /// </summary>
     /// <param name="timestamp">时间戳 (表示为日期时间)</param>
-    /// <returns>一个 SnowId</returns>
+    /// <returns>一个 <see cref="SnowId"/></returns>
     public static SnowId GenerateNewId(DateTime timestamp) => GenerateNewId(GetTimestampFromDateTime(timestamp));
 
     /// <summary>
-    /// 生成具有唯一值(具有给定时间戳)的新 SnowId
+    /// 生成具有唯一值(具有给定时间戳)的新 <see cref="SnowId"/>
     /// </summary>
     /// <param name="timestamp">时间戳</param>
-    /// <returns>一个 SnowId</returns>
+    /// <returns>一个 <see cref="SnowId"/></returns>
     public static SnowId GenerateNewId(int timestamp)
     {
         var increment = Interlocked.Increment(ref __staticIncrement) & 0x00ffffff; // only use low order 3 bytes
@@ -175,10 +175,10 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     }
 
     /// <summary>
-    /// 分析字符串并创建新的 SnowId
+    /// 分析字符串并创建新的 <see cref="SnowId"/>
     /// </summary>
     /// <param name="s">字符串值</param>
-    /// <returns>一个 SnowId 对象</returns>
+    /// <returns>一个 <see cref="SnowId"/> 对象</returns>
     public static SnowId Parse(string s)
     {
         if (string.IsNullOrWhiteSpace(s))
@@ -194,11 +194,11 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     }
 
     /// <summary>
-    /// 尝试分析字符串并创建新的 SnowId
+    /// 尝试分析字符串并创建新的 <see cref="SnowId"/>
     /// </summary>
     /// <param name="s">字符串值</param>
-    /// <param name="snowId">一个新的 SnowId</param>
-    /// <returns>如果字符串已成功分析,则为 True</returns>
+    /// <param name="snowId">一个新的 <see cref="SnowId"/></param>
+    /// <returns>如果字符串已成功分析,则为 <see langword="true"/></returns>
     public static bool TryParse(string s, out SnowId snowId)
     {
         if (s is { Length: 24 })
@@ -219,7 +219,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
         var random = new Random(seed);
         var high = random.Next();
         var low = random.Next();
-        var combined = (long)(((ulong)(uint)high << 32) | (uint)low);
+        var combined = (long)((ulong)(uint)high << 32 | (uint)low);
         return combined & 0xffffffffff; // low order 5 bytes
     }
 
@@ -274,17 +274,17 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 
     private static void FromByteArray(IReadOnlyList<byte> bytes, int offset, out int a, out int b, out int c)
     {
-        a = (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
-        b = (bytes[offset + 4] << 24) | (bytes[offset + 5] << 16) | (bytes[offset + 6] << 8) | bytes[offset + 7];
-        c = (bytes[offset + 8] << 24) | (bytes[offset + 9] << 16) | (bytes[offset + 10] << 8) | bytes[offset + 11];
+        a = bytes[offset] << 24 | bytes[offset + 1] << 16 | bytes[offset + 2] << 8 | bytes[offset + 3];
+        b = bytes[offset + 4] << 24 | bytes[offset + 5] << 16 | bytes[offset + 6] << 8 | bytes[offset + 7];
+        c = bytes[offset + 8] << 24 | bytes[offset + 9] << 16 | bytes[offset + 10] << 8 | bytes[offset + 11];
     }
 
     // public methods
     /// <summary>
-    /// 将此 SnowId 与另一个 SnowId 进行比较
+    /// 将此 <see cref="SnowId"/> 与另一个 <see cref="SnowId"/> 进行比较
     /// </summary>
-    /// <param name="other">另一个 SnowId</param>
-    /// <returns>一个 32 位有符号整数,指示此 SnowId 是小于,等于还是大于另一个</returns>
+    /// <param name="other">另一个 <see cref="SnowId"/></param>
+    /// <returns>一个 32 位有符号整数,指示此 <see cref="SnowId"/> 是小于,等于还是大于另一个</returns>
     public readonly int CompareTo(SnowId other)
     {
         var result = ((uint)_a).CompareTo((uint)other._a);
@@ -297,20 +297,20 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     }
 
     /// <summary>
-    /// 将此 SnowId 与另一个 SnowId 进行比较
+    /// 将此 <see cref="SnowId"/> 与另一个 <see cref="SnowId"/> 进行比较
     /// </summary>
-    /// <param name="rhs">另一个 SnowId</param>
-    /// <returns>如果两个 SnowId 相等,则为 True</returns>
+    /// <param name="rhs">另一个 <see cref="SnowId"/></param>
+    /// <returns>如果两个 <see cref="SnowId"/> 相等,则为 <see langword="true"/></returns>
     public readonly bool Equals(SnowId rhs) =>
         _a == rhs._a &&
         _b == rhs._b &&
         _c == rhs._c;
 
     /// <summary>
-    /// 将此 SnowId 与另一个对象进行比较
+    /// 将此 <see cref="SnowId"/> 与另一个对象进行比较
     /// </summary>
     /// <param name="obj">另一个对象</param>
-    /// <returns>如果另一个对象是 SnowId 并且等于此对象,则为 True</returns>
+    /// <returns>如果另一个对象是 <see cref="SnowId"/> 并且等于此对象,则为 <see langword="true"/></returns>
     public readonly override bool Equals(object? obj) => obj is SnowId id && Equals(id);
 
     /// <summary>
@@ -329,9 +329,9 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     }
 
     /// <summary>
-    /// 将 SnowId 转换为字节数组
+    /// 将 <see cref="SnowId"/> 转换为字节数组
     /// </summary>
-    /// <returns>字节数组</returns>
+    /// <returns><see langword="byte[]"/></returns>
     public readonly byte[] ToByteArray()
     {
         var bytes = new byte[12];
@@ -340,7 +340,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     }
 
     /// <summary>
-    /// 将 SnowId 转换为字节数组
+    /// 将 <see cref="SnowId"/> 转换为字节数组
     /// </summary>
     /// <param name="destination">目标数组</param>
     /// <param name="offset">偏移量</param>
@@ -375,29 +375,29 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     public readonly override string ToString()
     {
         var c = new char[24];
-        c[0] = ((_a >> 28) & 0x0f).ToHexChar();
-        c[1] = ((_a >> 24) & 0x0f).ToHexChar();
-        c[2] = ((_a >> 20) & 0x0f).ToHexChar();
-        c[3] = ((_a >> 16) & 0x0f).ToHexChar();
-        c[4] = ((_a >> 12) & 0x0f).ToHexChar();
-        c[5] = ((_a >> 8) & 0x0f).ToHexChar();
-        c[6] = ((_a >> 4) & 0x0f).ToHexChar();
+        c[0] = (_a >> 28 & 0x0f).ToHexChar();
+        c[1] = (_a >> 24 & 0x0f).ToHexChar();
+        c[2] = (_a >> 20 & 0x0f).ToHexChar();
+        c[3] = (_a >> 16 & 0x0f).ToHexChar();
+        c[4] = (_a >> 12 & 0x0f).ToHexChar();
+        c[5] = (_a >> 8 & 0x0f).ToHexChar();
+        c[6] = (_a >> 4 & 0x0f).ToHexChar();
         c[7] = (_a & 0x0f).ToHexChar();
-        c[8] = ((_b >> 28) & 0x0f).ToHexChar();
-        c[9] = ((_b >> 24) & 0x0f).ToHexChar();
-        c[10] = ((_b >> 20) & 0x0f).ToHexChar();
-        c[11] = ((_b >> 16) & 0x0f).ToHexChar();
-        c[12] = ((_b >> 12) & 0x0f).ToHexChar();
-        c[13] = ((_b >> 8) & 0x0f).ToHexChar();
-        c[14] = ((_b >> 4) & 0x0f).ToHexChar();
+        c[8] = (_b >> 28 & 0x0f).ToHexChar();
+        c[9] = (_b >> 24 & 0x0f).ToHexChar();
+        c[10] = (_b >> 20 & 0x0f).ToHexChar();
+        c[11] = (_b >> 16 & 0x0f).ToHexChar();
+        c[12] = (_b >> 12 & 0x0f).ToHexChar();
+        c[13] = (_b >> 8 & 0x0f).ToHexChar();
+        c[14] = (_b >> 4 & 0x0f).ToHexChar();
         c[15] = (_b & 0x0f).ToHexChar();
-        c[16] = ((_c >> 28) & 0x0f).ToHexChar();
-        c[17] = ((_c >> 24) & 0x0f).ToHexChar();
-        c[18] = ((_c >> 20) & 0x0f).ToHexChar();
-        c[19] = ((_c >> 16) & 0x0f).ToHexChar();
-        c[20] = ((_c >> 12) & 0x0f).ToHexChar();
-        c[21] = ((_c >> 8) & 0x0f).ToHexChar();
-        c[22] = ((_c >> 4) & 0x0f).ToHexChar();
+        c[16] = (_c >> 28 & 0x0f).ToHexChar();
+        c[17] = (_c >> 24 & 0x0f).ToHexChar();
+        c[18] = (_c >> 20 & 0x0f).ToHexChar();
+        c[19] = (_c >> 16 & 0x0f).ToHexChar();
+        c[20] = (_c >> 12 & 0x0f).ToHexChar();
+        c[21] = (_c >> 8 & 0x0f).ToHexChar();
+        c[22] = (_c >> 4 & 0x0f).ToHexChar();
         c[23] = (_c & 0x0f).ToHexChar();
         return new(c);
     }

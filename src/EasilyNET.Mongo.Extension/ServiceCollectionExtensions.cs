@@ -15,7 +15,7 @@ namespace EasilyNET.Mongo.Extension;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// 添加(DateOnly,TimeOnly)类型序列化支持,并使用默认格式,若是需要自定义格式,请使用重载方法自行添加.
+    /// 添加( <see cref="DateOnly" />, <see cref="TimeOnly" /> )类型序列化支持,并使用默认格式,若是需要自定义格式,请使用重载方法自行添加.
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
@@ -40,13 +40,13 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// 注册动态类型(dynamic|object)序列化支持
+    /// 注册动态类型(<see langword="dynamic" /> | <see langword="object" /> )序列化支持
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
     public static IServiceCollection RegisterDynamicSerializer(this IServiceCollection services)
     {
-        var objectSerializer = new ObjectSerializer(type => ObjectSerializer.DefaultAllowedTypes(type) || (type.FullName is not null && type.FullName.StartsWith("<>f__AnonymousType")));
+        var objectSerializer = new ObjectSerializer(type => ObjectSerializer.DefaultAllowedTypes(type) || type.FullName is not null && type.FullName.StartsWith("<>f__AnonymousType"));
         BsonSerializer.RegisterSerializer(objectSerializer);
         return services;
     }

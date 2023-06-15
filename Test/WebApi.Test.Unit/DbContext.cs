@@ -6,7 +6,7 @@ using MongoDB.Driver;
 namespace WebApi.Test.Unit;
 
 /// <inheritdoc />
-public class DbContext : EasilyMongoContext
+public class DbContext : MongoContext
 {
     /// <summary>
     /// MongoTest
@@ -20,7 +20,7 @@ public class DbContext : EasilyMongoContext
 }
 
 /// <inheritdoc />
-public class DbContext2 : EasilyMongoContext
+public class DbContext2 : MongoContext
 {
     /// <summary>
     /// MongoTest

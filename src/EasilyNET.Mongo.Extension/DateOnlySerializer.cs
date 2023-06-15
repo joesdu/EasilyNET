@@ -4,21 +4,28 @@ using MongoDB.Bson.Serialization.Serializers;
 namespace EasilyNET.Mongo;
 
 /// <summary>
-/// DateOnly序列化方式,仅存为字符串方便人类阅读
+/// <see cref="DateOnly" /> 序列化方式,仅存为字符串方便人类阅读
+/// <example>
+///     <code>
+///  <![CDATA[
+///  BsonSerializer.RegisterSerializer(new DateOnlySerializer());
+///   ]]>
+///  </code>
+/// </example>
 /// </summary>
 internal sealed class DateOnlySerializer : StructSerializerBase<DateOnly>
 {
     private static string Format = "yyyy-MM-dd";
 
     /// <summary>
-    /// 使用给默认方案: yyyy-MM-dd
+    /// 使用给默认方案: <see langword="yyyy-MM-dd" />
     /// </summary>
     public DateOnlySerializer() { }
 
     /// <summary>
-    /// 可自定义传入DateOnly格式化字符串格式
+    /// 可自定义传入 <see cref="DateOnly" /> 格式化字符串格式
     /// </summary>
-    /// <param name="format">自定义DateOnly格式</param>
+    /// <param name="format">自定义 <see cref="DateOnly" /> 格式</param>
     public DateOnlySerializer(string format)
     {
         Format = format;

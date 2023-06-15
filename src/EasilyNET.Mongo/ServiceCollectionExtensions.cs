@@ -1,4 +1,5 @@
 ﻿using EasilyNET.Mongo.Core;
+using EasilyNET.Mongo.Core.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
@@ -14,11 +15,17 @@ using MongoDB.Driver;
 namespace EasilyNET.Mongo;
 
 /// <summary>
-/// 1.Create a DbContext use connectionString with [ConnectionStrings.Mongo in appsettings.json] or with
-/// [CONNECTIONSTRINGS_MONGO] setting value in environment variable
-/// 2.Inject DbContext use services.AddSingleton(db);
-/// 3.Inject IMongoDataBase use services.AddSingleton(db._database);
-/// 4.添加SkyAPM的诊断支持.在添加服务的时候填入 ClusterConfigurator,为减少依赖,所以需手动填入
+/// 服务扩展类
+/// <list type="number">
+///     <item>
+///     Create a DbContext use connectionString with [ConnectionStrings.Mongo in appsettings.json] or with [CONNECTIONSTRINGS_MONGO] setting value
+///     in environment variable
+///     </item>
+///     <item>Inject <see cref="MongoContext" /> use services.AddSingleton(db)</item>
+///     <item>Inject <see cref="IMongoDatabase" /> use services.AddSingleton(db.Database)</item>
+///     <item>Inject <see cref="IMongoClient" /> use services.AddSingleton(db.Client)</item>
+///     <item>添加SkyAPM的诊断支持.在添加服务的时候填入 ClusterConfigurator,为减少依赖,所以需手动填入</item>
+/// </list>
 /// </summary>
 public static class ServiceCollectionExtensions
 {
@@ -28,28 +35,26 @@ public static class ServiceCollectionExtensions
     private static bool first;
 
     /// <summary>
-    /// 通过默认连接字符串名称添加DbContext
+    /// 通过默认连接字符串名称配置添加 <see cref="MongoContext" />
     /// </summary>
-    /// <typeparam name="T">DbContext</typeparam>
-    /// <param name="services">IServiceCollection</param>
-    /// <param name="configuration">IConfiguration</param>
-    /// <param name="option">其他参数</param>
-    /// <returns></returns>
-    public static void AddMongoContext<T>(this IServiceCollection services, IConfiguration configuration, Action<ClientOptions>? option = null) where T : EasilyMongoContext
+    /// <typeparam name="T"><see cref="MongoContext" />子类</typeparam>
+    /// <param name="services"><see cref="IServiceCollection" /> Services</param>
+    /// <param name="configuration"><see cref="IConfiguration" /> 配置</param>
+    /// <param name="option"><see cref="BasicClientOptions" /> 其他一些配置</param>
+    public static void AddMongoContext<T>(this IServiceCollection services, IConfiguration configuration, Action<ClientOptions>? option = null) where T : MongoContext
     {
         var connStr = configuration["CONNECTIONSTRINGS_MONGO"] ?? configuration.GetConnectionString("Mongo") ?? throw new("💔:no [CONNECTIONSTRINGS_MONGO] env or ConnectionStrings.Mongo is null in appsettings.json");
         services.AddMongoContext<T>(connStr, option);
     }
 
     /// <summary>
-    /// 通过连接字符串添加DbContext
+    /// 通过连接字符串配置添加 <see cref="MongoContext" />
     /// </summary>
-    /// <typeparam name="T">DbContext</typeparam>
-    /// <param name="services">IServiceCollection</param>
-    /// <param name="connStr">链接字符串</param>
-    /// <param name="option">其他参数</param>
-    /// <returns></returns>
-    public static void AddMongoContext<T>(this IServiceCollection services, string connStr, Action<ClientOptions>? option = null) where T : EasilyMongoContext
+    /// <typeparam name="T"><see cref="MongoContext" />子类</typeparam>
+    /// <param name="services"><see cref="IServiceCollection" /> Services</param>
+    /// <param name="connStr"><see langword="string" /> MongoDB链接字符串</param>
+    /// <param name="option"><see cref="BasicClientOptions" /> 其他一些配置</param>
+    public static void AddMongoContext<T>(this IServiceCollection services, string connStr, Action<ClientOptions>? option = null) where T : MongoContext
     {
         // 从字符串解析Url
         var mongoUrl = new MongoUrl(connStr);
@@ -70,21 +75,20 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// 使用MongoClientSettings配置添加DbContext
+    /// 使用 <see cref="MongoClientSettings" /> 配置添加 <see cref="MongoContext" />
     /// </summary>
-    /// <typeparam name="T">DbContext</typeparam>
-    /// <param name="services">IServiceCollection</param>
-    /// <param name="settings">HoyoMongoClientSettings</param>
-    /// <param name="option">其他参数</param>
-    /// <returns></returns>
-    public static void AddMongoContext<T>(this IServiceCollection services, MongoClientSettings settings, Action<BasicClientOptions>? option = null) where T : EasilyMongoContext
+    /// <typeparam name="T"><see cref="MongoContext" />子类</typeparam>
+    /// <param name="services"><see cref="IServiceCollection" /> Services</param>
+    /// <param name="settings"><see cref="MongoClientSettings" /> MongoDB客户端配置</param>
+    /// <param name="option"><see cref="BasicClientOptions" /> 其他一些配置</param>
+    public static void AddMongoContext<T>(this IServiceCollection services, MongoClientSettings settings, Action<BasicClientOptions>? option = null) where T : MongoContext
     {
         var options = new BasicClientOptions();
         option?.Invoke(options);
         RegistryConventionPack(options);
         settings.MinConnectionPoolSize = Environment.ProcessorCount;
-        var db = EasilyMongoContext.CreateInstance<T>(settings, options.DatabaseName ?? Constant.DbName);
-        services.AddSingleton(db).AddSingleton(db.Database).AddSingleton(db.Client);
+        var db = MongoContext.CreateInstance<T>(settings, options.DatabaseName ?? Constant.DbName);
+        services.AddSingleton<IMongoContext>(db).AddSingleton(db.Database).AddSingleton(db.Client);
     }
 
     private static void RegistryConventionPack(BasicClientOptions options)
