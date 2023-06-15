@@ -1,12 +1,11 @@
-﻿using EasilyNET.Mongo.Core.Abstractions;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 
 namespace EasilyNET.Mongo.Core;
 
 /// <summary>
 /// MongoDB基础DbContext
 /// </summary>
-public class MongoContext : IMongoContext, IDisposable
+public class MongoContext : IDisposable
 {
     /// <summary>
     /// MongoClient
