@@ -29,13 +29,13 @@ public class BasicClientOptions
     /// 是否使用本库提供的默认转换,默认: <see langword="true" />
     /// <remarks>
     ///     <para>默认的配置如下:</para>
+    ///     <list type="number">
+    ///         <item>驼峰名称格式</item>
+    ///         <item>忽略代码中未定义的字段</item>
+    ///         <item><see langword="_id" /> 映射为实体中的 <see langword="ID" /> 或者 <see langword="Id" />,反之亦然</item>
+    ///         <item>将枚举类型存储为 <see langword="string" /> 格式</item>
+    ///     </list>
     /// </remarks>
-    /// <list type="number">
-    ///     <item>驼峰名称格式</item>
-    ///     <item>忽略代码中未定义的字段</item>
-    ///     <item><see langword="_id" /> 映射为实体中的 <see langword="ID" /> 或者 <see langword="Id" />,反之亦然</item>
-    ///     <item>将枚举类型存储为 <see langword="string" /> 格式</item>
-    /// </list>
     /// </summary>
     public bool DefaultConventionRegistry { get; set; } = true;
 
@@ -46,7 +46,7 @@ public class BasicClientOptions
 }
 
 /// <summary>
-/// <see cref="MongoClientSettings" />配置,在不适用 <see cref="MongoClientSettings" /> 配置时可通过该对象添加一些特性.
+/// <see cref="MongoClientSettings" /> 配置,在不适用 <see cref="MongoClientSettings" /> 配置时可通过该对象添加一些特性.
 /// </summary>
 public sealed class ClientOptions : BasicClientOptions
 {

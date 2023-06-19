@@ -21,9 +21,9 @@ public class IdNameItem
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// 转化成ReferenceItem对象
+    /// 转化成 <see cref="ReferenceItem"/> 对象
     /// </summary>
-    /// <returns>ReferenceItem</returns>
+    /// <returns><see cref="ReferenceItem"/></returns>
     public ReferenceItem GetReferenceItem() => new(Id, Name);
 
     /// <summary>

@@ -9,6 +9,13 @@ namespace EasilyNET.WebCore.JsonConverters;
 /// <summary>
 /// 可空Bool类型Json转换(用于将字符串类型的true或false转化成后端可识别的bool类型)
 /// </summary>
+/// <example>
+///     <code>
+/// <![CDATA[
+///  builder.Services.AddControllers().AddJsonOptions(c => c.JsonSerializerOptions.Converters.Add(new BoolNullConverter()));
+///  ]]>
+///  </code>
+/// </example>
 public sealed class BoolNullConverter : JsonConverter<bool?>
 {
     /// <summary>
@@ -38,7 +45,9 @@ public sealed class BoolNullConverter : JsonConverter<bool?>
     /// <param name="options"></param>
     public override void Write(Utf8JsonWriter writer, bool? value, JsonSerializerOptions options)
     {
-        if (value is not null) writer.WriteBooleanValue(value.Value);
-        else writer.WriteNullValue();
+        if (value is not null)
+            writer.WriteBooleanValue(value.Value);
+        else
+            writer.WriteNullValue();
     }
 }

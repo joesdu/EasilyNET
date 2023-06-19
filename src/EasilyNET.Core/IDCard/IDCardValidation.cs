@@ -8,8 +8,8 @@ namespace EasilyNET.Core.IdCard;
 public static class IDCardValidation
 {
     private const string address = "11x22x35x44x53x12x23x36x45x54x13x31x37x46x61x14x32x41x50x62x15x33x42x51x63x21x34x43x52x64x65x71x81x82x91";
-    private static readonly string[] verifyCode = { "1", "0", "X", "9", "8", "7", "6", "5", "4", "3", "2" };
-    private static readonly int[] Wi = { 7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2 };
+    private static readonly string[] verifyCode = {"1", "0", "X", "9", "8", "7", "6", "5", "4", "3", "2"};
+    private static readonly int[] Wi = {7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2};
 
     /// <summary>
     /// 验证身份证合理性
@@ -25,7 +25,7 @@ public static class IDCardValidation
         };
 
     /// <summary>
-    /// 18位身份证号码验证
+    /// <see langword="18"/> 位身份证号码验证
     /// </summary>
     private static bool CheckIDCard18(string no)
     {
@@ -44,7 +44,7 @@ public static class IDCardValidation
     }
 
     /// <summary>
-    /// 15位身份证号码验证
+    /// <see langword="15"/> 位身份证号码验证
     /// </summary>
     private static bool CheckIDCard15(string no)
     {

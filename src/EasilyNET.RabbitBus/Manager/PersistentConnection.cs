@@ -38,7 +38,7 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _retryCount = retryCount;
         _tcpEndpoints = tcpEndpoints;
-        _maxPoolCount = maxChannelCount < 1 ? (uint)Environment.ProcessorCount : maxChannelCount;
+        _maxPoolCount = maxChannelCount < 1 ? (uint) Environment.ProcessorCount : maxChannelCount;
     }
 
     /// <inheritdoc />
@@ -108,7 +108,7 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
                 _connection.ConnectionBlocked += OnConnectionBlocked;
                 _logger.LogInformation("RabbitMQ客户端获取了与[{HostName}]的持久连接,并订阅了故障事件", _connection.Endpoint.HostName);
                 _channelPool = new ChannelPool(_connection, _maxPoolCount);
-                _logger.LogInformation("RabbitBus channel pool max count: {count}", _maxPoolCount);
+                _logger.LogInformation("RabbitBus channel pool max count: {Count}", _maxPoolCount);
                 _disposed = false;
                 return true;
             }

@@ -5,6 +5,7 @@ namespace EasilyNET.Mongo;
 
 /// <summary>
 /// <see cref="DateOnly" /> 序列化方式,仅存为字符串方便人类阅读
+/// </summary>
 /// <example>
 ///     <code>
 ///  <![CDATA[
@@ -12,7 +13,6 @@ namespace EasilyNET.Mongo;
 ///   ]]>
 ///  </code>
 /// </example>
-/// </summary>
 internal sealed class DateOnlySerializer : StructSerializerBase<DateOnly>
 {
     private static string Format = "yyyy-MM-dd";

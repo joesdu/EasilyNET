@@ -10,6 +10,13 @@ namespace EasilyNET.WebCore.Filters;
 /// <summary>
 /// 全局异常过滤器
 /// </summary>
+/// <example>
+///     <code>
+/// <![CDATA[
+///  builder.Services.AddControllers(x => x.Filters.Add<ExceptionFilter>());
+///  ]]>
+///  </code>
+/// </example>
 // ReSharper disable once ClassNeverInstantiated.Global
 public sealed class ExceptionFilter : ExceptionFilterAttribute
 {
@@ -33,12 +40,7 @@ public sealed class ExceptionFilter : ExceptionFilterAttribute
     {
         _logger.LogError("{Stacktrace}", context.Exception.ToString());
         context.ExceptionHandled = true;
-        context.Result = new ObjectResult(new ResultObject
-        {
-            StatusCode = HttpStatusCode.InternalServerError,
-            Msg = context.Exception.Message,
-            Data = default
-        });
+        context.Result = new ObjectResult(new ResultObject {StatusCode = HttpStatusCode.InternalServerError, Msg = context.Exception.Message, Data = default});
         return base.OnExceptionAsync(context);
     }
 }

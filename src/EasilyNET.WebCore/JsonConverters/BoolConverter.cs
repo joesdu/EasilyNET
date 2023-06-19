@@ -7,8 +7,15 @@ using System.Text.Json.Serialization;
 namespace EasilyNET.WebCore.JsonConverters;
 
 /// <summary>
-/// Bool类型Json转换(用于将字符串类型的true或false转化成后端可识别的bool类型)
+/// <see cref="bool"/> 类型Json转换(用于将字符串类型的 <see langword="true"/> 或 <see langword="false"/> 转化成后端可识别的 <see cref="bool"/> 类型)
 /// </summary>
+/// <example>
+///     <code>
+/// <![CDATA[
+///  builder.Services.AddControllers().AddJsonOptions(c => c.JsonSerializerOptions.Converters.Add(new BoolConverter()));
+///  ]]>
+///  </code>
+/// </example>
 public sealed class BoolConverter : JsonConverter<bool>
 {
     /// <summary>

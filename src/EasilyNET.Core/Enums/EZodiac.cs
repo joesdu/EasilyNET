@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 
+// ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
 namespace EasilyNET.Core.Enums;
@@ -7,7 +8,6 @@ namespace EasilyNET.Core.Enums;
 /// <summary>
 /// 十二生肖
 /// </summary>
-// ReSharper disable once UnusedType.Global
 public enum EZodiac
 {
     /// <summary>

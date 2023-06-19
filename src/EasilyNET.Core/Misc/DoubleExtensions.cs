@@ -13,20 +13,20 @@ public static class DoubleExtensions
     /// <summary>
     /// 转decimal
     /// </summary>
-    /// <param name="num"></param>
+    /// <param name="num"><see cref="double"/> 数字</param>
     /// <param name="precision">小数位数</param>
     /// <param name="mode">四舍五入策略</param>
     /// <returns></returns>
-    public static decimal ToDecimal(this double num, int precision, MidpointRounding mode = MidpointRounding.AwayFromZero) => Math.Round((decimal)num, precision, mode);
+    public static decimal ToDecimal(this double num, int precision, MidpointRounding mode = MidpointRounding.AwayFromZero) => Math.Round((decimal) num, precision, mode);
 
     /// <summary>
-    /// 转decimal
+    /// 转 <see cref="decimal"/>
     /// </summary>
-    /// <param name="num"></param>
+    /// <param name="num"><see cref="float"/> 数字</param>
     /// <param name="precision">小数位数</param>
     /// <param name="mode">四舍五入策略</param>
     /// <returns></returns>
-    public static decimal ToDecimal(this float num, int precision, MidpointRounding mode = MidpointRounding.AwayFromZero) => Math.Round((decimal)num, precision, mode);
+    public static decimal ToDecimal(this float num, int precision, MidpointRounding mode = MidpointRounding.AwayFromZero) => Math.Round((decimal) num, precision, mode);
 
     /// <summary>
     /// 转换人民币大小金额
@@ -47,5 +47,5 @@ public static class DoubleExtensions
     /// </summary>
     /// <param name="number">金额</param>
     /// <returns>返回大写形式</returns>
-    public static string ToRmb(this double number) => ((decimal)number).ToRmb();
+    public static string ToRmb(this double number) => ((decimal) number).ToRmb();
 }

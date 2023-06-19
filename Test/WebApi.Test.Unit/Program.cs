@@ -1,6 +1,5 @@
 using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.Core.Misc;
-using EasilyNET.Core.PinYin;
 using Serilog;
 using Serilog.Events;
 using WebApi.Test.Unit;
@@ -8,10 +7,7 @@ using WebApi.Test.Unit;
 Console.Title = "EasilyNET";
 AssemblyHelper.AddExcludeLibs("Npgsql.");
 var builder = WebApplication.CreateBuilder(args);
-// 汉字转拼音
-Console.WriteLine("微软爸爸就是牛逼");
-Console.WriteLine(PyTools.GetPinYin("微软爸爸就是牛逼"));
-Console.WriteLine(PyTools.GetInitials("微软爸爸就是牛逼"));
+
 // 配置Kestrel支持HTTP1,2,3
 //builder.WebHost.ConfigureKestrel((_, op) =>
 //{

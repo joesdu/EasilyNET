@@ -8,7 +8,7 @@ using System.Reflection;
 namespace EasilyNET.AutoDependencyInjection.Extensions;
 
 /// <summary>
-/// IServiceCollection扩展
+/// <see cref="IServiceCollection"/> 扩展
 /// </summary>
 public static class ServiceCollectionExtension
 {
@@ -21,14 +21,14 @@ public static class ServiceCollectionExtension
     public static T? GetService<T>(this IServiceCollection services) => services.GetBuildService<T>();
 
     /// <summary>
-    /// 获取IConfiguration服务
+    /// 获取 <see cref="IConfiguration"/> 服务
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
     public static IConfiguration GetConfiguration(this IServiceCollection services) => services.GetBuildService<IConfiguration>() ?? throw new("未找到IConfiguration服务");
 
     /// <summary>
-    /// 获取IConfiguration服务
+    /// 获取 <see cref="IConfiguration"/> 服务
     /// </summary>
     /// <param name="provider"></param>
     /// <returns></returns>
@@ -53,9 +53,9 @@ public static class ServiceCollectionExtension
     {
         var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(T) && d.Lifetime == ServiceLifetime.Singleton);
         return descriptor?.ImplementationInstance is not null
-                   ? (T)descriptor.ImplementationInstance
+                   ? (T) descriptor.ImplementationInstance
                    : descriptor?.ImplementationFactory is not null
-                       ? (T)descriptor.ImplementationFactory.Invoke(null!)
+                       ? (T) descriptor.ImplementationFactory.Invoke(null!)
                        : default;
     }
 
@@ -124,12 +124,12 @@ public static class ServiceCollectionExtension
                                           .FirstOrDefault(i => i.GetTypeInfo().IsGenericType && i.GetGenericTypeDefinition() == typeof(IServiceProviderFactory<>));
             if (factoryInterface is null) continue;
             var containerBuilderType = factoryInterface.GenericTypeArguments[0];
-            return (IServiceProvider)typeof(ServiceCollectionExtension)
-                                     .GetTypeInfo()
-                                     .GetMethods()
-                                     .Single(m => m is { Name: nameof(BuildServiceProviderFromFactory), IsGenericMethod: true })
-                                     .MakeGenericMethod(containerBuilderType)
-                                     .Invoke(null, new object[] { services, null! })!;
+            return (IServiceProvider) typeof(ServiceCollectionExtension)
+                                      .GetTypeInfo()
+                                      .GetMethods()
+                                      .Single(m => m is {Name: nameof(BuildServiceProviderFromFactory), IsGenericMethod: true})
+                                      .MakeGenericMethod(containerBuilderType)
+                                      .Invoke(null, new object[] {services, null!})!;
         }
         return services.BuildServiceProvider();
     }
