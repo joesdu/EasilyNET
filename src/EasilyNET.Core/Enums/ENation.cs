@@ -1,13 +1,13 @@
 ﻿using System.ComponentModel;
 
 // ReSharper disable UnusedMember.Global
+// ReSharper disable UnusedType.Global
 
 namespace EasilyNET.Core.Enums;
 
 /// <summary>
 /// 中国民族枚举
 /// </summary>
-// ReSharper disable once UnusedType.Global
 public enum ENation
 {
     /// <summary>

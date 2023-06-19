@@ -7,8 +7,15 @@ using System.Text.Json.Serialization;
 namespace EasilyNET.WebCore.JsonConverters;
 
 /// <summary>
-/// DateTime类型Json转换(用于将字符串类型的DateTime转化成后端可识别的时间类型)
+/// <see cref="DateTime"/> 类型Json转换(用于将字符串类型的 <see cref="DateTime"/> 转化成后端可识别的时间类型)
 /// </summary>
+/// <example>
+///     <code>
+/// <![CDATA[
+///  builder.Services.AddControllers().AddJsonOptions(c => c.JsonSerializerOptions.Converters.Add(new DateTimeConverter()));
+///  ]]>
+///  </code>
+/// </example>
 public sealed class DateTimeConverter : JsonConverter<DateTime>
 {
     /// <summary>

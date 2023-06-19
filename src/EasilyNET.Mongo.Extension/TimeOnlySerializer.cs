@@ -5,6 +5,7 @@ namespace EasilyNET.Mongo;
 
 /// <summary>
 /// <see cref="TimeOnly" /> 序列化方式,仅存为字符串形式方便人类阅读
+/// </summary>
 /// <example>
 ///     <code>
 ///  <![CDATA[
@@ -12,7 +13,6 @@ namespace EasilyNET.Mongo;
 ///   ]]>
 ///  </code>
 /// </example>
-/// </summary>
 internal sealed class TimeOnlySerializer : StructSerializerBase<TimeOnly>
 {
     private static string Format = "HH:mm:ss";

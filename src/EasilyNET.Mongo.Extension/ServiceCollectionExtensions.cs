@@ -15,7 +15,7 @@ namespace EasilyNET.Mongo.Extension;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// 添加( <see cref="DateOnly" />, <see cref="TimeOnly" /> )类型序列化支持,并使用默认格式,若是需要自定义格式,请使用重载方法自行添加.
+    /// 添加 (<see cref="DateOnly" />, <see cref="TimeOnly" />) 类型序列化支持,并使用默认格式,若是需要自定义格式,请使用重载方法自行添加.
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>

@@ -1,4 +1,9 @@
-﻿using EasilyNET.Core.Enums;
+﻿/*
+ * 参考GitHub大神的Java项目所改.链接如下:
+ * https://github.com/iceenongli/nongli
+ */
+
+using EasilyNET.Core.Enums;
 using EasilyNET.Core.Misc;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -9,8 +14,6 @@ using System.Text.RegularExpressions;
 
 namespace EasilyNET.Core.ChineseLunar;
 
-/// 参考GitHub大神的Java项目所改.链接如下:
-/// https://github.com/iceenongli/nongli
 /// <summary>
 /// 公历转农历类(1700年-3100年)这个时间应该够用好几代人了.
 /// </summary>
@@ -111,7 +114,7 @@ public static class Lunar
         get
         {
             var offset = _date.Year - 1900; //1900年为鼠年
-            return (EZodiac)(offset % 12);
+            return (EZodiac) (offset % 12);
         }
     }
 
@@ -122,8 +125,7 @@ public static class Lunar
     {
         get
         {
-            if (!string.IsNullOrWhiteSpace(_ChineseLunar.Trim()))
-                return GetConstellation(_date);
+            if (!string.IsNullOrWhiteSpace(_ChineseLunar.Trim())) return GetConstellation(_date);
             Init(DateTime.Now);
             return GetConstellation(_date);
         }
@@ -137,7 +139,7 @@ public static class Lunar
     private static EConstellation GetConstellation(DateTime date)
     {
         // 定義一個陣列，儲存每個星座的起始日期
-        var dic = new[] { 119, 218, 320, 419, 520, 621, 722, 822, 922, 1023, 1122, 1221 };
+        var dic = new[] {119, 218, 320, 419, 520, 621, 722, 822, 922, 1023, 1122, 1221};
         //var dic = new[] { 120, 219, 321, 420, 521, 622, 723, 823, 923, 1023, 1122, 1222 };
         var m = date.Month;
         var d = date.Day;
@@ -146,11 +148,9 @@ public static class Lunar
         var y = m * 100 + d;
 #pragma warning restore IDE0048
         var index = Array.BinarySearch(dic, y);
-        if (index < 0)
-            index = ~index;
-        if (index == 12)
-            index = 0;
-        return (EConstellation)index;
+        if (index < 0) index = ~index;
+        if (index == 12) index = 0;
+        return (EConstellation) index;
     }
 
     /// <summary>
@@ -222,8 +222,7 @@ public static class Lunar
         if (dateArray == null) throw new("-输入的日期不合法-");
         if (!Judge(dateArray)) throw new("-输入的日期不合法-");
         var year = dateArray[0];
-        if (year < First_Year || year > Last_Year)
-            throw new($"-输入的日期年份超出范围,年份必须在{First_Year}与{Last_Year}之间-");
+        if (year < First_Year || year > Last_Year) throw new($"-输入的日期年份超出范围,年份必须在{First_Year}与{Last_Year}之间-");
         ChineseLunar = Cast(Cast(dateArray));
     }
 
@@ -240,8 +239,7 @@ public static class Lunar
         if (dateArray == null) throw new("-输入的日期不合法-");
         if (!Judge(dateArray)) throw new("-输入的日期不合法-");
         var year = dateArray[0];
-        if (year < First_Year || year > Last_Year)
-            throw new($"-输入的日期年份超出范围,年份必须在{First_Year}与{Last_Year}之间-");
+        if (year < First_Year || year > Last_Year) throw new($"-输入的日期年份超出范围,年份必须在{First_Year}与{Last_Year}之间-");
         ChineseLunar = Cast(Cast(dateArray));
     }
 
@@ -309,8 +307,7 @@ public static class Lunar
     private static string[] Load(IReadOnlyList<string> data)
     {
         var dataTemp = new string[data.Count - 1];
-        for (var i = 1; i < data.Count; i++)
-            dataTemp[i - 1] = AddLastMonth(data[i], data[i - 1]);
+        for (var i = 1; i < data.Count; i++) dataTemp[i - 1] = AddLastMonth(data[i], data[i - 1]);
         return dataTemp;
     }
 
@@ -377,8 +374,7 @@ public static class Lunar
                 }
                 else
                 {
-                    if ((lastLeap == 11 && result[1] == 12) || (lastLeap == 12 && result[1] == 11))
-                        result[1] = 12;
+                    if ((lastLeap == 11 && result[1] == 12) || (lastLeap == 12 && result[1] == 11)) result[1] = 12;
                 }
             }
         }
@@ -392,8 +388,7 @@ public static class Lunar
         var bigOrLitterSort = new int[len];
         if (leap == 0) //直接复制数组
         {
-            for (var i = 0; i < len; i++)
-                bigOrLitterSort[i] = bigOrLitter[i];
+            for (var i = 0; i < len; i++) bigOrLitterSort[i] = bigOrLitter[i];
         }
         else //插入闰月大小
         {
@@ -417,8 +412,7 @@ public static class Lunar
         var bigOrLitterStr = data.Substring(9, 15); //15个月的大小月 包含去年的两个月与今年的闰月大小
         var leapStr = data.Substring(25, 2);        //闰月闰的月份两位数
         var bigOrLitter = new int[15];              //将15个月的大小转为数组
-        for (var i = 0; i < bigOrLitter.Length; i++)
-            bigOrLitter[i] = int.Parse(bigOrLitterStr.Substring(i, 1));
+        for (var i = 0; i < bigOrLitter.Length; i++) bigOrLitter[i] = int.Parse(bigOrLitterStr.Substring(i, 1));
         var leap = int.Parse(leapStr); //闰月数转为数字,闰的月份
         return Cast(start, now, bigOrLitter, leap);
     }
@@ -441,8 +435,7 @@ public static class Lunar
         var dataLast = dataInit[numYear - startYear - 1];
         if (dataLast.EndsWith("_11"))
             data = ReplaceLastYearMonth(data, SubLeapNovember(dataLast));
-        else if (dataLast.EndsWith("_12"))
-            data = ReplaceLastYearMonth(data, SubLeapDecember(dataLast));
+        else if (dataLast.EndsWith("_12")) data = ReplaceLastYearMonth(data, SubLeapDecember(dataLast));
         return Cast(now, data);
     }
 

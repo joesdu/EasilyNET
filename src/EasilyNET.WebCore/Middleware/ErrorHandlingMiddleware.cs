@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 namespace EasilyNET.WebCore.Middleware;
 
 /// <summary>
+/// 全局异常中间件
 /// </summary>
 public class ErrorHandlingMiddleware
 {
@@ -45,21 +46,11 @@ public class ErrorHandlingMiddleware
 
     private Task HandleExceptionAsync(HttpContext context, Exception ex)
     {
-        _logger.LogError("发生未处理异常: {ex}", ex.ToString());
+        _logger.LogError("发生未处理异常: {Ex}", ex.ToString());
         context.Response.ContentType = "application/json";
-        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-        var options = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true
-        };
+        context.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
+        var options = new JsonSerializerOptions {PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true};
         options.Converters.Add(new JsonStringEnumConverter());
-        return context.Response.WriteAsync(JsonSerializer.Serialize(new ResultObject
-        {
-            StatusCode = HttpStatusCode.InternalServerError,
-            Msg = ex.Message,
-            Data = default
-        }, options));
+        return context.Response.WriteAsync(JsonSerializer.Serialize(new ResultObject {StatusCode = HttpStatusCode.InternalServerError, Msg = ex.Message, Data = default}, options));
     }
 }

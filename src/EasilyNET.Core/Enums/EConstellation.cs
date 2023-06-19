@@ -1,13 +1,13 @@
 ﻿using System.ComponentModel;
 
 // ReSharper disable UnusedMember.Global
+// ReSharper disable UnusedType.Global
 
 namespace EasilyNET.Core.Enums;
 
 /// <summary>
 /// 十二星座
 /// </summary>
-// ReSharper disable once UnusedType.Global
 public enum EConstellation
 {
     /// <summary>

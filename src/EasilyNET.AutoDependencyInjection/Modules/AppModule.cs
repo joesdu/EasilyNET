@@ -10,7 +10,7 @@ namespace EasilyNET.AutoDependencyInjection.Modules;
 public class AppModule : IAppModule
 {
     /// <summary>
-    /// 是否启用,默认为true
+    /// 是否启用,默认为 <see langword="true"/>
     /// </summary>
     public bool Enable { get; set; } = true;
 
@@ -55,6 +55,6 @@ public class AppModule : IAppModule
     public static bool IsAppModule(Type type)
     {
         var typeInfo = type.GetTypeInfo();
-        return typeInfo is { IsClass: true, IsAbstract: false, IsGenericType: false } && typeof(IAppModule).GetTypeInfo().IsAssignableFrom(type);
+        return typeInfo is {IsClass: true, IsAbstract: false, IsGenericType: false} && typeof(IAppModule).GetTypeInfo().IsAssignableFrom(type);
     }
 }

@@ -24,6 +24,13 @@ namespace EasilyNET.Core.BaseType;
 /// <summary>
 /// <see cref="SnowId"/> 算法兼容MongoDB的 <see langword="ObjectId"/> ,因此他们可以互相强制转换
 /// </summary>
+/// <example>
+///     <code>
+/// <![CDATA[
+/// var snow_id = SnowId.GenerateNewId();
+///   ]]>
+///  </code>
+/// </example>
 [Serializable]
 public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 {
@@ -68,10 +75,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     /// <param name="value"><see cref="SnowId"/> 字符串</param>
     public SnowId(string value)
     {
-        if (value == null)
-        {
-            throw new ArgumentNullException(nameof(value));
-        }
+        ArgumentNullException.ThrowIfNull(value);
         var bytes = value.ParseHexString();
         FromByteArray(bytes, 0, out _a, out _b, out _c);
     }
@@ -98,7 +102,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     /// <summary>
     /// 获取创建时间(从时间戳派生)
     /// </summary>
-    public readonly DateTime CreationTime => DateTimeStampExtension.UnixEpoch.AddSeconds((uint)Timestamp);
+    public readonly DateTime CreationTime => DateTimeStampExtension.UnixEpoch.AddSeconds((uint) Timestamp);
 
     // public operators
     /// <summary>
@@ -201,7 +205,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     /// <returns>如果字符串已成功分析,则为 <see langword="true"/></returns>
     public static bool TryParse(string s, out SnowId snowId)
     {
-        if (s is { Length: 24 })
+        if (s is {Length: 24})
         {
             if (s.TryParseHexString(out var bytes))
             {
@@ -215,11 +219,11 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 
     private static long CalculateRandomValue()
     {
-        var seed = (int)DateTime.UtcNow.Ticks ^ GetMachineHash() ^ GetPid();
+        var seed = (int) DateTime.UtcNow.Ticks ^ GetMachineHash() ^ GetPid();
         var random = new Random(seed);
         var high = random.Next();
         var low = random.Next();
-        var combined = (long)((ulong)(uint)high << 32 | (uint)low);
+        var combined = (long) ((ulong) (uint) high << 32 | (uint) low);
         return combined & 0xffffffffff; // low order 5 bytes
     }
 
@@ -233,8 +237,8 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
         {
             throw new ArgumentOutOfRangeException(nameof(increment), "The increment value must be between 0 and 16777215 (it must fit in 3 bytes).");
         }
-        var b = (int)(random >> 8);              // first 4 bytes of random
-        var c = (int)(random << 24) | increment; // 5th byte of random and 3 byte increment
+        var b = (int) (random >> 8);              // first 4 bytes of random
+        var c = (int) (random << 24) | increment; // 5th byte of random and 3 byte increment
         return new(timestamp, b, c);
     }
 
@@ -258,7 +262,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     {
         try
         {
-            return (short)GetCurrentProcessId(); // use low order two bytes only
+            return (short) GetCurrentProcessId(); // use low order two bytes only
         }
         catch (SecurityException)
         {
@@ -268,8 +272,8 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 
     private static int GetTimestampFromDateTime(DateTime timestamp)
     {
-        var secondsSinceEpoch = (long)Math.Floor((timestamp.ToUniversalTime() - DateTimeStampExtension.UnixEpoch).TotalSeconds);
-        return secondsSinceEpoch is < uint.MinValue or > uint.MaxValue ? throw new ArgumentOutOfRangeException(nameof(timestamp)) : (int)(uint)secondsSinceEpoch;
+        var secondsSinceEpoch = (long) Math.Floor((timestamp.ToUniversalTime() - DateTimeStampExtension.UnixEpoch).TotalSeconds);
+        return secondsSinceEpoch is < uint.MinValue or > uint.MaxValue ? throw new ArgumentOutOfRangeException(nameof(timestamp)) : (int) (uint) secondsSinceEpoch;
     }
 
     private static void FromByteArray(IReadOnlyList<byte> bytes, int offset, out int a, out int b, out int c)
@@ -287,13 +291,13 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     /// <returns>一个 32 位有符号整数,指示此 <see cref="SnowId"/> 是小于,等于还是大于另一个</returns>
     public readonly int CompareTo(SnowId other)
     {
-        var result = ((uint)_a).CompareTo((uint)other._a);
+        var result = ((uint) _a).CompareTo((uint) other._a);
         if (result != 0)
         {
             return result;
         }
-        result = ((uint)_b).CompareTo((uint)other._b);
-        return result != 0 ? result : ((uint)_c).CompareTo((uint)other._c);
+        result = ((uint) _b).CompareTo((uint) other._b);
+        return result != 0 ? result : ((uint) _c).CompareTo((uint) other._c);
     }
 
     /// <summary>
@@ -320,11 +324,9 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     public readonly override int GetHashCode()
     {
         var hash = 17;
-#pragma warning disable IDE0048
         hash = 37 * hash + _a.GetHashCode();
         hash = 37 * hash + _b.GetHashCode();
         hash = 37 * hash + _c.GetHashCode();
-#pragma warning restore IDE0048
         return hash;
     }
 
@@ -346,26 +348,23 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     /// <param name="offset">偏移量</param>
     public readonly void ToByteArray(byte[] destination, int offset)
     {
-        if (destination == null)
-        {
-            throw new ArgumentNullException(nameof(destination));
-        }
+        ArgumentNullException.ThrowIfNull(destination);
         if (offset + 12 > destination.Length)
         {
             throw new ArgumentException("Not enough room in destination buffer.", nameof(offset));
         }
-        destination[offset + 0] = (byte)(_a >> 24);
-        destination[offset + 1] = (byte)(_a >> 16);
-        destination[offset + 2] = (byte)(_a >> 8);
-        destination[offset + 3] = (byte)_a;
-        destination[offset + 4] = (byte)(_b >> 24);
-        destination[offset + 5] = (byte)(_b >> 16);
-        destination[offset + 6] = (byte)(_b >> 8);
-        destination[offset + 7] = (byte)_b;
-        destination[offset + 8] = (byte)(_c >> 24);
-        destination[offset + 9] = (byte)(_c >> 16);
-        destination[offset + 10] = (byte)(_c >> 8);
-        destination[offset + 11] = (byte)_c;
+        destination[offset + 0] = (byte) (_a >> 24);
+        destination[offset + 1] = (byte) (_a >> 16);
+        destination[offset + 2] = (byte) (_a >> 8);
+        destination[offset + 3] = (byte) _a;
+        destination[offset + 4] = (byte) (_b >> 24);
+        destination[offset + 5] = (byte) (_b >> 16);
+        destination[offset + 6] = (byte) (_b >> 8);
+        destination[offset + 7] = (byte) _b;
+        destination[offset + 8] = (byte) (_c >> 24);
+        destination[offset + 9] = (byte) (_c >> 16);
+        destination[offset + 10] = (byte) (_c >> 8);
+        destination[offset + 11] = (byte) _c;
     }
 
     /// <summary>
@@ -433,11 +432,9 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
         // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
         switch (Type.GetTypeCode(conversionType))
         {
-            case TypeCode.String:
-                return ((IConvertible)this).ToString(provider);
+            case TypeCode.String: return ((IConvertible) this).ToString(provider);
             case TypeCode.Object:
-                if (conversionType == typeof(object) || conversionType == typeof(SnowId))
-                    return this;
+                if (conversionType == typeof(object) || conversionType == typeof(SnowId)) return this;
                 break;
         }
         throw new InvalidCastException();

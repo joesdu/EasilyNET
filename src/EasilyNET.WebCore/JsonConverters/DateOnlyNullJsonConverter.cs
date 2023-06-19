@@ -7,8 +7,15 @@ using System.Text.Json.Serialization;
 namespace EasilyNET.WebCore.JsonConverters;
 
 /// <summary>
-/// 可空DateOnly类型Json转换(用于将字符串类型的日期转化成后端可识别的DateOnly类型)
+/// 可空 <see cref="DateOnly"/> 类型Json转换(用于将字符串类型的日期转化成后端可识别的 <see cref="DateOnly"/> 类型)
 /// </summary>
+/// <example>
+///     <code>
+/// <![CDATA[
+///  builder.Services.AddControllers().AddJsonOptions(c => c.JsonSerializerOptions.Converters.Add(new DateOnlyNullJsonConverter()));
+///  ]]>
+///  </code>
+/// </example>
 public sealed class DateOnlyNullJsonConverter : JsonConverter<DateOnly?>
 {
     /// <summary>

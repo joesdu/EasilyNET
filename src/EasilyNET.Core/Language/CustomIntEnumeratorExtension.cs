@@ -25,9 +25,21 @@ public static class CustomIntEnumeratorExtension
     /// <summary>
     /// 自定义枚举器
     /// </summary>
-    /// public ref struct CustomIntEnumerator,其中ref标识符是否有必要?
+    /// <example>
+    ///     <code>
+    /// <![CDATA[
+    /// foreach (var i in ..3)
+    /// {
+    ///     Console.WriteLine(i);
+    /// }
+    /// OutPut:
+    /// 0,1,2,3
+    ///   ]]>
+    ///  </code>
+    /// </example>
     public struct CustomIntEnumerator
     {
+        // public ref struct CustomIntEnumerator,其中ref标识符是否有必要?
         private readonly int _end;
 
         /// <summary>

@@ -44,10 +44,8 @@ internal class ModuleApplicationBase : IModuleApplication
             foreach (var dependType in depends.Where(AppModule.IsAppModule))
             {
                 var dependModule = Source.ToList().Find(m => m.GetType() == dependType);
-                if (dependModule is null)
-                    continue;
-                if (!modules.Contains(dependModule))
-                    modules.Add(dependModule);
+                if (dependModule is null) continue;
+                if (!modules.Contains(dependModule)) modules.Add(dependModule);
             }
             return modules;
         }
@@ -99,7 +97,7 @@ internal class ModuleApplicationBase : IModuleApplication
     }
 
     /// <summary>
-    /// 设置ServiceProvider
+    /// 设置 <see cref="ServiceProvider"/>
     /// </summary>
     /// <param name="serviceProvider"></param>
     protected void SetServiceProvider(IServiceProvider serviceProvider)
