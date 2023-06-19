@@ -343,7 +343,7 @@ public enum ENation
     /// <summary>
     /// Jino
     /// </summary>
-    [Description("")]
+    [Description("Jino")]
     基诺族 = 56,
 
     /// <summary>
@@ -351,6 +351,12 @@ public enum ENation
     /// </summary>
     [Description("Chuanqing")]
     穿青人 = 57,
+
+    /// <summary>
+    /// Undefined ethnicity population
+    /// </summary>
+    [Description("Undefined")]
+    未定族称人口 = 97,
 
     /// <summary>
     /// Foreign-born Chinese nationals
