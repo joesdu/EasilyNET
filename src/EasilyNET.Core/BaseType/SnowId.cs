@@ -14,6 +14,7 @@
 */
 
 using EasilyNET.Core.Misc;
+using EasilyNET.Core.Misc.Exceptions;
 using System.Runtime.CompilerServices;
 using System.Security;
 #pragma warning disable IDE0048
@@ -53,10 +54,11 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 #else
         if (bytes is null) throw new ArgumentNullException(nameof(bytes));
 #endif
-        if (bytes.Length != 12)
-        {
-            throw new ArgumentException("Byte array must be 12 bytes long", nameof(bytes));
-        }
+        ArgumentExceptionExtensions.ThrowIf(()=> bytes.Length != 12, "Byte array must be 12 bytes long", nameof(bytes));
+        //if (bytes.Length != 12)
+        //{
+        //    throw new ArgumentException("Byte array must be 12 bytes long", nameof(bytes));
+        //}
         FromByteArray(bytes, 0, out _a, out _b, out _c);
     }
 
@@ -350,10 +352,11 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     public readonly void ToByteArray(byte[] destination, int offset)
     {
         ArgumentNullException.ThrowIfNull(destination);
-        if (offset + 12 > destination.Length)
-        {
-            throw new ArgumentException("Not enough room in destination buffer.", nameof(offset));
-        }
+        ArgumentExceptionExtensions.ThrowIf(() => offset + 12 > destination.Length, "Not enough room in destination buffer.", nameof(offset));
+        //if (offset + 12 > destination.Length)
+        //{
+        //    throw new ArgumentException("Not enough room in destination buffer.", nameof(offset));
+        //}
         destination[offset + 0] = (byte) (_a >> 24);
         destination[offset + 1] = (byte) (_a >> 16);
         destination[offset + 2] = (byte) (_a >> 8);
