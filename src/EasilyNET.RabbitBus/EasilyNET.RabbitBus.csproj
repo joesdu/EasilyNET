@@ -9,7 +9,7 @@
         <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0-preview.5.23280.8" />
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0-preview.5.23280.8" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0-preview.5.23280.8" />
-        <PackageReference Include="Polly" Version="8.0.0-alpha.2" />
+        <PackageReference Include="Polly" Version="8.0.0-alpha.3" />
         <PackageReference Include="RabbitMQ.Client" Version="6.5.0" />
     </ItemGroup>
 
