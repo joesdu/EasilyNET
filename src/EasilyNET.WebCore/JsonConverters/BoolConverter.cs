@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 namespace EasilyNET.WebCore.JsonConverters;
 
 /// <summary>
-/// <see cref="bool"/> 类型Json转换(用于将字符串类型的 <see langword="true"/> 或 <see langword="false"/> 转化成后端可识别的 <see cref="bool"/> 类型)
+/// <see cref="bool" /> 类型Json转换(用于将字符串类型的 <see langword="true" /> 或 <see langword="false" /> 转化成后端可识别的 <see cref="bool" /> 类型)
 /// </summary>
 /// <example>
 ///     <code>
@@ -27,13 +27,13 @@ public sealed class BoolConverter : JsonConverter<bool>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
     public override bool Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-        reader.TokenType is JsonTokenType.True or JsonTokenType.False
-            ? reader.GetBoolean()
-            : reader.TokenType == JsonTokenType.String
-                ? bool.Parse(reader.GetString()!)
-                : reader.TokenType == JsonTokenType.Number
-                    ? reader.GetDouble() > 0
-                    : throw new NotImplementedException($"un processed token type {reader.TokenType}");
+        reader.TokenType switch
+        {
+            JsonTokenType.True or JsonTokenType.False => reader.GetBoolean(),
+            JsonTokenType.String                      => bool.Parse(reader.GetString()!),
+            JsonTokenType.Number                      => reader.GetDouble() > 0,
+            _                                         => throw new NotImplementedException($"un processed token type {reader.TokenType}")
+        };
 
     /// <summary>
     /// Write

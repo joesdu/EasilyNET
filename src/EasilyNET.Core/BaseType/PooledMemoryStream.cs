@@ -307,7 +307,7 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     public Span<byte> GetSpan() => _data.AsSpan(0, _length);
 
     /// <summary>
-    /// 获取 Memory&lt;byte&gt;
+    /// 获取 Memory&lt;<see cref="byte" />&gt;
     /// </summary>
     /// <returns></returns>
     public Memory<byte> GetMemory() => _data.AsMemory(0, _length);

@@ -18,11 +18,9 @@ public static class RSA
     /// <returns></returns>
     public static RSASecretKey GenerateKey(int keySize)
     {
-        using var rsa = new RSACryptoServiceProvider(keySize)
-        {
-            KeySize = 0,
-            PersistKeyInCsp = false
-        };
+        using var rsa = new RSACryptoServiceProvider(keySize);
+        rsa.KeySize = 0;
+        rsa.PersistKeyInCsp = false;
         return new()
         {
             PrivateKey = rsa.ToXmlString(true),

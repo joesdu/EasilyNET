@@ -14,7 +14,7 @@ namespace EasilyNET.Mongo.GridFS;
 /// GridFS控制器,当引入Extension后,请使用Extension版本的API
 /// </summary>
 [ApiController, Route("api/[controller]")]
-public class GridFSController : ControllerBase
+public class GridFSController(GridFSBucket bucket, IMongoCollection<GridFSItemInfo> collection) : ControllerBase
 {
     /// <summary>
     /// 查询过滤器
@@ -24,29 +24,17 @@ public class GridFSController : ControllerBase
     /// <summary>
     /// GridFSBucket
     /// </summary>
-    protected readonly GridFSBucket Bucket;
+    protected readonly GridFSBucket Bucket = bucket;
 
     /// <summary>
     /// IMongoCollection
     /// </summary>
-    protected readonly IMongoCollection<GridFSItemInfo> Coll;
+    protected readonly IMongoCollection<GridFSItemInfo> Coll = collection;
 
     /// <summary>
     /// GridFSFileInfo Filter
     /// </summary>
     private readonly FilterDefinitionBuilder<GridFSFileInfo> gbf = Builders<GridFSFileInfo>.Filter;
-
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    /// <param name="bucket"></param>
-    /// <param name="collection"></param>
-    // ReSharper disable once MemberCanBeProtected.Global
-    public GridFSController(GridFSBucket bucket, IMongoCollection<GridFSItemInfo> collection)
-    {
-        Bucket = bucket;
-        Coll = collection;
-    }
 
     /// <summary>
     /// 获取已上传文件列表
@@ -106,10 +94,10 @@ public class GridFSController : ControllerBase
             if (!string.IsNullOrWhiteSpace(fs.CategoryId)) metadata.Add("category", fs.CategoryId!);
             var upo = new GridFSUploadOptions { BatchSize = fs.File.Count, Metadata = new(metadata) };
             var oid = await Bucket.UploadFromStreamAsync(item.FileName, item.OpenReadStream(), upo, cancellationToken);
-            rsList.Add(new() { FileId = oid.ToString(), FileName = item.FileName, Length = item.Length, ContentType = item.ContentType });
+            rsList.Add(new() { FileId = oid.ToString() ?? string.Empty, FileName = item.FileName, Length = item.Length, ContentType = item.ContentType });
             infos.Add(new()
             {
-                FileId = oid.ToString(),
+                FileId = oid.ToString() ?? string.Empty,
                 FileName = item.FileName,
                 Length = item.Length,
                 ContentType = item.ContentType,
@@ -146,7 +134,7 @@ public class GridFSController : ControllerBase
         var oid = await Bucket.UploadFromStreamAsync(fs.File.FileName, fs.File.OpenReadStream(), upo, cancellationToken);
         _ = Coll.InsertOneAsync(new()
         {
-            FileId = oid.ToString(),
+            FileId = oid.ToString() ?? string.Empty,
             FileName = fs.File.FileName,
             Length = fs.File.Length,
             ContentType = fs.File.ContentType,
@@ -157,7 +145,7 @@ public class GridFSController : ControllerBase
             CategoryId = fs.CategoryId,
             CreateTime = DateTime.Now
         }, cancellationToken: cancellationToken);
-        return new() { FileId = oid.ToString(), FileName = fs.File.FileName, Length = fs.File.Length, ContentType = fs.File.ContentType };
+        return new() { FileId = oid.ToString() ?? string.Empty, FileName = fs.File.FileName, Length = fs.File.Length, ContentType = fs.File.ContentType };
     }
 
     /// <summary>

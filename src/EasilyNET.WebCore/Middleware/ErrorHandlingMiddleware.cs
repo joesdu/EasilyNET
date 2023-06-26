@@ -11,21 +11,11 @@ namespace EasilyNET.WebCore.Middleware;
 /// <summary>
 /// 全局异常中间件
 /// </summary>
-public class ErrorHandlingMiddleware
+/// <param name="next"></param>
+/// <param name="logger"></param>
+public class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger)
 {
-    private readonly ILogger<ErrorHandlingMiddleware> _logger;
-    private readonly RequestDelegate next;
-
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    /// <param name="next"></param>
-    /// <param name="logger"></param>
-    public ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger)
-    {
-        this.next = next;
-        _logger = logger;
-    }
+    private readonly ILogger<ErrorHandlingMiddleware> _logger = logger;
 
     /// <summary>
     /// Invoke
@@ -48,9 +38,9 @@ public class ErrorHandlingMiddleware
     {
         _logger.LogError("发生未处理异常: {Ex}", ex.ToString());
         context.Response.ContentType = "application/json";
-        context.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
-        var options = new JsonSerializerOptions {PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true};
+        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
         options.Converters.Add(new JsonStringEnumConverter());
-        return context.Response.WriteAsync(JsonSerializer.Serialize(new ResultObject {StatusCode = HttpStatusCode.InternalServerError, Msg = ex.Message, Data = default}, options));
+        return context.Response.WriteAsync(JsonSerializer.Serialize(new ResultObject { StatusCode = HttpStatusCode.InternalServerError, Msg = ex.Message, Data = default }, options));
     }
 }

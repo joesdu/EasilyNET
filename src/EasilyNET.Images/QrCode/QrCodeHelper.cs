@@ -134,11 +134,9 @@ internal static class QrCodeHelper
                 var pointX = qrCodeCenterX - (int)Math.Floor((double)logoResultWidth / 2) + blackStartPointX;
                 var pointY = qrCodeCenterY - (int)Math.Floor((double)logoResultHeight / 2) + blackStartPointY;
                 using var sKCanvas3 = new SKCanvas(sKBitmap);
-                using var sKPaint = new SKPaint
-                {
-                    FilterQuality = SKFilterQuality.Medium,
-                    IsAntialias = true
-                };
+                using var sKPaint = new SKPaint();
+                sKPaint.FilterQuality = SKFilterQuality.Medium;
+                sKPaint.IsAntialias = true;
                 sKCanvas3.DrawBitmap(sKBitmapLogo, new SKRect
                     {
                         Location = new() { X = 0, Y = 0 },

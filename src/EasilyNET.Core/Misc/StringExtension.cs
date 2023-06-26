@@ -308,7 +308,7 @@ public static class StringExtension
     public static DateTime? ToDateTime(this string value, bool force)
     {
 #pragma warning disable SYSLIB1045
-        value = Regex.Replace(value, @"[^a-zA-Z0-9]", "-");
+        value = Regex.Replace(value, "[^a-zA-Z0-9]", "-");
 #pragma warning restore SYSLIB1045
         if (value.Split('-').Length == 1 && value.Length == 8)
         {

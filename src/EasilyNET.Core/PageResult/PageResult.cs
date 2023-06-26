@@ -30,26 +30,17 @@ public static class PageResult
 /// 分页数据返回
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public sealed class PageResult<T>
+/// <param name="total"></param>
+/// <param name="list"></param>
+public sealed class PageResult<T>(long? total, IEnumerable<T>? list)
 {
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    /// <param name="total"></param>
-    /// <param name="list"></param>
-    public PageResult(long? total, IEnumerable<T>? list)
-    {
-        Total = total ?? 0;
-        List = list;
-    }
-
     /// <summary>
     /// 数据量总数
     /// </summary>
-    public long Total { get; }
+    public long Total { get; } = total ?? 0;
 
     /// <summary>
     /// 数据列表
     /// </summary>
-    public IEnumerable<T>? List { get; }
+    public IEnumerable<T>? List { get; } = list;
 }

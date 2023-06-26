@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using EasilyNET.Core.Enums;
+using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Test.Unit.Controllers;
 
@@ -13,4 +14,11 @@ public class ValuesController : ControllerBase
     /// </summary>
     [HttpGet]
     public void GetError() => throw new("测试异常");
+
+    /// <summary>
+    /// 测试枚举类型
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet]
+    public EGender GetEnumTest() => EGender.男;
 }

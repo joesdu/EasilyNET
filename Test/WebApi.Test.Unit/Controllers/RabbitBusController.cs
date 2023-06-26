@@ -10,19 +10,8 @@ namespace WebApi.Test.Unit.Controllers;
 /// 消息总线测试控制器
 /// </summary>
 [ApiController, Route("api/[controller]/[action]"), ApiGroup("RabbitBus", "v1", "RabbitBus Test")]
-public class RabbitBusController : ControllerBase
+public class RabbitBusController(IIntegrationEventBus ibus) : ControllerBase
 {
-    private readonly IIntegrationEventBus _ibus;
-
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    /// <param name="ibus"></param>
-    public RabbitBusController(IIntegrationEventBus ibus)
-    {
-        _ibus = ibus;
-    }
-
     /// <summary>
     /// 发送HelloWorld消息
     /// </summary>
@@ -30,7 +19,7 @@ public class RabbitBusController : ControllerBase
     public void HelloWorld()
     {
         var rand = new Random();
-        _ibus.Publish(new HelloWorldEvent(), priority: (byte)rand.Next(0, 9));
+        ibus.Publish(new HelloWorldEvent(), priority: (byte)rand.Next(0, 9));
     }
 
     /// <summary>
@@ -41,7 +30,7 @@ public class RabbitBusController : ControllerBase
     {
         foreach (var i in ..10_0000)
         {
-            _ibus.Publish(new WorkQueuesEvent
+            ibus.Publish(new WorkQueuesEvent
             {
                 Summary = $"WorkQueuesEvent:{i}"
             });
@@ -54,7 +43,7 @@ public class RabbitBusController : ControllerBase
     [HttpPost]
     public void Fanout(CancellationToken cancellationToken)
     {
-        _ibus.Publish(new FanoutEventOne(), cancellationToken: cancellationToken);
+        ibus.Publish(new FanoutEventOne(), cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -63,7 +52,7 @@ public class RabbitBusController : ControllerBase
     [HttpPost]
     public Task DirectQueue1(CancellationToken cancellationToken)
     {
-        Task.Run(() => _ibus.Publish(new DirectEventOne(), "direct.queue1", cancellationToken: cancellationToken), cancellationToken);
+        Task.Run(() => ibus.Publish(new DirectEventOne(), "direct.queue1", cancellationToken: cancellationToken), cancellationToken);
         return Task.CompletedTask;
     }
 
@@ -73,7 +62,7 @@ public class RabbitBusController : ControllerBase
     [HttpPost]
     public void DirectQueue2()
     {
-        _ibus.Publish(new DirectEventOne(), "direct.queue2");
+        ibus.Publish(new DirectEventOne(), "direct.queue2");
     }
 
     /// <summary>
@@ -83,7 +72,7 @@ public class RabbitBusController : ControllerBase
     [HttpPost]
     public void TopicTo1()
     {
-        _ibus.Publish(new TopicEventOne(), "topic.queue.1");
+        ibus.Publish(new TopicEventOne(), "topic.queue.1");
     }
 
     /// <summary>
@@ -93,7 +82,7 @@ public class RabbitBusController : ControllerBase
     [HttpPost]
     public void TopicTo2()
     {
-        _ibus.Publish(new TopicEventOne(), "topic.queue.2");
+        ibus.Publish(new TopicEventOne(), "topic.queue.2");
     }
 
     /// <summary>
@@ -103,6 +92,6 @@ public class RabbitBusController : ControllerBase
     [HttpPost]
     public void TopicTo3()
     {
-        _ibus.Publish(new TopicEventOne(), "topic.queue.3");
+        ibus.Publish(new TopicEventOne(), "topic.queue.3");
     }
 }
