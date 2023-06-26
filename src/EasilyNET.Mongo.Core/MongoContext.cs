@@ -1,5 +1,7 @@
 ﻿using MongoDB.Driver;
 
+// ReSharper disable MemberCanBeProtected.Global
+
 namespace EasilyNET.Mongo.Core;
 
 /// <summary>

@@ -12,20 +12,9 @@ namespace EasilyNET.Mongo.GridFS.Extension;
 /// GriFS扩展控制器
 /// </summary>
 [ApiController, Route("api/[controller]")]
-public class ExtensionController : GridFSController
+public class ExtensionController(GridFSBucket bucket, IMongoCollection<GridFSItemInfo> collection, IConfiguration config) : GridFSController(bucket, collection)
 {
-    private readonly EasilyFSSettings FileSetting;
-
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    /// <param name="bucket"></param>
-    /// <param name="collection"></param>
-    /// <param name="config"></param>
-    public ExtensionController(GridFSBucket bucket, IMongoCollection<GridFSItemInfo> collection, IConfiguration config) : base(bucket, collection)
-    {
-        FileSetting = config.GetSection(EasilyFSSettings.Position).Get<EasilyFSSettings>() ?? throw new($"不存在 {EasilyFSSettings.Position}配置,请添加配置");
-    }
+    private readonly EasilyFSSettings FileSetting = config.GetSection(EasilyFSSettings.Position).Get<EasilyFSSettings>() ?? throw new($"不存在 {EasilyFSSettings.Position}配置,请添加配置");
 
     /// <summary>
     /// 获取虚拟目录的文件路径
@@ -100,6 +89,8 @@ public class ExtensionController : GridFSController
     public override async Task<IEnumerable<string>> Delete(CancellationToken cancellationToken, params string[] ids)
     {
         var files = (await base.Delete(cancellationToken, ids)).ToList();
+        _ = files.Count > 6 ? Task.Run(DeleteSingleFile, cancellationToken) : DeleteSingleFile();
+        return files;
 
         Task DeleteSingleFile()
         {
@@ -107,8 +98,5 @@ public class ExtensionController : GridFSController
                 System.IO.File.Delete(path);
             return Task.CompletedTask;
         }
-
-        _ = files.Count > 6 ? Task.Run(DeleteSingleFile, cancellationToken) : DeleteSingleFile();
-        return files;
     }
 }

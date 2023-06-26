@@ -6,6 +6,7 @@ namespace EasilyNET.Mongo;
 /// <summary>
 /// <see cref="TimeOnly" /> 序列化方式,仅存为字符串形式方便人类阅读
 /// </summary>
+/// <param name="format"></param>
 /// <example>
 ///     <code>
 ///  <![CDATA[
@@ -13,34 +14,18 @@ namespace EasilyNET.Mongo;
 ///   ]]>
 ///  </code>
 /// </example>
-internal sealed class TimeOnlySerializer : StructSerializerBase<TimeOnly>
+internal sealed class TimeOnlySerializer(string format = "HH:mm:ss") : StructSerializerBase<TimeOnly>
 {
-    private static string Format = "HH:mm:ss";
-
-    /// <summary>
-    /// 使用给默认方案: <see langword="HH:mm:ss" />
-    /// </summary>
-    public TimeOnlySerializer() { }
-
-    /// <summary>
-    /// 可自定义传入 <see cref="TimeOnly" /> 格式化字符串格式
-    /// </summary>
-    /// <param name="format"></param>
-    public TimeOnlySerializer(string format)
-    {
-        Format = format;
-    }
-
     public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, TimeOnly value)
     {
-        var str = value.ToString(Format);
+        var str = value.ToString(format);
         context.Writer.WriteString(str);
     }
 
     public override TimeOnly Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
         var ticks = context.Reader.ReadString();
-        var success = TimeOnly.TryParseExact(ticks, Format, out var result);
+        var success = TimeOnly.TryParseExact(ticks, format, out var result);
         return success ? result : throw new("unsupported data formats.");
     }
 }

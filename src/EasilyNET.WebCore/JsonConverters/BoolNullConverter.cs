@@ -27,15 +27,14 @@ public sealed class BoolNullConverter : JsonConverter<bool?>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
     public override bool? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-        reader.TokenType is JsonTokenType.True or JsonTokenType.False
-            ? reader.GetBoolean()
-            : reader.TokenType == JsonTokenType.Null
-                ? null
-                : reader.TokenType == JsonTokenType.String
-                    ? bool.Parse(reader.GetString()!)
-                    : reader.TokenType == JsonTokenType.Number
-                        ? reader.GetDouble() > 0
-                        : throw new NotImplementedException($"un processed token type {reader.TokenType}");
+        reader.TokenType switch
+        {
+            JsonTokenType.True or JsonTokenType.False => reader.GetBoolean(),
+            JsonTokenType.Null                        => null,
+            JsonTokenType.String                      => bool.Parse(reader.GetString()!),
+            JsonTokenType.Number                      => reader.GetDouble() > 0,
+            _                                         => throw new NotImplementedException($"un processed token type {reader.TokenType}")
+        };
 
     /// <summary>
     /// Write
@@ -45,9 +44,7 @@ public sealed class BoolNullConverter : JsonConverter<bool?>
     /// <param name="options"></param>
     public override void Write(Utf8JsonWriter writer, bool? value, JsonSerializerOptions options)
     {
-        if (value is not null)
-            writer.WriteBooleanValue(value.Value);
-        else
-            writer.WriteNullValue();
+        if (value is not null) writer.WriteBooleanValue(value.Value);
+        else writer.WriteNullValue();
     }
 }

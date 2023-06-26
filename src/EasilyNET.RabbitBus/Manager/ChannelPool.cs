@@ -4,18 +4,9 @@ using System.Collections.Concurrent;
 
 namespace EasilyNET.RabbitBus.Manager;
 
-internal sealed class ChannelPool : IChannelPool
+internal sealed class ChannelPool(IConnection connection, uint maxSize) : IChannelPool
 {
-    private readonly ConcurrentBag<IModel> _channels;
-    private readonly IConnection _connection;
-    private readonly uint _maxSize;
-
-    public ChannelPool(IConnection connection, uint maxSize)
-    {
-        _connection = connection;
-        _maxSize = maxSize;
-        _channels = new();
-    }
+    private readonly ConcurrentBag<IModel> _channels = new();
 
     public void Dispose()
     {
@@ -26,12 +17,12 @@ internal sealed class ChannelPool : IChannelPool
     }
 
     /// <inheritdoc />
-    public IModel GetChannel() => _channels.TryTake(out var channel) ? channel : _connection.CreateModel();
+    public IModel GetChannel() => _channels.TryTake(out var channel) ? channel : connection.CreateModel();
 
     /// <inheritdoc />
     public void ReturnChannel(IModel channel)
     {
-        if (_channels.Count <= _maxSize)
+        if (_channels.Count <= maxSize)
         {
             _channels.Add(channel);
             return;

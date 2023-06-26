@@ -1,3 +1,4 @@
+using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using System.ComponentModel;
@@ -7,24 +8,10 @@ namespace WebApi.Test.Unit.Controllers;
 /// <summary>
 /// 测试mongodb的一些功能
 /// </summary>
-[ApiController, Route("api/[controller]")]
-public class MongoTestController : ControllerBase
+[ApiController, Route("api/[controller]"), ApiGroup("MongoTest", "v1", "MongoDB一些测试")]
+public class MongoTestController(DbContext db1, DbContext2 db2) : ControllerBase
 {
     private readonly FilterDefinitionBuilder<MongoTest> bf = Builders<MongoTest>.Filter;
-
-    private readonly DbContext db;
-    private readonly DbContext2 db2;
-
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    /// <param name="db1">db1</param>
-    /// <param name="db2">db2</param>
-    public MongoTestController(DbContext db1, DbContext2 db2)
-    {
-        db = db1;
-        this.db2 = db2;
-    }
 
     /// <summary>
     /// 添加一个动态数据,新版MongoDB不支持动态类型了,可以使用EasilyNET.Mongo.Extension来提供支持,可便于快速测试一些代码.
@@ -33,7 +20,7 @@ public class MongoTestController : ControllerBase
     [HttpPost("PostOneTest")]
     public async Task PostOneTest()
     {
-        var coll = db.GetDatabase("newdb1").GetCollection<object>("test.new1");
+        var coll = db1.GetDatabase("newdb1").GetCollection<object>("test.new1");
         await coll.InsertOneAsync(new
         {
             Decimal = 3.235223462346m,
@@ -57,7 +44,7 @@ public class MongoTestController : ControllerBase
             DateOnly = DateOnly.FromDateTime(DateTime.Now),
             TimeOnly = TimeOnly.FromDateTime(DateTime.Now)
         };
-        _ = db.Test.InsertOneAsync(o);
+        _ = db1.Test.InsertOneAsync(o);
         return Task.CompletedTask;
     }
 
@@ -66,7 +53,7 @@ public class MongoTestController : ControllerBase
     /// </summary>
     /// <returns></returns>
     [HttpGet("MongoGet")]
-    public async Task<IEnumerable<MongoTest>> MongoGet() => await db.Test.Find(bf.Empty).ToListAsync();
+    public async Task<IEnumerable<MongoTest>> MongoGet() => await db1.Test.Find(bf.Empty).ToListAsync();
 
     /// <summary>
     /// 初始化Test2
@@ -81,8 +68,8 @@ public class MongoTestController : ControllerBase
             var date = DateOnly.FromDateTime(DateTime.Now.AddDays(i));
             os.Add(new() { Id = Guid.NewGuid().ToString(), Date = date, Index = i });
         }
-        var session = await db.GetStartedSessionAsync();
-        await db.Test2.InsertManyAsync(session, os);
+        var session = await db1.GetStartedSessionAsync();
+        await db1.Test2.InsertManyAsync(session, os);
         await session.CommitTransactionAsync();
     }
 
@@ -94,7 +81,7 @@ public class MongoTestController : ControllerBase
     [HttpGet("Test2")]
     public async Task<MongoTest2> GetTest2(string id)
     {
-        return await db.Test2.Find(c => c.Id == id).SingleOrDefaultAsync();
+        return await db1.Test2.Find(c => c.Id == id).SingleOrDefaultAsync();
     }
 
     /// <summary>
@@ -105,7 +92,7 @@ public class MongoTestController : ControllerBase
     public async Task PostLongData()
     {
         var data = "10086".PadLeft(100).PadRight(100);
-        await db.Database.GetCollection<dynamic>("long.data").InsertOneAsync(new
+        await db1.Database.GetCollection<dynamic>("long.data").InsertOneAsync(new
         {
             Data = data
         });
@@ -118,7 +105,7 @@ public class MongoTestController : ControllerBase
     [HttpPost("Search")]
     public async Task<dynamic> Search(Search search)
     {
-        var result = await db.Test2.Find(c => c.Date >= search.Start && c.Date <= search.End).ToListAsync();
+        var result = await db1.Test2.Find(c => c.Date >= search.Start && c.Date <= search.End).ToListAsync();
         return result;
     }
 

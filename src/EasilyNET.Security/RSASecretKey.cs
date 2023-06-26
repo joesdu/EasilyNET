@@ -5,34 +5,26 @@ namespace EasilyNET.Security;
 /// <summary>
 /// RSA密钥
 /// </summary>
-public struct RSASecretKey
+/// <param name="privateKey"></param>
+/// <param name="publicKey"></param>
+public struct RSASecretKey(string privateKey, string publicKey)
 {
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    /// <param name="privateKey"></param>
-    /// <param name="publicKey"></param>
-    public RSASecretKey(string privateKey, string publicKey)
-    {
-        PrivateKey = privateKey;
-        PublicKey = publicKey;
-    }
 
     /// <summary>
     /// 公钥
     /// </summary>
-    public string PublicKey { get; set; }
+    public string PublicKey { get; set; } = publicKey;
 
     /// <summary>
     /// 私钥
     /// </summary>
-    public string PrivateKey { get; set; }
+    public string PrivateKey { get; set; } = privateKey;
 
     /// <summary>
     /// ToSting
     /// </summary>
     /// <returns></returns>
-    public override string ToString() =>
+    public readonly override string ToString() =>
         $"""
         PrivateKey: {PrivateKey}
         PublicKey: {PublicKey}

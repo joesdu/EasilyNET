@@ -18,18 +18,9 @@ namespace EasilyNET.WebCore.Filters;
 ///  </code>
 /// </example>
 // ReSharper disable once ClassNeverInstantiated.Global
-public sealed class ExceptionFilter : ExceptionFilterAttribute
+public sealed class ExceptionFilter(ILogger<ExceptionFilter> logger) : ExceptionFilterAttribute
 {
-    private readonly ILogger<ExceptionFilter> _logger;
-
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    /// <param name="logger"></param>
-    public ExceptionFilter(ILogger<ExceptionFilter> logger)
-    {
-        _logger = logger;
-    }
+    private readonly ILogger<ExceptionFilter> _logger = logger;
 
     /// <summary>
     /// 当出现异常的时候.
@@ -40,7 +31,7 @@ public sealed class ExceptionFilter : ExceptionFilterAttribute
     {
         _logger.LogError("{Stacktrace}", context.Exception.ToString());
         context.ExceptionHandled = true;
-        context.Result = new ObjectResult(new ResultObject {StatusCode = HttpStatusCode.InternalServerError, Msg = context.Exception.Message, Data = default});
+        context.Result = new ObjectResult(new ResultObject { StatusCode = HttpStatusCode.InternalServerError, Msg = context.Exception.Message, Data = default });
         return base.OnExceptionAsync(context);
     }
 }
