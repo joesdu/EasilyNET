@@ -19,4 +19,17 @@ public class CustomIntEnumeratorTest
             Console.WriteLine(i.ToString());
         }
     }
+
+    /// <summary>
+    /// CustomIntEnumeratorExtension Test
+    /// </summary>
+    /// <param name="value"></param>
+    [TestMethod, DataRow(3), DataRow(5)]
+    public void OneToValue(int value)
+    {
+        foreach (var i in 1..value)
+        {
+            Console.WriteLine(i.ToString());
+        }
+    }
 }
