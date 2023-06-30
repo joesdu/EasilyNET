@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.Extension</PackageProjectUrl>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.MongoSerializer.AspNetCore</PackageProjectUrl>
         <Description>为MongoDB添加.Net 6+ Date/Time Only类型支持.</Description>
     </PropertyGroup>
 
