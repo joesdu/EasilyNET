@@ -1,8 +1,7 @@
 ﻿using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.Mongo.GridFS;
-using EasilyNET.Mongo.GridFS.Extension;
+using EasilyNET.MongoGridFS.AspNetCore;
 using MongoDB.Driver;
 
 namespace WebApi.Test.Unit;
@@ -21,29 +20,15 @@ public class MongoFSModule : AppModule
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        context.Services.AddEasilyNETGridFS(fsOptions: c =>
+        var db = context.Services.GetService<IMongoDatabase>() ?? throw new("请先注册IMongoDatabase服务");
+        context.Services.AddMongoGridFS(db, option =>
         {
-            c.BusinessApp = "easilyfs";
-            c.Options = new()
-            {
-                BucketName = "easilyfs",
-                ChunkSizeBytes = 1024,
-                DisableMD5 = true,
-                ReadConcern = new(),
-                ReadPreference = ReadPreference.Primary,
-                WriteConcern = WriteConcern.Unacknowledged
-            };
-            c.DefaultDB = true;
-            c.ItemInfo = "item.info";
+            option.BucketName = "easilyfs";
+            option.ChunkSizeBytes = 1024;
+            option.DisableMD5 = true;
+            option.ReadConcern = new();
+            option.ReadPreference = ReadPreference.Primary;
+            option.WriteConcern = WriteConcern.Unacknowledged;
         });
-    }
-
-    /// <inheritdoc />
-    public override void ApplicationInitialization(ApplicationContext context)
-    {
-        var app = context.GetApplicationBuilder();
-        var config = app.ApplicationServices.GetRequiredService<IConfiguration>();
-        // 配置虚拟文件
-        app.UseGridFSVirtualPath(config);
     }
 }
