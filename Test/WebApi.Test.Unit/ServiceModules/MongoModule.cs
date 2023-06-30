@@ -1,9 +1,9 @@
 ﻿using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.Mongo;
+using EasilyNET.Mongo.AspNetCore;
 using EasilyNET.Mongo.ConsoleDebug;
-using EasilyNET.Mongo.Extension;
+using EasilyNET.MongoSerializer.AspNetCore;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 
@@ -77,6 +77,8 @@ public class MongoModule : AppModule
             c.DefaultConventionRegistry = true;
         });
         context.Services.AddMongoContext<DbContext2>(config, c => c.DatabaseName = "test2");
-        context.Services.RegisterSerializer().RegisterDynamicSerializer();
+        context.Services.RegisterSerializer(new DateOnlySerializerAsString());
+        context.Services.RegisterSerializer(new TimeOnlySerializerAsString());
+        context.Services.RegisterDynamicSerializer();
     }
 }
