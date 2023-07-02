@@ -36,7 +36,7 @@ public static class ServiceCollectionExtensions
     /// <returns></returns>
     public static IServiceCollection AddMongoGridFS(this IServiceCollection services, IMongoDatabase db, string name, Action<GridFSBucketOptions>? configure = null)
     {
-        services.Configure(name, configure);
+        if (configure is not null) services.Configure(name, configure);
         services.TryAddSingleton<IGridFSBucketFactory, GridFSBucketFactory>();
         services.TryAddSingleton(sp => sp.GetRequiredService<IGridFSBucketFactory>().CreateBucket(db));
         return services;
