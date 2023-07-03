@@ -21,14 +21,6 @@ public class MongoFSModule : AppModule
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var db = context.Services.GetService<IMongoDatabase>() ?? throw new("请先注册IMongoDatabase服务");
-        context.Services.AddMongoGridFS(db, option =>
-        {
-            option.BucketName = "easilyfs";
-            option.ChunkSizeBytes = 1024;
-            option.DisableMD5 = true;
-            option.ReadConcern = new();
-            option.ReadPreference = ReadPreference.Primary;
-            option.WriteConcern = WriteConcern.Unacknowledged;
-        });
+        context.Services.AddMongoGridFS(db);
     }
 }

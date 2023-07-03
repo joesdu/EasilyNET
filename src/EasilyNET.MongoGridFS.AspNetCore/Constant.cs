@@ -6,7 +6,17 @@
 public static class Constant
 {
     /// <summary>
-    /// 配置名称
+    /// 默认配置名称
     /// </summary>
-    public const string ConfigName = "easily_net_mongo_gridfs";
+    public const string ConfigName = "EasilyNetGridfs";
+
+    /// <summary>
+    /// 默认桶名称
+    /// </summary>
+    public const string BucketName = "easilyfs";
+
+    /// <summary>
+    /// 默认数据库名称
+    /// </summary>
+    public const string DefaultDbName = "easily";
 }
