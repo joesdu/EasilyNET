@@ -21,7 +21,7 @@ namespace EasilyNET.MongoSerializer.AspNetCore;
 /// </example>
 public sealed class DateOnlySerializerAsString(string format = "yyyy-MM-dd") : StructSerializerBase<DateOnly>
 {
-    private readonly IBsonSerializer<string> InnerSerializer = new StringSerializer();
+    private readonly StringSerializer InnerSerializer = new();
 
     /// <inheritdoc />
     public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, DateOnly value) => InnerSerializer.Serialize(context, args, value.ToString(format));
@@ -52,7 +52,7 @@ public sealed class DateOnlySerializerAsString(string format = "yyyy-MM-dd") : S
 /// </example>
 public sealed class DateOnlySerializerAsTicks : StructSerializerBase<DateOnly>
 {
-    private readonly IBsonSerializer<long> InnerSerializer = new Int64Serializer();
+    private readonly Int64Serializer InnerSerializer = new();
 
     /// <inheritdoc />
     public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, DateOnly value) => InnerSerializer.Serialize(context, args, value.ToDateTime(TimeOnly.MinValue).Ticks);

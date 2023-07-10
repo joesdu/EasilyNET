@@ -21,7 +21,7 @@ namespace EasilyNET.MongoSerializer.AspNetCore;
 /// </example>
 public sealed class TimeOnlySerializerAsString(string format = "HH:mm:ss") : StructSerializerBase<TimeOnly>
 {
-    private readonly IBsonSerializer<string> InnerSerializer = new StringSerializer();
+    private readonly StringSerializer InnerSerializer = new();
 
     /// <inheritdoc />
     public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, TimeOnly value) => InnerSerializer.Serialize(context, args, value.ToString(format));
@@ -52,7 +52,7 @@ public sealed class TimeOnlySerializerAsString(string format = "HH:mm:ss") : Str
 /// </example>
 public sealed class TimeOnlySerializerAsTicks : StructSerializerBase<TimeOnly>
 {
-    private readonly IBsonSerializer<long> InnerSerializer = new Int64Serializer();
+    private readonly Int64Serializer InnerSerializer = new();
 
     /// <inheritdoc />
     public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, TimeOnly value) => InnerSerializer.Serialize(context, args, value.Ticks);
