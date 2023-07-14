@@ -10,6 +10,7 @@
 		<Nullable>enable</Nullable>
 		<Authors>joesdu</Authors>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<EnablePreviewFeatures>true</EnablePreviewFeatures>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
