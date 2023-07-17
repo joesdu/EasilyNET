@@ -58,9 +58,11 @@ public static class SwaggerExtension
         {
             op.IncludeXmlComments(file, true);
         }
-        op.OperationFilter<SwaggerAuthorizeFilter>();
         op.DocumentFilter<SwaggerHiddenApiFilter>();
+        op.OperationFilter<SwaggerAuthorizeFilter>();
+        op.OperationFilter<SwaggerParamIgnoreFilter>();
         op.SchemaFilter<SwaggerSchemaFilter>();
+        op.SchemaFilter<SwaggerPropertyIgnoreFilter>();
     }
 
     /// <summary>

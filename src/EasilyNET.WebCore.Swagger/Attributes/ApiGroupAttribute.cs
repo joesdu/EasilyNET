@@ -6,9 +6,6 @@ namespace EasilyNET.WebCore.Swagger.Attributes;
 /// 被此特性标记的控制器可在Swagger文档分组中发挥作用.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
-// ReSharper disable once UnusedMember.Global
-// ReSharper disable once UnusedType.Global
-// ReSharper disable once ClassNeverInstantiated.Global
 public sealed class ApiGroupAttribute(string title, string version, string description = "") : Attribute
 {
     /// <summary>
