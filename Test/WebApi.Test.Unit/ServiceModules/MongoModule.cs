@@ -15,6 +15,12 @@ namespace WebApi.Test.Unit;
 public class MongoModule : AppModule
 {
     /// <inheritdoc />
+    public MongoModule()
+    {
+        Enable = false;
+    }
+
+    /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var config = context.Services.GetConfiguration();

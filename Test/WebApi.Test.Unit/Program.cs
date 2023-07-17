@@ -41,21 +41,25 @@ _ = builder.Host.UseSerilog((hbc, lc) =>
           {
               wt.Console();
               wt.Debug();
-              wt.MongoDBBson(c =>
+              var mongo = builder.Services.GetService<DbContext>()?.Database;
+              if (mongo is not null)
               {
-                  // 使用链接字符串
-                  //var connectionString = hbc.Configuration["CONNECTIONSTRINGS_MONGO"];
-                  //if (string.IsNullOrWhiteSpace(connectionString)) connectionString = hbc.Configuration.GetConnectionString("Mongo");
-                  //if (string.IsNullOrWhiteSpace(connectionString)) throw new("链接字符串不能为空");
-                  //var mongoUrl = new MongoUrl(connectionString);
-                  //var mongoDbInstance = new MongoClient(mongoUrl).GetDatabase("serilog");
-                  var mongo = builder.Services.GetService<DbContext2>()?.Database ?? throw new("无法从Ioc容器中获取到Mongo服务");
-                  // 设置别的数据库作为日志库
-                  // var mongo = builder.Services.GetService<IMongoDatabase>()?.Client.GetDatabase("serilog") ?? throw new("无法从Ioc容器中获取到Mongo服务");
-                  // sink will use the IMongoDatabase instance provided
-                  c.SetMongoDatabase(mongo);
-                  c.SetCollectionName("serilog");
-              });
+                  wt.MongoDBBson(c =>
+                  {
+                      // 使用链接字符串
+                      //var connectionString = hbc.Configuration["CONNECTIONSTRINGS_MONGO"];
+                      //if (string.IsNullOrWhiteSpace(connectionString)) connectionString = hbc.Configuration.GetConnectionString("Mongo");
+                      //if (string.IsNullOrWhiteSpace(connectionString)) throw new("链接字符串不能为空");
+                      //var mongoUrl = new MongoUrl(connectionString);
+                      //var mongoDbInstance = new MongoClient(mongoUrl).GetDatabase("serilog");
+
+                      // 设置别的数据库作为日志库
+                      // var mongo = builder.Services.GetService<IMongoDatabase>()?.Client.GetDatabase("serilog") ?? throw new("无法从Ioc容器中获取到Mongo服务");
+                      // sink will use the IMongoDatabase instance provided
+                      c.SetMongoDatabase(mongo);
+                      c.SetCollectionName("serilog");
+                  });
+              }
           });
 });
 var app = builder.Build();
