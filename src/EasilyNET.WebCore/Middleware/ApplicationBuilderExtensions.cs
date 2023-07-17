@@ -8,7 +8,7 @@ namespace EasilyNET.WebCore.Middleware;
 /// <summary>
 /// 中间件扩展,用于统一处理中间件调用扩展
 /// </summary>
-public static class MiddlewareExtensions
+public static class ApplicationBuilderExtensions
 {
     /// <summary>
     /// 使用全局API耗时监控中间件

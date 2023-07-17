@@ -3,14 +3,13 @@
 <Project>
 
 	<PropertyGroup>
-		<Version>1.6.3</Version>
+		<Version>1.6.4</Version>
 		<TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
 		<LangVersion>preview</LangVersion>
 		<RepositoryUrl>https://github.com/EasilyNET/EasilyNET</RepositoryUrl>
 		<Nullable>enable</Nullable>
 		<Authors>joesdu</Authors>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<EnablePreviewFeatures>true</EnablePreviewFeatures>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>

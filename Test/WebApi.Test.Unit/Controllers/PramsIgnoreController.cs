@@ -1,4 +1,5 @@
-﻿using EasilyNET.WebCore.Swagger.Attributes;
+﻿using EasilyNET.Core.Enums;
+using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Serialization;
 
@@ -54,4 +55,9 @@ public class IgnoreClass
     /// </summary>
     [JsonIgnore]
     public int B { get; set; } = 2;
+
+    /// <summary>
+    /// 性别
+    /// </summary>
+    public EGender Gender { get; set; } = EGender.男;
 }

@@ -13,7 +13,7 @@ namespace EasilyNET.WebCore.Swagger.SwaggerFilters;
 /// </summary>
 // ReSharper disable once UnusedMember.Global
 // ReSharper disable once ClassNeverInstantiated.Global
-public sealed class SwaggerSchemaFilter : ISchemaFilter
+public sealed class SwaggerDefaultValueFilter : ISchemaFilter
 {
     /// <summary>
     /// Apply
