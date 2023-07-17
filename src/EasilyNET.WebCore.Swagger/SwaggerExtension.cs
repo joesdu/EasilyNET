@@ -61,7 +61,7 @@ public static class SwaggerExtension
         op.DocumentFilter<SwaggerHiddenApiFilter>();
         op.OperationFilter<SwaggerAuthorizeFilter>();
         op.OperationFilter<SwaggerParamIgnoreFilter>();
-        op.SchemaFilter<SwaggerSchemaFilter>();
+        op.SchemaFilter<SwaggerDefaultValueFilter>();
         op.SchemaFilter<SwaggerPropertyIgnoreFilter>();
     }
 

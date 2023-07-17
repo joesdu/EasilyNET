@@ -13,8 +13,6 @@ namespace EasilyNET.MongoGridFS.AspNetCore;
 /// <param name="optionsMonitor"></param>
 internal sealed class GridFSBucketFactory(IOptionsMonitor<GridFSBucketOptions> optionsMonitor) : IGridFSBucketFactory
 {
-    private readonly IOptionsMonitor<GridFSBucketOptions> optionsMonitor = optionsMonitor;
-
     /// <summary>
     /// 创建客户端
     /// </summary>

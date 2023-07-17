@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
 using System.Net;
 
+// ReSharper disable SuggestBaseTypeForParameterInConstructor
 // ReSharper disable UnusedType.Global
 
 namespace EasilyNET.WebCore.Filters;
@@ -20,8 +21,6 @@ namespace EasilyNET.WebCore.Filters;
 // ReSharper disable once ClassNeverInstantiated.Global
 public sealed class ExceptionFilter(ILogger<ExceptionFilter> logger) : ExceptionFilterAttribute
 {
-    private readonly ILogger<ExceptionFilter> _logger = logger;
-
     /// <summary>
     /// 当出现异常的时候.
     /// </summary>
@@ -29,7 +28,7 @@ public sealed class ExceptionFilter(ILogger<ExceptionFilter> logger) : Exception
     /// <returns></returns>
     public override Task OnExceptionAsync(ExceptionContext context)
     {
-        _logger.LogError("{Stacktrace}", context.Exception.ToString());
+        logger.LogError("{Stacktrace}", context.Exception.ToString());
         context.ExceptionHandled = true;
         context.Result = new ObjectResult(new ResultObject { StatusCode = HttpStatusCode.InternalServerError, Msg = context.Exception.Message, Data = default });
         return base.OnExceptionAsync(context);

@@ -3,4 +3,4 @@
 /// <summary>
 /// 服务提供者访问器接口
 /// </summary>
-internal interface IServiceProviderAccessor { }
+internal interface IServiceProviderAccessor;
