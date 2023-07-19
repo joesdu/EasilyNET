@@ -149,7 +149,7 @@ builder.Services.AddControllers().AddPropertyInjectionAsServices();
 ...
 
 //使用默认属性注入，替换原有的
-builder.Host.UseDefaultPropertyInjection();
+builder.Host.UsePropertyInjection();
 
 ...
 
