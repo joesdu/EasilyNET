@@ -1,7 +1,5 @@
 ﻿using EasilyNET.AutoDependencyInjection.Contexts;
-using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.Mongo.AspNetCore;
 using EasilyNET.Mongo.ConsoleDebug;
 using EasilyNET.MongoSerializer.AspNetCore;
 using MongoDB.Driver;

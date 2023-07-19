@@ -1,9 +1,9 @@
-﻿using EasilyNET.RabbitBus.AspNetCore.Abstraction;
+﻿using EasilyNET.RabbitBus;
+using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Manager;
 using EasilyNET.RabbitBus.Core;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 
@@ -11,7 +11,7 @@ using RabbitMQ.Client;
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.RabbitBus.AspNetCore;
+namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// ServiceCollection扩展

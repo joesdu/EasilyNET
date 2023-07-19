@@ -14,7 +14,7 @@ namespace EasilyNET.Mongo.AspNetCore;
 ///     <item>当 <see langword="ID" /> 或者 <see langword="Id" /> 字段为空值时添加默认 <see cref="ObjectId" /></item>
 /// </list>
 /// </summary>
-internal sealed class StringObjectIdIdGeneratorConvention : ConventionBase, IPostProcessingConvention
+internal sealed class StringToObjectIdIdGeneratorConvention : ConventionBase, IPostProcessingConvention
 {
     public void PostProcess(BsonClassMap classMap)
     {

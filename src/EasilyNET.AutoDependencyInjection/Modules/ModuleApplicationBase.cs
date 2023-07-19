@@ -1,5 +1,4 @@
 ﻿using EasilyNET.AutoDependencyInjection.Abstractions;
-using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.Core.Misc;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq.Expressions;
@@ -97,7 +96,7 @@ internal class ModuleApplicationBase : IModuleApplication
     }
 
     /// <summary>
-    /// 设置 <see cref="ServiceProvider"/>
+    /// 设置 <see cref="ServiceProvider" />
     /// </summary>
     /// <param name="serviceProvider"></param>
     protected void SetServiceProvider(IServiceProvider serviceProvider)

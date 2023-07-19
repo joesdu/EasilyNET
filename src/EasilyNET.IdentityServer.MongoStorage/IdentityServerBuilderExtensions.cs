@@ -1,12 +1,12 @@
 ﻿using Duende.IdentityServer.Services;
 using Duende.IdentityServer.Stores;
-using Microsoft.Extensions.DependencyInjection;
+using EasilyNET.IdentityServer.MongoStorage;
 using MongoDB.Driver;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.IdentityServer.MongoStorage;
+namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// 扩展

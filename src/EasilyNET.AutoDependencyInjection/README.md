@@ -7,6 +7,7 @@
 - 使用 Nuget 包管理工具添加依赖包 EasilyNET.AutoDependencyInjection
 - 等待下载完成和同意开源协议后,即可使用本库.
 - a.使用特性注入服务
+- b.使用属性注入服务
 
 ```csharp
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
@@ -138,4 +139,25 @@ app.InitializeApplication();
 app.MapControllers();
 
 app.Run();
+```
+
+- 属性注入,首先配置服务
+    
+```csharp
+//添加 AddPropertyInjectionAsServices
+builder.Services.AddControllers().AddPropertyInjectionAsServices();
+...
+
+//添加
+builder.Host.UseDefaultPropertyInjection();
+
+...
+
+var app = builder.Build();
+```
+
+- 使用特性通过属性注入服务
+```csharp
+[Injection]
+private readonly ITest? _test = null;
 ```

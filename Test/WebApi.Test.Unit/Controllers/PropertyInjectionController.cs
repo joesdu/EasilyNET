@@ -1,4 +1,4 @@
-using EasilyNET.PropertyInjection.Attributes;
+using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 

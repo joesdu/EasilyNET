@@ -1,5 +1,4 @@
 ﻿using EasilyNET.AutoDependencyInjection.Contexts;
-using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.AutoDependencyInjection.Modules;
 
 namespace WebApi.Test.Unit;

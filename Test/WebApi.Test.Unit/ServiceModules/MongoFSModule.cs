@@ -1,7 +1,5 @@
 ﻿using EasilyNET.AutoDependencyInjection.Contexts;
-using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.MongoGridFS.AspNetCore;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using MongoDB.Driver;

@@ -1,7 +1,7 @@
-﻿using EasilyNET.AutoDependencyInjection.Attributes;
+﻿using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EasilyNET.AutoDependencyInjection.Abstractions;
+namespace EasilyNET.AutoDependencyInjection.Core.Abstractions;
 
 /// <summary>
 /// 实现此接口的类型将自动注册为<see cref="ServiceLifetime.Transient" />模式

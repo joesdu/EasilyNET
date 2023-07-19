@@ -2,7 +2,6 @@
 using EasilyNET.WebCore.Swagger.Attributes;
 using EasilyNET.WebCore.Swagger.SwaggerFilters;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Reflection;
@@ -10,12 +9,12 @@ using System.Reflection;
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
-namespace EasilyNET.WebCore.Swagger;
+namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// Swagger扩展
 /// </summary>
-public static class SwaggerExtension
+public static class SwaggerGenOptionsExtensions
 {
     private static readonly Dictionary<string, string> docsDic = new();
     private static readonly Dictionary<string, string> endPointDic = new();
