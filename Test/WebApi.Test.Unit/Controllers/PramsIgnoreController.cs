@@ -18,20 +18,14 @@ public class PramsIgnoreController : ControllerBase
     /// <param name="a"></param>
     /// <param name="b"></param>
     [HttpGet("{a:int}")]
-    public void IgnoreParams([SwaggerIgnore] string test = "test", int a = 1, [SwaggerIgnore] int b = 2)
-    {
-        Console.WriteLine(test, a, b);
-    }
+    public void IgnoreParams([SwaggerIgnore] string test = "test", int a = 1, [SwaggerIgnore] int b = 2) { }
 
     /// <summary>
     /// 测试直接忽略参数
     /// </summary>
     /// <param name="ic"></param>
     [HttpPost]
-    public void IgnoreParams(IgnoreClass ic)
-    {
-        Console.WriteLine(ic.Test, ic.A, ic.B);
-    }
+    public void IgnoreParams(IgnoreClass ic) { }
 }
 
 /// <summary>
