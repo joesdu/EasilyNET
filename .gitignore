@@ -364,3 +364,6 @@ FodyWeavers.xsd
 
 # JetBrains
 .idea/
+/Directory.Build.props
+/global.json
+/Directory.Build.props

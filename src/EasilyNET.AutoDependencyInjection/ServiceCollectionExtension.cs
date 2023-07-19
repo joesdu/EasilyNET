@@ -15,7 +15,7 @@ using Microsoft.Extensions.Hosting;
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
-/// 扩展
+/// 服务集合扩展
 /// </summary>
 public static partial class ServiceCollectionExtension
 {
@@ -60,7 +60,7 @@ public static partial class ServiceCollectionExtension
     /// <summary>
     /// 添加属性注入服务
     /// </summary>
-    /// <param name="mvcBuilder"></param>
+    /// <param name="mvcBuilder">mvc构建器</param>
     /// <returns></returns>
     public static IMvcBuilder AddPropertyInjectionAsServices(this IMvcBuilder mvcBuilder)
     {
@@ -72,7 +72,7 @@ public static partial class ServiceCollectionExtension
     /// <summary>
     /// 使用属性注入
     /// </summary>
-    /// <param name="hostBuilder"></param>
+    /// <param name="hostBuilder">host构建器</param>
     /// <returns></returns>
     public static void UsePropertyInjection(this IHostBuilder hostBuilder) => hostBuilder.UseServiceProviderFactory(new PropertyInjectionServiceProviderFactory());
 }
