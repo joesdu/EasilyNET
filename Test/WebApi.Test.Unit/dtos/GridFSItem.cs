@@ -1,4 +1,4 @@
-﻿namespace MongoGridFS.Example;
+﻿namespace WebApi.Test.Unit;
 
 /// <summary>
 /// 文件信息的实体

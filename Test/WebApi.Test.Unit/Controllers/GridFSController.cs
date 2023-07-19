@@ -1,4 +1,5 @@
 ﻿using EasilyNET.Core;
+using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -8,12 +9,12 @@ using MongoDB.Driver.GridFS;
 // ReSharper disable VirtualMemberNeverOverridden.Global
 // ReSharper disable UnusedMember.Global
 
-namespace MongoGridFS.Example;
+namespace WebApi.Test.Unit.Controllers;
 
 /// <summary>
 /// GridFS控制器,当引入Extension后,请使用Extension版本的API
 /// </summary>
-[ApiController, Route("api/[controller]")]
+[ApiController, Route("api/[controller]"), ApiGroup("MongoFS", "v1", "MongoDB GridFS")]
 public class GridFSController(GridFSBucket bucket) : ControllerBase
 {
     /// <summary>
