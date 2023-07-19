@@ -1,7 +1,5 @@
 ﻿using EasilyNET.AutoDependencyInjection.Contexts;
-using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.RabbitBus.AspNetCore;
 
 namespace WebApi.Test.Unit;
 

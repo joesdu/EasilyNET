@@ -1,9 +1,9 @@
-﻿using EasilyNET.Core.Misc;
-using EasilyNET.PropertyInjection.Abstracts;
-using EasilyNET.PropertyInjection.Attributes;
+﻿using EasilyNET.AutoDependencyInjection.Core.Abstracts;
+using EasilyNET.AutoDependencyInjection.Core.Attributes;
+using EasilyNET.Core.Misc;
 using System.Reflection;
 
-namespace EasilyNET.PropertyInjection;
+namespace EasilyNET.AutoDependencyInjection.PropertyInjection;
 
 /// <summary>
 /// 属性注入提供者

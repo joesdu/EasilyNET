@@ -1,7 +1,6 @@
-﻿using EasilyNET.AutoDependencyInjection.Abstractions;
-using EasilyNET.AutoDependencyInjection.Attributes;
-using EasilyNET.AutoDependencyInjection.Contexts;
-using EasilyNET.AutoDependencyInjection.Extensions;
+﻿using EasilyNET.AutoDependencyInjection.Contexts;
+using EasilyNET.AutoDependencyInjection.Core.Abstractions;
+using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.Core.Misc;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;

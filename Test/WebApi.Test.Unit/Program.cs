@@ -1,6 +1,4 @@
-using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.Core.Misc;
-using EasilyNET.PropertyInjection;
 using Serilog;
 using Serilog.Events;
 using WebApi.Test.Unit;
@@ -64,7 +62,7 @@ _ = builder.Host.UseSerilog((hbc, lc) =>
           });
 });
 // 添加属性注入
-builder.Host.UseDefaultPropertyInjection();
+builder.Host.UsePropertyInjection();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

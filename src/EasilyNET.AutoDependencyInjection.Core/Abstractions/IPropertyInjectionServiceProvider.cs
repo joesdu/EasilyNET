@@ -2,7 +2,7 @@
 
 // ReSharper disable UnusedMemberInSuper.Global
 
-namespace EasilyNET.PropertyInjection.Abstracts;
+namespace EasilyNET.AutoDependencyInjection.Core.Abstracts;
 
 /// <summary>
 /// 属性注入提供者
@@ -13,5 +13,5 @@ public interface IPropertyInjectionServiceProvider : IServiceProvider, ISupportR
     /// 判断注入属性
     /// </summary>
     /// <param name="instance"></param>
-    public void IsInjectProperties(object instance);
+    void IsInjectProperties(object instance);
 }

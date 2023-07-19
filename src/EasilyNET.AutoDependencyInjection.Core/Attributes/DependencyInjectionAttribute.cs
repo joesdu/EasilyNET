@@ -2,7 +2,7 @@
 
 // ReSharper disable ClassNeverInstantiated.Global
 
-namespace EasilyNET.AutoDependencyInjection.Attributes;
+namespace EasilyNET.AutoDependencyInjection.Core.Attributes;
 
 /// <summary>
 /// 配置此特性将自动进行注入

@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+using EasilyNET.MongoGridFS.AspNetCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
@@ -8,7 +8,7 @@ using MongoDB.Driver.GridFS;
 // ReSharper disable UnusedType.Global
 // ReSharper disable MemberCanBePrivate.Global
 
-namespace EasilyNET.MongoGridFS.AspNetCore;
+namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// ·þÎñÀ©Õ¹

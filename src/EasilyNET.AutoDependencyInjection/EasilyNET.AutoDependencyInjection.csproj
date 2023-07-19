@@ -10,6 +10,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+      <ProjectReference Include="..\EasilyNET.AutoDependencyInjection.Core\EasilyNET.AutoDependencyInjection.Core.csproj" />
       <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
     </ItemGroup>
 

@@ -1,6 +1,6 @@
-﻿using EasilyNET.Mongo.Core;
+﻿using EasilyNET.Mongo.AspNetCore;
+using EasilyNET.Mongo.Core;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
@@ -11,7 +11,7 @@ using MongoDB.Driver;
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
 
-namespace EasilyNET.Mongo.AspNetCore;
+namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// 服务扩展类
@@ -108,7 +108,7 @@ public static class ServiceCollectionExtensions
         }
         ConventionRegistry.Register($"easily-id-pack-{ObjectId.GenerateNewId()}", new ConventionPack
         {
-            new StringObjectIdIdGeneratorConvention() //ObjectId → String mapping ObjectId
+            new StringToObjectIdIdGeneratorConvention() //ObjectId → String mapping ObjectId
         }, x => !options.ObjectIdToStringTypes.Contains(x));
         if (first) return;
         BsonSerializer.RegisterSerializer(new DateTimeSerializer(DateTimeKind.Local)); //to local time

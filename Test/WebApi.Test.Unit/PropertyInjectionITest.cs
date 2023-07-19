@@ -1,5 +1,6 @@
-﻿using EasilyNET.AutoDependencyInjection.Attributes;
-using EasilyNET.PropertyInjection.Attributes;
+﻿using EasilyNET.AutoDependencyInjection.Core.Attributes;
+
+// ReSharper disable ClassNeverInstantiated.Global
 
 namespace WebApi.Test.Unit;
 

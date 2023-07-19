@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EasilyNET.PropertyInjection.AspNetCore;
+namespace EasilyNET.AutoDependencyInjection.PropertyInjection;
 
 /// <summary>
 /// 属性注入控制器激活器
