@@ -7,7 +7,8 @@ namespace EasilyNET.PropertyInjection.AspNetCore;
 /// <summary>
 /// 属性注入控制器激活器
 /// </summary>
-public class PropertyInjectionControllerActivator : IControllerActivator {
+public class PropertyInjectionControllerActivator : IControllerActivator
+{
     /// <summary>
     /// 创建
     /// </summary>
@@ -16,14 +17,10 @@ public class PropertyInjectionControllerActivator : IControllerActivator {
     /// <exception cref="ArgumentNullException"></exception>
     public object Create(ControllerContext context)
     {
-        if (context == null)
-        {
-            throw new ArgumentNullException(nameof(context));
-        }
-
+        ArgumentNullException.ThrowIfNull(context, nameof(context));
         var controllerType = context.ActionDescriptor.ControllerTypeInfo.AsType();
         var serviceProvider = context.HttpContext.RequestServices;
-        if (!(serviceProvider is PropertyInjectionServiceProvider))
+        if (serviceProvider is not PropertyInjectionServiceProvider)
         {
             serviceProvider = new PropertyInjectionServiceProvider(context.HttpContext.RequestServices);
         }
@@ -39,16 +36,8 @@ public class PropertyInjectionControllerActivator : IControllerActivator {
     /// <exception cref="ArgumentNullException"></exception>
     public void Release(ControllerContext context, object controller)
     {
-        if (context == null)
-        { 
-            throw new ArgumentNullException(nameof(context));
-        }
-
-        if (controller == null)
-        {
-            throw new ArgumentNullException(nameof(controller));
-        }
-        
+        ArgumentNullException.ThrowIfNull(context, nameof(context));
+        ArgumentNullException.ThrowIfNull(controller, nameof(controller));
         var disposable = controller as IDisposable;
         disposable?.Dispose();
     }

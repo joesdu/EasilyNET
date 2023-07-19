@@ -14,7 +14,7 @@ public class ControllersModule : AppModule
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        _ = context.Services.AddControllers(x =>
+        context.Services.AddControllers(x =>
         {
             _ = x.Filters.Add<ActionExecuteFilter>();
             _ = x.Filters.Add<ExceptionFilter>();
@@ -30,7 +30,7 @@ public class ControllersModule : AppModule
             c.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
             c.JsonSerializerOptions.Converters.Add(new DateOnlyNullJsonConverter());
             c.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        });
-        _ = context.Services.AddEndpointsApiExplorer();
+        }).AddPropertyInjectionAsServices();
+        context.Services.AddEndpointsApiExplorer();
     }
 }

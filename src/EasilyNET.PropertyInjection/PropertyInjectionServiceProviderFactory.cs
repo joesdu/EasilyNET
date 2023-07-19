@@ -7,9 +7,7 @@ namespace EasilyNET.PropertyInjection;
 /// </summary>
 public class PropertyInjectionServiceProviderFactory : IServiceProviderFactory<IServiceCollection>
 {
-
     /// <summary>
-    /// 
     /// </summary>
     /// <param name="containerBuilder"></param>
     /// <returns></returns>
@@ -19,9 +17,5 @@ public class PropertyInjectionServiceProviderFactory : IServiceProviderFactory<I
         return new PropertyInjectionServiceProvider(serviceProvider);
     }
 
-    IServiceCollection IServiceProviderFactory<IServiceCollection>.CreateBuilder(IServiceCollection? services)
-    {
-        if (services == null) return new ServiceCollection();
-        return services;
-    }
+    IServiceCollection IServiceProviderFactory<IServiceCollection>.CreateBuilder(IServiceCollection? services) => services ?? new ServiceCollection();
 }
