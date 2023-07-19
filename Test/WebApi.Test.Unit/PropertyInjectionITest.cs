@@ -28,7 +28,7 @@ public class Test : ITest
     /// <inheritdoc />
     public void Show()
     {
-        _logger?.LogInformation("从Test输出日志");
+        _logger?.LogInformation($"从Test【属性注入】输出日志");
         Test1?.Show();
     }
 }
@@ -54,7 +54,7 @@ public class Test1 : ITest1
     /// <inheritdoc />
     public void Show()
     {
-        _logger?.LogInformation("从Test1输出日志");
+        _logger?.LogInformation("从Test1【字段注入】输出日志");
     }
 }
 
