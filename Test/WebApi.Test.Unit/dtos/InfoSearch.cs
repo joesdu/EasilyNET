@@ -3,7 +3,7 @@
 
 using EasilyNET.Core;
 
-namespace MongoGridFS.Example;
+namespace WebApi.Test.Unit;
 
 /// <summary>
 /// 文件信息查询实体

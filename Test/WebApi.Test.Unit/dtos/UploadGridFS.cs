@@ -4,7 +4,7 @@
 // ReSharper disable CollectionNeverUpdated.Global
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 
-namespace MongoGridFS.Example;
+namespace WebApi.Test.Unit;
 
 /// <summary>
 /// 上传文件的基本信息
