@@ -1,5 +1,6 @@
 using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.Core.Misc;
+using EasilyNET.PropertyInjection;
 using Serilog;
 using Serilog.Events;
 using WebApi.Test.Unit;
@@ -29,7 +30,7 @@ var builder = WebApplication.CreateBuilder(args);
 // 自动注入服务模块
 builder.Services.AddApplication<AppWebModule>();
 
-//添加Serilog配置
+// 添加Serilog配置
 _ = builder.Host.UseSerilog((hbc, lc) =>
 {
     const LogEventLevel logLevel = LogEventLevel.Information;
@@ -62,6 +63,8 @@ _ = builder.Host.UseSerilog((hbc, lc) =>
               }
           });
 });
+// 添加属性注入
+builder.Host.UseDefaultPropertyInjection();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

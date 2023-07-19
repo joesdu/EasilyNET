@@ -25,7 +25,7 @@ public class AppWebModule : AppModule
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         base.ConfigureServices(context);
-        _ = context.Services.AddHttpContextAccessor();
+        context.Services.AddHttpContextAccessor();
     }
 
     /// <inheritdoc />
@@ -33,11 +33,11 @@ public class AppWebModule : AppModule
     {
         base.ApplicationInitialization(context);
         var app = context.GetApplicationBuilder();
-        _ = app.UseErrorHandling();
-        _ = app.UseResponseTime();
+        app.UseErrorHandling();
+        app.UseResponseTime();
         // 先认证
-        _ = app.UseAuthentication();
+        app.UseAuthentication();
         // 再授权
-        _ = app.UseAuthorization();
+        app.UseAuthorization();
     }
 }

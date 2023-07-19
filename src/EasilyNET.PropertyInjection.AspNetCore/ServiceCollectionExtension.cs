@@ -2,6 +2,10 @@
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
+// ReSharper disable UnusedMethodReturnValue.Global
+// ReSharper disable UnusedMember.Global
+// ReSharper disable UnusedType.Global
+
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
@@ -9,9 +13,8 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class MvcBuilderExtension
 {
-    
     /// <summary>
-    /// 添加属性服务
+    /// 添加属性注入服务
     /// </summary>
     /// <param name="mvcBuilder"></param>
     /// <returns></returns>
@@ -22,4 +25,3 @@ public static class MvcBuilderExtension
         return mvcBuilder;
     }
 }
-
