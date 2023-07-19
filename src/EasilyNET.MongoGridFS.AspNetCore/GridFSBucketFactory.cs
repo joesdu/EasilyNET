@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Options;
+ï»¿using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
 
@@ -8,13 +8,13 @@ namespace EasilyNET.MongoGridFS.AspNetCore;
 /// GridFSBucketFactory
 /// </summary>
 /// <remarks>
-/// ¹¹Ôìº¯Êý
+/// æž„é€ å‡½æ•°
 /// </remarks>
 /// <param name="optionsMonitor"></param>
 internal sealed class GridFSBucketFactory(IOptionsMonitor<GridFSBucketOptions> optionsMonitor) : IGridFSBucketFactory
 {
     /// <summary>
-    /// ´´½¨¿Í»§¶Ë
+    /// åˆ›å»ºå®¢æˆ·ç«¯
     /// </summary>
     /// <returns></returns>
     public IGridFSBucket CreateBucket(IMongoDatabase db)
