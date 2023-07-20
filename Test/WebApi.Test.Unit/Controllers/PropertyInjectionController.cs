@@ -12,9 +12,6 @@ public class PropertyInjectionController : ControllerBase
     private readonly ILogger<PropertyInjectionController>? _logger = null;
 
     [Injection]
-    private readonly ITest? _test = null;
-
-    [Injection]
     private readonly ITest1? _test1 = null;
 
     [Injection]
@@ -24,12 +21,18 @@ public class PropertyInjectionController : ControllerBase
     private readonly UserService<User>? _userService1 = null;
 
     /// <summary>
+    /// 属性注入测试.
+    /// </summary>
+    [Injection]
+    public ITest? Test { get; set; }
+
+    /// <summary>
     /// </summary>
     [HttpGet]
     public void Get()
     {
         _logger?.LogInformation("控制调用");
-        _test?.Show();
+        Test?.Show();
         _test1?.Show();
     }
 
