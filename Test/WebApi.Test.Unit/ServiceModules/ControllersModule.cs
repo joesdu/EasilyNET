@@ -14,6 +14,7 @@ public class ControllersModule : AppModule
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
+        // context.Services.AddScoped<RequestSubmitFilter>();
         context.Services.AddControllers(x =>
         {
             _ = x.Filters.Add<ActionExecuteFilter>();

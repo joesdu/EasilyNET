@@ -61,6 +61,23 @@ _ = builder.Host.UseSerilog((hbc, lc) =>
               }
           });
 });
+
+if (builder.Services.GetConfiguration().GetValue<bool>("IsRedis") == true)
+{
+    builder.Services.AddStackExchangeRedisCache(o =>
+    {
+
+        o.Configuration = "localhost";
+        o.InstanceName = "easily.net:";
+    
+    });
+}
+else
+{
+    builder.Services.AddDistributedMemoryCache();
+}
+
+
 // 添加属性注入
 builder.Host.UsePropertyInjection();
 var app = builder.Build();

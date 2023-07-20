@@ -22,3 +22,10 @@ public class ResultObject
     /// </summary>
     public object? Data { get; set; }
 }
+
+
+
+
+
+
+
