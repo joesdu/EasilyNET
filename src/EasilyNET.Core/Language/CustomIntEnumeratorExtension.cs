@@ -34,6 +34,12 @@ public static class CustomIntEnumeratorExtension
     /// }
     /// OutPut:
     /// 0,1,2,3
+    /// foreach (var i in 1..3)
+    /// {
+    ///     Console.WriteLine(i);
+    /// }
+    /// OutPut:
+    /// 1,2,3
     ///   ]]>
     ///  </code>
     /// </example>
