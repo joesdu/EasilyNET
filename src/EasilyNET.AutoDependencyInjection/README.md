@@ -7,7 +7,6 @@
 - 使用 Nuget 包管理工具添加依赖包 EasilyNET.AutoDependencyInjection
 - 等待下载完成和同意开源协议后,即可使用本库.
 - a.使用特性注入服务
-- b.使用属性注入服务
 
 ```csharp
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
@@ -141,6 +140,7 @@ app.MapControllers();
 app.Run();
 ```
 
+- c.使用属性注入服务
 - 属性注入,首先配置服务
     
 ```csharp
