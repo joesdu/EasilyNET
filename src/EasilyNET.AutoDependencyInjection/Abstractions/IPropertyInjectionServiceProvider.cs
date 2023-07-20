@@ -2,12 +2,12 @@
 
 // ReSharper disable UnusedMemberInSuper.Global
 
-namespace EasilyNET.AutoDependencyInjection.Core.Abstracts;
+namespace EasilyNET.AutoDependencyInjection.Abstracts;
 
 /// <summary>
 /// 属性注入提供者接口
 /// </summary>
-public interface IPropertyInjectionServiceProvider : IServiceProvider, ISupportRequiredService
+internal interface IPropertyInjectionServiceProvider : IServiceProvider, ISupportRequiredService
 {
     /// <summary>
     /// 判断是否需要属性注入

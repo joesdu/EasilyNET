@@ -5,7 +5,7 @@ namespace EasilyNET.AutoDependencyInjection.PropertyInjection;
 /// <summary>
 /// 属性注入服务提供者工厂
 /// </summary>
-public class PropertyInjectionServiceProviderFactory : IServiceProviderFactory<IServiceCollection>
+internal sealed class PropertyInjectionServiceProviderFactory : IServiceProviderFactory<IServiceCollection>
 {
     /// <summary>
     /// 从容器生成器创建 IServiceProvider。

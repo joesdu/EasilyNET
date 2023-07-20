@@ -1,4 +1,4 @@
-﻿using EasilyNET.AutoDependencyInjection.Core.Abstracts;
+﻿using EasilyNET.AutoDependencyInjection.Abstracts;
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.Core.Misc;
 using System.Reflection;
@@ -9,7 +9,7 @@ namespace EasilyNET.AutoDependencyInjection.PropertyInjection;
 /// 属性注入提供者
 /// </summary>
 /// <param name="serviceProvider"></param>
-public class PropertyInjectionServiceProvider(IServiceProvider serviceProvider) : IPropertyInjectionServiceProvider
+internal sealed class PropertyInjectionServiceProvider(IServiceProvider serviceProvider) : IPropertyInjectionServiceProvider
 {
     private readonly IServiceProvider _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 
@@ -55,7 +55,6 @@ public class PropertyInjectionServiceProvider(IServiceProvider serviceProvider) 
     /// <param name="member">成员信息</param>
     private void InjectMember(object instance, MemberInfo member)
     {
-        
         if (member.MemberType == MemberTypes.Property)
         {
             InjectProperty(instance, (PropertyInfo)member);
