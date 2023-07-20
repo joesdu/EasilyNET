@@ -28,7 +28,7 @@ public static partial class ServiceCollectionExtension
     public static IApplicationBuilder GetApplicationBuilder(this ApplicationContext applicationContext) => applicationContext.ServiceProvider.GetRequiredService<IObjectAccessor<IApplicationBuilder>>().Value!;
 
     /// <summary>
-    /// 添加自动注入服务
+    /// 注入服务
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="services"></param>
@@ -45,7 +45,7 @@ public static partial class ServiceCollectionExtension
     }
 
     /// <summary>
-    /// 初始化应用
+    /// 初始化应用,配置中间件
     /// </summary>
     /// <param name="builder"></param>
     /// <returns></returns>

@@ -8,7 +8,7 @@ namespace EasilyNET.AutoDependencyInjection.PropertyInjection;
 /// <summary>
 /// 属性注入控制器激活器
 /// </summary>
-public class PropertyInjectionControllerActivator : IControllerActivator
+internal sealed class PropertyInjectionControllerActivator : IControllerActivator
 {
     /// <summary>
     /// 创建
