@@ -7,7 +7,7 @@ namespace EasilyNET.IdentityServer.MongoStorage;
 /// ICorsPolicyService实现
 /// </summary>
 /// <param name="repository"></param>
-public class RepositoryCorsPolicyService(IRepository repository) : ICorsPolicyService
+internal sealed class RepositoryCorsPolicyService(IRepository repository) : ICorsPolicyService
 {
     private readonly string[] _allowedOrigins = repository.All<Client>().SelectMany(x => x.AllowedCorsOrigins).ToArray();
 

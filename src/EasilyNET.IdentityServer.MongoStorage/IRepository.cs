@@ -5,7 +5,7 @@ namespace EasilyNET.IdentityServer.MongoStorage;
 /// <summary>
 /// 仓储接口定义
 /// </summary>
-public interface IRepository
+internal interface IRepository
 {
     /// <summary>
     /// 获取全部
