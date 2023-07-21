@@ -1,4 +1,5 @@
 using EasilyNET.Core.Misc;
+using EasilyNET.WebCore.Middleware;
 using Serilog;
 using Serilog.Events;
 using WebApi.Test.Unit;
@@ -61,22 +62,18 @@ _ = builder.Host.UseSerilog((hbc, lc) =>
               }
           });
 });
-
-if (builder.Services.GetConfiguration().GetValue<bool>("IsRedis") == true)
+if (builder.Services.GetConfiguration().GetValue<bool>("IsRedis"))
 {
     builder.Services.AddStackExchangeRedisCache(o =>
     {
-
         o.Configuration = "localhost";
         o.InstanceName = "easily.net:";
-    
     });
 }
 else
 {
     builder.Services.AddDistributedMemoryCache();
 }
-
 
 // 添加属性注入
 builder.Host.UsePropertyInjection();
@@ -87,5 +84,6 @@ if (app.Environment.IsDevelopment()) _ = app.UseDeveloperExceptionPage();
 
 // 添加自动化注入的一些中间件.
 app.InitializeApplication();
+app.UseRepeatSubmit();
 app.MapControllers();
 app.Run();

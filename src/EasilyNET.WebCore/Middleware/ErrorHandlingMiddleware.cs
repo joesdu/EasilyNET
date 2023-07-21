@@ -4,6 +4,7 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+// ReSharper disable SuggestBaseTypeForParameterInConstructor
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace EasilyNET.WebCore.Middleware;
@@ -13,10 +14,8 @@ namespace EasilyNET.WebCore.Middleware;
 /// </summary>
 /// <param name="next"></param>
 /// <param name="logger"></param>
-public class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger)
+internal class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger)
 {
-    private readonly ILogger<ErrorHandlingMiddleware> _logger = logger;
-
     /// <summary>
     /// Invoke
     /// </summary>
@@ -36,7 +35,7 @@ public class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandling
 
     private Task HandleExceptionAsync(HttpContext context, Exception ex)
     {
-        _logger.LogError("发生未处理异常: {Ex}", ex.ToString());
+        logger.LogError("发生未处理异常: {Ex}", ex.ToString());
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };

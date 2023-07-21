@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Builder;
 
+// ReSharper disable UnusedMethodReturnValue.Global
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 
@@ -23,4 +24,19 @@ public static class ApplicationBuilderExtensions
     /// <param name="builder"></param>
     /// <returns></returns>
     public static IApplicationBuilder UseErrorHandling(this IApplicationBuilder builder) => builder.UseMiddleware<ErrorHandlingMiddleware>();
+
+    /// <summary>
+    /// 使用防抖中间件
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <example>
+    ///     <code>
+    ///       <![CDATA[
+    ///        [RepeatSubmit(500), HttpGet]
+    ///        public void Get() => "Hello World";
+    ///       ]]>
+    ///     </code>
+    /// </example>
+    /// <returns></returns>
+    public static IApplicationBuilder UseRepeatSubmit(this IApplicationBuilder builder) => builder.UseMiddleware<RepeatSubmitMiddleware>();
 }
