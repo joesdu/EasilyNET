@@ -3,7 +3,7 @@ using Duende.IdentityServer.Stores;
 
 namespace EasilyNET.IdentityServer.MongoStorage;
 
-internal class RepositoryClientStore(IRepository repository) : IClientStore
+internal sealed class RepositoryClientStore(IRepository repository) : IClientStore
 {
     public Task<Client?> FindClientByIdAsync(string clientId) => Task.FromResult(repository.Single<Client>(c => c.ClientId == clientId))!;
 }

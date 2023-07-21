@@ -7,7 +7,7 @@ namespace EasilyNET.IdentityServer.MongoStorage;
 /// IResourceStore实现
 /// </summary>
 /// <param name="repository"></param>
-public class RepositoryResourceStore(IRepository repository) : IResourceStore
+internal sealed class RepositoryResourceStore(IRepository repository) : IResourceStore
 {
     /// <summary>
     /// 仓储
