@@ -2,18 +2,40 @@
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.Core.Misc;
 using System.Reflection;
+using EasilyNET.AutoDependencyInjection.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace EasilyNET.AutoDependencyInjection.PropertyInjection;
 
 /// <summary>
 /// 属性注入提供者
 /// </summary>
-/// <param name="serviceProvider"></param>
-internal sealed class PropertyInjectionServiceProvider(IServiceProvider serviceProvider) : IPropertyInjectionServiceProvider
+internal sealed class PropertyInjectionServiceProvider : IPropertyInjectionServiceProvider
 {
-    private readonly IServiceProvider _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+    
 
-    private static BindingFlags BindingFlags => BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
+
+
+    private readonly IPropertyInjector _propertyInjector;
+    
+    private readonly IServiceCollection _services;
+    private readonly IServiceProvider _serviceProvider;
+   
+    /// <summary>
+    /// 
+    /// </summary>
+    public PropertyInjectionServiceProvider(IServiceCollection service)
+    {
+        _services = service ?? throw new ArgumentNullException(nameof(service));
+        _services = service.AddSingleton<IPropertyInjectionServiceProvider>(this);
+        InjectServices(service);
+ 
+        _propertyInjector =new PropertyInjector(this);
+        _serviceProvider = service.BuildServiceProvider();
+    }
+
+    
 
     /// <summary>
     /// 得到服务
@@ -23,9 +45,8 @@ internal sealed class PropertyInjectionServiceProvider(IServiceProvider serviceP
     /// <exception cref="NotImplementedException"></exception>
     public object GetService(Type serviceType)
     {
-        var instance = _serviceProvider.GetService(serviceType);
-        IsInjectProperties(instance);
-        return instance!;
+        var instance =  _serviceProvider.GetService(serviceType);
+        return _propertyInjector.InjectProperties(instance!);
     }
 
     /// <summary>
@@ -36,50 +57,34 @@ internal sealed class PropertyInjectionServiceProvider(IServiceProvider serviceP
     /// <exception cref="NotImplementedException"></exception>
     public object GetRequiredService(Type serviceType) => GetService(serviceType);
 
-    /// <summary>
-    /// 判断是否需要属性注入
-    /// </summary>
-    /// <param name="instance"></param>
-    public void IsInjectProperties(object? instance)
+    
+    private void InjectServices(IServiceCollection services)
     {
-        if (instance is null) return;
-        var type = instance as Type ?? instance.GetType();
-        //找到所有需要注入的成员，进行注入
-        type.GetMembers(BindingFlags).Where(o => o.HasAttribute<InjectionAttribute>()).ToList().ForEach(member => InjectMember(instance, member));
+        services.Where(IsInjectable)
+            .ToList().ForEach(InjectDescriptor);
     }
+    private void InjectDescriptor(ServiceDescriptor descriptor) =>
+        _services.Replace(new ServiceDescriptor(descriptor.ServiceType, CreateFactory(descriptor), descriptor.Lifetime));
 
-    /// <summary>
-    /// 需要注入的成员（属性或字段）
-    /// </summary>
-    /// <param name="instance">实例</param>
-    /// <param name="member">成员信息</param>
-    private void InjectMember(object instance, MemberInfo member)
+    
+    private static bool IsInjectable(ServiceDescriptor descriptor)
     {
-        if (member.MemberType == MemberTypes.Property)
-        {
-            InjectProperty(instance, (PropertyInfo)member);
-            return;
-        }
-        InjectField(instance, (FieldInfo)member);
+   
+        bool isBool =InvokeMethod<Type>(descriptor,"GetImplementationType")
+            .HasAttribute<InjectionAttribute>();
+        return isBool;
     }
+    
+    
+    private static T InvokeMethod<T>(object instance, string methodName) =>
+        (T)instance.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
+            .Invoke(instance, null);
+    private Func<IServiceProvider, object> CreateFactory(ServiceDescriptor descriptor) =>
+        _ => _propertyInjector.InjectProperties(CreateInstance(descriptor));
 
-    /// <summary>
-    /// 属性注入
-    /// </summary>
-    /// <param name="instance">实例</param>
-    /// <param name="prop">属性信息</param>
-    private void InjectProperty(object instance, PropertyInfo prop)
-    {
-        if (prop.CanWrite)
-        {
-            prop.SetValue(instance, GetService(prop.PropertyType));
-        }
-    }
+    private object CreateInstance(ServiceDescriptor descriptor) =>
+        descriptor.ImplementationInstance ??
+        descriptor.ImplementationFactory?.Invoke(this) ??
+        ActivatorUtilities.CreateInstance(this, descriptor.ImplementationType);
 
-    /// <summary>
-    /// 字段注入
-    /// </summary>
-    /// <param name="instance">实例</param>
-    /// <param name="field">字段信息</param>
-    private void InjectField(object instance, FieldInfo field) => field.SetValue(instance, GetService(field.FieldType));
 }

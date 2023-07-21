@@ -31,7 +31,7 @@ public class ControllersModule : AppModule
             c.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
             c.JsonSerializerOptions.Converters.Add(new DateOnlyNullJsonConverter());
             c.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        }).AddPropertyInjectionAsServices();
+        });
         context.Services.AddEndpointsApiExplorer();
     }
 }
