@@ -7,7 +7,7 @@ namespace EasilyNET.IdentityServer.MongoStorage;
 /// IPersistedGrantStore实现
 /// </summary>
 /// <param name="repository"></param>
-public class RepositoryPersistedGrantStore(IRepository repository) : IPersistedGrantStore
+internal sealed class RepositoryPersistedGrantStore(IRepository repository) : IPersistedGrantStore
 {
     /// <summary>
     /// 获取所有

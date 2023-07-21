@@ -27,7 +27,7 @@ public sealed class SwaggerHiddenApiFilter : IDocumentFilter
             var key = $"/{apiDescription.RelativePath}";
             if (key.Contains('?'))
             {
-                var index = key.IndexOf("?", StringComparison.Ordinal);
+                var index = key.IndexOf('?', StringComparison.Ordinal);
                 key = key[..index];
             }
             _ = swaggerDoc.Paths.Remove(key);
