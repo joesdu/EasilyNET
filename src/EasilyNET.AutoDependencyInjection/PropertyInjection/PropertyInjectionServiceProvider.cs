@@ -15,7 +15,6 @@ internal sealed class PropertyInjectionServiceProvider : IPropertyInjectionServi
 {
     private readonly IPropertyInjector _propertyInjector;
     private readonly IServiceProvider _serviceProvider;
-
     private readonly IServiceCollection _services;
 
     /// <summary>
@@ -38,7 +37,8 @@ internal sealed class PropertyInjectionServiceProvider : IPropertyInjectionServi
     public object GetService(Type serviceType)
     {
         var instance = _serviceProvider.GetService(serviceType);
-        return _propertyInjector.InjectProperties(instance!);
+        ArgumentNullException.ThrowIfNull(instance);
+        return _propertyInjector.InjectProperties(instance);
     }
 
     /// <summary>
@@ -47,31 +47,33 @@ internal sealed class PropertyInjectionServiceProvider : IPropertyInjectionServi
     /// <param name="serviceType">服务类型</param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    public object GetRequiredService(Type serviceType) => GetService(serviceType);
+    public object GetRequiredService(Type serviceType)
+    {
+        var service = GetService(serviceType);
+        ArgumentNullException.ThrowIfNull(service);
+        return service;
+    }
 
     private void InjectServices(IServiceCollection services)
     {
-        services.Where(IsInjectable)
-                .ToList().ForEach(InjectDescriptor);
+        services.Where(IsInjectable).ToList().ForEach(InjectDescriptor);
     }
 
     private void InjectDescriptor(ServiceDescriptor descriptor) => _services.Replace(new(descriptor.ServiceType, CreateFactory(descriptor), descriptor.Lifetime));
 
-    private static bool IsInjectable(ServiceDescriptor descriptor)
-    {
-        var isBool = InvokeMethod<Type>(descriptor, "GetImplementationType")
-            .HasAttribute<InjectionAttribute>();
-        return isBool;
-    }
+    private static bool IsInjectable(ServiceDescriptor descriptor) => InvokeMethod<Type>(descriptor, "GetImplementationType").HasAttribute<InjectionAttribute>();
 
-    private static T InvokeMethod<T>(object instance, string methodName) =>
-        (T)instance.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
-                   .Invoke(instance, null);
+    private static T InvokeMethod<T>(object instance, string methodName)
+    {
+        var obj_instance = instance.GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)?.Invoke(instance, null);
+        ArgumentNullException.ThrowIfNull(obj_instance);
+        return (T)obj_instance;
+    }
 
     private Func<IServiceProvider, object> CreateFactory(ServiceDescriptor descriptor) => _ => _propertyInjector.InjectProperties(CreateInstance(descriptor));
 
     private object CreateInstance(ServiceDescriptor descriptor) =>
         descriptor.ImplementationInstance ??
         descriptor.ImplementationFactory?.Invoke(this) ??
-        ActivatorUtilities.CreateInstance(this, descriptor.ImplementationType);
+        ActivatorUtilities.CreateInstance(this, descriptor.ImplementationType ?? throw new ArgumentNullException(nameof(descriptor.ImplementationType), "ImplementationType is null"));
 }

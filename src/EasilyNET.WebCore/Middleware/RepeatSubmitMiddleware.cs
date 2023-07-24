@@ -1,10 +1,11 @@
-﻿using EasilyNET.Security;
-using EasilyNET.WebCore.Attributes;
+﻿using EasilyNET.WebCore.Attributes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace EasilyNET.WebCore.Middleware;
 
@@ -67,5 +68,22 @@ internal sealed class RepeatSubmitMiddleware(RequestDelegate next, IDistributedC
             }
         }
         await next(context);
+    }
+}
+
+static file class PrivateFileClass
+{
+    /// <summary>
+    /// 获取32位长度的MD5大写字符串
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    internal static string To32MD5(this string value)
+    {
+        var data = MD5.HashData(Encoding.UTF8.GetBytes(value));
+        var builder = new StringBuilder();
+        // 循环遍历哈希数据的每一个字节并格式化为十六进制字符串 
+        foreach (var t in data) _ = builder.Append(t.ToString("X2"));
+        return builder.ToString();
     }
 }

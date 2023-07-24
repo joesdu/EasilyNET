@@ -4,24 +4,16 @@ using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.Core.Misc;
 using System.Reflection;
 
+// ReSharper disable SuggestBaseTypeForParameterInConstructor
+
 namespace EasilyNET.AutoDependencyInjection.PropertyInjection;
 
 /// <summary>
 /// 属性注入注射器类
 /// </summary>
-internal sealed class PropertyInjector : IPropertyInjector
+/// <param name="provider"></param>
+internal sealed class PropertyInjector(IPropertyInjectionServiceProvider provider) : IPropertyInjector
 {
-    private readonly IPropertyInjectionServiceProvider _propertyInjectionServiceProvider;
-
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    /// <param name="propertyInjectionServiceProvider"></param>
-    public PropertyInjector(IPropertyInjectionServiceProvider propertyInjectionServiceProvider)
-    {
-        _propertyInjectionServiceProvider = propertyInjectionServiceProvider;
-    }
-
     private static BindingFlags BindingFlags => BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 
     /// <summary>
@@ -44,8 +36,7 @@ internal sealed class PropertyInjector : IPropertyInjector
         if (instance is null) return;
         var type = instance as Type ?? instance.GetType();
         //找到所有需要注入的成员，进行注入
-        type.GetMembers(BindingFlags).Where(o => o.HasAttribute<InjectionAttribute>()).ToList()
-            .ForEach(member => InjectMember(instance, member));
+        type.GetMembers(BindingFlags).Where(o => o.HasAttribute<InjectionAttribute>()).ToList().ForEach(member => InjectMember(instance, member));
     }
 
     /// <summary>
@@ -83,7 +74,5 @@ internal sealed class PropertyInjector : IPropertyInjector
     /// <param name="field">字段信息</param>
     private void InjectField(object instance, FieldInfo field) => field.SetValue(instance, GetService(field.FieldType));
 
-    private object GetService(Type type) =>
-        _propertyInjectionServiceProvider.GetService(type) ??
-        throw new($"找不到类型服务 {type.Name}");
+    private object GetService(Type type) => provider.GetService(type) ?? throw new($"找不到类型服务 {type.Name}");
 }
