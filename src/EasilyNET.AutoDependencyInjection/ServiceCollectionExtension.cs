@@ -62,6 +62,7 @@ public static partial class ServiceCollectionExtension
     /// </summary>
     /// <param name="mvcBuilder">mvc构建器</param>
     /// <returns></returns>
+    [Obsolete("不需要添加这个服务，在引用UsePropertyInjection的时候以处理")]
     public static IMvcBuilder AddPropertyInjectionAsServices(this IMvcBuilder mvcBuilder)
     {
         mvcBuilder.AddControllersAsServices();
@@ -74,5 +75,10 @@ public static partial class ServiceCollectionExtension
     /// </summary>
     /// <param name="hostBuilder">host构建器</param>
     /// <returns></returns>
-    public static void UsePropertyInjection(this IHostBuilder hostBuilder) => hostBuilder.UseServiceProviderFactory(new PropertyInjectionServiceProviderFactory());
+    public static void UsePropertyInjection(this IHostBuilder hostBuilder)
+    {
+        hostBuilder.UseServiceProviderFactory(new PropertyInjectionServiceProviderFactory()).ConfigureServices(ConfigureServices);
+    }
+
+    private static void ConfigureServices(IServiceCollection services) => services.AddSingleton<IPropertyInjector, PropertyInjector>().AddSingleton<IControllerFactory, PropertyInjectionControllerFactory>();
 }

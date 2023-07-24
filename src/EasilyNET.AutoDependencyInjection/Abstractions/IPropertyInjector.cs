@@ -3,7 +3,7 @@
 /// <summary>
 /// 属性注入注射器接口
 /// </summary>
-internal interface IPropertyInjector
+public interface IPropertyInjector
 {
     /// <summary>
     /// 把属性注入
