@@ -12,10 +12,7 @@ internal sealed class PropertyInjectionServiceProviderFactory : IServiceProvider
     /// </summary>
     /// <param name="containerBuilder">容器生成器。</param>
     /// <returns>返回IServiceProvider</returns>
-    public IServiceProvider CreateServiceProvider(IServiceCollection containerBuilder)
-    {
-        return new PropertyInjectionServiceProvider(containerBuilder);
-    }
+    public IServiceProvider CreateServiceProvider(IServiceCollection containerBuilder) => new PropertyInjectionServiceProvider(containerBuilder);
 
     /// <summary>
     /// 从 IServiceCollection 创建容器生成器。
