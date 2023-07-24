@@ -9,7 +9,6 @@ namespace EasilyNET.Security;
 /// <param name="publicKey"></param>
 public struct RSASecretKey(string privateKey, string publicKey)
 {
-
     /// <summary>
     /// 公钥
     /// </summary>
@@ -26,7 +25,7 @@ public struct RSASecretKey(string privateKey, string publicKey)
     /// <returns></returns>
     public readonly override string ToString() =>
         $"""
-        PrivateKey: {PrivateKey}
-        PublicKey: {PublicKey}
-        """;
+         PrivateKey: {PrivateKey}
+         PublicKey: {PublicKey}
+         """;
 }

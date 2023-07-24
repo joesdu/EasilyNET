@@ -1,22 +1,23 @@
 ﻿/* Copyright 2010-present MongoDB Inc.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 using EasilyNET.Core.Misc;
 using EasilyNET.Core.Misc.Exceptions;
 using System.Runtime.CompilerServices;
 using System.Security;
+
 #pragma warning disable IDE0048
 
 // ReSharper disable UnusedMember.Global
@@ -24,7 +25,7 @@ using System.Security;
 namespace EasilyNET.Core.BaseType;
 
 /// <summary>
-/// <see cref="SnowId"/> 算法兼容MongoDB的 <see langword="ObjectId"/> ,因此他们可以互相强制转换
+/// <see cref="SnowId" /> 算法兼容MongoDB的 <see langword="ObjectId" /> ,因此他们可以互相强制转换
 /// </summary>
 /// <example>
 ///     <code>
@@ -44,7 +45,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     private readonly int _c;
 
     /// <summary>
-    /// 初始化 <see cref="SnowId"/> 类的新实例
+    /// 初始化 <see cref="SnowId" /> 类的新实例
     /// </summary>
     /// <param name="bytes">The bytes.</param>
     public SnowId(byte[] bytes)
@@ -54,7 +55,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 #else
         if (bytes is null) throw new ArgumentNullException(nameof(bytes));
 #endif
-        ArgumentExceptionExtensions.ThrowIf(()=> bytes.Length != 12, "Byte array must be 12 bytes long", nameof(bytes));
+        ArgumentExceptionExtensions.ThrowIf(() => bytes.Length != 12, "Byte array must be 12 bytes long", nameof(bytes));
         //if (bytes.Length != 12)
         //{
         //    throw new ArgumentException("Byte array must be 12 bytes long", nameof(bytes));
@@ -63,19 +64,19 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     }
 
     /// <summary>
-    /// 初始化 <see cref="SnowId"/> 类的新实例
+    /// 初始化 <see cref="SnowId" /> 类的新实例
     /// </summary>
     /// <param name="bytes">字节数组.</param>
-    /// <param name="index"><see cref="SnowId"/> 开始的字节数组的索引</param>
+    /// <param name="index"><see cref="SnowId" /> 开始的字节数组的索引</param>
     internal SnowId(byte[] bytes, int index)
     {
         FromByteArray(bytes, index, out _a, out _b, out _c);
     }
 
     /// <summary>
-    /// 初始化 <see cref="SnowId"/> 类的新实例
+    /// 初始化 <see cref="SnowId" /> 类的新实例
     /// </summary>
-    /// <param name="value"><see cref="SnowId"/> 字符串</param>
+    /// <param name="value"><see cref="SnowId" /> 字符串</param>
     public SnowId(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -92,7 +93,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 
     // public static properties
     /// <summary>
-    /// 获取值为空的 <see cref="SnowId"/> 实例
+    /// 获取值为空的 <see cref="SnowId" /> 实例
     /// </summary>
     public static SnowId Empty => default;
 
@@ -105,76 +106,76 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     /// <summary>
     /// 获取创建时间(从时间戳派生)
     /// </summary>
-    public readonly DateTime CreationTime => DateTimeStampExtension.UnixEpoch.AddSeconds((uint) Timestamp);
+    public readonly DateTime CreationTime => DateTimeStampExtension.UnixEpoch.AddSeconds((uint)Timestamp);
 
     // public operators
     /// <summary>
-    /// 比较两个 <see cref="SnowId"/>
+    /// 比较两个 <see cref="SnowId" />
     /// </summary>
-    /// <param name="lhs">第一个 <see cref="SnowId"/></param>
-    /// <param name="rhs">另一个 <see cref="SnowId"/></param>
+    /// <param name="lhs">第一个 <see cref="SnowId" /></param>
+    /// <param name="rhs">另一个 <see cref="SnowId" /></param>
     /// <returns>如果第一个 SnowId 小于第二个 SnowId,则为 True</returns>
     public static bool operator <(SnowId lhs, SnowId rhs) => lhs.CompareTo(rhs) < 0;
 
     /// <summary>
-    /// 比较两个 <see cref="SnowId"/>
+    /// 比较两个 <see cref="SnowId" />
     /// </summary>
-    /// <param name="lhs">第一个 <see cref="SnowId"/></param>
-    /// <param name="rhs">另一个 <see cref="SnowId"/></param>
-    /// <returns>如果第一个 <see cref="SnowId"/> 小于或等于第二个 <see cref="SnowId"/>,则为 <see langword="true"/></returns>
+    /// <param name="lhs">第一个 <see cref="SnowId" /></param>
+    /// <param name="rhs">另一个 <see cref="SnowId" /></param>
+    /// <returns>如果第一个 <see cref="SnowId" /> 小于或等于第二个 <see cref="SnowId" />,则为 <see langword="true" /></returns>
     public static bool operator <=(SnowId lhs, SnowId rhs) => lhs.CompareTo(rhs) <= 0;
 
     /// <summary>
-    /// 比较两个 <see cref="SnowId"/>
+    /// 比较两个 <see cref="SnowId" />
     /// </summary>
-    /// <param name="lhs">第一个 <see cref="SnowId"/></param>
-    /// <param name="rhs">另一个 <see cref="SnowId"/></param>
-    /// <returns>如果两个 <see cref="SnowId"/> 相等,则为 True</returns>
+    /// <param name="lhs">第一个 <see cref="SnowId" /></param>
+    /// <param name="rhs">另一个 <see cref="SnowId" /></param>
+    /// <returns>如果两个 <see cref="SnowId" /> 相等,则为 True</returns>
     public static bool operator ==(SnowId lhs, SnowId rhs) => lhs.Equals(rhs);
 
     /// <summary>
-    /// 比较两个 <see cref="SnowId"/>
+    /// 比较两个 <see cref="SnowId" />
     /// </summary>
-    /// <param name="lhs">第一个 <see cref="SnowId"/></param>
-    /// <param name="rhs">另一个 <see cref="SnowId"/></param>
-    /// <returns>如果两个 <see cref="SnowId"/> 不相等,则为 True</returns>
+    /// <param name="lhs">第一个 <see cref="SnowId" /></param>
+    /// <param name="rhs">另一个 <see cref="SnowId" /></param>
+    /// <returns>如果两个 <see cref="SnowId" /> 不相等,则为 True</returns>
     public static bool operator !=(SnowId lhs, SnowId rhs) => !(lhs == rhs);
 
     /// <summary>
-    /// 比较两个 <see cref="SnowId"/>
+    /// 比较两个 <see cref="SnowId" />
     /// </summary>
-    /// <param name="lhs">第一个 <see cref="SnowId"/></param>
-    /// <param name="rhs">另一个 <see cref="SnowId"/></param>
-    /// <returns>如果第一个 <see cref="SnowId"/> 大于或等于第二个 <see cref="SnowId"/>,则为 True</returns>
+    /// <param name="lhs">第一个 <see cref="SnowId" /></param>
+    /// <param name="rhs">另一个 <see cref="SnowId" /></param>
+    /// <returns>如果第一个 <see cref="SnowId" /> 大于或等于第二个 <see cref="SnowId" />,则为 True</returns>
     public static bool operator >=(SnowId lhs, SnowId rhs) => lhs.CompareTo(rhs) >= 0;
 
     /// <summary>
-    /// 比较两个 <see cref="SnowId"/>
+    /// 比较两个 <see cref="SnowId" />
     /// </summary>
-    /// <param name="lhs">第一个 <see cref="SnowId"/></param>
-    /// <param name="rhs">另一个 <see cref="SnowId"/></param>
-    /// <returns>如果第一个 <see cref="SnowId"/> 大于第二个 <see cref="SnowId"/>,则为 True</returns>
+    /// <param name="lhs">第一个 <see cref="SnowId" /></param>
+    /// <param name="rhs">另一个 <see cref="SnowId" /></param>
+    /// <returns>如果第一个 <see cref="SnowId" /> 大于第二个 <see cref="SnowId" />,则为 True</returns>
     public static bool operator >(SnowId lhs, SnowId rhs) => lhs.CompareTo(rhs) > 0;
 
     // public static methods
     /// <summary>
-    /// 生成具有唯一值的新 <see cref="SnowId"/>
+    /// 生成具有唯一值的新 <see cref="SnowId" />
     /// </summary>
-    /// <returns>一个 <see cref="SnowId"/></returns>
+    /// <returns>一个 <see cref="SnowId" /></returns>
     public static SnowId GenerateNewId() => GenerateNewId(GetTimestampFromDateTime(DateTime.UtcNow));
 
     /// <summary>
-    /// 生成具有唯一值的新 <see cref="SnowId"/> (时间戳组件基于给定的日期时间)
+    /// 生成具有唯一值的新 <see cref="SnowId" /> (时间戳组件基于给定的日期时间)
     /// </summary>
     /// <param name="timestamp">时间戳 (表示为日期时间)</param>
-    /// <returns>一个 <see cref="SnowId"/></returns>
+    /// <returns>一个 <see cref="SnowId" /></returns>
     public static SnowId GenerateNewId(DateTime timestamp) => GenerateNewId(GetTimestampFromDateTime(timestamp));
 
     /// <summary>
-    /// 生成具有唯一值(具有给定时间戳)的新 <see cref="SnowId"/>
+    /// 生成具有唯一值(具有给定时间戳)的新 <see cref="SnowId" />
     /// </summary>
     /// <param name="timestamp">时间戳</param>
-    /// <returns>一个 <see cref="SnowId"/></returns>
+    /// <returns>一个 <see cref="SnowId" /></returns>
     public static SnowId GenerateNewId(int timestamp)
     {
         var increment = Interlocked.Increment(ref __staticIncrement) & 0x00ffffff; // only use low order 3 bytes
@@ -182,10 +183,10 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     }
 
     /// <summary>
-    /// 分析字符串并创建新的 <see cref="SnowId"/>
+    /// 分析字符串并创建新的 <see cref="SnowId" />
     /// </summary>
     /// <param name="s">字符串值</param>
-    /// <returns>一个 <see cref="SnowId"/> 对象</returns>
+    /// <returns>一个 <see cref="SnowId" /> 对象</returns>
     public static SnowId Parse(string s)
     {
         if (string.IsNullOrWhiteSpace(s))
@@ -201,14 +202,14 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     }
 
     /// <summary>
-    /// 尝试分析字符串并创建新的 <see cref="SnowId"/>
+    /// 尝试分析字符串并创建新的 <see cref="SnowId" />
     /// </summary>
     /// <param name="s">字符串值</param>
-    /// <param name="snowId">一个新的 <see cref="SnowId"/></param>
-    /// <returns>如果字符串已成功分析,则为 <see langword="true"/></returns>
+    /// <param name="snowId">一个新的 <see cref="SnowId" /></param>
+    /// <returns>如果字符串已成功分析,则为 <see langword="true" /></returns>
     public static bool TryParse(string s, out SnowId snowId)
     {
-        if (s is {Length: 24})
+        if (s is { Length: 24 })
         {
             if (s.TryParseHexString(out var bytes))
             {
@@ -222,11 +223,11 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 
     private static long CalculateRandomValue()
     {
-        var seed = (int) DateTime.UtcNow.Ticks ^ GetMachineHash() ^ GetPid();
+        var seed = (int)DateTime.UtcNow.Ticks ^ GetMachineHash() ^ GetPid();
         var random = new Random(seed);
         var high = random.Next();
         var low = random.Next();
-        var combined = (long) (((ulong) (uint) high << 32) | (uint) low);
+        var combined = (long)(((ulong)(uint)high << 32) | (uint)low);
         return combined & 0xffffffffff; // low order 5 bytes
     }
 
@@ -240,8 +241,8 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
         {
             throw new ArgumentOutOfRangeException(nameof(increment), "The increment value must be between 0 and 16777215 (it must fit in 3 bytes).");
         }
-        var b = (int) (random >> 8);              // first 4 bytes of random
-        var c = (int) (random << 24) | increment; // 5th byte of random and 3 byte increment
+        var b = (int)(random >> 8);              // first 4 bytes of random
+        var c = (int)(random << 24) | increment; // 5th byte of random and 3 byte increment
         return new(timestamp, b, c);
     }
 
@@ -265,7 +266,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     {
         try
         {
-            return (short) GetCurrentProcessId(); // use low order two bytes only
+            return (short)GetCurrentProcessId(); // use low order two bytes only
         }
         catch (SecurityException)
         {
@@ -275,8 +276,8 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 
     private static int GetTimestampFromDateTime(DateTime timestamp)
     {
-        var secondsSinceEpoch = (long) Math.Floor((timestamp.ToUniversalTime() - DateTimeStampExtension.UnixEpoch).TotalSeconds);
-        return secondsSinceEpoch is < uint.MinValue or > uint.MaxValue ? throw new ArgumentOutOfRangeException(nameof(timestamp)) : (int) (uint) secondsSinceEpoch;
+        var secondsSinceEpoch = (long)Math.Floor((timestamp.ToUniversalTime() - DateTimeStampExtension.UnixEpoch).TotalSeconds);
+        return secondsSinceEpoch is < uint.MinValue or > uint.MaxValue ? throw new ArgumentOutOfRangeException(nameof(timestamp)) : (int)(uint)secondsSinceEpoch;
     }
 
     private static void FromByteArray(IReadOnlyList<byte> bytes, int offset, out int a, out int b, out int c)
@@ -288,36 +289,36 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 
     // public methods
     /// <summary>
-    /// 将此 <see cref="SnowId"/> 与另一个 <see cref="SnowId"/> 进行比较
+    /// 将此 <see cref="SnowId" /> 与另一个 <see cref="SnowId" /> 进行比较
     /// </summary>
-    /// <param name="other">另一个 <see cref="SnowId"/></param>
-    /// <returns>一个 32 位有符号整数,指示此 <see cref="SnowId"/> 是小于,等于还是大于另一个</returns>
+    /// <param name="other">另一个 <see cref="SnowId" /></param>
+    /// <returns>一个 32 位有符号整数,指示此 <see cref="SnowId" /> 是小于,等于还是大于另一个</returns>
     public readonly int CompareTo(SnowId other)
     {
-        var result = ((uint) _a).CompareTo((uint) other._a);
+        var result = ((uint)_a).CompareTo((uint)other._a);
         if (result != 0)
         {
             return result;
         }
-        result = ((uint) _b).CompareTo((uint) other._b);
-        return result != 0 ? result : ((uint) _c).CompareTo((uint) other._c);
+        result = ((uint)_b).CompareTo((uint)other._b);
+        return result != 0 ? result : ((uint)_c).CompareTo((uint)other._c);
     }
 
     /// <summary>
-    /// 将此 <see cref="SnowId"/> 与另一个 <see cref="SnowId"/> 进行比较
+    /// 将此 <see cref="SnowId" /> 与另一个 <see cref="SnowId" /> 进行比较
     /// </summary>
-    /// <param name="rhs">另一个 <see cref="SnowId"/></param>
-    /// <returns>如果两个 <see cref="SnowId"/> 相等,则为 <see langword="true"/></returns>
+    /// <param name="rhs">另一个 <see cref="SnowId" /></param>
+    /// <returns>如果两个 <see cref="SnowId" /> 相等,则为 <see langword="true" /></returns>
     public readonly bool Equals(SnowId rhs) =>
         _a == rhs._a &&
         _b == rhs._b &&
         _c == rhs._c;
 
     /// <summary>
-    /// 将此 <see cref="SnowId"/> 与另一个对象进行比较
+    /// 将此 <see cref="SnowId" /> 与另一个对象进行比较
     /// </summary>
     /// <param name="obj">另一个对象</param>
-    /// <returns>如果另一个对象是 <see cref="SnowId"/> 并且等于此对象,则为 <see langword="true"/></returns>
+    /// <returns>如果另一个对象是 <see cref="SnowId" /> 并且等于此对象,则为 <see langword="true" /></returns>
     public readonly override bool Equals(object? obj) => obj is SnowId id && Equals(id);
 
     /// <summary>
@@ -334,9 +335,11 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     }
 
     /// <summary>
-    /// 将 <see cref="SnowId"/> 转换为字节数组
+    /// 将 <see cref="SnowId" /> 转换为字节数组
     /// </summary>
-    /// <returns><see langword="byte[]"/></returns>
+    /// <returns>
+    ///     <see langword="byte[]" />
+    /// </returns>
     public readonly byte[] ToByteArray()
     {
         var bytes = new byte[12];
@@ -345,7 +348,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     }
 
     /// <summary>
-    /// 将 <see cref="SnowId"/> 转换为字节数组
+    /// 将 <see cref="SnowId" /> 转换为字节数组
     /// </summary>
     /// <param name="destination">目标数组</param>
     /// <param name="offset">偏移量</param>
@@ -357,18 +360,18 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
         //{
         //    throw new ArgumentException("Not enough room in destination buffer.", nameof(offset));
         //}
-        destination[offset + 0] = (byte) (_a >> 24);
-        destination[offset + 1] = (byte) (_a >> 16);
-        destination[offset + 2] = (byte) (_a >> 8);
-        destination[offset + 3] = (byte) _a;
-        destination[offset + 4] = (byte) (_b >> 24);
-        destination[offset + 5] = (byte) (_b >> 16);
-        destination[offset + 6] = (byte) (_b >> 8);
-        destination[offset + 7] = (byte) _b;
-        destination[offset + 8] = (byte) (_c >> 24);
-        destination[offset + 9] = (byte) (_c >> 16);
-        destination[offset + 10] = (byte) (_c >> 8);
-        destination[offset + 11] = (byte) _c;
+        destination[offset + 0] = (byte)(_a >> 24);
+        destination[offset + 1] = (byte)(_a >> 16);
+        destination[offset + 2] = (byte)(_a >> 8);
+        destination[offset + 3] = (byte)_a;
+        destination[offset + 4] = (byte)(_b >> 24);
+        destination[offset + 5] = (byte)(_b >> 16);
+        destination[offset + 6] = (byte)(_b >> 8);
+        destination[offset + 7] = (byte)_b;
+        destination[offset + 8] = (byte)(_c >> 24);
+        destination[offset + 9] = (byte)(_c >> 16);
+        destination[offset + 10] = (byte)(_c >> 8);
+        destination[offset + 11] = (byte)_c;
     }
 
     /// <summary>
@@ -436,7 +439,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
         // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
         switch (Type.GetTypeCode(conversionType))
         {
-            case TypeCode.String: return ((IConvertible) this).ToString(provider);
+            case TypeCode.String: return ((IConvertible)this).ToString(provider);
             case TypeCode.Object:
                 if (conversionType == typeof(object) || conversionType == typeof(SnowId)) return this;
                 break;

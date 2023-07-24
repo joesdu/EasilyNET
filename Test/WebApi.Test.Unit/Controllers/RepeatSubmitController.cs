@@ -21,7 +21,6 @@ public sealed class RepeatSubmitController : ControllerBase
     /// </summary>
     /// <param name="user"></param>
     /// <returns></returns>
-    //[HttpPost("Add"), TypeFilter(typeof(RepeatSubmitFilter), Arguments = new object[] { 86400000 })]
     [HttpPost("Add"), RepeatSubmit]
     public async Task<User> AddUser([FromBody] User user)
     {
@@ -34,7 +33,6 @@ public sealed class RepeatSubmitController : ControllerBase
     /// </summary>
     /// <param name="user"></param>
     /// <returns></returns>
-    //[HttpPut("Update"), TypeFilter(typeof(RepeatSubmitFilter))]
     [HttpPut("Update"), RepeatSubmit(4000)]
     public async Task<User> UpdateUser(User user)
     {

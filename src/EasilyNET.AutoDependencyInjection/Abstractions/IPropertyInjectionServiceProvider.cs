@@ -1,7 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
-// ReSharper disable UnusedMemberInSuper.Global
-
 namespace EasilyNET.AutoDependencyInjection.Abstracts;
 
 /// <summary>

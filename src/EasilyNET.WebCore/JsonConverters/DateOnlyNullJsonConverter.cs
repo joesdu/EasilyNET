@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 namespace EasilyNET.WebCore.JsonConverters;
 
 /// <summary>
-/// 可空 <see cref="DateOnly"/> 类型Json转换(用于将字符串类型的日期转化成后端可识别的 <see cref="DateOnly"/> 类型)
+/// 可空 <see cref="DateOnly" /> 类型Json转换(用于将字符串类型的日期转化成后端可识别的 <see cref="DateOnly" /> 类型)
 /// </summary>
 /// <example>
 ///     <code>

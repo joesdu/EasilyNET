@@ -4,7 +4,7 @@
 namespace EasilyNET.Core;
 
 /// <summary>
-/// <see cref="ReferenceItem"/>, 通常用来保存关联的一些业务信息
+/// <see cref="ReferenceItem" />, 通常用来保存关联的一些业务信息
 /// </summary>
 public class ReferenceItem : IEquatable<ReferenceItem>
 {
@@ -50,9 +50,7 @@ public class ReferenceItem : IEquatable<ReferenceItem>
     /// </summary>
     /// <param name="obj"></param>
     /// <returns></returns>
-#pragma warning disable IDE0048
-    public override bool Equals(object? obj) => obj is not null && (ReferenceEquals(this, obj) || obj.GetType() == GetType() && Equals((ReferenceItem) obj));
-#pragma warning restore IDE0048
+    public override bool Equals(object? obj) => obj is not null && (ReferenceEquals(this, obj) || (obj.GetType() == GetType() && Equals((ReferenceItem)obj)));
 
     /// <summary>
     /// GetHashCode
@@ -62,9 +60,7 @@ public class ReferenceItem : IEquatable<ReferenceItem>
     {
         unchecked
         {
-#pragma warning disable IDE0048
-            return Rid.GetHashCode() * 397 ^ Name.GetHashCode();
-#pragma warning restore IDE0048
+            return (Rid.GetHashCode() * 397) ^ Name.GetHashCode();
         }
     }
 
