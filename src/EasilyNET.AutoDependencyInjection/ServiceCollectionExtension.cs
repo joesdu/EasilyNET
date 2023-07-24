@@ -5,7 +5,6 @@ using EasilyNET.AutoDependencyInjection.Modules;
 using EasilyNET.AutoDependencyInjection.PropertyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc.Controllers;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
 // ReSharper disable UnusedMethodReturnValue.Global
@@ -58,19 +57,6 @@ public static partial class ServiceCollectionExtension
     }
 
     /// <summary>
-    /// 添加属性注入服务
-    /// </summary>
-    /// <param name="mvcBuilder">mvc构建器</param>
-    /// <returns></returns>
-    [Obsolete("不需要添加这个服务，在引用UsePropertyInjection的时候以处理")]
-    public static IMvcBuilder AddPropertyInjectionAsServices(this IMvcBuilder mvcBuilder)
-    {
-        mvcBuilder.AddControllersAsServices();
-        mvcBuilder.Services.Replace(ServiceDescriptor.Transient<IControllerActivator, PropertyInjectionControllerActivator>());
-        return mvcBuilder;
-    }
-
-    /// <summary>
     /// 使用属性注入
     /// </summary>
     /// <param name="hostBuilder">host构建器</param>
@@ -81,7 +67,6 @@ public static partial class ServiceCollectionExtension
     }
 
     private static void ConfigureServices(IServiceCollection services) =>
-        services
-            .AddSingleton<IPropertyInjector, PropertyInjector>()
-            .AddSingleton<IControllerFactory,PropertyInjectionControllerFactory>();
+        services.AddSingleton<IPropertyInjector, PropertyInjector>()
+                .AddSingleton<IControllerFactory, PropertyInjectionControllerFactory>();
 }

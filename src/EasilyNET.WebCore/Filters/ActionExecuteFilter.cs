@@ -27,15 +27,12 @@ public sealed class ActionExecuteFilter : ActionFilterAttribute
     {
         switch (context.Result)
         {
-            case ObjectResult {Value: not null} result when result.Value.GetType().IsSubclassOf(typeof(Stream)): break;
-            case ObjectResult result when result.Value is ResultObject result1:
-                context.Result = new ObjectResult(new ResultObject {StatusCode = result1.StatusCode, Msg = result1.Msg, Data = result1.Data});
-                break;
+            case ObjectResult { Value: not null } result when result.Value.GetType().IsSubclassOf(typeof(Stream)): break;
             case ObjectResult result:
-                context.Result = new ObjectResult(new ResultObject {StatusCode = HttpStatusCode.OK, Msg = "success", Data = result.Value});
+                context.Result = new ObjectResult(new ResultObject { StatusCode = HttpStatusCode.OK, Msg = "success", Data = result.Value });
                 break;
             case EmptyResult:
-                context.Result = new ObjectResult(new ResultObject {StatusCode = HttpStatusCode.OK, Msg = "success", Data = default});
+                context.Result = new ObjectResult(new ResultObject { StatusCode = HttpStatusCode.OK, Msg = "success", Data = default });
                 break;
         }
         base.OnActionExecuted(context);
