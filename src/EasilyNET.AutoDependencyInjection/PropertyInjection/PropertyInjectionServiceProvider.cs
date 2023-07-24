@@ -36,8 +36,8 @@ internal sealed class PropertyInjectionServiceProvider : IServiceProvider
     /// <exception cref="NotImplementedException"></exception>
     public object GetService(Type serviceType)
     {
-        var instance = _serviceProvider.GetRequiredService(serviceType);
-        return _propertyInjector.InjectProperties(instance);
+        var instance = _serviceProvider.GetService(serviceType);
+        return _propertyInjector.InjectProperties(instance!);
     }
 
     /// <summary>

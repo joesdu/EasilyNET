@@ -5,7 +5,7 @@ using Serilog.Events;
 using WebApi.Test.Unit;
 
 Console.Title = "EasilyNET";
-AssemblyHelper.AddExcludeLibs("Npgsql.");
+AssemblyHelper.AddExcludeLibs("Npgsql.", "NPOI");
 var builder = WebApplication.CreateBuilder(args);
 
 // 配置Kestrel支持HTTP1,2,3
@@ -28,7 +28,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 自动注入服务模块
 builder.Services.AddApplication<AppWebModule>();
-
 // 添加Serilog配置
 _ = builder.Host.UseSerilog((hbc, lc) =>
 {
@@ -62,18 +61,6 @@ _ = builder.Host.UseSerilog((hbc, lc) =>
               }
           });
 });
-if (builder.Services.GetConfiguration().GetValue<bool>("IsRedis"))
-{
-    builder.Services.AddStackExchangeRedisCache(o =>
-    {
-        o.Configuration = "localhost";
-        o.InstanceName = "easily.net:";
-    });
-}
-else
-{
-    builder.Services.AddDistributedMemoryCache();
-}
 
 // 添加属性注入
 builder.Host.UsePropertyInjection();
