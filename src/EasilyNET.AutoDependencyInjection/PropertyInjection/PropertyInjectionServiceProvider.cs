@@ -29,8 +29,7 @@ internal sealed class PropertyInjectionServiceProvider : IPropertyInjectionServi
     {
         _services = service ?? throw new ArgumentNullException(nameof(service));
         _services = service.AddSingleton<IPropertyInjectionServiceProvider>(this);
-        InjectServices(service);
- 
+        // InjectServices(service);
         _propertyInjector =new PropertyInjector(this);
         _serviceProvider = service.BuildServiceProvider();
     }
