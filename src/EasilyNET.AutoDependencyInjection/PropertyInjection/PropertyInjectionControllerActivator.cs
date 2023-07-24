@@ -22,10 +22,10 @@ internal sealed class PropertyInjectionControllerActivator : IControllerActivato
         // ArgumentNullException.ThrowIfNull(context, nameof(context));  ??为什么使用这个？？
         var controllerType = context.ActionDescriptor.ControllerTypeInfo.AsType();
         var serviceProvider = context.HttpContext.RequestServices;
-        if (serviceProvider is not PropertyInjectionServiceProvider) //判断是否属性注入服务提供者
-        {
-            serviceProvider = new PropertyInjectionServiceProvider(context.HttpContext.RequestServices);
-        }
+        // if (serviceProvider is not PropertyInjectionServiceProvider) //判断是否属性注入服务提供者
+        // {
+        //     serviceProvider = new PropertyInjectionServiceProvider(context.HttpContext.RequestServices);
+        // }
         var controller = serviceProvider.GetRequiredService(controllerType);
         return controller;
     }
