@@ -141,13 +141,9 @@ app.Run();
 ```
 
 - c.使用属性注入服务
-- 属性注入,首先配置服务
+- 在 Program.cs 中添加如下代码:
     
 ```csharp
-//添加 AddPropertyInjectionAsServices 如果不操作控制器，属性注入，可以不需要
-builder.Services.AddControllers().AddPropertyInjectionAsServices();
-...
-
 //使用默认属性注入，替换原有的
 builder.Host.UsePropertyInjection();
 
