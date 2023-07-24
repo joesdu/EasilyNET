@@ -12,7 +12,7 @@ namespace EasilyNET.WebCore.Middleware;
 /// 构造函数
 /// </remarks>
 /// <param name="next"></param>
-public sealed class ResponseTimeMiddleware(RequestDelegate next)
+internal sealed class ResponseTimeMiddleware(RequestDelegate next)
 {
     /// <summary>
     /// Invoke

@@ -11,6 +11,7 @@
 
 	<ItemGroup>
       <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
+      <ProjectReference Include="..\EasilyNET.Security\EasilyNET.Security.csproj" />
     </ItemGroup>
-
+    
 </Project>
