@@ -14,7 +14,8 @@ internal sealed class PropertyInjectionServiceProviderFactory : IServiceProvider
     /// <returns>返回IServiceProvider</returns>
     public IServiceProvider CreateServiceProvider(IServiceCollection containerBuilder)
     {
-        return new PropertyInjectionServiceProvider(containerBuilder);
+        var serviceProvider = containerBuilder.BuildServiceProvider();
+        return new PropertyInjectionServiceProvider(serviceProvider);
     }
 
     /// <summary>
