@@ -15,13 +15,13 @@ public sealed class RabbitAttribute(EWorkModel workModel, string exchangeName = 
     /// 交换机名称
     /// </summary>
     public string ExchangeName { get; } = workModel switch
-        {
-            EWorkModel.PublishSubscribe => string.IsNullOrWhiteSpace(exchangeName) ? "amq.fanout" : exchangeName,
-            EWorkModel.Routing => string.IsNullOrWhiteSpace(exchangeName) ? "amq.direct" : exchangeName,
-            EWorkModel.Topics => string.IsNullOrWhiteSpace(exchangeName) ? "amq.topic" : exchangeName,
-            EWorkModel.Delayed => ExchangeNameCheck(exchangeName),
-            _ => ""
-        };
+    {
+        EWorkModel.PublishSubscribe => string.IsNullOrWhiteSpace(exchangeName) ? "amq.fanout" : exchangeName,
+        EWorkModel.Routing          => string.IsNullOrWhiteSpace(exchangeName) ? "amq.direct" : exchangeName,
+        EWorkModel.Topics           => string.IsNullOrWhiteSpace(exchangeName) ? "amq.topic" : exchangeName,
+        EWorkModel.Delayed          => ExchangeNameCheck(exchangeName),
+        _                           => ""
+    };
 
     /// <summary>
     /// 交换机模式
@@ -34,7 +34,7 @@ public sealed class RabbitAttribute(EWorkModel workModel, string exchangeName = 
     public string RoutingKey { get; } = workModel switch
     {
         EWorkModel.None => queue,
-        _ => routingKey
+        _               => routingKey
     };
 
     /// <summary>

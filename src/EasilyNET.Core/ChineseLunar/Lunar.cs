@@ -114,7 +114,7 @@ public static class Lunar
         get
         {
             var offset = _date.Year - 1900; //1900年为鼠年
-            return (EZodiac) (offset % 12);
+            return (EZodiac)(offset % 12);
         }
     }
 
@@ -139,7 +139,7 @@ public static class Lunar
     private static EConstellation GetConstellation(DateTime date)
     {
         // 定義一個陣列，儲存每個星座的起始日期
-        var dic = new[] {119, 218, 320, 419, 520, 621, 722, 822, 922, 1023, 1122, 1221};
+        var dic = new[] { 119, 218, 320, 419, 520, 621, 722, 822, 922, 1023, 1122, 1221 };
         //var dic = new[] { 120, 219, 321, 420, 521, 622, 723, 823, 923, 1023, 1122, 1222 };
         var m = date.Month;
         var d = date.Day;
@@ -150,7 +150,7 @@ public static class Lunar
         var index = Array.BinarySearch(dic, y);
         if (index < 0) index = ~index;
         if (index == 12) index = 0;
-        return (EConstellation) index;
+        return (EConstellation)index;
     }
 
     /// <summary>

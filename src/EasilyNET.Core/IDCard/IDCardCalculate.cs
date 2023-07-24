@@ -10,12 +10,12 @@ namespace EasilyNET.Core.IdCard;
 /// 身份证校验
 /// </summary>
 /// <example>
-/// <code>
-///<![CDATA[
-/// // 校验身份证号码是否合法.
-/// "51132119xxxxxxxxxxxxxxx".ValidateIDCard();
-/// ]]>
-/// </code>
+///     <code>
+/// <![CDATA[
+///  // 校验身份证号码是否合法.
+///  "51132119xxxxxxxxxxxxxxx".ValidateIDCard();
+///  ]]>
+///  </code>
 /// </example>
 public static class IDCardCalculate
 {
@@ -50,7 +50,7 @@ public static class IDCardCalculate
     /// <summary>
     /// 根据出生日期，计算精确的年龄
     /// </summary>
-    /// <param name="birthday">生日(<see cref="DateTime"/>)</param>
+    /// <param name="birthday">生日(<see cref="DateTime" />)</param>
     /// <returns>精确年龄</returns>
     public static int CalculateAge(DateTime birthday)
     {
@@ -65,7 +65,7 @@ public static class IDCardCalculate
     /// 根据身份证号码计算出性别
     /// </summary>
     /// <param name="no">身份证号码</param>
-    /// <returns><see cref="EGender"/> 性别</returns>
+    /// <returns><see cref="EGender" /> 性别</returns>
     public static EGender CalculateGender(this string no)
     {
         no.ValidateIDCard();
@@ -82,7 +82,7 @@ public static class IDCardCalculate
     /// 根据身份证号码计算生日日期
     /// </summary>
     /// <param name="no">身份证号</param>
-    /// <param name="birthday">生日(<see cref="DateOnly"/>)</param>
+    /// <param name="birthday">生日(<see cref="DateOnly" />)</param>
     public static void CalculateBirthday(this string no, out DateOnly birthday)
     {
         no.ValidateIDCard();
@@ -97,7 +97,7 @@ public static class IDCardCalculate
     /// <summary>
     /// 根据出生日期，计算精确的年龄
     /// </summary>
-    /// <param name="birthday">生日(<see cref="DateOnly"/>)</param>
+    /// <param name="birthday">生日(<see cref="DateOnly" />)</param>
     /// <returns>精确年龄</returns>
     public static int CalculateAge(DateOnly birthday)
     {
