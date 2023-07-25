@@ -1,5 +1,4 @@
 using EasilyNET.Core.Misc;
-using EasilyNET.WebCore.Middleware;
 using Serilog;
 using Serilog.Events;
 using WebApi.Test.Unit;

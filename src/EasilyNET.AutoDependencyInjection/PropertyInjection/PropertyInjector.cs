@@ -16,11 +16,7 @@ internal sealed class PropertyInjector(IPropertyInjectionServiceProvider provide
 {
     private static BindingFlags BindingFlags => BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 
-    /// <summary>
-    /// 把属性注入
-    /// </summary>
-    /// <param name="instance">要注入的实例</param>
-    /// <returns></returns>
+    /// <inheritdoc />
     public object InjectProperties(object instance)
     {
         IsInjectProperties(instance);
@@ -74,5 +70,11 @@ internal sealed class PropertyInjector(IPropertyInjectionServiceProvider provide
     /// <param name="field">字段信息</param>
     private void InjectField(object instance, FieldInfo field) => field.SetValue(instance, GetService(field.FieldType));
 
-    private object GetService(Type type) => provider.GetService(type) ?? throw new($"找不到类型服务 {type.Name}");
+    /// <summary>
+    /// 获取服务
+    /// </summary>
+    /// <param name="type"></param>
+    /// <returns></returns>
+    /// <exception cref="NullReferenceException"></exception>
+    private object GetService(Type type) => provider.GetService(type) ?? throw new NullReferenceException($"找不到类型服务 {type.Name}");
 }

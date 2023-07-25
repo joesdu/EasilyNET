@@ -7,17 +7,9 @@ namespace EasilyNET.AutoDependencyInjection.PropertyInjection;
 /// </summary>
 internal sealed class PropertyInjectionServiceProviderFactory : IServiceProviderFactory<IServiceCollection>
 {
-    /// <summary>
-    /// 从容器生成器创建 IServiceProvider。
-    /// </summary>
-    /// <param name="containerBuilder">容器生成器。</param>
-    /// <returns>返回IServiceProvider</returns>
+    /// <inheritdoc />
     public IServiceProvider CreateServiceProvider(IServiceCollection containerBuilder) => new PropertyInjectionServiceProvider(containerBuilder);
 
-    /// <summary>
-    /// 从 IServiceCollection 创建容器生成器。
-    /// </summary>
-    /// <param name="services">服务的集合。</param>
-    /// <returns>IServiceCollection 可用于创建 IServiceProvider 的容器生成器。</returns>
+    /// <inheritdoc />
     public IServiceCollection CreateBuilder(IServiceCollection? services) => services ?? new ServiceCollection();
 }
