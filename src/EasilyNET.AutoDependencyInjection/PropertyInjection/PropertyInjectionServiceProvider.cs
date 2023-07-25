@@ -34,11 +34,10 @@ internal sealed class PropertyInjectionServiceProvider : IPropertyInjectionServi
     /// <param name="serviceType">服务类型</param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    public object GetService(Type serviceType)
+    public object? GetService(Type serviceType)
     {
         var instance = _serviceProvider.GetService(serviceType);
-        ArgumentNullException.ThrowIfNull(instance);
-        return _propertyInjector.InjectProperties(instance);
+        return instance is null ? null : _propertyInjector.InjectProperties(instance);
     }
 
     /// <summary>
