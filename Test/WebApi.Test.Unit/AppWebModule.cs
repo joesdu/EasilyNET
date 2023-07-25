@@ -1,7 +1,6 @@
 ﻿using EasilyNET.AutoDependencyInjection.Attributes;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.WebCore.Middleware;
 
 // ReSharper disable ClassNeverInstantiated.Global
 

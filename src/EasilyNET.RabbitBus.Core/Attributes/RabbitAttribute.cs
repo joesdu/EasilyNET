@@ -50,7 +50,7 @@ public sealed class RabbitAttribute(EWorkModel workModel, string exchangeName = 
     private static string ExchangeNameCheck(string exchangeName)
     {
 #if NET7_0_OR_GREATER
-        ArgumentException.ThrowIfNullOrEmpty(exchangeName,nameof(exchangeName));
+        ArgumentException.ThrowIfNullOrEmpty(exchangeName, nameof(exchangeName));
 #else
         if (string.IsNullOrWhiteSpace(exchangeName)) throw new ArgumentNullException(nameof(exchangeName));
 #endif

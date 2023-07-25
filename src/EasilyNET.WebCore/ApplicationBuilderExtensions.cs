@@ -1,10 +1,10 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using EasilyNET.WebCore.Middleware;
 
 // ReSharper disable UnusedMethodReturnValue.Global
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.WebCore.Middleware;
+namespace Microsoft.AspNetCore.Builder;
 
 /// <summary>
 /// 中间件扩展,用于统一处理中间件调用扩展
