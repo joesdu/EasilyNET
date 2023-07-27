@@ -19,14 +19,14 @@ public static class ServiceCollectionExtensions
     /// </summary>
     /// <param name="services"></param>
     /// <param name="options"></param>
-    public static void AddMongoLock(this IServiceCollection services, Action<LockOptions>? options = null)
+    public static void AddMongoDistributedLock(this IServiceCollection services, Action<LockOptions>? options = null)
     {
         var option = new LockOptions();
         options?.Invoke(option);
         services.AddSingleton<IDistributedLockFactory, DistributedLockFactory>();
         var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredService<IMongoClient>();
-        services.AddMongoLock(client, options);
+        services.AddMongoDistributedLock(client, options);
     }
 
     /// <summary>
@@ -35,12 +35,12 @@ public static class ServiceCollectionExtensions
     /// <param name="services"></param>
     /// <param name="client"></param>
     /// <param name="options"></param>
-    public static void AddMongoLock(this IServiceCollection services, IMongoClient client, Action<LockOptions>? options = null)
+    public static void AddMongoDistributedLock(this IServiceCollection services, IMongoClient client, Action<LockOptions>? options = null)
     {
         var option = new LockOptions();
         options?.Invoke(option);
         var db = client.GetDatabase(option.DatabaseName);
-        services.AddMongoLock(db, options);
+        services.AddMongoDistributedLock(db, options);
     }
 
     /// <summary>
@@ -49,7 +49,7 @@ public static class ServiceCollectionExtensions
     /// <param name="services"></param>
     /// <param name="db"></param>
     /// <param name="options"></param>
-    public static void AddMongoLock(this IServiceCollection services, IMongoDatabase db, Action<LockOptions>? options = null)
+    public static void AddMongoDistributedLock(this IServiceCollection services, IMongoDatabase db, Action<LockOptions>? options = null)
     {
         var option = new LockOptions();
         options?.Invoke(option);
