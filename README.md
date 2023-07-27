@@ -6,6 +6,7 @@
 
 EasilyNET Packages
 
+- mongodb based distributed locks
 - property injection
 - simple qrcode
 - eventbus with rabbitmq
@@ -36,13 +37,15 @@ EasilyNET Packages
 
 #### Mongo
 
-| NuGet Package                                                                                                 | Version                                                                        | Download                                                                        | Description                                        |
-| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- | -------------------------------------------------- |
-| [EasilyNET.IdentityServer.MongoStorage](https://www.nuget.org/packages/EasilyNET.IdentityServer.MongoStorage) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.IdentityServer.MongoStorage) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.IdentityServer.MongoStorage) | IDS6.x 的 Mongodb 持久化支持方案                   |
-| [EasilyNET.Mongo.AspNetCore](https://www.nuget.org/packages/EasilyNET.Mongo.AspNetCore)                       | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Mongo.AspNetCore)            | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Mongo.AspNetCore)            | MongoDB 驱动扩展                                   |
-| [EasilyNET.Mongo.ConsoleDebug](https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug)                   | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Mongo.ConsoleDebug)          | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Mongo.ConsoleDebug)          | MongoDB 的执行命令输出到控制台                     |
-| [EasilyNET.MongoGridFS.AspNetCore](https://www.nuget.org/packages/EasilyNET.MongoGridFS.AspNetCore)           | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.MongoGridFS.AspNetCore)      | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.MongoGridFS.AspNetCore)      | MongoDB GridFS 对象存储解决方案,使对象存储操作简便 |
-| [EasilyNET.MongoSerializer.AspNetCore](https://www.nuget.org/packages/EasilyNET.MongoSerializer.AspNetCore)   | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.MongoSerializer.AspNetCore)  | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.MongoSerializer.AspNetCore)  | MongoDB 的类型扩展,以及自定义类型扩展方案          |
+| NuGet Package                                                                                                         | Version                                                                            | Download                                                                            | Description                                        |
+| --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------- |
+| [EasilyNET.IdentityServer.MongoStorage](https://www.nuget.org/packages/EasilyNET.IdentityServer.MongoStorage)         | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.IdentityServer.MongoStorage)     | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.IdentityServer.MongoStorage)     | IDS6.x 的 Mongodb 持久化支持方案                   |
+| [EasilyNET.Mongo.AspNetCore](https://www.nuget.org/packages/EasilyNET.Mongo.AspNetCore)                               | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Mongo.AspNetCore)                | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Mongo.AspNetCore)                | MongoDB 驱动扩展                                   |
+| [EasilyNET.Mongo.ConsoleDebug](https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug)                           | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Mongo.ConsoleDebug)              | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Mongo.ConsoleDebug)              | MongoDB 的执行命令输出到控制台                     |
+| [EasilyNET.MongoDistributedLock](https://www.nuget.org/packages/EasilyNET.MongoDistributedLock)                       | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.MongoDistributedLock)            | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.MongoDistributedLock)            | 基于 MongoDB 的分布式锁实现方案                    |
+| [EasilyNET.MongoDistributedLock.AspNetCore](https://www.nuget.org/packages/EasilyNET.MongoDistributedLock.AspNetCore) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.MongoDistributedLock.AspNetCore) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.MongoDistributedLock.AspNetCore) | 基于 MongoDB 的分布式锁实现方案                    |
+| [EasilyNET.MongoGridFS.AspNetCore](https://www.nuget.org/packages/EasilyNET.MongoGridFS.AspNetCore)                   | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.MongoGridFS.AspNetCore)          | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.MongoGridFS.AspNetCore)          | MongoDB GridFS 对象存储解决方案,使对象存储操作简便 |
+| [EasilyNET.MongoSerializer.AspNetCore](https://www.nuget.org/packages/EasilyNET.MongoSerializer.AspNetCore)           | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.MongoSerializer.AspNetCore)      | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.MongoSerializer.AspNetCore)      | MongoDB 的类型扩展,以及自定义类型扩展方案          |
 
 ![微信公众号](https://github.com/joesdu/joesdu/blob/main/wechat-official-account.png#pic_center)
 
