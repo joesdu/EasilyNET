@@ -6,6 +6,7 @@
 
 EasilyNET Packages
 
+- mongodb based distributed locks
 - property injection
 - simple qrcode
 - eventbus with rabbitmq
