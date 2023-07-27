@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	  <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.MongoDistributedLock.Core</PackageProjectUrl>
-	  <Description>EasilyNET.MongoDistributedLock.Core MongoDB分布式锁方案</Description>
+	  <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.MongoDistributedLock</PackageProjectUrl>
+	  <Description>EasilyNET.MongoDistributedLock MongoDB分布式锁方案</Description>
   </PropertyGroup>
 
   <ItemGroup>

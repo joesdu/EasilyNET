@@ -3,7 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 // ReSharper disable ClassNeverInstantiated.Global
 
-namespace EasilyNET.MongoDistributedLock.Core;
+namespace EasilyNET.MongoDistributedLock;
 
 /// <summary>
 /// 锁定实体

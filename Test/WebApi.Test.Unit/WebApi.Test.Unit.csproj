@@ -19,6 +19,7 @@
 		<ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
 		<ProjectReference Include="..\..\src\EasilyNET.Images\EasilyNET.Images.csproj" />
 		<ProjectReference Include="..\..\src\EasilyNET.Mongo.ConsoleDebug\EasilyNET.Mongo.ConsoleDebug.csproj" />
+		<ProjectReference Include="..\..\src\EasilyNET.MongoDistributedLock.AspNetCore\EasilyNET.MongoDistributedLock.AspNetCore.csproj" />
 		<ProjectReference Include="..\..\src\EasilyNET.MongoSerializer.AspNetCore\EasilyNET.MongoSerializer.AspNetCore.csproj" />
 		<ProjectReference Include="..\..\src\EasilyNET.MongoGridFS.AspNetCore\EasilyNET.MongoGridFS.AspNetCore.csproj" />
 		<ProjectReference Include="..\..\src\EasilyNET.Mongo.AspNetCore\EasilyNET.Mongo.AspNetCore.csproj" />

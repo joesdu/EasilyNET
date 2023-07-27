@@ -1,6 +1,6 @@
 ﻿using MongoDB.Bson;
 
-namespace EasilyNET.MongoDistributedLock.Core.Attributes;
+namespace EasilyNET.MongoDistributedLock.Attributes;
 
 /// <summary>
 /// IAcquire

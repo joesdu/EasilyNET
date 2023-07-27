@@ -1,7 +1,7 @@
-﻿using EasilyNET.MongoDistributedLock.Core.Attributes;
+﻿using EasilyNET.MongoDistributedLock.Attributes;
 using MongoDB.Bson;
 
-namespace EasilyNET.MongoDistributedLock.Core;
+namespace EasilyNET.MongoDistributedLock;
 
 /// <inheritdoc />
 public sealed class Acquire : IAcquire

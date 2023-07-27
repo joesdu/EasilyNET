@@ -1,7 +1,7 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace EasilyNET.MongoDistributedLock.Core;
+namespace EasilyNET.MongoDistributedLock;
 
 /// <summary>
 /// 释放信号
