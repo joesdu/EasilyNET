@@ -18,12 +18,17 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\EasilyNET.Core\EasilyNET.Core.csproj" />
+    <ProjectReference Include="..\..\src\EasilyNET.MongoDistributedLock\EasilyNET.MongoDistributedLock.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="README.md">
       <Pack>true</Pack>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="DistributedLocks\" />
   </ItemGroup>
 
 </Project>
