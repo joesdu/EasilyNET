@@ -1,6 +1,6 @@
 ﻿### EasilyNET.WebCore.Swagger
 
-将Swagger的扩展独立出来,避免WebCore的过度依赖.
+将 Swagger 的扩展独立出来,避免 WebCore 的过度依赖.
 
 ### 如何使用?
 

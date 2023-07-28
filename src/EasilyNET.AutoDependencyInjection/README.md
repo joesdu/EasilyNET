@@ -142,7 +142,7 @@ app.Run();
 
 - c.使用属性注入服务
 - 在 Program.cs 中添加如下代码:
-    
+
 ```csharp
 //使用属性注入
 builder.Host.UsePropertyInjection();
@@ -152,6 +152,7 @@ var app = builder.Build();
 ```
 
 - 使用特性通过属性注入服务
+
 ```csharp
 // 通过字段注入
 [Injection]
