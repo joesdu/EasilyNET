@@ -12,7 +12,7 @@
 #### 使用
 
 - Nuget 安装 EasilyNET.Mongo.AspNetCore
-- 推荐同时安装EasilyNET.MongoSerializer.AspNetCore 包,添加了对 .Net6+ 的 Date/Time Only 类型
+- 推荐同时安装 EasilyNET.MongoSerializer.AspNetCore 包,添加了对 .Net6+ 的 Date/Time Only 类型
 - 在系统环境变量或者 Docker 容器中设置环境变量名称为: CONNECTIONSTRINGS_MONGO = mongodb 链接字符串 或者在 appsettings.json 中添加,
 - 现在你也可以参考 example.api 项目查看直接传入相关数据.
 - 添加 APM 探针支持,根据 [SkyApm.Diagnostics.MongoDB](https://github.com/SkyAPM/SkyAPM-dotnet/tree/main/src/SkyApm.Diagnostics.MongoDB)
@@ -43,7 +43,7 @@ builder.Services.AddMongoContext<DbContext>(builder.Configuration, c =>
         typeof(MongoTest2)
     };
     // 是否使用HoyoMongo的一些默认转换配置.包含如下内容:
-    // 1.小驼峰字段名称 如: pageSize ,linkPhone 
+    // 1.小驼峰字段名称 如: pageSize ,linkPhone
     // 2.忽略代码中未定义的字段
     // 3.将ObjectID字段 _id 映射到实体中的ID或者Id字段,反之亦然.在存入数据的时候将Id或者ID映射为 _id
     // 4.将枚举类型存储为字符串, 如: Gender.男 存储到数据中为 男,而不是 int 类型
@@ -99,7 +99,7 @@ public class EasilyNETMongoModule : AppModule
         //        typeof(MongoTest2)
         //    };
         //    // 是否使用HoyoMongo的一些默认转换配置.包含如下内容:
-        //    // 1.小驼峰字段名称 如: pageSize ,linkPhone 
+        //    // 1.小驼峰字段名称 如: pageSize ,linkPhone
         //    // 2.忽略代码中未定义的字段
         //    // 3.将ObjectID字段 _id 映射到实体中的ID或者Id字段,反之亦然.在存入数据的时候将Id或者ID映射为 _id
         //    // 4.将枚举类型存储为字符串, 如: Gender.男 存储到数据中为 男,而不是 int 类型
@@ -143,7 +143,7 @@ public class EasilyNETMongoModule : AppModule
                 typeof(MongoTest2)
             };
             // 是否使用HoyoMongo的一些默认转换配置.包含如下内容:
-            // 1.小驼峰字段名称 如: pageSize ,linkPhone 
+            // 1.小驼峰字段名称 如: pageSize ,linkPhone
             // 2.忽略代码中未定义的字段
             // 3.将ObjectID字段 _id 映射到实体中的ID或者Id字段,反之亦然.在存入数据的时候将Id或者ID映射为 _id
             // 4.将枚举类型存储为字符串, 如: Gender.男 存储到数据中为 男,而不是 int 类型

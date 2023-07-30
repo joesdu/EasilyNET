@@ -3,6 +3,7 @@
 - EasilyNET.MongoDistributedLock.AspNetCore 让基于 EasilyNET.MongoDistributedLock 的使用更简单.
 
 - 注册服务
+
 ```csharp
 // 使用默认配置
 builder.Services.AddMongoDistributedLock();
@@ -17,6 +18,7 @@ builder.Services.AddMongoDistributedLock(op =>
 ```
 
 - 使用
+
 ```csharp
 public class DistributedLockTest(IDistributedLock mongoLock)
 {
