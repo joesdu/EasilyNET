@@ -10,7 +10,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="SM3\" />
+	  <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
 	</ItemGroup>
 
 </Project>
