@@ -9,7 +9,7 @@ namespace EasilyNET.Security;
 /// <summary>
 /// RC4 加密解密
 /// </summary>
-public static class RC4
+public static class Rc4Crypt
 {
     /// <summary>
     /// RC4加密

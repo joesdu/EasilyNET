@@ -9,4 +9,8 @@
 		<PackageReference Include="BouncyCastle.Cryptography" Version="2.2.1" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="SM3\" />
+	</ItemGroup>
+
 </Project>

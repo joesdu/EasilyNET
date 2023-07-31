@@ -16,7 +16,7 @@ namespace EasilyNET.Security;
 /// <summary>
 /// BouncyCastle(BC) 实现SM2国密加解密、签名、验签
 /// </summary>
-public static class SM2
+public static class Sm2Crypt
 {
     /// <summary>
     /// 构建公钥和私钥

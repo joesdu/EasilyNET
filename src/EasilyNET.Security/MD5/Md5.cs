@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Security.Cryptography;
+using System.Text;
 
 namespace EasilyNET.Security;
 
@@ -6,7 +7,7 @@ namespace EasilyNET.Security;
 /// <summary>
 /// 针对MD5一些算法.
 /// </summary>
-public static class MD5
+public static class Md5
 {
     /// <summary>
     /// 获取16位长度的MD5大写字符串
@@ -22,7 +23,7 @@ public static class MD5
     /// <returns></returns>
     public static string To32MD5(this string value)
     {
-        var data = System.Security.Cryptography.MD5.HashData(Encoding.UTF8.GetBytes(value));
+        var data = MD5.HashData(Encoding.UTF8.GetBytes(value));
         var builder = new StringBuilder();
         // 循环遍历哈希数据的每一个字节并格式化为十六进制字符串 
         foreach (var t in data)
