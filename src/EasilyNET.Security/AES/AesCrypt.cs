@@ -10,7 +10,7 @@ namespace EasilyNET.Security;
 /// <summary>
 /// AES加密解密
 /// </summary>
-public static class AES
+public static class AesCrypt
 {
     /// <summary>
     /// 盐

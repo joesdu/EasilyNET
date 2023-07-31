@@ -9,7 +9,7 @@ namespace EasilyNET.Security;
 /// <summary>
 /// RSA算法
 /// </summary>
-public static class RSA
+public static class RsaCrypt
 {
     /// <summary>
     /// 创建RSA密钥对

@@ -9,7 +9,7 @@ namespace EasilyNET.Security;
 /// DES加密解密
 /// </summary>
 // ReSharper disable once UnusedType.Global
-public static class DES
+public static class DesCrypt
 {
     /// <summary>
     /// 盐
@@ -41,7 +41,7 @@ public static class DES
     {
         var (Key, IV) = GetEesKey(pwd);
         var inputByteArray = Encoding.UTF8.GetBytes(content);
-        var des = System.Security.Cryptography.DES.Create();
+        var des = DES.Create();
         des.Key = Key;
         des.IV = IV;
         des.Mode = CipherMode.CBC;
@@ -63,7 +63,7 @@ public static class DES
     {
         var (Key, IV) = GetEesKey(pwd);
         var inputByteArray = Convert.FromBase64String(secret);
-        var des = System.Security.Cryptography.DES.Create();
+        var des = DES.Create();
         des.Key = Key;
         des.IV = IV;
         des.Mode = CipherMode.CBC;
