@@ -6,6 +6,7 @@
 
 EasilyNET Packages
 
+- AES,DES,SHA,RC4,TripleDES,RSA,SM2,SM3,SM4
 - mongodb based distributed locks
 - property injection
 - simple qrcode
@@ -28,12 +29,12 @@ EasilyNET Packages
 
 #### Framework
 
-| NuGet Package                                                                                         | Version                                                                    | Download                                                                    | Description                                          |
-| ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------- |
-| [EasilyNET.AutoDependencyInjection](https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.AutoDependencyInjection) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection) | 模块化自动注入服务,属性注入,特性和接口注入等多种方式 |
-| [EasilyNET.Images](https://www.nuget.org/packages/EasilyNET.Images)                                   | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Images)                  | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Images)                  | 一些涉及到图形的工具包,目前仅有 QrCode               |
-| [EasilyNET.RabbitBus.AspNetCore](https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore)       | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.RabbitBus.AspNetCore)    | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.RabbitBus.AspNetCore)    | 基于 RabbitMQ 的消息总线处理方案                     |
-| [EasilyNET.Security](https://www.nuget.org/packages/EasilyNET.Security)                               | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Security)                | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Security)                | 一个常用加密算法的封装库,从使用简单的目的出发        |
+| NuGet Package                                                                                         | Version                                                                    | Download                                                                    | Description                                                        |
+| ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| [EasilyNET.AutoDependencyInjection](https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.AutoDependencyInjection) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection) | 模块化自动注入服务,属性注入,特性和接口注入等多种方式               |
+| [EasilyNET.Images](https://www.nuget.org/packages/EasilyNET.Images)                                   | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Images)                  | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Images)                  | 一些涉及到图形的工具包,目前仅有 QrCode                             |
+| [EasilyNET.RabbitBus.AspNetCore](https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore)       | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.RabbitBus.AspNetCore)    | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.RabbitBus.AspNetCore)    | 基于 RabbitMQ 的消息总线处理方案                                   |
+| [EasilyNET.Security](https://www.nuget.org/packages/EasilyNET.Security)                               | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Security)                | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Security)                | 一个常用加密算法的封装库,AES,DES,SHA,RC4,TripleDES,RSA,SM2,SM3,SM4 |
 
 #### Mongo
 
@@ -59,7 +60,7 @@ EasilyNET Packages
 
 ### Git 贡献提交规范
 
-- 使用Emoji [参考](https://gitmoji.dev)
+- 使用 Emoji [参考](https://gitmoji.dev)
 
 | 符号 | 代码                        | 使用场景                              |
 | :--: | --------------------------- | ------------------------------------- |
