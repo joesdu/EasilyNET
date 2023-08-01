@@ -16,9 +16,10 @@ var builder = WebApplication.CreateBuilder(args);
 System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 ```
 
-- 新增SM3和SM4,使用案例
+- 新增 SM3 和 SM4,使用案例
 
 ###### SM3
+
 ```csharp
 private const string data = "Microsoft";
 
@@ -39,8 +40,8 @@ public void SM3Base64()
 }
 ```
 
-
 ###### SM4
+
 ```csharp
 /// <summary>
 /// SM4ECB
