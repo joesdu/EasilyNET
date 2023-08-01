@@ -511,47 +511,47 @@ public static class StringExtension
     /// <summary>
     /// 检测字符串中是否包含列表中的关键词(快速匹配)
     /// </summary>
-    /// <param name="s">源字符串</param>
+    /// <param name="source">源字符串</param>
     /// <param name="keys">关键词列表</param>
     /// <param name="ignoreCase">忽略大小写</param>
     /// <returns></returns>
-    public static bool Contains(this string s, IEnumerable<string> keys, bool ignoreCase = true)
+    public static bool Contains(this string source, IEnumerable<string> keys, bool ignoreCase = true)
     {
         if (keys is not ICollection<string> array)
         {
             array = keys.ToArray();
         }
-        return array.Count != 0 && !string.IsNullOrEmpty(s) && (ignoreCase ? array.Any(item => s.Contains(item, StringComparison.InvariantCultureIgnoreCase)) : array.Any(s.Contains));
+        return array.Count != 0 && !string.IsNullOrEmpty(source) && (ignoreCase ? array.Any(item => source.Contains(item, StringComparison.InvariantCultureIgnoreCase)) : array.Any(source.Contains));
     }
 
     /// <summary>
     /// 检测字符串中是否包含列表中的关键词(安全匹配)
     /// </summary>
-    /// <param name="s">源字符串</param>
+    /// <param name="source">源字符串</param>
     /// <param name="keys">关键词列表</param>
     /// <param name="ignoreCase">忽略大小写</param>
     /// <returns></returns>
-    public static bool ContainsSafety(this string s, IEnumerable<string> keys, bool ignoreCase = true)
+    public static bool ContainsSafety(this string source, IEnumerable<string> keys, bool ignoreCase = true)
     {
         if (keys is not ICollection<string> array)
         {
             array = keys.ToArray();
         }
-        if (array.Count == 0 || string.IsNullOrEmpty(s))
+        if (array.Count == 0 || string.IsNullOrEmpty(source))
             return false;
         var flag = false;
         if (ignoreCase)
         {
             foreach (var item in array)
             {
-                if (s.Contains(item)) flag = true;
+                if (source.Contains(item)) flag = true;
             }
         }
         else
         {
             foreach (var item in array)
             {
-                if (s?.IndexOf(item, StringComparison.InvariantCultureIgnoreCase) >= 0) flag = true;
+                if (source?.IndexOf(item, StringComparison.InvariantCultureIgnoreCase) >= 0) flag = true;
             }
         }
         return flag;
@@ -560,96 +560,111 @@ public static class StringExtension
     /// <summary>
     /// 检测字符串中是否以列表中的关键词结尾
     /// </summary>
-    /// <param name="s">源字符串</param>
+    /// <param name="source">源字符串</param>
     /// <param name="keys">关键词列表</param>
     /// <param name="ignoreCase">忽略大小写</param>
     /// <returns></returns>
-    public static bool EndsWith(this string s, IEnumerable<string> keys, bool ignoreCase = true)
+    public static bool EndsWith(this string source, IEnumerable<string> keys, bool ignoreCase = true)
     {
         if (keys is not ICollection<string> array)
         {
             array = keys.ToArray();
         }
-        if (array.Count == 0 || string.IsNullOrEmpty(s))
+        if (array.Count == 0 || string.IsNullOrEmpty(source))
             return false;
         var pattern = $"({array.Select(Regex.Escape).Join("|")})$";
-        return ignoreCase ? Regex.IsMatch(s, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(s, pattern);
+        return ignoreCase ? Regex.IsMatch(source, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(source, pattern);
     }
 
     /// <summary>
     /// 检测字符串中是否以列表中的关键词开始
     /// </summary>
-    /// <param name="s">源字符串</param>
+    /// <param name="source">源字符串</param>
     /// <param name="keys">关键词列表</param>
     /// <param name="ignoreCase">忽略大小写</param>
     /// <returns></returns>
-    public static bool StartsWith(this string s, IEnumerable<string> keys, bool ignoreCase = true)
+    public static bool StartsWith(this string source, IEnumerable<string> keys, bool ignoreCase = true)
     {
         if (keys is not ICollection<string> array)
         {
             array = keys.ToArray();
         }
-        if (array.Count == 0 || string.IsNullOrEmpty(s))
+        if (array.Count == 0 || string.IsNullOrEmpty(source))
             return false;
         var pattern = $"^({array.Select(Regex.Escape).Join("|")})";
-        return ignoreCase ? Regex.IsMatch(s, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(s, pattern);
+        return ignoreCase ? Regex.IsMatch(source, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(source, pattern);
     }
 
     /// <summary>
     /// 检测字符串中是否包含列表中的关键词
     /// </summary>
-    /// <param name="s">源字符串</param>
+    /// <param name="source">源字符串</param>
     /// <param name="regex">关键词列表</param>
     /// <param name="ignoreCase">忽略大小写</param>
     /// <returns></returns>
-    public static bool RegexMatch(this string s, string regex, bool ignoreCase = true) => !string.IsNullOrEmpty(regex) && !string.IsNullOrEmpty(s) && (ignoreCase ? Regex.IsMatch(s, regex, RegexOptions.IgnoreCase) : Regex.IsMatch(s, regex));
+    public static bool RegexMatch(this string source, string regex, bool ignoreCase = true) =>
+        !string.IsNullOrEmpty(regex) && !string.IsNullOrEmpty(source) && (ignoreCase ? Regex.IsMatch(source, regex, RegexOptions.IgnoreCase) : Regex.IsMatch(source, regex));
 
     /// <summary>
     /// 检测字符串中是否包含列表中的关键词
     /// </summary>
-    /// <param name="s">源字符串</param>
+    /// <param name="source">源字符串</param>
     /// <param name="regex">关键词列表</param>
     /// <returns></returns>
-    public static bool RegexMatch(this string s, Regex regex) => !string.IsNullOrEmpty(s) && regex.IsMatch(s);
+    public static bool RegexMatch(this string source, Regex regex) => !string.IsNullOrEmpty(source) && regex.IsMatch(source);
 
     /// <summary>
     /// 将十六进制字符串解析为其等效字节数组
     /// </summary>
-    /// <param name="s">要分析的十六进制字符串</param>
+    /// <param name="hex"></param>
+    /// <returns></returns>
+    public static byte[] FromHex(this string hex)
+    {
+        hex = hex.Replace("-", "");
+        var raw = new byte[hex.Length / 2];
+        for (var i = 0; i < raw.Length; i++)
+        {
+            raw[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+        }
+        return raw;
+    }
+
+    /// <summary>
+    /// 将十六进制字符串解析为其等效字节数组
+    /// </summary>
+    /// <param name="hex">要分析的十六进制字符串</param>
     /// <returns>十六进制字符串的字节等效项</returns>
-    public static byte[] ParseHexString(this string s) =>
-        string.IsNullOrWhiteSpace(s)
-            ? throw new ArgumentNullException(nameof(s))
-            : !s.TryParseHexString(out var bytes)
+    public static byte[] ParseHexString(this string hex) =>
+        string.IsNullOrWhiteSpace(hex)
+            ? throw new ArgumentNullException(nameof(hex))
+            : !hex.TryParseHexString(out var bytes)
                 ? throw new FormatException("String should contain only hexadecimal digits.")
                 : bytes!;
 
     /// <summary>
     /// 尝试将十六进制字符串解析为字节数组
     /// </summary>
-    /// <param name="s">十六进制字符串</param>
+    /// <param name="hex">十六进制字符串</param>
     /// <param name="bytes">A byte array.</param>
     /// <returns>如果成功解析十六进制字符串，则为 True</returns>
-    public static bool TryParseHexString(this string s, out byte[]? bytes)
+    public static bool TryParseHexString(this string hex, out byte[]? bytes)
     {
         bytes = null;
-        if (string.IsNullOrWhiteSpace(s)) return false;
-        var buffer = new byte[(s.Length + 1) / 2];
+        if (string.IsNullOrWhiteSpace(hex)) return false;
+        var buffer = new byte[(hex.Length + 1) / 2];
         var i = 0;
         var j = 0;
-        if (s.Length % 2 == 1)
+        if (hex.Length % 2 == 1)
         {
             // if s has an odd length assume an implied leading "0"
-            if (!TryParseHexChar(s[i++], out var y)) return false;
+            if (!TryParseHexChar(hex[i++], out var y)) return false;
             buffer[j++] = (byte)y;
         }
-        while (i < s.Length)
+        while (i < hex.Length)
         {
-            if (!TryParseHexChar(s[i++], out var x)) return false;
-            if (!TryParseHexChar(s[i++], out var y)) return false;
-#pragma warning disable IDE0048
+            if (!TryParseHexChar(hex[i++], out var x)) return false;
+            if (!TryParseHexChar(hex[i++], out var y)) return false;
             buffer[j++] = (byte)((x << 4) | y);
-#pragma warning restore IDE0048
         }
         bytes = buffer;
         return true;
@@ -688,10 +703,7 @@ public static class StringExtension
     /// <returns>十六进制字符串</returns>
     public static string ToHexString(this byte[] bytes)
     {
-        if (bytes == null)
-        {
-            throw new ArgumentNullException(nameof(bytes));
-        }
+        ArgumentNullException.ThrowIfNull(bytes);
         var length = bytes.Length;
         var c = new char[length * 2];
         for (int i = 0, j = 0; i < length; i++)
