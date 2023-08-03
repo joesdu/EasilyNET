@@ -51,7 +51,7 @@ public static class TripleDES
         var cs = new CryptoStream(ms, des.CreateEncryptor(), CryptoStreamMode.Write);
         cs.Write(inputByteArray, 0, inputByteArray.Length);
         cs.FlushFinalBlock();
-        return Convert.ToBase64String(ms.ToArray());
+        return ms.ToArray().ToBase64();
     }
 
     /// <summary>
@@ -63,7 +63,7 @@ public static class TripleDES
     public static string Decrypt(string secret, string pwd)
     {
         var (Key, IV) = GetEesKey(pwd);
-        var inputByteArray = Convert.FromBase64String(secret);
+        var inputByteArray = secret.FromBase64();
         var des = System.Security.Cryptography.TripleDES.Create();
         des.Key = Key;
         des.IV = IV;

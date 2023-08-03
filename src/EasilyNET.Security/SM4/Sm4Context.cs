@@ -11,9 +11,9 @@ internal sealed class Sm4Context
     public bool IsPadding { get; set; } = true;
 
     /// <summary>
-    /// 1表示加密，0表示解密
+    /// 加密或者解密
     /// </summary>
-    public int Mode { get; set; } = 1;
+    public ESm4Model Mode { get; set; } = ESm4Model.加密;
 
     /// <summary>
     /// 密钥

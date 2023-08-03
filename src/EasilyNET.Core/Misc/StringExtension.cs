@@ -2,7 +2,6 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 #pragma warning disable IDE0079
@@ -194,46 +193,6 @@ public static class StringExtension
                 : $"{value[..(maxLength - suffix.Length)]}{suffix}";
 
     /// <summary>
-    /// 将JSON字符串符合条件的字段,按照最大长度截断
-    /// </summary>
-    /// <param name="json"></param>
-    /// <param name="predicate">筛选字段名</param>
-    /// <param name="maxLength">最大长度(添加后缀后的长度)</param>
-    /// <param name="suffix">后缀,默认: ...</param>
-    /// <returns></returns>
-    public static string TruncateJson(this string json, Func<string, bool> predicate, int maxLength, string suffix = "...")
-    {
-        // Parse the json string into a JsonDocument
-        using var doc = JsonDocument.Parse(json);
-        // Get the root element of the document
-        var root = doc.RootElement;
-        // Create a StringBuilder to store the truncated json string
-        var sb = new StringBuilder();
-        // Write the opening brace of the object
-        sb.Append('{');
-        // Loop through all the properties in the root element
-        foreach (var property in root.EnumerateObject())
-        {
-            // Get the name and value of the property as strings
-            var name = property.Name;
-            var value = property.Value.ToString();
-            // If the predicate function returns true for the property name, and the value is longer than the max length, truncate it and add a suffix
-            if (predicate(name) && value.Length > maxLength)
-            {
-                value = value.Truncate(maxLength - suffix.Length, suffix);
-            }
-            // Write the property name and value to the StringBuilder with quotes and comma
-            sb.Append($"\"{name}\":\"{value}\",");
-        }
-        // Remove the last comma from the StringBuilder
-        sb.Length--;
-        // Write the closing brace of the object
-        sb.Append('}');
-        // Return the truncated json string
-        return sb.ToString();
-    }
-
-    /// <summary>
     /// 将字符串集合链接起来
     /// </summary>
     /// <param name="strs"></param>
@@ -339,20 +298,6 @@ public static class StringExtension
     }
 
     /// <summary>
-    /// 获取某个日期串的DateOnly
-    /// </summary>
-    /// <param name="value">格式如: 2022-02-28</param>
-    /// <returns></returns>
-    public static DateOnly ToDateOnly(this string value) => DateOnly.FromDateTime(value.ToDateTime());
-
-    /// <summary>
-    /// 获取某个时间串的TimeOnly
-    /// </summary>
-    /// <param name="value">格式如: 23:20:10</param>
-    /// <returns></returns>
-    public static TimeOnly ToTimeOnly(this string value) => TimeOnly.FromDateTime($"{DateTime.Now:yyyy-MM-dd} {value}".ToDateTime());
-
-    /// <summary>
     /// 将字符串转化为内存字节流
     /// </summary>
     /// <param name="value">需转换的字符串</param>
@@ -405,25 +350,25 @@ public static class StringExtension
     public static Guid ToGuid(this string str) => Guid.TryParse(str, out var guid) ? guid : Guid.Empty;
 
     /// <summary>
-    /// 将字符串转换成Base64字符串
+    /// 将字节数组转换成Base64字符串
     /// </summary>
     /// <param name="value">字符串</param>
     /// <returns></returns>
-    public static string ToBase64(this string value) => Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+    public static string ToBase64(this byte[] value) => Convert.ToBase64String(value);
 
     /// <summary>
-    /// 将Base64字符转成String
+    /// 将Base64字符串转化成字节数组
     /// </summary>
-    /// <param name="value">Base64字符串</param>
+    /// <param name="value"></param>
     /// <returns></returns>
-    public static string Base64ToString(this string value) => Encoding.UTF8.GetString(Convert.FromBase64String(value));
+    public static byte[] FromBase64(this string value) => Convert.FromBase64String(value);
 
     /// <summary>
     /// 转全角的函数(SBC case)
     /// </summary>
     /// <param name="input">需要转换的字符串</param>
     /// <returns>转换为全角的字符串</returns>
-    public static string ToSbc(this string input)
+    public static string ToSBC(this string input)
     {
         //半角转全角：
         var c = input.ToCharArray();
@@ -444,7 +389,7 @@ public static class StringExtension
     /// </summary>
     /// <param name="input">需要转换的字符串</param>
     /// <returns>转换为半角的字符串</returns>
-    public static string ToDbc(this string input)
+    public static string ToDBC(this string input)
     {
         var c = input.ToCharArray();
         for (var i = 0; i < c.Length; i++)
@@ -494,18 +439,6 @@ public static class StringExtension
             _ = sb.Append(value[--i]);
         }
         return sb.ToString();
-    }
-
-    /// <summary>
-    /// 使用Array.Reverse()的方式反转字符串,该函数不会修改原字符串
-    /// </summary>
-    /// <param name="value">待反转字符串</param>
-    /// <returns>反转后的结果</returns>
-    public static string ReverseByArray(this string value)
-    {
-        var arr = value.ToCharArray();
-        Array.Reverse(arr);
-        return new(arr);
     }
 
     /// <summary>
@@ -618,26 +551,17 @@ public static class StringExtension
     /// </summary>
     /// <param name="hex"></param>
     /// <returns></returns>
-    public static byte[] FromHex(this string hex)
-    {
-        hex = hex.Replace("-", "");
-        var raw = new byte[hex.Length / 2];
-        for (var i = 0; i < raw.Length; i++)
-        {
-            raw[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
-        }
-        return raw;
-    }
+    public static byte[] FromHex(this string hex) => hex.ParseHex();
 
     /// <summary>
     /// 将十六进制字符串解析为其等效字节数组
     /// </summary>
     /// <param name="hex">要分析的十六进制字符串</param>
     /// <returns>十六进制字符串的字节等效项</returns>
-    public static byte[] ParseHexString(this string hex) =>
+    public static byte[] ParseHex(this string hex) =>
         string.IsNullOrWhiteSpace(hex)
             ? throw new ArgumentNullException(nameof(hex))
-            : !hex.TryParseHexString(out var bytes)
+            : !hex.TryParseHex(out var bytes)
                 ? throw new FormatException("String should contain only hexadecimal digits.")
                 : bytes!;
 
@@ -647,7 +571,7 @@ public static class StringExtension
     /// <param name="hex">十六进制字符串</param>
     /// <param name="bytes">A byte array.</param>
     /// <returns>如果成功解析十六进制字符串，则为 True</returns>
-    public static bool TryParseHexString(this string hex, out byte[]? bytes)
+    public static bool TryParseHex(this string hex, out byte[]? bytes)
     {
         bytes = null;
         if (string.IsNullOrWhiteSpace(hex)) return false;
@@ -657,20 +581,20 @@ public static class StringExtension
         if (hex.Length % 2 == 1)
         {
             // if s has an odd length assume an implied leading "0"
-            if (!TryParseHexChar(hex[i++], out var y)) return false;
+            if (!TryParseHex(hex[i++], out var y)) return false;
             buffer[j++] = (byte)y;
         }
         while (i < hex.Length)
         {
-            if (!TryParseHexChar(hex[i++], out var x)) return false;
-            if (!TryParseHexChar(hex[i++], out var y)) return false;
+            if (!TryParseHex(hex[i++], out var x)) return false;
+            if (!TryParseHex(hex[i++], out var y)) return false;
             buffer[j++] = (byte)((x << 4) | y);
         }
         bytes = buffer;
         return true;
     }
 
-    private static bool TryParseHexChar(char c, out int value)
+    private static bool TryParseHex(char c, out int value)
     {
         switch (c)
         {
@@ -701,7 +625,7 @@ public static class StringExtension
     /// </summary>
     /// <param name="bytes">字节数组</param>
     /// <returns>十六进制字符串</returns>
-    public static string ToHexString(this byte[] bytes)
+    public static string ToHex(this byte[] bytes)
     {
         ArgumentNullException.ThrowIfNull(bytes);
         var length = bytes.Length;

@@ -1,5 +1,8 @@
-﻿using System.Text;
+﻿using EasilyNET.Core.Misc;
+using System.Text;
 
+// ReSharper disable SuggestBaseTypeForParameter
+// ReSharper disable ParameterTypeCanBeEnumerable.Local
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
@@ -20,7 +23,7 @@ public static class Rc4Crypt
     public static string Encrypt(string data, string key)
     {
         var encrypted = Encrypt(Encoding.UTF8.GetBytes(data), Encoding.UTF8.GetBytes(key));
-        return Convert.ToBase64String(encrypted);
+        return encrypted.ToBase64();
     }
 
     /// <summary>
@@ -31,22 +34,22 @@ public static class Rc4Crypt
     /// <returns></returns>
     public static string Decrypt(string data, string key)
     {
-        var decrypted = Encrypt(Convert.FromBase64String(data), Encoding.UTF8.GetBytes(key));
+        var decrypted = Encrypt(data.FromBase64(), Encoding.UTF8.GetBytes(key));
         return Encoding.UTF8.GetString(decrypted);
     }
 
-    private static byte[] EncryptInit(IReadOnlyList<byte> key)
+    private static byte[] EncryptInit(byte[] key)
     {
         var s = Enumerable.Range(0, 256).Select(i => (byte)i).ToArray();
         for (int i = 0, j = 0; i < 256; i++)
         {
-            j = (j + key[i % key.Count] + s[i]) & 255;
+            j = (j + key[i % key.Length] + s[i]) & 255;
             Swap(s, i, j);
         }
         return s;
     }
 
-    private static byte[] Encrypt(IEnumerable<byte> data, IReadOnlyList<byte> key)
+    private static byte[] Encrypt(byte[] data, byte[] key)
     {
         var s = EncryptInit(key);
         var i = 0;

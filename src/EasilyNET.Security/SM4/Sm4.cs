@@ -8,16 +8,6 @@ namespace EasilyNET.Security;
 internal sealed class Sm4
 {
     /// <summary>
-    /// 加密
-    /// </summary>
-    public const int SM4_ENCRYPT = 1;
-
-    /// <summary>
-    /// 解密
-    /// </summary>
-    public const int SM4_DECRYPT = 0;
-
-    /// <summary>
     /// 固定参数CK
     /// </summary>
     private readonly uint[] CK =
@@ -98,22 +88,14 @@ internal sealed class Sm4
     /// </summary>
     /// <param name="sk"></param>
     /// <param name="i"></param>
-    private static void Swap(long[] sk, int i)
-    {
-        (sk[i], sk[31 - i]) = (sk[31 - i], sk[i]);
-    }
+    private static void Swap(long[] sk, int i) => (sk[i], sk[31 - i]) = (sk[31 - i], sk[i]);
 
     /// <summary>
     /// Sm4的S盒取值
     /// </summary>
     /// <param name="inch"></param>
     /// <returns></returns>
-    private byte Sm4SBox(byte inch)
-    {
-        var i = inch & 0xFF;
-        var retVal = SBoxTable[i];
-        return retVal;
-    }
+    private byte Sm4SBox(byte inch) => SBoxTable[inch & 0xFF];
 
     /// <summary>
     /// 线性变换 L
@@ -130,8 +112,7 @@ internal sealed class Sm4
         b[2] = Sm4SBox(a[2]);
         b[3] = Sm4SBox(a[3]);
         var bb = GetULongByBe(b, 0);
-        var c = bb ^ RotL(bb, 2) ^ RotL(bb, 10) ^ RotL(bb, 18) ^ RotL(bb, 24);
-        return c;
+        return bb ^ RotL(bb, 2) ^ RotL(bb, 10) ^ RotL(bb, 18) ^ RotL(bb, 24);
     }
 
     /// <summary>
@@ -160,8 +141,7 @@ internal sealed class Sm4
         b[2] = Sm4SBox(a[2]);
         b[3] = Sm4SBox(a[3]);
         var bb = GetULongByBe(b, 0);
-        var rk = bb ^ RotL(bb, 13) ^ RotL(bb, 23);
-        return rk;
+        return bb ^ RotL(bb, 13) ^ RotL(bb, 23);
     }
 
     /// <summary>
@@ -220,10 +200,10 @@ internal sealed class Sm4
     /// <param name="input"></param>
     /// <param name="mode">1表示加密，0表示解密</param>
     /// <returns></returns>
-    private static byte[] Padding(byte[] input, int mode)
+    private static byte[] Padding(byte[] input, ESm4Model mode)
     {
         byte[] ret;
-        if (mode == SM4_ENCRYPT)
+        if (mode is ESm4Model.加密)
         {
             var p = 16 - input.Length % 16;
             ret = new byte[input.Length + p];
@@ -249,7 +229,7 @@ internal sealed class Sm4
     /// <param name="key"></param>
     public void Sm4SetKeyEnc(Sm4Context ctx, byte[] key)
     {
-        ctx.Mode = SM4_ENCRYPT;
+        ctx.Mode = ESm4Model.加密;
         Sm4SetKey(ctx.Key, key);
     }
 
@@ -260,7 +240,7 @@ internal sealed class Sm4
     /// <param name="key"></param>
     public void Sm4SetKeyDec(Sm4Context ctx, byte[] key)
     {
-        ctx.Mode = SM4_DECRYPT;
+        ctx.Mode = ESm4Model.解密;
         Sm4SetKey(ctx.Key, key);
         for (var i = 0; i < 16; i++)
         {
@@ -276,9 +256,9 @@ internal sealed class Sm4
     /// <returns></returns>
     public byte[] Sm4CryptECB(Sm4Context ctx, byte[] input)
     {
-        if (ctx is { IsPadding: true, Mode: SM4_ENCRYPT })
+        if (ctx is { IsPadding: true, Mode: ESm4Model.加密 })
         {
-            input = Padding(input, SM4_ENCRYPT);
+            input = Padding(input, ESm4Model.加密);
         }
         var length = input.Length;
         var bins = new byte[length];
@@ -292,9 +272,9 @@ internal sealed class Sm4
             Sm4OneRound(ctx.Key, inBytes, outBytes);
             Array.Copy(outBytes, 0, bous, i * 16, length > 16 ? 16 : length);
         }
-        if (ctx is { IsPadding: true, Mode: SM4_DECRYPT })
+        if (ctx is { IsPadding: true, Mode: ESm4Model.解密 })
         {
-            bous = Padding(bous, SM4_DECRYPT);
+            bous = Padding(bous, ESm4Model.解密);
         }
         return bous;
     }
@@ -308,13 +288,13 @@ internal sealed class Sm4
     /// <returns></returns>
     public byte[] Sm4CryptCBC(Sm4Context ctx, byte[] iv, byte[] input)
     {
-        if (ctx is { IsPadding: true, Mode: SM4_ENCRYPT }) input = Padding(input, SM4_ENCRYPT);
+        if (ctx is { IsPadding: true, Mode: ESm4Model.加密 }) input = Padding(input, ESm4Model.加密);
         var length = input.Length;
         var bins = new byte[length];
         Array.Copy(input, 0, bins, 0, length);
         var bousList = new List<byte>();
         int i;
-        if (ctx.Mode == SM4_ENCRYPT)
+        if (ctx.Mode is ESm4Model.加密)
         {
             for (var j = 0; length > 0; length -= 16, j++)
             {
@@ -356,6 +336,6 @@ internal sealed class Sm4
                 }
             }
         }
-        return ctx is { IsPadding: true, Mode: SM4_DECRYPT } ? Padding(bousList.ToArray(), SM4_DECRYPT) : bousList.ToArray();
+        return ctx is { IsPadding: true, Mode: ESm4Model.解密 } ? Padding(bousList.ToArray(), ESm4Model.解密) : bousList.ToArray();
     }
 }
