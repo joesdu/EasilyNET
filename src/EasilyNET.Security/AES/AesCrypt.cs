@@ -9,7 +9,7 @@ using System.Text;
 namespace EasilyNET.Security;
 
 /// <summary>
-/// AES加密解密
+/// AES加密解密(使用本库加密仅能用本库解密)
 /// </summary>
 public static class AesCrypt
 {
@@ -51,14 +51,13 @@ public static class AesCrypt
     /// <summary>
     /// AES加密
     /// </summary>
-    /// <param name="txt">需要加密的内容</param>
+    /// <param name="content">需要加密的内容</param>
     /// <param name="pwd">密钥</param>
     /// <param name="model">加密模式</param>
     /// <returns></returns>
-    private static byte[] Encrypt(string txt, string pwd, AESModel model)
+    public static byte[] Encrypt(byte[] content, string pwd, AESModel model)
     {
         var (Key, IV) = GetAesKey(pwd, model);
-        var content = Encoding.UTF8.GetBytes(txt);
         using var aes = Aes.Create();
         aes.Key = Key;
         aes.IV = IV;
@@ -75,64 +74,15 @@ public static class AesCrypt
     /// <param name="pwd"></param>
     /// <param name="model"></param>
     /// <returns></returns>
-    private static byte[] Decrypt(string secret, string pwd, AESModel model)
+    public static byte[] Decrypt(byte[] secret, string pwd, AESModel model)
     {
         var (Key, IV) = GetAesKey(pwd, model);
-        var toEncryptArray = Convert.FromBase64String(secret);
         using var aes = Aes.Create();
         aes.Key = Key;
         aes.IV = IV;
         aes.Mode = CipherMode.CBC;
         aes.Padding = PaddingMode.PKCS7;
         var cTransform = aes.CreateDecryptor();
-        return cTransform.TransformFinalBlock(toEncryptArray, 0, toEncryptArray.Length);
-    }
-
-    /// <summary>
-    /// 使用AES加密字符串
-    /// </summary>
-    /// <param name="content">加密内容</param>
-    /// <param name="pwd">秘钥</param>
-    /// <returns>Base64字符串结果</returns>
-    public static string Aes256CbcEncrypt(string content, string pwd)
-    {
-        var resultArray = Encrypt(content, pwd, AESModel.AES256);
-        return resultArray.ToBase64();
-    }
-
-    /// <summary>
-    /// 使用AES解密字符串
-    /// </summary>
-    /// <param name="secret">内容</param>
-    /// <param name="pwd">秘钥</param>
-    /// <returns>UTF8解密结果</returns>
-    public static string Aes256CbcDecrypt(string secret, string pwd)
-    {
-        var resultArray = Decrypt(secret, pwd, AESModel.AES256);
-        return Encoding.UTF8.GetString(resultArray);
-    }
-
-    /// <summary>
-    /// 使用AES加密字符串
-    /// </summary>
-    /// <param name="content">加密内容</param>
-    /// <param name="pwd">秘钥</param>
-    /// <returns>Base64字符串结果</returns>
-    public static string Aes128CbcEncrypt(string content, string pwd)
-    {
-        var resultArray = Encrypt(content, pwd, AESModel.AES128);
-        return resultArray.ToBase64();
-    }
-
-    /// <summary>
-    /// 使用AES解密字符串
-    /// </summary>
-    /// <param name="secret">内容</param>
-    /// <param name="pwd">秘钥</param>
-    /// <returns>UTF8解密结果</returns>
-    public static string Aes128CbcDecrypt(string secret, string pwd)
-    {
-        var resultArray = Decrypt(secret, pwd, AESModel.AES128);
-        return Encoding.UTF8.GetString(resultArray);
+        return cTransform.TransformFinalBlock(secret, 0, secret.Length);
     }
 }

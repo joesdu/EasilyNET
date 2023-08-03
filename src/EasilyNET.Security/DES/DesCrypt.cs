@@ -7,7 +7,7 @@ using System.Text;
 namespace EasilyNET.Security;
 
 /// <summary>
-/// DES加密解密
+/// DES加密解密(使用本库加密仅能用本库解密)
 /// </summary>
 // ReSharper disable once UnusedType.Global
 public static class DesCrypt
@@ -33,25 +33,24 @@ public static class DesCrypt
     }
 
     /// <summary>
-    /// DES加密字符串
+    /// DES加密
     /// </summary>
-    /// <param name="content">待加密的字符串</param>
+    /// <param name="content">待加密的数据</param>
     /// <param name="pwd">加密密钥</param>
-    /// <returns>加密后的字符串</returns>
-    public static string Encrypt(string content, string pwd)
+    /// <returns>加密后的数据</returns>
+    public static byte[] Encrypt(byte[] content, string pwd)
     {
         var (Key, IV) = GetEesKey(pwd);
-        var inputByteArray = Encoding.UTF8.GetBytes(content);
         var des = DES.Create();
         des.Key = Key;
         des.IV = IV;
         des.Mode = CipherMode.CBC;
         des.Padding = PaddingMode.PKCS7;
-        var ms = new MemoryStream();
-        var cs = new CryptoStream(ms, des.CreateEncryptor(), CryptoStreamMode.Write);
-        cs.Write(inputByteArray, 0, inputByteArray.Length);
+        using var ms = new MemoryStream();
+        using var cs = new CryptoStream(ms, des.CreateEncryptor(), CryptoStreamMode.Write);
+        cs.Write(content, 0, content.Length);
         cs.FlushFinalBlock();
-        return ms.ToArray().ToBase64();
+        return ms.ToArray();
     }
 
     /// <summary>
@@ -60,19 +59,18 @@ public static class DesCrypt
     /// <param name="secret">待解密的字符串</param>
     /// <param name="pwd">解密密钥</param>
     /// <returns>解密后的字符串</returns>
-    public static string Decrypt(string secret, string pwd)
+    public static byte[] Decrypt(byte[] secret, string pwd)
     {
         var (Key, IV) = GetEesKey(pwd);
-        var inputByteArray = secret.FromBase64();
         var des = DES.Create();
         des.Key = Key;
         des.IV = IV;
         des.Mode = CipherMode.CBC;
         des.Padding = PaddingMode.PKCS7;
-        var ms = new MemoryStream();
-        var cs = new CryptoStream(ms, des.CreateDecryptor(), CryptoStreamMode.Write);
-        cs.Write(inputByteArray, 0, inputByteArray.Length);
+        using var ms = new MemoryStream();
+        using var cs = new CryptoStream(ms, des.CreateDecryptor(), CryptoStreamMode.Write);
+        cs.Write(secret, 0, secret.Length);
         cs.FlushFinalBlock();
-        return Encoding.UTF8.GetString(ms.ToArray());
+        return ms.ToArray();
     }
 }
