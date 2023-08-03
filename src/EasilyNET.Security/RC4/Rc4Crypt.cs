@@ -1,5 +1,4 @@
-﻿using EasilyNET.Core.Misc;
-using System.Text;
+﻿using System.Text;
 
 // ReSharper disable SuggestBaseTypeForParameter
 // ReSharper disable ParameterTypeCanBeEnumerable.Local
@@ -17,26 +16,18 @@ public static class Rc4Crypt
     /// <summary>
     /// RC4加密
     /// </summary>
-    /// <param name="key"></param>
-    /// <param name="data"></param>
+    /// <param name="data">待加密数据</param>
+    /// <param name="key">密钥</param>
     /// <returns></returns>
-    public static string Encrypt(string data, string key)
-    {
-        var encrypted = Encrypt(Encoding.UTF8.GetBytes(data), Encoding.UTF8.GetBytes(key));
-        return encrypted.ToBase64();
-    }
+    public static byte[] Encrypt(byte[] data, string key) => Encrypt(data, Encoding.UTF8.GetBytes(key));
 
     /// <summary>
     /// RC4解密
     /// </summary>
-    /// <param name="key"></param>
-    /// <param name="data"></param>
+    /// <param name="data">待解密数据</param>
+    /// <param name="key">密钥</param>
     /// <returns></returns>
-    public static string Decrypt(string data, string key)
-    {
-        var decrypted = Encrypt(data.FromBase64(), Encoding.UTF8.GetBytes(key));
-        return Encoding.UTF8.GetString(decrypted);
-    }
+    public static byte[] Decrypt(byte[] data, string key) => Encrypt(data, Encoding.UTF8.GetBytes(key));
 
     private static byte[] EncryptInit(byte[] key)
     {
@@ -63,5 +54,5 @@ public static class Rc4Crypt
         }).ToArray();
     }
 
-    private static void Swap(IList<byte> s, int i, int j) => (s[i], s[j]) = (s[j], s[i]);
+    private static void Swap(byte[] s, int i, int j) => (s[i], s[j]) = (s[j], s[i]);
 }
