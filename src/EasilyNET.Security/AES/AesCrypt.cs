@@ -97,7 +97,7 @@ public static class AesCrypt
     public static string Aes256CbcEncrypt(string content, string pwd)
     {
         var resultArray = Encrypt(content, pwd, AESModel.AES256);
-        return Convert.ToBase64String(resultArray);
+        return resultArray.ToBase64();
     }
 
     /// <summary>
@@ -121,7 +121,7 @@ public static class AesCrypt
     public static string Aes128CbcEncrypt(string content, string pwd)
     {
         var resultArray = Encrypt(content, pwd, AESModel.AES128);
-        return Convert.ToBase64String(resultArray);
+        return resultArray.ToBase64();
     }
 
     /// <summary>

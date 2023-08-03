@@ -1,7 +1,7 @@
 ﻿using Org.BouncyCastle.Crypto.Digests;
-using Org.BouncyCastle.Utilities.Encoders;
 using System.Text;
 
+// ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 
@@ -15,27 +15,29 @@ namespace EasilyNET.Security;
 public static class Sm3Crypt
 {
     /// <summary>
-    /// SM3加密,获取结果Base64字符串
+    /// 获取字符串的SM3签名
     /// </summary>
     /// <param name="data"></param>
     /// <returns></returns>
-    public static string ToSm3Base64(this string data) => Convert.ToBase64String(Hex.Decode(data.Crypt()));
-
-    /// <summary>
-    /// SM3加密,获取结果16进制字符串
-    /// </summary>
-    /// <param name="data"></param>
-    /// <returns></returns>
-    public static string ToSm3String(this string data) => new UTF8Encoding().GetString(data.Crypt());
-
-    private static byte[] Crypt(this string data)
+    public static byte[] Crypt(string data)
     {
         //加密
         var msg = Encoding.UTF8.GetBytes(data);
+        return Crypt(msg);
+    }
+
+    /// <summary>
+    /// 获取字节数组的SM3签名
+    /// </summary>
+    /// <param name="data"></param>
+    /// <returns></returns>
+    public static byte[] Crypt(byte[] data)
+    {
+        //加密
         var md = new byte[32];
         var sm3 = new SM3Digest();
-        sm3.BlockUpdate(msg, 0, msg.Length);
+        sm3.BlockUpdate(data, 0, data.Length);
         sm3.DoFinal(md, 0);
-        return Hex.Encode(md);
+        return md;
     }
 }
