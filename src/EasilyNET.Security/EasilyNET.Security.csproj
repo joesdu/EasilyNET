@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Security</PackageProjectUrl>
-		<Description>一个常用加密算法的封装库,从使用简单的目的出发</Description>
-	</PropertyGroup>
+    <PropertyGroup>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Security</PackageProjectUrl>
+        <Description>一个常用加密算法的封装库,从使用简单的目的出发</Description>
+    </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="BouncyCastle.Cryptography" Version="2.2.1" />
-	</ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="BouncyCastle.Cryptography" Version="2.2.1"/>
+    </ItemGroup>
 
 </Project>

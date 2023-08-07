@@ -1,16 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.WebCore</PackageProjectUrl>
-		<Description>包含Swagger的一些扩展的WebCore扩展</Description>
-	</PropertyGroup>
+    <PropertyGroup>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.WebCore</PackageProjectUrl>
+        <Description>包含Swagger的一些扩展的WebCore扩展</Description>
+    </PropertyGroup>
 
-	<ItemGroup>
-		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-	</ItemGroup>
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
-	</ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj"/>
+    </ItemGroup>
 
 </Project>

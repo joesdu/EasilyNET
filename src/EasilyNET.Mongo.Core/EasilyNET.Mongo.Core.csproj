@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.Core</PackageProjectUrl>
-		<Description>MongoDB 驱动的服务包,方便使用 Mongo 数据库.</Description>
-	</PropertyGroup>
+    <PropertyGroup>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.Core</PackageProjectUrl>
+        <Description>MongoDB 驱动的服务包,方便使用 Mongo 数据库.</Description>
+    </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="MongoDB.Driver" Version="2.20.0" />
-	</ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="MongoDB.Driver" Version="2.20.0"/>
+    </ItemGroup>
 </Project>

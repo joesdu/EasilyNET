@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-	    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+        <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Core</PackageProjectUrl>
         <Description>业务类型库,用于一些业务方面的类,如分页,以及业务中常用的一些数据类型和枚举类型</Description>
     </PropertyGroup>
 
     <ItemGroup>
-	<PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0-preview.6.23329.7" />
+        <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0-preview.6.23329.7"/>
     </ItemGroup>
 
 </Project>

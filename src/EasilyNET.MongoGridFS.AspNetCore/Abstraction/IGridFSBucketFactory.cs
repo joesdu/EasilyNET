@@ -4,14 +4,14 @@ using MongoDB.Driver.GridFS;
 namespace EasilyNET.MongoGridFS.AspNetCore;
 
 /// <summary>
-/// ¹¤³§½Ó¿Ú
+/// å·¥å‚æ¥å£
 /// </summary>
 internal interface IGridFSBucketFactory
 {
     /// <summary>
-    /// ´´½¨¿Í»§¶Ë
+    /// åˆ›å»ºå®¢æˆ·ç«¯
     /// </summary>
-    /// <param name="db">MongoÊı¾İ¿â</param>
+    /// <param name="db">Mongoæ•°æ®åº“</param>
     /// <returns></returns>
     IGridFSBucket CreateBucket(IMongoDatabase db);
 }
