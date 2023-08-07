@@ -6,5 +6,5 @@
 /// <typeparam name="TUserKey"></typeparam>
 public interface IHasCreateUserId<out TUserKey>
 {
-    TUserKey? CreateUserId  { get; }
+    TUserKey? CreateUserId { get; }
 }

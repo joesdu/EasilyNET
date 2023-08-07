@@ -1,6 +1,4 @@
-﻿using EasilyNET.Core.Timing;
-
-namespace EasilyNET.Core.Entities;
+﻿namespace EasilyNET.Core.Entities;
 
 /// <summary>
 /// 领域事件
@@ -8,11 +6,13 @@ namespace EasilyNET.Core.Entities;
 public interface IDomainEvent
 {
     Guid Id { get; }
+
     DateTime DateTime { get; }
 }
 
 public abstract class DomainEvent : IDomainEvent
 {
     public Guid Id { get; } = Guid.NewGuid();
-    public DateTime DateTime { get; } = SystemTime.Now();
+
+    public DateTime DateTime { get; } = DateTime.Now;
 }

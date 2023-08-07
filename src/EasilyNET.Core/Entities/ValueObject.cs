@@ -7,10 +7,9 @@
 public abstract class ValueObject
 {
     /// <summary>
-    /// 
     /// </summary>
     /// <returns></returns>
-    protected abstract IEnumerable<object> GetAtomicValues();
+    abstract protected IEnumerable<object> GetAtomicValues();
 
     /// <summary>
     /// 值是否相等
@@ -23,12 +22,9 @@ public abstract class ValueObject
         {
             return false;
         }
-
         var other = (ValueObject)obj;
-
         var thisValues = GetAtomicValues().GetEnumerator()!;
         var otherValues = other.GetAtomicValues().GetEnumerator()!;
-
         var thisMoveNext = thisValues.MoveNext();
         var otherMoveNext = otherValues.MoveNext();
         while (thisMoveNext && otherMoveNext)
@@ -37,22 +33,17 @@ public abstract class ValueObject
             {
                 return false;
             }
-
             if (thisValues.Current != null && !thisValues.Current.Equals(otherValues.Current))
             {
                 return false;
             }
-
             thisMoveNext = thisValues.MoveNext();
             otherMoveNext = otherValues.MoveNext();
-
             if (thisMoveNext != otherMoveNext)
             {
                 return false;
             }
         }
-
         return !thisMoveNext && !otherMoveNext;
     }
-    
 }

@@ -6,7 +6,6 @@
 public interface IHasUpdatedTime
 {
     /// <summary>
-    /// 
     /// </summary>
     public DateTime? UpdatedTime { get; }
 }

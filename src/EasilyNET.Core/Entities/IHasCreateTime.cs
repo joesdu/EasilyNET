@@ -5,6 +5,5 @@
 /// </summary>
 public interface IHasCreateTime
 {
-
     public DateTime? CreateTime { get; }
 }
