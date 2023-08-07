@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using EasilyNET.Core.Misc;
+using System.Security.Cryptography;
 using System.Text;
 
 // ReSharper disable UnusedMember.Global
@@ -9,7 +10,7 @@ namespace EasilyNET.Security;
 /// <summary>
 /// RSA算法
 /// </summary>
-public static class RSA
+public static class RsaCrypt
 {
     /// <summary>
     /// 创建RSA密钥对
@@ -39,7 +40,7 @@ public static class RSA
         using var rsa = new RSACryptoServiceProvider();
         rsa.FromXmlString(xmlPublicKey);
         var encrypted = rsa.Encrypt(Encoding.UTF8.GetBytes(content), false);
-        return Convert.ToBase64String(encrypted);
+        return encrypted.ToBase64();
     }
 
     /// <summary>
@@ -52,7 +53,7 @@ public static class RSA
     {
         using var rsa = new RSACryptoServiceProvider();
         rsa.FromXmlString(xmlPrivateKey);
-        var decrypted = rsa.Decrypt(Convert.FromBase64String(secret), false);
+        var decrypted = rsa.Decrypt(secret.FromBase64(), false);
         return Encoding.UTF8.GetString(decrypted);
     }
 
@@ -67,11 +68,9 @@ public static class RSA
         if (string.IsNullOrEmpty(content)) throw new("加密字符串不能为空.");
         if (string.IsNullOrWhiteSpace(xmlPublicKey)) throw new ArgumentException("错误的公匙");
         using var rsaProvider = new RSACryptoServiceProvider();
-        var inputBytes = Convert.FromBase64String(content); //有含义的字符串转化为字节流
-        rsaProvider.FromXmlString(xmlPublicKey);            //载入公钥
-#pragma warning disable IDE0048                             // 为清楚起见，请添加括号
-        var bufferSize = rsaProvider.KeySize / 8 - 11;      //单块最大长度
-#pragma warning restore IDE0048                             // 为清楚起见，请添加括号
+        var inputBytes = content.FromBase64();            //有含义的字符串转化为字节流
+        rsaProvider.FromXmlString(xmlPublicKey);          //载入公钥
+        var bufferSize = (rsaProvider.KeySize >> 3) - 11; //单块最大长度
         var buffer = new byte[bufferSize];
         using MemoryStream ms = new(inputBytes), os = new();
         while (true)
@@ -84,7 +83,7 @@ public static class RSA
             var encryptedBytes = rsaProvider.Encrypt(temp, false);
             os.Write(encryptedBytes, 0, encryptedBytes.Length);
         }
-        secret = Convert.ToBase64String(os.ToArray()); //转化为字节流方便传输
+        secret = os.ToArray().ToBase64(); //转化为字节流方便传输
     }
 
     /// <summary>
@@ -98,9 +97,9 @@ public static class RSA
         if (string.IsNullOrEmpty(secret)) throw new("解密字符串不能为空.");
         if (string.IsNullOrWhiteSpace(xmlPrivateKey)) throw new ArgumentException("错误的私匙");
         using var rsaProvider = new RSACryptoServiceProvider();
-        var inputBytes = Convert.FromBase64String(secret);
+        var inputBytes = secret.FromBase64();
         rsaProvider.FromXmlString(xmlPrivateKey);
-        var bufferSize = rsaProvider.KeySize / 8;
+        var bufferSize = rsaProvider.KeySize >> 3;
         var buffer = new byte[bufferSize];
         using MemoryStream ms = new(inputBytes), os = new();
         while (true)
@@ -123,9 +122,12 @@ public static class RSA
     public static string GetFileSHA256(FileStream objFile)
     {
         ArgumentNullException.ThrowIfNull(objFile, nameof(objFile));
-        var array = SHA256.Create().ComputeHash(objFile);
+        using var stream = new MemoryStream();
+        objFile.CopyTo(stream);
+        var bytes = stream.ToArray();
+        var array = SHA256.HashData(bytes);
         objFile.Close();
-        return Convert.ToBase64String(array);
+        return array.ToBase64();
     }
 
     #region RSA签名与签名验证
@@ -144,8 +146,8 @@ public static class RSA
         //设置签名的算法为SHA256
         RSAFormatter.SetHashAlgorithm("SHA256");
         //执行签名 
-        var encrypt = RSAFormatter.CreateSignature(Convert.FromBase64String(context));
-        return Convert.ToBase64String(encrypt);
+        var encrypt = RSAFormatter.CreateSignature(context.FromBase64());
+        return encrypt.ToBase64();
     }
 
     /// <summary>
@@ -162,7 +164,7 @@ public static class RSA
         var formatter = new RSAPKCS1SignatureDeformatter(RSA);
         //指定解密的时候HASH算法为SHA256
         formatter.SetHashAlgorithm("SHA256");
-        return formatter.VerifySignature(Convert.FromBase64String(secret), Convert.FromBase64String(SignatureString));
+        return formatter.VerifySignature(secret.FromBase64(), SignatureString.FromBase64());
     }
 
     #endregion

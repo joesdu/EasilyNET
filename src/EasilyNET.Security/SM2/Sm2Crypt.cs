@@ -16,7 +16,7 @@ namespace EasilyNET.Security;
 /// <summary>
 /// BouncyCastle(BC) 实现SM2国密加解密、签名、验签
 /// </summary>
-public static class SM2
+public static class Sm2Crypt
 {
     /// <summary>
     /// 构建公钥和私钥
@@ -117,8 +117,8 @@ public static class SM2
     private static byte[] C123ToC132(byte[] c1c2c3)
     {
         var gn = GMNamedCurves.GetByName("SM2P256V1");
-        var c1Len = (gn.Curve.FieldSize + 7) / 8 * 2 + 1; //sm2p256v1的这个固定65。可看GMNamedCurves、ECCurve代码。
-        const int c3Len = 32;                             //new SM3Digest().getDigestSize();
+        var c1Len = (((gn.Curve.FieldSize + 7) >> 3) << 1) + 1; //sm2p256v1的这个固定65。可看GMNamedCurves、ECCurve代码。
+        const int c3Len = 32;
         var result = new byte[c1c2c3.Length];
         Array.Copy(c1c2c3, 0, result, 0, c1Len);                                         //c1
         Array.Copy(c1c2c3, c1c2c3.Length - c3Len, result, c1Len, c3Len);                 //c3
@@ -134,8 +134,8 @@ public static class SM2
     private static byte[] C132ToC123(byte[] c1c3c2)
     {
         var gn = GMNamedCurves.GetByName("SM2P256V1");
-        var c1Len = (gn.Curve.FieldSize + 7) / 8 * 2 + 1;
-        const int c3Len = 32; //new SM3Digest().getDigestSize();
+        var c1Len = (((gn.Curve.FieldSize + 7) >> 3) << 1) + 1;
+        const int c3Len = 32;
         var result = new byte[c1c3c2.Length];
         Array.Copy(c1c3c2, 0, result, 0, c1Len);                                         //c1: 0->65
         Array.Copy(c1c3c2, c1Len + c3Len, result, c1Len, c1c3c2.Length - c1Len - c3Len); //c2

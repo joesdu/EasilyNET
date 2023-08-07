@@ -1,7 +1,7 @@
 ﻿using System.Collections.Specialized;
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 #pragma warning disable IDE0079
@@ -193,46 +193,6 @@ public static class StringExtension
                 : $"{value[..(maxLength - suffix.Length)]}{suffix}";
 
     /// <summary>
-    /// 将JSON字符串符合条件的字段,按照最大长度截断
-    /// </summary>
-    /// <param name="json"></param>
-    /// <param name="predicate">筛选字段名</param>
-    /// <param name="maxLength">最大长度(添加后缀后的长度)</param>
-    /// <param name="suffix">后缀,默认: ...</param>
-    /// <returns></returns>
-    public static string TruncateJson(this string json, Func<string, bool> predicate, int maxLength, string suffix = "...")
-    {
-        // Parse the json string into a JsonDocument
-        using var doc = JsonDocument.Parse(json);
-        // Get the root element of the document
-        var root = doc.RootElement;
-        // Create a StringBuilder to store the truncated json string
-        var sb = new StringBuilder();
-        // Write the opening brace of the object
-        sb.Append('{');
-        // Loop through all the properties in the root element
-        foreach (var property in root.EnumerateObject())
-        {
-            // Get the name and value of the property as strings
-            var name = property.Name;
-            var value = property.Value.ToString();
-            // If the predicate function returns true for the property name, and the value is longer than the max length, truncate it and add a suffix
-            if (predicate(name) && value.Length > maxLength)
-            {
-                value = value.Truncate(maxLength - suffix.Length, suffix);
-            }
-            // Write the property name and value to the StringBuilder with quotes and comma
-            sb.Append($"\"{name}\":\"{value}\",");
-        }
-        // Remove the last comma from the StringBuilder
-        sb.Length--;
-        // Write the closing brace of the object
-        sb.Append('}');
-        // Return the truncated json string
-        return sb.ToString();
-    }
-
-    /// <summary>
     /// 将字符串集合链接起来
     /// </summary>
     /// <param name="strs"></param>
@@ -338,20 +298,6 @@ public static class StringExtension
     }
 
     /// <summary>
-    /// 获取某个日期串的DateOnly
-    /// </summary>
-    /// <param name="value">格式如: 2022-02-28</param>
-    /// <returns></returns>
-    public static DateOnly ToDateOnly(this string value) => DateOnly.FromDateTime(value.ToDateTime());
-
-    /// <summary>
-    /// 获取某个时间串的TimeOnly
-    /// </summary>
-    /// <param name="value">格式如: 23:20:10</param>
-    /// <returns></returns>
-    public static TimeOnly ToTimeOnly(this string value) => TimeOnly.FromDateTime($"{DateTime.Now:yyyy-MM-dd} {value}".ToDateTime());
-
-    /// <summary>
     /// 将字符串转化为内存字节流
     /// </summary>
     /// <param name="value">需转换的字符串</param>
@@ -404,25 +350,25 @@ public static class StringExtension
     public static Guid ToGuid(this string str) => Guid.TryParse(str, out var guid) ? guid : Guid.Empty;
 
     /// <summary>
-    /// 将字符串转换成Base64字符串
+    /// 将字节数组转换成Base64字符串
     /// </summary>
     /// <param name="value">字符串</param>
     /// <returns></returns>
-    public static string ToBase64(this string value) => Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+    public static string ToBase64(this byte[] value) => Convert.ToBase64String(value);
 
     /// <summary>
-    /// 将Base64字符转成String
+    /// 将Base64字符串转化成字节数组
     /// </summary>
-    /// <param name="value">Base64字符串</param>
+    /// <param name="value"></param>
     /// <returns></returns>
-    public static string Base64ToString(this string value) => Encoding.UTF8.GetString(Convert.FromBase64String(value));
+    public static byte[] FromBase64(this string value) => Convert.FromBase64String(value);
 
     /// <summary>
     /// 转全角的函数(SBC case)
     /// </summary>
     /// <param name="input">需要转换的字符串</param>
     /// <returns>转换为全角的字符串</returns>
-    public static string ToSbc(this string input)
+    public static string ToSBC(this string input)
     {
         //半角转全角：
         var c = input.ToCharArray();
@@ -443,7 +389,7 @@ public static class StringExtension
     /// </summary>
     /// <param name="input">需要转换的字符串</param>
     /// <returns>转换为半角的字符串</returns>
-    public static string ToDbc(this string input)
+    public static string ToDBC(this string input)
     {
         var c = input.ToCharArray();
         for (var i = 0; i < c.Length; i++)
@@ -496,61 +442,49 @@ public static class StringExtension
     }
 
     /// <summary>
-    /// 使用Array.Reverse()的方式反转字符串,该函数不会修改原字符串
-    /// </summary>
-    /// <param name="value">待反转字符串</param>
-    /// <returns>反转后的结果</returns>
-    public static string ReverseByArray(this string value)
-    {
-        var arr = value.ToCharArray();
-        Array.Reverse(arr);
-        return new(arr);
-    }
-
-    /// <summary>
     /// 检测字符串中是否包含列表中的关键词(快速匹配)
     /// </summary>
-    /// <param name="s">源字符串</param>
+    /// <param name="source">源字符串</param>
     /// <param name="keys">关键词列表</param>
     /// <param name="ignoreCase">忽略大小写</param>
     /// <returns></returns>
-    public static bool Contains(this string s, IEnumerable<string> keys, bool ignoreCase = true)
+    public static bool Contains(this string source, IEnumerable<string> keys, bool ignoreCase = true)
     {
         if (keys is not ICollection<string> array)
         {
             array = keys.ToArray();
         }
-        return array.Count != 0 && !string.IsNullOrEmpty(s) && (ignoreCase ? array.Any(item => s.Contains(item, StringComparison.InvariantCultureIgnoreCase)) : array.Any(s.Contains));
+        return array.Count != 0 && !string.IsNullOrEmpty(source) && (ignoreCase ? array.Any(item => source.Contains(item, StringComparison.InvariantCultureIgnoreCase)) : array.Any(source.Contains));
     }
 
     /// <summary>
     /// 检测字符串中是否包含列表中的关键词(安全匹配)
     /// </summary>
-    /// <param name="s">源字符串</param>
+    /// <param name="source">源字符串</param>
     /// <param name="keys">关键词列表</param>
     /// <param name="ignoreCase">忽略大小写</param>
     /// <returns></returns>
-    public static bool ContainsSafety(this string s, IEnumerable<string> keys, bool ignoreCase = true)
+    public static bool ContainsSafety(this string source, IEnumerable<string> keys, bool ignoreCase = true)
     {
         if (keys is not ICollection<string> array)
         {
             array = keys.ToArray();
         }
-        if (array.Count == 0 || string.IsNullOrEmpty(s))
+        if (array.Count == 0 || string.IsNullOrEmpty(source))
             return false;
         var flag = false;
         if (ignoreCase)
         {
             foreach (var item in array)
             {
-                if (s.Contains(item)) flag = true;
+                if (source.Contains(item)) flag = true;
             }
         }
         else
         {
             foreach (var item in array)
             {
-                if (s?.IndexOf(item, StringComparison.InvariantCultureIgnoreCase) >= 0) flag = true;
+                if (source?.IndexOf(item, StringComparison.InvariantCultureIgnoreCase) >= 0) flag = true;
             }
         }
         return flag;
@@ -559,102 +493,108 @@ public static class StringExtension
     /// <summary>
     /// 检测字符串中是否以列表中的关键词结尾
     /// </summary>
-    /// <param name="s">源字符串</param>
+    /// <param name="source">源字符串</param>
     /// <param name="keys">关键词列表</param>
     /// <param name="ignoreCase">忽略大小写</param>
     /// <returns></returns>
-    public static bool EndsWith(this string s, IEnumerable<string> keys, bool ignoreCase = true)
+    public static bool EndsWith(this string source, IEnumerable<string> keys, bool ignoreCase = true)
     {
         if (keys is not ICollection<string> array)
         {
             array = keys.ToArray();
         }
-        if (array.Count == 0 || string.IsNullOrEmpty(s))
+        if (array.Count == 0 || string.IsNullOrEmpty(source))
             return false;
         var pattern = $"({array.Select(Regex.Escape).Join("|")})$";
-        return ignoreCase ? Regex.IsMatch(s, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(s, pattern);
+        return ignoreCase ? Regex.IsMatch(source, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(source, pattern);
     }
 
     /// <summary>
     /// 检测字符串中是否以列表中的关键词开始
     /// </summary>
-    /// <param name="s">源字符串</param>
+    /// <param name="source">源字符串</param>
     /// <param name="keys">关键词列表</param>
     /// <param name="ignoreCase">忽略大小写</param>
     /// <returns></returns>
-    public static bool StartsWith(this string s, IEnumerable<string> keys, bool ignoreCase = true)
+    public static bool StartsWith(this string source, IEnumerable<string> keys, bool ignoreCase = true)
     {
         if (keys is not ICollection<string> array)
         {
             array = keys.ToArray();
         }
-        if (array.Count == 0 || string.IsNullOrEmpty(s))
+        if (array.Count == 0 || string.IsNullOrEmpty(source))
             return false;
         var pattern = $"^({array.Select(Regex.Escape).Join("|")})";
-        return ignoreCase ? Regex.IsMatch(s, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(s, pattern);
+        return ignoreCase ? Regex.IsMatch(source, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(source, pattern);
     }
 
     /// <summary>
     /// 检测字符串中是否包含列表中的关键词
     /// </summary>
-    /// <param name="s">源字符串</param>
+    /// <param name="source">源字符串</param>
     /// <param name="regex">关键词列表</param>
     /// <param name="ignoreCase">忽略大小写</param>
     /// <returns></returns>
-    public static bool RegexMatch(this string s, string regex, bool ignoreCase = true) => !string.IsNullOrEmpty(regex) && !string.IsNullOrEmpty(s) && (ignoreCase ? Regex.IsMatch(s, regex, RegexOptions.IgnoreCase) : Regex.IsMatch(s, regex));
+    public static bool RegexMatch(this string source, string regex, bool ignoreCase = true) =>
+        !string.IsNullOrEmpty(regex) && !string.IsNullOrEmpty(source) && (ignoreCase ? Regex.IsMatch(source, regex, RegexOptions.IgnoreCase) : Regex.IsMatch(source, regex));
 
     /// <summary>
     /// 检测字符串中是否包含列表中的关键词
     /// </summary>
-    /// <param name="s">源字符串</param>
+    /// <param name="source">源字符串</param>
     /// <param name="regex">关键词列表</param>
     /// <returns></returns>
-    public static bool RegexMatch(this string s, Regex regex) => !string.IsNullOrEmpty(s) && regex.IsMatch(s);
+    public static bool RegexMatch(this string source, Regex regex) => !string.IsNullOrEmpty(source) && regex.IsMatch(source);
 
     /// <summary>
     /// 将十六进制字符串解析为其等效字节数组
     /// </summary>
-    /// <param name="s">要分析的十六进制字符串</param>
+    /// <param name="hex"></param>
+    /// <returns></returns>
+    public static byte[] FromHex(this string hex) => hex.ParseHex();
+
+    /// <summary>
+    /// 将十六进制字符串解析为其等效字节数组
+    /// </summary>
+    /// <param name="hex">要分析的十六进制字符串</param>
     /// <returns>十六进制字符串的字节等效项</returns>
-    public static byte[] ParseHexString(this string s) =>
-        string.IsNullOrWhiteSpace(s)
-            ? throw new ArgumentNullException(nameof(s))
-            : !s.TryParseHexString(out var bytes)
+    public static byte[] ParseHex(this string hex) =>
+        string.IsNullOrWhiteSpace(hex)
+            ? throw new ArgumentNullException(nameof(hex))
+            : !hex.TryParseHex(out var bytes)
                 ? throw new FormatException("String should contain only hexadecimal digits.")
                 : bytes!;
 
     /// <summary>
     /// 尝试将十六进制字符串解析为字节数组
     /// </summary>
-    /// <param name="s">十六进制字符串</param>
+    /// <param name="hex">十六进制字符串</param>
     /// <param name="bytes">A byte array.</param>
     /// <returns>如果成功解析十六进制字符串，则为 True</returns>
-    public static bool TryParseHexString(this string s, out byte[]? bytes)
+    public static bool TryParseHex(this string hex, out byte[]? bytes)
     {
         bytes = null;
-        if (string.IsNullOrWhiteSpace(s)) return false;
-        var buffer = new byte[(s.Length + 1) / 2];
+        if (string.IsNullOrWhiteSpace(hex)) return false;
+        var buffer = new byte[(hex.Length + 1) / 2];
         var i = 0;
         var j = 0;
-        if (s.Length % 2 == 1)
+        if (hex.Length % 2 == 1)
         {
             // if s has an odd length assume an implied leading "0"
-            if (!TryParseHexChar(s[i++], out var y)) return false;
+            if (!TryParseHex(hex[i++], out var y)) return false;
             buffer[j++] = (byte)y;
         }
-        while (i < s.Length)
+        while (i < hex.Length)
         {
-            if (!TryParseHexChar(s[i++], out var x)) return false;
-            if (!TryParseHexChar(s[i++], out var y)) return false;
-#pragma warning disable IDE0048
+            if (!TryParseHex(hex[i++], out var x)) return false;
+            if (!TryParseHex(hex[i++], out var y)) return false;
             buffer[j++] = (byte)((x << 4) | y);
-#pragma warning restore IDE0048
         }
         bytes = buffer;
         return true;
     }
 
-    private static bool TryParseHexChar(char c, out int value)
+    private static bool TryParseHex(char c, out int value)
     {
         switch (c)
         {
@@ -685,12 +625,9 @@ public static class StringExtension
     /// </summary>
     /// <param name="bytes">字节数组</param>
     /// <returns>十六进制字符串</returns>
-    public static string ToHexString(this byte[] bytes)
+    public static string ToHex(this byte[] bytes)
     {
-        if (bytes == null)
-        {
-            throw new ArgumentNullException(nameof(bytes));
-        }
+        ArgumentNullException.ThrowIfNull(bytes);
         var length = bytes.Length;
         var c = new char[length * 2];
         for (int i = 0, j = 0; i < length; i++)
@@ -700,5 +637,29 @@ public static class StringExtension
             c[j++] = (b & 0x0f).ToHexChar();
         }
         return new(c);
+    }
+
+    /// <summary>
+    /// 获取16位长度的MD5大写字符串
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    public static string To16MD5(this string value) => value.To32MD5().Substring(8, 16);
+
+    /// <summary>
+    /// 获取32位长度的MD5大写字符串
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    public static string To32MD5(this string value)
+    {
+        var data = MD5.HashData(Encoding.UTF8.GetBytes(value));
+        var builder = new StringBuilder();
+        // 循环遍历哈希数据的每一个字节并格式化为十六进制字符串 
+        foreach (var t in data)
+        {
+            _ = builder.Append(t.ToString("X2"));
+        }
+        return builder.ToString();
     }
 }

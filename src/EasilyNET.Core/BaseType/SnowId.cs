@@ -80,7 +80,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     public SnowId(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        var bytes = value.ParseHexString();
+        var bytes = value.ParseHex();
         FromByteArray(bytes, 0, out _a, out _b, out _c);
     }
 
@@ -211,7 +211,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     {
         if (s is { Length: 24 })
         {
-            if (s.TryParseHexString(out var bytes))
+            if (s.TryParseHex(out var bytes))
             {
                 snowId = new(bytes!);
                 return true;

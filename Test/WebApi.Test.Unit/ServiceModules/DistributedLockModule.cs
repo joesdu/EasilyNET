@@ -9,6 +9,12 @@ namespace WebApi.Test.Unit;
 public sealed class DistributedLockModule : AppModule
 {
     /// <inheritdoc />
+    public DistributedLockModule()
+    {
+        Enable = false;
+    }
+
+    /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         context.Services.AddMongoDistributedLock(op =>
