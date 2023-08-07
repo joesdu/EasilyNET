@@ -16,7 +16,7 @@ public abstract class ValueObject
     /// </summary>
     /// <param name="obj">对象</param>
     /// <returns></returns>
-    public bool ValueEquals(object obj)
+    public bool ValueEquals(object? obj)
     {
         if (obj == null || obj.GetType() != GetType())
         {

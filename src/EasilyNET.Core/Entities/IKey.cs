@@ -6,7 +6,7 @@
 public interface IKey<out TKey>
 {
     /// <summary>
-    /// 标识
+    /// ID
     /// </summary>
     TKey Id { get; }
 }

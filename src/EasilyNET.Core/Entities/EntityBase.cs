@@ -47,9 +47,9 @@ public abstract class EntityBase<TKey> : IEntity<TKey>
     /// </summary>
     /// <param name="obj">要比较的实体信息</param>
     /// <returns></returns>
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
-        if (obj == null || !(obj is EntityBase<TKey>))
+        if (obj is not EntityBase<TKey>)
         {
             return false;
         }
@@ -61,7 +61,7 @@ public abstract class EntityBase<TKey> : IEntity<TKey>
         {
             return false;
         }
-        if (!(obj is EntityBase<TKey> entity))
+        if (obj is not EntityBase<TKey> entity)
         {
             return false;
         }
@@ -72,6 +72,10 @@ public abstract class EntityBase<TKey> : IEntity<TKey>
         return IsKeyEqual(entity.Id, Id);
     }
 
+    /// <summary>
+    /// IsTransient
+    /// </summary>
+    /// <returns></returns>
     protected virtual bool IsTransient()
     {
         if (typeof(TKey) == typeof(int))
@@ -82,19 +86,14 @@ public abstract class EntityBase<TKey> : IEntity<TKey>
         {
             return Convert.ToInt64(Id) <= 0;
         }
-
         //Guid
-        if (typeof(TKey) == typeof(Guid))
-        {
-            return Guid.Empty.Equals(Id);
-        }
-        return false;
+        return typeof(TKey) == typeof(Guid) && Guid.Empty.Equals(Id);
     }
 
     /// <summary>
     /// 实体ID是否相等
     /// </summary>
-    private bool IsKeyEqual(TKey id1, TKey id2)
+    private static bool IsKeyEqual(TKey? id1, TKey? id2)
     {
         if (id1 == null && id2 == null)
         {
@@ -146,13 +145,10 @@ public abstract class EntityBase<TKey> : IEntity<TKey>
     /// 移除领域事件
     /// </summary>
     /// <param name="domainEvent">领域事件</param>
-    protected void RemoveDomainEvent(IDomainEvent domainEvent)
-    {
-        _domainEvents?.Remove(domainEvent);
-    }
+    protected void RemoveDomainEvent(IDomainEvent domainEvent) => _domainEvents?.Remove(domainEvent);
 }
 
 /// <summary>
 /// 实体基类 long类型
 /// </summary>
-public abstract class EntityBase : EntityBase<long> { }
+public abstract class EntityBase : EntityBase<long>;

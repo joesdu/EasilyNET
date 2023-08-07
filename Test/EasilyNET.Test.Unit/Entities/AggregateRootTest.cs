@@ -9,6 +9,9 @@ namespace EasilyNET.Test.Unit.Entities;
 [TestClass]
 public class AggregateRoot_Test
 {
+    /// <summary>
+    /// AggregateRootTest
+    /// </summary>
     [TestMethod]
     public void AggregateRootTest()
     {
@@ -22,6 +25,9 @@ public class AggregateRoot_Test
         Assert.IsTrue(test3.Equals(test3));
     }
 
+    /// <summary>
+    /// AggregateRoot_Guid_Test
+    /// </summary>
     [TestMethod]
     public void AggregateRoot_Guid_Test()
     {
@@ -49,28 +55,16 @@ public class AggregateRoot_Test
 
         public int Age { get; private set; }
 
-        public void UpdateName(string name)
-        {
-            Name = name;
-        }
+        public void UpdateName(string name) => Name = name;
 
-        public void InitCreateTime()
-        {
-            CreateTime = DateTime.Now;
-        }
+        public void InitCreateTime() => CreateTime = DateTime.Now;
 
-        public void InitUpdateTime()
-        {
-            UpdatedTime = DateTime.Now;
-        }
+        public void InitUpdateTime() => UpdatedTime = DateTime.Now;
 
         /// <summary>
         /// 删除
         /// </summary>
-        public void Delete()
-        {
-            IsDelete = true;
-        }
+        public void Delete() => IsDelete = true;
     }
 
     private sealed class Person : AggregateRoot<Guid>
