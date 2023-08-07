@@ -23,12 +23,12 @@ public static class Sm4Crypt
         var ctx = new Sm4Context
         {
             IsPadding = true,
-            Mode = ESm4Model.加密
+            Mode = ESm4Model.Encrypt
         };
         var keyBytes = hexString ? Hex.Decode(secretKey) : Encoding.UTF8.GetBytes(secretKey);
         var sm4 = new Sm4();
-        sm4.Sm4SetKeyEnc(ctx, keyBytes);
-        return sm4.Sm4CryptECB(ctx, plainText);
+        sm4.SetKeyEnc(ctx, keyBytes);
+        return sm4.ECB(ctx, plainText);
     }
 
     /// <summary>
@@ -43,12 +43,12 @@ public static class Sm4Crypt
         var ctx = new Sm4Context
         {
             IsPadding = true,
-            Mode = ESm4Model.解密
+            Mode = ESm4Model.Decrypt
         };
         var keyBytes = hexString ? Hex.Decode(secretKey) : Encoding.UTF8.GetBytes(secretKey);
         var sm4 = new Sm4();
-        sm4.Sm4SetKeyDec(ctx, keyBytes);
-        return sm4.Sm4CryptECB(ctx, cipherBytes);
+        sm4.SetKeyDec(ctx, keyBytes);
+        return sm4.ECB(ctx, cipherBytes);
     }
 
     /// <summary>
@@ -64,7 +64,7 @@ public static class Sm4Crypt
         var ctx = new Sm4Context
         {
             IsPadding = true,
-            Mode = ESm4Model.加密
+            Mode = ESm4Model.Encrypt
         };
         byte[] keyBytes;
         byte[] ivBytes;
@@ -79,8 +79,8 @@ public static class Sm4Crypt
             ivBytes = Encoding.UTF8.GetBytes(iv);
         }
         var sm4 = new Sm4();
-        sm4.Sm4SetKeyEnc(ctx, keyBytes);
-        return sm4.Sm4CryptCBC(ctx, ivBytes, plainText);
+        sm4.SetKeyEnc(ctx, keyBytes);
+        return sm4.CBC(ctx, ivBytes, plainText);
     }
 
     /// <summary>
@@ -96,7 +96,7 @@ public static class Sm4Crypt
         var ctx = new Sm4Context
         {
             IsPadding = true,
-            Mode = ESm4Model.解密
+            Mode = ESm4Model.Decrypt
         };
         byte[] keyBytes;
         byte[] ivBytes;
@@ -111,7 +111,7 @@ public static class Sm4Crypt
             ivBytes = Encoding.UTF8.GetBytes(iv);
         }
         var sm4 = new Sm4();
-        sm4.Sm4SetKeyDec(ctx, keyBytes);
-        return sm4.Sm4CryptCBC(ctx, ivBytes, cipherText);
+        sm4.SetKeyDec(ctx, keyBytes);
+        return sm4.CBC(ctx, ivBytes, cipherText);
     }
 }
