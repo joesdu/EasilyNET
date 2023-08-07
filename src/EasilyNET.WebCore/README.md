@@ -48,6 +48,7 @@ builder.Services.AddControllers(c =>
 
 目前支持全局 API 执行时间中间件
 
+- 新增限流中间件(防抖),用于避免短时间内,重复请求
 - 使用 Nuget 安装 # EasilyNET.WebCore
 - 然后在 Program.cs 中添加如下内容
 

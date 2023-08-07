@@ -1,4 +1,5 @@
-﻿using Org.BouncyCastle.Crypto.Parameters;
+﻿using EasilyNET.Core.Misc;
+using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Pkcs;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.X509;
@@ -29,7 +30,7 @@ public static class RSAKeyConverter
             new(1, param.Q), new(1, param.DP),
             new(1, param.DQ), new(1, param.InverseQ));
         var privateKey = PrivateKeyInfoFactory.CreatePrivateKeyInfo(privateKeyParam);
-        return Convert.ToBase64String(privateKey.ToAsn1Object().GetEncoded());
+        return privateKey.ToAsn1Object().GetEncoded().ToBase64();
     }
 
     /// <summary>
@@ -44,7 +45,7 @@ public static class RSAKeyConverter
         var p = rsa.ExportParameters(false);
         var keyParams = new RsaKeyParameters(false, new(1, p.Modulus), new(1, p.Exponent));
         var publicKeyInfo = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(keyParams);
-        return Convert.ToBase64String(publicKeyInfo.ToAsn1Object().GetEncoded());
+        return publicKeyInfo.ToAsn1Object().GetEncoded().ToBase64();
     }
 
     /// <summary>
