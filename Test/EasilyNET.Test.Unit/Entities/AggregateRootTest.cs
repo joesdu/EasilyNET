@@ -60,10 +60,6 @@ public class AggregateRoot_Test
         public void InitCreateTime() => CreateTime = DateTime.Now;
 
         public void InitUpdateTime() => UpdatedTime = DateTime.Now;
-
-        /// <summary>
-        /// 删除
-        /// </summary>
         public void Delete() => IsDelete = true;
     }
 

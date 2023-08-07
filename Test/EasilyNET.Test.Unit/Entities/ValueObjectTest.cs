@@ -35,20 +35,13 @@ public class ValueObjectTest
         valueObject3.ValueEquals(valueObject4).Should().BeFalse();
     }
 
-    private sealed class ValueObject_Test : ValueObject
+    private sealed class ValueObject_Test(int a, string b, string c) : ValueObject
     {
-        public ValueObject_Test(int a, string b, string c)
-        {
-            A = a;
-            B = b;
-            C = c;
-        }
+        private int A { get; } = a;
 
-        public int A { get; }
+        private string B { get; } = b;
 
-        public string B { get; }
-
-        public string C { get; }
+        private string C { get; } = c;
 
         /// <inheritdoc />
         protected override IEnumerable<object> GetAtomicValues()
