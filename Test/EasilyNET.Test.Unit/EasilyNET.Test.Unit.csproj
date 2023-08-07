@@ -19,6 +19,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\EasilyNET.Core\EasilyNET.Core.csproj"/>
         <ProjectReference Include="..\..\src\EasilyNET.MongoDistributedLock\EasilyNET.MongoDistributedLock.csproj"/>
+        <ProjectReference Include="..\..\src\EasilyNET.Security\EasilyNET.Security.csproj"/>
     </ItemGroup>
 
 </Project>
