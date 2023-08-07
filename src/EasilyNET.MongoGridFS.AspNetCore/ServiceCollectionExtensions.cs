@@ -11,16 +11,16 @@ using MongoDB.Driver.GridFS;
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
-/// ·şÎñÀ©Õ¹
+/// æœåŠ¡æ‰©å±•
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Ê¹ÓÃ <see cref="MongoClientSettings" /> À´ÅäÖÃMongoGridFS
+    /// ä½¿ç”¨ <see cref="MongoClientSettings" /> æ¥é…ç½®MongoGridFS
     /// </summary>
     /// <param name="services"></param>
     /// <param name="mongoSettings"></param>
-    /// <param name="dbName">Êı¾İ¿âÃû³Æ</param>
+    /// <param name="dbName">æ•°æ®åº“åç§°</param>
     /// <param name="configure"></param>
     /// <returns></returns>
     public static IServiceCollection AddMongoGridFS(this IServiceCollection services, MongoClientSettings mongoSettings, string? dbName = null, Action<GridFSBucketOptions>? configure = null)
@@ -31,10 +31,10 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Ê¹ÓÃÁ´½Ó×Ö·ûµÄ·½Ê½ÅäÖÃMongoGridFS
+    /// ä½¿ç”¨é“¾æ¥å­—ç¬¦çš„æ–¹å¼é…ç½®MongoGridFS
     /// </summary>
     /// <param name="services"></param>
-    /// <param name="connectionString">Êı¾İ¿âÁ´½Ó×Ö·û´®</param>
+    /// <param name="connectionString">æ•°æ®åº“é“¾æ¥å­—ç¬¦ä¸²</param>
     /// <param name="configure"></param>
     /// <returns></returns>
     public static IServiceCollection AddMongoGridFS(this IServiceCollection services, string connectionString, Action<GridFSBucketOptions>? configure = null)
@@ -47,7 +47,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Ê¹ÓÃÒÑÓĞµÄ IMongoDatabase
+    /// ä½¿ç”¨å·²æœ‰çš„ IMongoDatabase
     /// </summary>
     /// <param name="services"></param>
     /// <param name="db"></param>
@@ -69,7 +69,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Í¨¹ı <see cref="IMongoDatabase" /> ×¢²á <see cref="IGridFSBucket" />
+    /// é€šè¿‡ <see cref="IMongoDatabase" /> æ³¨å†Œ <see cref="IGridFSBucket" />
     /// </summary>
     /// <param name="services"></param>
     /// <param name="db"></param>

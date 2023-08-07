@@ -4,7 +4,7 @@ using FluentAssertions;
 namespace EasilyNET.Test.Unit;
 
 /// <summary>
-/// ²âÊÔÑ©»¨ID,ÆäÊµÊÇMongoDBµÄObjectId,ÓÃÀ´¶ÔÃ»ÓĞÊ¹ÓÃMongodbµÄÇé¿öÏÂ,»ñÈ¡Ñ©»¨IDµÄÒ»ÖÖ·½°¸.
+/// æµ‹è¯•é›ªèŠ±ID,å…¶å®æ˜¯MongoDBçš„ObjectId,ç”¨æ¥å¯¹æ²¡æœ‰ä½¿ç”¨Mongodbçš„æƒ…å†µä¸‹,è·å–é›ªèŠ±IDçš„ä¸€ç§æ–¹æ¡ˆ.
 /// </summary>
 [TestClass]
 public class SnowIdTest
@@ -15,7 +15,7 @@ public class SnowIdTest
     [TestMethod]
     public void TestSnowId()
     {
-        // µ±suffix³¤¶È´óÓÚÏ£ÍûµÄ×î´ó³¤¶È
+        // å½“suffixé•¿åº¦å¤§äºå¸Œæœ›çš„æœ€å¤§é•¿åº¦
         var snow1 = SnowId.GenerateNewId();
         var snow2 = SnowId.GenerateNewId();
         var equal = snow1 == snow2 || snow1.Equals(snow2);

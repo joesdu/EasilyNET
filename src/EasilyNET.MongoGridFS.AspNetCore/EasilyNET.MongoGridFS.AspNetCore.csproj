@@ -1,15 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.MongoGridFS.AspNetCore</PackageProjectUrl>
-		<Description>EasilyNET.MongoGridFS.AspNetCore 方便注册MongoGridFS服务</Description>
-	</PropertyGroup>
+    <PropertyGroup>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.MongoGridFS.AspNetCore</PackageProjectUrl>
+        <Description>EasilyNET.MongoGridFS.AspNetCore 方便注册MongoGridFS服务</Description>
+    </PropertyGroup>
 
-	<ItemGroup>
-		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-	</ItemGroup>
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    </ItemGroup>
 
-	<ItemGroup>
-	  <PackageReference Include="MongoDB.Driver.GridFS" Version="2.20.0" />
-	</ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="MongoDB.Driver.GridFS" Version="2.20.0"/>
+    </ItemGroup>
 </Project>

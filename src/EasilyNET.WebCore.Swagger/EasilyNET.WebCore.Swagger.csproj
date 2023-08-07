@@ -1,17 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.WebCore.Swagger</PackageProjectUrl>
-		<Description>一些Swagger的一些配置.</Description>
-	</PropertyGroup>
+    <PropertyGroup>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.WebCore.Swagger</PackageProjectUrl>
+        <Description>一些Swagger的一些配置.</Description>
+    </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.5.0" />
-		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.5.0" />
-	</ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.5.0"/>
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.5.0"/>
+    </ItemGroup>
 
-	<ItemGroup>
-	  <ProjectReference Include="..\EasilyNET.WebCore\EasilyNET.WebCore.csproj" />
-	</ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\EasilyNET.WebCore\EasilyNET.WebCore.csproj"/>
+    </ItemGroup>
 
 </Project>

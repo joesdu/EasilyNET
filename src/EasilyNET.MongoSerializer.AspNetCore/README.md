@@ -1,6 +1,7 @@
 #### EasilyNET.MongoSerializer.AspNetCore
 
-EasilyNET.Mongo.AspNetCore 扩展,用于支持一些非默认类型的序列化方案.就算是没有使用 EasilyNET.Mongo.AspNetCore 也能使用这个库进行如下内容的扩展.
+EasilyNET.Mongo.AspNetCore 扩展,用于支持一些非默认类型的序列化方案.就算是没有使用 EasilyNET.Mongo.AspNetCore
+也能使用这个库进行如下内容的扩展.
 
 ##### ChangeLogs
 

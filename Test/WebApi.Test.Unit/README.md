@@ -36,7 +36,8 @@ docker run -d --restart always  -p 9000:9000 -p 9001:9001 --name minio -v F:\dat
 #### OpenSSL 证书申请
 
 - [下载 openssl 安装包](http://slproweb.com/products/Win32OpenSSL.html)并安装,推荐下载最新 64 位版本.
-- 打开命令行,输入 openssl,如果提示 Openssl 不是内部或外部命令,需要设置一下环境变量,把 Openssl 的安装目录加入到 path 环境变量.
+- 打开命令行,输入 openssl,如果提示 Openssl 不是内部或外部命令,需要设置一下环境变量,把 Openssl 的安装目录加入到 path
+  环境变量.
 - 另外新建一个环境变量,如以下所示,名称为：OPENSSL_CONF,指向你安装目录的 openssl.cfg 文件,现在输入 openssl 应该没有问题了.
 
 - 新建一个文件夹用于放置密钥,在该目录打开命令行.
@@ -76,7 +77,8 @@ Common Name (e.g. server FQDN or YOUR name) []:XXXXX
 Email Address []:XXXXX@outlook.COM
 ```
 
-- 如果不想每次都输入这些信息,可以使用“-config 配置文件目录”的方式指定配置文件,安装后 Openssl 后,有一个名为 openssl.cnf 的默认的配置文件在安装目录 bin/cnf 目录中.编辑该文件,找到 req_distinguished_name
+- 如果不想每次都输入这些信息,可以使用“-config 配置文件目录”的方式指定配置文件,安装后 Openssl 后,有一个名为 openssl.cnf
+  的默认的配置文件在安装目录 bin/cnf 目录中.编辑该文件,找到 req_distinguished_name
 
 ```conf
 [ req_distinguished_name ]
@@ -107,9 +109,12 @@ emailAddress            = Email Address
 emailAddress_max        = 64
 ```
 
-- 这里可以指定这些参数的默认值,如指定国家默认值为 CN.把 countryName_default 改成 CN 就行了.申请完公钥后,目录下将多了一个 public_ids.crt 的文件.
+- 这里可以指定这些参数的默认值,如指定国家默认值为 CN.把 countryName_default 改成 CN 就行了.申请完公钥后,目录下将多了一个
+  public_ids.crt 的文件.
 
-- 3.公钥及私钥的提取加密.由于传播安全方面的考虑,需要将公钥及私钥加密,微软支持 PCK12(公钥加密技术 12 号标准：Public Key Cryptography Standards #12),PCK12 将公钥和私钥合在一个 PFX 后缀文件并用密码保护,如要提取公钥和私钥需要密码确认.另一种觉的公钥私钥提取加密方式是 JKS(JAVA Key Store)用于 JAVA 环境的公钥和私钥提取.这两种格式可以相互转换.
+- 3.公钥及私钥的提取加密.由于传播安全方面的考虑,需要将公钥及私钥加密,微软支持 PCK12(公钥加密技术 12 号标准：Public Key
+  Cryptography Standards #12),PCK12 将公钥和私钥合在一个 PFX 后缀文件并用密码保护,如要提取公钥和私钥需要密码确认.另一种觉的公钥私钥提取加密方式是
+  JKS(JAVA Key Store)用于 JAVA 环境的公钥和私钥提取.这两种格式可以相互转换.
 
 - 在命令行中输入
 
