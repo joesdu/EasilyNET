@@ -4,7 +4,7 @@
 
 	<PropertyGroup>
 		<Version>1.7.1</Version>
-		<TargetFrameworks>net6.0;net7.0;net8.0;</TargetFrameworks>
+		<TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
 		<LangVersion>preview</LangVersion>
 		<RepositoryUrl>https://github.com/EasilyNET/EasilyNET</RepositoryUrl>
 		<Nullable>enable</Nullable>
