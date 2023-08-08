@@ -2,6 +2,7 @@ using EasilyNET.Core.Misc;
 using Serilog;
 using Serilog.Events;
 using WebApi.Test.Unit;
+using WebApi.Test.Unit.Services.Abstraction;
 
 Console.Title = "EasilyNET";
 AssemblyHelper.AddExcludeLibs("Npgsql.", "NPOI");
@@ -63,6 +64,8 @@ _ = builder.Host.UseSerilog((hbc, lc) =>
 
 // 添加属性注入
 builder.Host.UsePropertyInjection();
+var pi_test = builder.Services.GetService<IPropertyInjectionTestService>();
+pi_test?.Execute();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
