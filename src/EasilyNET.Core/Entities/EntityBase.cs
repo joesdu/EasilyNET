@@ -113,7 +113,7 @@ public abstract class EntityBase<TKey> : IEntity<TKey>
     /// 当前 <see cref="T:System.Object" /> 的哈希代码。 <br /> 如果 <c>Id</c> 为 <c>null</c> 则返回0， 如果不为
     /// <c>null</c> 则返回 <c>Id</c> 对应的哈希值
     /// </returns>
-    public override int GetHashCode() => ReferenceEquals(Id, null) ? 0 : Id.GetHashCode();
+    public override int GetHashCode() => Id is null ? 0 : Id.GetHashCode();
 
     /// <summary>
     /// 等于

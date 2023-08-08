@@ -1,6 +1,6 @@
 ﻿namespace EasilyNET.Core.Entities;
 
-//Inspired from https://docs.microsoft.com/en-us/dotnet/standard/microservices-architecture/microservice-ddd-cqrs-patterns/implement-value-objects
+//Inspired from https://docs.microsoft.com/zh-cn/dotnet/standard/microservices-architecture/microservice-ddd-cqrs-patterns/implement-value-objects
 /// <summary>
 /// 值对象
 /// </summary>
@@ -23,13 +23,13 @@ public abstract class ValueObject
             return false;
         }
         var other = (ValueObject)obj;
-        var thisValues = GetAtomicValues().GetEnumerator()!;
-        var otherValues = other.GetAtomicValues().GetEnumerator()!;
+        using var thisValues = GetAtomicValues().GetEnumerator();
+        using var otherValues = other.GetAtomicValues().GetEnumerator();
         var thisMoveNext = thisValues.MoveNext();
         var otherMoveNext = otherValues.MoveNext();
         while (thisMoveNext && otherMoveNext)
         {
-            if (ReferenceEquals(thisValues.Current, null) ^ ReferenceEquals(otherValues.Current, null))
+            if (thisValues is { Current: null } ^ otherValues is { Current: null })
             {
                 return false;
             }

@@ -1,12 +1,13 @@
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
+using WebApi.Test.Unit.Services.Abstraction;
 
 namespace WebApi.Test.Unit.Controllers;
 
 /// <inheritdoc />
 [ApiController, Route("[controller]/[action]"), ApiGroup("PropertyInjection", "v1", "属性注入")]
-public class PropertyInjectionController : ControllerBase
+public class PropertyInjectionController(IPropertyInjectionTestService pi_test) : ControllerBase
 {
     [Injection]
     private readonly ILogger<PropertyInjectionController>? _logger = null;
@@ -29,11 +30,12 @@ public class PropertyInjectionController : ControllerBase
     /// <summary>
     /// </summary>
     [HttpGet]
-    public void Get()
+    public async void Get()
     {
         _logger?.LogInformation("控制调用");
         Test?.Show();
         _test1?.Show();
+        await pi_test.Execute();
     }
 
     /// <summary>

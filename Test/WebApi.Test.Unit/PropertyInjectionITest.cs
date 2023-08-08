@@ -1,4 +1,5 @@
-﻿using EasilyNET.AutoDependencyInjection.Core.Attributes;
+﻿using EasilyNET.AutoDependencyInjection.Core.Abstractions;
+using EasilyNET.AutoDependencyInjection.Core.Attributes;
 
 // ReSharper disable ClassNeverInstantiated.Global
 
@@ -44,9 +45,8 @@ public interface ITest1
     void Show();
 }
 
-/// <inheritdoc />
-[DependencyInjection(ServiceLifetime.Scoped, AddSelf = true)]
-public class Test1 : ITest1
+/// <inheritdoc cref="ITest1" />
+public class Test1 : ITest1, IScopedDependency
 {
     [Injection]
     private readonly ILogger<Test>? _logger = null;
@@ -71,7 +71,7 @@ public class User
 
 /// <inheritdoc cref="User" />
 [DependencyInjection(ServiceLifetime.Scoped, AddSelf = true)]
-public class UserService<T> : IUserService<T>, IDisposable
+public class UserService<T> : IUserService<T>
 {
     private static readonly List<T> _list = new();
 
@@ -92,7 +92,7 @@ public class UserService<T> : IUserService<T>, IDisposable
 /// IUserService
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public interface IUserService<T>
+public interface IUserService<T> : IDisposable
 {
     /// <summary>
     /// Add
