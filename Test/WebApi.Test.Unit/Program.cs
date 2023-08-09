@@ -1,10 +1,7 @@
 using EasilyNET.Core.Misc;
-using Quartz;
 using Serilog;
 using Serilog.Events;
 using WebApi.Test.Unit;
-using WebApi.Test.Unit.QzJobs;
-using WebApi.Test.Unit.Services.Abstraction;
 
 Console.Title = "EasilyNET";
 AssemblyHelper.AddExcludeLibs("Npgsql.", "NPOI");
@@ -28,6 +25,8 @@ var builder = WebApplication.CreateBuilder(args);
 //    op.ListenAnyIP(80, lo => lo.Protocols = HttpProtocols.Http1);
 //});
 
+// 添加属性注入
+builder.Host.UsePropertyInjection();
 // 自动注入服务模块
 builder.Services.AddApplication<AppWebModule>();
 // 添加Serilog配置
@@ -63,13 +62,6 @@ _ = builder.Host.UseSerilog((hbc, lc) =>
               }
           });
 });
-
-// 添加属性注入
- builder.Host.UsePropertyInjection();
-// var pi_test = builder.Services.GetService<IPropertyInjectionTestService>();
-// pi_test?.Execute();
-
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

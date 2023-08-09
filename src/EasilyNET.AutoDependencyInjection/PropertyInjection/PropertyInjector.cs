@@ -2,7 +2,6 @@
 using EasilyNET.AutoDependencyInjection.Abstracts;
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.Core.Misc;
-using System.Diagnostics;
 using System.Reflection;
 
 // ReSharper disable SuggestBaseTypeForParameterInConstructor
@@ -26,20 +25,19 @@ internal sealed class PropertyInjector(IPropertyInjectionServiceProvider provide
         return instance;
     }
 
-
-    
     /// <summary>
     /// 得到所有成员
     /// </summary>
     /// <param name="type">类型</param>
     /// <param name="members">成员集合</param>
     /// <returns></returns>
-    private  IEnumerable<MemberInfo> GetAllMembers(Type type, List<MemberInfo> members = null)
+    private static IEnumerable<MemberInfo> GetAllMembers(Type type, List<MemberInfo>? members = null)
     {
         members ??= new();
         members.AddRange(type.GetMembers(BindingFlags));
         return type.BaseType == null
                    ? members
+                   // ReSharper disable once TailRecursiveCall
                    : GetAllMembers(type.BaseType, members);
     }
 

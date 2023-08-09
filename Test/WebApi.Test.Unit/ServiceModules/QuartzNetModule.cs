@@ -10,12 +10,10 @@ namespace WebApi.Test.Unit;
 /// <inheritdoc />
 public class QuartzNetModule : AppModule
 {
-
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-
-        context.Services.AddSingleton<PropertyInjectionTestJob, PropertyInjectionTestJob>();
+        context.Services.AddScoped<PropertyInjectionTestJob>();
         context.Services.AddQuartzServer(o =>
         {
             // when shutting down we want jobs to complete gracefully
@@ -26,7 +24,6 @@ public class QuartzNetModule : AppModule
         {
             q.SchedulerId = SnowId.GenerateNewId().ToString();
             q.SchedulerName = "WebApi.Test.Unit.Quartz";
-   
             //绑定Job和Trigger 这个东西那么难用，为什么还要用。。。。。。。。。
             q.ScheduleJob<PropertyInjectionTestJob>(t =>
                 t.WithIdentity(nameof(PropertyInjectionTestJob))
@@ -34,7 +31,5 @@ public class QuartzNetModule : AppModule
                  .WithSimpleSchedule(c => c.WithIntervalInSeconds(10))
                  .WithDescription("属性注入测试"));
         });
-
- 
     }
 }

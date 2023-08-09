@@ -25,18 +25,16 @@ internal sealed class PropertyInjectionServiceProvider : IPropertyInjectionServi
         _propertyInjector = new PropertyInjector(this);
     }
 
+    private static BindingFlags BindingFlags => BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
+
     /// <inheritdoc />
     public object? GetService(Type serviceType)
     {
         var instance = GetAnyOriginalService(serviceType);
         return instance is null ? null : _propertyInjector.InjectProperties(instance);
     }
-    
-    private object? GetAnyOriginalService(Type type) =>
-        _serviceProvider.GetService(type);
 
-    private Type GetAssignableService(Type type) =>
-        _services.First(s => s.ServiceType.IsAssignableTo(type)).ServiceType;
+    //private Type GetAssignableService(Type type) => _services.First(s => s.ServiceType.IsAssignableTo(type)).ServiceType;
 
     /// <inheritdoc />
     public object GetRequiredService(Type serviceType)
@@ -45,30 +43,27 @@ internal sealed class PropertyInjectionServiceProvider : IPropertyInjectionServi
         ArgumentNullException.ThrowIfNull(service);
         return service;
     }
-    
-    private void InjectServices(IServiceCollection services) =>
-        services.Where(IsInjectable)
-                .ToList().ForEach(InjectDescriptor);
+
+    private object? GetAnyOriginalService(Type type) => _serviceProvider.GetService(type);
+
+    private void InjectServices(IServiceCollection services) => services.Where(IsInjectable).ToList().ForEach(InjectDescriptor);
 
     /// <summary>
     /// 注入Descriptor
     /// </summary>
     /// <param name="descriptor"></param>
-    private void InjectDescriptor(ServiceDescriptor descriptor) =>
-        _services.Replace(new ServiceDescriptor(descriptor.ServiceType, CreateFactory(descriptor), descriptor.Lifetime));
-   
+    private void InjectDescriptor(ServiceDescriptor descriptor) => _services.Replace(new(descriptor.ServiceType, CreateFactory(descriptor), descriptor.Lifetime));
+
     /// <summary>
     /// 是否注入
     /// </summary>
     /// <param name="descriptor"></param>
     /// <returns></returns>
-    private  bool IsInjectable(ServiceDescriptor descriptor)
+    private static bool IsInjectable(ServiceDescriptor descriptor)
     {
-        
-        var method = InvokeMethod<Type>(descriptor,"GetImplementationType");
+        var method = InvokeMethod<Type>(descriptor, "GetImplementationType");
         return HasAnyMemberAttribute<InjectionAttribute>(method);
     }
-
 
     /// <summary>
     /// 调用方法
@@ -77,38 +72,28 @@ internal sealed class PropertyInjectionServiceProvider : IPropertyInjectionServi
     /// <param name="methodName">方法名</param>
     /// <typeparam name="T">动态类型</typeparam>
     /// <returns></returns>
-    private  T InvokeMethod<T>(object instance, string methodName) =>
-        (T)instance.GetType().GetMethod(methodName, BindingFlags)
-                   ?.Invoke(instance, null)!;
-    private static BindingFlags BindingFlags => BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
-    
+    private static T InvokeMethod<T>(object instance, string methodName) => (T)instance.GetType().GetMethod(methodName, BindingFlags)?.Invoke(instance, null)!;
+
     /// <summary>
     /// 是否有一个成员特性
     /// </summary>
     /// <param name="type">成员类型</param>
     /// <typeparam name="TAttribute">特性</typeparam>
     /// <returns></returns>
-    private  bool HasAnyMemberAttribute<TAttribute>(Type type)
-        where TAttribute : Attribute =>
-        type.GetMembers(BindingFlags)
-            .Any(m => m.HasAttribute<TAttribute>()) ||
-        type.BaseType != null && HasAnyMemberAttribute<TAttribute>(type.BaseType);
-    
+    private static bool HasAnyMemberAttribute<TAttribute>(Type type) where TAttribute : Attribute =>
+        type.GetMembers(BindingFlags).Any(m => m.HasAttribute<TAttribute>()) || (type.BaseType != null && HasAnyMemberAttribute<TAttribute>(type.BaseType));
+
     /// <summary>
     /// 创建工厂
     /// </summary>
     /// <param name="descriptor"></param>
     /// <returns></returns>
-    private Func<IServiceProvider, object> CreateFactory(ServiceDescriptor descriptor) =>
-        _ => _propertyInjector.InjectProperties(CreateInstance(descriptor));
+    private Func<IServiceProvider, object> CreateFactory(ServiceDescriptor descriptor) => _ => _propertyInjector.InjectProperties(CreateInstance(descriptor));
 
     /// <summary>
     /// 创建实例
     /// </summary>
-    /// <param name="descriptor"></param>
+    /// <param name="des"></param>
     /// <returns></returns>
-    private object CreateInstance(ServiceDescriptor descriptor) =>
-        descriptor.ImplementationInstance ??
-        descriptor.ImplementationFactory?.Invoke(this) ??
-        ActivatorUtilities.CreateInstance(this, descriptor.ImplementationType);
+    private object CreateInstance(ServiceDescriptor des) => des.ImplementationInstance ?? des.ImplementationFactory?.Invoke(this) ?? ActivatorUtilities.CreateInstance(this, des.ImplementationType!);
 }

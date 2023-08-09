@@ -12,7 +12,6 @@ namespace WebApi.Test.Unit.QzJobs;
 [DisallowConcurrentExecution]
 public class PropertyInjectionTestJob : IJob
 {
-
     [Injection]
     private readonly ILogger<PropertyInjectionTestJob>? _logger = null;
 
@@ -21,7 +20,7 @@ public class PropertyInjectionTestJob : IJob
     /// </summary>
     [Injection]
     private readonly IPropertyInjectionTestService? _propertyInjectionTestService = null;
-    
+
     /// <inheritdoc />
     public Task Execute(IJobExecutionContext context)
     {
@@ -38,5 +37,3 @@ public class PropertyInjectionTestJob : IJob
         return Task.CompletedTask;
     }
 }
-
-
