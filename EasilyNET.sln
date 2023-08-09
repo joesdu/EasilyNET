@@ -60,7 +60,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.MongoDistributedL
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.MongoDistributedLock.AspNetCore", "src\EasilyNET.MongoDistributedLock.AspNetCore\EasilyNET.MongoDistributedLock.AspNetCore.csproj", "{F1C997F7-DBDE-4899-9ED5-460473CEC087}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PropertyInjection.TestApp", "Test\PropertyInjection.TestApp\PropertyInjection.TestApp.csproj", "{CD7609C6-FDBF-4B5A-8929-A23F7F767D52}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PropertyInjection.TestApp", "Test\PropertyInjection.TestApp\PropertyInjection.TestApp.csproj", "{CD7609C6-FDBF-4B5A-8929-A23F7F767D52}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -175,6 +175,7 @@ Global
 		{AC36AE56-981E-4910-9D1C-DD17D4EC28AD} = {BD6D1E2B-691E-4E8B-9E8D-E7FD2EDDF1F8}
 		{107F28AD-E038-47A5-8720-EDECF0DD1E36} = {6B734C3C-FE4C-405D-80E3-AFEAD63BCF2D}
 		{F1C997F7-DBDE-4899-9ED5-460473CEC087} = {6B734C3C-FE4C-405D-80E3-AFEAD63BCF2D}
+		{CD7609C6-FDBF-4B5A-8929-A23F7F767D52} = {2CB52E13-C7D0-4C8C-BFAD-F1A115AD5373}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {04F52789-9FF4-4AB9-9132-1789A00E7E4A}
