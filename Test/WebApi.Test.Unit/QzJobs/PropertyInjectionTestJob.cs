@@ -12,28 +12,31 @@ namespace WebApi.Test.Unit.QzJobs;
 [DisallowConcurrentExecution]
 public class PropertyInjectionTestJob : IJob
 {
+
     [Injection]
-    private readonly ILogger<PropertyInjectionTestJob>? logger = null;
+    private readonly ILogger<PropertyInjectionTestJob>? _logger = null;
 
     /// <summary>
     /// PropertyInjectionTestService
     /// </summary>
     [Injection]
-    public IPropertyInjectionTestService? PropertyInjectionTestService { get; set; }
-
+    private readonly IPropertyInjectionTestService? _propertyInjectionTestService = null;
+    
     /// <inheritdoc />
     public Task Execute(IJobExecutionContext context)
     {
-        logger?.LogInformation("从{Class}类中使用{Logger}输出日志信息", nameof(PropertyInjectionTestJob), nameof(logger));
-        PropertyInjectionTestService?.Execute();
-        if (logger is null)
+        _logger?.LogInformation("从{Class}类中使用{Logger}输出日志信息", nameof(PropertyInjectionTestJob), nameof(_logger));
+        _propertyInjectionTestService?.Execute();
+        if (_logger is null)
         {
             Console.ForegroundColor = ConsoleColor.DarkRed;
             Console.WriteLine($"{nameof(PropertyInjectionTestJob)}类中的logger为null");
         }
-        if (PropertyInjectionTestService is not null) return Task.CompletedTask;
+        if (_propertyInjectionTestService is not null) return Task.CompletedTask;
         Console.ForegroundColor = ConsoleColor.DarkRed;
         Console.WriteLine($"{nameof(PropertyInjectionTestJob)}类中的PropertyInjectionTestService为null");
         return Task.CompletedTask;
     }
 }
+
+
