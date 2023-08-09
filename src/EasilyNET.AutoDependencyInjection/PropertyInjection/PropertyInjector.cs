@@ -19,20 +19,26 @@ internal sealed class PropertyInjector(IPropertyInjectionServiceProvider provide
     /// <inheritdoc />
     public object InjectProperties(object instance)
     {
-        IsInjectProperties(instance);
+        var type = instance.GetType();
+        //找到所有需要注入的成员，进行注入
+        GetAllMembers(type).Where(o => o.HasAttribute<InjectionAttribute>()).ToList().ForEach(member => InjectMember(instance, member));
         return instance;
     }
 
     /// <summary>
-    /// 判断是否需要属性注入
+    /// 得到所有成员
     /// </summary>
-    /// <param name="instance"></param>
-    private void IsInjectProperties(object? instance)
+    /// <param name="type">类型</param>
+    /// <param name="members">成员集合</param>
+    /// <returns></returns>
+    private static IEnumerable<MemberInfo> GetAllMembers(Type type, List<MemberInfo>? members = null)
     {
-        if (instance is null) return;
-        var type = instance as Type ?? instance.GetType();
-        //找到所有需要注入的成员，进行注入
-        type.GetMembers(BindingFlags).Where(o => o.HasAttribute<InjectionAttribute>()).ToList().ForEach(member => InjectMember(instance, member));
+        members ??= new();
+        members.AddRange(type.GetMembers(BindingFlags));
+        return type.BaseType == null
+                   ? members
+                   // ReSharper disable once TailRecursiveCall
+                   : GetAllMembers(type.BaseType, members);
     }
 
     /// <summary>

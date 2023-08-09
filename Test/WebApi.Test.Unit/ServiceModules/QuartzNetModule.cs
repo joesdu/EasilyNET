@@ -13,6 +13,8 @@ public class QuartzNetModule : AppModule
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
+        // 由于Qz的策略,我们这里只能通过这种显示的方式注入服务.才能在IJob中使用属性注入.
+        context.Services.AddScoped<PropertyInjectionTestJob>();
         context.Services.AddQuartzServer(o =>
         {
             // when shutting down we want jobs to complete gracefully
@@ -23,11 +25,11 @@ public class QuartzNetModule : AppModule
         {
             q.SchedulerId = SnowId.GenerateNewId().ToString();
             q.SchedulerName = "WebApi.Test.Unit.Quartz";
-            // 绑定Job和Trigger
+            //绑定Job和Trigger 这个东西那么难用，为什么还要用。。。。。。。。。
             q.ScheduleJob<PropertyInjectionTestJob>(t =>
                 t.WithIdentity(nameof(PropertyInjectionTestJob))
                  .StartNow()
-                 .WithSimpleSchedule(c => c.WithIntervalInSeconds(10))
+                 .WithSimpleSchedule(x => x.WithIntervalInSeconds(5).RepeatForever())
                  .WithDescription("属性注入测试"));
         });
     }

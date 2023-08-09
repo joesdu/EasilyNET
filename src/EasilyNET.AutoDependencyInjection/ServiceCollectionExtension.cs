@@ -61,10 +61,10 @@ public static partial class ServiceCollectionExtension
     /// </summary>
     /// <param name="hostBuilder">host构建器</param>
     /// <returns></returns>
-    public static void UsePropertyInjection(this IHostBuilder hostBuilder)
-    {
-        hostBuilder.UseServiceProviderFactory(new PropertyInjectionServiceProviderFactory()).ConfigureServices(ConfigureServices);
-    }
-
-    private static void ConfigureServices(IServiceCollection services) => services.AddSingleton<IPropertyInjector, PropertyInjector>().AddSingleton<IControllerFactory, PropertyInjectionControllerFactory>();
+    public static IHostBuilder UsePropertyInjection(this IHostBuilder hostBuilder) =>
+        hostBuilder.UseServiceProviderFactory(new PropertyInjectionServiceProviderFactory()).ConfigureServices(services =>
+        {
+            services.AddSingleton<IPropertyInjector, PropertyInjector>();
+            services.AddSingleton<IControllerFactory, PropertyInjectionControllerFactory>();
+        });
 }
