@@ -43,15 +43,17 @@ public sealed class DependencyAppModule : AppModule
                                        .Where(x => x.HasMatchingGenericArity(typeInfo) && !x.HasAttribute<IgnoreDependencyAttribute>() && x != typeof(IDisposable))
                                        .Select(t => t.GetRegistrationType(typeInfo)).ToList();
             var lifetime = GetServiceLifetime(implementedInterType);
-            if (lifetime is null) break;
-            if (serviceTypes.Count == 0)
+            if (lifetime is null) continue;
+            if (serviceTypes.Count is 0)
             {
                 services.Add(new(implementedInterType, implementedInterType, lifetime.Value));
                 continue;
             }
             if (attr?.AddSelf is true) services.Add(new(implementedInterType, implementedInterType, lifetime.Value));
             foreach (var serviceType in serviceTypes.Where(o => !o.HasAttribute<IgnoreDependencyAttribute>()))
+            {
                 services.Add(new(serviceType, implementedInterType, lifetime.Value));
+            }
         }
     }
 

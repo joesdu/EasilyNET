@@ -24,11 +24,11 @@ var builder = WebApplication.CreateBuilder(args);
 //    });
 //    op.ListenAnyIP(80, lo => lo.Protocols = HttpProtocols.Http1);
 //});
-
-// 添加属性注入
-builder.Host.UsePropertyInjection();
 // 自动注入服务模块
 builder.Services.AddApplication<AppWebModule>();
+// 添加属性注入
+builder.Host.UsePropertyInjection();
+
 // 添加Serilog配置
 _ = builder.Host.UseSerilog((hbc, lc) =>
 {

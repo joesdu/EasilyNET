@@ -1,6 +1,5 @@
 ﻿using EasilyNET.Core.Enums;
 using Microsoft.AspNetCore.Mvc;
-using Quartz;
 
 namespace WebApi.Test.Unit.Controllers;
 
@@ -10,14 +9,6 @@ namespace WebApi.Test.Unit.Controllers;
 [Route("api/[controller]/[action]"), ApiController]
 public class ValuesController : ControllerBase
 {
-
-
-    public ValuesController()
-    {
-
-
-    }
-
     /// <summary>
     /// Error
     /// </summary>

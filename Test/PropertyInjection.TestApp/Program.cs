@@ -4,10 +4,9 @@ using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-
-var builder= Host.CreateDefaultBuilder().ConfigureServices(ConfigureServices).UsePropertyInjection();
-
+var builder = Host.CreateDefaultBuilder().ConfigureServices(ConfigureServices).UsePropertyInjection();
 await builder.RunConsoleAsync();
+
 public partial class Program
 {
     private static void ConfigureServices(IServiceCollection serviceCollection) =>
@@ -16,10 +15,8 @@ public partial class Program
             .AddTransient<IConsole, CustomConsole>();
 }
 
-
 public interface IHelloWorld
 {
-    
     void Hello();
 }
 
@@ -37,11 +34,10 @@ public abstract class HelloWorld : IHelloWorld, IHostedService
         return Task.CompletedTask;
     }
 
-    public Task StopAsync(CancellationToken cancellationToken) => 
-        Task.CompletedTask;
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
 
-public class CustomConsole:IConsole
+public class CustomConsole : IConsole
 {
     /// <inheritdoc />
     public void WriteLine(string s)
@@ -55,10 +51,11 @@ public interface IConsole
     void WriteLine(string s);
 }
 
-public class HelloWorldSetter: HelloWorld
+public class HelloWorldSetter : HelloWorld
 {
     [Injection]
     public IConsole Console { get; set; }
+
     /// <inheritdoc />
     public override void Hello()
     {

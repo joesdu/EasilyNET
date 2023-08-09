@@ -13,6 +13,7 @@ public class QuartzNetModule : AppModule
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
+        // 由于Qz的策略,我们这里只能通过这种显示的方式注入服务.才能在IJob中使用属性注入.
         context.Services.AddScoped<PropertyInjectionTestJob>();
         context.Services.AddQuartzServer(o =>
         {
@@ -28,7 +29,7 @@ public class QuartzNetModule : AppModule
             q.ScheduleJob<PropertyInjectionTestJob>(t =>
                 t.WithIdentity(nameof(PropertyInjectionTestJob))
                  .StartNow()
-                 .WithSimpleSchedule(c => c.WithIntervalInSeconds(10))
+                 .WithSimpleSchedule(x => x.WithIntervalInSeconds(5).RepeatForever())
                  .WithDescription("属性注入测试"));
         });
     }
