@@ -2,6 +2,8 @@
 using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 
+// ReSharper disable NotAccessedPositionalProperty.Global
+
 namespace WebApi.Test.Unit.Controllers;
 
 /// <summary>

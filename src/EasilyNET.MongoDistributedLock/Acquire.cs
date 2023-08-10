@@ -4,7 +4,7 @@ using MongoDB.Bson;
 namespace EasilyNET.MongoDistributedLock;
 
 /// <inheritdoc />
-public sealed class Acquire : IAcquire
+internal sealed class Acquire : IAcquire
 {
     /// <summary>
     /// 构造函数

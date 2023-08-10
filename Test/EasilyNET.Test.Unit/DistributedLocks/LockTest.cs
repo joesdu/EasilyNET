@@ -9,7 +9,7 @@ namespace EasilyNET.Test.Unit.DistributedLocks;
 /// <summary>
 /// 测试
 /// </summary>
-[TestClass, Ignore]
+[TestClass]
 public class LockTests
 {
     private readonly IMongoCollection<LockAcquire> _locks;
@@ -52,7 +52,7 @@ public class LockTests
     [TestMethod]
     public async Task AcquireLock()
     {
-        var mongoLock = new DistributedLock(_locks, _signals, ObjectId.GenerateNewId());
+        var mongoLock = DistributedLock.GenerateNew(_locks, _signals, ObjectId.GenerateNewId());
         var acq = await mongoLock.AcquireAsync(TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(0));
         acq.Acquired.Should().BeTrue();
     }
@@ -64,7 +64,7 @@ public class LockTests
     [TestMethod]
     public async Task Acquire_And_Block()
     {
-        var mongoLock = new DistributedLock(_locks, _signals, ObjectId.GenerateNewId());
+        var mongoLock = DistributedLock.GenerateNew(_locks, _signals, ObjectId.GenerateNewId());
         var acq1 = await mongoLock.AcquireAsync(TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(0));
         acq1.Acquired.Should().BeTrue();
         var acq2 = await mongoLock.AcquireAsync(TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(0));
@@ -78,7 +78,7 @@ public class LockTests
     [TestMethod]
     public async Task Acquire_Block_Release_And_Acquire()
     {
-        var mongoLock = new DistributedLock(_locks, _signals, ObjectId.GenerateNewId());
+        var mongoLock = DistributedLock.GenerateNew(_locks, _signals, ObjectId.GenerateNewId());
         var acq1 = await mongoLock.AcquireAsync(TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(0));
         acq1.Acquired.Should().BeTrue();
         var acq2 = await mongoLock.AcquireAsync(TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(3));
@@ -95,7 +95,7 @@ public class LockTests
     [TestMethod]
     public async Task Acquire_BlockFor5Seconds_Release_Acquire()
     {
-        var mongoLock = new DistributedLock(_locks, _signals, ObjectId.GenerateNewId());
+        var mongoLock = DistributedLock.GenerateNew(_locks, _signals, ObjectId.GenerateNewId());
         var acq1 = await mongoLock.AcquireAsync(TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(0));
         acq1.Acquired.Should().BeTrue();
         var acq2 = await InTimeRange(() => mongoLock.AcquireAsync(TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(5)), 4000, 6000);
@@ -112,7 +112,7 @@ public class LockTests
     [TestMethod]
     public async Task Acquire_WaitUntilExpire_Acquire()
     {
-        var mongoLock = new DistributedLock(_locks, _signals, ObjectId.GenerateNewId());
+        var mongoLock = DistributedLock.GenerateNew(_locks, _signals, ObjectId.GenerateNewId());
         var acq1 = await mongoLock.AcquireAsync(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(0));
         acq1.Acquired.Should().BeTrue();
         var acq2 = await mongoLock.AcquireAsync(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(0));
@@ -128,7 +128,7 @@ public class LockTests
     [TestMethod]
     public void Synchronize_CriticalSection_For_4_Threads()
     {
-        var mongoLock = new DistributedLock(_locks, _signals, ObjectId.GenerateNewId());
+        var mongoLock = DistributedLock.GenerateNew(_locks, _signals, ObjectId.GenerateNewId());
         var tasks = new List<Task>();
         var bucket = new List<int> { 0 };
         var random = new Random(DateTime.UtcNow.GetHashCode());
