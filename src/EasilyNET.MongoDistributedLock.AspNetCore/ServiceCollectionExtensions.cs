@@ -1,5 +1,4 @@
 ﻿using EasilyNET.MongoDistributedLock;
-using EasilyNET.MongoDistributedLock.Attributes;
 using Microsoft.Extensions.DependencyInjection.Abstraction;
 using MongoDB.Driver;
 
@@ -23,7 +22,7 @@ public static class ServiceCollectionExtensions
     {
         var option = new LockOptions();
         options?.Invoke(option);
-        services.AddSingleton<IDistributedLockFactory, DistributedLockFactory>();
+        services.AddSingleton<IMongoLockFactory, MongoLockFactory>();
         var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredService<IMongoClient>();
         services.AddMongoDistributedLock(client, options);
@@ -66,13 +65,8 @@ public static class ServiceCollectionExtensions
         {
             // ignored
         }
-        var _locks = db.GetCollection<LockAcquire>(option.AcquireCollName);
-        var _signals = db.GetCollection<ReleaseSignal>(option.SignalCollName);
-        services.AddSingleton<IDistributedLockFactory, DistributedLockFactory>();
-        services.AddTransient<IDistributedLock>(sp =>
-        {
-            var factory = sp.GetRequiredService<IDistributedLockFactory>();
-            return factory.CreateMongoLock(_locks, _signals);
-        });
+        var locks = db.GetCollection<LockAcquire>(option.AcquireCollName);
+        var signal = db.GetCollection<ReleaseSignal>(option.SignalCollName);
+        services.AddSingleton(() => MongoLockFactory.Instance(locks, signal));
     }
 }

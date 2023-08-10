@@ -7,10 +7,21 @@ namespace EasilyNET.MongoDistributedLock;
 /// <summary>
 /// 使用锁和信号集合以及锁标识符初始化 DistributedLock 类的新实例
 /// </summary>
-public sealed class DistributedLock(IMongoCollection<LockAcquire> locks, IMongoCollection<ReleaseSignal> signals, ObjectId lockId) : IDistributedLock
+public sealed class DistributedLock : IDistributedLock
 {
+    private readonly ObjectId _lockId;
+
+    private readonly IMongoCollection<LockAcquire> _locks;
+    private readonly IMongoCollection<ReleaseSignal> _signals;
     private readonly FilterDefinitionBuilder<LockAcquire> bf = Builders<LockAcquire>.Filter;
     private readonly UpdateDefinitionBuilder<LockAcquire> bu = Builders<LockAcquire>.Update;
+
+    private DistributedLock(IMongoCollection<LockAcquire> locks, IMongoCollection<ReleaseSignal> signals, ObjectId lockId)
+    {
+        _locks = locks;
+        _signals = signals;
+        _lockId = lockId;
+    }
 
     /// <inheritdoc />
     public async Task<IAcquire> AcquireAsync(TimeSpan lifetime, TimeSpan timeout)
@@ -20,7 +31,7 @@ public sealed class DistributedLock(IMongoCollection<LockAcquire> locks, IMongoC
         var acquireId = ObjectId.GenerateNewId();
         while (await TryUpdateAsync(lifetime, acquireId) == false)
         {
-            var acquire = await locks.Find(bf.Eq(x => x.Id, lockId)).FirstOrDefaultAsync();
+            var acquire = await _locks.Find(bf.Eq(c => c.Id, _lockId)).FirstOrDefaultAsync();
             if (acquire is not null && await WaitSignalAsync(acquire.AcquireId, timeout) == false)
             {
                 return await TryUpdateAsync(lifetime, acquireId) ? new Acquire(acquireId) : new();
@@ -34,14 +45,23 @@ public sealed class DistributedLock(IMongoCollection<LockAcquire> locks, IMongoC
     {
         ArgumentNullException.ThrowIfNull(acquire, nameof(acquire));
         if (!acquire.Acquired) return;
-        var result = await locks.UpdateOneAsync(bf.Eq(x => x.Id, lockId) & bf.Eq(x => x.AcquireId, acquire.AcquireId), bu.Set(x => x.Acquired, false));
+        var result = await _locks.UpdateOneAsync(bf.Eq(c => c.Id, _lockId) & bf.Eq(c => c.AcquireId, acquire.AcquireId), bu.Set(c => c.Acquired, false));
         if (result.IsAcknowledged && result.ModifiedCount > 0)
-            await signals.InsertOneAsync(new() { AcquireId = acquire.AcquireId });
+            await _signals.InsertOneAsync(new() { AcquireId = acquire.AcquireId });
     }
+
+    /// <summary>
+    /// 获取一个新的锁
+    /// </summary>
+    /// <param name="locks"></param>
+    /// <param name="signals"></param>
+    /// <param name="lockId"></param>
+    /// <returns></returns>
+    public static IDistributedLock GenerateNew(IMongoCollection<LockAcquire> locks, IMongoCollection<ReleaseSignal> signals, ObjectId lockId) => new DistributedLock(locks, signals, lockId);
 
     private async Task<bool> WaitSignalAsync(ObjectId acquireId, TimeSpan timeout)
     {
-        using var cursor = await signals.Find(x => x.AcquireId == acquireId, new() { MaxAwaitTime = timeout, CursorType = CursorType.TailableAwait }).ToCursorAsync();
+        using var cursor = await _signals.Find(c => c.AcquireId == acquireId, new() { MaxAwaitTime = timeout, CursorType = CursorType.TailableAwait }).ToCursorAsync();
         var started = DateTime.UtcNow;
         while (await cursor.MoveNextAsync())
         {
@@ -55,11 +75,11 @@ public sealed class DistributedLock(IMongoCollection<LockAcquire> locks, IMongoC
     {
         try
         {
-            var filter = bf.Eq(x => x.Id, lockId) & bf.Or(bf.Eq(x => x.Acquired, false), bf.Lte(x => x.ExpiresIn, DateTime.UtcNow));
-            var result = await locks.UpdateOneAsync(filter, bu.Set(x => x.Acquired, true)
-                                                              .Set(x => x.ExpiresIn, DateTime.UtcNow + lifetime)
-                                                              .Set(x => x.AcquireId, acquireId)
-                                                              .SetOnInsert(x => x.Id, lockId), new() { IsUpsert = true });
+            var filter = bf.Eq(c => c.Id, _lockId) & bf.Or(bf.Eq(c => c.Acquired, false), bf.Lte(c => c.ExpiresIn, DateTime.UtcNow));
+            var result = await _locks.UpdateOneAsync(filter, bu.Set(c => c.Acquired, true)
+                                                               .Set(c => c.ExpiresIn, DateTime.UtcNow + lifetime)
+                                                               .Set(c => c.AcquireId, acquireId)
+                                                               .SetOnInsert(c => c.Id, _lockId), new() { IsUpsert = true });
             return result.IsAcknowledged;
         }
         catch (MongoWriteException ex) // E11000 

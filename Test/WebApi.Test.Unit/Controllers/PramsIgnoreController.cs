@@ -3,6 +3,8 @@ using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Serialization;
 
+// ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
+
 namespace WebApi.Test.Unit.Controllers;
 
 /// <summary>
