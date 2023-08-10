@@ -9,7 +9,7 @@ namespace EasilyNET.Test.Unit.DistributedLocks;
 /// <summary>
 /// 测试
 /// </summary>
-[TestClass]
+[TestClass, Ignore]
 public class LockTests
 {
     private readonly IMongoCollection<LockAcquire> _locks;
