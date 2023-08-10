@@ -6,7 +6,6 @@ using WebApi.Test.Unit;
 Console.Title = "EasilyNET";
 AssemblyHelper.AddExcludeLibs("Npgsql.", "NPOI");
 var builder = WebApplication.CreateBuilder(args);
-
 // 配置Kestrel支持HTTP1,2,3
 //builder.WebHost.ConfigureKestrel((_, op) =>
 //{
