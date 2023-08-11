@@ -22,12 +22,12 @@ public class HelloWorldEventHandlers : IIntegrationEventHandler<HelloWorldEvent>
 
 /// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
-public class HelloWorldDeadLetterEventHandlers : IIntegrationEventDeadLetterHandler<HelloWorldEvent>
+public class DeadLetterEventHandlers : IIntegrationEventDeadLetterHandler<HelloWorldEvent>
 {
     /// <inheritdoc />
     public Task HandleAsync(HelloWorldEvent @event)
     {
-        Console.WriteLine($"[消息处理自:{nameof(HelloWorldDeadLetterEventHandlers)}]-{JsonSerializer.Serialize(@event)}");
+        Console.WriteLine($"[消息处理自:{nameof(DeadLetterEventHandlers)}]-{JsonSerializer.Serialize(@event)}");
         return Task.CompletedTask;
     }
 }

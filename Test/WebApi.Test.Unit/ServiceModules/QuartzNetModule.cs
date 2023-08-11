@@ -11,6 +11,12 @@ namespace WebApi.Test.Unit;
 public class QuartzNetModule : AppModule
 {
     /// <inheritdoc />
+    public QuartzNetModule()
+    {
+        Enable = false;
+    }
+
+    /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         // 由于Qz的策略,我们这里只能通过这种显示的方式注入服务.才能在IJob中使用属性注入.
