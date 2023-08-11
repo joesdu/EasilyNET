@@ -20,7 +20,7 @@ public class MongoTestController(DbContext db1, DbContext2 db2) : ControllerBase
     [HttpPost("PostOneTest")]
     public async Task PostOneTest()
     {
-        var coll = db1.GetDatabase("newdb1").GetCollection<object>("test.new1");
+        var coll = db1.GetDatabase("newdb1").GetCollection<dynamic>("test.new1");
         await coll.InsertOneAsync(new
         {
             Decimal = 3.235223462346m,
