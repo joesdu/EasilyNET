@@ -156,10 +156,10 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         {
             var rabbitAttr = eventType.GetCustomAttribute<RabbitAttribute>()!;
             if (!rabbitAttr.Enable) continue;
-            _ = Task.Factory.StartNew(() =>
+            var xdlAttr = eventType.GetCustomAttribute<DeadLetterAttribute>();
+            var eventName = _subsManager.GetEventKey(eventType);
+            Task.Factory.StartNew(() =>
             {
-                var xdlAttr = eventType.GetCustomAttribute<DeadLetterAttribute>();
-                var eventName = _subsManager.GetEventKey(eventType);
                 using var consumerChannel = CreateConsumerChannel(rabbitAttr, eventType, xdlAttr);
                 if (rabbitAttr is not { WorkModel: EWorkModel.None })
                 {
@@ -173,18 +173,18 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                                                              o.IsBaseOn(typeof(IIntegrationEventHandler<>))).Select(s => s.GetTypeInfo());
                 var handler = handlers.FirstOrDefault(o => o.ImplementedInterfaces.Any(s => s.GenericTypeArguments.Contains(eventType)));
                 using var scope = _serviceProvider.GetService<IServiceScopeFactory>()?.CreateScope();
-                if (handler is not null)
+                if (handler is null) return;
+                var handle = scope?.ServiceProvider.GetService(handler);
+                // 检查消费者是否已经注册,若是未注册则不启动消费.
+                if (handle is null) return;
+                _subsManager.AddSubscription(eventType, handler);
+                StartBasicConsume(eventType, rabbitAttr, consumerChannel);
+            }, TaskCreationOptions.LongRunning);
+            if (xdlAttr is not null)
+            {
+                Task.Factory.StartNew(() =>
                 {
-                    var handle = scope?.ServiceProvider.GetService(handler);
-                    // 检查消费者是否已经注册,若是未注册则不启动消费.
-                    if (handle is not null)
-                    {
-                        _subsManager.AddSubscription(eventType, handler);
-                        StartBasicConsume(eventType, rabbitAttr, consumerChannel);
-                    }
-                }
-                if (xdlAttr is null) return;
-                {
+                    using var consumerChannel = CreateConsumerChannel(rabbitAttr, eventType, xdlAttr);
                     DoInternalSubscription(eventName, xdlAttr, consumerChannel);
                     var xdl_handlers = AssemblyHelper.FindTypes(o => o is
                                                                      {
@@ -194,13 +194,14 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                                                                      o.IsBaseOn(typeof(IIntegrationEventDeadLetterHandler<>))).Select(s => s.GetTypeInfo());
                     var xdl_handler = xdl_handlers.FirstOrDefault(o => o.ImplementedInterfaces.Any(s => s.GenericTypeArguments.Contains(eventType)));
                     if (xdl_handler is null) return;
+                    using var scope = _serviceProvider.GetService<IServiceScopeFactory>()?.CreateScope();
                     var handle = scope?.ServiceProvider.GetService(xdl_handler);
                     // 检查消费者是否已经注册,若是未注册则不启动消费.
                     if (handle is null) return;
                     _deadLetterManager.AddSubscription(eventType, xdl_handler);
                     StartBasicConsume(eventType, xdlAttr, consumerChannel);
-                }
-            });
+                }, TaskCreationOptions.LongRunning);
+            }
         }
     }
 
@@ -260,36 +261,36 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         channel.QueueBind(attr.Queue, attr.ExchangeName, attr.RoutingKey);
     }
 
-    private void StartBasicConsume(Type eventType, RabbitAttribute attr, IModel? channel)
+    private void StartBasicConsume(Type eventType, RabbitAttribute attr, IModel channel)
     {
         _logger.LogTrace("启动消费者");
-        if (channel is not null)
+        var qos = eventType.GetCustomAttribute<RabbitQosAttribute>();
+        if (qos is not null) channel.BasicQos(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
+        var consumer = new AsyncEventingBasicConsumer(channel);
+        _ = channel.BasicConsume(attr.Queue, false, consumer);
+        consumer.Received += async (_, ea) =>
         {
-            var qos = eventType.GetCustomAttribute<RabbitQosAttribute>();
-            if (qos is not null) channel.BasicQos(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
-            var consumer = new AsyncEventingBasicConsumer(channel);
-            _ = channel.BasicConsume(attr.Queue, false, consumer);
-            consumer.Received += async (_, ea) =>
+            var message = Encoding.UTF8.GetString(ea.Body.Span);
+            try
             {
-                var message = Encoding.UTF8.GetString(ea.Body.Span);
-                try
+                if (message.Contains("throw-fake-exception", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (message.Contains("throw-fake-exception", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        throw new InvalidOperationException($"假异常请求:{message}");
-                    }
-                    await ProcessEvent(eventType, message, () => channel.BasicAck(ea.DeliveryTag, false));
+                    throw new InvalidOperationException($"假异常请求:{message}");
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "错误处理消息:{Message}", message);
-                    // 先注释掉,若是大量消息重新入队,容易拖垮MQ,这里的处理办法是长时间不确认,所有消息由Unacked重新变为Ready
-                    //channel.BasicNack(ea.DeliveryTag, false, true);
-                }
-            };
-            while (true) Thread.Sleep(100000);
+                await ProcessEvent(eventType, message, () => channel.BasicAck(ea.DeliveryTag, false));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "错误处理消息:{Message}", message);
+                // 先注释掉,若是大量消息重新入队,容易拖垮MQ,这里的处理办法是长时间不确认,所有消息由Unacked重新变为Ready
+                //channel.BasicNack(ea.DeliveryTag, false, true);
+            }
+        };
+        while (true)
+        {
+            if (channel.IsClosed) break;
+            Thread.Sleep(100000);
         }
-        _logger.LogError("当_consumerChannel为null时StartBasicConsume不能调用");
     }
 
     private async Task ProcessEvent(Type eventType, string message, Action ack)
@@ -336,37 +337,37 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         }
     }
 
-    private void StartBasicConsume(Type eventType, DeadLetterAttribute xdlAttr, IModel? channel)
+    private void StartBasicConsume(Type eventType, DeadLetterAttribute xdlAttr, IModel channel)
     {
         _logger.LogTrace("启动死信队列消费");
-        if (channel is not null)
+        var qos = eventType.GetCustomAttribute<RabbitQosAttribute>();
+        if (qos is not null) channel.BasicQos(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
+        var consumer = new AsyncEventingBasicConsumer(channel);
+        _ = channel.BasicConsume(xdlAttr.Queue, false, consumer);
+        consumer.Received += async (_, ea) =>
         {
-            var qos = eventType.GetCustomAttribute<RabbitQosAttribute>();
-            if (qos is not null) channel.BasicQos(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
-            var consumer = new AsyncEventingBasicConsumer(channel);
-            _ = channel.BasicConsume(xdlAttr.Queue, false, consumer);
-            consumer.Received += async (_, ea) =>
+            var message = Encoding.UTF8.GetString(ea.Body.Span);
+            try
             {
-                var message = Encoding.UTF8.GetString(ea.Body.Span);
-                try
+                if (message.Contains("throw-fake-exception", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (message.Contains("throw-fake-exception", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        throw new InvalidOperationException($"假异常请求:{message}");
-                    }
-                    await ProcessDeadLetterEvent(eventType, message, () => channel.BasicAck(ea.DeliveryTag, false));
+                    throw new InvalidOperationException($"假异常请求:{message}");
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "错误处理消息:{Message}", message);
-                }
-                // Even on exception we take the message off the queue.
-                // in a REAL WORLD app this should be handled with a Dead Letter Exchange (DLX). 
-                // For more information see: https://www.rabbitmq.com/dlx.html
-            };
-            while (true) Thread.Sleep(100000);
+                await ProcessDeadLetterEvent(eventType, message, () => channel.BasicAck(ea.DeliveryTag, false));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "错误处理消息:{Message}", message);
+            }
+            // Even on exception we take the message off the queue.
+            // in a REAL WORLD app this should be handled with a Dead Letter Exchange (DLX). 
+            // For more information see: https://www.rabbitmq.com/dlx.html
+        };
+        while (true)
+        {
+            if (channel.IsClosed) break;
+            Thread.Sleep(100000);
         }
-        _logger.LogError("当_consumerChannel为null时StartBasicConsume不能调用");
     }
 
     private async Task ProcessDeadLetterEvent(Type eventType, string message, Action ack)
