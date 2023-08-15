@@ -2,6 +2,16 @@
 	<Import Project="..\..\build\common.props" />
 
 	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).MongoDistributedLock</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).MongoDistributedLock</AssemblyName>
+		<PackageId>$(PackagePrefix).MongoDistributedLock</PackageId>
+		<PackageTags>MongoDB;DistributedLock</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.MongoDistributedLock</RootNamespace>
+	</PropertyGroup>
+	
+	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.MongoDistributedLock</PackageProjectUrl>
         <Description>MongoDB分布式锁方案</Description>
     </PropertyGroup>

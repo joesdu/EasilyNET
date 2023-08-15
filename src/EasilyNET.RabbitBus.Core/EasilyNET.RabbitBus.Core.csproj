@@ -2,6 +2,16 @@
 	<Import Project="..\..\build\common.props" />
 
 	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).RabbitBus.Core</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).RabbitBus.Core</AssemblyName>
+		<PackageId>$(PackagePrefix).RabbitBus.Core</PackageId>
+		<PackageTags>RabbitMQ;EventBus</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.RabbitBus.Core</RootNamespace>
+	</PropertyGroup>
+	
+	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.RabbitBus.Core</PackageProjectUrl>
         <Description>抽离一些EasilyNET.RabbitBus到Core库,便于消息事件实体复用.</Description>
     </PropertyGroup>

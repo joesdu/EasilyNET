@@ -2,6 +2,16 @@
 	<Import Project="..\..\build\common.props" />
 
 	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).IdentityServer.MongoStorage</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).IdentityServer.MongoStorage</AssemblyName>
+		<PackageId>$(PackagePrefix).IdentityServer.MongoStorage</PackageId>
+		<PackageTags>IdentityServer;MongoDB;Persistence</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.IdentityServer.MongoStorage</RootNamespace>
+	</PropertyGroup>
+	
+	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.IdentityServer.MongoStorage</PackageProjectUrl>
         <Description>IdentityServer 6.x MongoDB持久化</Description>
     </PropertyGroup>

@@ -2,6 +2,16 @@
 	<Import Project="..\..\build\common.props" />
 
 	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).Mongo.AspNetCore</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).Mongo.AspNetCore</AssemblyName>
+		<PackageId>$(PackagePrefix).Mongo.AspNetCore</PackageId>
+		<PackageTags>MongoDB</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.Mongo.AspNetCore</RootNamespace>
+	</PropertyGroup>
+	
+	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.AspNetCore</PackageProjectUrl>
         <Description>MongoDB 驱动的服务包,默认驼峰,ID和Id映射,时间本地化和枚举字符串的自动处理.</Description>
     </PropertyGroup>

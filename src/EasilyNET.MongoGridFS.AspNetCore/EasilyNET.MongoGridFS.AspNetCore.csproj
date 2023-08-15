@@ -2,6 +2,16 @@
 	<Import Project="..\..\build\common.props" />
 
 	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).MongoGridFS.AspNetCore</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).MongoGridFS.AspNetCore</AssemblyName>
+		<PackageId>$(PackagePrefix).MongoGridFS.AspNetCore</PackageId>
+		<PackageTags>MongoDB;GridFS</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.MongoGridFS.AspNetCore</RootNamespace>
+	</PropertyGroup>
+	
+	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.MongoGridFS.AspNetCore</PackageProjectUrl>
         <Description>EasilyNET.MongoGridFS.AspNetCore 方便注册MongoGridFS服务</Description>
     </PropertyGroup>

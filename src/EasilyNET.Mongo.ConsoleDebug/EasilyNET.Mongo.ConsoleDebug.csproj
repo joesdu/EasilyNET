@@ -2,6 +2,16 @@
 	<Import Project="..\..\build\common.props" />
 
 	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).Mongo.ConsoleDebug</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).Mongo.ConsoleDebug</AssemblyName>
+		<PackageId>$(PackagePrefix).Mongo.ConsoleDebug</PackageId>
+		<PackageTags>MongoDB</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.Mongo.ConsoleDebug</RootNamespace>
+	</PropertyGroup>
+	
+	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug</PackageProjectUrl>
         <Description>MongoDB.ConsoleDebug,用来实现将命令语句输出到控制台的功能.</Description>
     </PropertyGroup>

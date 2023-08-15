@@ -2,6 +2,16 @@
 	<Import Project="..\..\build\common.props" />
 
 	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).RabbitBus.AspNetCore</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).RabbitBus.AspNetCore</AssemblyName>
+		<PackageId>$(PackagePrefix).RabbitBus.AspNetCore</PackageId>
+		<PackageTags>RabbitMQ;EventBus</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.RabbitBus.AspNetCore</RootNamespace>
+	</PropertyGroup>
+	
+	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore</PackageProjectUrl>
         <Description>基于RabbitMQ实现的消息总线,参考eShop EventBus</Description>
     </PropertyGroup>
