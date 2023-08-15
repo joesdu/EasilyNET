@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Project>
+	<Import Project="sign.props" />
+	<Import Project="version.props" />
+
+    <PropertyGroup>
+        <Authors>joesdu</Authors>
+	    <PackagePrefix>EasilyNET</PackagePrefix>
+        <RepositoryType>git</RepositoryType>
+        <RepositoryUrl>https://github.com/EasilyNET/EasilyNET</RepositoryUrl>
+	    <GenerateAssemblyConfigurationAttribute>True</GenerateAssemblyConfigurationAttribute>
+	    <GenerateAssemblyCompanyAttribute>True</GenerateAssemblyCompanyAttribute>
+	    <GenerateAssemblyProductAttribute>True</GenerateAssemblyProductAttribute>
+	    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+        <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include=".\README.md" Pack="true" PackagePath=""/>
+        <None Include="..\..\LICENSE" Pack="true" PackagePath=""/>
+    </ItemGroup>
+
+    <PropertyGroup>
+	    <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
+	    <LangVersion>preview</LangVersion>
+	    <Nullable>enable</Nullable>
+	    <ImplicitUsings>enable</ImplicitUsings>
+	    <!--<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>-->
+	    <NoWarn>$(NoWarn);NU5104</NoWarn>
+    </PropertyGroup>
+
+</Project>
