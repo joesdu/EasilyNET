@@ -6,20 +6,13 @@ using WebApi.Test.Unit;
 Console.Title = "EasilyNET";
 AssemblyHelper.AddExcludeLibs("Npgsql.", "NPOI");
 var builder = WebApplication.CreateBuilder(args);
-
 // 配置Kestrel支持HTTP1,2,3
 //builder.WebHost.ConfigureKestrel((_, op) =>
 //{
 //    // 配置监听端口和IP
 //    op.ListenAnyIP(443, lo =>
 //    {
-//#if NET6_0
-//#pragma warning disable CA2252 // 此 API 需要选择加入预览功能
-//#endif
 //        lo.Protocols = HttpProtocols.Http1AndHttp2AndHttp3;
-//#if NET6_0
-//#pragma warning disable CA2252 // 此 API 需要选择加入预览功能
-//#endif
 //        lo.UseHttps();
 //    });
 //    op.ListenAnyIP(80, lo => lo.Protocols = HttpProtocols.Http1);
@@ -66,8 +59,6 @@ var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment()) _ = app.UseDeveloperExceptionPage();
-// var job= app.Services.GetService<IJob>();
-// var job1= app.Services.GetService<PropertyInjectionTestJob>();
 
 // 添加自动化注入的一些中间件.
 app.InitializeApplication();

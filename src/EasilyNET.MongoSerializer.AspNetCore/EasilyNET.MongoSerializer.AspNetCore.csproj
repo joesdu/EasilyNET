@@ -1,13 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
+	<Import Project="..\..\build\common.props" />
 
-    <PropertyGroup>
+	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).MongoSerializer.AspNetCore</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).MongoSerializer.AspNetCore</AssemblyName>
+		<PackageId>$(PackagePrefix).MongoSerializer.AspNetCore</PackageId>
+		<PackageTags>MongoDB;Serializer</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.MongoSerializer.AspNetCore</RootNamespace>
+	</PropertyGroup>
+	
+	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.MongoSerializer.AspNetCore</PackageProjectUrl>
         <Description>为MongoDB添加.Net 6+ Date/Time Only类型支持.</Description>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0-preview.7.23375.6" />
-        <PackageReference Include="MongoDB.Bson" Version="2.20.0" />
+        <PackageReference Include="MongoDB.Bson" Version="2.21.0" />
     </ItemGroup>
 
 </Project>

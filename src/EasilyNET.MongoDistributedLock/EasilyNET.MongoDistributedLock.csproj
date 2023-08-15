@@ -1,12 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+	<Import Project="..\..\build\common.props" />
 
-    <PropertyGroup>
+	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).MongoDistributedLock</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).MongoDistributedLock</AssemblyName>
+		<PackageId>$(PackagePrefix).MongoDistributedLock</PackageId>
+		<PackageTags>MongoDB;DistributedLock</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.MongoDistributedLock</RootNamespace>
+	</PropertyGroup>
+	
+	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.MongoDistributedLock</PackageProjectUrl>
-        <Description>EasilyNET.MongoDistributedLock MongoDB分布式锁方案</Description>
+        <Description>MongoDB分布式锁方案</Description>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="MongoDB.Driver" Version="2.20.0"/>
+        <PackageReference Include="MongoDB.Driver" Version="2.21.0" />
     </ItemGroup>
 
 </Project>

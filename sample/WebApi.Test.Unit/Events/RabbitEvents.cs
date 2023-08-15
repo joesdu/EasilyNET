@@ -2,12 +2,15 @@ using EasilyNET.RabbitBus.Core;
 using EasilyNET.RabbitBus.Core.Attributes;
 using EasilyNET.RabbitBus.Core.Enums;
 
+// ReSharper disable UnusedMember.Global
+// ReSharper disable ClassNeverInstantiated.Global
+
 namespace WebApi.Test.Unit.Events;
 
 /// <summary>
 /// 测试HelloWorld模式消息类型
 /// </summary>
-[Rabbit(EWorkModel.None, queue: "hello.world"), DeadLetter(EWorkModel.None, "xdl.hello.world", queue: "xdl.hello.world"), RabbitQueueArg("x-message-ttl", 5000)]
+[Rabbit(EWorkModel.None, queue: "hello.world"), DeadLetter(EWorkModel.None, "xdl.hello", queue: "xdl.hello.world"), RabbitQueueArg("x-message-ttl", 5000)]
 public class HelloWorldEvent : IntegrationEvent
 {
     /// <summary>

@@ -1,13 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
+	<Import Project="..\..\build\common.props" />
 
-    <PropertyGroup>
+	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).IdentityServer.MongoStorage</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).IdentityServer.MongoStorage</AssemblyName>
+		<PackageId>$(PackagePrefix).IdentityServer.MongoStorage</PackageId>
+		<PackageTags>IdentityServer;MongoDB;Persistence</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.IdentityServer.MongoStorage</RootNamespace>
+	</PropertyGroup>
+	
+	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.IdentityServer.MongoStorage</PackageProjectUrl>
-        <Description>support identityserver 6.x data persistence to mongodb</Description>
+        <Description>IdentityServer 6.x MongoDB持久化</Description>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Duende.IdentityServer" Version="6.3.3"/>
-        <PackageReference Include="MongoDB.Driver" Version="2.20.0"/>
+        <PackageReference Include="Duende.IdentityServer" Version="6.3.3" />
+        <PackageReference Include="MongoDB.Driver" Version="2.21.0" />
     </ItemGroup>
 
 </Project>

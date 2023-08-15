@@ -1,8 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+	<Import Project="..\..\build\common.props" />
 
-    <PropertyGroup>
+	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).AutoDependencyInjection</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).AutoDependencyInjection</AssemblyName>
+		<PackageId>$(PackagePrefix).AutoDependencyInjection</PackageId>
+		<PackageTags>AutoDependencyInjection</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.AutoDependencyInjection</RootNamespace>
+	</PropertyGroup>
+	
+	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection</PackageProjectUrl>
-        <Description>类似于ABP框架的自动模块注入,独立出来单独维护.</Description>
+        <Description>类似于ABP框架的自动模块注入,属性注入,独立出来单独维护.</Description>
     </PropertyGroup>
 
     <ItemGroup>

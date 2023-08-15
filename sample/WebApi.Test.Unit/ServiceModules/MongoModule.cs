@@ -83,6 +83,6 @@ public class MongoModule : AppModule
         context.Services.AddMongoContext<DbContext2>(config, c => c.DatabaseName = "test2");
         context.Services.RegisterSerializer(new DateOnlySerializerAsString());
         context.Services.RegisterSerializer(new TimeOnlySerializerAsString());
-        context.Services.RegisterDynamicSerializer();
+        //context.Services.RegisterDynamicSerializer();
     }
 }
