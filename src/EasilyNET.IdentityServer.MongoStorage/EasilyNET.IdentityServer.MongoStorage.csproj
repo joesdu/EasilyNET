@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
+	<Import Project="..\..\build\common.props" />
 
-    <PropertyGroup>
+	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.IdentityServer.MongoStorage</PackageProjectUrl>
-        <Description>support identityserver 6.x data persistence to mongodb</Description>
+        <Description>IdentityServer 6.x MongoDB持久化</Description>
     </PropertyGroup>
 
     <ItemGroup>

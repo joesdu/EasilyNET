@@ -36,7 +36,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{CD19FF86-B039-4A4A-8822-7C97670BC786}"
 	ProjectSection(SolutionItems) = preProject
 		Build.ps1 = Build.ps1
-		Directory.Build.props = Directory.Build.props
 		LICENSE = LICENSE
 		Push.ps1 = Push.ps1
 		README.md = README.md
@@ -59,6 +58,11 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.MongoDistributedLock", "src\EasilyNET.MongoDistributedLock\EasilyNET.MongoDistributedLock.csproj", "{107F28AD-E038-47A5-8720-EDECF0DD1E36}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.MongoDistributedLock.AspNetCore", "src\EasilyNET.MongoDistributedLock.AspNetCore\EasilyNET.MongoDistributedLock.AspNetCore.csproj", "{F1C997F7-DBDE-4899-9ED5-460473CEC087}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{3E8A3288-FD80-4809-9096-B10D2D025C5E}"
+	ProjectSection(SolutionItems) = preProject
+		build\common.props = build\common.props
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -169,6 +173,7 @@ Global
 		{AC36AE56-981E-4910-9D1C-DD17D4EC28AD} = {BD6D1E2B-691E-4E8B-9E8D-E7FD2EDDF1F8}
 		{107F28AD-E038-47A5-8720-EDECF0DD1E36} = {6B734C3C-FE4C-405D-80E3-AFEAD63BCF2D}
 		{F1C997F7-DBDE-4899-9ED5-460473CEC087} = {6B734C3C-FE4C-405D-80E3-AFEAD63BCF2D}
+		{3E8A3288-FD80-4809-9096-B10D2D025C5E} = {CD19FF86-B039-4A4A-8822-7C97670BC786}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {04F52789-9FF4-4AB9-9132-1789A00E7E4A}

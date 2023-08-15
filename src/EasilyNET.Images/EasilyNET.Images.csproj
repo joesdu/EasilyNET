@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
+	<Import Project="..\..\build\common.props" />
 
-    <PropertyGroup>
+	<PropertyGroup>
         <RepositoryUrl>https://github.com/EasilyNET/EasilyNET.Images</RepositoryUrl>
         <Description>含QRCode创建和解析工具,无需自行使用apt等工具安装组件</Description>
     </PropertyGroup>

@@ -1,8 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+	<Import Project="..\..\build\common.props" />
 
-    <PropertyGroup>
+	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.AspNetCore</PackageProjectUrl>
-        <Description>MongoDB 驱动的服务包,方便使用 Mongo 数据库.</Description>
+        <Description>MongoDB 驱动的服务包,默认驼峰,ID和Id映射,时间本地化和枚举字符串的自动处理.</Description>
     </PropertyGroup>
 
     <ItemGroup>

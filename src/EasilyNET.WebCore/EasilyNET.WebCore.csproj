@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+	<Import Project="..\..\build\common.props" />
 
-    <PropertyGroup>
+	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.WebCore</PackageProjectUrl>
         <Description>包含Swagger的一些扩展的WebCore扩展</Description>
     </PropertyGroup>

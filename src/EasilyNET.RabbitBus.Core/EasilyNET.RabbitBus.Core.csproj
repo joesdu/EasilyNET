@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+	<Import Project="..\..\build\common.props" />
 
-    <PropertyGroup>
+	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.RabbitBus.Core</PackageProjectUrl>
         <Description>抽离一些EasilyNET.RabbitBus到Core库,便于消息事件实体复用.</Description>
     </PropertyGroup>

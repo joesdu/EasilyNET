@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
+	<Import Project="..\..\build\common.props" />
 
-    <PropertyGroup>
+	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore</PackageProjectUrl>
         <Description>基于RabbitMQ实现的消息总线,参考eShop EventBus</Description>
     </PropertyGroup>
