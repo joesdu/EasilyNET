@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<Project>
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<SignAssembly>True</SignAssembly>
+		<AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)EasilyNET.snk</AssemblyOriginatorKeyFile>
+		<DelaySign>False</DelaySign>
+		<NoWarn>$(NoWarn);CS8002</NoWarn>
+	</PropertyGroup>
+</Project>

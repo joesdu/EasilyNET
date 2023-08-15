@@ -60,6 +60,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{3E8A3288-FD80-4809-9096-B10D2D025C5E}"
 	ProjectSection(SolutionItems) = preProject
 		build\common.props = build\common.props
+		build\EasilyNET.snk = build\EasilyNET.snk
+		build\sign.props = build\sign.props
 		build\version.props = build\version.props
 	EndProjectSection
 EndProject
