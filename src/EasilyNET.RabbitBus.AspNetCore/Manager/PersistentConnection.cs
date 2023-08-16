@@ -19,7 +19,7 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
     private readonly uint _maxPoolCount;
     private readonly int _retryCount;
     private readonly List<AmqpTcpEndpoint>? _tcpEndpoints;
-    private IChannelPool? _channelPool;
+    private ChannelPool? _channelPool;
     private IConnection? _connection;
     private bool _disposed;
 
@@ -107,7 +107,7 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
                 _connection.CallbackException += OnCallbackException;
                 _connection.ConnectionBlocked += OnConnectionBlocked;
                 _logger.LogInformation("RabbitMQ客户端获取了与[{HostName}]的持久连接,并订阅了故障事件", _connection.Endpoint.HostName);
-                _channelPool = new ChannelPool(_connection, _maxPoolCount);
+                _channelPool = new(_connection, _maxPoolCount);
                 _logger.LogInformation("RabbitBus channel pool max count: {Count}", _maxPoolCount);
                 _disposed = false;
                 return true;
