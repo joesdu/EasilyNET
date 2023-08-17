@@ -59,7 +59,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
     }
 
     /// <inheritdoc />
-    public void Publish<T>(T @event, string? routingKey = null, byte? priority = 1, CancellationToken? cancellationToken = null) where T : IIntegrationEvent
+    public void Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IIntegrationEvent
     {
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
         if (!_persistentConnection.IsConnected) _ = _persistentConnection.TryConnect();
@@ -94,7 +94,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
     }
 
     /// <inheritdoc />
-    public void Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 1, CancellationToken? cancellationToken = null) where T : IIntegrationEvent
+    public void Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IIntegrationEvent
     {
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
         if (!_persistentConnection.IsConnected) _ = _persistentConnection.TryConnect();

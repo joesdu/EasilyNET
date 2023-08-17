@@ -61,10 +61,8 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
 #pragma warning disable IDE0051
     private void Handle(CommandStartedEvent @event)
     {
-        if (_options.ShouldStartActivity is not null && !_options.ShouldStartActivity(@event))
-            return;
-        if (!CommandsWithCollectionNameAsValue.Contains(@event.CommandName))
-            return;
+        if (_options.ShouldStartActivity is not null && !_options.ShouldStartActivity(@event)) return;
+        if (!CommandsWithCollectionNameAsValue.Contains(@event.CommandName)) return;
         Console.WriteLine($"[{DateTime.Now:HH:mm:ss} INF] MongoRequest: {@event.RequestId},Command: ");
         Console.ForegroundColor = ConsoleColor.Magenta;
         var json = @event.Command.ToJson(new() { Indent = true });
@@ -77,8 +75,7 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
 #pragma warning disable CA1822 // 将成员标记为 static
     private void Handle(CommandSucceededEvent @event)
     {
-        if (!CommandsWithCollectionNameAsValue.Contains(@event.CommandName))
-            return;
+        if (!CommandsWithCollectionNameAsValue.Contains(@event.CommandName)) return;
         Console.Write($"[{DateTime.Now:HH:mm:ss} INF] MongoRequest: {@event.RequestId},Status: ");
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("Succeeded");
@@ -87,8 +84,7 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
 
     private void Handle(CommandFailedEvent @event)
     {
-        if (!CommandsWithCollectionNameAsValue.Contains(@event.CommandName))
-            return;
+        if (!CommandsWithCollectionNameAsValue.Contains(@event.CommandName)) return;
         Console.Write($"[{DateTime.Now:HH:mm:ss} INF] MongoRequest: {@event.RequestId},Status: ");
         Console.ForegroundColor = ConsoleColor.Red;
         Console.WriteLine("Failed");
