@@ -5,7 +5,7 @@ namespace EasilyNET.Security;
 /// <summary>
 /// SM2Model
 /// </summary>
-public enum SM2Model
+public enum Sm2Model
 {
     /// <summary>
     /// C1C2C3

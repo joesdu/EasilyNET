@@ -51,13 +51,13 @@ public static class Sm2Crypt
     /// <param name="data">需要加密的数据</param>
     /// <param name="model">模式</param>
     /// <returns></returns>
-    public static byte[] Encrypt(byte[] publicKey, byte[] data, SM2Model model)
+    public static byte[] Encrypt(byte[] publicKey, byte[] data, Sm2Model model)
     {
         var sm2 = new SM2Engine(new SM3Digest());
         var x9ec = GMNamedCurves.GetByName("SM2P256V1");
         sm2.Init(true, new ParametersWithRandom(new ECPublicKeyParameters(x9ec.Curve.DecodePoint(publicKey), new(x9ec))));
         data = sm2.ProcessBlock(data, 0, data.Length);
-        if (model == SM2Model.C1C3C2) data = C123ToC132(data);
+        if (model == Sm2Model.C1C3C2) data = C123ToC132(data);
         return data;
     }
 
@@ -68,9 +68,9 @@ public static class Sm2Crypt
     /// <param name="data">需要解密的数据</param>
     /// <param name="model">模式</param>
     /// <returns></returns>
-    public static byte[] Decrypt(byte[] privateKey, byte[] data, SM2Model model)
+    public static byte[] Decrypt(byte[] privateKey, byte[] data, Sm2Model model)
     {
-        if (model == SM2Model.C1C3C2) data = C132ToC123(data);
+        if (model == Sm2Model.C1C3C2) data = C132ToC123(data);
         var sm2 = new SM2Engine(new SM3Digest());
         sm2.Init(false, new ECPrivateKeyParameters(new(1, privateKey), new(GMNamedCurves.GetByName("SM2P256V1"))));
         return sm2.ProcessBlock(data, 0, data.Length);
