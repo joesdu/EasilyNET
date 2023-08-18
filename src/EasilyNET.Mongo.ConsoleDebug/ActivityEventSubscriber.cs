@@ -79,7 +79,7 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
             .SplitColumns(new Layout(new Panel(new Text(CommandJson, new(Color.Purple)))
                 {
                     Height = 45,
-                    Header = new("Command Json", Justify.Center)
+                    Header = new("Command", Justify.Center)
                 }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand())
                 {
                     MinimumSize = 64,
