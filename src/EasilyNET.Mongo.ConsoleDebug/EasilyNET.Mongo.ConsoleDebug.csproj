@@ -5,7 +5,7 @@
 		<AssemblyTitle>$(PackagePrefix).Mongo.ConsoleDebug</AssemblyTitle>
 		<AssemblyName>$(PackagePrefix).Mongo.ConsoleDebug</AssemblyName>
 		<PackageId>$(PackagePrefix).Mongo.ConsoleDebug</PackageId>
-		<PackageTags>MongoDB</PackageTags>
+		<PackageTags>MongoDB;Spectre</PackageTags>
 		<PackageReleaseNotes>
 		</PackageReleaseNotes>
 		<RootNamespace>EasilyNET.Mongo.ConsoleDebug</RootNamespace>
@@ -13,11 +13,13 @@
 	
 	<PropertyGroup>
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug</PackageProjectUrl>
-        <Description>MongoDB.ConsoleDebug,用来实现将命令语句输出到控制台的功能.</Description>
+        <Description>用来实现将命令语句输出到控制台的功能.推荐和 Serilog.Sinks.Spectre 一起使用效果更佳</Description>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="MongoDB.Driver.Core" Version="2.21.0" />
+		<!-- 默认引入 Serilog.Sinks.Spectre 方便使用 -->
+        <PackageReference Include="Serilog.Sinks.Spectre" Version="0.4.1" />
         <PackageReference Include="Spectre.Console.Json" Version="0.47.1-preview.0.11" />
     </ItemGroup>
 

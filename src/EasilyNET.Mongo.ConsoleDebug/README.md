@@ -72,7 +72,28 @@ clientSettings.ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityE
 var mongoClient = new MongoClient(clientSettings);
 ```
 
-- 该库参考[SkyAPM-dotnet MongoDB](https://github.com/SkyAPM/SkyAPM-dotnet)
--
+- 该库参考 [SkyAPM-dotnet MongoDB](https://github.com/SkyAPM/SkyAPM-dotnet)
+- 推荐和 [Serilog.Sinks.Spectre](https://github.com/lucadecamillis/serilog-sinks-spectre) 一起使用效果最佳
+
+###### Seilog配置例子
+
+```csharp
+// 添加Serilog配置
+builder.Host.UseSerilog((hbc, lc) =>
+{
+    const LogEventLevel logLevel = LogEventLevel.Information;
+    lc.ReadFrom.Configuration(hbc.Configuration)
+          .MinimumLevel.Override("Microsoft", logLevel)
+          .MinimumLevel.Override("System", logLevel)
+          .Enrich.FromLogContext()
+          .WriteTo.Async(wt =>
+          {
+              wt.Debug();
+              // 输出到 Spectre.Console
+              wt.Spectre();
+          });
+});
+```
+
 
 同时参考[MongoDB.Driver.Core.Extensions.DiagnosticSources](https://github.com/jbogard/MongoDB.Driver.Core.Extensions.DiagnosticSources)

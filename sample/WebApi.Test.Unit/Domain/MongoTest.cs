@@ -29,4 +29,14 @@ public class MongoTest
     /// TimeOnly类型
     /// </summary>
     public TimeOnly TimeOnly { get; set; }
+
+    /// <summary>
+    /// DateOnly类型
+    /// </summary>
+    public DateOnly? NullableDateOnly { get; set; }
+
+    /// <summary>
+    /// TimeOnly类型
+    /// </summary>
+    public TimeOnly? NullableTimeOnly { get; set; }
 }

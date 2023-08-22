@@ -11,7 +11,7 @@ using System.Reflection;
 namespace EasilyNET.Mongo.ConsoleDebug;
 
 /// <summary>
-/// 利用IEventSubscriber实现MongoDB语句输出到控制台.
+/// 利用IEventSubscriber实现MongoDB语句输出到控制台,推荐测试环境使用.
 /// </summary>
 public sealed class ActivityEventSubscriber : IEventSubscriber
 {
@@ -87,8 +87,8 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
                 },
                 new Layout(new Rows(new Panel(new Calendar(DateTime.Now)
                 {
-                    HeaderStyle = Style.Parse("blue bold"),
-                    HighlightStyle = Style.Parse("yellow bold")
+                    HeaderStyle = new(Color.Blue, decoration: Decoration.Bold),
+                    HighlightStyle = new(Color.Pink1, decoration: Decoration.Bold)
                 }.AddCalendarEvent(DateTime.Today))
                 {
                     Height = 13,
@@ -109,10 +109,10 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
                     Height = 7,
                     Header = new("Mongo Request Status", Justify.Center)
                 }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand(), new Panel(new Text("""
-                                                                                                         ________________________________________
+                                                                                                          --------------------------------------
                                                                                                         /     Only two things are infinite,      \
                                                                                                         \   the universe and human stupidity.    /
-                                                                                                         ----------------------------------------
+                                                                                                          --------------------------------------
                                                                                                                      ^__^     O   ^__^
                                                                                                              _______/(oo)      o  (oo)\_______
                                                                                                          /\/(       /(__)         (__)\       )\/\
@@ -122,7 +122,7 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
                                                                                                         """, new(Color.Orange1)))
                 {
                     Height = 12,
-                    Header = new("YongGan NiuNiu", Justify.Center)
+                    Header = new("NiuNiu", Justify.Center)
                 }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand()))
                 {
                     Name = "Right",
@@ -132,9 +132,7 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
         AnsiConsole.Write(new Panel(layout)
         {
             Height = 47
-        }.NoBorder().NoSafeBorder());
-        // 解决最后未换行的问题
-        Console.WriteLine();
+        }.NoBorder().NoSafeBorder().Expand());
     }
 
 #pragma warning disable IDE0051
