@@ -1,7 +1,6 @@
 using EasilyNET.Core.Misc;
 using Serilog;
 using Serilog.Events;
-using Serilog.Sinks.Spectre;
 using WebApi.Test.Unit;
 
 Console.Title = "EasilyNET";
@@ -34,7 +33,8 @@ builder.Host.UseSerilog((hbc, lc) =>
       .WriteTo.Async(wt =>
       {
           wt.Debug();
-          wt.Spectre();
+          //wt.Console();
+          wt.SpectreConsole();
           //var mongo = builder.Services.GetService<DbContext>()?.Database;
           //if (mongo is not null)
           //{
