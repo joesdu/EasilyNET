@@ -169,7 +169,8 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
                              }
                              """;
                 CommandJson = @event.Command.ToJson(new() { Indent = true });
-                if (CommandJson.Length >= 1000) CommandJson = $"{CommandJson[..1000]}\n...\n Excessively long text truncation(命令过长截断)";
+                //const int CommandMaxLength = 2000;
+                //if (CommandJson.Length >= CommandMaxLength) CommandJson = $"{CommandJson[..CommandMaxLength]}\n...\nExcessively long text truncation(命令过长截断)";
                 break;
             }
         }

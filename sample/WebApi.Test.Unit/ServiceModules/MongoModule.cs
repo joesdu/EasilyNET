@@ -69,20 +69,17 @@ public class MongoModule : AppModule
         //        cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber());
         //    };
         //});
-        HashSet<string> CommandsWithCollectionName = new()
-        {
-            "mongo.test"
-        };
+        //HashSet<string> CommandsWithCollectionName = new()
+        //{
+        //    "mongo.test",
+        //    "long.data"
+        //};
         context.Services.AddMongoContext<DbContext>(new()
         {
             Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
             Credential = MongoCredential.CreateCredential("admin", "guest", "guest"),
             LinqProvider = LinqProvider.V3,
-            ClusterConfigurator = s => s.Subscribe(new ActivityEventSubscriber(new()
-            {
-                Enable = true,
-                ShouldStartCollection = coll => CommandsWithCollectionName.Contains(coll)
-            }))
+            ClusterConfigurator = s => s.Subscribe(new ActivityEventSubscriber())
         }, c =>
         {
             c.DatabaseName = "test1";

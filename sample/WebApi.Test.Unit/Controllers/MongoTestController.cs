@@ -93,7 +93,7 @@ public class MongoTestController(DbContext db1, DbContext2 db2) : ControllerBase
     [HttpPost("LongData")]
     public async Task PostLongData()
     {
-        var data = "10086".PadLeft(100).PadRight(100);
+        var data = "10086".PadLeft(3000, '*');
         await db1.Database.GetCollection<dynamic>("long.data").InsertOneAsync(new
         {
             Data = data
