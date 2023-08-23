@@ -14,16 +14,66 @@ EasilyNET Packages
 
 - AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4
 - mongodb based distributed locks
-- property injection
 - simple qrcode
 - eventbus with rabbitmq
 - simplifying the use of mongodb drivers
 - some common tool extensions
-- automatic module injection
+- automatic module injection, property injection
 - mongodb adds (dynamic|object) serialization support (mongodb.driver 2.19.0+ onwards has removed it)
 - mongodb storage support for identityserver 6
 - mongodb gridfs usage simplification support
 - integration of some common filters, middleware in webapi
+
+#### Recently Updated
+
+- EasilyNET.Mongo.ConsoleDebug 添加新的输出样式
+```text
+╭───────────────────────────────Command────────────────────────────────╮╭──────────────────Calendar──────────────────╮
+│ {                                                                    ││                2023 August                 │
+│   "insert" : "mongo.test",                                           ││ ┌─────┬─────┬─────┬─────┬─────┬─────┬────┐ │
+│   "ordered" : true,                                                  ││ │ Sun │ Mon │ Tue │ Wed │ Thu │ Fri │ S… │ │
+│   "$db" : "test1",                                                   ││ ├─────┼─────┼─────┼─────┼─────┼─────┼────┤ │
+│   "lsid" : {                                                         ││ │     │     │ 1   │ 2   │ 3   │ 4   │ 5  │ │
+│     "id" : CSUUID("f12dd90d-2f58-4655-9bf2-cbce2d9bd2c4")            ││ │ 6   │ 7   │ 8   │ 9   │ 10  │ 11  │ 12 │ │
+│   },                                                                 ││ │ 13  │ 14  │ 15  │ 16  │ 17  │ 18  │ 19 │ │
+│   "documents" : [{                                                   ││ │ 20  │ 21  │ 22  │ 23* │ 24  │ 25  │ 26 │ │
+│       "_id" : ObjectId("64e57f266a1a63e69c52b9cb"),                  ││ │ 27  │ 28  │ 29  │ 30  │ 31  │     │    │ │
+│       "dateTime" : ISODate("2023-08-23T03:38:14.121Z"),              ││ │     │     │     │     │     │     │    │ │
+│       "timeSpan" : "00:00:50",                                       ││ └─────┴─────┴─────┴─────┴─────┴─────┴────┘ │
+│       "dateOnly" : "2023-08-23",                                     │╰────────────────────────────────────────────╯
+│       "timeOnly" : "11:38:14",                                       │╭────────────────────Info────────────────────╮
+│       "nullableDateOnly" : "2023-08-23",                             ││ {                                          │
+│       "nullableTimeOnly" : null                                      ││    "RequestId": 86,                        │
+│     }]                                                               ││    "Timestamp": "2023-08-23 03:38:14",     │
+│ }                                                                    ││    "Method": "insert",                     │
+│                                                                      ││    "DatabaseName": "test1",                │
+│                                                                      ││    "CollectionName": "mongo.test",         │
+│                                                                      ││    "ConnectionInfo": {                     │
+│                                                                      ││       "ClusterId": 1,                      │
+│                                                                      ││       "EndPoint": "127.0.0.1:27018"        │
+│                                                                      ││    }                                       │
+│                                                                      ││ }                                          │
+│                                                                      │╰────────────────────────────────────────────╯
+│                                                                      │╭───────────────Request Status───────────────╮
+│                                                                      ││ ┌───────────┬────────────────┬───────────┐ │
+│                                                                      ││ │ RequestId │      Time      │  Status   │ │
+│                                                                      ││ ├───────────┼────────────────┼───────────┤ │
+│                                                                      ││ │    86     │ 11:38:14.12640 │ Succeeded │ │
+│                                                                      ││ └───────────┴────────────────┴───────────┘ │
+│                                                                      │╰────────────────────────────────────────────╯
+│                                                                      │╭───────────────────NiuNiu───────────────────╮
+│                                                                      ││   --------------------------------------   │
+│                                                                      ││ /     Only two things are infinite,      \ │
+│                                                                      ││ \   the universe and human stupidity.    / │
+│                                                                      ││   --------------------------------------   │
+│                                                                      ││              ^__^     O   ^__^             │
+│                                                                      ││      _______/(oo)      o  (oo)\_______     │
+│                                                                      ││  /\/(       /(__)         (__)\       )\/\ │
+│                                                                      ││     ||w----||                 ||----w||    │
+│                                                                      ││     ||     ||                 ||     ||    │
+│                                                                      ││ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ │
+╰──────────────────────────────────────────────────────────────────────╯╰────────────────────────────────────────────╯
+```
 
 #### Core
 

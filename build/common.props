@@ -12,7 +12,6 @@
 		<GenerateAssemblyConfigurationAttribute>True</GenerateAssemblyConfigurationAttribute>
 		<GenerateAssemblyCompanyAttribute>True</GenerateAssemblyCompanyAttribute>
 		<GenerateAssemblyProductAttribute>True</GenerateAssemblyProductAttribute>
-		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
