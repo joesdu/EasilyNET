@@ -3,8 +3,10 @@ using MongoDB.Driver.Core.Events;
 using Spectre.Console;
 using Spectre.Console.Json;
 using Spectre.Console.Rendering;
+using System.Collections.Concurrent;
 using System.Reflection;
 
+// ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Local
 
@@ -33,6 +35,8 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
         "createIndexes",
         "listIndexes"
     };
+
+    private static readonly ConcurrentDictionary<int, string> RequestIdWithCollectionName = new();
 
     private readonly InstrumentationOptions _options;
     private readonly ReflectionEventSubscriber _subscriber;
@@ -82,8 +86,8 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
                     Header = new("Command", Justify.Center)
                 }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand())
                 {
-                    MinimumSize = 64,
-                    Size = 96
+                    MinimumSize = 48,
+                    Size = 72
                 },
                 new Layout(new Rows(new Panel(new Calendar(DateTime.Now)
                 {
@@ -103,11 +107,11 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
                 })
                 {
                     Height = 13,
-                    Header = new("Mongo Info", Justify.Center)
+                    Header = new("Info", Justify.Center)
                 }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand(), new Panel(table)
                 {
                     Height = 7,
-                    Header = new("Mongo Request Status", Justify.Center)
+                    Header = new("Request Status", Justify.Center)
                 }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand(), new Panel(new Text("""
                                                                                                           --------------------------------------
                                                                                                         /     Only two things are infinite,      \
@@ -138,34 +142,59 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
 #pragma warning disable IDE0051
     private void Handle(CommandStartedEvent @event)
     {
-        if (_options.ShouldStartActivity is not null && !_options.ShouldStartActivity(@event)) return;
-        if (!CommandsWithCollectionNameAsValue.Contains(@event.CommandName)) return;
-        // 使用字符串的方式替代序列化
-        InfoJson = $$"""
-                     {
-                       "RequestId": {{@event.RequestId}},
-                       "Timestamp": "{{@event.Timestamp:yyyy-MM-dd HH:mm:ss}}",
-                       "Method": "{{@event.CommandName}}",
-                       "DatabaseName": "{{@event.DatabaseNamespace.DatabaseName}}",
-                       "CollectionName": "{{@event.Command.Elements.First(c => c.Name == @event.CommandName).Value}}",
-                       "ConnectionInfo": {
-                          "ClusterId": {{@event.ConnectionId.ServerId.ClusterId.Value}},
-                          "EndPoint": "{{@event.ConnectionId.ServerId.EndPoint}}"
-                       }
-                     }
-                     """;
-        CommandJson = @event.Command.ToJson(new() { Indent = true });
-        if (CommandJson.Length >= 1000) CommandJson = $"{CommandJson[..1000]}\n...\n Excessively long text truncation(文本过长截断)";
+        if (RequestIdWithCollectionName.Count > 50) RequestIdWithCollectionName.Clear();
+        if (@event.Command.Elements.All(c => c.Name != @event.CommandName)) return;
+        var coll_name = @event.Command.Elements.First(c => c.Name == @event.CommandName).Value.ToString() ?? "N/A";
+        RequestIdWithCollectionName.AddOrUpdate(@event.RequestId, coll_name, (_, v) => v);
+        switch (_options.Enable)
+        {
+            case true when !CommandsWithCollectionNameAsValue.Contains(@event.CommandName):
+                return;
+            case true when _options.ShouldStartCollection is not null && !_options.ShouldStartCollection(coll_name):
+                return;
+            case true:
+            {
+                // 使用字符串的方式替代序列化
+                InfoJson = $$"""
+                             {
+                               "RequestId": {{@event.RequestId}},
+                               "Timestamp": "{{@event.Timestamp:yyyy-MM-dd HH:mm:ss}}",
+                               "Method": "{{@event.CommandName}}",
+                               "DatabaseName": "{{@event.DatabaseNamespace.DatabaseName}}",
+                               "CollectionName": "{{coll_name}}",
+                               "ConnectionInfo": {
+                                  "ClusterId": {{@event.ConnectionId.ServerId.ClusterId.Value}},
+                                  "EndPoint": "{{@event.ConnectionId.ServerId.EndPoint}}"
+                               }
+                             }
+                             """;
+                CommandJson = @event.Command.ToJson(new() { Indent = true });
+                if (CommandJson.Length >= 1000) CommandJson = $"{CommandJson[..1000]}\n...\n Excessively long text truncation(命令过长截断)";
+                break;
+            }
+        }
     }
 
     private void Handle(CommandSucceededEvent @event)
     {
+        if (!_options.Enable) return;
+        if (_options.ShouldStartCollection is not null)
+        {
+            var success = RequestIdWithCollectionName.TryGetValue(@event.RequestId, out var coll_name);
+            if (success && !_options.ShouldStartCollection(coll_name!)) return;
+        }
         if (!CommandsWithCollectionNameAsValue.Contains(@event.CommandName)) return;
         WritStatus(@event.RequestId, true);
     }
 
     private void Handle(CommandFailedEvent @event)
     {
+        if (!_options.Enable) return;
+        if (_options.ShouldStartCollection is not null)
+        {
+            var success = RequestIdWithCollectionName.TryGetValue(@event.RequestId, out var coll_name);
+            if (success && !_options.ShouldStartCollection(coll_name!)) return;
+        }
         if (!CommandsWithCollectionNameAsValue.Contains(@event.CommandName)) return;
         WritStatus(@event.RequestId, false);
     }

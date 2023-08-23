@@ -18,7 +18,7 @@
 
     <ItemGroup>
         <PackageReference Include="MongoDB.Driver.Core" Version="2.21.0" />
-		<!-- 默认引入 Serilog.Sinks.Spectre 方便使用 -->
+		<!-- 这里引入直接 Serilog.Sinks.Spectre 方便上层使用 -->
         <PackageReference Include="Serilog.Sinks.Spectre" Version="0.4.1" />
         <PackageReference Include="Spectre.Console.Json" Version="0.47.1-preview.0.11" />
     </ItemGroup>

@@ -1,6 +1,4 @@
-﻿using MongoDB.Driver.Core.Events;
-
-namespace EasilyNET.Mongo.ConsoleDebug;
+﻿namespace EasilyNET.Mongo.ConsoleDebug;
 
 /// <summary>
 /// 选项
@@ -8,8 +6,12 @@ namespace EasilyNET.Mongo.ConsoleDebug;
 public sealed class InstrumentationOptions
 {
     /// <summary>
-    /// 是否开启Activity
+    /// 是否启用, 默认值: <see langword="true" />
     /// </summary>
-    // ReSharper disable once UnusedAutoPropertyAccessor.Global
-    public Func<CommandStartedEvent, bool>? ShouldStartActivity { get; set; }
+    public bool Enable { get; set; } = true;
+
+    /// <summary>
+    /// 过滤哪些集合需要开启信息输出
+    /// </summary>
+    public Func<string, bool>? ShouldStartCollection { get; set; }
 }

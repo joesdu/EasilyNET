@@ -6,51 +6,51 @@
 - 最终效果类似如下:
 
 ```text
- ╭─────────────────────────────────────────Command Json─────────────────────────────────────────╮╭──────────────────Calendar──────────────────╮
- │ {                                                                                            ││                2023 August                 │
- │   "insert" : "mongo.test",                                                                   ││ ┌─────┬─────┬─────┬─────┬─────┬─────┬────┐ │
- │   "ordered" : true,                                                                          ││ │ Sun │ Mon │ Tue │ Wed │ Thu │ Fri │ S… │ │
- │   "$db" : "test1",                                                                           ││ ├─────┼─────┼─────┼─────┼─────┼─────┼────┤ │
- │   "lsid" : {                                                                                 ││ │     │     │ 1   │ 2   │ 3   │ 4   │ 5  │ │
- │     "id" : CSUUID("163f8243-956c-43e3-8b19-e2f29dffe5ea")                                    ││ │ 6   │ 7   │ 8   │ 9   │ 10  │ 11  │ 12 │ │
- │   },                                                                                         ││ │ 13  │ 14  │ 15  │ 16  │ 17  │ 18* │ 19 │ │
- │   "documents" : [{                                                                           ││ │ 20  │ 21  │ 22  │ 23  │ 24  │ 25  │ 26 │ │
- │       "_id" : ObjectId("64df334c7f6a98097602b4c6"),                                          ││ │ 27  │ 28  │ 29  │ 30  │ 31  │     │    │ │
- │       "dateTime" : ISODate("2023-08-18T09:01:00.861Z"),                                      ││ │     │     │     │     │     │     │    │ │
- │       "timeSpan" : "00:00:50",                                                               ││ └─────┴─────┴─────┴─────┴─────┴─────┴────┘ │
- │       "dateOnly" : "2023-08-18",                                                             │╰────────────────────────────────────────────╯
- │       "timeOnly" : "17:01:00"                                                                │╭─────────────────Mongo Info─────────────────╮
- │     }]                                                                                       ││ {                                          │
- │ }                                                                                            ││    "RequestId": 71,                        │
- │                                                                                              ││    "Timestamp": "2023-08-18 09:01:00",     │
- │                                                                                              ││    "Method": "insert",                     │
- │                                                                                              ││    "DatabaseName": "test1",                │
- │                                                                                              ││    "CollectionName": "mongo.test",         │
- │                                                                                              ││    "ConnectionInfo": {                     │
- │                                                                                              ││       "ClusterId": 1,                      │
- │                                                                                              ││       "EndPoint": "127.0.0.1:27018"        │
- │                                                                                              ││    }                                       │
- │                                                                                              ││ }                                          │
- │                                                                                              │╰────────────────────────────────────────────╯
- │                                                                                              │╭────────────Mongo Request Status────────────╮
- │                                                                                              ││ ┌───────────┬────────────────┬───────────┐ │
- │                                                                                              ││ │ RequestId │      Time      │  Status   │ │
- │                                                                                              ││ ├───────────┼────────────────┼───────────┤ │
- │                                                                                              ││ │    71     │ 17:01:00.96285 │ Succeeded │ │
- │                                                                                              ││ └───────────┴────────────────┴───────────┘ │
- │                                                                                              │╰────────────────────────────────────────────╯
- │                                                                                              │╭───────────────YongGan NiuNiu───────────────╮
- │                                                                                              ││  ________________________________________  │
- │                                                                                              ││ /     Only two things are infinite,      \ │
- │                                                                                              ││ \   the universe and human stupidity.    / │
- │                                                                                              ││  ----------------------------------------  │
- │                                                                                              ││              ^__^     O   ^__^             │
- │                                                                                              ││      _______/(oo)      o  (oo)\_______     │
- │                                                                                              ││  /\/(       /(__)         (__)\       )\/\ │
- │                                                                                              ││     ||w----||                 ||----w||    │
- │                                                                                              ││     ||     ||                 ||     ||    │
- │                                                                                              ││ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ │
- ╰──────────────────────────────────────────────────────────────────────────────────────────────╯╰────────────────────────────────────────────╯
+ ╭───────────────────────────────Command────────────────────────────────╮╭──────────────────Calendar──────────────────╮
+ │ {                                                                    ││                2023 August                 │
+ │   "insert" : "mongo.test",                                           ││ ┌─────┬─────┬─────┬─────┬─────┬─────┬────┐ │
+ │   "ordered" : true,                                                  ││ │ Sun │ Mon │ Tue │ Wed │ Thu │ Fri │ S… │ │
+ │   "$db" : "test1",                                                   ││ ├─────┼─────┼─────┼─────┼─────┼─────┼────┤ │
+ │   "lsid" : {                                                         ││ │     │     │ 1   │ 2   │ 3   │ 4   │ 5  │ │
+ │     "id" : CSUUID("f12dd90d-2f58-4655-9bf2-cbce2d9bd2c4")            ││ │ 6   │ 7   │ 8   │ 9   │ 10  │ 11  │ 12 │ │
+ │   },                                                                 ││ │ 13  │ 14  │ 15  │ 16  │ 17  │ 18  │ 19 │ │
+ │   "documents" : [{                                                   ││ │ 20  │ 21  │ 22  │ 23* │ 24  │ 25  │ 26 │ │
+ │       "_id" : ObjectId("64e57f266a1a63e69c52b9cb"),                  ││ │ 27  │ 28  │ 29  │ 30  │ 31  │     │    │ │
+ │       "dateTime" : ISODate("2023-08-23T03:38:14.121Z"),              ││ │     │     │     │     │     │     │    │ │
+ │       "timeSpan" : "00:00:50",                                       ││ └─────┴─────┴─────┴─────┴─────┴─────┴────┘ │
+ │       "dateOnly" : "2023-08-23",                                     │╰────────────────────────────────────────────╯
+ │       "timeOnly" : "11:38:14",                                       │╭────────────────────Info────────────────────╮
+ │       "nullableDateOnly" : "2023-08-23",                             ││ {                                          │
+ │       "nullableTimeOnly" : null                                      ││    "RequestId": 86,                        │
+ │     }]                                                               ││    "Timestamp": "2023-08-23 03:38:14",     │
+ │ }                                                                    ││    "Method": "insert",                     │
+ │                                                                      ││    "DatabaseName": "test1",                │
+ │                                                                      ││    "CollectionName": "mongo.test",         │
+ │                                                                      ││    "ConnectionInfo": {                     │
+ │                                                                      ││       "ClusterId": 1,                      │
+ │                                                                      ││       "EndPoint": "127.0.0.1:27018"        │
+ │                                                                      ││    }                                       │
+ │                                                                      ││ }                                          │
+ │                                                                      │╰────────────────────────────────────────────╯
+ │                                                                      │╭───────────────Request Status───────────────╮
+ │                                                                      ││ ┌───────────┬────────────────┬───────────┐ │
+ │                                                                      ││ │ RequestId │      Time      │  Status   │ │
+ │                                                                      ││ ├───────────┼────────────────┼───────────┤ │
+ │                                                                      ││ │    86     │ 11:38:14.12640 │ Succeeded │ │
+ │                                                                      ││ └───────────┴────────────────┴───────────┘ │
+ │                                                                      │╰────────────────────────────────────────────╯
+ │                                                                      │╭───────────────────NiuNiu───────────────────╮
+ │                                                                      ││   --------------------------------------   │
+ │                                                                      ││ /     Only two things are infinite,      \ │
+ │                                                                      ││ \   the universe and human stupidity.    / │
+ │                                                                      ││   --------------------------------------   │
+ │                                                                      ││              ^__^     O   ^__^             │
+ │                                                                      ││      _______/(oo)      o  (oo)\_______     │
+ │                                                                      ││  /\/(       /(__)         (__)\       )\/\ │
+ │                                                                      ││     ||w----||                 ||----w||    │
+ │                                                                      ││     ||     ||                 ||     ||    │
+ │                                                                      ││ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ │
+ ╰──────────────────────────────────────────────────────────────────────╯╰────────────────────────────────────────────╯
 ```
 
 ### 使用方法
@@ -67,8 +67,17 @@ var mongoClient = new MongoClient(clientSettings);
 
 ```csharp
 var clientSettings = MongoClientSettings.FromUrl(mongoUrl);
-var options = new InstrumentationOptions { ShouldStartActivity = @event => !"collectionToIgnore".Equals(@event.GetCollectionName()) };
-clientSettings.ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber(options));
+// 定义需要输出的集合
+HashSet<string> CommandsWithCollectionName = new()
+{
+    "mongo.test"
+};
+var options = new InstrumentationOptions()
+{
+    Enable = true,
+    ShouldStartCollection = coll => CommandsWithCollectionName.Contains(coll)
+};
+clientSettings.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber(options));
 var mongoClient = new MongoClient(clientSettings);
 ```
 
