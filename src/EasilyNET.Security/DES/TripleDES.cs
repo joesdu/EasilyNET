@@ -8,9 +8,9 @@ using System.Text;
 namespace EasilyNET.Security;
 
 /// <summary>
-/// TripleDES加密解密(使用本库加密仅能用本库解密)
+/// TripleDES加密解密(由于本库对密钥进行了hash算法处理.使用本库加密仅能用本库解密)
 /// </summary>
-public static class TripleDES
+public static class TripleDes
 {
     /// <summary>
     /// 盐
@@ -35,17 +35,19 @@ public static class TripleDES
     /// <summary>
     /// 使用给定密钥加密
     /// </summary>
-    /// <param name="content">待加密的数据</param>
-    /// <param name="pwd">加密密钥</param>
+    /// <param name="content">待加密数据</param>
+    /// <param name="pwd">密钥</param>
+    /// <param name="mode">加密模式</param>
+    /// <param name="padding">填充模式</param>
     /// <returns>加密后的数据</returns>
-    public static byte[] Encrypt(byte[] content, string pwd)
+    public static byte[] Encrypt(byte[] content, string pwd, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7)
     {
         var (Key, IV) = GetEesKey(pwd);
-        var des = System.Security.Cryptography.TripleDES.Create();
+        var des = TripleDES.Create();
         des.Key = Key;
         des.IV = IV;
-        des.Mode = CipherMode.CBC;
-        des.Padding = PaddingMode.PKCS7;
+        des.Mode = mode;
+        des.Padding = padding;
         using var ms = new MemoryStream();
         using var cs = new CryptoStream(ms, des.CreateEncryptor(), CryptoStreamMode.Write);
         cs.Write(content, 0, content.Length);
@@ -56,17 +58,19 @@ public static class TripleDES
     /// <summary>
     /// 使用给定密钥解密数据
     /// </summary>
-    /// <param name="secret">待解密的数据</param>
-    /// <param name="pwd">解密密钥</param>
+    /// <param name="secret">待解密数据</param>
+    /// <param name="pwd">密钥</param>
+    /// <param name="mode">加密模式</param>
+    /// <param name="padding">填充模式</param>
     /// <returns>解密后的数据</returns>
-    public static byte[] Decrypt(byte[] secret, string pwd)
+    public static byte[] Decrypt(byte[] secret, string pwd, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7)
     {
         var (Key, IV) = GetEesKey(pwd);
-        var des = System.Security.Cryptography.TripleDES.Create();
+        var des = TripleDES.Create();
         des.Key = Key;
         des.IV = IV;
-        des.Mode = CipherMode.CBC;
-        des.Padding = PaddingMode.PKCS7;
+        des.Mode = mode;
+        des.Padding = padding;
         using var ms = new MemoryStream();
         using var cs = new CryptoStream(ms, des.CreateDecryptor(), CryptoStreamMode.Write);
         cs.Write(secret, 0, secret.Length);

@@ -13,7 +13,7 @@ namespace EasilyNET.Security;
 /// <summary>
 /// RSAKey转化扩展类,用于将XML格式和Base64这种互转.如C#和Java的编码就不一样.
 /// </summary>
-public static class RSAKeyConverter
+public static class RsaKeyConverter
 {
     /// <summary>
     /// XML私钥 👉 Base64私钥
