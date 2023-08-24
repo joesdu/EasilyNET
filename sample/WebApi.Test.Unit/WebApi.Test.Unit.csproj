@@ -39,6 +39,7 @@
         <ProjectReference Include="..\..\src\EasilyNET.MongoGridFS.AspNetCore\EasilyNET.MongoGridFS.AspNetCore.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.Mongo.AspNetCore\EasilyNET.Mongo.AspNetCore.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.RabbitBus.AspNetCore\EasilyNET.RabbitBus.AspNetCore.csproj" />
+        <ProjectReference Include="..\..\src\EasilyNET.Security\EasilyNET.Security.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.WebCore.Swagger\EasilyNET.WebCore.Swagger.csproj" />
     </ItemGroup>
 

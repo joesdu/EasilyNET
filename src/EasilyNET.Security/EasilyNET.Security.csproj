@@ -12,7 +12,7 @@
 	</PropertyGroup>
 	
 	<PropertyGroup>
-        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Security</PackageProjectUrl>
+		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Security</PackageProjectUrl>
         <Description>一个常用加密算法的封装库,AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4</Description>
     </PropertyGroup>
 

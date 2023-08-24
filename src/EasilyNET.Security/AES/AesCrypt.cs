@@ -9,7 +9,7 @@ using System.Text;
 namespace EasilyNET.Security;
 
 /// <summary>
-/// AES加密解密(使用本库加密仅能用本库解密)
+/// AES加密解密(由于本库对密钥进行了hash算法处理.使用本库加密仅能用本库解密)
 /// </summary>
 public static class AesCrypt
 {
@@ -24,12 +24,12 @@ public static class AesCrypt
     /// <param name="pwd">输入的密码</param>
     /// <param name="model">Key和IV模式</param>
     /// <returns></returns>
-    private static Tuple<byte[], byte[]> GetAesKey(string pwd, AESModel model = AESModel.AES256)
+    private static Tuple<byte[], byte[]> GetAesKey(string pwd, AesKeyModel model = AesKeyModel.AES256)
     {
         var hash1 = $"{pwd}-{slat}".To32MD5();
         switch (model)
         {
-            case AESModel.AES256:
+            case AesKeyModel.AES256:
             {
                 var hash2 = $"{hash1}-{slat}".To32MD5();
                 var hash3 = $"{hash2}-{slat}".To16MD5();
@@ -37,7 +37,7 @@ public static class AesCrypt
                 var IV = Encoding.UTF8.GetBytes(hash3);
                 return new(Key, IV);
             }
-            case AESModel.AES128:
+            case AesKeyModel.AES128:
             {
                 var hash2 = $"{hash1}-{slat}".To16MD5();
                 var Key = Encoding.UTF8.GetBytes(hash1);
@@ -51,18 +51,20 @@ public static class AesCrypt
     /// <summary>
     /// AES加密
     /// </summary>
-    /// <param name="content">需要加密的内容</param>
+    /// <param name="content">待加密数据</param>
     /// <param name="pwd">密钥</param>
-    /// <param name="model">加密模式</param>
+    /// <param name="model">Aes密钥模式</param>
+    /// <param name="mode">加密模式</param>
+    /// <param name="padding">填充模式</param>
     /// <returns></returns>
-    public static byte[] Encrypt(byte[] content, string pwd, AESModel model)
+    public static byte[] Encrypt(byte[] content, string pwd, AesKeyModel model, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7)
     {
         var (Key, IV) = GetAesKey(pwd, model);
         using var aes = Aes.Create();
         aes.Key = Key;
         aes.IV = IV;
-        aes.Mode = CipherMode.CBC;
-        aes.Padding = PaddingMode.PKCS7;
+        aes.Mode = mode;
+        aes.Padding = padding;
         var cTransform = aes.CreateEncryptor();
         return cTransform.TransformFinalBlock(content, 0, content.Length);
     }
@@ -70,18 +72,20 @@ public static class AesCrypt
     /// <summary>
     /// AES解密
     /// </summary>
-    /// <param name="secret"></param>
-    /// <param name="pwd"></param>
-    /// <param name="model"></param>
+    /// <param name="secret">待解密数据</param>
+    /// <param name="pwd">密钥</param>
+    /// <param name="model">Aes密钥模式</param>
+    /// <param name="mode">加密模式</param>
+    /// <param name="padding">填充模式</param>
     /// <returns></returns>
-    public static byte[] Decrypt(byte[] secret, string pwd, AESModel model)
+    public static byte[] Decrypt(byte[] secret, string pwd, AesKeyModel model, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7)
     {
         var (Key, IV) = GetAesKey(pwd, model);
         using var aes = Aes.Create();
         aes.Key = Key;
         aes.IV = IV;
-        aes.Mode = CipherMode.CBC;
-        aes.Padding = PaddingMode.PKCS7;
+        aes.Mode = mode;
+        aes.Padding = padding;
         var cTransform = aes.CreateDecryptor();
         return cTransform.TransformFinalBlock(secret, 0, secret.Length);
     }

@@ -1,4 +1,5 @@
 using EasilyNET.Core.Misc;
+using EasilyNET.Security;
 using Serilog;
 using Serilog.Events;
 using WebApi.Test.Unit;
@@ -6,6 +7,8 @@ using WebApi.Test.Unit;
 Console.Title = "EasilyNET";
 AssemblyHelper.AddExcludeLibs("Npgsql.", "NPOI");
 var builder = WebApplication.CreateBuilder(args);
+var RsaKeys = RsaCrypt.GenerateKey(ERsaKeyLength.Bit1024);
+Console.WriteLine(RsaKeys);
 // 配置Kestrel支持HTTP1,2,3
 //builder.WebHost.ConfigureKestrel((_, op) =>
 //{

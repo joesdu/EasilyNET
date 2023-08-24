@@ -2,20 +2,20 @@
 using System.Security.Cryptography;
 using System.Text;
 
+// ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
 namespace EasilyNET.Security;
 
 /// <summary>
-/// DES加密解密(由于本库对密钥进行了hash算法处理.使用本库加密仅能用本库解密)
+/// TripleDES加密解密(由于本库对密钥进行了hash算法处理.使用本库加密仅能用本库解密)
 /// </summary>
-// ReSharper disable once UnusedType.Global
-public static class DesCrypt
+public static class TripleDes
 {
     /// <summary>
     /// 盐
     /// </summary>
-    private const string slat = "Fo~@Ymf3w-!K+hYYoI^emXJeNt79pv@Sy,rpl0vXyIa-^jI{fU";
+    private const string slat = "HosW[A1]ew0sVtVzf[DfQ~x%hk2+ifMlg;)Wsf[9@Fh{_z$jNC";
 
     /// <summary>
     /// 处理key
@@ -27,13 +27,13 @@ public static class DesCrypt
         var hash1 = $"{pwd}-{slat}".To32MD5();
         var hash2 = $"{hash1}-{slat}".To32MD5();
         var hash3 = $"{hash2}-{slat}".To16MD5();
-        var Key = Encoding.UTF8.GetBytes($"{hash1}{hash2}".To16MD5()[..8]);
+        var Key = Encoding.UTF8.GetBytes($"{hash1}{hash2}".To32MD5()[..24]);
         var IV = Encoding.UTF8.GetBytes(hash3[..8]);
         return new(Key, IV);
     }
 
     /// <summary>
-    /// DES加密
+    /// 使用给定密钥加密
     /// </summary>
     /// <param name="content">待加密数据</param>
     /// <param name="pwd">密钥</param>
@@ -43,7 +43,7 @@ public static class DesCrypt
     public static byte[] Encrypt(byte[] content, string pwd, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7)
     {
         var (Key, IV) = GetEesKey(pwd);
-        var des = DES.Create();
+        var des = TripleDES.Create();
         des.Key = Key;
         des.IV = IV;
         des.Mode = mode;
@@ -56,17 +56,17 @@ public static class DesCrypt
     }
 
     /// <summary>
-    /// DES解密字符串
+    /// 使用给定密钥解密数据
     /// </summary>
     /// <param name="secret">待解密数据</param>
     /// <param name="pwd">密钥</param>
     /// <param name="mode">加密模式</param>
     /// <param name="padding">填充模式</param>
-    /// <returns>解密后的字符串</returns>
+    /// <returns>解密后的数据</returns>
     public static byte[] Decrypt(byte[] secret, string pwd, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7)
     {
         var (Key, IV) = GetEesKey(pwd);
-        var des = DES.Create();
+        var des = TripleDES.Create();
         des.Key = Key;
         des.IV = IV;
         des.Mode = mode;
