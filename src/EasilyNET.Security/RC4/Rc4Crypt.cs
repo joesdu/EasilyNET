@@ -1,6 +1,4 @@
-﻿using System.Text;
-
-// ReSharper disable SuggestBaseTypeForParameter
+﻿// ReSharper disable SuggestBaseTypeForParameter
 // ReSharper disable ParameterTypeCanBeEnumerable.Local
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
@@ -14,33 +12,20 @@ namespace EasilyNET.Security;
 public static class Rc4Crypt
 {
     /// <summary>
-    /// RC4加密
-    /// </summary>
-    /// <param name="data">待加密数据</param>
-    /// <param name="key">密钥</param>
-    /// <returns></returns>
-    public static byte[] Encrypt(byte[] data, string key) => Encrypt(data, Encoding.UTF8.GetBytes(key));
-
-    /// <summary>
     /// RC4解密
     /// </summary>
     /// <param name="data">待解密数据</param>
     /// <param name="key">密钥</param>
     /// <returns></returns>
-    public static byte[] Decrypt(byte[] data, string key) => Encrypt(data, Encoding.UTF8.GetBytes(key));
+    public static byte[] Decrypt(IEnumerable<byte> data, byte[] key) => Encrypt(data, key);
 
-    private static byte[] EncryptInit(byte[] key)
-    {
-        var s = Enumerable.Range(0, 256).Select(i => (byte)i).ToArray();
-        for (int i = 0, j = 0; i < 256; i++)
-        {
-            j = (j + key[i % key.Length] + s[i]) & 255;
-            Swap(s, i, j);
-        }
-        return s;
-    }
-
-    private static byte[] Encrypt(byte[] data, byte[] key)
+    /// <summary>
+    /// RC4加密
+    /// </summary>
+    /// <param name="data">待加密数据</param>
+    /// <param name="key">密钥</param>
+    /// <returns></returns>
+    public static byte[] Encrypt(IEnumerable<byte> data, byte[] key)
     {
         var s = EncryptInit(key);
         var i = 0;
@@ -52,6 +37,17 @@ public static class Rc4Crypt
             Swap(s, i, j);
             return (byte)(b ^ s[(s[i] + s[j]) & 255]);
         }).ToArray();
+    }
+
+    private static byte[] EncryptInit(byte[] key)
+    {
+        var s = Enumerable.Range(0, 256).Select(i => (byte)i).ToArray();
+        for (int i = 0, j = 0; i < 256; i++)
+        {
+            j = (j + key[i % key.Length] + s[i]) & 255;
+            Swap(s, i, j);
+        }
+        return s;
     }
 
     private static void Swap(byte[] s, int i, int j) => (s[i], s[j]) = (s[j], s[i]);

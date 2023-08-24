@@ -82,7 +82,7 @@ var mongoClient = new MongoClient(clientSettings);
 ```
 
 - 该库参考 [SkyAPM-dotnet MongoDB](https://github.com/SkyAPM/SkyAPM-dotnet)
-- 推荐和 [Serilog.Sinks.Spectre](https://github.com/lucadecamillis/serilog-sinks-spectre) 一起使用效果最佳
+- 同时参考 [Serilog.Sinks.Spectre](https://github.com/lucadecamillis/serilog-sinks-spectre)
 
 ###### Seilog配置例子
 
@@ -99,7 +99,7 @@ builder.Host.UseSerilog((hbc, lc) =>
           {
               wt.Debug();
               // 输出到 Spectre.Console
-              wt.Spectre();
+              wt.SpectreConsole();
           });
 });
 ```

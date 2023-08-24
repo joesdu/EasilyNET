@@ -3,7 +3,7 @@
 /// <summary>
 /// AES加密的密钥算法模式
 /// </summary>
-public enum AESModel
+public enum AesKeyModel
 {
     /// <summary>
     /// AES128
