@@ -20,8 +20,4 @@
         <PackageReference Include="BouncyCastle.Cryptography" Version="2.2.1"/>
     </ItemGroup>
 
-	<ItemGroup>
-	  <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
-	</ItemGroup>
-
 </Project>

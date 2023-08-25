@@ -1,5 +1,4 @@
-﻿using EasilyNET.Core.Misc;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 
 // ReSharper disable UnusedMember.Local
