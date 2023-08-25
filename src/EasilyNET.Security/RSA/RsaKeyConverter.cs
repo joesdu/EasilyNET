@@ -17,12 +17,12 @@ public static class RsaKeyConverter
     /// <summary>
     /// XML私钥 👉 Base64私钥
     /// </summary>
-    /// <param name="xmlPrivateKey">XML私钥</param>
+    /// <param name="xmlPrivate">XML私钥</param>
     /// <returns>Base64私钥</returns>
-    public static string FromXmlPrivateKey(string xmlPrivateKey)
+    public static string ToBase64PrivateKey(string xmlPrivate)
     {
         using var rsa = new RSACryptoServiceProvider();
-        rsa.FromXmlString(xmlPrivateKey);
+        rsa.FromXmlString(xmlPrivate);
         var param = rsa.ExportParameters(true);
         var privateKeyParam = new RsaPrivateCrtKeyParameters(new(1, param.Modulus), new(1, param.Exponent),
             new(1, param.D), new(1, param.P),
@@ -35,12 +35,12 @@ public static class RsaKeyConverter
     /// <summary>
     /// XML公钥 👉 Base64公钥
     /// </summary>
-    /// <param name="xmlPublicKey">XML公钥</param>
+    /// <param name="xmlPublic">XML公钥</param>
     /// <returns>Base64公钥</returns>
-    public static string FromXmlPublicKey(string xmlPublicKey)
+    public static string ToBase64PublicKey(string xmlPublic)
     {
         using var rsa = new RSACryptoServiceProvider();
-        rsa.FromXmlString(xmlPublicKey);
+        rsa.FromXmlString(xmlPublic);
         var p = rsa.ExportParameters(false);
         var keyParams = new RsaKeyParameters(false, new(1, p.Modulus), new(1, p.Exponent));
         var publicKeyInfo = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(keyParams);
@@ -50,11 +50,11 @@ public static class RsaKeyConverter
     /// <summary>
     /// Base64私钥 👉 XML私钥
     /// </summary>
-    /// <param name="privateKey">Base64私钥</param>
+    /// <param name="base64Private">Base64私钥</param>
     /// <returns>XML私钥</returns>
-    public static string ToXmlPrivateKey(string privateKey)
+    public static string ToXmlPrivateKey(string base64Private)
     {
-        var privateKeyParams = (RsaPrivateCrtKeyParameters)PrivateKeyFactory.CreateKey(Convert.FromBase64String(privateKey));
+        var privateKeyParams = (RsaPrivateCrtKeyParameters)PrivateKeyFactory.CreateKey(Convert.FromBase64String(base64Private));
         using var rsa = new RSACryptoServiceProvider();
         var rsaParams = new RSAParameters
         {
@@ -74,11 +74,11 @@ public static class RsaKeyConverter
     /// <summary>
     /// Base64公钥 👉 XML公钥
     /// </summary>
-    /// <param name="publicKey">Base64公钥字符串</param>
-    /// <returns>XML公钥字符串</returns>
-    public static string ToXmlPublicKey(string publicKey)
+    /// <param name="base64Public">Base64公钥</param>
+    /// <returns>XML公钥</returns>
+    public static string ToXmlPublicKey(string base64Public)
     {
-        var p = (RsaKeyParameters)PublicKeyFactory.CreateKey(Convert.FromBase64String(publicKey));
+        var p = (RsaKeyParameters)PublicKeyFactory.CreateKey(Convert.FromBase64String(base64Public));
         using var rsa = new RSACryptoServiceProvider();
         var rsaParams = new RSAParameters
         {

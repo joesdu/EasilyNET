@@ -25,8 +25,8 @@ public class RsaTest
     [TestMethod]
     public void XmlToBase64Key()
     {
-        var pri = RsaKeyConverter.FromXmlPrivateKey(PrivateKey);
-        var pub = RsaKeyConverter.FromXmlPublicKey(PublicKey);
+        var pri = RsaKeyConverter.ToBase64PrivateKey(PrivateKey);
+        var pub = RsaKeyConverter.ToBase64PublicKey(PublicKey);
         pri.Should().Be(
             "MIICdQIBADANBgkqhkiG9w0BAQEFAASCAl8wggJbAgEAAoGBAKdB/uHxTGRSEKuiwIVzX92Zpd4pojglOpszIjHKkbv8ecdPF96Vhepvr/tU+3zqOD/9hmJbmYrkMyr3iZ0S8VdDupEXVYrwKWegvy2/L57J6HGkpZhDqLMHTmb5oXt7OLQEOCpWXq1nUWMd3VIKB/OtiFL+hTYkshf890z+DOdBAgMBAAECgYAKQ7yWtS5RAdBQGD7kcb4yZVmOltODypUcLTkuARaMiOQYXTxDxr1fM9eC/yYn9l/ZXX+/zYtQwMx7GJHzd9Qjw3E25mMP6V1HVmqa0T3r7iVoDT9ZQfR9vWcEDp+hVL5YHrjec3TV0mzT/chXrmTfkZ+S6ooNy3qCV3z9QVo3WQJBANjYadP5jN6kZE6s1HuQ3iOa+YZg0tuF2LErXhyizbg+urGtCtRBaa07LcPevmSXV1v2yfkefI+/GD9X65CxVacCQQDFdWrifI/tSmkNdfIpONaKd1aYxO4PS/16XoSfJaKpqhoZEXogAvWco5yuHk78GIWAFmblxOfSSdQ0TwHNoUjXAkBPi6vep7emYLWvKrVTksP6WbpZMiGHh+UCsP74EDzY7qH71ZeYX1qNwpy6MnazXdUdFj3nFejprlcNvYnbbUIXAkAmnFolJXRDUyyNnEWY9+tDsig1wTRHu3U6S2clc4eGI6PsyPUXc1yxn3CQv450Txszu62tOj6WaSdcfyJ8IhCLAkBW8xb3j+LIGAo0fw3Vd2KSfXsEsLRry1iyb8f9UMxeNpWeABcap43fvQd3Vm6SPQQZXD+8SXZiwCgnqj0qZCA0");
         pub.Should()

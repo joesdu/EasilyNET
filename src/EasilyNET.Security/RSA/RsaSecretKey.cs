@@ -20,14 +20,32 @@ public struct RsaSecretKey(string privateKey, string publicKey)
     public string PrivateKey { get; set; } = privateKey;
 
     /// <summary>
-    /// ToSting
+    /// 得到XML格式的私钥和公钥
     /// </summary>
     /// <returns></returns>
-    public readonly override string ToString() =>
+    public readonly string ToXmlString() =>
         $"""
-         PrivateKey:
-            {PrivateKey}
-         PublicKey:
-            {PublicKey}
+         -----BEGIN RSA XML PRIVATE KEY-----
+         {PrivateKey}
+         -----END RSA XML PRIVATE KEY-----
+
+         -----BEGIN RSA XML PUBLIC KEY-----
+         {PublicKey}
+         -----END RSA XML PUBLIC KEY-----
+         """;
+
+    /// <summary>
+    /// 得到Base64格式的私钥和公钥
+    /// </summary>
+    /// <returns></returns>
+    public readonly string ToBase64String() =>
+        $"""
+         -----BEGIN RSA BASE64 PRIVATE KEY-----
+         {RsaKeyConverter.ToBase64PrivateKey(PrivateKey)}
+         -----END RSA BASE64 PRIVATE KEY-----
+
+         -----BEGIN RSA BASE64 PUBLIC KEY-----
+         {RsaKeyConverter.ToBase64PublicKey(PublicKey)}
+         -----END RSA BASE64 PUBLIC KEY-----
          """;
 }
