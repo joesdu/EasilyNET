@@ -42,7 +42,7 @@ internal static class LevelOutputFormat
         new[] { "F", "FA", "FTL", "FATL", "FATAL" }
     };
 
-    public static string GetLevelMoniker(LogEventLevel value, string? format = null)
+    internal static string GetLevelMoniker(LogEventLevel value, string? format = null)
     {
         var index = (int)value;
         if (index is < 0 or > (int)LogEventLevel.Fatal)

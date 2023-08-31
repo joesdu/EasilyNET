@@ -5,7 +5,7 @@ namespace EasilyNET.Mongo.ConsoleDebug.Extensions;
 /// <summary>
 /// Create a <see cref="IRenderable" /> object as collection of sub-renderables
 /// </summary>
-internal class RenderableCollection(IEnumerable<IRenderable> items) : IRenderable
+internal sealed class RenderableCollection(IEnumerable<IRenderable> items) : IRenderable
 {
     // Not used here
     public Measurement Measure(RenderOptions options, int maxWidth) => new();

@@ -2,7 +2,7 @@ namespace EasilyNET.Mongo.ConsoleDebug.Style;
 
 internal static class DefaultStyle
 {
-    internal static string HighlightProp(string text) => $"[lime]{text}[/]";
+    internal static string HighlightProp(string text) => $"[aqua]{text}[/]";
 
     internal static string HighlightMuted(string text) => $"[grey]{text}[/]";
 
@@ -17,4 +17,8 @@ internal static class DefaultStyle
     internal static string HighlightError(string text) => $"[red]{text}[/]";
 
     internal static string HighlightFatal(string text) => $"[maroon]{text}[/]";
+
+    internal static string HighlightNumber(string text) => $"[lime]{text}[/]";
+
+    internal static string HighlightContentLength(string text) => $"[purple]{text}[/]";
 }
