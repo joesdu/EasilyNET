@@ -1,3 +1,4 @@
+using EasilyNET.Mongo.ConsoleDebug.Attributes;
 using EasilyNET.Mongo.ConsoleDebug.Extensions;
 using EasilyNET.Mongo.ConsoleDebug.Style;
 using Serilog.Events;

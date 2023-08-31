@@ -13,6 +13,7 @@ namespace WebApi.Test.Unit;
 [DependsOn(typeof(DependencyAppModule),
     typeof(CorsModule),
     typeof(ControllersModule),
+    typeof(OutPutCachingModule),
     typeof(MemoryCacheModule),
     typeof(MongoModule),
     typeof(MongoFSModule),

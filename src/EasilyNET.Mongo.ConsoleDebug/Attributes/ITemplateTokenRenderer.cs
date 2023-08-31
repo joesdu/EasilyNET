@@ -1,7 +1,7 @@
 using Serilog.Events;
 using Spectre.Console.Rendering;
 
-namespace EasilyNET.Mongo.ConsoleDebug.Renderers;
+namespace EasilyNET.Mongo.ConsoleDebug.Attributes;
 
 /// <summary>
 /// Abstract the rendering of the single log token

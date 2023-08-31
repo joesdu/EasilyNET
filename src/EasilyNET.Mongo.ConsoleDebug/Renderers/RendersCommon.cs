@@ -13,9 +13,14 @@ internal static class RendersCommon
     {
         if (!logEvent.Properties.ContainsKey(token.PropertyName)) yield break;
         var propValue = logEvent.Properties[token.PropertyName]
-                                .ToString(token.Format, formatProvider)
-                                .Exec(Markup.Escape)
-                                .Exec(DefaultStyle.HighlightProp);
+                                .ToString(token.Format, formatProvider).TrimStart('\"').TrimEnd('\"').Replace("\\\"", "\"")
+                                .Exec(Markup.Escape);
+        propValue = token.PropertyName switch
+        {
+            "StatusCode" or "ElapsedMilliseconds" => propValue.Exec(DefaultStyle.HighlightNumber),
+            "ContentLength"                       => propValue.Exec(DefaultStyle.HighlightContentLength),
+            _                                     => propValue.Exec(DefaultStyle.HighlightProp)
+        };
         yield return new Markup(propValue);
     }
 }
