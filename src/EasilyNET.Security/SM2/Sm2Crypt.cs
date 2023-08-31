@@ -1,11 +1,11 @@
 ﻿using Org.BouncyCastle.Asn1.GM;
+using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Signers;
-using Org.BouncyCastle.Utilities.Encoders;
 
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
@@ -18,17 +18,7 @@ namespace EasilyNET.Security;
 /// </summary>
 public static class Sm2Crypt
 {
-    /// <summary>
-    /// 构建公钥和私钥
-    /// </summary>
-    /// <param name="publicKey"></param>
-    /// <param name="privateKey"></param>
-    public static void GenerateKey(out string publicKey, out string privateKey)
-    {
-        GenerateKey(out byte[] a, out var b);
-        publicKey = Hex.ToHexString(a);
-        privateKey = Hex.ToHexString(b);
-    }
+    private static readonly X9ECParameters x9 = GMNamedCurves.GetByName("SM2P256V1");
 
     /// <summary>
     /// 构建公钥和私钥
@@ -38,7 +28,7 @@ public static class Sm2Crypt
     public static void GenerateKey(out byte[] publicKey, out byte[] privateKey)
     {
         var g = new ECKeyPairGenerator();
-        g.Init(new ECKeyGenerationParameters(new ECDomainParameters(GMNamedCurves.GetByName("SM2P256V1")), new()));
+        g.Init(new ECKeyGenerationParameters(new ECDomainParameters(x9), new()));
         var k = g.GenerateKeyPair();
         publicKey = ((ECPublicKeyParameters)k.Public).Q.GetEncoded(false);
         privateKey = ((ECPrivateKeyParameters)k.Private).D.ToByteArray();
@@ -54,8 +44,7 @@ public static class Sm2Crypt
     public static byte[] Encrypt(byte[] publicKey, byte[] data, Sm2Model model)
     {
         var sm2 = new SM2Engine(new SM3Digest());
-        var x9ec = GMNamedCurves.GetByName("SM2P256V1");
-        sm2.Init(true, new ParametersWithRandom(new ECPublicKeyParameters(x9ec.Curve.DecodePoint(publicKey), new(x9ec))));
+        sm2.Init(true, new ParametersWithRandom(new ECPublicKeyParameters(x9.Curve.DecodePoint(publicKey), new(x9))));
         data = sm2.ProcessBlock(data, 0, data.Length);
         if (model == Sm2Model.C1C3C2) data = C123ToC132(data);
         return data;
@@ -72,7 +61,7 @@ public static class Sm2Crypt
     {
         if (model == Sm2Model.C1C3C2) data = C132ToC123(data);
         var sm2 = new SM2Engine(new SM3Digest());
-        sm2.Init(false, new ECPrivateKeyParameters(new(1, privateKey), new(GMNamedCurves.GetByName("SM2P256V1"))));
+        sm2.Init(false, new ECPrivateKeyParameters(new(1, privateKey), new(x9)));
         return sm2.ProcessBlock(data, 0, data.Length);
     }
 
@@ -80,30 +69,28 @@ public static class Sm2Crypt
     /// SM2签名
     /// </summary>
     /// <param name="privateKey">私钥</param>
-    /// <param name="msg"></param>
+    /// <param name="msg">数据</param>
     /// <returns></returns>
     public static byte[] Signature(byte[] privateKey, byte[] msg)
     {
         var sm2 = new SM2Signer(new SM3Digest());
-        var _privateKeyParameters = new ECPrivateKeyParameters(new(1, privateKey), new(GMNamedCurves.GetByName("SM2P256V1")));
-        ICipherParameters cp = new ParametersWithRandom(_privateKeyParameters);
+        ICipherParameters cp = new ParametersWithRandom(new ECPrivateKeyParameters(new(1, privateKey), new(x9)));
         sm2.Init(true, cp);
         sm2.BlockUpdate(msg, 0, msg.Length);
         return sm2.GenerateSignature();
     }
 
     /// <summary>
-    /// SM2验证
+    /// SM2验签
     /// </summary>
     /// <param name="publicKey">公钥</param>
-    /// <param name="msg"></param>
-    /// <param name="signature"></param>
+    /// <param name="msg">数据</param>
+    /// <param name="signature">签名数据</param>
     /// <returns></returns>
-    public static bool Verification(byte[] publicKey, byte[] msg, byte[] signature)
+    public static bool Verify(byte[] publicKey, byte[] msg, byte[] signature)
     {
         var sm2 = new SM2Signer(new SM3Digest());
-        var x9ec = GMNamedCurves.GetByName("SM2P256V1");
-        ICipherParameters cp = new ECPublicKeyParameters(x9ec.Curve.DecodePoint(publicKey), new(x9ec));
+        ICipherParameters cp = new ECPublicKeyParameters(x9.Curve.DecodePoint(publicKey), new(x9));
         sm2.Init(false, cp);
         sm2.BlockUpdate(msg, 0, msg.Length);
         return sm2.VerifySignature(signature);
@@ -116,8 +103,7 @@ public static class Sm2Crypt
     /// <returns></returns>
     private static byte[] C123ToC132(byte[] c1c2c3)
     {
-        var gn = GMNamedCurves.GetByName("SM2P256V1");
-        var c1Len = (((gn.Curve.FieldSize + 7) >> 3) << 1) + 1; //sm2p256v1的这个固定65。可看GMNamedCurves、ECCurve代码。
+        var c1Len = (((x9.Curve.FieldSize + 7) >> 3) << 1) + 1; //sm2p256v1的这个固定65。可看GMNamedCurves、ECCurve代码。
         const int c3Len = 32;
         var result = new byte[c1c2c3.Length];
         Array.Copy(c1c2c3, 0, result, 0, c1Len);                                         //c1
@@ -133,8 +119,7 @@ public static class Sm2Crypt
     /// <returns></returns>
     private static byte[] C132ToC123(byte[] c1c3c2)
     {
-        var gn = GMNamedCurves.GetByName("SM2P256V1");
-        var c1Len = (((gn.Curve.FieldSize + 7) >> 3) << 1) + 1;
+        var c1Len = (((x9.Curve.FieldSize + 7) >> 3) << 1) + 1;
         const int c3Len = 32;
         var result = new byte[c1c3c2.Length];
         Array.Copy(c1c3c2, 0, result, 0, c1Len);                                         //c1: 0->65
