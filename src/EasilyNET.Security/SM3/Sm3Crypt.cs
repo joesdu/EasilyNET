@@ -19,11 +19,10 @@ public static class Sm3Crypt
     /// </summary>
     /// <param name="data"></param>
     /// <returns></returns>
-    public static byte[] Crypt(string data)
+    public static byte[] Signature(string data)
     {
-        //加密
         var msg = Encoding.UTF8.GetBytes(data);
-        return Crypt(msg);
+        return Signature(msg);
     }
 
     /// <summary>
@@ -31,9 +30,8 @@ public static class Sm3Crypt
     /// </summary>
     /// <param name="data"></param>
     /// <returns></returns>
-    public static byte[] Crypt(byte[] data)
+    public static byte[] Signature(byte[] data)
     {
-        //加密
         var md = new byte[32];
         var sm3 = new SM3Digest();
         sm3.BlockUpdate(data, 0, data.Length);
