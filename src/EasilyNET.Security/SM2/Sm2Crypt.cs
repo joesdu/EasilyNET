@@ -44,7 +44,8 @@ public static class Sm2Crypt
     public static byte[] Encrypt(byte[] publicKey, byte[] data, Sm2Model model)
     {
         var sm2 = new SM2Engine(new SM3Digest());
-        sm2.Init(true, new ParametersWithRandom(new ECPublicKeyParameters(x9.Curve.DecodePoint(publicKey), new(x9))));
+        var cp = new ParametersWithRandom(new ECPublicKeyParameters(x9.Curve.DecodePoint(publicKey), new(x9)));
+        sm2.Init(true, cp);
         data = sm2.ProcessBlock(data, 0, data.Length);
         if (model == Sm2Model.C1C3C2) data = C123ToC132(data);
         return data;
@@ -61,7 +62,8 @@ public static class Sm2Crypt
     {
         if (model == Sm2Model.C1C3C2) data = C132ToC123(data);
         var sm2 = new SM2Engine(new SM3Digest());
-        sm2.Init(false, new ECPrivateKeyParameters(new(1, privateKey), new(x9)));
+        var cp = new ECPrivateKeyParameters(new(1, privateKey), new(x9));
+        sm2.Init(false, cp);
         return sm2.ProcessBlock(data, 0, data.Length);
     }
 
@@ -70,11 +72,16 @@ public static class Sm2Crypt
     /// </summary>
     /// <param name="privateKey">私钥</param>
     /// <param name="msg">数据</param>
+    /// <param name="userId">用户ID</param>
     /// <returns></returns>
-    public static byte[] Signature(byte[] privateKey, byte[] msg)
+    public static byte[] Signature(byte[] privateKey, byte[] msg, byte[]? userId = null)
     {
-        var sm2 = new SM2Signer(new SM3Digest());
+        var sm2 = new SM2Signer(StandardDsaEncoding.Instance, new SM3Digest());
         ICipherParameters cp = new ParametersWithRandom(new ECPrivateKeyParameters(new(1, privateKey), new(x9)));
+        if (userId is not null)
+        {
+            cp = new ParametersWithID(cp, userId);
+        }
         sm2.Init(true, cp);
         sm2.BlockUpdate(msg, 0, msg.Length);
         return sm2.GenerateSignature();
@@ -86,11 +93,16 @@ public static class Sm2Crypt
     /// <param name="publicKey">公钥</param>
     /// <param name="msg">数据</param>
     /// <param name="signature">签名数据</param>
+    /// <param name="userId">用户ID</param>
     /// <returns></returns>
-    public static bool Verify(byte[] publicKey, byte[] msg, byte[] signature)
+    public static bool Verify(byte[] publicKey, byte[] msg, byte[] signature, byte[]? userId = null)
     {
-        var sm2 = new SM2Signer(new SM3Digest());
+        var sm2 = new SM2Signer(StandardDsaEncoding.Instance, new SM3Digest());
         ICipherParameters cp = new ECPublicKeyParameters(x9.Curve.DecodePoint(publicKey), new(x9));
+        if (userId is not null)
+        {
+            cp = new ParametersWithID(cp, userId);
+        }
         sm2.Init(false, cp);
         sm2.BlockUpdate(msg, 0, msg.Length);
         return sm2.VerifySignature(signature);
