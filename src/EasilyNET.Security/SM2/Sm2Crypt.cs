@@ -6,6 +6,7 @@ using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Signers;
+using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
 
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
@@ -35,34 +36,44 @@ public static class Sm2Crypt
     }
 
     /// <summary>
-    /// SM2加密
+    /// SM2加密,默认:C1C3C2
     /// </summary>
     /// <param name="publicKey">公钥</param>
     /// <param name="data">需要加密的数据</param>
     /// <param name="model">模式</param>
+    /// <param name="userId">用户ID</param>
     /// <returns></returns>
-    public static byte[] Encrypt(byte[] publicKey, byte[] data, Sm2Model model)
+    public static byte[] Encrypt(byte[] publicKey, byte[] data, byte[]? userId = null, Mode model = Mode.C1C3C2)
     {
-        var sm2 = new SM2Engine(new SM3Digest());
-        var cp = new ParametersWithRandom(new ECPublicKeyParameters(x9.Curve.DecodePoint(publicKey), new(x9)));
+        var sm2 = new SM2Engine(new SM3Digest(), Mode.C1C3C2);
+        ICipherParameters cp = new ParametersWithRandom(new ECPublicKeyParameters(x9.Curve.DecodePoint(publicKey), new(x9)));
+        if (userId is not null)
+        {
+            cp = new ParametersWithID(cp, userId);
+        }
         sm2.Init(true, cp);
         data = sm2.ProcessBlock(data, 0, data.Length);
-        if (model == Sm2Model.C1C3C2) data = C123ToC132(data);
+        if (model == Mode.C1C2C3) data = C132ToC123(data);
         return data;
     }
 
     /// <summary>
-    /// SM2解密
+    /// SM2解密,默认:C1C3C2
     /// </summary>
     /// <param name="privateKey">私钥</param>
     /// <param name="data">需要解密的数据</param>
     /// <param name="model">模式</param>
+    /// <param name="userId">用户ID</param>
     /// <returns></returns>
-    public static byte[] Decrypt(byte[] privateKey, byte[] data, Sm2Model model)
+    public static byte[] Decrypt(byte[] privateKey, byte[] data, byte[]? userId = null, Mode model = Mode.C1C3C2)
     {
-        if (model == Sm2Model.C1C3C2) data = C132ToC123(data);
-        var sm2 = new SM2Engine(new SM3Digest());
-        var cp = new ECPrivateKeyParameters(new(1, privateKey), new(x9));
+        if (model == Mode.C1C2C3) data = C123ToC132(data);
+        var sm2 = new SM2Engine(new SM3Digest(), Mode.C1C3C2);
+        ICipherParameters cp = new ECPrivateKeyParameters(new(1, privateKey), new(x9));
+        if (userId is not null)
+        {
+            cp = new ParametersWithID(cp, userId);
+        }
         sm2.Init(false, cp);
         return sm2.ProcessBlock(data, 0, data.Length);
     }
@@ -76,7 +87,9 @@ public static class Sm2Crypt
     /// <returns></returns>
     public static byte[] Signature(byte[] privateKey, byte[] msg, byte[]? userId = null)
     {
-        var sm2 = new SM2Signer(StandardDsaEncoding.Instance, new SM3Digest());
+        var sm2 = new SM2Signer(new SM3Digest());
+        // var sm2 = new SM2Signer(StandardDsaEncoding.Instance, new SM3Digest());
+        // var sm2 = new SM2Signer(PlainDsaEncoding.Instance, new SM3Digest());
         ICipherParameters cp = new ParametersWithRandom(new ECPrivateKeyParameters(new(1, privateKey), new(x9)));
         if (userId is not null)
         {
@@ -97,7 +110,7 @@ public static class Sm2Crypt
     /// <returns></returns>
     public static bool Verify(byte[] publicKey, byte[] msg, byte[] signature, byte[]? userId = null)
     {
-        var sm2 = new SM2Signer(StandardDsaEncoding.Instance, new SM3Digest());
+        var sm2 = new SM2Signer(new SM3Digest());
         ICipherParameters cp = new ECPublicKeyParameters(x9.Curve.DecodePoint(publicKey), new(x9));
         if (userId is not null)
         {
@@ -109,7 +122,7 @@ public static class Sm2Crypt
     }
 
     /// <summary>
-    /// C123转成C132
+    /// C1C2C3转成C1C3C2
     /// </summary>
     /// <param name="c1c2c3"></param>
     /// <returns></returns>
@@ -125,7 +138,7 @@ public static class Sm2Crypt
     }
 
     /// <summary>
-    /// C132转成C123
+    /// C1C3C2转成C1C2C3
     /// </summary>
     /// <param name="c1c3c2"></param>
     /// <returns></returns>
