@@ -2,10 +2,7 @@
 using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.AutoDependencyInjection.PropertyInjection;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Mvc.Controllers;
-using Microsoft.Extensions.Hosting;
 
 // ReSharper disable UnusedMethodReturnValue.Global
 // ReSharper disable UnusedMember.Global
@@ -55,16 +52,4 @@ public static partial class ServiceCollectionExtension
         runner.Initialize(builder.ApplicationServices);
         return builder;
     }
-
-    /// <summary>
-    /// 使用属性注入
-    /// </summary>
-    /// <param name="hostBuilder">host构建器</param>
-    /// <returns></returns>
-    public static IHostBuilder UsePropertyInjection(this IHostBuilder hostBuilder) =>
-        hostBuilder.UseServiceProviderFactory(new PropertyInjectionServiceProviderFactory()).ConfigureServices(services =>
-        {
-            services.AddSingleton<IPropertyInjector, PropertyInjector>();
-            services.AddSingleton<IControllerFactory, PropertyInjectionControllerFactory>();
-        });
 }
