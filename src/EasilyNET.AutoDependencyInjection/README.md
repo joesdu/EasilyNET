@@ -5,7 +5,6 @@
 ##### 如何使用
 
 - 使用 Nuget 包管理工具添加依赖包 EasilyNET.AutoDependencyInjection
-- 等待下载完成和同意开源协议后,即可使用本库.
 - a.使用特性注入服务
 
 ```csharp
@@ -138,27 +137,4 @@ app.InitializeApplication();
 app.MapControllers();
 
 app.Run();
-```
-
-- c.使用属性注入服务
-- 在 Program.cs 中添加如下代码:
-
-```csharp
-//使用属性注入
-builder.Host.UsePropertyInjection();
-...
-
-var app = builder.Build();
-```
-
-- 使用特性通过属性注入服务
-
-```csharp
-// 通过字段注入
-[Injection]
-private readonly ITest? _test = null;
-
-// 通过属性注入
-[Injection]
-public ITest1? Test1 { get; set; };
 ```

@@ -18,7 +18,7 @@ EasilyNET Packages
 - eventbus with rabbitmq
 - simplifying the use of mongodb drivers
 - some common tool extensions
-- automatic module injection, property injection
+- automatic module injection
 - mongodb adds (dynamic|object) serialization support (mongodb.driver 2.19.0+ onwards has removed it)
 - mongodb storage support for identityserver 6
 - mongodb gridfs usage simplification support
@@ -26,7 +26,8 @@ EasilyNET Packages
 
 #### Recently Updated
 
-- EasilyNET.Mongo.ConsoleDebug 添加新的输出样式
+- remove property injection
+- EasilyNET.Mongo.ConsoleDebug add new style
 ```text
 ╭───────────────────────────────Command────────────────────────────────╮╭──────────────────Calendar──────────────────╮
 │ {                                                                    ││                2023 August                 │
@@ -87,7 +88,7 @@ EasilyNET Packages
 
 | NuGet Package                                                                                         | Version                                                                    | Download                                                                    | Description                 |
 |-------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|-----------------------------------------------------------------------------|-----------------------------|
-| [EasilyNET.AutoDependencyInjection](https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.AutoDependencyInjection) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection) | 模块化自动注入服务,属性注入,特性和接口注入等多种方式 |
+| [EasilyNET.AutoDependencyInjection](https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.AutoDependencyInjection) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection) | 模块化自动注入服务,特性和接口注入等多种方式 |
 | [EasilyNET.Images](https://www.nuget.org/packages/EasilyNET.Images)                                   | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Images)                  | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Images)                  | 一些涉及到图形的工具包,目前仅有 QrCode     |
 | [EasilyNET.RabbitBus.AspNetCore](https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore)       | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.RabbitBus.AspNetCore)    | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.RabbitBus.AspNetCore)    | 基于 RabbitMQ 的消息总线处理方案       |
 | [EasilyNET.Security](https://www.nuget.org/packages/EasilyNET.Security)                               | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Security)                | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Security)                | AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4     |

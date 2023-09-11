@@ -19,8 +19,6 @@ var builder = WebApplication.CreateBuilder(args);
 //});
 // 自动注入服务模块
 builder.Services.AddApplication<AppWebModule>();
-// 添加属性注入
-builder.Host.UsePropertyInjection();
 
 // 添加Serilog配置
 builder.Host.UseSerilog((hbc, lc) =>
