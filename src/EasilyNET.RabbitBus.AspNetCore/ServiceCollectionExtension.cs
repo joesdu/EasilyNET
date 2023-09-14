@@ -47,32 +47,32 @@ public static class ServiceCollectionExtension
     /// </summary>
     /// <param name="service"></param>
     /// <param name="config">IConfiguration,从json配置ConnectionString.Rabbit中获取链接</param>
-    /// <param name="retry_count">重试次数</param>
-    /// <param name="max_channel_count">最大Channel池数量,默认为: 计算机上逻辑处理器的数量</param>
-    public static void AddRabbitBus(this IServiceCollection service, IConfiguration config, int retry_count = 5, uint max_channel_count = 0)
+    /// <param name="retry">重试次数</param>
+    /// <param name="max_channel">最大Channel池数量,默认为: 计算机上逻辑处理器的数量</param>
+    public static void AddRabbitBus(this IServiceCollection service, IConfiguration config, int retry = 5, uint max_channel = 0)
     {
         var conn = config.GetConnectionString("Rabbit") ?? throw new("链接字符串不能为空");
-        service.AddRabbitBus(conn, retry_count, max_channel_count);
+        service.AddRabbitBus(conn, retry, max_channel);
     }
 
     /// <summary>
     /// 添加消息总线RabbitMQ服务
     /// </summary>
     /// <param name="service"></param>
-    /// <param name="conn_str">AMQP链接字符串</param>
-    /// <param name="retry_count">重试次数</param>
-    /// <param name="max_channel_count">最大Channel池数量,默认为: 计算机上逻辑处理器的数量</param>
-    public static void AddRabbitBus(this IServiceCollection service, string conn_str, int retry_count = 5, uint max_channel_count = 0)
+    /// <param name="conn">AMQP链接字符串</param>
+    /// <param name="retry">重试次数</param>
+    /// <param name="max_channel">最大Channel池数量,默认为: 计算机上逻辑处理器的数量</param>
+    public static void AddRabbitBus(this IServiceCollection service, string conn, int retry = 5, uint max_channel = 0)
     {
 #if NET7_0_OR_GREATER
-        ArgumentException.ThrowIfNullOrEmpty(conn_str, nameof(conn_str));
+        ArgumentException.ThrowIfNullOrEmpty(conn, nameof(conn));
 #else
-        if (string.IsNullOrWhiteSpace(conn_str)) throw new("链接字符串不能为空");
+        if (string.IsNullOrWhiteSpace(conn)) throw new("链接字符串不能为空");
 #endif
-        service.RabbitPersistentConnection(conn_str, retry_count, max_channel_count).AddIntegrationEventBus(retry_count);
+        service.RabbitPersistentConnection(conn, retry, max_channel).AddIntegrationEventBus(retry);
     }
 
-    private static void AddIntegrationEventBus(this IServiceCollection service, int retry_count)
+    private static void AddIntegrationEventBus(this IServiceCollection service, int retry)
     {
         service.AddSingleton<IIntegrationEventBus, IntegrationEventBus>(sp =>
                {
@@ -82,7 +82,7 @@ public static class ServiceCollectionExtension
                    var deadLetterManager = sp.GetRequiredService<DeadLetterSubscriptionsManager>();
                    return rabbitConn is null
                               ? throw new(nameof(rabbitConn))
-                              : new IntegrationEventBus(rabbitConn, logger, retry_count, subsManager, deadLetterManager, sp);
+                              : new IntegrationEventBus(rabbitConn, retry, subsManager, deadLetterManager, sp, logger);
                })
                .AddSingleton<SubscriptionsManager>()
                .AddSingleton<DeadLetterSubscriptionsManager>()
@@ -125,7 +125,7 @@ public static class ServiceCollectionExtension
         return service;
     }
 
-    private static IServiceCollection RabbitPersistentConnection(this IServiceCollection service, string conn, int retry_count, uint maxChannel)
+    private static IServiceCollection RabbitPersistentConnection(this IServiceCollection service, string conn, int retry, uint maxChannel)
     {
         _ = service.AddSingleton<IPersistentConnection>(sp =>
         {
@@ -134,7 +134,7 @@ public static class ServiceCollectionExtension
             {
                 Uri = new(conn),
                 DispatchConsumersAsync = true
-            }, logger, retry_count, maxChannel);
+            }, logger, retry, maxChannel);
         });
         return service;
     }
