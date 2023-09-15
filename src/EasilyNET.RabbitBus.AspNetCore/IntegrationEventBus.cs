@@ -27,6 +27,7 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn,  int retry
     {
         if (disposed) return;
         subsManager.Clear();
+        deadManager.Clear();
         disposed = true;
     }
 
