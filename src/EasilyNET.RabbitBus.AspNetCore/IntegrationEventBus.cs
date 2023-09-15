@@ -17,63 +17,35 @@ using System.Text.Json;
 
 namespace EasilyNET.RabbitBus;
 
-/// <summary>
-/// RabbitMQ集成事件总线
-/// </summary>
-internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
+internal sealed class IntegrationEventBus(IPersistentConnection conn,  int retry, ISubscriptionsManager subsManager, ISubscriptionsManager deadManager, IServiceProvider sp,ILogger<IntegrationEventBus> logger) : IIntegrationEventBus, IDisposable
 {
     private const string HandleName = nameof(IIntegrationEventHandler<IIntegrationEvent>.HandleAsync);
-    private readonly ISubscriptionsManager _deadLetterManager;
-    private readonly ILogger<IntegrationEventBus> _logger;
-    private readonly IPersistentConnection _persistentConnection;
-    private readonly int _retryCount;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ISubscriptionsManager _subsManager;
-    private bool _isDisposed;
-
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    /// <param name="persistentConnection"></param>
-    /// <param name="logger"></param>
-    /// <param name="retryCount"></param>
-    /// <param name="subsManager"></param>
-    /// <param name="deadLetterManager"></param>
-    /// <param name="serviceProvider"></param>
-    internal IntegrationEventBus(IPersistentConnection persistentConnection, ILogger<IntegrationEventBus> logger, int retryCount, ISubscriptionsManager subsManager, ISubscriptionsManager deadLetterManager, IServiceProvider serviceProvider)
-    {
-        _persistentConnection = persistentConnection;
-        _logger = logger;
-        _retryCount = retryCount;
-        _subsManager = subsManager;
-        _deadLetterManager = deadLetterManager;
-        _serviceProvider = serviceProvider;
-    }
+    private bool disposed;
 
     /// <inheritdoc />
     public void Dispose()
     {
-        if (_isDisposed) return;
-        _subsManager.Clear();
-        _isDisposed = true;
+        if (disposed) return;
+        subsManager.Clear();
+        disposed = true;
     }
 
     /// <inheritdoc />
     public void Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IIntegrationEvent
     {
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
-        if (!_persistentConnection.IsConnected) _ = _persistentConnection.TryConnect();
+        if (!conn.IsConnected) _ = conn.TryConnect();
         var type = @event.GetType();
-        _logger.LogTrace("创建通道来发布事件: {EventId} ({EventName})", @event.EventId, type.Name);
+        logger.LogTrace("创建通道来发布事件: {EventId} ({EventName})", @event.EventId, type.Name);
         var r_attr = type.GetCustomAttribute<RabbitAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(RabbitAttribute)}>,无法创建发布事件");
         if (!r_attr.Enable) return;
-        var channel = _persistentConnection.GetChannel();
+        var channel = conn.GetChannel();
         var properties = channel.CreateBasicProperties();
         properties.Persistent = true;
         properties.DeliveryMode = 2;
         properties.Priority = priority.GetValueOrDefault();
         var headers = @event.GetHeaderAttributes();
-        if (headers is not null && headers.Count != 0) properties.Headers = headers;
+        if (headers is not null && headers.Count is not 0) properties.Headers = headers;
         if (r_attr is not { WorkModel: EWorkModel.None })
         {
             var exchange_args = @event.GetExchangeArgAttributes();
@@ -83,13 +55,13 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         // 创建Policy规则
         var policy = Policy.Handle<BrokerUnreachableException>()
                            .Or<SocketException>()
-                           .WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
-                               _logger.LogError(ex, "无法发布事件: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
+                           .WaitAndRetry(retry, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
+                               logger.LogError(ex, "无法发布事件: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
         policy.Execute(() =>
         {
-            _logger.LogTrace("发布事件: {EventId}", @event.EventId);
+            logger.LogTrace("发布事件: {EventId}", @event.EventId);
             channel.BasicPublish(r_attr.ExchangeName, routingKey ?? r_attr.RoutingKey, true, properties, body);
-            _persistentConnection.ReturnChannel(channel);
+            conn.ReturnChannel(channel);
         });
     }
 
@@ -97,13 +69,13 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
     public void Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IIntegrationEvent
     {
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
-        if (!_persistentConnection.IsConnected) _ = _persistentConnection.TryConnect();
+        if (!conn.IsConnected) _ = conn.TryConnect();
         var type = @event.GetType();
-        _logger.LogTrace("创建通道来发布事件: {EventId} ({EventName})", @event.EventId, type.Name);
+        logger.LogTrace("创建通道来发布事件: {EventId} ({EventName})", @event.EventId, type.Name);
         var rabbitAttr = type.GetCustomAttribute<RabbitAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(RabbitAttribute)}>,无法发布事件");
         if (!rabbitAttr.Enable) return;
         if (rabbitAttr is not { WorkModel: EWorkModel.Delayed }) throw new($"延时队列的交换机类型必须为{nameof(EWorkModel.Delayed)}");
-        var channel = _persistentConnection.GetChannel();
+        var channel = conn.GetChannel();
         var properties = channel.CreateBasicProperties();
         properties.Persistent = true;
         properties.DeliveryMode = 2;
@@ -133,19 +105,19 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         // 创建Policy规则
         var policy = Policy.Handle<BrokerUnreachableException>()
                            .Or<SocketException>()
-                           .WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
-                               _logger.LogError(ex, "无法发布事件: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
+                           .WaitAndRetry(retry, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
+                               logger.LogError(ex, "无法发布事件: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
         policy.Execute(() =>
         {
-            _logger.LogTrace("发布事件: {EventId}", @event.EventId);
+            logger.LogTrace("发布事件: {EventId}", @event.EventId);
             channel.BasicPublish(rabbitAttr.ExchangeName, routingKey ?? rabbitAttr.RoutingKey, true, properties, body);
-            _persistentConnection.ReturnChannel(channel);
+            conn.ReturnChannel(channel);
         });
     }
 
     internal void Subscribe()
     {
-        if (!_persistentConnection.IsConnected) _ = _persistentConnection.TryConnect();
+        if (!conn.IsConnected) _ = conn.TryConnect();
         InitialRabbit();
     }
 
@@ -157,7 +129,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
             var rabbitAttr = eventType.GetCustomAttribute<RabbitAttribute>()!;
             if (!rabbitAttr.Enable) continue;
             var xdlAttr = eventType.GetCustomAttribute<DeadLetterAttribute>();
-            var eventName = _subsManager.GetEventKey(eventType);
+            var eventName = subsManager.GetEventKey(eventType);
             Task.Factory.StartNew(() =>
             {
                 using var consumerChannel = CreateConsumerChannel(rabbitAttr, eventType, xdlAttr);
@@ -172,12 +144,12 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                                                              } &&
                                                              o.IsBaseOn(typeof(IIntegrationEventHandler<>))).Select(s => s.GetTypeInfo());
                 var handler = handlers.FirstOrDefault(o => o.ImplementedInterfaces.Any(s => s.GenericTypeArguments.Contains(eventType)));
-                using var scope = _serviceProvider.GetService<IServiceScopeFactory>()?.CreateScope();
+                using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
                 if (handler is null) return;
                 var handle = scope?.ServiceProvider.GetService(handler);
                 // 检查消费者是否已经注册,若是未注册则不启动消费.
                 if (handle is null) return;
-                _subsManager.AddSubscription(eventType, handler);
+                subsManager.AddSubscription(eventType, handler);
                 StartBasicConsume(eventType, rabbitAttr, consumerChannel);
             }, TaskCreationOptions.LongRunning);
             if (xdlAttr is not null)
@@ -194,11 +166,11 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                                                                      o.IsBaseOn(typeof(IIntegrationEventDeadLetterHandler<>))).Select(s => s.GetTypeInfo());
                     var xdl_handler = xdl_handlers.FirstOrDefault(o => o.ImplementedInterfaces.Any(s => s.GenericTypeArguments.Contains(eventType)));
                     if (xdl_handler is null) return;
-                    using var scope = _serviceProvider.GetService<IServiceScopeFactory>()?.CreateScope();
+                    using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
                     var handle = scope?.ServiceProvider.GetService(xdl_handler);
                     // 检查消费者是否已经注册,若是未注册则不启动消费.
                     if (handle is null) return;
-                    _deadLetterManager.AddSubscription(eventType, xdl_handler);
+                    deadManager.AddSubscription(eventType, xdl_handler);
                     StartBasicConsume(eventType, xdlAttr, consumerChannel);
                 }, TaskCreationOptions.LongRunning);
             }
@@ -207,15 +179,15 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
 
     private IModel CreateConsumerChannel(RabbitAttribute attr, Type eventType, DeadLetterAttribute? xdlAttr = null)
     {
-        _logger.LogTrace("创建消费者通道");
-        var channel = _persistentConnection.GetChannel();
+        logger.LogTrace("创建消费者通道");
+        var channel = conn.GetChannel();
         var queue_args = eventType.GetQueueArgAttributes();
         if (xdlAttr is not null && xdlAttr.Enable)
         {
             queue_args ??= new Dictionary<string, object>();
             queue_args.Add("x-dead-letter-exchange", xdlAttr.ExchangeName);
             queue_args.Add("x-dead-letter-routing-key", xdlAttr.RoutingKey);
-            _logger.LogTrace("创建死信消费者通道");
+            logger.LogTrace("创建死信消费者通道");
             var model = xdlAttr.WorkModel is EWorkModel.Delayed or EWorkModel.None ? "direct" : xdlAttr.WorkModel.ToDescription();
             //创建死信交换机
             channel.ExchangeDeclare(xdlAttr.ExchangeName, model, true);
@@ -237,9 +209,9 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         _ = channel.QueueDeclare(attr.Queue, true, false, false, queue_args);
         channel.CallbackException += (_, ea) =>
         {
-            _logger.LogWarning(ea.Exception, "重新创建消费者通道");
-            _subsManager.Clear();
-            _deadLetterManager.Clear();
+            logger.LogWarning(ea.Exception, "重新创建消费者通道");
+            subsManager.Clear();
+            deadManager.Clear();
             Subscribe();
         };
         return channel;
@@ -247,23 +219,23 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
 
     private void DoInternalSubscription(string eventName, RabbitAttribute attr, IModel channel)
     {
-        var containsKey = _subsManager.HasSubscriptionsForEvent(eventName);
+        var containsKey = subsManager.HasSubscriptionsForEvent(eventName);
         if (containsKey) return;
-        if (!_persistentConnection.IsConnected) _ = _persistentConnection.TryConnect();
+        if (!conn.IsConnected) _ = conn.TryConnect();
         channel.QueueBind(attr.Queue, attr.ExchangeName, attr.RoutingKey);
     }
 
     private void DoInternalSubscription(string eventName, DeadLetterAttribute attr, IModel channel)
     {
-        var containsKey = _deadLetterManager.HasSubscriptionsForEvent(eventName);
+        var containsKey = deadManager.HasSubscriptionsForEvent(eventName);
         if (containsKey) return;
-        if (!_persistentConnection.IsConnected) _ = _persistentConnection.TryConnect();
+        if (!conn.IsConnected) _ = conn.TryConnect();
         channel.QueueBind(attr.Queue, attr.ExchangeName, attr.RoutingKey);
     }
 
     private void StartBasicConsume(Type eventType, RabbitAttribute attr, IModel channel)
     {
-        _logger.LogTrace("启动消费者");
+        logger.LogTrace("启动消费者");
         var qos = eventType.GetCustomAttribute<RabbitQosAttribute>();
         if (qos is not null) channel.BasicQos(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
         var consumer = new AsyncEventingBasicConsumer(channel);
@@ -281,7 +253,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "错误处理消息:{Message}", message);
+                logger.LogError(ex, "错误处理消息:{Message}", message);
                 // 先注释掉,若是大量消息重新入队,容易拖垮MQ,这里的处理办法是长时间不确认,所有消息由Unacked重新变为Ready
                 //channel.BasicNack(ea.DeliveryTag, false, true);
             }
@@ -295,18 +267,18 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
 
     private async Task ProcessEvent(Type eventType, string message, Action ack)
     {
-        var eventName = _subsManager.GetEventKey(eventType);
-        _logger.LogTrace("处理事件: {EventName}", eventName);
-        if (_subsManager.HasSubscriptionsForEvent(eventName))
+        var eventName = subsManager.GetEventKey(eventType);
+        logger.LogTrace("处理事件: {EventName}", eventName);
+        if (subsManager.HasSubscriptionsForEvent(eventName))
         {
             var policy = Policy.Handle<BrokerUnreachableException>()
                                .Or<SocketException>()
-                               .WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
-                                   _logger.LogError(ex, "无法消费事件: {EventName} 超时 {Timeout}s ({ExceptionMessage})", eventName, $"{time.TotalSeconds:n1}", ex.Message));
+                               .WaitAndRetry(retry, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
+                                   logger.LogError(ex, "无法消费事件: {EventName} 超时 {Timeout}s ({ExceptionMessage})", eventName, $"{time.TotalSeconds:n1}", ex.Message));
             await policy.Execute(async () =>
             {
-                using var scope = _serviceProvider.GetService<IServiceScopeFactory>()?.CreateScope();
-                var subscriptionTypes = _subsManager.GetHandlersForEvent(eventName);
+                using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
+                var subscriptionTypes = subsManager.GetHandlersForEvent(eventName);
                 foreach (var subscriptionType in subscriptionTypes)
                 {
                     var integrationEvent = JsonSerializer.Deserialize(message, eventType, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -318,7 +290,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                     var method = concreteType.GetMethod(HandleName);
                     if (method is null)
                     {
-                        _logger.LogError($"无法找到{nameof(integrationEvent)}事件处理器下处理方法");
+                        logger.LogError($"无法找到{nameof(integrationEvent)}事件处理器下处理方法");
                         throw new($"无法找到{nameof(integrationEvent)}事件处理器下处理方法");
                     }
                     var handler = scope?.ServiceProvider.GetService(subscriptionType);
@@ -333,13 +305,13 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         }
         else
         {
-            _logger.LogError("没有订阅事件:{EventName}", eventName);
+            logger.LogError("没有订阅事件:{EventName}", eventName);
         }
     }
 
     private void StartBasicConsume(Type eventType, DeadLetterAttribute xdlAttr, IModel channel)
     {
-        _logger.LogTrace("启动死信队列消费");
+        logger.LogTrace("启动死信队列消费");
         var qos = eventType.GetCustomAttribute<RabbitQosAttribute>();
         if (qos is not null) channel.BasicQos(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
         var consumer = new AsyncEventingBasicConsumer(channel);
@@ -357,7 +329,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "错误处理消息:{Message}", message);
+                logger.LogError(ex, "错误处理消息:{Message}", message);
             }
             // Even on exception we take the message off the queue.
             // in a REAL WORLD app this should be handled with a Dead Letter Exchange (DLX). 
@@ -372,18 +344,18 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
 
     private async Task ProcessDeadLetterEvent(Type eventType, string message, Action ack)
     {
-        var eventName = _deadLetterManager.GetEventKey(eventType);
-        _logger.LogTrace("处理死信事件: {EventName}", eventName);
-        if (_deadLetterManager.HasSubscriptionsForEvent(eventName))
+        var eventName = deadManager.GetEventKey(eventType);
+        logger.LogTrace("处理死信事件: {EventName}", eventName);
+        if (deadManager.HasSubscriptionsForEvent(eventName))
         {
             var policy = Policy.Handle<BrokerUnreachableException>()
                                .Or<SocketException>()
-                               .WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
-                                   _logger.LogError(ex, "无法消费事件: {EventName} 超时 {Timeout}s ({ExceptionMessage})", eventName, $"{time.TotalSeconds:n1}", ex.Message));
+                               .WaitAndRetry(retry, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
+                                   logger.LogError(ex, "无法消费事件: {EventName} 超时 {Timeout}s ({ExceptionMessage})", eventName, $"{time.TotalSeconds:n1}", ex.Message));
             await policy.Execute(async () =>
             {
-                using var scope = _serviceProvider.GetService<IServiceScopeFactory>()?.CreateScope();
-                var subscriptionTypes = _deadLetterManager.GetHandlersForEvent(eventName);
+                using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
+                var subscriptionTypes = deadManager.GetHandlersForEvent(eventName);
                 foreach (var subscriptionType in subscriptionTypes)
                 {
                     var integrationEvent = JsonSerializer.Deserialize(message, eventType, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -395,7 +367,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
                     var method = concreteType.GetMethod(HandleName);
                     if (method is null)
                     {
-                        _logger.LogError($"无法找到{nameof(integrationEvent)}事件处理器下处理方法");
+                        logger.LogError($"无法找到{nameof(integrationEvent)}事件处理器下处理方法");
                         throw new($"无法找到{nameof(integrationEvent)}事件处理器下处理方法");
                     }
                     var handler = scope?.ServiceProvider.GetService(subscriptionType);
@@ -410,7 +382,7 @@ internal sealed class IntegrationEventBus : IIntegrationEventBus, IDisposable
         }
         else
         {
-            _logger.LogError("没有订阅死信事件:{EventName}", eventName);
+            logger.LogError("没有订阅死信事件:{EventName}", eventName);
         }
     }
 }
