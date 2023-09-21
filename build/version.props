@@ -5,8 +5,8 @@
 		<VersionMajor>1</VersionMajor>
 		<VersionMinor>8</VersionMinor>
 		<VersionPatch>7</VersionPatch>
-		<!--<VersionQuality>-rc1</VersionQuality>-->
-		<VersionQuality></VersionQuality>
+		<VersionQuality>-rc2</VersionQuality>
+		<!--<VersionQuality></VersionQuality>-->
 		<VersionPrefix>$(VersionMajor).$(VersionMinor).$(VersionPatch)$(VersionQuality)</VersionPrefix>
 	</PropertyGroup>
 </Project>
