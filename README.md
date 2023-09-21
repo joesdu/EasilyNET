@@ -105,7 +105,7 @@ EasilyNET Packages
 | [EasilyNET.MongoGridFS.AspNetCore](https://www.nuget.org/packages/EasilyNET.MongoGridFS.AspNetCore)                   | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.MongoGridFS.AspNetCore)          | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.MongoGridFS.AspNetCore)          | MongoDB GridFS 对象存储解决方案,使对象存储操作简便 |
 | [EasilyNET.MongoSerializer.AspNetCore](https://www.nuget.org/packages/EasilyNET.MongoSerializer.AspNetCore)           | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.MongoSerializer.AspNetCore)      | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.MongoSerializer.AspNetCore)      | MongoDB 的类型扩展,以及自定义类型扩展方案         |
 
-#### 本项目已得到[JetBrains](https://www.jetbrains.com/shop/eform/opensource)的支持!
+#### 感谢 [JetBrains](https://www.jetbrains.com/shop/eform/opensource) 对本项目的支持!
 
 <img src="https://www.jetbrains.com/shop/static/images/jetbrains-logo-inv.svg" height="100">
 
