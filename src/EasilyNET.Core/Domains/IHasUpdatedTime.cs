@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Core.Entities;
+﻿namespace EasilyNET.Core.Domains;
 
 /// <summary>
 /// 更新时间

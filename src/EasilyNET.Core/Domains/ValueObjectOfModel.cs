@@ -1,4 +1,4 @@
-namespace EasilyNET.Core.Entities;
+namespace EasilyNET.Core.Domains;
 
 /// <summary>
 /// 值对象泛型

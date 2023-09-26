@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.Entities;
+﻿using EasilyNET.Core.Domains;
 using FluentAssertions;
 
 namespace EasilyNET.Test.Unit.Entities;

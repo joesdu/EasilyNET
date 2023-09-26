@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Core.Entities;
+﻿namespace EasilyNET.Core.Domains;
 
 //Inspired from https://docs.microsoft.com/zh-cn/dotnet/standard/microservices-architecture/microservice-ddd-cqrs-patterns/implement-value-objects
 /// <summary>
