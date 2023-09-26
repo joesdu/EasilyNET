@@ -350,20 +350,6 @@ public static class StringExtension
     public static Guid ToGuid(this string str) => Guid.TryParse(str, out var guid) ? guid : Guid.Empty;
 
     /// <summary>
-    /// 将字节数组转换成Base64字符串
-    /// </summary>
-    /// <param name="value">字符串</param>
-    /// <returns></returns>
-    public static string ToBase64(this byte[] value) => Convert.ToBase64String(value);
-
-    /// <summary>
-    /// 将Base64字符串转化成字节数组
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    public static byte[] FromBase64(this string value) => Convert.FromBase64String(value);
-
-    /// <summary>
     /// 转全角的函数(SBC case)
     /// </summary>
     /// <param name="input">需要转换的字符串</param>
@@ -549,13 +535,6 @@ public static class StringExtension
     /// <summary>
     /// 将十六进制字符串解析为其等效字节数组
     /// </summary>
-    /// <param name="hex"></param>
-    /// <returns></returns>
-    public static byte[] FromHex(this string hex) => hex.ParseHex();
-
-    /// <summary>
-    /// 将十六进制字符串解析为其等效字节数组
-    /// </summary>
     /// <param name="hex">要分析的十六进制字符串</param>
     /// <returns>十六进制字符串的字节等效项</returns>
     public static byte[] ParseHex(this string hex) =>
@@ -638,6 +617,27 @@ public static class StringExtension
         }
         return new(c);
     }
+
+    /// <summary>
+    /// 将十六进制字符串解析为其等效字节数组
+    /// </summary>
+    /// <param name="hex"></param>
+    /// <returns></returns>
+    public static byte[] FromHex(this string hex) => hex.ParseHex();
+
+    /// <summary>
+    /// 将字节数组转换成Base64字符串
+    /// </summary>
+    /// <param name="value">字符串</param>
+    /// <returns></returns>
+    public static string ToBase64(this byte[] value) => Convert.ToBase64String(value);
+
+    /// <summary>
+    /// 将Base64字符串转化成字节数组
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    public static byte[] FromBase64(this string value) => Convert.FromBase64String(value);
 
     /// <summary>
     /// 获取16位长度的MD5大写字符串

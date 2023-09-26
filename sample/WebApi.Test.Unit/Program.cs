@@ -3,7 +3,7 @@ using Serilog;
 using Serilog.Events;
 using WebApi.Test.Unit;
 
-Console.Title = "EasilyNET";
+Console.Title = "❤️ EasilyNET";
 AssemblyHelper.AddExcludeLibs("Npgsql.", "NPOI");
 var builder = WebApplication.CreateBuilder(args);
 // 配置Kestrel支持HTTP1,2,3
@@ -19,41 +19,40 @@ var builder = WebApplication.CreateBuilder(args);
 //});
 // 自动注入服务模块
 builder.Services.AddApplication<AppWebModule>();
-// 添加属性注入
-builder.Host.UsePropertyInjection();
 
 // 添加Serilog配置
-_ = builder.Host.UseSerilog((hbc, lc) =>
+builder.Host.UseSerilog((hbc, lc) =>
 {
     const LogEventLevel logLevel = LogEventLevel.Information;
-    _ = lc.ReadFrom.Configuration(hbc.Configuration)
-          .MinimumLevel.Override("Microsoft", logLevel)
-          .MinimumLevel.Override("System", logLevel)
-          .Enrich.FromLogContext()
-          .WriteTo.Async(wt =>
-          {
-              wt.Console();
-              wt.Debug();
-              var mongo = builder.Services.GetService<DbContext>()?.Database;
-              if (mongo is not null)
-              {
-                  wt.MongoDBBson(c =>
-                  {
-                      // 使用链接字符串
-                      //var connectionString = hbc.Configuration["CONNECTIONSTRINGS_MONGO"];
-                      //if (string.IsNullOrWhiteSpace(connectionString)) connectionString = hbc.Configuration.GetConnectionString("Mongo");
-                      //if (string.IsNullOrWhiteSpace(connectionString)) throw new("链接字符串不能为空");
-                      //var mongoUrl = new MongoUrl(connectionString);
-                      //var mongoDbInstance = new MongoClient(mongoUrl).GetDatabase("serilog");
+    lc.ReadFrom.Configuration(hbc.Configuration)
+      .MinimumLevel.Override("Microsoft", logLevel)
+      .MinimumLevel.Override("System", logLevel)
+      .Enrich.FromLogContext()
+      .WriteTo.Async(wt =>
+      {
+          wt.Debug();
+          //wt.Console();
+          wt.SpectreConsole();
+          //var mongo = builder.Services.GetService<DbContext>()?.Database;
+          //if (mongo is not null)
+          //{
+          //    wt.MongoDBBson(c =>
+          //    {
+          //        // 使用链接字符串
+          //        //var connectionString = hbc.Configuration["CONNECTIONSTRINGS_MONGO"];
+          //        //if (string.IsNullOrWhiteSpace(connectionString)) connectionString = hbc.Configuration.GetConnectionString("Mongo");
+          //        //if (string.IsNullOrWhiteSpace(connectionString)) throw new("链接字符串不能为空");
+          //        //var mongoUrl = new MongoUrl(connectionString);
+          //        //var mongoDbInstance = new MongoClient(mongoUrl).GetDatabase("serilog");
 
-                      // 设置别的数据库作为日志库
-                      // var mongo = builder.Services.GetService<IMongoDatabase>()?.Client.GetDatabase("serilog") ?? throw new("无法从Ioc容器中获取到Mongo服务");
-                      // sink will use the IMongoDatabase instance provided
-                      c.SetMongoDatabase(mongo);
-                      c.SetCollectionName("serilog");
-                  });
-              }
-          });
+          //        // 设置别的数据库作为日志库
+          //        // var mongo = builder.Services.GetService<IMongoDatabase>()?.Client.GetDatabase("serilog") ?? throw new("无法从Ioc容器中获取到Mongo服务");
+          //        // sink will use the IMongoDatabase instance provided
+          //        c.SetMongoDatabase(mongo);
+          //        c.SetCollectionName("serilog");
+          //    });
+          //}
+      });
 });
 var app = builder.Build();
 

@@ -15,7 +15,7 @@ public class MongoModule : AppModule
     /// <inheritdoc />
     public MongoModule()
     {
-        Enable = false;
+        Enable = true;
     }
 
     /// <inheritdoc />
@@ -69,6 +69,11 @@ public class MongoModule : AppModule
         //        cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber());
         //    };
         //});
+        //HashSet<string> CommandsWithCollectionName = new()
+        //{
+        //    "mongo.test",
+        //    "long.data"
+        //};
         context.Services.AddMongoContext<DbContext>(new()
         {
             Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },

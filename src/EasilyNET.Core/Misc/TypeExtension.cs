@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-
 #if NET7_0_OR_GREATER
 #pragma warning disable SYSLIB1045
 #endif

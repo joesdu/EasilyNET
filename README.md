@@ -3,13 +3,17 @@
 **注意:** 由于本项目一般会试用和支持最新版本的.NET SDK,所以为了保证你能正常编译,请确保运行之前安装当前最新版本的 SDK
 预览版,如现在为: .NET8 preview-7
 
+**解决git不区分大小** 
+```bash
+git config core.ignorecase false
+```
+
 [![LICENSE](https://img.shields.io/github/license/EasilyNET/EasilyNET)](https://img.shields.io/github/license/EasilyNET/EasilyNET) [![ISSUES](https://img.shields.io/github/issues/EasilyNET/EasilyNET)](https://img.shields.io/github/issues/EasilyNET/EasilyNET) [![FORKS](https://img.shields.io/github/forks/EasilyNET/EasilyNET)](https://img.shields.io/github/forks/EasilyNET/EasilyNET) [![STARS](https://img.shields.io/github/stars/EasilyNET/EasilyNET)](https://img.shields.io/github/stars/EasilyNET/EasilyNET) ![GitHub commit activity](https://img.shields.io/github/commit-activity/y/EasilyNET/EasilyNET) ![GitHub last commit](https://img.shields.io/github/last-commit/EasilyNET/EasilyNET)
 
 EasilyNET Packages
 
 - AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4
 - mongodb based distributed locks
-- property injection
 - simple qrcode
 - eventbus with rabbitmq
 - simplifying the use of mongodb drivers
@@ -19,6 +23,58 @@ EasilyNET Packages
 - mongodb storage support for identityserver 6
 - mongodb gridfs usage simplification support
 - integration of some common filters, middleware in webapi
+
+#### Recently Updated
+
+- remove property injection
+- EasilyNET.Mongo.ConsoleDebug add new style
+```text
+╭───────────────────────────Command──────────────────────────────╮╭──────────────────Calendar──────────────────╮
+│ {                                                              ││                2023 August                 │
+│   "insert" : "mongo.test",                                     ││ ┌─────┬─────┬─────┬─────┬─────┬─────┬────┐ │
+│   "ordered" : true,                                            ││ │ Sun │ Mon │ Tue │ Wed │ Thu │ Fri │ S… │ │
+│   "$db" : "test1",                                             ││ ├─────┼─────┼─────┼─────┼─────┼─────┼────┤ │
+│   "lsid" : {                                                   ││ │     │     │ 1   │ 2   │ 3   │ 4   │ 5  │ │
+│     "id" : CSUUID("f12dd90d-2f58-4655-9bf2-cbce2d9bd2c4")      ││ │ 6   │ 7   │ 8   │ 9   │ 10  │ 11  │ 12 │ │
+│   },                                                           ││ │ 13  │ 14  │ 15  │ 16  │ 17  │ 18  │ 19 │ │
+│   "documents" : [{                                             ││ │ 20  │ 21  │ 22  │ 23* │ 24  │ 25  │ 26 │ │
+│       "_id" : ObjectId("64e57f266a1a63e69c52b9cb"),            ││ │ 27  │ 28  │ 29  │ 30  │ 31  │     │    │ │
+│       "dateTime" : ISODate("2023-08-23T03:38:14.121Z"),        ││ │     │     │     │     │     │     │    │ │
+│       "timeSpan" : "00:00:50",                                 ││ └─────┴─────┴─────┴─────┴─────┴─────┴────┘ │
+│       "dateOnly" : "2023-08-23",                               │╰────────────────────────────────────────────╯
+│       "timeOnly" : "11:38:14",                                 │╭────────────────────Info────────────────────╮
+│       "nullableDateOnly" : "2023-08-23",                       ││ {                                          │
+│       "nullableTimeOnly" : null                                ││    "RequestId": 86,                        │
+│     }]                                                         ││    "Timestamp": "2023-08-23 03:38:14",     │
+│ }                                                              ││    "Method": "insert",                     │
+│                                                                ││    "DatabaseName": "test1",                │
+│                                                                ││    "CollectionName": "mongo.test",         │
+│                                                                ││    "ConnectionInfo": {                     │
+│                                                                ││       "ClusterId": 1,                      │
+│                                                                ││       "EndPoint": "127.0.0.1:27018"        │
+│                                                                ││    }                                       │
+│                                                                ││ }                                          │
+│                                                                │╰────────────────────────────────────────────╯
+│                                                                │╭───────────────Request Status───────────────╮
+│                                                                ││ ┌───────────┬────────────────┬───────────┐ │
+│                                                                ││ │ RequestId │      Time      │  Status   │ │
+│                                                                ││ ├───────────┼────────────────┼───────────┤ │
+│                                                                ││ │    86     │ 11:38:14.12640 │ Succeeded │ │
+│                                                                ││ └───────────┴────────────────┴───────────┘ │
+│                                                                │╰────────────────────────────────────────────╯
+│                                                                │╭───────────────────NiuNiu───────────────────╮
+│                                                                ││   --------------------------------------   │
+│                                                                ││ /     Only two things are infinite,      \ │
+│                                                                ││ \   the universe and human stupidity.    / │
+│                                                                ││   --------------------------------------   │
+│                                                                ││              ^__^     O   ^__^             │
+│                                                                ││      _______/(oo)      o  (oo)\_______     │
+│                                                                ││  /\/(       /(__)         (__)\       )\/\ │
+│                                                                ││     ||w----||                 ||----w||    │
+│                                                                ││     ||     ||                 ||     ||    │
+│                                                                ││ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ │
+╰────────────────────────────────────────────────────────────────╯╰────────────────────────────────────────────╯
+```
 
 #### Core
 
@@ -32,7 +88,7 @@ EasilyNET Packages
 
 | NuGet Package                                                                                         | Version                                                                    | Download                                                                    | Description                 |
 |-------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|-----------------------------------------------------------------------------|-----------------------------|
-| [EasilyNET.AutoDependencyInjection](https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.AutoDependencyInjection) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection) | 模块化自动注入服务,属性注入,特性和接口注入等多种方式 |
+| [EasilyNET.AutoDependencyInjection](https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.AutoDependencyInjection) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection) | 模块化自动注入服务,特性和接口注入等多种方式 |
 | [EasilyNET.Images](https://www.nuget.org/packages/EasilyNET.Images)                                   | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Images)                  | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Images)                  | 一些涉及到图形的工具包,目前仅有 QrCode     |
 | [EasilyNET.RabbitBus.AspNetCore](https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore)       | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.RabbitBus.AspNetCore)    | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.RabbitBus.AspNetCore)    | 基于 RabbitMQ 的消息总线处理方案       |
 | [EasilyNET.Security](https://www.nuget.org/packages/EasilyNET.Security)                               | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Security)                | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Security)                | AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4     |
@@ -49,7 +105,9 @@ EasilyNET Packages
 | [EasilyNET.MongoGridFS.AspNetCore](https://www.nuget.org/packages/EasilyNET.MongoGridFS.AspNetCore)                   | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.MongoGridFS.AspNetCore)          | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.MongoGridFS.AspNetCore)          | MongoDB GridFS 对象存储解决方案,使对象存储操作简便 |
 | [EasilyNET.MongoSerializer.AspNetCore](https://www.nuget.org/packages/EasilyNET.MongoSerializer.AspNetCore)           | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.MongoSerializer.AspNetCore)      | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.MongoSerializer.AspNetCore)      | MongoDB 的类型扩展,以及自定义类型扩展方案         |
 
-![微信公众号](https://github.com/joesdu/joesdu/blob/main/wechat-official-account.png#pic_center)
+#### 感谢 [JetBrains](https://www.jetbrains.com/shop/eform/opensource) 对本项目的支持!
+
+<img src="https://www.jetbrains.com/shop/static/images/jetbrains-logo-inv.svg" height="100">
 
 ## How to participate in this project
 
