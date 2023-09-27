@@ -45,6 +45,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.MongoDistributedL
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.MongoDistributedLock.AspNetCore", "src\EasilyNET.MongoDistributedLock.AspNetCore\EasilyNET.MongoDistributedLock.AspNetCore.csproj", "{F1C997F7-DBDE-4899-9ED5-460473CEC087}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EntityFrameworkCore", "EntityFrameworkCore", "{89BD9E68-8627-4E84-8873-2EC76065A2B8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.EntityFrameworkCore", "src\EasilyNET.EntityFrameworkCore\EasilyNET.EntityFrameworkCore.csproj", "{ADB4A218-6CFB-456C-8272-EEAB0914C3ED}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{CD19FF86-B039-4A4A-8822-7C97670BC786}"
 	ProjectSection(SolutionItems) = preProject
 		Build.ps1 = Build.ps1
@@ -68,15 +72,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{AE84E1FF-91D2-4D29-A281-EB281B2114E8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Test.Unit", "test\EasilyNET.Test.Unit\EasilyNET.Test.Unit.csproj", "{535C9D9D-84AC-4846-8198-C548477D70FA}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决方案项", "{435B4036-DD9A-4502-8939-29410564DA4B}"
-	ProjectSection(SolutionItems) = preProject
-		build\common.props = build\common.props
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EntityFrameworkCore", "EntityFrameworkCore", "{89BD9E68-8627-4E84-8873-2EC76065A2B8}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.EntityFrameworkCore", "src\EasilyNET.EntityFrameworkCore\EasilyNET.EntityFrameworkCore.csproj", "{ADB4A218-6CFB-456C-8272-EEAB0914C3ED}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
