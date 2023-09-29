@@ -8,11 +8,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
-    </ItemGroup>
-    
+    </ItemGroup>   
 
 </Project>
