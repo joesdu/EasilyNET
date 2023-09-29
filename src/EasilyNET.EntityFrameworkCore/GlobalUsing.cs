@@ -1,5 +1,4 @@
-﻿
-global using Microsoft.EntityFrameworkCore;
+﻿global using Microsoft.EntityFrameworkCore;
 global using Microsoft.EntityFrameworkCore.Storage;
 global using EasilyNET.Core.Domains;
 global using System.Linq.Expressions;
