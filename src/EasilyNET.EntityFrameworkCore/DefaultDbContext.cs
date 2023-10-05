@@ -1,26 +1,16 @@
-﻿
-
-
-
-
-
-
-namespace EasilyNET.EntityFrameworkCore;
+﻿namespace EasilyNET.EntityFrameworkCore;
 
 /// <summary>
-///  默认EFCORE上下文
+/// 默认EF CORE上下文
 /// </summary>
-public abstract  class DefaultDbContext : DbContext,IUnitOfWork
+public abstract class DefaultDbContext : DbContext, IUnitOfWork
 {
     /// <summary>
-    /// 服务提供者
+    /// 当前事务
     /// </summary>
-
-    protected IServiceProvider ServiceProvider { get; private set; }
-    private  ILogger? Logger{ get;  }
+    private IDbContextTransaction? _currentTransaction;
 
     /// <summary>
-    /// 
     /// </summary>
     /// <param name="options"></param>
     /// <param name="serviceProvider"></param>
@@ -31,14 +21,17 @@ public abstract  class DefaultDbContext : DbContext,IUnitOfWork
     }
 
     /// <summary>
-    /// 当前事务
+    /// 服务提供者
     /// </summary>
-    private IDbContextTransaction? _currentTransaction;
+
+    protected IServiceProvider ServiceProvider { get; private set; }
+
+    private ILogger? Logger { get; }
 
     /// <summary>
     /// 是否激活事务
     /// </summary>
-    public bool HasActiveTransaction =>_currentTransaction != null;
+    public bool HasActiveTransaction => _currentTransaction != null;
 
     /// <summary>
     /// 异步开启事务
@@ -55,17 +48,14 @@ public abstract  class DefaultDbContext : DbContext,IUnitOfWork
     /// </summary>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public virtual async  Task CommitTransactionAsync(CancellationToken cancellationToken = default)
+    public virtual async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
     {
-
         if (HasActiveTransaction)
         {
-
-           await _currentTransaction?.CommitAsync(cancellationToken)!;
-           _currentTransaction = default;
+            await _currentTransaction?.CommitAsync(cancellationToken)!;
+            _currentTransaction = default;
         }
     }
-
 
     /// <summary>
     /// 异步回滚事务
@@ -75,13 +65,20 @@ public abstract  class DefaultDbContext : DbContext,IUnitOfWork
     {
         if (HasActiveTransaction)
         {
-
             await _currentTransaction?.RollbackAsync(cancellationToken)!;
             _currentTransaction = default;
         }
-       
     }
 
+    /// <summary>
+    /// 内存释放
+    /// </summary>
+    public override void Dispose()
+    {
+        _currentTransaction?.Dispose();
+        _currentTransaction = default;
+        GC.SuppressFinalize(this);
+    }
 
     /// <summary>
     /// 保存更改操作
@@ -91,21 +88,8 @@ public abstract  class DefaultDbContext : DbContext,IUnitOfWork
     /// <returns></returns>
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-        int count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-        Logger?.LogInformation($"保存{count}条数据");
+        var count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        Logger?.LogInformation("保存{count}条数据", count);
         return count;
     }
-
-    /// <summary>
-    /// 内存释放
-    /// </summary>
-    public override void Dispose()
-    {
-        
-        _currentTransaction?.Dispose();
-        _currentTransaction = default;
-        base.Dispose();
-        
-    }
-
 }
