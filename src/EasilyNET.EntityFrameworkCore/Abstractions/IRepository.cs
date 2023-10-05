@@ -1,8 +1,4 @@
-﻿
-
-
-
-namespace EasilyNET.EntityFrameworkCore;
+﻿namespace EasilyNET.EntityFrameworkCore;
 
 /// 放在那里好，还是学.NET放到抽象层？？？
 /// 还在拿在这里呢？？？？？
@@ -15,15 +11,14 @@ namespace EasilyNET.EntityFrameworkCore;
 /// <typeparam name="TEntity">实体</typeparam>
 /// <typeparam name="TKey">主键</typeparam>
 public interface IRepository<TEntity, in TKey>
-    where TEntity : Entity<TKey>,new()
+    where TEntity : Entity<TKey>, new()
     where TKey : IEquatable<TKey>
 {
-    
     /// <summary>
     /// 获取工作单元对象
     /// </summary>
     IUnitOfWork UnitOfWork { get; }
-    
+
     /// <summary>
     /// 异步使用主键查询
     /// </summary>
@@ -46,7 +41,7 @@ public interface IRepository<TEntity, in TKey>
     /// <param name="entity"></param>
     /// <returns></returns>
     ValueTask<TEntity?> AddAsync(TEntity entity);
-    
+
     /// <summary>
     /// 异步更新
     /// </summary>
