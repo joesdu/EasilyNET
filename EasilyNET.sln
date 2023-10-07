@@ -73,7 +73,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{AE84E1FF-9
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Test.Unit", "test\EasilyNET.Test.Unit\EasilyNET.Test.Unit.csproj", "{535C9D9D-84AC-4846-8198-C548477D70FA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.EntityFrameworkCore.Test", "Test\EasilyNET.EntityFrameworkCore.Test\EasilyNET.EntityFrameworkCore.Test.csproj", "{1F8A3464-25F4-4E0A-9BA1-E769078015E1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.EntityFrameworkCore.Test", "test\EasilyNET.EntityFrameworkCore.Test\EasilyNET.EntityFrameworkCore.Test.csproj", "{1F8A3464-25F4-4E0A-9BA1-E769078015E1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
