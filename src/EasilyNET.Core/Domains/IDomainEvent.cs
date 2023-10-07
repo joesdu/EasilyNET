@@ -3,9 +3,5 @@
 /// <summary>
 /// 领域事件
 /// </summary>
-public interface IDomainEvent
-{
-
-}
-
+public interface IDomainEvent;
 

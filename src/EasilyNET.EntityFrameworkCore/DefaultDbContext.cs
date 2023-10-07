@@ -1,26 +1,14 @@
-﻿
-
-
-
-
-
 
 namespace EasilyNET.EntityFrameworkCore;
 
 /// <summary>
-///  默认EFCORE上下文
+/// 默认EF CORE上下文
 /// </summary>
-public abstract  class DefaultDbContext : DbContext,IUnitOfWork
+public abstract class DefaultDbContext : DbContext, IUnitOfWork
 {
-    /// <summary>
-    /// 服务提供者
-    /// </summary>
 
-    protected IServiceProvider ServiceProvider { get; private set; }
-    private  ILogger? Logger{ get;  }
 
     /// <summary>
-    /// 
     /// </summary>
     /// <param name="options"></param>
     /// <param name="serviceProvider"></param>
@@ -34,6 +22,14 @@ public abstract  class DefaultDbContext : DbContext,IUnitOfWork
     /// 当前事务
     /// </summary>
     private IDbContextTransaction? _currentTransaction;
+
+    /// <summary>
+    /// 服务提供者
+    /// </summary>
+
+    protected IServiceProvider ServiceProvider { get; private set; }
+
+    private ILogger? Logger { get; }
 
     /// <summary>
     /// 是否激活事务
@@ -66,7 +62,8 @@ public abstract  class DefaultDbContext : DbContext,IUnitOfWork
         }
     }
 
-
+    
+    
     /// <summary>
     /// 异步回滚事务
     /// </summary>
@@ -75,13 +72,22 @@ public abstract  class DefaultDbContext : DbContext,IUnitOfWork
     {
         if (HasActiveTransaction)
         {
-
+            
             await _currentTransaction?.RollbackAsync(cancellationToken)!;
             _currentTransaction = default;
         }
        
     }
-
+    
+    /// <summary>
+    /// 内存释放
+    /// </summary>
+    public override void Dispose()
+    {
+        _currentTransaction?.Dispose();
+        _currentTransaction = default;
+        GC.SuppressFinalize(this);
+    }
 
     /// <summary>
     /// 保存更改操作
@@ -95,17 +101,5 @@ public abstract  class DefaultDbContext : DbContext,IUnitOfWork
         Logger?.LogInformation($"保存{count}条数据");
         return count;
     }
-
-    /// <summary>
-    /// 内存释放
-    /// </summary>
-    public override void Dispose()
-    {
-        
-        _currentTransaction?.Dispose();
-        _currentTransaction = default;
-        base.Dispose();
-        
-    }
-
+    
 }

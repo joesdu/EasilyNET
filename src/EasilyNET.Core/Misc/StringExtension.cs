@@ -521,8 +521,7 @@ public static class StringExtension
     /// <param name="regex">关键词列表</param>
     /// <param name="ignoreCase">忽略大小写</param>
     /// <returns></returns>
-    public static bool RegexMatch(this string source, string regex, bool ignoreCase = true) =>
-        !string.IsNullOrEmpty(regex) && !string.IsNullOrEmpty(source) && (ignoreCase ? Regex.IsMatch(source, regex, RegexOptions.IgnoreCase) : Regex.IsMatch(source, regex));
+    public static bool RegexMatch(this string source, string regex, bool ignoreCase = true) => !string.IsNullOrEmpty(regex) && !string.IsNullOrEmpty(source) && (ignoreCase ? Regex.IsMatch(source, regex, RegexOptions.IgnoreCase) : Regex.IsMatch(source, regex));
 
     /// <summary>
     /// 检测字符串中是否包含列表中的关键词

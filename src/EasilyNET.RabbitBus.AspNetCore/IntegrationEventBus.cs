@@ -17,7 +17,7 @@ using System.Text.Json;
 
 namespace EasilyNET.RabbitBus;
 
-internal sealed class IntegrationEventBus(IPersistentConnection conn,  int retry, ISubscriptionsManager subsManager, ISubscriptionsManager deadManager, IServiceProvider sp,ILogger<IntegrationEventBus> logger) : IIntegrationEventBus, IDisposable
+internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry, ISubscriptionsManager subsManager, ISubscriptionsManager deadManager, IServiceProvider sp, ILogger<IntegrationEventBus> logger) : IIntegrationEventBus, IDisposable
 {
     private const string HandleName = nameof(IIntegrationEventHandler<IIntegrationEvent>.HandleAsync);
     private bool disposed;

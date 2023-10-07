@@ -1,14 +1,8 @@
-﻿
-
-
+using EasilyNET.Core.Domains;
+using System.Linq.Expressions;
 
 namespace EasilyNET.EntityFrameworkCore;
 
-/// 放在那里好，还是学.NET放到抽象层？？？
-/// 还在拿在这里呢？？？？？
-/// 会不会出现别的地方也用仓储呢？
-/// 放在这里会不会有点改呢？违法设计呢？？？？？？？
-/// 暂时放在这里。。。。。
 /// <summary>
 /// 仓储类
 /// </summary>
@@ -17,13 +11,12 @@ namespace EasilyNET.EntityFrameworkCore;
 public interface IRepository<TEntity, in TKey>
     where TEntity : Entity<TKey>,new()
     where TKey : IEquatable<TKey>
+
 {
-    
     /// <summary>
     /// 获取工作单元对象
     /// </summary>
     IUnitOfWork UnitOfWork { get; }
-    
     /// <summary>
     /// 异步使用主键查询
     /// </summary>
@@ -46,7 +39,7 @@ public interface IRepository<TEntity, in TKey>
     /// <param name="entity"></param>
     /// <returns></returns>
     ValueTask<TEntity?> AddAsync(TEntity entity);
-    
+
     /// <summary>
     /// 异步更新
     /// </summary>

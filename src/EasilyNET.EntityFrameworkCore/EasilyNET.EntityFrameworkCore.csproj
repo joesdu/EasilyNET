@@ -1,13 +1,33 @@
+
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <Import Project="..\..\build\common.props" />
+	<Import Project="..\..\build\common.props" />
 
-    <ItemGroup>
-      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.11" />
-    </ItemGroup>
+	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).EntityFrameworkCore</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).EntityFrameworkCore</AssemblyName>
+		<PackageId>$(PackagePrefix).EntityFrameworkCore</PackageId>
+		<PackageTags>EasilyNET.EntityFrameworkCore</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.EntityFrameworkCore</RootNamespace>
+	</PropertyGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
-    </ItemGroup>   
+	<PropertyGroup>
+		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.EntityFrameworkCore</PackageProjectUrl>
+		<Description>EntityFrameworkCore</Description>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0' OR '$(TargetFramework)' == 'net7.0'">
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.11" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0-rc.1.23419.6" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
+	</ItemGroup>
 
 </Project>

@@ -1,5 +1,8 @@
-﻿namespace EasilyNET.Core.Domains;
+namespace EasilyNET.Core.Domains;
 
+
+//ReSharper disable VirtualMemberNeverOverridden.Global
+//ReSharper disable MemberCanBeProtected.Global
 
 /// <summary>
 /// 实体共用
@@ -11,13 +14,11 @@ public abstract class Entity
     /// 领域事件
     /// </summary>
     private List<IDomainEvent>? _domainEvents;
-    
+
     /// <summary>
     /// 领域事件集合
     /// </summary>
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents?.AsReadOnly()!;
-
-  
 
     /// <summary>
     /// 添加领域事件
@@ -38,21 +39,17 @@ public abstract class Entity
     /// <summary>
     /// 清空领域事件
     /// </summary>
-    public void ClearDomainEvent()
-    {
-        _domainEvents?.Clear();
-    }
+    public void ClearDomainEvent() => _domainEvents?.Clear();
+
 }
 
 /// <summary>
 /// 泛型实体，用来限定。
 /// </summary>
 /// <typeparam name="TKey">动态类型</typeparam>
-public abstract class Entity<TKey> : Entity
-    where TKey : IEquatable<TKey>
+
+public abstract class Entity<TKey> : Entity where TKey : IEquatable<TKey>
 {
-
-
 
     /// <summary>
     /// 主键
@@ -64,10 +61,10 @@ public abstract class Entity<TKey> : Entity
     /// </summary>
     /// <param name="obj">要比较的类型</param>
     /// <returns></returns>
-  
     public override bool Equals(object? obj)
     {
-        if (obj is null ||  obj is not Entity<TKey> entity)
+#pragma warning disable IDE0046 // 转换为条件表达式
+        if (obj is not Entity<TKey> entity)
         {
             return false;
         }
@@ -85,17 +82,16 @@ public abstract class Entity<TKey> : Entity
             return false;
         }
         return entity.Id.Equals(Id);
+
+#pragma warning restore IDE0046 // 转换为条件表达式
     }
 
-    /// <summary>
-    /// 表示对象是否为全新创建的，未持久化的
-    /// </summary>
-    /// <returns></returns>
-    public virtual bool IsTransient()
-    {
-       return EqualityComparer<TKey>.Default.Equals(Id, default);
-    }
 
+/// <summary>
+/// 表示对象是否为全新创建的，未持久化的
+/// </summary>
+/// <returns></returns>
+    public virtual bool IsTransient() => EqualityComparer<TKey>.Default.Equals(Id, default);
 
     /// <summary>
     /// 用作特定类型的哈希函数。
@@ -114,6 +110,7 @@ public abstract class Entity<TKey> : Entity
         }
         return Id.GetHashCode();
     }
+    
 
     /// <summary>
     /// 等于
@@ -131,6 +128,6 @@ public abstract class Entity<TKey> : Entity
     /// <returns></returns>
     public static bool operator !=(Entity<TKey> left, Entity<TKey> right) => !(left == right);
 
- 
 }
+
 

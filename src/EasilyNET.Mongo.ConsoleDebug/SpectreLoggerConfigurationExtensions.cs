@@ -9,7 +9,7 @@ using Serilog.Events;
 namespace Serilog;
 
 /// <summary>
-/// À©Õ¹Àà
+/// æ‰©å±•ç±»
 /// </summary>
 public static class SpectreLoggerConfigurationExtensions
 {
