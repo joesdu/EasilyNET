@@ -1,4 +1,6 @@
 
+
+
 namespace EasilyNET.EntityFrameworkCore;
 
 /// <summary>
@@ -12,12 +14,13 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// </summary>
     /// <param name="options"></param>
     /// <param name="serviceProvider"></param>
-    protected DefaultDbContext(DbContextOptions options, IServiceProvider serviceProvider) : base(options)
+    protected DefaultDbContext(DbContextOptions options, IServiceProvider? serviceProvider) : base(options)
     {
         ServiceProvider = serviceProvider;
-        Logger = serviceProvider.GetService<ILoggerFactory>()?.CreateLogger<DefaultDbContext>() ?? NullLogger<DefaultDbContext>.Instance;
+        Logger = serviceProvider?.GetService<ILoggerFactory>()?.CreateLogger<DefaultDbContext>() ?? NullLogger<DefaultDbContext>.Instance;
     }
 
+    
     /// <summary>
     /// 当前事务
     /// </summary>
@@ -27,7 +30,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// 服务提供者
     /// </summary>
 
-    protected IServiceProvider ServiceProvider { get; private set; }
+    protected IServiceProvider? ServiceProvider { get; private set; }
 
     private ILogger? Logger { get; }
 
@@ -80,16 +83,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     }
     
     /// <summary>
-    /// 内存释放
-    /// </summary>
-    public override void Dispose()
-    {
-        _currentTransaction?.Dispose();
-        _currentTransaction = default;
-        GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
     /// 保存更改操作
     /// </summary>
     /// <param name="acceptAllChangesOnSuccess"></param>
@@ -100,6 +93,18 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         int count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         Logger?.LogInformation($"保存{count}条数据");
         return count;
+    }
+
+
+
+    /// <summary>
+    /// 内存释放
+    /// </summary>
+    public override void Dispose()
+    {
+        _currentTransaction?.Dispose();
+        _currentTransaction = default;
+        GC.SuppressFinalize(this);
     }
     
 }

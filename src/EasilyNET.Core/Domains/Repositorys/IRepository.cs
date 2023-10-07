@@ -1,7 +1,7 @@
-using EasilyNET.Core.Domains;
+
 using System.Linq.Expressions;
 
-namespace EasilyNET.EntityFrameworkCore;
+namespace EasilyNET.Core.Domains;
 
 /// <summary>
 /// 仓储类
@@ -9,7 +9,7 @@ namespace EasilyNET.EntityFrameworkCore;
 /// <typeparam name="TEntity">实体</typeparam>
 /// <typeparam name="TKey">主键</typeparam>
 public interface IRepository<TEntity, in TKey>
-    where TEntity : Entity<TKey>,new()
+    where TEntity : Entity<TKey>,IAggregateRoot
     where TKey : IEquatable<TKey>
 
 {
@@ -29,35 +29,31 @@ public interface IRepository<TEntity, in TKey>
     /// 查询
     /// </summary>
     /// <param name="predicate"></param>
-    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    IQueryable<TEntity?> Query(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
+    IQueryable<TEntity?> Query(Expression<Func<TEntity, bool>>? predicate);
+
 
     /// <summary>
     /// 异步添加
     /// </summary>
     /// <param name="entity"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    ValueTask<TEntity?> AddAsync(TEntity entity);
+    Task AddAsync(TEntity entity, CancellationToken cancellationToken = default);
+    
+    
 
     /// <summary>
     /// 异步更新
     /// </summary>
-    /// <param name="entity"></param>
+    /// <param name="entity">动态实体</param>
     /// <returns></returns>
-    ValueTask<TEntity?> UpdateAsync(TEntity entity);
-
-    /// <summary>
-    /// 异步根据ID删除
-    /// </summary>
-    /// <param name="id">主建</param>
-    /// <returns></returns>
-    ValueTask DeleteByIdAsync(TKey id);
+    Task UpdateAsync(TEntity entity);
 
     /// <summary>
     /// 异步移除
     /// </summary>
     /// <param name="entity"></param>
     /// <returns></returns>
-    ValueTask RemoveAsync(Entity entity);
+    Task RemoveAsync(TEntity entity);
 }

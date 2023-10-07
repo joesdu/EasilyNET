@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.EntityFrameworkCore;
+﻿namespace EasilyNET.Core.Domains;
 
 /// <summary>
 /// 工作单元

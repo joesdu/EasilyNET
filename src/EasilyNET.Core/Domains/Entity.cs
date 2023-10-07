@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace EasilyNET.Core.Domains;
 
 
@@ -9,15 +11,19 @@ namespace EasilyNET.Core.Domains;
 /// </summary>
 public abstract class Entity
 {
-    
+
+
     /// <summary>
-    /// 领域事件
+    /// 领域事件不映射
     /// </summary>
+    
+    [NotMapped]
     private List<IDomainEvent>? _domainEvents;
 
     /// <summary>
     /// 领域事件集合
     /// </summary>
+    [NotMapped]
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents?.AsReadOnly()!;
 
     /// <summary>
@@ -51,10 +57,25 @@ public abstract class Entity
 public abstract class Entity<TKey> : Entity where TKey : IEquatable<TKey>
 {
 
+
+
+    // /// <summary>
+    // /// 
+    // /// </summary>
+    // /// <param name="id"></param>
+    // protected Entity(TKey id) : this()
+    // {
+    //     
+    //     
+    // }
+
+    
+    
+
     /// <summary>
     /// 主键
     /// </summary>
-    public virtual TKey Id { get; protected set; }
+    public  virtual TKey Id { get; protected set; } = default!;
 
     /// <summary>
     ///  比较是否值和引用都相等
