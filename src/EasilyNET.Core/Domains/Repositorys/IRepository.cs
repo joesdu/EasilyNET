@@ -26,11 +26,16 @@ public interface IRepository<TEntity, in TKey>
     ValueTask<TEntity?> FindAsync(TKey id, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// 查询实体
+    /// </summary>
+    IQueryable<TEntity> FindEntityQueryable { get; }
+
+    /// <summary>
     /// 查询
     /// </summary>
     /// <param name="predicate"></param>
     /// <returns></returns>
-    IQueryable<TEntity?> Query(Expression<Func<TEntity, bool>>? predicate);
+    IQueryable<TEntity?> Query(Expression<Func<TEntity, bool>>? predicate=null);
 
 
     /// <summary>

@@ -5,6 +5,7 @@
 
 
 
+
 namespace EasilyNET.EntityFrameworkCore.Test;
 [TestClass]
 public class RepositoryTests
@@ -12,51 +13,52 @@ public class RepositoryTests
  
 
     //本人太笨了NSubstitute 测试怎么也学不会。。。。
-    private DbContextOptions<TestDbContext> DummyOptions { get; } = new DbContextOptionsBuilder<TestDbContext>().UseSqlite("Data Source=My.db").Options;
+    // private DbContextOptions<TestDbContext> DummyOptions { get; } = new DbContextOptionsBuilder<TestDbContext>().UseSqlite("Data Source=My.db").Options;
 
-    private IServiceCollection _serviceCollection;
+    private readonly IServiceCollection _serviceCollection= new ServiceCollection();
+    private readonly IServiceProvider _serviceProvider;
     public  RepositoryTests()
     {
 
-        // // var dbContextMock = new DbContextMock<TestDbContext>();
-        // _serviceCollection.AddDbContext<TestDbContext>(o
-        //     => o.UseSqlite("Data Source=My.db"));
-        // _serviceCollection.AddScoped<IUserRepository,UserRepository>();
-        // _serviceProvider= _serviceCollection.BuildServiceProvider();
-    
-        
-        // var options = new DbContextOptionsBuilder<TestDbContext>()
-        //               .UseSqlite("Data Source=My.db")
-        //               .Options;
-        // _dbContextOptions = options;
- 
-        // var dbContext = new TestDbContext(options,serviceProvider);
-        // 创建一个模拟的 IServiceProvider
-        // var serviceProvider = Substitute.For<IServiceProvider>();
-        // var dbContext =  Substitute.For<TestDbContext>(DummyOptions,serviceProvider);
-        // dbContext.Database.EnsureCreated(); 
-        
+
+        _serviceCollection.AddDbContext<TestDbContext>(options => options.UseSqlite("Data Source=My.db"));
+        _serviceCollection.AddScoped<IUserRepository, UserRepository>();
+        _serviceProvider=_serviceCollection.BuildServiceProvider();
     }
 
     [TestMethod]
     public async Task AddUserAsync_ShouldAddUserToDatabase()
     {
-        
-       // Arrange
-        TestDbContext dbContext = new TestDbContext(DummyOptions,null);
-        IUserRepository userRepository = new UserRepository(dbContext);
+        // Arrange
+        var userRepository = _serviceProvider.GetService<IUserRepository>();
         // // Act
         var user = new User("大黄瓜", 18);
-        await userRepository.AddAsync(user);
-        //
-        int count= await userRepository.UnitOfWork.SaveChangesAsync();
-        // // Assert
-         var addedUser = await userRepository.FindAsync(user.Id);
+        await userRepository!.AddAsync(user);
+        await userRepository.UnitOfWork.SaveChangesAsync();
+        // Assert
+        var addedUser = await userRepository.FindAsync(user.Id);
         Assert.IsNotNull(addedUser);
+    }
+    
+    [TestMethod]
+    public async Task UpdateUserAsync_ShouldUpdateUserToDatabase()
+    {
+        // Arrange
+
+        var userRepository = _serviceProvider.GetService<IUserRepository>();
+        // Act
+
+        var user =await userRepository?.Query(o => o.Name == "大黄瓜").AsTracking().FirstOrDefaultAsync();
+        user?.ChageName("大黄瓜_01");
+        await userRepository.UpdateAsync(user!);
+        await userRepository.UnitOfWork.SaveChangesAsync();
+        // Assert
+        var newUser = await userRepository.FindAsync(user!.Id);
+        Assert.IsTrue(newUser.Equals(user));
     }
 }
 
-public sealed class User : Entity<long>,IAggregateRoot
+public sealed class User : Entity<long>,IAggregateRoot,IHasSoftDelete
 {
     private User()
     {
@@ -70,10 +72,16 @@ public sealed class User : Entity<long>,IAggregateRoot
     }
 
 
-    public string Name { get; }
+    public string Name { get; private set; } = default!;
 
     public int Age { get; }
-    
+
+    public void ChageName(string name)
+    {
+
+        Name = name;
+    }
+
 
 }
 
@@ -88,9 +96,12 @@ public class TestDbContext : DefaultDbContext
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly()); 
+        base.AddIsDeletedField(modelBuilder);
         base.OnModelCreating(modelBuilder);
     }
+
+
 }
 
 public interface IUserRepository : IRepository<User, long>
@@ -108,33 +119,6 @@ public class UserRepository:RepositoryBase<User,long,TestDbContext>,IUserReposit
 
 }
 
-/// <summary>
-/// 用户ID
-/// </summary>
-/// <param name="Id"></param>
-public record UserId(long Id)
-{
-
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="id"></param>
-    /// <returns></returns>
-    public static implicit operator long(UserId id) => id.Id;
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="id"></param>
-    /// <returns></returns>
-    public static implicit operator UserId(long id) => new UserId(id);
-
-    
-    /// <summary>
-    /// </summary>
-    /// <returns></returns>
-    public override string ToString() => Id.ToString();
-}
 
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {

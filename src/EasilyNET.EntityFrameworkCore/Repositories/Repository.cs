@@ -31,7 +31,7 @@ public abstract class RepositoryBase<TEntity,TKey,TDbContext>:
     /// <summary>
     /// 查询实体
     /// </summary>
-    protected virtual IQueryable<TEntity> FindEntityQueryable => EntitySet;
+    public virtual IQueryable<TEntity> FindEntityQueryable => EntitySet;
 
     /// <summary>
     /// 表
@@ -44,7 +44,7 @@ public abstract class RepositoryBase<TEntity,TKey,TDbContext>:
     public ValueTask<TEntity?> FindAsync(TKey id, CancellationToken cancellationToken = default) => DbContext.Set<TEntity>().FindAsync(new object[] { id },cancellationToken);
 
     /// <inheritdoc />
-    public IQueryable<TEntity?> Query(Expression<Func<TEntity, bool>>? predicate)
+    public IQueryable<TEntity?> Query(Expression<Func<TEntity, bool>>? predicate = null)
     {
         if (predicate is not null)
         {

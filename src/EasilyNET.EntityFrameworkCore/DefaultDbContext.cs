@@ -1,6 +1,8 @@
 
 
 
+
+
 namespace EasilyNET.EntityFrameworkCore;
 
 /// <summary>
@@ -9,7 +11,17 @@ namespace EasilyNET.EntityFrameworkCore;
 public abstract class DefaultDbContext : DbContext, IUnitOfWork
 {
 
-
+    /// <summary>
+    /// 是否删除
+    /// </summary>
+    public const string IsDeleted = nameof(IsDeleted);
+    
+    /// <summary>
+    /// 创建时间
+    /// </summary>
+    public const string CreatedDateTime= nameof(CreatedDateTime);
+    
+    private  MethodInfo  _methodInfo= typeof(EF).GetMethod(nameof(EF.Property))!.MakeGenericMethod(typeof(bool));
     /// <summary>
     /// </summary>
     /// <param name="options"></param>
@@ -95,7 +107,86 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         return count;
     }
 
+    /// <inheritdoc />
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+     
+        base.OnModelCreating(modelBuilder);
+    }
+    
+    /// <summary>
+    /// 动态获取实体表
+    /// </summary>
+    /// <param name="modelBuilder"></param>
+    protected virtual void OnMapEntityTypes(ModelBuilder modelBuilder)
+    {
+      
+        // var baseType = typeof(IEntityTypeConfiguration<>);
+        //
+        // var assemblys = AssemblyHelper.FindTypes(o => o.IsClass && o.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == baseType)).ToList();
+        //
+        // if (assemblys.Any())
+        // {
+        //
+        //     assemblys.ForEach(x =>
+        //     {
+        //
+        //         if (modelBuilder.Model.FindEntityType(x) is null)
+        //         {
+        //             modelBuilder.Model.AddEntityType(x);
+        //         }
+        //
+        //     });
+        //     
+        // }
+        
+    }
 
+
+    
+    /// <summary>
+    /// 设置软删除字段
+    /// </summary>
+    /// <param name="builder"></param>
+    protected virtual void AddIsDeletedField(ModelBuilder builder)
+    {
+       var types=  builder.Model.GetEntityTypes().Where(o=>typeof(IHasSoftDelete).IsAssignableFrom(o.ClrType)).ToList();
+       foreach (var type in types)
+       {
+           
+           builder.Entity(type.ClrType).Property<bool>(IsDeleted);
+           builder.Entity(type.ClrType).HasQueryFilter(GetDeleteLambda((type.ClrType)));
+       }
+    }
+    
+    /// <summary>
+    /// 设置创建时间字段
+    /// </summary>
+    /// <param name="builder"></param>
+    protected virtual void AddCreateTimeField(ModelBuilder builder)
+    {
+    
+    }
+
+    /// <summary>
+    /// 获取过滤条件
+    /// </summary>
+    /// <param name="clrType"></param>
+    /// <returns></returns>
+    private LambdaExpression GetDeleteLambda(Type clrType)
+    {
+        var param = Expression.Parameter(clrType, "it");
+
+        //EF.Property<bool>(it, "IsDeleted")
+        Expression call = Expression.Call(_methodInfo, param, Expression.Constant(IsDeleted));
+
+        //(EF.Property<bool>(it, "IsDeleted") == False)
+        var binaryExpression = Expression.MakeBinary(ExpressionType.Equal, call, Expression.Constant(false, typeof(bool)));
+
+        // it => EF.Property<bool>(it, "Deleted") == False
+        var lambda = Expression.Lambda(binaryExpression, param);
+        return lambda;
+    }
 
     /// <summary>
     /// 内存释放
