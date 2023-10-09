@@ -1,4 +1,3 @@
-
 using System.Linq.Expressions;
 
 namespace EasilyNET.Core.Domains;
@@ -9,7 +8,7 @@ namespace EasilyNET.Core.Domains;
 /// <typeparam name="TEntity">实体</typeparam>
 /// <typeparam name="TKey">主键</typeparam>
 public interface IRepository<TEntity, in TKey>
-    where TEntity : Entity<TKey>,IAggregateRoot
+    where TEntity : Entity<TKey>, IAggregateRoot
     where TKey : IEquatable<TKey>
 
 {
@@ -17,6 +16,12 @@ public interface IRepository<TEntity, in TKey>
     /// 获取工作单元对象
     /// </summary>
     IUnitOfWork UnitOfWork { get; }
+
+    /// <summary>
+    /// 查询实体
+    /// </summary>
+    IQueryable<TEntity> FindEntityQueryable { get; }
+
     /// <summary>
     /// 异步使用主键查询
     /// </summary>
@@ -26,17 +31,11 @@ public interface IRepository<TEntity, in TKey>
     ValueTask<TEntity?> FindAsync(TKey id, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 查询实体
-    /// </summary>
-    IQueryable<TEntity> FindEntityQueryable { get; }
-
-    /// <summary>
     /// 查询
     /// </summary>
     /// <param name="predicate"></param>
     /// <returns></returns>
-    IQueryable<TEntity?> Query(Expression<Func<TEntity, bool>>? predicate=null);
-
+    IQueryable<TEntity?> Query(Expression<Func<TEntity, bool>>? predicate = null);
 
     /// <summary>
     /// 异步添加
@@ -45,8 +44,6 @@ public interface IRepository<TEntity, in TKey>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task AddAsync(TEntity entity, CancellationToken cancellationToken = default);
-    
-    
 
     /// <summary>
     /// 异步更新

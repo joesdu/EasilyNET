@@ -3,7 +3,6 @@
 /// <summary>
 /// 工作单元
 /// </summary>
-
 public interface IUnitOfWork : IDisposable
 {
     /// <summary>
@@ -11,14 +10,12 @@ public interface IUnitOfWork : IDisposable
     /// </summary>
     bool HasActiveTransaction { get; }
 
-
     /// <summary>
     /// 异步保存更改
     /// </summary>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
-    
 
     /// <summary>
     /// 异步开启事务

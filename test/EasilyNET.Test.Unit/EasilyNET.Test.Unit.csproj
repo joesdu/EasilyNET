@@ -8,7 +8,7 @@
 
     <ItemGroup>
         <PackageReference Include="FluentAssertions" Version="7.0.0-alpha.1" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0-release-23468-02" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0-preview-23503-02" />
         <PackageReference Include="MSTest.TestAdapter" Version="3.1.1" />
         <PackageReference Include="MSTest.TestFramework" Version="3.1.1" />
         <PackageReference Include="coverlet.collector" Version="6.0.0">

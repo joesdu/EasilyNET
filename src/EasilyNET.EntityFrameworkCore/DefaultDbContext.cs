@@ -1,8 +1,3 @@
-
-
-
-
-
 namespace EasilyNET.EntityFrameworkCore;
 
 /// <summary>
@@ -10,18 +5,23 @@ namespace EasilyNET.EntityFrameworkCore;
 /// </summary>
 public abstract class DefaultDbContext : DbContext, IUnitOfWork
 {
-
     /// <summary>
     /// 是否删除
     /// </summary>
     public const string IsDeleted = nameof(IsDeleted);
-    
+
     /// <summary>
     /// 创建时间
     /// </summary>
-    public const string CreatedDateTime= nameof(CreatedDateTime);
-    
-    private  MethodInfo  _methodInfo= typeof(EF).GetMethod(nameof(EF.Property))!.MakeGenericMethod(typeof(bool));
+    public const string CreatedDateTime = nameof(CreatedDateTime);
+
+    private readonly MethodInfo _methodInfo = typeof(EF).GetMethod(nameof(EF.Property))!.MakeGenericMethod(typeof(bool));
+
+    /// <summary>
+    /// 当前事务
+    /// </summary>
+    private IDbContextTransaction? _currentTransaction;
+
     /// <summary>
     /// </summary>
     /// <param name="options"></param>
@@ -31,12 +31,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         ServiceProvider = serviceProvider;
         Logger = serviceProvider?.GetService<ILoggerFactory>()?.CreateLogger<DefaultDbContext>() ?? NullLogger<DefaultDbContext>.Instance;
     }
-
-    
-    /// <summary>
-    /// 当前事务
-    /// </summary>
-    private IDbContextTransaction? _currentTransaction;
 
     /// <summary>
     /// 服务提供者
@@ -49,7 +43,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <summary>
     /// 是否激活事务
     /// </summary>
-    public bool HasActiveTransaction =>_currentTransaction != null;
+    public bool HasActiveTransaction => _currentTransaction != null;
 
     /// <summary>
     /// 异步开启事务
@@ -66,19 +60,15 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// </summary>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public virtual async  Task CommitTransactionAsync(CancellationToken cancellationToken = default)
+    public virtual async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
     {
-
         if (HasActiveTransaction)
         {
-
-           await _currentTransaction?.CommitAsync(cancellationToken)!;
-           _currentTransaction = default;
+            await _currentTransaction?.CommitAsync(cancellationToken)!;
+            _currentTransaction = default;
         }
     }
 
-    
-    
     /// <summary>
     /// 异步回滚事务
     /// </summary>
@@ -87,13 +77,21 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     {
         if (HasActiveTransaction)
         {
-            
             await _currentTransaction?.RollbackAsync(cancellationToken)!;
             _currentTransaction = default;
         }
-       
     }
-    
+
+    /// <summary>
+    /// 内存释放
+    /// </summary>
+    public override void Dispose()
+    {
+        _currentTransaction?.Dispose();
+        _currentTransaction = default;
+        GC.SuppressFinalize(this);
+    }
+
     /// <summary>
     /// 保存更改操作
     /// </summary>
@@ -102,7 +100,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <returns></returns>
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-        int count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        var count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         Logger?.LogInformation($"保存{count}条数据");
         return count;
     }
@@ -110,17 +108,15 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-     
         base.OnModelCreating(modelBuilder);
     }
-    
+
     /// <summary>
     /// 动态获取实体表
     /// </summary>
     /// <param name="modelBuilder"></param>
     protected virtual void OnMapEntityTypes(ModelBuilder modelBuilder)
     {
-      
         // var baseType = typeof(IEntityTypeConfiguration<>);
         //
         // var assemblys = AssemblyHelper.FindTypes(o => o.IsClass && o.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == baseType)).ToList();
@@ -139,34 +135,27 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         //     });
         //     
         // }
-        
     }
 
-
-    
     /// <summary>
     /// 设置软删除字段
     /// </summary>
     /// <param name="builder"></param>
     protected virtual void AddIsDeletedField(ModelBuilder builder)
     {
-       var types=  builder.Model.GetEntityTypes().Where(o=>typeof(IHasSoftDelete).IsAssignableFrom(o.ClrType)).ToList();
-       foreach (var type in types)
-       {
-           
-           builder.Entity(type.ClrType).Property<bool>(IsDeleted);
-           builder.Entity(type.ClrType).HasQueryFilter(GetDeleteLambda((type.ClrType)));
-       }
+        var types = builder.Model.GetEntityTypes().Where(o => typeof(IHasSoftDelete).IsAssignableFrom(o.ClrType)).ToList();
+        foreach (var type in types)
+        {
+            builder.Entity(type.ClrType).Property<bool>(IsDeleted);
+            builder.Entity(type.ClrType).HasQueryFilter(GetDeleteLambda(type.ClrType));
+        }
     }
-    
+
     /// <summary>
     /// 设置创建时间字段
     /// </summary>
     /// <param name="builder"></param>
-    protected virtual void AddCreateTimeField(ModelBuilder builder)
-    {
-    
-    }
+    protected virtual void AddCreateTimeField(ModelBuilder builder) { }
 
     /// <summary>
     /// 获取过滤条件
@@ -187,15 +176,4 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         var lambda = Expression.Lambda(binaryExpression, param);
         return lambda;
     }
-
-    /// <summary>
-    /// 内存释放
-    /// </summary>
-    public override void Dispose()
-    {
-        _currentTransaction?.Dispose();
-        _currentTransaction = default;
-        GC.SuppressFinalize(this);
-    }
-    
 }

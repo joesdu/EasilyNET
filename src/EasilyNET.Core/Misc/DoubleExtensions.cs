@@ -8,7 +8,11 @@ namespace EasilyNET.Core.Misc;
 /// <summary>
 /// double 扩展
 /// </summary>
+#if NET7_0_OR_GREATER
 public static partial class DoubleExtensions
+#else
+public static class DoubleExtensions
+#endif
 {
     /// <summary>
     /// 转decimal

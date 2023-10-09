@@ -4,4 +4,3 @@
 /// 领域事件
 /// </summary>
 public interface IDomainEvent;
-

@@ -1,29 +1,19 @@
-
-
-
-
-
-
-
-
 namespace EasilyNET.EntityFrameworkCore.Test;
+
 [TestClass]
 public class RepositoryTests
 {
- 
-
     //本人太笨了NSubstitute 测试怎么也学不会。。。。
     // private DbContextOptions<TestDbContext> DummyOptions { get; } = new DbContextOptionsBuilder<TestDbContext>().UseSqlite("Data Source=My.db").Options;
 
-    private readonly IServiceCollection _serviceCollection= new ServiceCollection();
+    private readonly IServiceCollection _serviceCollection = new ServiceCollection();
     private readonly IServiceProvider _serviceProvider;
-    public  RepositoryTests()
+
+    public RepositoryTests()
     {
-
-
         _serviceCollection.AddDbContext<TestDbContext>(options => options.UseSqlite("Data Source=My.db"));
         _serviceCollection.AddScoped<IUserRepository, UserRepository>();
-        _serviceProvider=_serviceCollection.BuildServiceProvider();
+        _serviceProvider = _serviceCollection.BuildServiceProvider();
     }
 
     [TestMethod]
@@ -39,86 +29,67 @@ public class RepositoryTests
         var addedUser = await userRepository.FindAsync(user.Id);
         Assert.IsNotNull(addedUser);
     }
-    
+
     [TestMethod]
     public async Task UpdateUserAsync_ShouldUpdateUserToDatabase()
     {
         // Arrange
-
         var userRepository = _serviceProvider.GetService<IUserRepository>();
         // Act
-
-        var user =await userRepository?.Query(o => o.Name == "大黄瓜").AsTracking().FirstOrDefaultAsync();
-        user?.ChageName("大黄瓜_01");
+        var user = await userRepository?.Query(o => o.Name == "大黄瓜").AsTracking().FirstOrDefaultAsync();
+        user?.ChangeName("大黄瓜_01");
         await userRepository.UpdateAsync(user!);
         await userRepository.UnitOfWork.SaveChangesAsync();
         // Assert
         var newUser = await userRepository.FindAsync(user!.Id);
-        Assert.IsTrue(newUser.Equals(user));
+        Assert.IsTrue(newUser?.Equals(user));
     }
 }
 
-public sealed class User : Entity<long>,IAggregateRoot,IHasSoftDelete
+public sealed class User : Entity<long>, IAggregateRoot, IHasSoftDelete
 {
-    private User()
-    {
-        
-    }
+    private User() { }
+
     public User(string name, int age)
     {
-
         Name = name;
         Age = age;
     }
-
 
     public string Name { get; private set; } = default!;
 
     public int Age { get; }
 
-    public void ChageName(string name)
+    public void ChangeName(string name)
     {
-
         Name = name;
     }
-
-
 }
 
 public class TestDbContext : DefaultDbContext
 {
     public TestDbContext(DbContextOptions<TestDbContext> options, IServiceProvider? serviceProvider)
-        : base(options,serviceProvider)
+        : base(options, serviceProvider)
     {
-         Database.EnsureCreated();
+        Database.EnsureCreated();
     }
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly()); 
+        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         base.AddIsDeletedField(modelBuilder);
         base.OnModelCreating(modelBuilder);
     }
-
-
 }
 
-public interface IUserRepository : IRepository<User, long>
-{
-    
-}
-public class UserRepository:RepositoryBase<User,long,TestDbContext>,IUserRepository
+public interface IUserRepository : IRepository<User, long> { }
+
+public class UserRepository : RepositoryBase<User, long, TestDbContext>, IUserRepository
 {
     /// <inheritdoc />
-    public UserRepository(TestDbContext dbContext) : base(dbContext)
-    {
-        
-    }
-
-
+    public UserRepository(TestDbContext dbContext) : base(dbContext) { }
 }
-
 
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {
@@ -130,4 +101,3 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.ToTable("User");
     }
 }
-

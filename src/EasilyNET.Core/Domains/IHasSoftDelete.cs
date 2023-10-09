@@ -3,7 +3,4 @@
 /// <summary>
 /// 是否软删除
 /// </summary>
-public interface IHasSoftDelete
-{
-
-}
+public interface IHasSoftDelete { }
