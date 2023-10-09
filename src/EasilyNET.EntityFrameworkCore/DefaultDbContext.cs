@@ -101,14 +101,8 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         var count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-        Logger?.LogInformation($"保存{count}条数据");
+        Logger?.LogInformation("保存{count}条数据", count);
         return count;
-    }
-
-    /// <inheritdoc />
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
     }
 
     /// <summary>

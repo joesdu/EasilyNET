@@ -20,10 +20,10 @@ public class RepositoryTests
     public async Task AddUserAsync_ShouldAddUserToDatabase()
     {
         // Arrange
-        var userRepository = _serviceProvider.GetService<IUserRepository>();
+        var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
         // // Act
         var user = new User("大黄瓜", 18);
-        await userRepository!.AddAsync(user);
+        await userRepository.AddAsync(user);
         await userRepository.UnitOfWork.SaveChangesAsync();
         // Assert
         var addedUser = await userRepository.FindAsync(user.Id);
@@ -34,9 +34,9 @@ public class RepositoryTests
     public async Task UpdateUserAsync_ShouldUpdateUserToDatabase()
     {
         // Arrange
-        var userRepository = _serviceProvider.GetService<IUserRepository>();
+        var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
         // Act
-        var user = await userRepository?.Query(o => o.Name == "大黄瓜").AsTracking().FirstOrDefaultAsync();
+        var user = await userRepository.Query(o => o.Name == "大黄瓜").AsTracking().FirstOrDefaultAsync();
         user?.ChangeName("大黄瓜_01");
         await userRepository.UpdateAsync(user!);
         await userRepository.UnitOfWork.SaveChangesAsync();
@@ -66,7 +66,7 @@ public sealed class User : Entity<long>, IAggregateRoot, IHasSoftDelete
     }
 }
 
-public class TestDbContext : DefaultDbContext
+public sealed class TestDbContext : DefaultDbContext
 {
     public TestDbContext(DbContextOptions<TestDbContext> options, IServiceProvider? serviceProvider)
         : base(options, serviceProvider)
@@ -78,18 +78,18 @@ public class TestDbContext : DefaultDbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-        base.AddIsDeletedField(modelBuilder);
+        AddIsDeletedField(modelBuilder);
         base.OnModelCreating(modelBuilder);
     }
 }
 
-public interface IUserRepository : IRepository<User, long> { }
+public interface IUserRepository : IRepository<User, long>;
 
-public class UserRepository : RepositoryBase<User, long, TestDbContext>, IUserRepository
-{
-    /// <inheritdoc />
-    public UserRepository(TestDbContext dbContext) : base(dbContext) { }
-}
+/// <summary>
+/// UserRepository
+/// </summary>
+/// <param name="dbContext"></param>
+public class UserRepository(TestDbContext dbContext) : RepositoryBase<User, long, TestDbContext>(dbContext), IUserRepository;
 
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {

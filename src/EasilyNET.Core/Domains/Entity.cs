@@ -49,16 +49,6 @@ public abstract class Entity
 /// <typeparam name="TKey">动态类型</typeparam>
 public abstract class Entity<TKey> : Entity where TKey : IEquatable<TKey>
 {
-    // /// <summary>
-    // /// 
-    // /// </summary>
-    // /// <param name="id"></param>
-    // protected Entity(TKey id) : this()
-    // {
-    //     
-    //     
-    // }
-
     /// <summary>
     /// 主键
     /// </summary>
