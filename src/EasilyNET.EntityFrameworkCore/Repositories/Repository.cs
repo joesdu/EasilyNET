@@ -7,7 +7,7 @@
 /// <typeparam name="TDbContext"></typeparam>
 public abstract class RepositoryBase<TEntity, TKey, TDbContext> :
     IRepository<TEntity, TKey>
-    where TEntity : Entity<TKey>, IAggregateRoot
+    where TEntity : Entity<TKey> ,IAggregateRoot
     where TKey : IEquatable<TKey>
     where TDbContext : DefaultDbContext
 {
@@ -41,7 +41,7 @@ public abstract class RepositoryBase<TEntity, TKey, TDbContext> :
     public ValueTask<TEntity?> FindAsync(TKey id, CancellationToken cancellationToken = default) => DbContext.Set<TEntity>().FindAsync(new object[] { id }, cancellationToken);
 
     /// <inheritdoc />
-    public IQueryable<TEntity?> Query(Expression<Func<TEntity, bool>>? predicate = null) => predicate is not null ? FindEntityQueryable.Where(predicate) : FindEntityQueryable;
+    public IQueryable<TEntity> Query(Expression<Func<TEntity, bool>>? predicate = null) => predicate is not null ? FindEntityQueryable.Where(predicate) : FindEntityQueryable;
 
     /// <inheritdoc />
     public virtual async Task AddAsync(TEntity entity, CancellationToken cancellationToken = default)
@@ -50,16 +50,14 @@ public abstract class RepositoryBase<TEntity, TKey, TDbContext> :
     }
 
     /// <inheritdoc />
-    public Task UpdateAsync(TEntity entity)
+    public void Update(TEntity entity)
     {
         EntitySet.Update(entity);
-        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    public Task RemoveAsync(TEntity entity)
+    public void Remove(TEntity entity)
     {
         EntitySet.Remove(entity);
-        return Task.CompletedTask;
     }
 }

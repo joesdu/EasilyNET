@@ -1,3 +1,4 @@
+
 using System.Linq.Expressions;
 
 namespace EasilyNET.Core.Domains;
@@ -8,7 +9,7 @@ namespace EasilyNET.Core.Domains;
 /// <typeparam name="TEntity">实体</typeparam>
 /// <typeparam name="TKey">主键</typeparam>
 public interface IRepository<TEntity, in TKey>
-    where TEntity : Entity<TKey>, IAggregateRoot
+    where TEntity : Entity<TKey>,IAggregateRoot
     where TKey : IEquatable<TKey>
 {
     /// <summary>
@@ -34,7 +35,7 @@ public interface IRepository<TEntity, in TKey>
     /// </summary>
     /// <param name="predicate"></param>
     /// <returns></returns>
-    IQueryable<TEntity?> Query(Expression<Func<TEntity, bool>>? predicate = null);
+    IQueryable<TEntity> Query(Expression<Func<TEntity, bool>>? predicate = null);
 
     /// <summary>
     /// 异步添加
@@ -45,16 +46,16 @@ public interface IRepository<TEntity, in TKey>
     Task AddAsync(TEntity entity, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 异步更新
+    /// 更新
     /// </summary>
     /// <param name="entity">动态实体</param>
     /// <returns></returns>
-    Task UpdateAsync(TEntity entity);
+    void Update(TEntity entity);
 
     /// <summary>
-    /// 异步移除
+    /// 异步
     /// </summary>
     /// <param name="entity"></param>
     /// <returns></returns>
-    Task RemoveAsync(TEntity entity);
+    void Remove(TEntity entity);
 }
