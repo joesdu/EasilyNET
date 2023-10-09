@@ -10,7 +10,6 @@ namespace EasilyNET.Core.Domains;
 public interface IRepository<TEntity, in TKey>
     where TEntity : Entity<TKey>, IAggregateRoot
     where TKey : IEquatable<TKey>
-
 {
     /// <summary>
     /// 获取工作单元对象
