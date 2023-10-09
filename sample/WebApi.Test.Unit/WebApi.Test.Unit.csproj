@@ -20,6 +20,15 @@
 		<None Include="..\..\LICENSE" Pack="true" PackagePath="" />
 	</ItemGroup>
 
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net6.0' OR '$(TargetFramework)' == 'net7.0'">
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.11" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0-rc.1.23421.29" />
+    </ItemGroup>
+    
 	<ItemGroup>
 		<!--<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.11" />-->
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0-rc.1.23421.29" />

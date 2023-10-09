@@ -73,6 +73,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{AE84E1FF-9
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Test.Unit", "test\EasilyNET.Test.Unit\EasilyNET.Test.Unit.csproj", "{535C9D9D-84AC-4846-8198-C548477D70FA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.EntityFrameworkCore.Test", "test\EasilyNET.EntityFrameworkCore.Test\EasilyNET.EntityFrameworkCore.Test.csproj", "{1F8A3464-25F4-4E0A-9BA1-E769078015E1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -159,6 +161,10 @@ Global
 		{ADB4A218-6CFB-456C-8272-EEAB0914C3ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ADB4A218-6CFB-456C-8272-EEAB0914C3ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ADB4A218-6CFB-456C-8272-EEAB0914C3ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F8A3464-25F4-4E0A-9BA1-E769078015E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F8A3464-25F4-4E0A-9BA1-E769078015E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F8A3464-25F4-4E0A-9BA1-E769078015E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F8A3464-25F4-4E0A-9BA1-E769078015E1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -189,6 +195,7 @@ Global
 		{535C9D9D-84AC-4846-8198-C548477D70FA} = {AE84E1FF-91D2-4D29-A281-EB281B2114E8}
 		{89BD9E68-8627-4E84-8873-2EC76065A2B8} = {1EA5CB17-A582-4817-8D06-39D50D65419F}
 		{ADB4A218-6CFB-456C-8272-EEAB0914C3ED} = {89BD9E68-8627-4E84-8873-2EC76065A2B8}
+		{1F8A3464-25F4-4E0A-9BA1-E769078015E1} = {AE84E1FF-91D2-4D29-A281-EB281B2114E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {04F52789-9FF4-4AB9-9132-1789A00E7E4A}

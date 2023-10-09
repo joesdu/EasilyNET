@@ -89,7 +89,6 @@ public sealed class Order : Entity<OrderId>
 }
 
 /// <summary>
-/// 主键ID
 /// </summary>
 /// <param name="Id"></param>
 public record OrderId(long Id)

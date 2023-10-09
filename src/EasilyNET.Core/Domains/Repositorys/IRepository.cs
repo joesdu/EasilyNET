@@ -1,23 +1,26 @@
-﻿namespace EasilyNET.EntityFrameworkCore;
+using System.Linq.Expressions;
 
-/// 放在那里好，还是学.NET放到抽象层？？？
-/// 还在拿在这里呢？？？？？
-/// 会不会出现别的地方也用仓储呢？
-/// 放在这里会不会有点改呢？违法设计呢？？？？？？？
-/// 暂时放在这里。。。。。
+namespace EasilyNET.Core.Domains;
+
 /// <summary>
 /// 仓储类
 /// </summary>
 /// <typeparam name="TEntity">实体</typeparam>
 /// <typeparam name="TKey">主键</typeparam>
 public interface IRepository<TEntity, in TKey>
-    where TEntity : Entity<TKey>, new()
+    where TEntity : Entity<TKey>, IAggregateRoot
     where TKey : IEquatable<TKey>
+
 {
     /// <summary>
     /// 获取工作单元对象
     /// </summary>
     IUnitOfWork UnitOfWork { get; }
+
+    /// <summary>
+    /// 查询实体
+    /// </summary>
+    IQueryable<TEntity> FindEntityQueryable { get; }
 
     /// <summary>
     /// 异步使用主键查询
@@ -31,35 +34,28 @@ public interface IRepository<TEntity, in TKey>
     /// 查询
     /// </summary>
     /// <param name="predicate"></param>
-    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    IQueryable<TEntity?> Query(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
+    IQueryable<TEntity?> Query(Expression<Func<TEntity, bool>>? predicate = null);
 
     /// <summary>
     /// 异步添加
     /// </summary>
     /// <param name="entity"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    ValueTask<TEntity?> AddAsync(TEntity entity);
+    Task AddAsync(TEntity entity, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 异步更新
     /// </summary>
-    /// <param name="entity"></param>
+    /// <param name="entity">动态实体</param>
     /// <returns></returns>
-    ValueTask<TEntity?> UpdateAsync(TEntity entity);
-
-    /// <summary>
-    /// 异步根据ID删除
-    /// </summary>
-    /// <param name="id">主建</param>
-    /// <returns></returns>
-    ValueTask DeleteByIdAsync(TKey id);
+    Task UpdateAsync(TEntity entity);
 
     /// <summary>
     /// 异步移除
     /// </summary>
     /// <param name="entity"></param>
     /// <returns></returns>
-    ValueTask RemoveAsync(Entity entity);
+    Task RemoveAsync(TEntity entity);
 }
