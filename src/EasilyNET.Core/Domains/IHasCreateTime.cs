@@ -5,8 +5,8 @@
 /// </summary>
 public interface IHasCreateTime
 {
-    /// <summary>
-    /// 创建时间
-    /// </summary>
-    public DateTime? CreateTime { get; }
+    // /// <summary>
+    // /// 创建时间
+    // /// </summary>
+    // public DateTime? CreateTime { get; }
 }
