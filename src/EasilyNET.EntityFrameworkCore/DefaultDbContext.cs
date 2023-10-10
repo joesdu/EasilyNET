@@ -5,9 +5,6 @@ namespace EasilyNET.EntityFrameworkCore;
 /// </summary>
 public abstract class DefaultDbContext : DbContext, IUnitOfWork
 {
-   
-  
-
     /// <summary>
     /// 当前事务
     /// </summary>
@@ -107,7 +104,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         return count;
     }
 
-
     /// <summary>
     /// 动态获取实体表
     /// </summary>
@@ -134,13 +130,9 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         // }
     }
 
-
-
     /// <summary>
     /// 设置创建时间字段
     /// </summary>
     /// <param name="builder"></param>
     protected virtual void AddCreateTimeField(ModelBuilder builder) { }
-
-
 }

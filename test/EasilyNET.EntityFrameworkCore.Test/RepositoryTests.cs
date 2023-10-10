@@ -13,11 +13,7 @@ public class RepositoryTests
 
     public RepositoryTests()
     {
-        _serviceCollection.AddDbContext<TestDbContext>(options =>
-        {
-
-            options.UseSqlite("Data Source=My.db");
-        });
+        _serviceCollection.AddDbContext<TestDbContext>(options => { options.UseSqlite("Data Source=My.db"); });
         _serviceCollection.AddScoped<IUserRepository, UserRepository>();
         _serviceProvider = _serviceCollection.BuildServiceProvider();
     }
@@ -84,7 +80,6 @@ public sealed class TestDbContext : DefaultDbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-
         modelBuilder.AddIsDeletedField();
         base.OnModelCreating(modelBuilder);
     }

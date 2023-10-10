@@ -7,7 +7,7 @@
 /// <typeparam name="TDbContext"></typeparam>
 public abstract class RepositoryBase<TEntity, TKey, TDbContext> :
     IRepository<TEntity, TKey>
-    where TEntity : Entity<TKey> ,IAggregateRoot
+    where TEntity : Entity<TKey>, IAggregateRoot
     where TKey : IEquatable<TKey>
     where TDbContext : DefaultDbContext
 {
