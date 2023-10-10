@@ -1,3 +1,5 @@
+using EasilyNET.EntityFrameworkCore.Extensions;
+
 namespace EasilyNET.EntityFrameworkCore.Test;
 
 [TestClass]
@@ -11,7 +13,11 @@ public class RepositoryTests
 
     public RepositoryTests()
     {
-        _serviceCollection.AddDbContext<TestDbContext>(options => options.UseSqlite("Data Source=My.db"));
+        _serviceCollection.AddDbContext<TestDbContext>(options =>
+        {
+
+            options.UseSqlite("Data Source=My.db");
+        });
         _serviceCollection.AddScoped<IUserRepository, UserRepository>();
         _serviceProvider = _serviceCollection.BuildServiceProvider();
     }
@@ -36,9 +42,9 @@ public class RepositoryTests
         // Arrange
         var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
         // Act
-        var user = await userRepository.Query(o => o.Name == "大黄瓜").AsTracking().FirstOrDefaultAsync();
+        var user = await userRepository.FindEntityQueryable.AsTracking().FirstOrDefaultAsync();
         user?.ChangeName("大黄瓜_01");
-        await userRepository.UpdateAsync(user!);
+        userRepository.Update(user!);
         await userRepository.UnitOfWork.SaveChangesAsync();
         // Assert
         var newUser = await userRepository.FindAsync(user!.Id);
@@ -78,7 +84,8 @@ public sealed class TestDbContext : DefaultDbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-        AddIsDeletedField(modelBuilder);
+
+        modelBuilder.AddIsDeletedField();
         base.OnModelCreating(modelBuilder);
     }
 }
