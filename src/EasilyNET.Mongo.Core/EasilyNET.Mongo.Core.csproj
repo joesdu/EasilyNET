@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<Import Project="..\..\build\common.props" />
 
 	<PropertyGroup>
@@ -17,6 +17,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="MongoDB.Driver" Version="2.21.0" />
+        <PackageReference Include="MongoDB.Driver" Version="2.22.0" />
     </ItemGroup>
 </Project>
