@@ -6,8 +6,7 @@
 public static class ModelBuilderExtensions
 {
     private static readonly MethodInfo _methodInfo = typeof(EF).GetMethod(nameof(EF.Property))!.MakeGenericMethod(typeof(bool));
-    
-    
+
     /// <summary>
     /// 设置软删除字段
     /// </summary>
@@ -17,12 +16,11 @@ public static class ModelBuilderExtensions
         var types = builder.Model.GetEntityTypes().Where(o => typeof(IHasSoftDelete).IsAssignableFrom(o.ClrType)).ToList();
         foreach (var type in types)
         {
-            
             builder.Entity(type.ClrType).Property<bool>(EFCoreShare.IsDeleted);
             builder.Entity(type.ClrType).HasQueryFilter(GetDeleteLambda(type.ClrType));
         }
     }
-    
+
     /// <summary>
     /// 获取过滤条件
     /// </summary>
@@ -42,5 +40,4 @@ public static class ModelBuilderExtensions
         var lambda = Expression.Lambda(binaryExpression, param);
         return lambda;
     }
-
 }

@@ -1,4 +1,3 @@
-
 using System.Linq.Expressions;
 
 namespace EasilyNET.Core.Domains;
@@ -9,7 +8,7 @@ namespace EasilyNET.Core.Domains;
 /// <typeparam name="TEntity">实体</typeparam>
 /// <typeparam name="TKey">主键</typeparam>
 public interface IRepository<TEntity, in TKey>
-    where TEntity : Entity<TKey>,IAggregateRoot
+    where TEntity : Entity<TKey>, IAggregateRoot
     where TKey : IEquatable<TKey>
 {
     /// <summary>
