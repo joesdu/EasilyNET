@@ -3,10 +3,10 @@
 /// <summary>
 /// 是否创建时间
 /// </summary>
-public interface IHasCreateTime
+public interface IHasCreationTime
 {
-    // /// <summary>
-    // /// 创建时间
-    // /// </summary>
-    // public DateTime? CreateTime { get; }
+    /// <summary>
+    /// 创建时间
+    /// </summary>
+    public DateTime CreationTime { get; }
 }
