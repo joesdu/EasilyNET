@@ -79,11 +79,11 @@ public class RepositoryTests
         for (int i = 0; i < 10; i++)
         {
             var role = new Role($"大黄瓜_{i}");
-            await roleRepository.AddAsync(role);
+            await roleRepository!.AddAsync(role);
 
         }
         // Act
-        int count = await roleRepository.UnitOfWork.SaveChangesAsync();
+        int count = await roleRepository!.UnitOfWork.SaveChangesAsync();
         // Assert
         Assert.IsTrue(count > 0);
     }
@@ -139,7 +139,7 @@ public sealed class Role : Entity<long>, IAggregateRoot,IHasSoftDelete
         Name = name;
     }
 
-    public string Name { get; init; }
+    public string Name { get; init; }= default!;
 
     
 }
