@@ -6,7 +6,7 @@ namespace EasilyNET.IdentityServer.MongoStorage;
 /// <summary>
 /// Mongo仓储实现
 /// </summary>
-internal sealed class MongoRepository : IRepository
+public sealed class MongoRepository : IRepository
 {
     private static string pre = string.Empty;
     private readonly IMongoDatabase _database;

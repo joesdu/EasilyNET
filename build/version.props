@@ -5,7 +5,7 @@
 		<VersionMajor>1</VersionMajor>
 		<VersionMinor>9</VersionMinor>
 		<VersionPatch>0</VersionPatch>
-		<VersionQuality>-preview1</VersionQuality>
+		<VersionQuality>-preview2</VersionQuality>
 		<!--<VersionQuality></VersionQuality>-->
 		<VersionPrefix>$(VersionMajor).$(VersionMinor).$(VersionPatch)$(VersionQuality)</VersionPrefix>
 	</PropertyGroup>
