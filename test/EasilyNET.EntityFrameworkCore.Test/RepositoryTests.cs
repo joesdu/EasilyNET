@@ -1,4 +1,5 @@
 using EasilyNET.EntityFrameworkCore.Extensions;
+using System.Collections.Generic;
 
 namespace EasilyNET.EntityFrameworkCore.Test;
 
@@ -13,8 +14,10 @@ public class RepositoryTests
 
     public RepositoryTests()
     {
-        _serviceCollection.AddDbContext<TestDbContext>(options => { options.UseSqlite("Data Source=My.db"); });
+        _serviceCollection.AddDbContext<DefaultDbContext,TestDbContext>(options => { options.UseSqlite("Data Source=My.db"); });
         _serviceCollection.AddScoped<IUserRepository, UserRepository>();
+        _serviceCollection.AddScoped(typeof(IRepository<,>),typeof(Repository<,>));
+        // _serviceCollection.AddScoped<IRepository<Role, long>, Repository<Role, long>>();
         _serviceProvider = _serviceCollection.BuildServiceProvider();
     }
 
@@ -23,13 +26,16 @@ public class RepositoryTests
     {
         // Arrange
         var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
-        // // Act
-        var user = new User("大黄瓜", 18);
-        await userRepository.AddAsync(user);
-        await userRepository.UnitOfWork.SaveChangesAsync();
+        for (int i = 0; i < 10; i++)
+        {
+            var user = new User($"大黄瓜_{i}", 18);
+            await userRepository.AddAsync(user);
+
+        }
+        // Act
+        int count = await userRepository.UnitOfWork.SaveChangesAsync();
         // Assert
-        var addedUser = await userRepository.FindAsync(user.Id);
-        Assert.IsNotNull(addedUser);
+        Assert.IsTrue(count > 0);
     }
 
     [TestMethod]
@@ -39,16 +45,51 @@ public class RepositoryTests
         var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
         // Act
         var user = await userRepository.FindEntityQueryable.AsTracking().FirstOrDefaultAsync();
-        user?.ChangeName("大黄瓜_01");
+        user?.ChangeName("大黄瓜_Test");
         userRepository.Update(user!);
         await userRepository.UnitOfWork.SaveChangesAsync();
         // Assert
         var newUser = await userRepository.FindAsync(user!.Id);
         Assert.IsTrue(newUser?.Equals(user));
     }
+    
+    [TestMethod]
+    public async Task DeleteUserAsync_ShouldDeleteUserToDatabase()
+    {
+        // Arrange
+        var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
+        // Act
+        var user = await userRepository.FindEntityQueryable.FirstOrDefaultAsync();
+        userRepository.Remove(user!);
+        int count= await userRepository.UnitOfWork.SaveChangesAsync();
+        // Assert
+
+        Assert.IsTrue(count == 1);
+    }
+    
+    /// <summary>
+    /// 添加角色
+    /// </summary>
+    [TestMethod]
+    public async Task AddRoleAsync_ShouldAddRoleToDatabase()
+    {
+
+        // Arrange
+        var roleRepository = _serviceProvider.GetService<IRepository<Role,long>>();
+        for (int i = 0; i < 10; i++)
+        {
+            var role = new Role($"大黄瓜_{i}");
+            await roleRepository!.AddAsync(role);
+
+        }
+        // Act
+        int count = await roleRepository!.UnitOfWork.SaveChangesAsync();
+        // Assert
+        Assert.IsTrue(count > 0);
+    }
 }
 
-public sealed class User : Entity<long>, IAggregateRoot, IHasSoftDelete
+public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>,IHasCreationTime,IHasModifierId<long?>,IHasModificationTime,IHasDeleterId<long?>,IHasDeletionTime
 {
     private User() { }
 
@@ -66,6 +107,41 @@ public sealed class User : Entity<long>, IAggregateRoot, IHasSoftDelete
     {
         Name = name;
     }
+
+    /// <inheritdoc />
+    public long? CreatorId { get;  }
+
+    /// <inheritdoc />
+    public DateTime CreationTime { get; }
+
+    /// <inheritdoc />
+    public long? LastModifierId { get; }
+
+    /// <inheritdoc />
+    public DateTime? LastModificationTime { get; }
+
+    /// <inheritdoc />
+    public long? DeleterId { get; }
+
+    /// <inheritdoc />
+    public DateTime? DeletionTime { get; }
+}
+
+public sealed class Role : Entity<long>, IAggregateRoot,IHasSoftDelete
+{
+    private Role()
+    {
+        
+    }
+
+    public Role(string name)
+    {
+        Name = name;
+    }
+
+    public string Name { get; init; }= default!;
+
+    
 }
 
 public sealed class TestDbContext : DefaultDbContext
@@ -80,7 +156,7 @@ public sealed class TestDbContext : DefaultDbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-        modelBuilder.AddIsDeletedField();
+        // modelBuilder.AddIsDeletedField(); 这里做法，会不会影响性能？？？？
         base.OnModelCreating(modelBuilder);
     }
 }
@@ -100,6 +176,21 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
     {
         builder.HasKey(o => o.Id);
         builder.Property(o => o.Name).IsRequired().HasMaxLength(50);
+        
+        // builder.ConfigureByConvention();
         builder.ToTable("User");
+    }
+}
+
+internal sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<Role> builder)
+    {
+        builder.HasKey(o => o.Id);
+        builder.Property(o => o.Name).IsRequired().HasMaxLength(50);
+        
+        // builder.ConfigureByConvention();
+        builder.ToTable("Role");
     }
 }

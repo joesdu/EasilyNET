@@ -6,3 +6,8 @@ global using Microsoft.Extensions.Logging;
 global using Microsoft.Extensions.Logging.Abstractions;
 global using System.Linq.Expressions;
 global using System.Reflection;
+global using Microsoft.EntityFrameworkCore.Metadata.Builders;
+global using EasilyNET.Core.Misc;
+global using Microsoft.EntityFrameworkCore.ChangeTracking;
+global using Microsoft.EntityFrameworkCore.Metadata;
+global using EasilyNET.EntityFrameworkCore.Extensions;

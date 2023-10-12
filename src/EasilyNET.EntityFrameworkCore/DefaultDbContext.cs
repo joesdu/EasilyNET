@@ -1,3 +1,7 @@
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
+
 namespace EasilyNET.EntityFrameworkCore;
 
 /// <summary>
@@ -88,51 +92,144 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <returns></returns>
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-        // foreach (var entry in ChangeTracker.Entries())
-        // {
-        //     switch (entry.State)
-        //     {
-        //         case EntityState.Deleted:
-        //             entry.State = EntityState.Modified;
-        //             entry.Property(EFCoreShare.IsDeleted).CurrentValue= true;
-        //             break;
-        //     }
-        // }
-        //
+        BeforeSaveChangeAsync();
+        SavingChanges += SavingChanges_ChangeEntryValue;
         var count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         Logger?.LogInformation("保存{count}条数据", count);
         return count;
     }
 
     /// <summary>
-    /// 动态获取实体表
+    /// 要更改实体基类型
     /// </summary>
-    /// <param name="modelBuilder"></param>
-    protected virtual void OnMapEntityTypes(ModelBuilder modelBuilder)
+    private readonly Type[] _changeEntryBaseTypes = new[]
     {
-        // var baseType = typeof(IEntityTypeConfiguration<>);
-        //
-        // var assemblys = AssemblyHelper.FindTypes(o => o.IsClass && o.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == baseType)).ToList();
-        //
-        // if (assemblys.Any())
-        // {
-        //
-        //     assemblys.ForEach(x =>
-        //     {
-        //
-        //         if (modelBuilder.Model.FindEntityType(x) is null)
-        //         {
-        //             modelBuilder.Model.AddEntityType(x);
-        //         }
-        //
-        //     });
-        //     
-        // }
+        typeof(IHasCreationTime),
+        typeof(IMayHaveCreator<>),
+        typeof(IHasSoftDelete),
+        typeof(IHasDeletionTime),
+        typeof(IHasDeleterId<>)
+    };
+
+    /// <summary>
+    /// 更改实体值字典
+    /// </summary>
+    private readonly Dictionary<EntityState, Action<EntityState, EntityEntry>> changeEntryValueDic = new Dictionary<EntityState, Action<EntityState, EntityEntry>>()
+    {
+        {
+            EntityState.Added, (state, entry) =>
+            {
+                entry.SetCurrentValue(EFCoreShare.CreatorId);
+                entry.SetCurrentValue(EFCoreShare.CreationTime, DateTime.Now);
+            }
+        },
+        {
+            EntityState.Modified, (state, entry) =>
+            {
+                entry.SetCurrentValue(EFCoreShare.ModifierId);
+                entry.SetCurrentValue(EFCoreShare.ModificationTime, DateTime.Now);
+            }
+        },
+        {
+            EntityState.Deleted, (state, entry) =>
+            {
+                entry.SetCurrentValue(EFCoreShare.IsDeleted, true);
+                entry.SetCurrentValue(EFCoreShare.DeletionTime, DateTime.Now);
+                entry.SetCurrentValue(EFCoreShare.DeleterId);
+                entry.State = EntityState.Modified;
+            }
+        },
+    };
+
+    /// <summary>
+    /// 实体值状态数组
+    /// </summary>
+    private readonly EntityState[] _entryValueStates = new[] {EntityState.Added, EntityState.Deleted, EntityState.Modified};
+
+    /// <summary>
+    /// 保存改时，根据状态更改实体的值
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    protected virtual void SavingChanges_ChangeEntryValue(object? sender, SavingChangesEventArgs e)
+    {
+        //继承Entity才处理
+        IEnumerable<EntityEntry> entityEntries = ChangeTracker.Entries<Entity>();
+        foreach (var entityEntry in
+                 entityEntries.Where(o =>
+                     _entryValueStates.Contains(o.State) &&
+                     _changeEntryBaseTypes.Any(type => o.Entity.GetType().IsDeriveClassFrom(type))))
+        {
+            var state = entityEntry.State;
+            var entity = entityEntry.Entity;
+            changeEntryValueDic[state](state, entityEntry);
+            // switch (state)
+            // {
+            //     case EntityState.Added :
+            //         entityEntry.SetCurrentValue(EFCoreShare.CreatorId);
+            //         entityEntry.SetCurrentValue(EFCoreShare.CreationTime,DateTime.Now);
+            //         break;
+            //     
+            //     case EntityState.Modified  :
+            //         entityEntry.SetCurrentValue(EFCoreShare.ModifierId);
+            //         entityEntry.SetCurrentValue(EFCoreShare.ModificationTime,DateTime.Now);
+            //         break;
+            //     
+            //     case EntityState.Deleted:
+            //         entityEntry.SetCurrentValue(EFCoreShare.IsDeleted,true);
+            //         entityEntry.SetCurrentValue(EFCoreShare.DeletionTime,DateTime.Now);
+            //         entityEntry.SetCurrentValue(EFCoreShare.DeleterId);
+            //         entityEntry.State = EntityState.Modified;
+            //         break;
+            // }
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            ConfigureBasePropertiesMethodInfo?.MakeGenericMethod(entityType.ClrType).Invoke(this, new object[] {modelBuilder, entityType});
+        }
     }
 
     /// <summary>
-    /// 设置创建时间字段
+    /// 开始保存操作
     /// </summary>
-    /// <param name="builder"></param>
-    protected virtual void AddCreateTimeField(ModelBuilder builder) { }
+    protected virtual void BeforeSaveChangeAsync()
+    {
+        // IEnumerable<EntityEntry> entityEntries=  ChangeTracker.Entries<Entity>();
+        // ChangeEntityState(entityEntries);
+    }
+
+    /// <summary>
+    /// 配置基本属性方法
+    /// </summary>
+    private static readonly MethodInfo? ConfigureBasePropertiesMethodInfo
+        = typeof(DefaultDbContext)
+            .GetMethod(nameof(ConfigureBaseProperties),
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+    /// <summary>
+    /// 配置基本属性
+    /// </summary>
+    /// <param name="modelBuilder"></param>
+    /// <param name="mutableEntityType"></param>
+    /// <typeparam name="TEntity"></typeparam>
+    protected virtual void ConfigureBaseProperties<TEntity>(ModelBuilder modelBuilder, IMutableEntityType mutableEntityType)
+        where TEntity : class
+    {
+        if (mutableEntityType.IsOwned())
+        {
+            return;
+        }
+        if (!typeof(Entity).IsAssignableFrom(typeof(TEntity)))
+        {
+            return;
+        }
+        modelBuilder.Entity<TEntity>().ConfigureByConvention();
+        modelBuilder.Entity<TEntity>().ConfigureSoftDelete();
+    }
 }

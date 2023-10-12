@@ -26,7 +26,7 @@ public static class ModelBuilderExtensions
     /// </summary>
     /// <param name="clrType"></param>
     /// <returns></returns>
-    private static LambdaExpression GetDeleteLambda(Type clrType)
+    public static LambdaExpression GetDeleteLambda(Type clrType)
     {
         var param = Expression.Parameter(clrType, "it");
 
