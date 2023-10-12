@@ -22,13 +22,13 @@
     </ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-		<PackageReference Include="Microsoft.Extensions.DependencyModel" Version="6.0.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0-rc.2.23479.6" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.4" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net7.0'">
-		<PackageReference Include="Microsoft.Extensions.DependencyModel" Version="7.0.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0-rc.2.23479.6" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="7.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.1" />
 	</ItemGroup>
