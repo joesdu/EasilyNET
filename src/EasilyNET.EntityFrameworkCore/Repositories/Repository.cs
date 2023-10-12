@@ -1,7 +1,6 @@
 ﻿namespace EasilyNET.EntityFrameworkCore.Repositories;
 
 /// <summary>
-/// 
 /// </summary>
 /// <typeparam name="TEntity"></typeparam>
 /// <typeparam name="TKey"></typeparam>
@@ -20,7 +19,7 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     /// <summary>
     /// 上下文
     /// </summary>
-    private  DefaultDbContext DbContext { get; }
+    private DefaultDbContext DbContext { get; }
 
     /// <summary>
     /// 表

@@ -10,18 +10,6 @@ namespace EasilyNET.Core.Domains;
 public abstract class Entity
 {
     /// <summary>
-    /// 得到主键
-    /// </summary>
-    /// <returns>返回主键对象</returns>
-    
-    public abstract object[] GetKeys();
-    
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
-    public override string ToString() => $"[Entity: {GetType().Name}] Keys = {string.Join(",", GetKeys())}";
-    /// <summary>
     /// 领域事件不映射
     /// </summary>
     [NotMapped]
@@ -32,6 +20,17 @@ public abstract class Entity
     /// </summary>
     [NotMapped]
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents?.AsReadOnly()!;
+
+    /// <summary>
+    /// 得到主键
+    /// </summary>
+    /// <returns>返回主键对象</returns>
+    public abstract object[] GetKeys();
+
+    /// <summary>
+    /// </summary>
+    /// <returns></returns>
+    public override string ToString() => $"[Entity: {GetType().Name}] Keys = {string.Join(",", GetKeys())}";
 
     /// <summary>
     /// 添加领域事件
@@ -67,7 +66,7 @@ public abstract class Entity<TKey> : Entity where TKey : IEquatable<TKey>
     public virtual TKey Id { get; protected set; } = default!;
 
     /// <inheritdoc />
-    public override object[] GetKeys() => new object[]{Id};
+    public override object[] GetKeys() => new object[] { Id };
 
     /// <summary>
     /// 比较是否值和引用都相等
