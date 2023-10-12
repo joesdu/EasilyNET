@@ -1,4 +1,4 @@
-﻿
+﻿// ReSharper disable MemberCanBePrivate.Global
 
 namespace EasilyNET.EntityFrameworkCore.Extensions;
 
@@ -7,17 +7,16 @@ namespace EasilyNET.EntityFrameworkCore.Extensions;
 /// </summary>
 public static class EntityEntryExtensions
 {
-
     /// <summary>
     /// 属性是否为null
     /// </summary>
     /// <param name="entityType">实体类型</param>
     /// <param name="propertyName">属性名</param>
     /// <returns>如果是还回ture,否则false</returns>
-    public static bool HasProperty(this IEntityType entityType,string propertyName)
+    public static bool HasProperty(this IEntityType entityType, string propertyName)
     {
         propertyName.NotNullOrEmpty(nameof(propertyName));
-        return entityType.FindProperty(propertyName) is null ? true : false;
+        return entityType.FindProperty(propertyName) is null;
     }
 
     /// <summary>
@@ -29,7 +28,6 @@ public static class EntityEntryExtensions
     public static void SetCurrentValue(this EntityEntry entityEntry, string propertyName, object? value = default)
     {
         entityEntry.NotNull(nameof(EntityEntry));
-
         if (!entityEntry.Metadata.HasProperty(propertyName) && value is not null)
         {
             entityEntry.CurrentValues[propertyName] = value;

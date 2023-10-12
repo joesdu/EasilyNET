@@ -6,7 +6,6 @@
 /// <typeparam name="TCreatorId"></typeparam>
 public interface IMayHaveCreator<out TCreatorId>
 {
-
     /// <summary>
     /// 创建者ID
     /// </summary>

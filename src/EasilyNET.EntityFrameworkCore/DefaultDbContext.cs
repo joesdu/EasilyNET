@@ -1,7 +1,3 @@
-using System.Collections.Concurrent;
-using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
-
 namespace EasilyNET.EntityFrameworkCore;
 
 /// <summary>
@@ -9,6 +5,61 @@ namespace EasilyNET.EntityFrameworkCore;
 /// </summary>
 public abstract class DefaultDbContext : DbContext, IUnitOfWork
 {
+    /// <summary>
+    /// 配置基本属性方法
+    /// </summary>
+    private static readonly MethodInfo? ConfigureBasePropertiesMethodInfo
+        = typeof(DefaultDbContext)
+            .GetMethod(nameof(ConfigureBaseProperties),
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+    /// <summary>
+    /// 要更改实体基类型
+    /// </summary>
+    private readonly Type[] _changeEntryBaseTypes =
+    {
+        typeof(IHasCreationTime),
+        typeof(IMayHaveCreator<>),
+        typeof(IHasSoftDelete),
+        typeof(IHasDeletionTime),
+        typeof(IHasDeleterId<>)
+    };
+
+    /// <summary>
+    /// 实体值状态数组
+    /// </summary>
+    private readonly EntityState[] _entryValueStates = { EntityState.Added, EntityState.Deleted, EntityState.Modified };
+
+    /// <summary>
+    /// 更改实体值字典
+    /// </summary>
+    private readonly Dictionary<EntityState, Action<EntityState, EntityEntry>> changeEntryValueDic = new()
+    {
+        {
+            EntityState.Added, (state, entry) =>
+            {
+                entry.SetCurrentValue(EFCoreShare.CreatorId);
+                entry.SetCurrentValue(EFCoreShare.CreationTime, DateTime.Now);
+            }
+        },
+        {
+            EntityState.Modified, (state, entry) =>
+            {
+                entry.SetCurrentValue(EFCoreShare.ModifierId);
+                entry.SetCurrentValue(EFCoreShare.ModificationTime, DateTime.Now);
+            }
+        },
+        {
+            EntityState.Deleted, (state, entry) =>
+            {
+                entry.SetCurrentValue(EFCoreShare.IsDeleted, true);
+                entry.SetCurrentValue(EFCoreShare.DeletionTime, DateTime.Now);
+                entry.SetCurrentValue(EFCoreShare.DeleterId);
+                entry.State = EntityState.Modified;
+            }
+        }
+    };
+
     /// <summary>
     /// 当前事务
     /// </summary>
@@ -100,53 +151,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     }
 
     /// <summary>
-    /// 要更改实体基类型
-    /// </summary>
-    private readonly Type[] _changeEntryBaseTypes = new[]
-    {
-        typeof(IHasCreationTime),
-        typeof(IMayHaveCreator<>),
-        typeof(IHasSoftDelete),
-        typeof(IHasDeletionTime),
-        typeof(IHasDeleterId<>)
-    };
-
-    /// <summary>
-    /// 更改实体值字典
-    /// </summary>
-    private readonly Dictionary<EntityState, Action<EntityState, EntityEntry>> changeEntryValueDic = new Dictionary<EntityState, Action<EntityState, EntityEntry>>()
-    {
-        {
-            EntityState.Added, (state, entry) =>
-            {
-                entry.SetCurrentValue(EFCoreShare.CreatorId);
-                entry.SetCurrentValue(EFCoreShare.CreationTime, DateTime.Now);
-            }
-        },
-        {
-            EntityState.Modified, (state, entry) =>
-            {
-                entry.SetCurrentValue(EFCoreShare.ModifierId);
-                entry.SetCurrentValue(EFCoreShare.ModificationTime, DateTime.Now);
-            }
-        },
-        {
-            EntityState.Deleted, (state, entry) =>
-            {
-                entry.SetCurrentValue(EFCoreShare.IsDeleted, true);
-                entry.SetCurrentValue(EFCoreShare.DeletionTime, DateTime.Now);
-                entry.SetCurrentValue(EFCoreShare.DeleterId);
-                entry.State = EntityState.Modified;
-            }
-        },
-    };
-
-    /// <summary>
-    /// 实体值状态数组
-    /// </summary>
-    private readonly EntityState[] _entryValueStates = new[] {EntityState.Added, EntityState.Deleted, EntityState.Modified};
-
-    /// <summary>
     /// 保存改时，根据状态更改实体的值
     /// </summary>
     /// <param name="sender"></param>
@@ -191,7 +195,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         base.OnModelCreating(modelBuilder);
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
-            ConfigureBasePropertiesMethodInfo?.MakeGenericMethod(entityType.ClrType).Invoke(this, new object[] {modelBuilder, entityType});
+            ConfigureBasePropertiesMethodInfo?.MakeGenericMethod(entityType.ClrType).Invoke(this, new object[] { modelBuilder, entityType });
         }
     }
 
@@ -203,14 +207,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         // IEnumerable<EntityEntry> entityEntries=  ChangeTracker.Entries<Entity>();
         // ChangeEntityState(entityEntries);
     }
-
-    /// <summary>
-    /// 配置基本属性方法
-    /// </summary>
-    private static readonly MethodInfo? ConfigureBasePropertiesMethodInfo
-        = typeof(DefaultDbContext)
-            .GetMethod(nameof(ConfigureBaseProperties),
-                BindingFlags.Instance | BindingFlags.NonPublic);
 
     /// <summary>
     /// 配置基本属性

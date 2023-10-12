@@ -3,7 +3,7 @@
 /// <summary>
 /// 修改时间
 /// </summary>
-public interface IHasModificationTime 
+public interface IHasModificationTime
 {
     /// <summary>
     /// 修改时间
