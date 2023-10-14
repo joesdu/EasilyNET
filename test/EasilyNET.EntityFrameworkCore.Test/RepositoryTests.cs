@@ -40,7 +40,7 @@ public class RepositoryTests
         // Arrange
         var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
         // Act
-        var user = await userRepository.FindEntityQueryable.AsTracking().FirstOrDefaultAsync();
+        var user = await userRepository.FindEntity.AsTracking().FirstOrDefaultAsync();
         user?.ChangeName("大黄瓜_Test");
         userRepository.Update(user!);
         await userRepository.UnitOfWork.SaveChangesAsync();
@@ -55,7 +55,7 @@ public class RepositoryTests
         // Arrange
         var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
         // Act
-        var user = await userRepository.FindEntityQueryable.FirstOrDefaultAsync();
+        var user = await userRepository.FindEntity.FirstOrDefaultAsync();
         userRepository.Remove(user!);
         var count = await userRepository.UnitOfWork.SaveChangesAsync();
         // Assert

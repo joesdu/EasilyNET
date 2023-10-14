@@ -16,7 +16,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <summary>
     /// 要更改实体基类型
     /// </summary>
-    private readonly Type[] _changeEntryBaseTypes =
+    private readonly Type[] _auditedEntryBaseTypes =
     {
         typeof(IHasCreationTime),
         typeof(IMayHaveCreator<>),
@@ -28,12 +28,12 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <summary>
     /// 实体值状态数组
     /// </summary>
-    private readonly EntityState[] _entryValueStates = { EntityState.Added, EntityState.Deleted, EntityState.Modified };
+    private readonly EntityState[] _auditedStates = { EntityState.Added, EntityState.Deleted, EntityState.Modified };
 
     /// <summary>
     /// 更改实体值字典
     /// </summary>
-    private readonly Dictionary<EntityState, Action<EntityState, EntityEntry>> changeEntryValueDic = new()
+    private readonly Dictionary<EntityState, Action<EntityState, EntityEntry>> _auditedDic = new()
     {
         {
             EntityState.Added, (state, entry) =>
@@ -143,8 +143,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <returns></returns>
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-        BeforeSaveChangeAsync();
-        SavingChanges += SavingChanges_ChangeEntryValue;
+        SavingChanges += SavingChanges_Audited;
         var count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         Logger?.LogInformation("保存{count}条数据", count);
         return count;
@@ -155,18 +154,19 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    protected virtual void SavingChanges_ChangeEntryValue(object? sender, SavingChangesEventArgs e)
+    protected virtual void SavingChanges_Audited(object? sender, SavingChangesEventArgs e)
     {
         //继承Entity才处理
+        Logger?.LogInformation($"进入{nameof(SavingChanges_Audited)}方法");
         IEnumerable<EntityEntry> entityEntries = ChangeTracker.Entries<Entity>();
         foreach (var entityEntry in
                  entityEntries.Where(o =>
-                     _entryValueStates.Contains(o.State) &&
-                     _changeEntryBaseTypes.Any(type => o.Entity.GetType().IsDeriveClassFrom(type))))
+                     _auditedStates.Contains(o.State) &&
+                     _auditedEntryBaseTypes.Any(type => o.Entity.GetType().IsDeriveClassFrom(type))))
         {
             var state = entityEntry.State;
             var entity = entityEntry.Entity;
-            changeEntryValueDic[state](state, entityEntry);
+            _auditedDic[state](state, entityEntry);
             // switch (state)
             // {
             //     case EntityState.Added :
@@ -199,14 +199,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         }
     }
 
-    /// <summary>
-    /// 开始保存操作
-    /// </summary>
-    protected virtual void BeforeSaveChangeAsync()
-    {
-        // IEnumerable<EntityEntry> entityEntries=  ChangeTracker.Entries<Entity>();
-        // ChangeEntityState(entityEntries);
-    }
+  
 
     /// <summary>
     /// 配置基本属性
