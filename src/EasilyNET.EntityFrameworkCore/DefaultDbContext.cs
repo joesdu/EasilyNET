@@ -144,9 +144,20 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         SavingChanges += SavingChanges_Audited;
-        var count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-        Logger?.LogInformation("保存{count}条数据", count);
-        return count;
+        try
+        {
+            
+            var count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+            Logger?.LogInformation($"保存{count}条数据");
+            return count;
+        }
+        catch (Exception e)
+        {
+          
+            Logger?.LogError($"保存失败，原因为{e.Message}");
+            throw;
+        }
+     
     }
 
     /// <summary>
@@ -165,27 +176,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
                      _auditedEntryBaseTypes.Any(type => o.Entity.GetType().IsDeriveClassFrom(type))))
         {
             var state = entityEntry.State;
-            var entity = entityEntry.Entity;
             _auditedDic[state](state, entityEntry);
-            // switch (state)
-            // {
-            //     case EntityState.Added :
-            //         entityEntry.SetCurrentValue(EFCoreShare.CreatorId);
-            //         entityEntry.SetCurrentValue(EFCoreShare.CreationTime,DateTime.Now);
-            //         break;
-            //     
-            //     case EntityState.Modified  :
-            //         entityEntry.SetCurrentValue(EFCoreShare.ModifierId);
-            //         entityEntry.SetCurrentValue(EFCoreShare.ModificationTime,DateTime.Now);
-            //         break;
-            //     
-            //     case EntityState.Deleted:
-            //         entityEntry.SetCurrentValue(EFCoreShare.IsDeleted,true);
-            //         entityEntry.SetCurrentValue(EFCoreShare.DeletionTime,DateTime.Now);
-            //         entityEntry.SetCurrentValue(EFCoreShare.DeleterId);
-            //         entityEntry.State = EntityState.Modified;
-            //         break;
-            // }
         }
     }
 

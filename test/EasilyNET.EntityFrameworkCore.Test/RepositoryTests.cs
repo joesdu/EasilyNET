@@ -1,3 +1,6 @@
+using EasilyNET.EntityFrameworkCore.Extensions;
+using EasilyNET.EntityFrameworkCore.Optiions;
+
 namespace EasilyNET.EntityFrameworkCore.Test;
 
 [TestClass]
@@ -11,7 +14,29 @@ public class RepositoryTests
 
     public RepositoryTests()
     {
-        _serviceCollection.AddDbContext<DefaultDbContext, TestDbContext>(options => { options.UseSqlite("Data Source=My.db"); });
+
+        // _serviceCollection.AddDefaultDbContext<TestDbContext>(new EasilyNETDbContextOptions()
+        // {
+        //     
+        //     OptionsBuilder = (provider, options) =>
+        //     {
+        //
+        //         options.EnableDetailedErrors();
+        //         options.EnableSensitiveDataLogging();
+        //         options.UseSqlite("Data Source=My.db");
+        //     }
+        // });
+        _serviceCollection.AddDefaultDbContext<TestDbContext>(o =>
+        {
+            o.AddContextOptions((_, options) =>
+            {
+                options.EnableDetailedErrors();
+                options.EnableSensitiveDataLogging();
+                options.UseSqlite("Data Source=My.db");
+            });
+        
+        });
+        // _serviceCollection.AddDbContext<DefaultDbContext, TestDbContext>(options => { options.UseSqlite("Data Source=My.db"); });
         _serviceCollection.AddScoped<IUserRepository, UserRepository>();
         _serviceCollection.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
         // _serviceCollection.AddScoped<IRepository<Role, long>, Repository<Role, long>>();
