@@ -11,9 +11,9 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     /// <summary>
     /// </summary>
     /// <param name="dbContext"></param>
-    public Repository(DbContext dbContext)
+    public Repository(DefaultDbContext dbContext)
     {
-        DbContext = (DefaultDbContext)dbContext;
+        DbContext = dbContext;
     }
 
     /// <summary>
