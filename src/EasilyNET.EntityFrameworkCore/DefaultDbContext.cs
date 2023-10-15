@@ -144,21 +144,13 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         SavingChanges += SavingChanges_Audited;
-        try
-        {
-            
-            var count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-            Logger?.LogInformation($"保存{count}条数据");
-            return count;
-        }
-        catch (Exception e)
-        {
-          
-            Logger?.LogError($"保存失败，原因为{e.Message}");
-            throw;
-        }
+        var count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        Logger?.LogInformation($"保存{count}条数据");
+        return count;
      
     }
+
+    
 
     /// <summary>
     /// 保存改时，根据状态更改实体的值

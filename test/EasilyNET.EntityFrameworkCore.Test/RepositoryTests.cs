@@ -62,6 +62,7 @@ public class RepositoryTests
     [TestMethod]
     public async Task UpdateUserAsync_ShouldUpdateUserToDatabase()
     {
+
         // Arrange
         var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
         // Act
@@ -157,14 +158,24 @@ public sealed class Role : Entity<long>, IAggregateRoot, IHasSoftDelete
     public string Name { get; init; } = default!;
 }
 
+public partial class Test :  Entity<long>,IHasCreationTime,IHasModifierId<long?>,IMayHaveCreator<long?>,
+    IHasDeleterId<long?>,IHasDeletionTime,IHasModificationTime {
+
+    
+}
+
+
+
+
 public sealed class TestDbContext : DefaultDbContext
 {
     public TestDbContext(DbContextOptions<TestDbContext> options, IServiceProvider? serviceProvider)
         : base(options, serviceProvider)
     {
+     
         Database.EnsureCreated();
     }
-
+    
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -207,3 +218,4 @@ internal sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
         builder.ToTable("Role");
     }
 }
+

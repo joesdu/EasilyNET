@@ -21,11 +21,12 @@ public static class ServiceCollectionExtensions
         return serviceCollection;
     }
     
+   
     /// <summary>
-    /// 添加EF CORE上下文
+    ///  添加EF CORE上下文
     /// </summary>
     /// <param name="serviceCollection"></param>
-    /// <param name="optionsAction"></param>
+    /// <param name="easilyNETDbContextOptions"></param>
     /// <typeparam name="TDbContext"></typeparam>
     /// <returns></returns>
     public static IServiceCollection AddDefaultDbContext<TDbContext> (this IServiceCollection serviceCollection,Action<EFCoreOptions>? easilyNETDbContextOptions=null)
@@ -38,8 +39,6 @@ public static class ServiceCollectionExtensions
             easilyNETDbContextOptions?.Invoke(options);
             serviceCollection.AddSingleton<EFCoreOptions>(options);
         }
-  
-    
         serviceCollection.AddDbContext<DefaultDbContext, TDbContext>(options?.DefaultDbContextOptionsAction);
         return serviceCollection;
     }

@@ -7,6 +7,12 @@ namespace EasilyNET.EntityFrameworkCore.Optiions;
 /// </summary>
 public class EFCoreOptions
 {
+
+    /// <summary>
+    /// 链接字符串
+    /// </summary>
+    public string ConnectionString { get; set; } = default!;
+
     /// <summary>
     /// 默认DB上下文选项
     /// </summary>
