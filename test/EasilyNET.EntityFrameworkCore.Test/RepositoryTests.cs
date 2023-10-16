@@ -1,3 +1,4 @@
+using EasilyNET.Core.BaseType;
 using EasilyNET.EntityFrameworkCore.Extensions;
 using EasilyNET.EntityFrameworkCore.Optiions;
 
@@ -39,6 +40,7 @@ public class RepositoryTests
         // _serviceCollection.AddDbContext<DefaultDbContext, TestDbContext>(options => { options.UseSqlite("Data Source=My.db"); });
         _serviceCollection.AddScoped<IUserRepository, UserRepository>();
         _serviceCollection.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
+        _serviceCollection.AddSingleton<ISnowFlakeId>(SnowFlakeId.Default);
         // _serviceCollection.AddScoped<IRepository<Role, long>, Repository<Role, long>>();
         _serviceProvider = _serviceCollection.BuildServiceProvider();
     }
@@ -95,10 +97,11 @@ public class RepositoryTests
     public async Task AddRoleAsync_ShouldAddRoleToDatabase()
     {
         // Arrange
+        var snowFlakeId =_serviceProvider.GetService<ISnowFlakeId>();
         var roleRepository = _serviceProvider.GetService<IRepository<Role, long>>();
         for (var i = 0; i < 10; i++)
         {
-            var role = new Role($"大黄瓜_{i}");
+            var role = new Role(snowFlakeId!.NextId(),$"大黄瓜_{i}");
             await roleRepository!.AddAsync(role);
         }
         // Act
@@ -114,6 +117,7 @@ public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>,
 
     public User(string name, int age)
     {
+        Id = SnowFlakeId.Default.NextId();
         Name = name;
         Age = age;
     }
@@ -150,8 +154,9 @@ public sealed class Role : Entity<long>, IAggregateRoot, IHasSoftDelete
 {
     private Role() { }
 
-    public Role(string name)
+    public Role(long id,string name)
     {
+        Id = id;
         Name = name;
     }
 
