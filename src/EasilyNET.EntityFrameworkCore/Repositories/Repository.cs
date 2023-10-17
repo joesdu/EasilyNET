@@ -43,7 +43,22 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     /// <inheritdoc />
     public virtual async Task AddAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
-        await EntitySet.AddAsync(entity, cancellationToken).ConfigureAwait(false);
+        await EntitySet.AddAsync(entity, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public  Task AddOrUpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
+    {
+        
+        if (entity.Id.Equals(default(TKey)))
+        {
+            return AddAsync(entity, cancellationToken);
+        }
+        else
+        {
+            Update(entity);
+            return Task.CompletedTask;
+        }
     }
 
     /// <inheritdoc />

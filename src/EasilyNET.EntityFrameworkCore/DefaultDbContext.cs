@@ -1,3 +1,5 @@
+using MediatR;
+
 namespace EasilyNET.EntityFrameworkCore;
 
 /// <summary>
@@ -123,6 +125,28 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
             await _currentTransaction?.RollbackAsync(cancellationToken)!;
             _currentTransaction = default;
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> SaveEntitiesAsync(CancellationToken cancellationToken = default)
+    {
+        var count=await SaveChangesAsync(cancellationToken);
+        var mediator= ServiceProvider?.GetService<IMediator>();
+        var domainEntities = ChangeTracker.Entries<Entity>().Where(o => o.Entity.DomainEvents.Any()).ToList();
+
+        var domainEvents = domainEntities
+                           .SelectMany(x => x.Entity.DomainEvents)
+                           .ToList();
+        domainEntities.ToList().ForEach(o=>o.Entity.ClearDomainEvent());
+        
+
+        domainEvents?.ForAsync(async (e,index) =>
+        {
+            await mediator?.Publish(e,cancellationToken)!;
+        },cancellationToken);
+
+     
+        return true;
     }
 
     /// <summary>

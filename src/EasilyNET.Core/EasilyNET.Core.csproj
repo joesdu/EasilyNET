@@ -33,6 +33,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <PackageReference Include="MediatR" Version="12.1.1" />
+	  <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.1.0" />
 	  <PackageReference Include="Yitter.IdGenerator" Version="1.0.14" />
 	</ItemGroup>
 

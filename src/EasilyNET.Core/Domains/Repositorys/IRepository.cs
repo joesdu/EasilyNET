@@ -45,6 +45,13 @@ public interface IRepository<TEntity, in TKey>
     Task AddAsync(TEntity entity, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// 异步添加更新
+    /// </summary>
+    /// <param name="entity">实体</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task AddOrUpdateAsync(TEntity entity, CancellationToken cancellationToken = default);
+    /// <summary>
     /// 更新
     /// </summary>
     /// <param name="entity">动态实体</param>
