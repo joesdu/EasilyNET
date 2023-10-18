@@ -1,45 +1,125 @@
-﻿using Yitter.IdGenerator;
+﻿
 
 namespace EasilyNET.Core.BaseType;
 
-using YitterId = Yitter.IdGenerator.IIdGenerator;
-
 /// <summary>
-/// 雪花ID
+/// 基于Twitter的snowflake算法
 /// </summary>
-public sealed class SnowFlakeId : ISnowFlakeId
+public class SnowFlakeId : ISnowFlakeId
 {
     /// <summary>
-    /// 当前对象
+    /// 设置默认配置
     /// </summary>
-    public static ISnowFlakeId Default = new SnowFlakeId(1);
-
-    private SnowFlakeId(ushort workerId)
+    /// <param name="snowflakeId"></param>
+    public static void SetDefaultSnowFlakeId(SnowFlakeId snowflakeId)
     {
-        _IdGenInstance ??= new Lazy<IIdGenerator>(new DefaultIdGenerator(new IdGeneratorOptions(workerId)));
+        Default = snowflakeId;
+    }
+
+    
+    /// <summary>
+    /// 默认值
+    /// </summary>
+    public static ISnowFlakeId Default = new SnowFlakeId(0);
+    
+    //基准时间
+    private const long TwEpoch = 1288834974657L; //2010-11-04 09:42:54
+    
+    //机器标识位数
+    private const int WorkerIdBits = 12;
+    //序列号识位数
+    private const int SequenceBits = 10;
+    //机器ID偏左移10位
+    private const int WorkerIdShift = SequenceBits;
+    //时间毫秒
+    private const int TimestampLeftShift = SequenceBits + WorkerIdBits;
+    //最大序列号
+    private const long MaxSequence = -1L ^ (-1L << SequenceBits);
+
+    //序列号
+    private long _sequence = 0L;
+    private readonly int _clockBackwardsInMinutes;
+    //最后时间
+    private long _lastTimestamp = -1L;
+    private  readonly  long _workerId;
+    private readonly object __lock = new();
+
+    /// <summary>
+    /// 基于Twitter的snowflake算法
+    /// </summary>
+    /// <param name="workerId">worker id，表示当前进程的唯一标识</param>
+    /// <param name="sequence">初始序列</param>
+    /// <param name="clockBackwardsInMinutes">时钟回拨容忍上限</param>
+    public SnowFlakeId(long workerId, long sequence = 0L, int clockBackwardsInMinutes = 2)
+    {
+        _workerId = workerId;
+        _sequence = sequence;
+        _clockBackwardsInMinutes = clockBackwardsInMinutes;
     }
 
     /// <summary>
-    /// ID生成接口
-    /// </summary>
-    private static Lazy<IIdGenerator>? _IdGenInstance;
-
-    /// <summary>
-    /// 重新设置ID生成配置
-    /// </summary>
-    /// <param name="options">配置</param>
-    public static void SetIdGenerator(IdGeneratorOptions options)
-    {
-        _IdGenInstance ??= new Lazy<IIdGenerator>(new DefaultIdGenerator(options));
-    }
-
-    /// <summary>
-    ///  下一个Id
+    /// 获取下一个Id，该方法线程安全
     /// </summary>
     /// <returns></returns>
     public long NextId()
     {
-        return _IdGenInstance!.Value.NewLong();
+        lock (__lock)
+        {
+            var timestamp = TimeGen();
+
+            //  时钟回拨检测：超过2分钟，则强制抛出异常
+            if (TimeSpan.FromMilliseconds(_lastTimestamp - timestamp) >= TimeSpan.FromMinutes(_clockBackwardsInMinutes))
+            {
+                throw new NotSupportedException($"时钟回拨超过容忍上限{_clockBackwardsInMinutes}分钟");
+            }
+            //解决时钟回拨
+            while (timestamp < _lastTimestamp) 
+            {
+                Thread.Sleep(1);
+                timestamp = TimeGen();
+            }
+            //上次生成时间和当前时间相同,
+            if (_lastTimestamp == timestamp)
+            {
+                //sequence自增，和sequenceMask相与一下，去掉高位
+                _sequence = (_sequence + 1) & MaxSequence;
+                if (_sequence == 0)
+                {
+                    //等待到下一毫秒
+                    timestamp = TilNextMillis(_lastTimestamp);
+                }
+            }
+            else
+            {
+                _sequence = 0;
+            }
+            _lastTimestamp = timestamp;
+            return ((timestamp - TwEpoch) << TimestampLeftShift) |
+                   (_workerId << WorkerIdShift) |
+                   _sequence;
+        }
+    }
+
+    /// <summary>
+    /// 禁止产生的时间比之前的时间还要小
+    /// </summary>
+    /// <param name="lastTimestamp"></param>
+    /// <returns></returns>
+    private long TilNextMillis(long lastTimestamp)
+    {
+        var timestamp = TimeGen();
+        while (timestamp <= lastTimestamp)
+        {
+            timestamp = TimeGen();
+            Thread.Sleep(1);
+        }
+        return timestamp;
+    }
+
+    //获取Unix时间戳（毫秒）
+    private long TimeGen()
+    {
+        return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
 }
 
