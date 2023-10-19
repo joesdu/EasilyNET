@@ -17,32 +17,11 @@ public static class EntityTypeBuilderExtensions
         // builder.Property(o => o.LastModifierId);
         // builder.Property(o => o.DeleterId);
         // builder.Property(o => o.DeletionTime);
-        var clrType = b.Metadata.ClrType;
-        if (clrType.IsDeriveClassFrom<IHasCreationTime>())
-        {
-            b.Property(EFCoreShare.CreationTime).IsRequired();
-        }
-        if (clrType.IsDeriveClassFrom(typeof(IMayHaveCreator<>)))
-        {
-            b.Property(EFCoreShare.CreatorId).IsRequired(false);
-        }
-        if (clrType.IsDeriveClassFrom<IHasModificationTime>())
-        {
-            b.Property(EFCoreShare.ModificationTime).IsRequired(false);
-        }
+        TryConfigureHaveCreator(b);
+        TryConfigureModifierId(b);
         TryConfigureSoftDelete(b);
-        if (clrType.IsDeriveClassFrom(typeof(IHasModifierId<>)))
-        {
-            b.Property(EFCoreShare.ModifierId).IsRequired(false);
-        }
-        if (clrType.IsDeriveClassFrom(typeof(IHasDeleterId<>)))
-        {
-            b.Property(EFCoreShare.DeleterId).IsRequired(false);
-        }
-        if (clrType.IsDeriveClassFrom<IHasDeletionTime>())
-        {
-            b.Property(EFCoreShare.DeletionTime).IsRequired(false);
-        }
+       
+
     }
 
     /// <summary>
@@ -53,10 +32,11 @@ public static class EntityTypeBuilderExtensions
     public static void ConfigureSoftDelete<T>(this EntityTypeBuilder<T> b)
         where T : class
     {
+        
         if (b.Metadata.ClrType.IsDeriveClassFrom<IHasSoftDelete>())
         {
             b.Property<bool>(EFCoreShare.IsDeleted).IsRequired().HasDefaultValue(false);
-            Expression<Func<T, bool>> expression = e => !EF.Property<bool>(e, "IsDeleted");
+            Expression<Func<T, bool>> expression = e => !EF.Property<bool>(e, EFCoreShare.IsDeleted);
             b.HasQueryFilter(expression);
         }
     }
@@ -70,6 +50,84 @@ public static class EntityTypeBuilderExtensions
         if (b.Metadata.ClrType.IsDeriveClassFrom<IHasSoftDelete>())
         {
             b.Property<bool>(EFCoreShare.IsDeleted).IsRequired().HasDefaultValue(false);
+            TryConfigureDeleterId(b);
+            TryConfigureDeletionTime(b);
+        }
+    }
+    
+    /// <summary>
+    /// 配置创建时间
+    /// </summary>
+    /// <param name="b"></param>
+    public static void TryConfigureCreationTime(this EntityTypeBuilder b)
+    {
+        if (b.Metadata.ClrType.IsDeriveClassFrom<IHasCreationTime>())
+        {
+            b.Property(EFCoreShare.CreationTime).IsRequired();
+        }
+    }
+    
+    /// <summary>
+    /// 配置创建者
+    /// </summary>
+    /// <param name="b"></param>
+    public static void TryConfigureHaveCreator(this EntityTypeBuilder b)
+    {
+        if (b.Metadata.ClrType.IsDeriveClassFrom(typeof(IMayHaveCreator<>)))
+        {
+            b.Property(EFCoreShare.CreatorId).IsRequired(false);
+            TryConfigureCreationTime(b);
+        }
+    }
+    
+    /// <summary>
+    /// 配置修改时间
+    /// </summary>
+    /// <param name="b"></param>
+    public static void TryConfigureModificationTime(this EntityTypeBuilder b)
+    {
+        if (b.Metadata.ClrType.IsDeriveClassFrom<IHasModificationTime>())
+        {
+            b.Property(EFCoreShare.ModificationTime).IsRequired(false);
+        }
+    }
+    
+        
+    /// <summary>
+    /// 配置修改者ID
+    /// </summary>
+    /// <param name="b"></param>
+    public static void TryConfigureModifierId(this EntityTypeBuilder b)
+    {
+        if (b.Metadata.ClrType.IsDeriveClassFrom(typeof(IHasModifierId<>)))
+        {
+            b.Property(EFCoreShare.ModifierId).IsRequired(false);
+            TryConfigureModificationTime(b);
+        }
+    }
+    
+    /// <summary>
+    /// 配置删除者ID
+    /// </summary>
+    /// <param name="b"></param>
+    public static void TryConfigureDeleterId(this EntityTypeBuilder b)
+    {
+
+        if (b.Metadata.ClrType.IsDeriveClassFrom(typeof(IHasDeleterId<>)))
+        {
+            b.Property(EFCoreShare.DeleterId).IsRequired(false);
+        }
+    }
+    
+    /// <summary>
+    /// 配置删除时间
+    /// </summary>
+    /// <param name="b"></param>
+    public static void TryConfigureDeletionTime(this EntityTypeBuilder b)
+    {
+        if (b.Metadata.ClrType.IsDeriveClassFrom<IHasDeletionTime>())
+        {
+            b.Property(EFCoreShare.DeletionTime).IsRequired(false);
         }
     }
 }

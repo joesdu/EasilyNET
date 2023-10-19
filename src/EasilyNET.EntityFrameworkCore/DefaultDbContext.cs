@@ -1,3 +1,5 @@
+using MediatR;
+
 namespace EasilyNET.EntityFrameworkCore;
 
 /// <summary>
@@ -16,7 +18,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <summary>
     /// 要更改实体基类型
     /// </summary>
-    private readonly Type[] _changeEntryBaseTypes =
+    private readonly Type[] _auditedEntryBaseTypes =
     {
         typeof(IHasCreationTime),
         typeof(IMayHaveCreator<>),
@@ -28,12 +30,12 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <summary>
     /// 实体值状态数组
     /// </summary>
-    private readonly EntityState[] _entryValueStates = { EntityState.Added, EntityState.Deleted, EntityState.Modified };
+    private readonly EntityState[] _auditedStates = { EntityState.Added, EntityState.Deleted, EntityState.Modified };
 
     /// <summary>
     /// 更改实体值字典
     /// </summary>
-    private readonly Dictionary<EntityState, Action<EntityState, EntityEntry>> changeEntryValueDic = new()
+    private readonly Dictionary<EntityState, Action<EntityState, EntityEntry>> _auditedDic = new()
     {
         {
             EntityState.Added, (state, entry) =>
@@ -125,6 +127,28 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         }
     }
 
+    /// <inheritdoc />
+    public async Task<bool> SaveEntitiesAsync(CancellationToken cancellationToken = default)
+    {
+        var count=await SaveChangesAsync(cancellationToken);
+        var mediator= ServiceProvider?.GetService<IMediator>();
+        var domainEntities = ChangeTracker.Entries<Entity>().Where(o => o.Entity.DomainEvents.Any()).ToList();
+
+        var domainEvents = domainEntities
+                           .SelectMany(x => x.Entity.DomainEvents)
+                           .ToList();
+        domainEntities.ToList().ForEach(o=>o.Entity.ClearDomainEvent());
+        
+
+        domainEvents?.ForAsync(async (e,index) =>
+        {
+            await mediator?.Publish(e,cancellationToken)!;
+        },cancellationToken);
+
+     
+        return true;
+    }
+
     /// <summary>
     /// 内存释放
     /// </summary>
@@ -143,49 +167,32 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <returns></returns>
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-        BeforeSaveChangeAsync();
-        SavingChanges += SavingChanges_ChangeEntryValue;
+        SavingChanges += SavingChanges_Audited;
         var count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-        Logger?.LogInformation("保存{count}条数据", count);
+        Logger?.LogInformation($"保存{count}条数据");
         return count;
+     
     }
+
+    
 
     /// <summary>
     /// 保存改时，根据状态更改实体的值
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    protected virtual void SavingChanges_ChangeEntryValue(object? sender, SavingChangesEventArgs e)
+    protected virtual void SavingChanges_Audited(object? sender, SavingChangesEventArgs e)
     {
         //继承Entity才处理
+        Logger?.LogInformation($"进入{nameof(SavingChanges_Audited)}方法");
         IEnumerable<EntityEntry> entityEntries = ChangeTracker.Entries<Entity>();
         foreach (var entityEntry in
                  entityEntries.Where(o =>
-                     _entryValueStates.Contains(o.State) &&
-                     _changeEntryBaseTypes.Any(type => o.Entity.GetType().IsDeriveClassFrom(type))))
+                     _auditedStates.Contains(o.State) &&
+                     _auditedEntryBaseTypes.Any(type => o.Entity.GetType().IsDeriveClassFrom(type))))
         {
             var state = entityEntry.State;
-            var entity = entityEntry.Entity;
-            changeEntryValueDic[state](state, entityEntry);
-            // switch (state)
-            // {
-            //     case EntityState.Added :
-            //         entityEntry.SetCurrentValue(EFCoreShare.CreatorId);
-            //         entityEntry.SetCurrentValue(EFCoreShare.CreationTime,DateTime.Now);
-            //         break;
-            //     
-            //     case EntityState.Modified  :
-            //         entityEntry.SetCurrentValue(EFCoreShare.ModifierId);
-            //         entityEntry.SetCurrentValue(EFCoreShare.ModificationTime,DateTime.Now);
-            //         break;
-            //     
-            //     case EntityState.Deleted:
-            //         entityEntry.SetCurrentValue(EFCoreShare.IsDeleted,true);
-            //         entityEntry.SetCurrentValue(EFCoreShare.DeletionTime,DateTime.Now);
-            //         entityEntry.SetCurrentValue(EFCoreShare.DeleterId);
-            //         entityEntry.State = EntityState.Modified;
-            //         break;
-            // }
+            _auditedDic[state](state, entityEntry);
         }
     }
 
@@ -199,14 +206,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         }
     }
 
-    /// <summary>
-    /// 开始保存操作
-    /// </summary>
-    protected virtual void BeforeSaveChangeAsync()
-    {
-        // IEnumerable<EntityEntry> entityEntries=  ChangeTracker.Entries<Entity>();
-        // ChangeEntityState(entityEntries);
-    }
+  
 
     /// <summary>
     /// 配置基本属性
