@@ -19,7 +19,7 @@ public interface IRepository<TEntity, in TKey>
     /// <summary>
     /// 查询实体
     /// </summary>
-    IQueryable<TEntity> FindEntityQueryable { get; }
+    IQueryable<TEntity> FindEntity { get; }
 
     /// <summary>
     /// 异步使用主键查询
@@ -30,11 +30,11 @@ public interface IRepository<TEntity, in TKey>
     ValueTask<TEntity?> FindAsync(TKey id, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 查询
+    /// 带条件查询
     /// </summary>
-    /// <param name="predicate"></param>
+    /// <param name="predicate">条件</param>
     /// <returns></returns>
-    IQueryable<TEntity> Query(Expression<Func<TEntity, bool>>? predicate = null);
+    IQueryable<TEntity> Find(Expression<Func<TEntity, bool>> predicate);
 
     /// <summary>
     /// 异步添加
@@ -44,6 +44,13 @@ public interface IRepository<TEntity, in TKey>
     /// <returns></returns>
     Task AddAsync(TEntity entity, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// 异步添加更新
+    /// </summary>
+    /// <param name="entity">实体</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task AddOrUpdateAsync(TEntity entity, CancellationToken cancellationToken = default);
     /// <summary>
     /// 更新
     /// </summary>

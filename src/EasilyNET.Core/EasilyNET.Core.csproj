@@ -32,4 +32,8 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0-rc.2.23479.6" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <PackageReference Include="MediatR" Version="12.1.1" />
+	</ItemGroup>
+
 </Project>
