@@ -36,7 +36,7 @@ internal class ModuleApplicationBase : IModuleApplication
     {
         get
         {
-            List<IAppModule> modules = new();
+            List<IAppModule> modules = [];
             var module = Source.FirstOrDefault(o => o.GetType() == StartupModuleType) ?? throw new($"类型为“{StartupModuleType.FullName}”的模块实例无法找到");
             modules.Add(module);
             var depends = module.GetDependedTypes();

@@ -45,7 +45,7 @@ public class UploadGridFSMulti : UploadGridFSInfo
     /// <summary>
     /// 资源ID
     /// </summary>
-    public List<string> DeleteIds { get; set; } = new();
+    public List<string> DeleteIds { get; set; } = [];
 
     /// <summary>
     /// 上传文件(单或多文件)

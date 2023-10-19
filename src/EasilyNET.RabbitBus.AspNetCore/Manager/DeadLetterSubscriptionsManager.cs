@@ -28,7 +28,7 @@ internal sealed class DeadLetterSubscriptionsManager : ISubscriptionsManager
 
     private void DoAddSubscription(Type handlerType, string eventName)
     {
-        if (!HasSubscriptionsForEvent(eventName)) _ = _handlers.TryAdd(eventName, new());
+        if (!HasSubscriptionsForEvent(eventName)) _ = _handlers.TryAdd(eventName, []);
         if (_handlers[eventName].Any(o => o == handlerType))
             throw new ArgumentException($"类型:{handlerType.Name} 已注册 '{eventName}'", nameof(handlerType));
         _handlers[eventName].Add(handlerType);

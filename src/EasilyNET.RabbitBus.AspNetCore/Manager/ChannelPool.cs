@@ -6,7 +6,7 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 
 internal sealed class ChannelPool(IConnection connection, uint maxSize) : IChannelPool
 {
-    private readonly ConcurrentBag<IModel> _channels = new();
+    private readonly ConcurrentBag<IModel> _channels = [];
 
     public void Dispose()
     {

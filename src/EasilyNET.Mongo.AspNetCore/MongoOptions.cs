@@ -23,7 +23,7 @@ public class BasicClientOptions
     /// </remarks>
     /// </summary>
     // ReSharper disable once MemberCanBeMadeStatic.Global
-    public List<Type> ObjectIdToStringTypes { get; set; } = new();
+    public List<Type> ObjectIdToStringTypes { get; set; } = [];
 
     /// <summary>
     /// 是否使用本库提供的默认转换,默认: <see langword="true" />
@@ -42,7 +42,7 @@ public class BasicClientOptions
     /// <summary>
     /// 添加自己的一些Convention配置,用于设置mongodb序列化反序列化的一些表现.
     /// </summary>
-    public Dictionary<string, ConventionPack> ConventionRegistry { get; set; } = new();
+    public Dictionary<string, ConventionPack> ConventionRegistry { get; set; } = [];
 }
 
 /// <summary>

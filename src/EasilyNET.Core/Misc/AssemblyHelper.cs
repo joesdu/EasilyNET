@@ -20,7 +20,7 @@ public static class AssemblyHelper
     /// <summary>
     /// 需要排除的项目
     /// </summary>
-    private static readonly List<string> FilterLibs = new();
+    private static readonly List<string> FilterLibs = [];
 
     /// <summary>
     /// 构造函数
