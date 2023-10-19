@@ -61,7 +61,7 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, ILogg
     }
 
     /// <inheritdoc />
-    internal override IModel GetChannel() =>
+    internal override IChannel GetChannel() =>
         !IsConnected
             ? throw new InvalidOperationException("RabbitMQ连接失败")
             : _connection is null
@@ -71,7 +71,7 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, ILogg
                     : _channelPool.GetChannel();
 
     /// <inheritdoc />
-    internal override void ReturnChannel(IModel channel) => _channelPool?.ReturnChannel(channel);
+    internal override void ReturnChannel(IChannel channel) => _channelPool?.ReturnChannel(channel);
 
     /// <inheritdoc />
     internal override bool TryConnect()

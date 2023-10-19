@@ -1,61 +1,42 @@
-﻿
+﻿namespace EasilyNET.Core.BaseType;
 
-namespace EasilyNET.Core.BaseType;
-
-/// <summary>
+/// <remarks>
 /// 基于Twitter的snowflake算法
-/// </summary>
-public class SnowFlakeId : ISnowFlakeId
+/// </remarks>
+/// <param name="workerId">worker id，表示当前进程的唯一标识</param>
+/// <param name="sequence">初始序列</param>
+/// <param name="clockBackwardsInMinutes">时钟回拨容忍上限</param>
+public class SnowFlakeId(long workerId, long sequence = 0L, int clockBackwardsInMinutes = 2) : ISnowFlakeId
 {
-    /// <summary>
-    /// 设置默认配置
-    /// </summary>
-    /// <param name="snowflakeId"></param>
-    public static void SetDefaultSnowFlakeId(SnowFlakeId snowflakeId)
-    {
-        Default = snowflakeId;
-    }
-
-    
-    /// <summary>
-    /// 默认值
-    /// </summary>
-    public static ISnowFlakeId Default = new SnowFlakeId(0);
-    
     //基准时间
     private const long TwEpoch = 1288834974657L; //2010-11-04 09:42:54
-    
+
     //机器标识位数
     private const int WorkerIdBits = 12;
+
     //序列号识位数
     private const int SequenceBits = 10;
+
     //机器ID偏左移10位
     private const int WorkerIdShift = SequenceBits;
+
     //时间毫秒
     private const int TimestampLeftShift = SequenceBits + WorkerIdBits;
+
     //最大序列号
     private const long MaxSequence = -1L ^ (-1L << SequenceBits);
 
-    //序列号
-    private long _sequence = 0L;
-    private readonly int _clockBackwardsInMinutes;
-    //最后时间
-    private long _lastTimestamp = -1L;
-    private  readonly  long _workerId;
     private readonly object __lock = new();
 
+    //最后时间
+    private long _lastTimestamp = -1L;
+
     /// <summary>
-    /// 基于Twitter的snowflake算法
+    /// 默认值
     /// </summary>
-    /// <param name="workerId">worker id，表示当前进程的唯一标识</param>
-    /// <param name="sequence">初始序列</param>
-    /// <param name="clockBackwardsInMinutes">时钟回拨容忍上限</param>
-    public SnowFlakeId(long workerId, long sequence = 0L, int clockBackwardsInMinutes = 2)
-    {
-        _workerId = workerId;
-        _sequence = sequence;
-        _clockBackwardsInMinutes = clockBackwardsInMinutes;
-    }
+    public static ISnowFlakeId Default { get; private set; } = new SnowFlakeId(0);
+
+    //序列号
 
     /// <summary>
     /// 获取下一个Id，该方法线程安全
@@ -68,12 +49,12 @@ public class SnowFlakeId : ISnowFlakeId
             var timestamp = TimeGen();
 
             //  时钟回拨检测：超过2分钟，则强制抛出异常
-            if (TimeSpan.FromMilliseconds(_lastTimestamp - timestamp) >= TimeSpan.FromMinutes(_clockBackwardsInMinutes))
+            if (TimeSpan.FromMilliseconds(_lastTimestamp - timestamp) >= TimeSpan.FromMinutes(clockBackwardsInMinutes))
             {
-                throw new NotSupportedException($"时钟回拨超过容忍上限{_clockBackwardsInMinutes}分钟");
+                throw new NotSupportedException($"时钟回拨超过容忍上限{clockBackwardsInMinutes}分钟");
             }
             //解决时钟回拨
-            while (timestamp < _lastTimestamp) 
+            while (timestamp < _lastTimestamp)
             {
                 Thread.Sleep(1);
                 timestamp = TimeGen();
@@ -82,8 +63,8 @@ public class SnowFlakeId : ISnowFlakeId
             if (_lastTimestamp == timestamp)
             {
                 //sequence自增，和sequenceMask相与一下，去掉高位
-                _sequence = (_sequence + 1) & MaxSequence;
-                if (_sequence == 0)
+                sequence = (sequence + 1) & MaxSequence;
+                if (sequence == 0)
                 {
                     //等待到下一毫秒
                     timestamp = TilNextMillis(_lastTimestamp);
@@ -91,13 +72,22 @@ public class SnowFlakeId : ISnowFlakeId
             }
             else
             {
-                _sequence = 0;
+                sequence = 0;
             }
             _lastTimestamp = timestamp;
             return ((timestamp - TwEpoch) << TimestampLeftShift) |
-                   (_workerId << WorkerIdShift) |
-                   _sequence;
+                   (workerId << WorkerIdShift) |
+                   sequence;
         }
+    }
+
+    /// <summary>
+    /// 设置默认配置
+    /// </summary>
+    /// <param name="snowflakeId"></param>
+    public static void SetDefaultSnowFlakeId(SnowFlakeId snowflakeId)
+    {
+        Default = snowflakeId;
     }
 
     /// <summary>
@@ -105,7 +95,7 @@ public class SnowFlakeId : ISnowFlakeId
     /// </summary>
     /// <param name="lastTimestamp"></param>
     /// <returns></returns>
-    private long TilNextMillis(long lastTimestamp)
+    private static long TilNextMillis(long lastTimestamp)
     {
         var timestamp = TimeGen();
         while (timestamp <= lastTimestamp)
@@ -117,10 +107,7 @@ public class SnowFlakeId : ISnowFlakeId
     }
 
     //获取Unix时间戳（毫秒）
-    private long TimeGen()
-    {
-        return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-    }
+    private static long TimeGen() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 }
 
 /// <summary>

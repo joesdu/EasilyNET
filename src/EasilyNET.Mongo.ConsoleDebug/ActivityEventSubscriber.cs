@@ -18,7 +18,7 @@ namespace EasilyNET.Mongo.ConsoleDebug;
 public sealed class ActivityEventSubscriber : IEventSubscriber
 {
     private static readonly HashSet<string> CommandsWithCollectionNameAsValue =
-    [
+        [
         "aggregate",
         "count",
         "distinct",
@@ -34,7 +34,7 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
         "drop",
         "createIndexes",
         "listIndexes"
-    ];
+        ];
 
     private static readonly ConcurrentDictionary<int, string> RequestIdWithCollectionName = new();
 

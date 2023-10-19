@@ -51,6 +51,7 @@ public interface IRepository<TEntity, in TKey>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task AddOrUpdateAsync(TEntity entity, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// 更新
     /// </summary>
