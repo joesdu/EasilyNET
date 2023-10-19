@@ -41,10 +41,12 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
         var r_attr = type.GetCustomAttribute<RabbitAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(RabbitAttribute)}>,无法创建发布事件");
         if (!r_attr.Enable) return;
         var channel = conn.GetChannel();
-        var properties = channel.CreateBasicProperties();
-        properties.Persistent = true;
-        properties.DeliveryMode = 2;
-        properties.Priority = priority.GetValueOrDefault();
+        var properties = new BasicProperties
+        {
+            Persistent = true,
+            DeliveryMode = DeliveryModes.Persistent,
+            Priority = priority.GetValueOrDefault()
+        };
         var headers = @event.GetHeaderAttributes();
         if (headers is not null && headers.Count is not 0) properties.Headers = headers;
         if (r_attr is not { WorkModel: EWorkModel.None })
@@ -58,10 +60,10 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
                            .Or<SocketException>()
                            .WaitAndRetry(retry, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
                                logger.LogError(ex, "无法发布事件: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
-        policy.Execute(() =>
+        policy.Execute(async () =>
         {
             logger.LogTrace("发布事件: {EventId}", @event.EventId);
-            channel.BasicPublish(r_attr.ExchangeName, routingKey ?? r_attr.RoutingKey, true, properties, body);
+            await channel.BasicPublishAsync(r_attr.ExchangeName, routingKey ?? r_attr.RoutingKey, properties, body, true);
             conn.ReturnChannel(channel);
         });
     }
@@ -77,10 +79,12 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
         if (!rabbitAttr.Enable) return;
         if (rabbitAttr is not { WorkModel: EWorkModel.Delayed }) throw new($"延时队列的交换机类型必须为{nameof(EWorkModel.Delayed)}");
         var channel = conn.GetChannel();
-        var properties = channel.CreateBasicProperties();
-        properties.Persistent = true;
-        properties.DeliveryMode = 2;
-        properties.Priority = priority.GetValueOrDefault();
+        var properties = new BasicProperties
+        {
+            Persistent = true,
+            DeliveryMode = DeliveryModes.Persistent,
+            Priority = priority.GetValueOrDefault()
+        };
         //延时时间从header赋值
         var headers = @event.GetHeaderAttributes();
         if (headers is not null)
@@ -91,7 +95,7 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
         }
         else
         {
-            properties.Headers["x-delay"] = ttl;
+            properties.Headers?.Add("x-delay", ttl);
         }
         // x-delayed-type 必须加
         var exchange_args = @event.GetExchangeArgAttributes();
@@ -108,10 +112,10 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
                            .Or<SocketException>()
                            .WaitAndRetry(retry, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
                                logger.LogError(ex, "无法发布事件: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
-        policy.Execute(() =>
+        policy.Execute(async () =>
         {
             logger.LogTrace("发布事件: {EventId}", @event.EventId);
-            channel.BasicPublish(rabbitAttr.ExchangeName, routingKey ?? rabbitAttr.RoutingKey, true, properties, body);
+            await channel.BasicPublishAsync(rabbitAttr.ExchangeName, routingKey ?? rabbitAttr.RoutingKey, properties, body, true);
             conn.ReturnChannel(channel);
         });
     }
@@ -178,14 +182,14 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
         }
     }
 
-    private IModel CreateConsumerChannel(RabbitAttribute attr, Type eventType, DeadLetterAttribute? xdlAttr = null)
+    private IChannel CreateConsumerChannel(RabbitAttribute attr, Type eventType, DeadLetterAttribute? xdlAttr = null)
     {
         logger.LogTrace("创建消费者通道");
         var channel = conn.GetChannel();
         var queue_args = eventType.GetQueueArgAttributes();
         if (xdlAttr is not null && xdlAttr.Enable)
         {
-            queue_args ??= new Dictionary<string, object>();
+            queue_args ??= new Dictionary<string, object?>();
             queue_args.Add("x-dead-letter-exchange", xdlAttr.ExchangeName);
             queue_args.Add("x-dead-letter-routing-key", xdlAttr.RoutingKey);
             logger.LogTrace("创建死信消费者通道");
@@ -218,7 +222,7 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
         return channel;
     }
 
-    private void DoInternalSubscription(string eventName, RabbitAttribute attr, IModel channel)
+    private void DoInternalSubscription(string eventName, RabbitAttribute attr, IChannel channel)
     {
         var containsKey = subsManager.HasSubscriptionsForEvent(eventName);
         if (containsKey) return;
@@ -226,7 +230,7 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
         channel.QueueBind(attr.Queue, attr.ExchangeName, attr.RoutingKey);
     }
 
-    private void DoInternalSubscription(string eventName, DeadLetterAttribute attr, IModel channel)
+    private void DoInternalSubscription(string eventName, DeadLetterAttribute attr, IChannel channel)
     {
         var containsKey = deadManager.HasSubscriptionsForEvent(eventName);
         if (containsKey) return;
@@ -234,7 +238,7 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
         channel.QueueBind(attr.Queue, attr.ExchangeName, attr.RoutingKey);
     }
 
-    private void StartBasicConsume(Type eventType, RabbitAttribute attr, IModel channel)
+    private void StartBasicConsume(Type eventType, RabbitAttribute attr, IChannel channel)
     {
         logger.LogTrace("启动消费者");
         var qos = eventType.GetCustomAttribute<RabbitQosAttribute>();
@@ -310,7 +314,7 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
         }
     }
 
-    private void StartBasicConsume(Type eventType, DeadLetterAttribute xdlAttr, IModel channel)
+    private void StartBasicConsume(Type eventType, DeadLetterAttribute xdlAttr, IChannel channel)
     {
         logger.LogTrace("启动死信队列消费");
         var qos = eventType.GetCustomAttribute<RabbitQosAttribute>();

@@ -48,7 +48,7 @@ public static class IniHelper
                     {
                         Name = item[(sectionStart + 1)..sectionEnd],
                         Line = i,
-                        Args = new()
+                        Args = []
                     };
                     iniContext.Sections.Items.Add(tempSection);
                 }

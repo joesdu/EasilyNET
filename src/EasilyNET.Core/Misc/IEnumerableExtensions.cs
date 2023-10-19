@@ -936,7 +936,7 @@ public static class IEnumerableExtensions
     /// <typeparam name="T"></typeparam>
     /// <param name="list"></param>
     /// <returns></returns>
-    public static List<T> AsNotNull<T>(this List<T>? list) => list ?? new List<T>();
+    public static List<T> AsNotNull<T>(this List<T>? list) => list ?? [];
 
     /// <summary>
     /// 将集合声明为非null集合

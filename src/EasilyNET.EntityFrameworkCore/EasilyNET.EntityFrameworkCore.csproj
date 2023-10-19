@@ -34,7 +34,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
+		<ProjectReference Include="..\EasilyNET.Core.Domains\EasilyNET.Core.Domains.csproj" />
 	</ItemGroup>
 
 </Project>

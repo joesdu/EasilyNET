@@ -17,7 +17,6 @@ public static class PropertyBuilderExtension
         where TEntityId : IEquatable<long>
     {
         builder = builder ?? throw new ArgumentNullException(nameof(builder));
-
         return builder.HasValueGenerator<SnowflakeIdValueGenerator<TEntityId>>();
-    } 
+    }
 }

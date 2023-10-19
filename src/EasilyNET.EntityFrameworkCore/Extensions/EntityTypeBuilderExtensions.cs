@@ -1,4 +1,6 @@
-﻿namespace EasilyNET.EntityFrameworkCore.Extensions;
+﻿// ReSharper disable MemberCanBePrivate.Global
+
+namespace EasilyNET.EntityFrameworkCore.Extensions;
 
 /// <summary>
 /// 实体构建器扩展
@@ -20,8 +22,6 @@ public static class EntityTypeBuilderExtensions
         TryConfigureHaveCreator(b);
         TryConfigureModifierId(b);
         TryConfigureSoftDelete(b);
-       
-
     }
 
     /// <summary>
@@ -32,13 +32,10 @@ public static class EntityTypeBuilderExtensions
     public static void ConfigureSoftDelete<T>(this EntityTypeBuilder<T> b)
         where T : class
     {
-        
-        if (b.Metadata.ClrType.IsDeriveClassFrom<IHasSoftDelete>())
-        {
-            b.Property<bool>(EFCoreShare.IsDeleted).IsRequired().HasDefaultValue(false);
-            Expression<Func<T, bool>> expression = e => !EF.Property<bool>(e, EFCoreShare.IsDeleted);
-            b.HasQueryFilter(expression);
-        }
+        if (!b.Metadata.ClrType.IsDeriveClassFrom<IHasSoftDelete>()) return;
+        b.Property<bool>(EFCoreShare.IsDeleted).IsRequired().HasDefaultValue(false);
+        Expression<Func<T, bool>> expression = e => !EF.Property<bool>(e, EFCoreShare.IsDeleted);
+        b.HasQueryFilter(expression);
     }
 
     /// <summary>
@@ -47,14 +44,12 @@ public static class EntityTypeBuilderExtensions
     /// <param name="b"></param>
     public static void TryConfigureSoftDelete(this EntityTypeBuilder b)
     {
-        if (b.Metadata.ClrType.IsDeriveClassFrom<IHasSoftDelete>())
-        {
-            b.Property<bool>(EFCoreShare.IsDeleted).IsRequired().HasDefaultValue(false);
-            TryConfigureDeleterId(b);
-            TryConfigureDeletionTime(b);
-        }
+        if (!b.Metadata.ClrType.IsDeriveClassFrom<IHasSoftDelete>()) return;
+        b.Property<bool>(EFCoreShare.IsDeleted).IsRequired().HasDefaultValue(false);
+        TryConfigureDeleterId(b);
+        TryConfigureDeletionTime(b);
     }
-    
+
     /// <summary>
     /// 配置创建时间
     /// </summary>
@@ -66,20 +61,18 @@ public static class EntityTypeBuilderExtensions
             b.Property(EFCoreShare.CreationTime).IsRequired();
         }
     }
-    
+
     /// <summary>
     /// 配置创建者
     /// </summary>
     /// <param name="b"></param>
     public static void TryConfigureHaveCreator(this EntityTypeBuilder b)
     {
-        if (b.Metadata.ClrType.IsDeriveClassFrom(typeof(IMayHaveCreator<>)))
-        {
-            b.Property(EFCoreShare.CreatorId).IsRequired(false);
-            TryConfigureCreationTime(b);
-        }
+        if (!b.Metadata.ClrType.IsDeriveClassFrom(typeof(IMayHaveCreator<>))) return;
+        b.Property(EFCoreShare.CreatorId).IsRequired(false);
+        TryConfigureCreationTime(b);
     }
-    
+
     /// <summary>
     /// 配置修改时间
     /// </summary>
@@ -91,34 +84,30 @@ public static class EntityTypeBuilderExtensions
             b.Property(EFCoreShare.ModificationTime).IsRequired(false);
         }
     }
-    
-        
+
     /// <summary>
     /// 配置修改者ID
     /// </summary>
     /// <param name="b"></param>
     public static void TryConfigureModifierId(this EntityTypeBuilder b)
     {
-        if (b.Metadata.ClrType.IsDeriveClassFrom(typeof(IHasModifierId<>)))
-        {
-            b.Property(EFCoreShare.ModifierId).IsRequired(false);
-            TryConfigureModificationTime(b);
-        }
+        if (!b.Metadata.ClrType.IsDeriveClassFrom(typeof(IHasModifierId<>))) return;
+        b.Property(EFCoreShare.ModifierId).IsRequired(false);
+        TryConfigureModificationTime(b);
     }
-    
+
     /// <summary>
     /// 配置删除者ID
     /// </summary>
     /// <param name="b"></param>
     public static void TryConfigureDeleterId(this EntityTypeBuilder b)
     {
-
         if (b.Metadata.ClrType.IsDeriveClassFrom(typeof(IHasDeleterId<>)))
         {
             b.Property(EFCoreShare.DeleterId).IsRequired(false);
         }
     }
-    
+
     /// <summary>
     /// 配置删除时间
     /// </summary>

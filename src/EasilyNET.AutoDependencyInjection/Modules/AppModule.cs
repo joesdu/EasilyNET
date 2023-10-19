@@ -36,7 +36,7 @@ public class AppModule : IAppModule
         moduleType ??= GetType();
         var dependedTypes = moduleType.GetCustomAttributes().OfType<IDependedTypesProvider>().ToArray();
         if (dependedTypes.Length == 0) return Array.Empty<Type>();
-        List<Type> dependList = new();
+        List<Type> dependList = [];
         foreach (var dependedType in dependedTypes)
         {
             var depends = dependedType.GetDependedTypes().ToArray();

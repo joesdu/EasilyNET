@@ -31,7 +31,7 @@
     
 	<ItemGroup>
         <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.5" />
-        <PackageReference Include="Serilog.AspNetCore" Version="7.0.0" />
+        <PackageReference Include="Serilog.AspNetCore" Version="7.0.1-dev-00320" />
         <PackageReference Include="Serilog.Sinks.Async" Version="1.5.0" />
         <PackageReference Include="Serilog.Sinks.MongoDB" Version="5.3.1" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />

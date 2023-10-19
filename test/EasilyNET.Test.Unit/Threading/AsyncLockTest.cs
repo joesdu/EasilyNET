@@ -9,7 +9,7 @@ namespace EasilyNET.Test.Unit.Threading;
 public class AsyncLockTest
 {
     // ReSharper disable once CollectionNeverQueried.Local
-    private static readonly Dictionary<string, string> _dictionary = new();
+    private static readonly Dictionary<string, string> _dictionary = [];
 
     /// <summary>
     /// 测试异步锁
