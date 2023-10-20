@@ -3,10 +3,10 @@
 /// <summary>
 /// 修改者ID
 /// </summary>
-public interface IHasModifierId<out ModifierId>
+public interface IHasModifierId<ModifierId>
 {
     /// <summary>
     /// 最后修改者ID
     /// </summary>
-    ModifierId? LastModifierId { get; }
+    ModifierId? LastModifierId { get; set; }
 }

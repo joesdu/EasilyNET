@@ -78,7 +78,7 @@ public sealed class AuditedEntitySourceGenerator : ISourceGenerator
 
                                        public partial class  {{classSymbol.Name}}
                                        {
-                                          public {{propertyType}} {{propertyName}} {get;}
+                                          public {{propertyType}} {{propertyName}} {get;set;}
                                        }
                                        """;
                         var extensionTextFormatted = CSharpSyntaxTree.ParseText(source).GetRoot().NormalizeWhitespace().SyntaxTree.GetText().ToString();
