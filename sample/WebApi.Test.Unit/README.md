@@ -32,7 +32,7 @@ rabbitmq-plugins enable rabbitmq_delayed_message_exchange
 - 本地使用 docker 启动 Minio 服务
 
 ```bash
-docker run -d --restart always  -p 9000:9000 -p 9001:9001 --name minio -v F:\data:/data -e "MINIO_ROOT_USER=admin" -e "MINIO_ROOT_PASSWORD=admin123456" minio/minio server /data --console-address ":9001"
+docker run -d --restart always  -p 9000:9000 -p 9090:9090 --name minio -v F:\data:/data -e "MINIO_ROOT_USER=admin" -e "MINIO_ROOT_PASSWORD=admin123456" minio/minio server /data --console-address ":9090"
 ```
 
 #### OpenSSL 证书申请

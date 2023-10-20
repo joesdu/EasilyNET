@@ -22,10 +22,10 @@ internal abstract class IPersistentConnection
     /// 从池中获取Channel
     /// </summary>
     /// <returns></returns>
-    internal abstract IModel GetChannel();
+    internal abstract IChannel GetChannel();
 
     /// <summary>
     /// 归还连接池通道
     /// </summary>
-    internal abstract void ReturnChannel(IModel channel);
+    internal abstract void ReturnChannel(IChannel channel);
 }

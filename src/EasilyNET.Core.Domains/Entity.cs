@@ -38,7 +38,7 @@ public abstract class Entity
     /// <param name="domainEvent">领域事件</param>
     public void AddDomainEvent(IDomainEvent domainEvent)
     {
-        _domainEvents ??= new();
+        _domainEvents ??= [];
         _domainEvents.Add(domainEvent);
     }
 

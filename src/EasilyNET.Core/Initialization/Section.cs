@@ -18,5 +18,5 @@ public sealed class Section
     /// <summary>
     /// 键值对
     /// </summary>
-    public Dictionary<string, string> Args { get; set; } = new();
+    public Dictionary<string, string> Args { get; set; } = [];
 }

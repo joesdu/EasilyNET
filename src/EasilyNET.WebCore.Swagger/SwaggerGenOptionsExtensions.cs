@@ -16,8 +16,8 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class SwaggerGenOptionsExtensions
 {
-    private static readonly Dictionary<string, string> docsDic = new();
-    private static readonly Dictionary<string, string> endPointDic = new();
+    private static readonly Dictionary<string, string> docsDic = [];
+    private static readonly Dictionary<string, string> endPointDic = [];
 
     /// <summary>
     /// 添加预定于的Swagger配置

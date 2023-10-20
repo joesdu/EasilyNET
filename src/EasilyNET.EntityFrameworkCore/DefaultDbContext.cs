@@ -1,5 +1,7 @@
 using MediatR;
 
+// ReSharper disable MemberCanBePrivate.Global
+
 namespace EasilyNET.EntityFrameworkCore;
 
 /// <summary>
@@ -14,23 +16,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         = typeof(DefaultDbContext)
             .GetMethod(nameof(ConfigureBaseProperties),
                 BindingFlags.Instance | BindingFlags.NonPublic);
-
-    /// <summary>
-    /// 要更改实体基类型
-    /// </summary>
-    private readonly Type[] _auditedEntryBaseTypes =
-    {
-        typeof(IHasCreationTime),
-        typeof(IMayHaveCreator<>),
-        typeof(IHasSoftDelete),
-        typeof(IHasDeletionTime),
-        typeof(IHasDeleterId<>)
-    };
-
-    /// <summary>
-    /// 实体值状态数组
-    /// </summary>
-    private readonly EntityState[] _auditedStates = { EntityState.Added, EntityState.Deleted, EntityState.Modified };
 
     /// <summary>
     /// 更改实体值字典
@@ -63,6 +48,23 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     };
 
     /// <summary>
+    /// 要更改实体基类型
+    /// </summary>
+    private readonly Type[] _auditedEntryBaseTypes =
+    {
+        typeof(IHasCreationTime),
+        typeof(IMayHaveCreator<>),
+        typeof(IHasSoftDelete),
+        typeof(IHasDeletionTime),
+        typeof(IHasDeleterId<>)
+    };
+
+    /// <summary>
+    /// 实体值状态数组
+    /// </summary>
+    private readonly EntityState[] _auditedStates = { EntityState.Added, EntityState.Deleted, EntityState.Modified };
+
+    /// <summary>
     /// 当前事务
     /// </summary>
     private IDbContextTransaction? _currentTransaction;
@@ -81,7 +83,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// 服务提供者
     /// </summary>
 
-    protected IServiceProvider? ServiceProvider { get; private set; }
+    protected IServiceProvider? ServiceProvider { get; }
 
     private ILogger? Logger { get; }
 
@@ -130,22 +132,14 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <inheritdoc />
     public async Task<bool> SaveEntitiesAsync(CancellationToken cancellationToken = default)
     {
-        var count=await SaveChangesAsync(cancellationToken);
-        var mediator= ServiceProvider?.GetService<IMediator>();
+        var count = await SaveChangesAsync(cancellationToken);
+        var mediator = ServiceProvider?.GetService<IMediator>();
         var domainEntities = ChangeTracker.Entries<Entity>().Where(o => o.Entity.DomainEvents.Any()).ToList();
-
         var domainEvents = domainEntities
                            .SelectMany(x => x.Entity.DomainEvents)
                            .ToList();
-        domainEntities.ToList().ForEach(o=>o.Entity.ClearDomainEvent());
-        
-
-        domainEvents?.ForAsync(async (e,index) =>
-        {
-            await mediator?.Publish(e,cancellationToken)!;
-        },cancellationToken);
-
-     
+        domainEntities.ToList().ForEach(o => o.Entity.ClearDomainEvent());
+        domainEvents?.ForAsync(async (e, index) => { await mediator?.Publish(e, cancellationToken)!; }, cancellationToken);
         return true;
     }
 
@@ -171,10 +165,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         var count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         Logger?.LogInformation($"保存{count}条数据");
         return count;
-     
     }
-
-    
 
     /// <summary>
     /// 保存改时，根据状态更改实体的值
@@ -205,8 +196,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
             ConfigureBasePropertiesMethodInfo?.MakeGenericMethod(entityType.ClrType).Invoke(this, new object[] { modelBuilder, entityType });
         }
     }
-
-  
 
     /// <summary>
     /// 配置基本属性

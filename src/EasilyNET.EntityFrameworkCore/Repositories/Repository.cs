@@ -38,7 +38,7 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     public ValueTask<TEntity?> FindAsync(TKey id, CancellationToken cancellationToken = default) => DbContext.Set<TEntity>().FindAsync(new object[] { id }, cancellationToken);
 
     /// <inheritdoc />
-    public IQueryable<TEntity> Find(Expression<Func<TEntity, bool>> predicate ) => FindEntity.Where(predicate);
+    public IQueryable<TEntity> Find(Expression<Func<TEntity, bool>> predicate) => FindEntity.Where(predicate);
 
     /// <inheritdoc />
     public virtual async Task AddAsync(TEntity entity, CancellationToken cancellationToken = default)
@@ -47,18 +47,14 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     }
 
     /// <inheritdoc />
-    public  Task AddOrUpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
+    public Task AddOrUpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
-        
-        if (entity.Id.Equals(default(TKey)))
+        if (entity.Id.Equals(default))
         {
             return AddAsync(entity, cancellationToken);
         }
-        else
-        {
-            Update(entity);
-            return Task.CompletedTask;
-        }
+        Update(entity);
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
@@ -88,9 +84,5 @@ public abstract class RepositoryBase<TEntity, TKey, TDbContext> :
     /// <summary>
     /// </summary>
     /// <param name="dbContext"></param>
-    protected RepositoryBase(TDbContext dbContext):base(dbContext)
-    {
-        
-    }
-
+    protected RepositoryBase(TDbContext dbContext) : base(dbContext) { }
 }

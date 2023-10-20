@@ -1,7 +1,5 @@
 using EasilyNET.Core.BaseType;
 using EasilyNET.EntityFrameworkCore.Extensions;
-using EasilyNET.EntityFrameworkCore.Optiions;
-using System.Diagnostics;
 using System.Threading;
 
 namespace EasilyNET.EntityFrameworkCore.Test;
@@ -17,7 +15,6 @@ public class RepositoryTests
 
     public RepositoryTests()
     {
-
         // _serviceCollection.AddDefaultDbContext<TestDbContext>(new EasilyNETDbContextOptions()
         // {
         //     
@@ -29,25 +26,17 @@ public class RepositoryTests
         //         options.UseSqlite("Data Source=My.db");
         //     }
         // });
-        _serviceCollection.AddDefaultDbContext<TestDbContext>(o =>
+        _serviceCollection.AddDefaultDbContext<TestDbContext>(o => o.AddContextOptions((_, options) =>
         {
-            o.AddContextOptions((_, options) =>
-            {
-                options.EnableDetailedErrors();
-                options.EnableSensitiveDataLogging();
-                options.UseSqlite("Data Source=My.db");
-            });
-        
-        });
+            options.EnableDetailedErrors();
+            options.EnableSensitiveDataLogging();
+            options.UseSqlite("Data Source=My.db");
+        }));
         // _serviceCollection.AddDbContext<DefaultDbContext, TestDbContext>(options => { options.UseSqlite("Data Source=My.db"); });
         _serviceCollection.AddScoped<IUserRepository, UserRepository>();
         _serviceCollection.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
-        _serviceCollection.AddSingleton<ISnowFlakeId>(SnowFlakeId.Default);
-        _serviceCollection.AddMediatR(cfg  =>
-        {
-            cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
-
-        });
+        _serviceCollection.AddSingleton(SnowFlakeId.Default);
+        _serviceCollection.AddMediatR(cfg => { cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()); });
         // _serviceCollection.AddScoped<IRepository<Role, long>, Repository<Role, long>>();
         _serviceProvider = _serviceCollection.BuildServiceProvider();
     }
@@ -71,7 +60,6 @@ public class RepositoryTests
     [TestMethod]
     public async Task UpdateUserAsync_ShouldUpdateUserToDatabase()
     {
-
         // Arrange
         var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
         // Act
@@ -104,11 +92,11 @@ public class RepositoryTests
     public async Task AddRoleAsync_ShouldAddRoleToDatabase()
     {
         // Arrange
-        var snowFlakeId =_serviceProvider.GetService<ISnowFlakeId>();
+        var snowFlakeId = _serviceProvider.GetService<ISnowFlakeId>();
         var roleRepository = _serviceProvider.GetService<IRepository<Role, long>>();
         for (var i = 0; i < 10; i++)
         {
-            var role = new Role(snowFlakeId!.NextId(),$"大黄瓜_{i}");
+            var role = new Role(snowFlakeId!.NextId(), $"大黄瓜_{i}");
             await roleRepository!.AddAsync(role);
         }
         // Act
@@ -126,7 +114,7 @@ public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>,
     {
         Name = name;
         Age = age;
-        this.AddDomainEvent(new AddUserDomainEvent(this));
+        AddDomainEvent(new AddUserDomainEvent(this));
     }
 
     public string Name { get; private set; } = default!;
@@ -161,7 +149,7 @@ public sealed class Role : Entity<long>, IAggregateRoot, IHasSoftDelete
 {
     private Role() { }
 
-    public Role(long id,string name)
+    public Role(long id, string name)
     {
         Id = id;
         Name = name;
@@ -170,24 +158,16 @@ public sealed class Role : Entity<long>, IAggregateRoot, IHasSoftDelete
     public string Name { get; init; } = default!;
 }
 
-public partial class Test :  Entity<long>,IHasCreationTime,IHasModifierId<long?>,IMayHaveCreator<long?>,
-    IHasDeleterId<long?>,IHasDeletionTime,IHasModificationTime {
-
-    
-}
-
-
-
+public partial class Test : Entity<long>, IHasCreationTime, IHasModifierId<long?>, IMayHaveCreator<long?>, IHasDeleterId<long?>, IHasDeletionTime, IHasModificationTime;
 
 public sealed class TestDbContext : DefaultDbContext
 {
     public TestDbContext(DbContextOptions<TestDbContext> options, IServiceProvider? serviceProvider)
         : base(options, serviceProvider)
     {
-     
         Database.EnsureCreated();
     }
-    
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -232,17 +212,12 @@ internal sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
     }
 }
 
-
-internal sealed record class AddUserDomainEvent(User User) : IDomainEvent;
+internal sealed record AddUserDomainEvent(User User) : IDomainEvent;
 
 internal sealed class AddUserDomainEventHandler : IDomainEventHandler<AddUserDomainEvent>
 {
-    
     /// <inheritdoc />
-    public Task Handle(AddUserDomainEvent notification, CancellationToken cancellationToken)
-    {
-        
+    public Task Handle(AddUserDomainEvent notification, CancellationToken cancellationToken) =>
         // Debug.WriteLine($"创建用户{notification.User.Id}_{notification.User.Name}");
-        return Task.CompletedTask;
-    }
+        Task.CompletedTask;
 }

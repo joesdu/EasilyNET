@@ -10,7 +10,7 @@ public sealed class Content
     /// <summary>
     /// 节点信息
     /// </summary>
-    public List<Section> Items { get; set; } = new();
+    public List<Section> Items { get; set; } = [];
 
     /// <summary>
     /// 节名称获取节
