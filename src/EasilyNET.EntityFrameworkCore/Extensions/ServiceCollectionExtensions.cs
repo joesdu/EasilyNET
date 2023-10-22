@@ -31,28 +31,29 @@ public static class ServiceCollectionExtensions
     /// <param name="setupAction">配置</param>
     /// <typeparam name="TDbContext">上下文</typeparam>
     /// <returns></returns>
-    public static IServiceCollection AddEFCore<TDbContext>(this IServiceCollection services, Action<IServiceProvider,EFCoreOptions> setupAction)
+    public static IServiceCollection AddEFCore<TDbContext>(this IServiceCollection services,Action<IServiceProvider,EFCoreOptions> setupAction)
         where TDbContext : DefaultDbContext
     {
-
         setupAction.NotNull(nameof(setupAction));
-
-        var efCoreOptions = new EFCoreOptions();
-
-        
-        if ((efCoreOptions.ConfigureDbContextBuilder!) is null)
-        {
-            efCoreOptions.ConfigureDbContextBuilder.NotNull(nameof(efCoreOptions.ConfigureDbContextBuilder)); 
-        }
-
         services.AddSingleton<EFCoreOptions>(sp =>
         {
-            setupAction(sp, efCoreOptions);
-            return efCoreOptions;
-        });    
-        services.AddDbContext<DefaultDbContext, TDbContext>(builder =>
+            var efCoreOptions = new EFCoreOptions();
+            setupAction.Invoke(sp, efCoreOptions);
+            var options = efCoreOptions;
+            return options;
+        });
+        services.AddDbContext<DefaultDbContext, TDbContext>((sp, b) =>
         {
-            efCoreOptions.ConfigureDbContextBuilder!(builder);
+            var options = sp.GetRequiredService<EFCoreOptions>();
+            //有优化地方吗？
+            if ((options.ConfigureDbContextBuilder) != null)
+            {
+                options.ConfigureDbContextBuilder(b);
+            }
+            else
+            {
+                throw new InvalidOperationException("ConfigureDbContextBuilder未配置。");
+            }
         });
         
         services.AddUnitOfWork<TDbContext>();
