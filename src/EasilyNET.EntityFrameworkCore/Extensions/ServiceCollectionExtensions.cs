@@ -1,4 +1,5 @@
 ﻿using EasilyNET.EntityFrameworkCore.Optiions;
+using EasilyNET.EntityFrameworkCore.Repositories;
 
 namespace EasilyNET.EntityFrameworkCore.Extensions;
 
@@ -7,52 +8,80 @@ namespace EasilyNET.EntityFrameworkCore.Extensions;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
-    /// <summary>
-    /// 添加EF CORE上下文
-    /// </summary>
-    /// <param name="serviceCollection"></param>
-    /// <param name="optionsAction"></param>
-    /// <typeparam name="TDbContext"></typeparam>
-    /// <returns></returns>
-    public static IServiceCollection AddDefaultDbContext<TDbContext>(this IServiceCollection serviceCollection, Action<DbContextOptionsBuilder> optionsAction)
-        where TDbContext : DefaultDbContext
-    {
-        serviceCollection.AddDbContext<DefaultDbContext, TDbContext>(optionsAction);
-        return serviceCollection;
-    }
 
+
+ 
     /// <summary>
-    /// 添加EF CORE上下文
+    /// 添加EFCore添加上下文
     /// </summary>
-    /// <param name="serviceCollection"></param>
-    /// <param name="easilyNETDbContextOptions"></param>
-    /// <typeparam name="TDbContext"></typeparam>
+    /// <param name="services">服务</param>
+    /// <param name="setupAction">配置</param>
+    /// <typeparam name="TDbContext">上下文</typeparam>
     /// <returns></returns>
-    public static IServiceCollection AddDefaultDbContext<TDbContext>(this IServiceCollection serviceCollection, Action<EFCoreOptions>? easilyNETDbContextOptions = null)
+    public static IServiceCollection AddEFCore<TDbContext>(this IServiceCollection services, Action<EFCoreOptions> setupAction)
         where TDbContext : DefaultDbContext
     {
-        EFCoreOptions options = default!;
-        //判断是否为空，这样可以减少new
-        if (easilyNETDbContextOptions is not null)
-        {
-            options = new();
-            easilyNETDbContextOptions?.Invoke(options);
-            serviceCollection.AddSingleton(options);
-        }
-        serviceCollection.AddDbContext<DefaultDbContext, TDbContext>(options?.DefaultDbContextOptionsAction);
-        return serviceCollection;
+
+        return services.AddEFCore<TDbContext>((_, b) => setupAction(b));
     }
+    /// <summary>
+    /// 添加EFCore添加上下文
+    /// </summary>
+    /// <param name="services">服务</param>
+    /// <param name="setupAction">配置</param>
+    /// <typeparam name="TDbContext">上下文</typeparam>
+    /// <returns></returns>
+    public static IServiceCollection AddEFCore<TDbContext>(this IServiceCollection services, Action<IServiceProvider,EFCoreOptions> setupAction)
+        where TDbContext : DefaultDbContext
+    {
+
+        setupAction.NotNull(nameof(setupAction));
+
+        var efCoreOptions = new EFCoreOptions();
+
+        
+        if ((efCoreOptions.ConfigureDbContextBuilder!) is null)
+        {
+            efCoreOptions.ConfigureDbContextBuilder.NotNull(nameof(efCoreOptions.ConfigureDbContextBuilder)); 
+        }
+
+        services.AddSingleton<EFCoreOptions>(sp =>
+        {
+            setupAction(sp, efCoreOptions);
+            return efCoreOptions;
+        });    
+        services.AddDbContext<DefaultDbContext, TDbContext>(builder =>
+        {
+            efCoreOptions.ConfigureDbContextBuilder!(builder);
+        });
+        
+        services.AddUnitOfWork<TDbContext>();
+        return services;
+    }
+    
+
 
     /// <summary>
     /// 添加工作单元
     /// </summary>
-    /// <param name="services"></param>
-    /// <typeparam name="TDbContext"></typeparam>
+    /// <param name="services">服务</param>
+    /// <typeparam name="TDbContext">上下文</typeparam>
     /// <returns></returns>
-    public static IServiceCollection AddUnitOfWork<TDbContext>(this IServiceCollection services)
+    private static IServiceCollection AddUnitOfWork<TDbContext>(this IServiceCollection services)
         where TDbContext : DefaultDbContext
     {
         services.AddScoped<IUnitOfWork>(p => p.GetRequiredService<TDbContext>());
+        return services;
+    }
+
+    /// <summary>
+    /// 添加默认仓储
+    /// </summary>
+    /// <param name="services">服务</param>
+    /// <returns></returns>
+    public static IServiceCollection AddRepository(this IServiceCollection services)
+    {
+        services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
         return services;
     }
 }

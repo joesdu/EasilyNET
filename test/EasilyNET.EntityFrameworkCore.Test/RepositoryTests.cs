@@ -16,24 +16,13 @@ public class RepositoryTests
 
     public RepositoryTests()
     {
-        // _serviceCollection.AddDefaultDbContext<TestDbContext>(new EasilyNETDbContextOptions()
-        // {
-        //     
-        //     OptionsBuilder = (provider, options) =>
-        //     {
-        //
-        //         options.EnableDetailedErrors();
-        //         options.EnableSensitiveDataLogging();
-        //         options.UseSqlite("Data Source=My.db");
-        //     }
-        // });
-        _serviceCollection.AddDefaultDbContext<TestDbContext>(o => 
-            o.AddContextOptions((_, options) =>
+        _serviceCollection.AddEFCore<TestDbContext>(options =>
         {
-            options.EnableDetailedErrors();
-            options.EnableSensitiveDataLogging();
-            options.UseSqlite("Data Source=My.db");
-        }));
+            options.ConfigureDbContextBuilder= builder =>
+            {
+                builder.UseSqlite("Data Source=My.db");
+            };
+        });
         // _serviceCollection.AddDbContext<DefaultDbContext, TestDbContext>(options => { options.UseSqlite("Data Source=My.db"); });
         _serviceCollection.AddScoped<IUserRepository, UserRepository>();
         _serviceCollection.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
@@ -65,7 +54,7 @@ public class RepositoryTests
         // Arrange
         var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
         // Act
-        var user = await userRepository.FindEntity.AsTracking().FirstOrDefaultAsync();
+        var user = await userRepository.FindEntity.FirstOrDefaultAsync();
         user?.ChangeName("大黄瓜_Test");
         userRepository.Update(user!);
         await userRepository.UnitOfWork.SaveChangesAsync();
@@ -124,22 +113,22 @@ public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>,
     public int Age { get; }
 
     /// <inheritdoc />
-    public DateTime CreationTime { get;  set; }
+    public DateTime CreationTime { get; set; }
 
     /// <inheritdoc />
-    public long? DeleterId  { get;  set; }
+    public long? DeleterId { get; set; }
 
     /// <inheritdoc />
-    public DateTime? DeletionTime  { get;  set; }
+    public DateTime? DeletionTime { get; set; }
 
     /// <inheritdoc />
-    public DateTime? LastModificationTime  { get;  set; }
+    public DateTime? LastModificationTime { get; set; }
 
     /// <inheritdoc />
-    public long? LastModifierId { get;  set; }
+    public long? LastModifierId { get; set; }
 
     /// <inheritdoc />
-    public long? CreatorId  { get;  set; }
+    public long? CreatorId { get; set; }
 
     public void ChangeName(string name)
     {
@@ -169,7 +158,7 @@ public sealed class TestDbContext : DefaultDbContext
     {
         Database.EnsureCreated();
     }
-    
+
     protected override void ApplyConfigurations(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
@@ -218,10 +207,7 @@ internal sealed class AddUserDomainEventHandler : IDomainEventHandler<AddUserDom
     /// <inheritdoc />
     public Task Handle(AddUserDomainEvent notification, CancellationToken cancellationToken)
     {
-
         Debug.WriteLine($"创建用户{notification.User.Id}_{notification.User.Name}");
         return Task.CompletedTask;
     }
-
-
 }
