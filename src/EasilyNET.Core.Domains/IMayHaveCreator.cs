@@ -9,5 +9,5 @@ public interface IMayHaveCreator<TCreatorId>
     /// <summary>
     /// 创建者ID
     /// </summary>
-    TCreatorId? CreatorId { get; set;  }
+    TCreatorId? CreatorId { get; set; }
 }

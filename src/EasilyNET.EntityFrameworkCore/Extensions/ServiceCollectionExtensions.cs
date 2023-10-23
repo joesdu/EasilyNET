@@ -8,9 +8,6 @@ namespace EasilyNET.EntityFrameworkCore.Extensions;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
-
-
- 
     /// <summary>
     /// 添加EFCore添加上下文
     /// </summary>
@@ -21,9 +18,9 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddEFCore<TDbContext>(this IServiceCollection services, Action<EFCoreOptions> setupAction)
         where TDbContext : DefaultDbContext
     {
-
         return services.AddEFCore<TDbContext>((_, b) => setupAction(b));
     }
+
     /// <summary>
     /// 添加EFCore添加上下文
     /// </summary>
@@ -31,7 +28,7 @@ public static class ServiceCollectionExtensions
     /// <param name="setupAction">配置</param>
     /// <typeparam name="TDbContext">上下文</typeparam>
     /// <returns></returns>
-    public static IServiceCollection AddEFCore<TDbContext>(this IServiceCollection services,Action<IServiceProvider,EFCoreOptions> setupAction)
+    public static IServiceCollection AddEFCore<TDbContext>(this IServiceCollection services, Action<IServiceProvider, EFCoreOptions> setupAction)
         where TDbContext : DefaultDbContext
     {
         setupAction.NotNull(nameof(setupAction));
@@ -46,7 +43,7 @@ public static class ServiceCollectionExtensions
         {
             var options = sp.GetRequiredService<EFCoreOptions>();
             //有优化地方吗？
-            if ((options.ConfigureDbContextBuilder) != null)
+            if (options.ConfigureDbContextBuilder != null)
             {
                 options.ConfigureDbContextBuilder(b);
             }
@@ -55,12 +52,9 @@ public static class ServiceCollectionExtensions
                 throw new InvalidOperationException("ConfigureDbContextBuilder未配置。");
             }
         });
-        
         services.AddUnitOfWork<TDbContext>();
         return services;
     }
-    
-
 
     /// <summary>
     /// 添加工作单元

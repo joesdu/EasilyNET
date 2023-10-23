@@ -16,13 +16,7 @@ public class RepositoryTests
 
     public RepositoryTests()
     {
-        _serviceCollection.AddEFCore<TestDbContext>(options =>
-        {
-            options.ConfigureDbContextBuilder= builder =>
-            {
-                builder.UseSqlite("Data Source=My.db");
-            };
-        });
+        _serviceCollection.AddEFCore<TestDbContext>(options => options.ConfigureDbContextBuilder = builder => { builder.UseSqlite("Data Source=My.db"); });
         // _serviceCollection.AddDbContext<DefaultDbContext, TestDbContext>(options => { options.UseSqlite("Data Source=My.db"); });
         _serviceCollection.AddScoped<IUserRepository, UserRepository>();
         _serviceCollection.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
