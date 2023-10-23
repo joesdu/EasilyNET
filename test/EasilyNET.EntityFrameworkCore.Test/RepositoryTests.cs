@@ -1,5 +1,6 @@
 using EasilyNET.Core.BaseType;
 using EasilyNET.EntityFrameworkCore.Extensions;
+using System.Diagnostics;
 using System.Threading;
 
 namespace EasilyNET.EntityFrameworkCore.Test;
@@ -15,23 +16,13 @@ public class RepositoryTests
 
     public RepositoryTests()
     {
-        // _serviceCollection.AddDefaultDbContext<TestDbContext>(new EasilyNETDbContextOptions()
-        // {
-        //     
-        //     OptionsBuilder = (provider, options) =>
-        //     {
-        //
-        //         options.EnableDetailedErrors();
-        //         options.EnableSensitiveDataLogging();
-        //         options.UseSqlite("Data Source=My.db");
-        //     }
-        // });
-        _serviceCollection.AddDefaultDbContext<TestDbContext>(o => o.AddContextOptions((_, options) =>
+        _serviceCollection.AddEFCore<TestDbContext>(options =>
         {
-            options.EnableDetailedErrors();
-            options.EnableSensitiveDataLogging();
-            options.UseSqlite("Data Source=My.db");
-        }));
+            options.ConfigureDbContextBuilder= builder =>
+            {
+                builder.UseSqlite("Data Source=My.db");
+            };
+        });
         // _serviceCollection.AddDbContext<DefaultDbContext, TestDbContext>(options => { options.UseSqlite("Data Source=My.db"); });
         _serviceCollection.AddScoped<IUserRepository, UserRepository>();
         _serviceCollection.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
@@ -52,9 +43,9 @@ public class RepositoryTests
             await userRepository.AddAsync(user);
         }
         // Act
-        var re = await userRepository.UnitOfWork.SaveEntitiesAsync();
+        var re = await userRepository.UnitOfWork.SaveChangesAsync();
         // Assert
-        Assert.IsTrue(re);
+        Assert.IsTrue(re > 0);
     }
 
     [TestMethod]
@@ -63,7 +54,7 @@ public class RepositoryTests
         // Arrange
         var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
         // Act
-        var user = await userRepository.FindEntity.AsTracking().FirstOrDefaultAsync();
+        var user = await userRepository.FindEntity.FirstOrDefaultAsync();
         user?.ChangeName("大黄瓜_Test");
         userRepository.Update(user!);
         await userRepository.UnitOfWork.SaveChangesAsync();
@@ -122,22 +113,22 @@ public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>,
     public int Age { get; }
 
     /// <inheritdoc />
-    public DateTime CreationTime { get; }
+    public DateTime CreationTime { get; set; }
 
     /// <inheritdoc />
-    public long? DeleterId { get; }
+    public long? DeleterId { get; set; }
 
     /// <inheritdoc />
-    public DateTime? DeletionTime { get; }
+    public DateTime? DeletionTime { get; set; }
 
     /// <inheritdoc />
-    public DateTime? LastModificationTime { get; }
+    public DateTime? LastModificationTime { get; set; }
 
     /// <inheritdoc />
-    public long? LastModifierId { get; }
+    public long? LastModifierId { get; set; }
 
     /// <inheritdoc />
-    public long? CreatorId { get; }
+    public long? CreatorId { get; set; }
 
     public void ChangeName(string name)
     {
@@ -168,12 +159,9 @@ public sealed class TestDbContext : DefaultDbContext
         Database.EnsureCreated();
     }
 
-    /// <inheritdoc />
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    protected override void ApplyConfigurations(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-        // modelBuilder.AddIsDeletedField(); 这里做法，会不会影响性能？？？？
-        base.OnModelCreating(modelBuilder);
     }
 }
 
@@ -217,7 +205,9 @@ internal sealed record AddUserDomainEvent(User User) : IDomainEvent;
 internal sealed class AddUserDomainEventHandler : IDomainEventHandler<AddUserDomainEvent>
 {
     /// <inheritdoc />
-    public Task Handle(AddUserDomainEvent notification, CancellationToken cancellationToken) =>
-        // Debug.WriteLine($"创建用户{notification.User.Id}_{notification.User.Name}");
-        Task.CompletedTask;
+    public Task Handle(AddUserDomainEvent notification, CancellationToken cancellationToken)
+    {
+        Debug.WriteLine($"创建用户{notification.User.Id}_{notification.User.Name}");
+        return Task.CompletedTask;
+    }
 }

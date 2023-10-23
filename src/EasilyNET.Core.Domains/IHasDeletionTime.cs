@@ -8,5 +8,5 @@ public interface IHasDeletionTime : IHasSoftDelete
     /// <summary>
     /// 删除时间
     /// </summary>
-    public DateTime? DeletionTime { get; }
+    public DateTime? DeletionTime { get; set; }
 }
