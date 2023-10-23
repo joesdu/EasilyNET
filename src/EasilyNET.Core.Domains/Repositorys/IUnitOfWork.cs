@@ -36,5 +36,4 @@ public interface IUnitOfWork : IDisposable
     /// </summary>
     /// <param name="cancellationToken"></param>
     Task RollbackTransactionAsync(CancellationToken cancellationToken = default);
-    
 }

@@ -1,6 +1,4 @@
-﻿
-
-namespace EasilyNET.EntityFrameworkCore.Optiions;
+﻿namespace EasilyNET.EntityFrameworkCore.Optiions;
 
 /// <summary>
 /// 上下文配置
@@ -15,7 +13,6 @@ public class EFCoreOptions
     /// <summary>
     /// 默认DB上下文选项
     /// </summary>
-    
-    public Action<DbContextOptionsBuilder> ConfigureDbContextBuilder { get; set; } = default!;
 
+    public Action<DbContextOptionsBuilder> ConfigureDbContextBuilder { get; set; } = default!;
 }

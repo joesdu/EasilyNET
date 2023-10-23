@@ -1,5 +1,4 @@
 using MediatR;
-using System.Runtime.CompilerServices;
 
 // ReSharper disable MemberCanBePrivate.Global
 
@@ -18,19 +17,27 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
             .GetMethod(nameof(ConfigureBaseProperties),
                 BindingFlags.Instance | BindingFlags.NonPublic);
 
- 
- 
+    /// <summary>
+    /// 要更改实体基类型
+    /// </summary>
+    private readonly Type[] _auditedEntryBaseTypes =
+    {
+        typeof(IHasCreationTime),
+        typeof(IMayHaveCreator<>),
+        typeof(IHasSoftDelete),
+        typeof(IHasDeletionTime),
+        typeof(IHasDeleterId<>)
+    };
 
+    /// <summary>
+    /// 实体值状态数组
+    /// </summary>
+    private readonly EntityState[] _auditedStates = { EntityState.Added, EntityState.Deleted, EntityState.Modified };
 
     /// <summary>
     /// 当前事务
     /// </summary>
     private IDbContextTransaction? _currentTransaction;
-
-    /// <summary>
-    /// 中介者发布事件
-    /// </summary>
-    protected IMediator Mediator { get;  }
 
     /// <summary>
     /// </summary>
@@ -42,6 +49,11 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         Logger = serviceProvider?.GetService<ILoggerFactory>()?.CreateLogger<DefaultDbContext>() ?? NullLogger<DefaultDbContext>.Instance;
         Mediator = serviceProvider?.GetService<IMediator>() ?? NullMediator.Instance;
     }
+
+    /// <summary>
+    /// 中介者发布事件
+    /// </summary>
+    protected IMediator Mediator { get; }
 
     /// <summary>
     /// 服务提供者
@@ -93,6 +105,16 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         }
     }
 
+    /// <summary>
+    /// 内存释放
+    /// </summary>
+    public override void Dispose()
+    {
+        _currentTransaction?.Dispose();
+        _currentTransaction = default;
+        GC.SuppressFinalize(this);
+    }
+
     /// <inheritdoc />
     public async Task<bool> SaveEntitiesAsync(CancellationToken cancellationToken = default)
     {
@@ -107,17 +129,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         optionsBuilder.EnableDetailedErrors();
         optionsBuilder.EnableSensitiveDataLogging();
     }
-    
-
-    /// <summary>
-    /// 内存释放
-    /// </summary>
-    public override void Dispose()
-    {
-        _currentTransaction?.Dispose();
-        _currentTransaction = default;
-        GC.SuppressFinalize(this);
-    }
 
     /// <summary>
     /// 保存更改操作
@@ -127,7 +138,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <returns></returns>
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-
         await SaveChangesBeforeAsync(cancellationToken);
         var count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         Logger?.LogInformation($"保存{count}条数据");
@@ -135,7 +145,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         return count;
     }
 
-     
     /// <summary>
     /// 异步开始保存更改
     /// </summary>
@@ -161,18 +170,17 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         }
         await DispatchSaveBeforeEventsAsync(cancellationToken);
     }
-    
+
     /// <summary>
     /// 添加前操作
     /// </summary>
     /// <param name="entry"></param>
     protected virtual void AddBefore(EntityEntry entry)
     {
-     
         SetCreatorAudited(entry);
         SetModifierAudited(entry);
     }
-    
+
     /// <summary>
     /// 更新前删除
     /// </summary>
@@ -183,12 +191,11 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     }
 
     /// <summary>
-    ///  删除前操作
+    /// 删除前操作
     /// </summary>
     /// <param name="entry"></param>
     protected virtual void DeleteBefore(EntityEntry entry)
     {
-     
         SetDeletedAudited(entry);
     }
 
@@ -197,12 +204,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// </summary>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    protected virtual Task SaveChangesAfterAsync(CancellationToken cancellationToken = default)
-    {
-        return Task.CompletedTask;
-    }
-
-
+    protected virtual Task SaveChangesAfterAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     /// <summary>
     /// 设置创建者审计
@@ -210,8 +212,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     protected virtual void SetCreatorAudited(EntityEntry entry)
     {
         entry.SetCurrentValue(EFCoreShare.CreationTime, DateTime.Now);
-        
-        entry.SetPropertyValue(EFCoreShare.CreatorId,GetUserId());
+        entry.SetPropertyValue(EFCoreShare.CreatorId, GetUserId());
         // if (entity is IMayHaveCreator<long> creatorLong)
         // {
         //     creatorLong.CreatorId = ChangeType<long>(GetUserId());
@@ -239,22 +240,18 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         //     return;
         // }
 
-        
         // entry.SetCurrentValue(EFCoreShare.CreatorId);
- 
     }
 
-    
     /// <summary>
     /// 设置修改审计
     /// </summary>
     protected virtual void SetModifierAudited(EntityEntry entry)
     {
-        entry.SetPropertyValue(EFCoreShare.ModifierId,GetUserId());
+        entry.SetPropertyValue(EFCoreShare.ModifierId, GetUserId());
         entry.SetCurrentValue(EFCoreShare.ModificationTime, DateTime.Now);
-
-      
     }
+
     /// <summary>
     /// 设置删除
     /// </summary>
@@ -262,14 +259,14 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     {
         entry.SetCurrentValue(EFCoreShare.IsDeleted, true);
         entry.SetCurrentValue(EFCoreShare.DeletionTime, DateTime.Now);
-        entry.SetPropertyValue(EFCoreShare.DeleterId,GetUserId());
+        entry.SetPropertyValue(EFCoreShare.DeleterId, GetUserId());
         entry.State = EntityState.Modified;
     }
 
     /// <summary>
-   /// 配置模型
-   /// </summary>
-   /// <param name="modelBuilder"></param>
+    /// 配置模型
+    /// </summary>
+    /// <param name="modelBuilder"></param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ApplyConfigurations(modelBuilder);
@@ -279,7 +276,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
             ConfigureBasePropertiesMethodInfo?.MakeGenericMethod(entityType.ClrType).Invoke(this, new object[] { modelBuilder, entityType });
         }
     }
-    
+
     /// <summary>
     /// 配置实体类型
     /// </summary>
@@ -309,7 +306,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         modelBuilder.Entity<TEntity>().ConfigureByConvention();
         modelBuilder.Entity<TEntity>().ConfigureSoftDelete();
     }
-    
+
     /// <summary>
     /// 异步调度发生前事件
     /// </summary>
@@ -317,17 +314,12 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     {
         await Mediator.DispatchDomainEventsAsync(this, cancellationToken);
     }
-    
-
 
     /// <summary>
     /// 得到当前用户
     /// </summary>
     /// <returns></returns>
-    protected virtual string GetUserId()
-    {
-        return default!;
-    }
+    protected virtual string GetUserId() => default!;
 }
 
 /// <summary>
@@ -338,25 +330,26 @@ public sealed class NullMediator : IMediator
     /// <summary>
     /// 实例
     /// </summary>
-    public static readonly NullMediator Instance = new NullMediator();
-    /// <inheritdoc />
-    public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = new CancellationToken()) => Task.FromResult<TResponse>(default!);
+    public static readonly NullMediator Instance = new();
 
     /// <inheritdoc />
-    public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = new CancellationToken()) where TRequest : IRequest => Task.FromResult(false);
+    public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = new()) => Task.FromResult<TResponse>(default!);
 
     /// <inheritdoc />
-    public Task<object?> Send(object request, CancellationToken cancellationToken = new CancellationToken()) => Task.FromResult(default(object?));
+    public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = new()) where TRequest : IRequest => Task.FromResult(false);
 
     /// <inheritdoc />
-    public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = new CancellationToken()) => default(IAsyncEnumerable<TResponse>)!;
+    public Task<object?> Send(object request, CancellationToken cancellationToken = new()) => Task.FromResult(default(object?));
 
     /// <inheritdoc />
-    public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = new CancellationToken()) =>  default(IAsyncEnumerable<object?>)!;
+    public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = new()) => default!;
 
     /// <inheritdoc />
-    public Task Publish(object notification, CancellationToken cancellationToken = new CancellationToken()) => Task.CompletedTask;
+    public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = new()) => default!;
 
     /// <inheritdoc />
-    public Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = new CancellationToken()) where TNotification : INotification => Task.CompletedTask;
+    public Task Publish(object notification, CancellationToken cancellationToken = new()) => Task.CompletedTask;
+
+    /// <inheritdoc />
+    public Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = new()) where TNotification : INotification => Task.CompletedTask;
 }
