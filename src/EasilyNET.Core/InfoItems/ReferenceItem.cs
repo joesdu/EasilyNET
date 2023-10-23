@@ -50,7 +50,7 @@ public class ReferenceItem : IEquatable<ReferenceItem>
     /// </summary>
     /// <param name="obj"></param>
     /// <returns></returns>
-    public override bool Equals(object? obj) => obj is not null && (ReferenceEquals(this, obj) || (obj.GetType() == GetType() && Equals((ReferenceItem)obj)));
+    public override bool Equals(object? obj) => obj is not null && (ReferenceEquals(this, obj) || obj.GetType() == GetType() && Equals((ReferenceItem)obj));
 
     /// <summary>
     /// GetHashCode
@@ -60,7 +60,7 @@ public class ReferenceItem : IEquatable<ReferenceItem>
     {
         unchecked
         {
-            return (Rid.GetHashCode() * 397) ^ Name.GetHashCode();
+            return Rid.GetHashCode() * 397 ^ Name.GetHashCode();
         }
     }
 

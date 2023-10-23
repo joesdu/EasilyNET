@@ -70,6 +70,9 @@ finally
 
 1. 当您尝试获取锁时,具有指定 lockId 的文档将添加到锁集合中,或者更新(如果存在).
 1. 释放锁时,将更新文档,并将新文档添加到信号上限集合中
-1. 当锁定正在等待时,将使用服务器端等待的可尾游标.[详细信息](https://docs.mongodb.com/manual/reference/method/cursor.tailable)
+1.
+
+当锁定正在等待时,将使用服务器端等待的可尾游标.[详细信息](https://docs.mongodb.com/manual/reference/method/cursor.tailable)
+
 1. 生存期是锁有效的时间段.在此时间之后,锁将自动“释放”,并且可以再次获取.它可以防止死锁.
 1. 不要使用长时间的超时,这可能会引发 MongoDB 驱动程序的异常.正常超时不超过 1-2 分钟!

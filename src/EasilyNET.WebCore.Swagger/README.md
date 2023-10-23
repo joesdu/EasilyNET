@@ -4,14 +4,18 @@
 
 - 新增 Swagger 页面参数忽略.比如某些默认参数不需要调用者传入,并且也不希望他看见
 - 接口隐藏,或者控制器隐藏
-- 添加默认值显示 [代码示例](https://github.com/EasilyNET/EasilyNET/tree/main/Test/WebApi.Test.Unit/Controllers/MongoTestController.cs)
+-
+
+添加默认值显示 [代码示例](https://github.com/EasilyNET/EasilyNET/tree/main/Test/WebApi.Test.Unit/Controllers/MongoTestController.cs)
+
 - 在 Swagger 文档中给需要 Authorize 的接口添加 🔒
 
 ### 可用特性
 
 - ApiGroupAttribute 对控制器进行分组.便于将特有的功能分到一个组方便管理.
 - HiddenApiAttribute 隐藏控制器或者单个接口.
-- SwaggerIgnoreAttribute 忽略接口参数或者传入实体的属性 [代码示例](https://github.com/EasilyNET/EasilyNET/tree/main/Test/WebApi.Test.Unit/Controllers/PramsIgnoreController.cs)
+- SwaggerIgnoreAttribute
+  忽略接口参数或者传入实体的属性 [代码示例](https://github.com/EasilyNET/EasilyNET/tree/main/Test/WebApi.Test.Unit/Controllers/PramsIgnoreController.cs)
 
 ### 如何使用?
 

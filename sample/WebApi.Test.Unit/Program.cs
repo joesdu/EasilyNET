@@ -2,7 +2,6 @@ using EasilyNET.Core.Misc;
 using Serilog;
 using Serilog.Events;
 using WebApi.Test.Unit;
-
 Console.Title = "❤️ EasilyNET";
 AssemblyHelper.AddExcludeLibs("Npgsql.", "NPOI");
 var builder = WebApplication.CreateBuilder(args);

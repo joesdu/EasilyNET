@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-
 #pragma warning disable IDE0079
 
 // ReSharper disable MemberCanBePrivate.Global
@@ -566,7 +565,7 @@ public static class StringExtension
         {
             if (!TryParseHex(hex[i++], out var x)) return false;
             if (!TryParseHex(hex[i++], out var y)) return false;
-            buffer[j++] = (byte)((x << 4) | y);
+            buffer[j++] = (byte)(x << 4 | y);
         }
         bytes = buffer;
         return true;

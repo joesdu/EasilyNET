@@ -1,16 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
-	<Import Project="..\..\build\common.props" />
+    <Import Project="..\..\build\common.props"/>
 
-	<PropertyGroup>
+    <PropertyGroup>
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="FluentAssertions" Version="7.0.0-alpha.2" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0-preview-23503-02" />
-        <PackageReference Include="MSTest.TestAdapter" Version="3.1.1" />
-        <PackageReference Include="MSTest.TestFramework" Version="3.1.1" />
+        <PackageReference Include="FluentAssertions" Version="7.0.0-alpha.2"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0-preview-23503-02"/>
+        <PackageReference Include="MSTest.TestAdapter" Version="3.1.1"/>
+        <PackageReference Include="MSTest.TestFramework" Version="3.1.1"/>
         <PackageReference Include="coverlet.collector" Version="6.0.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -18,9 +18,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\EasilyNET.Core.Domains\EasilyNET.Core.Domains.csproj" />
-        <ProjectReference Include="..\..\src\EasilyNET.MongoDistributedLock\EasilyNET.MongoDistributedLock.csproj" />
-        <ProjectReference Include="..\..\src\EasilyNET.Security\EasilyNET.Security.csproj" />
+        <ProjectReference Include="..\..\src\EasilyNET.Core.Domains\EasilyNET.Core.Domains.csproj"/>
+        <ProjectReference Include="..\..\src\EasilyNET.MongoDistributedLock\EasilyNET.MongoDistributedLock.csproj"/>
+        <ProjectReference Include="..\..\src\EasilyNET.Security\EasilyNET.Security.csproj"/>
     </ItemGroup>
 
 </Project>

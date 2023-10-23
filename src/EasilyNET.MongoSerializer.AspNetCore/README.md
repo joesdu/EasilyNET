@@ -6,9 +6,9 @@ EasilyNET.Mongo.AspNetCore 扩展,用于支持一些非默认类型的序列化�
 ##### ChangeLogs
 
 - 支持自定义 TimeOnly 和 DateOnly 的格式化格式.
-  1. 支持转换成字符串格式
-  2. 转换成 Ticks 的方式存储
-  3. 若想转化成其他类型也可自行实现,如:转化成 ulong 类型
+    1. 支持转换成字符串格式
+    2. 转换成 Ticks 的方式存储
+    3. 若想转化成其他类型也可自行实现,如:转化成 ulong 类型
 - 添加动态类型支持[object 和 dynamic]
 - 添加.Net6 Date/Time Only 类型支持(TimeOnly 理论上应该是兼容原 TimeSpan 数据类型).
 
