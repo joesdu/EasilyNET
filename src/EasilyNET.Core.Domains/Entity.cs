@@ -19,7 +19,7 @@ public abstract class Entity
     /// 领域事件集合
     /// </summary>
     [NotMapped]
-    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents?.AsReadOnly()!;
+    public IReadOnlyCollection<IDomainEvent>? DomainEvents => _domainEvents?.AsReadOnly()!;
 
     /// <summary>
     /// 得到主键

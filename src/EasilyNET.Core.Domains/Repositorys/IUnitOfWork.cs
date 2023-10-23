@@ -36,11 +36,5 @@ public interface IUnitOfWork : IDisposable
     /// </summary>
     /// <param name="cancellationToken"></param>
     Task RollbackTransactionAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// 保存所有实体的变更，并协调和分发所有的领域事件
-    /// </summary>
-    /// <param name="cancellationToken">用于取消任务的令牌</param>
-    /// <returns></returns>
-    Task<bool> SaveEntitiesAsync(CancellationToken cancellationToken = default);
+    
 }

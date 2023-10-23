@@ -18,6 +18,20 @@ public static class EntityEntryExtensions
         propertyName.NotNullOrEmpty(nameof(propertyName));
         return entityType.FindProperty(propertyName) is null;
     }
+    
+   /// <summary>
+   /// 属性是否为null
+   /// </summary>
+   /// <param name="entityType"></param>
+   /// <param name="propertyName"></param>
+   /// <param name="property"></param>
+   /// <returns></returns>
+    public static bool HasProperty(this IEntityType entityType, string propertyName,out IProperty? property)
+    {
+        propertyName.NotNullOrEmpty(nameof(propertyName));
+        property = entityType.FindProperty(propertyName);
+        return property is null;
+    }
 
     /// <summary>
     /// 设置属性当前值
@@ -31,6 +45,24 @@ public static class EntityEntryExtensions
         if (!entityEntry.Metadata.HasProperty(propertyName) && value is not null)
         {
             entityEntry.CurrentValues[propertyName] = value;
+        }
+    }
+    
+    
+    /// <summary>
+    /// 设置当前设置值，设置时候会类型类型
+    /// </summary>
+    /// <param name="entityEntry">实体</param>
+    /// <param name="propertyName">要设置属性名</param>
+    /// <param name="value">值</param>
+    public static void SetPropertyValue(this EntityEntry entityEntry, string propertyName,object? value)
+    {
+        entityEntry.NotNull(nameof(EntityEntry));
+        if (!entityEntry.Metadata.HasProperty(propertyName,out IProperty? property))
+        {
+            var type = property!.ClrType;
+
+            entityEntry.Property(propertyName).CurrentValue = value.ChangeType(type);
         }
     }
 }

@@ -96,4 +96,53 @@ public static class ObjectExtension
     /// <param name="inherit"></param>
     /// <returns>如果存在还在返回true，否则返回false</returns>
     public static bool HasAttribute<T>(this MemberInfo memberInfo, bool inherit = true) where T : Attribute => memberInfo.IsDefined(typeof(T), inherit);
+    
+    
+    
+    /// <summary>
+    /// 类型转换
+    /// </summary>
+    /// <param name="value">要转换的值</param>
+    /// <param name="type">类型</param>
+    /// <returns></returns>
+    public static object? ChangeType(this object? value, Type type)
+    {
+        
+        if (value == null || value is DBNull)
+        {
+            return null;
+        }
+
+        //如果是Nullable类型
+        if (type.IsNullable())
+        {
+            type = type.GetUnNullableType();
+        }
+
+        if (type == typeof(Guid))
+        {
+            Guid.TryParse(value.ToString(), out var newGuid);
+            return newGuid;
+        }
+
+        if (value?.GetType() == typeof(Guid))
+        {
+            return value.ToString();
+        }
+
+        return Convert.ChangeType(value, type);
+    }
+    
+    
+    /// <summary>
+    ///  转成可空类型
+    /// </summary>
+    /// <param name="value">值</param>
+    /// <typeparam name="T">要转成的类型</typeparam>
+    /// <returns></returns>
+    public static T? ChangeType<T>(this object? value)
+    {
+        return (T?) ChangeType(value, typeof(T));
+    }
+
 }

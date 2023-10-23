@@ -8,5 +8,5 @@ public interface IHasModificationTime
     /// <summary>
     /// 修改时间
     /// </summary>
-    public DateTime? LastModificationTime { get; }
+    public DateTime? LastModificationTime { get; set; }
 }
