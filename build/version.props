@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <Project>
-	<PropertyGroup>
-		<VersionMajor>1</VersionMajor>
-		<VersionMinor>9</VersionMinor>
-		<VersionPatch>0</VersionPatch>
-		<VersionQuality></VersionQuality>
-		<!--<VersionQuality></VersionQuality>-->
-		<VersionPrefix>$(VersionMajor).$(VersionMinor).$(VersionPatch)$(VersionQuality)</VersionPrefix>
-	</PropertyGroup>
+    <PropertyGroup>
+        <VersionMajor>1</VersionMajor>
+        <VersionMinor>9</VersionMinor>
+        <VersionPatch>0</VersionPatch>
+        <VersionQuality></VersionQuality>
+        <!--<VersionQuality></VersionQuality>-->
+        <VersionPrefix>$(VersionMajor).$(VersionMinor).$(VersionPatch)$(VersionQuality)</VersionPrefix>
+    </PropertyGroup>
 </Project>

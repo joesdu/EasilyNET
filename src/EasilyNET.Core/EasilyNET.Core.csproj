@@ -1,35 +1,35 @@
 <Project Sdk="Microsoft.NET.Sdk">
-	<Import Project="..\..\build\common.props" />
+    <Import Project="..\..\build\common.props"/>
 
-	<PropertyGroup>
-		<AssemblyTitle>$(PackagePrefix).Core</AssemblyTitle>
-		<AssemblyName>$(PackagePrefix).Core</AssemblyName>
-		<PackageId>$(PackagePrefix).Core</PackageId>
-		<PackageTags></PackageTags>
-		<PackageReleaseNotes>
-		</PackageReleaseNotes>
-		<RootNamespace>EasilyNET.Core</RootNamespace>
-	</PropertyGroup>
+    <PropertyGroup>
+        <AssemblyTitle>$(PackagePrefix).Core</AssemblyTitle>
+        <AssemblyName>$(PackagePrefix).Core</AssemblyName>
+        <PackageId>$(PackagePrefix).Core</PackageId>
+        <PackageTags></PackageTags>
+        <PackageReleaseNotes>
+        </PackageReleaseNotes>
+        <RootNamespace>EasilyNET.Core</RootNamespace>
+    </PropertyGroup>
 
-	<PropertyGroup>
-		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Core</PackageProjectUrl>
-		<Description>业务类型库,用于一些业务方面的类,如分页,以及业务中常用的一些数据类型和枚举类型</Description>
-	</PropertyGroup>
+    <PropertyGroup>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Core</PackageProjectUrl>
+        <Description>业务类型库,用于一些业务方面的类,如分页,以及业务中常用的一些数据类型和枚举类型</Description>
+    </PropertyGroup>
 
-	<PropertyGroup>
-		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-	</PropertyGroup>
+    <PropertyGroup>
+        <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    </PropertyGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-		<PackageReference Include="Microsoft.Extensions.DependencyModel" Version="6.0.0" />
-	</ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+        <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="6.0.0"/>
+    </ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net7.0'">
-		<PackageReference Include="Microsoft.Extensions.DependencyModel" Version="7.0.0" />
-	</ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' == 'net7.0'">
+        <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="7.0.0"/>
+    </ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-		<PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0-rc.2.23479.6" />
-	</ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+        <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0-rc.2.23479.6"/>
+    </ItemGroup>
 
 </Project>

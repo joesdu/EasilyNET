@@ -1,6 +1,8 @@
 using EasilyNET.Core.Misc;
+using EasilyNET.WebCore.Extensions;
 using Serilog;
 using Serilog.Events;
+using System.Security.Claims;
 using WebApi.Test.Unit;
 
 Console.Title = "❤️ EasilyNET";
@@ -19,7 +21,7 @@ var builder = WebApplication.CreateBuilder(args);
 //});
 // 自动注入服务模块
 builder.Services.AddApplication<AppWebModule>();
-
+builder.Services.AddCurrentUser();
 // 添加Serilog配置
 builder.Host.UseSerilog((hbc, lc) =>
 {
@@ -55,6 +57,16 @@ builder.Host.UseSerilog((hbc, lc) =>
       });
 });
 var app = builder.Build();
+app.Use(async (context, next) =>
+{
+    // 在处理请求之前执行一些自定义逻辑
+    // 这里可以对请求进行修改、记录日志、验证身份等操作
+    context.User.AddIdentity(new(new Claim[] { new(ClaimTypes.NameIdentifier, "帅气的大黄瓜") }));
+    await next.Invoke(); // 调用下一个中间件或处理程序
+
+    // 在处理请求之后执行一些自定义逻辑
+    // 这里可以处理响应、记录日志、执行清理操作等
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment()) _ = app.UseDeveloperExceptionPage();
