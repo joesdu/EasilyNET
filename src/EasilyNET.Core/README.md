@@ -85,3 +85,20 @@ var birthday = "52305199405088125".CalculateBirthday(); // DateOnly
 var gender = "52305199405088125".CalculateGender(); // EGender
 var age = "52305199405088125".CalculateAge(); // Int32
 ```
+
+### 雪花算法,支持Long类型
+
+```csharp
+ var id = SnowFlakeId.Default.NextId(); 方便使用
+ 也可以
+  var snowFlake=new SnowFlakeId(1,0l);
+  var nextId =snowFlake.NextId();
+```
+
+`设置不一样的workerId`
+
+```csharp
+ const int workerId = 123;
+ SnowFlakeId.SetDefaultSnowFlakeId(new(workerId));
+ var id = SnowFlakeId.Default.NextId();
+```

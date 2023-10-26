@@ -1,6 +1,8 @@
-using MediatR;
+
 
 // ReSharper disable MemberCanBePrivate.Global
+
+using EasilyNET.Core.BaseType;
 
 namespace EasilyNET.EntityFrameworkCore;
 
@@ -17,23 +19,9 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
             .GetMethod(nameof(ConfigureBaseProperties),
                 BindingFlags.Instance | BindingFlags.NonPublic);
 
-    /// <summary>
-    /// 要更改实体基类型
-    /// </summary>
-    private readonly Type[] _auditedEntryBaseTypes =
-    {
-        typeof(IHasCreationTime),
-        typeof(IMayHaveCreator<>),
-        typeof(IHasSoftDelete),
-        typeof(IHasDeletionTime),
-        typeof(IHasDeleterId<>)
-    };
+ 
 
-    /// <summary>
-    /// 实体值状态数组
-    /// </summary>
-    private readonly EntityState[] _auditedStates = { EntityState.Added, EntityState.Deleted, EntityState.Modified };
-
+   
     /// <summary>
     /// 当前事务
     /// </summary>
@@ -48,6 +36,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         ServiceProvider = serviceProvider;
         Logger = serviceProvider?.GetService<ILoggerFactory>()?.CreateLogger<DefaultDbContext>() ?? NullLogger<DefaultDbContext>.Instance;
         Mediator = serviceProvider?.GetService<IMediator>() ?? NullMediator.Instance;
+        CurrentUser = serviceProvider?.GetService<ICurrentUser>() ?? NullCurrentUser.Instance;
     }
 
     /// <summary>
@@ -60,6 +49,11 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// </summary>
 
     protected IServiceProvider? ServiceProvider { get; }
+    
+    /// <summary>
+    /// 当前用户
+    /// </summary>
+    protected ICurrentUser CurrentUser { get; }
 
     private ILogger? Logger { get; }
 
@@ -115,12 +109,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         GC.SuppressFinalize(this);
     }
 
-    /// <inheritdoc />
-    public async Task<bool> SaveEntitiesAsync(CancellationToken cancellationToken = default)
-    {
-        var count = await SaveChangesAsync(cancellationToken);
-        return true;
-    }
+
 
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -213,34 +202,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     {
         entry.SetCurrentValue(EFCoreShare.CreationTime, DateTime.Now);
         entry.SetPropertyValue(EFCoreShare.CreatorId, GetUserId());
-        // if (entity is IMayHaveCreator<long> creatorLong)
-        // {
-        //     creatorLong.CreatorId = ChangeType<long>(GetUserId());
-        //     return;
-        // }
-        //
-        // if (entity is IMayHaveCreator<long?> creatorNullLong)
-        // {
-        //
-        //     creatorNullLong.CreatorId = ChangeType<long?>(GetUserId());
-        //     return;
-        // }
-        //
-        // if (entity is IMayHaveCreator<int> creatorInt)
-        // {
-        //
-        //     creatorInt.CreatorId = ChangeType<int>(GetUserId());
-        //     return;
-        // }
-        //
-        // if (entity is IMayHaveCreator<int?> creatorNullInt)
-        // {
-        //
-        //     creatorNullInt.CreatorId = ChangeType<int?>(GetUserId());
-        //     return;
-        // }
-
-        // entry.SetCurrentValue(EFCoreShare.CreatorId);
     }
 
     /// <summary>
@@ -319,37 +280,5 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// 得到当前用户
     /// </summary>
     /// <returns></returns>
-    protected virtual string GetUserId() => default!;
-}
-
-/// <summary>
-/// 空的Mediator
-/// </summary>
-public sealed class NullMediator : IMediator
-{
-    /// <summary>
-    /// 实例
-    /// </summary>
-    public static readonly NullMediator Instance = new();
-
-    /// <inheritdoc />
-    public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = new()) => Task.FromResult<TResponse>(default!);
-
-    /// <inheritdoc />
-    public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = new()) where TRequest : IRequest => Task.FromResult(false);
-
-    /// <inheritdoc />
-    public Task<object?> Send(object request, CancellationToken cancellationToken = new()) => Task.FromResult(default(object?));
-
-    /// <inheritdoc />
-    public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = new()) => default!;
-
-    /// <inheritdoc />
-    public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = new()) => default!;
-
-    /// <inheritdoc />
-    public Task Publish(object notification, CancellationToken cancellationToken = new()) => Task.CompletedTask;
-
-    /// <inheritdoc />
-    public Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = new()) where TNotification : INotification => Task.CompletedTask;
+    protected virtual string GetUserId() => CurrentUser.GetUserId<string>()!;
 }
