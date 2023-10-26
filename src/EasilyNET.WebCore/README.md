@@ -120,7 +120,6 @@ app.UseHoyoResponseTime();
 hoyo-response-time: 5 ms
 ```
 # EasilyNET.WebCore 当前用户 使用?
-
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 

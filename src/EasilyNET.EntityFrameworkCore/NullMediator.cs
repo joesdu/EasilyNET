@@ -1,7 +1,4 @@
-﻿
-
 namespace EasilyNET.EntityFrameworkCore;
-
 /// <summary>
 /// 空的Mediator
 /// </summary>

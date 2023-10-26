@@ -1,9 +1,3 @@
-
-
-// ReSharper disable MemberCanBePrivate.Global
-
-using EasilyNET.Core.BaseType;
-
 namespace EasilyNET.EntityFrameworkCore;
 
 /// <summary>
@@ -19,9 +13,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
             .GetMethod(nameof(ConfigureBaseProperties),
                 BindingFlags.Instance | BindingFlags.NonPublic);
 
- 
-
-   
     /// <summary>
     /// 当前事务
     /// </summary>
@@ -45,15 +36,16 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     protected IMediator Mediator { get; }
 
     /// <summary>
+    /// 当前用户
+    /// </summary>
+    protected ICurrentUser CurrentUser { get; }
+
+    /// <summary>
     /// 服务提供者
     /// </summary>
 
     protected IServiceProvider? ServiceProvider { get; }
-    
-    /// <summary>
-    /// 当前用户
-    /// </summary>
-    protected ICurrentUser CurrentUser { get; }
+
 
     private ILogger? Logger { get; }
 
@@ -108,7 +100,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         _currentTransaction = default;
         GC.SuppressFinalize(this);
     }
-
 
 
     /// <inheritdoc />

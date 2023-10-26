@@ -153,10 +153,15 @@ public sealed class TestDbContext : DefaultDbContext
         Database.EnsureCreated();
     }
 
+    private static string NextId => SnowFlakeId.Default.NextId().ToString();
+
     protected override void ApplyConfigurations(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
     }
+
+    /// <inheritdoc />
+    protected override string GetUserId() => NextId;
 }
 
 public interface IUserRepository : IRepository<User, long>;

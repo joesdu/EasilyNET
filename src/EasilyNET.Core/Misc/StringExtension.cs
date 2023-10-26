@@ -396,7 +396,7 @@ public static class StringExtension
     /// 使用指针的方式反转字符串,该函数会修改原字符串.
     /// </summary>
     /// <param name="value">待反转字符串</param>
-    public static unsafe void Reverse(this string value)
+    public unsafe static void Reverse(this string value)
     {
         fixed (char* pText = value)
         {

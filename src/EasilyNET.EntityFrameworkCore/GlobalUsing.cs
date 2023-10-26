@@ -12,4 +12,5 @@ global using Microsoft.EntityFrameworkCore.ChangeTracking;
 global using Microsoft.EntityFrameworkCore.Metadata;
 global using EasilyNET.EntityFrameworkCore.Extensions;
 global using Microsoft.EntityFrameworkCore.ValueGeneration;
+global using EasilyNET.Core.BaseType;
 global using MediatR;
