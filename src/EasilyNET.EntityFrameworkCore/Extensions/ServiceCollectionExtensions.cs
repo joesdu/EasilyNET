@@ -32,25 +32,11 @@ public static class ServiceCollectionExtensions
         where TDbContext : DefaultDbContext
     {
         setupAction.NotNull(nameof(setupAction));
-        services.AddSingleton<EFCoreOptions>(sp =>
-        {
-            var efCoreOptions = new EFCoreOptions();
-            setupAction.Invoke(sp, efCoreOptions);
-            var options = efCoreOptions;
-            return options;
-        });
+        services.AddSingleton<EFCoreOptions>(sp => EFCoreOptions.Create(setupAction,sp));
         services.AddDbContext<DefaultDbContext, TDbContext>((sp, b) =>
         {
             var options = sp.GetRequiredService<EFCoreOptions>();
-            //有优化地方吗？
-            if (options.ConfigureDbContextBuilder != null)
-            {
-                options.ConfigureDbContextBuilder(b);
-            }
-            else
-            {
-                throw new InvalidOperationException("ConfigureDbContextBuilder未配置。");
-            }
+            options.ConfigureDbContextBuilder(b);
         });
         services.AddUnitOfWork<TDbContext>();
         return services;
