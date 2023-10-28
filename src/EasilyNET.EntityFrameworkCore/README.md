@@ -1,4 +1,8 @@
 ##### EasilyNET.EntityFrameworkCore
+## Install Package
+```shell
+Install-Package EasilyNET.EntityFrameworkCore
+```
 ## 创建实体
 
 ```csharp
