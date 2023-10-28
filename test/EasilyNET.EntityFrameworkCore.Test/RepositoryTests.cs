@@ -160,6 +160,7 @@ public sealed class TestDbContext : DefaultDbContext
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
     }
 
+     //只是测试时候使用
     /// <inheritdoc />
     protected override string GetUserId() => NextId;
 }
