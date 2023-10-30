@@ -1,6 +1,10 @@
 using EasilyNET.Core.BaseType;
+using EasilyNET.Core.Domains.Commands;
 using EasilyNET.EntityFrameworkCore.Extensions;
+using MediatR;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 
 namespace EasilyNET.EntityFrameworkCore.Test;
@@ -89,9 +93,36 @@ public class RepositoryTests
         // Assert
         Assert.IsTrue(count > 0);
     }
+
+    /// <summary>
+    /// 命令添加用户
+    /// </summary>
+    [TestMethod]
+    public async Task AddUserAsync_ShouldCommand()
+    {
+
+        AddUserCommand addUserCommand = new AddUserCommand(new User("Command", 200));
+        var sender = _serviceProvider?.GetService<ISender>(); 
+        var count=await sender!.Send(addUserCommand);
+        Assert.IsTrue(count > 0);
+    }
+    
+    /// <summary>
+    /// 查询用户
+    /// </summary>
+    [TestMethod]
+    public async Task UserListQuery_ShouldUserList()
+    {
+
+        UserListQuery query = new UserListQuery();
+        var sender = _serviceProvider?.GetService<ISender>(); 
+        var reulst=await sender!.Send(query);
+        Assert.IsTrue(reulst.Count > 0);
+       
+    }
 }
 
-public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>, IHasCreationTime, IHasModifierId<long?>, IHasModificationTime, IHasDeleterId<long?>, IHasDeletionTime
+public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>, IHasCreationTime, IHasModifierId<long?>, IHasModificationTime, IHasDeleterId<long?>, IHasDeletionTime, IQuery<UserListQuery>
 {
     private User() { }
 
@@ -211,3 +242,72 @@ internal sealed class AddUserDomainEventHandler : IDomainEventHandler<AddUserDom
         return Task.CompletedTask;
     }
 }
+
+/// <summary>
+/// 添加用户命令
+/// </summary>
+internal sealed class AddUserCommand : ICommand<int>
+{
+    /// <summary>
+    /// 添加
+    /// </summary>
+    /// <param name="user"></param>
+
+    public AddUserCommand(User user)
+    {
+
+        User = user;
+    }
+
+    public User User { get; private set; } 
+}
+
+internal sealed class AddUserCommandHandler : ICommandHandler<AddUserCommand, int>
+{
+    private readonly IUserRepository _userRepository;
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="userRepository"></param>
+    public AddUserCommandHandler(IUserRepository userRepository)
+    {
+        _userRepository = userRepository;
+    }
+
+    /// <inheritdoc />
+    public async Task<int> Handle(AddUserCommand request, CancellationToken cancellationToken)
+    {
+        await _userRepository.AddAsync(request.User);
+        var count = await _userRepository.UnitOfWork.SaveChangesAsync();
+        return count;
+    }
+}
+
+/// <summary>
+/// 
+/// </summary>
+
+internal sealed class UserListQuery : IQuery<List<User>>
+{
+    
+}
+
+internal sealed class UserListQueryHandler : IQueryHandler<UserListQuery,List<User>>
+{
+    private readonly IUserRepository _userRepository;
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="userRepository"></param>
+    public UserListQueryHandler(IUserRepository userRepository)
+    {
+        _userRepository = userRepository;
+    }
+    /// <inheritdoc />
+    public async Task<List<User>> Handle(UserListQuery request, CancellationToken cancellationToken)
+    {
+
+        return  await _userRepository.FindEntity.ToListAsync();
+    }
+}
+
