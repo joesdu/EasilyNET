@@ -30,6 +30,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         CurrentUser = serviceProvider?.GetService<ICurrentUser>() ?? NullCurrentUser.Instance;
     }
 
+
     /// <summary>
     /// 中介者发布事件
     /// </summary>
@@ -53,6 +54,11 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// 是否激活事务
     /// </summary>
     public bool HasActiveTransaction => _currentTransaction != null;
+
+    /// <summary>
+    /// 是否释放
+    /// </summary>
+    private bool _isDisposed = false;
 
     /// <summary>
     /// 异步开启事务
@@ -96,9 +102,37 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// </summary>
     public override void Dispose()
     {
-        _currentTransaction?.Dispose();
-        _currentTransaction = default;
+        Dispose(true);
+        //告诉GC，不要调用析构函数
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// 释放
+    /// </summary>
+    /// <param name="disposing"></param>
+    protected virtual void Dispose(bool disposing)
+    {
+
+        if (!_isDisposed)
+        {
+            if (disposing)
+            {
+                _currentTransaction?.Dispose();
+                _currentTransaction = default;
+                //告诉GC，不要调用析构函数
+                GC.SuppressFinalize(this);
+            }
+            _isDisposed = true;
+        }
+
+    }
+
+    
+    ~DefaultDbContext()
+    {
+        //不释放
+        Dispose(false);
     }
 
 
