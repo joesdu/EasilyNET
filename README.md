@@ -90,7 +90,7 @@ EasilyNET Packages
 
 | NuGet Package                                                                                 | Version                                                                | Download                                                                | Description                                  |
 | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------- |
-| [EasilyNET.Core.Domains](https://www.nuget.org/packages/EasilyNET.Core.Domains)               | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Domains)             | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Core.Domains)        | 提供 Entity、IUnitOfWork、IRepository 等功能 |
+| [EasilyNET.Core.Domains](https://www.nuget.org/packages/EasilyNET.Core.Domains)               | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Core.Domains)        | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Core.Domains)        | 提供 Entity、IUnitOfWork、IRepository 等功能 |
 | [EasilyNET.EntityFrameworkCore](https://www.nuget.org/packages/EasilyNET.EntityFrameworkCore) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.EntityFrameworkCore) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.EntityFrameworkCore) | EntityFrameworkCore 相关，Repository，上下文 |
 
 #### Framework
