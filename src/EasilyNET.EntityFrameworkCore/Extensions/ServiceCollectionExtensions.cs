@@ -32,7 +32,7 @@ public static class ServiceCollectionExtensions
         where TDbContext : DefaultDbContext
     {
         setupAction.NotNull(nameof(setupAction));
-        services.AddSingleton<EFCoreOptions>(sp => EFCoreOptions.Create(setupAction,sp));
+        services.AddSingleton<EFCoreOptions>(sp => EFCoreOptions.Create(setupAction, sp));
         services.AddDbContext<DefaultDbContext, TDbContext>((sp, b) =>
         {
             var options = sp.GetRequiredService<EFCoreOptions>();

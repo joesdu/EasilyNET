@@ -3,8 +3,5 @@
 /// <summary>
 /// 命令处理器
 /// </summary>
-public interface ICommandHandler<in TCommand,TResponse> : IRequestHandler<TCommand, TResponse>
-where TCommand : ICommand<TResponse>
-{
-    
-}
+public interface ICommandHandler<in TCommand, TResponse> : IRequestHandler<TCommand, TResponse>
+    where TCommand : ICommand<TResponse> { }

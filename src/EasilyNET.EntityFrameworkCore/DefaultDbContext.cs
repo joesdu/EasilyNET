@@ -19,6 +19,11 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     private IDbContextTransaction? _currentTransaction;
 
     /// <summary>
+    /// 是否释放
+    /// </summary>
+    private bool _isDisposed;
+
+    /// <summary>
     /// </summary>
     /// <param name="options"></param>
     /// <param name="serviceProvider"></param>
@@ -29,7 +34,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         Mediator = serviceProvider?.GetService<IMediator>() ?? NullMediator.Instance;
         CurrentUser = serviceProvider?.GetService<ICurrentUser>() ?? NullCurrentUser.Instance;
     }
-
 
     /// <summary>
     /// 中介者发布事件
@@ -47,18 +51,12 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
 
     protected IServiceProvider? ServiceProvider { get; }
 
-
     private ILogger? Logger { get; }
 
     /// <summary>
     /// 是否激活事务
     /// </summary>
     public bool HasActiveTransaction => _currentTransaction != null;
-
-    /// <summary>
-    /// 是否释放
-    /// </summary>
-    private bool _isDisposed = false;
 
     /// <summary>
     /// 异步开启事务
@@ -113,7 +111,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <param name="disposing"></param>
     protected virtual void Dispose(bool disposing)
     {
-
         if (!_isDisposed)
         {
             if (disposing)
@@ -125,16 +122,13 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
             }
             _isDisposed = true;
         }
-
     }
 
-    
     ~DefaultDbContext()
     {
         //不释放
         Dispose(false);
     }
-
 
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
