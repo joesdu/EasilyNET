@@ -52,7 +52,7 @@ public sealed class AuditedEntitySourceGenerator : ISourceGenerator
                     continue;
                 }
                 //只处理这接口
-                foreach (var interfaceSymbol in classSymbol!.AllInterfaces.Where(i =>
+                foreach (var interfaceSymbol in classSymbol.AllInterfaces.Where(i =>
                              i.Name is "IMayHaveCreator" or
                                  "IHasCreationTime" or
                                  "IHasModifierId" or
