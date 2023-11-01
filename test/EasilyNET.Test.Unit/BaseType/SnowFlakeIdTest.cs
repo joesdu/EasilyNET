@@ -100,7 +100,7 @@ public class SnowFlakeIdTest
 
         // Act
         var generatedId = SnowFlakeId.Default.NextId();
-        var maskedWorkerId = (generatedId >> 10) & 0xFFF; // Shift and mask to get workerId
+        var maskedWorkerId = generatedId >> 10 & 0xFFF; // Shift and mask to get workerId
 
         // Assert
         Assert.AreEqual(expectedMaskedWorkerId, maskedWorkerId);

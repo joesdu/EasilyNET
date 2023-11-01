@@ -1,4 +1,4 @@
-﻿using MediatR;
+﻿
 
 namespace EasilyNET.Core.Domains;
 

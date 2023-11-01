@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
-	<Import Project="..\..\build\common.props" />
+    <Import Project="..\..\build\common.props"/>
 
-	<PropertyGroup>
+    <PropertyGroup>
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
     </PropertyGroup>
@@ -18,9 +18,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\EasilyNET.Core.Domains\EasilyNET.Core.Domains.csproj" />
-        <ProjectReference Include="..\..\src\EasilyNET.MongoDistributedLock\EasilyNET.MongoDistributedLock.csproj" />
-        <ProjectReference Include="..\..\src\EasilyNET.Security\EasilyNET.Security.csproj" />
+        <ProjectReference Include="..\..\src\EasilyNET.Core.Domains\EasilyNET.Core.Domains.csproj"/>
+        <ProjectReference Include="..\..\src\EasilyNET.MongoDistributedLock\EasilyNET.MongoDistributedLock.csproj"/>
+        <ProjectReference Include="..\..\src\EasilyNET.Security\EasilyNET.Security.csproj"/>
     </ItemGroup>
 
 </Project>

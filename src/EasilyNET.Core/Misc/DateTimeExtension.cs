@@ -113,7 +113,7 @@ public static class DateTimeExtension
     /// <param name="month">月份</param>
     /// <param name="year">年份</param>
     /// <returns></returns>
-    public static ValueTuple<DateTime, DateTime> MonthStartEndByMonth(this int month, int year) => (month < 1) | (month > 13) ? throw new("非法月份") : new DateTime(year, month, 2).MonthStartEnd();
+    public static ValueTuple<DateTime, DateTime> MonthStartEndByMonth(this int month, int year) => month < 1 | month > 13 ? throw new("非法月份") : new DateTime(year, month, 2).MonthStartEnd();
 
     /// <summary>
     /// 年份👉DateTime(某年的初始时间)
@@ -145,7 +145,7 @@ public static class DateTimeExtension
     /// <param name="number"></param>
     /// <returns></returns>
     public static DayOfWeek ToDayOfWeek(this int number) =>
-        (number > 7) | (number < 0)
+        number > 7 | number < 0
             ? throw new("please input 0-7")
             : number switch
             {

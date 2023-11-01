@@ -104,5 +104,4 @@ builder.Host.UseSerilog((hbc, lc) =>
 });
 ```
 
-
 同时参考[MongoDB.Driver.Core.Extensions.DiagnosticSources](https://github.com/jbogard/MongoDB.Driver.Core.Extensions.DiagnosticSources)

@@ -119,3 +119,15 @@ app.UseHoyoResponseTime();
 ```
 hoyo-response-time: 5 ms
 ```
+# EasilyNET.WebCore 当前用户 使用?
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddCurrentUser();
+var app = builder.Build();
+var currentUser=app.Services.GetService<ICurrentUser>();
+currentUser.GetUserId<long>();
+或者
+currentUser.GetUserId<long>("sub");
+```

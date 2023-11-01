@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-
 #pragma warning disable IDE0079
 
 // ReSharper disable MemberCanBePrivate.Global
@@ -397,7 +396,7 @@ public static class StringExtension
     /// 使用指针的方式反转字符串,该函数会修改原字符串.
     /// </summary>
     /// <param name="value">待反转字符串</param>
-    public static unsafe void Reverse(this string value)
+    public unsafe static void Reverse(this string value)
     {
         fixed (char* pText = value)
         {
@@ -566,7 +565,7 @@ public static class StringExtension
         {
             if (!TryParseHex(hex[i++], out var x)) return false;
             if (!TryParseHex(hex[i++], out var y)) return false;
-            buffer[j++] = (byte)((x << 4) | y);
+            buffer[j++] = (byte)(x << 4 | y);
         }
         bytes = buffer;
         return true;

@@ -2,7 +2,6 @@
 // ReSharper disable MemberCanBePrivate.Global
 
 using System.Globalization;
-
 #pragma warning disable IDE0046
 
 namespace EasilyNET.Core.Misc;

@@ -24,7 +24,7 @@ public class SnowFlakeId(long workerId, long sequence = 0L, int clockBackwardsIn
     private const int TimestampLeftShift = SequenceBits + WorkerIdBits;
 
     //最大序列号
-    private const long MaxSequence = -1L ^ (-1L << SequenceBits);
+    private const long MaxSequence = -1L ^ -1L << SequenceBits;
 
     private readonly object __lock = new();
 
@@ -63,7 +63,7 @@ public class SnowFlakeId(long workerId, long sequence = 0L, int clockBackwardsIn
             if (_lastTimestamp == timestamp)
             {
                 //sequence自增，和sequenceMask相与一下，去掉高位
-                sequence = (sequence + 1) & MaxSequence;
+                sequence = sequence + 1 & MaxSequence;
                 if (sequence == 0)
                 {
                     //等待到下一毫秒
@@ -75,8 +75,8 @@ public class SnowFlakeId(long workerId, long sequence = 0L, int clockBackwardsIn
                 sequence = 0;
             }
             _lastTimestamp = timestamp;
-            return ((timestamp - TwEpoch) << TimestampLeftShift) |
-                   (workerId << WorkerIdShift) |
+            return timestamp - TwEpoch << TimestampLeftShift |
+                   workerId << WorkerIdShift |
                    sequence;
         }
     }
