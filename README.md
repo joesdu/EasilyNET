@@ -20,7 +20,7 @@ EasilyNET Packages
 - simplifying the use of mongodb drivers
 - some common tool extensions
 - automatic module injection
-- mongodb adds (dynamic|object) serialization support (mongodb.driver 2.19.0+ onwards has removed it)
+- mongodb adds (dynamic|object) serialization support (mongodb.driver 2.19-2.20 onwards has removed it)
 - mongodb storage support for identityserver 6
 - mongodb gridfs usage simplification support
 - integration of some common filters, middleware in webapi
@@ -85,7 +85,14 @@ EasilyNET Packages
 | [EasilyNET.Core](https://www.nuget.org/packages/EasilyNET.Core)                       | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Core)            | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Core)            | 核心库等,用于支持一些各种扩展方法和奇妙语法功能,RMB 大写,农历,身份证号码校验等 |
 | [EasilyNET.WebCore](https://www.nuget.org/packages/EasilyNET.WebCore)                 | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.WebCore)         | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.WebCore)         | 提供 JsonConverter,和全局统一返回和异常处理支持,以及一些 WebAPI 常用的东西     |
 | [EasilyNET.WebCore.Swagger](https://www.nuget.org/packages/EasilyNET.WebCore.Swagger) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.WebCore.Swagger) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.WebCore.Swagger) | 提供 Swagger 的一些 Filter 实现.                                               |
-| [EasilyNET.Core.Domains](https://www.nuget.org/packages/EasilyNET.Core.Domains)    | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Domains) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Core.Domains) | 提供 Entity、IUnitOfWork、IRepository等功能                                              |
+
+#### EntityFramework Core
+
+| NuGet Package                                                                                 | Version                                                                | Download                                                                | Description                                  |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------- |
+| [EasilyNET.Core.Domains](https://www.nuget.org/packages/EasilyNET.Core.Domains)               | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Domains)             | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Core.Domains)        | 提供 Entity、IUnitOfWork、IRepository 等功能 |
+| [EasilyNET.EntityFrameworkCore](https://www.nuget.org/packages/EasilyNET.EntityFrameworkCore) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.EntityFrameworkCore) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.EntityFrameworkCore) | EntityFrameworkCore 相关，Repository，上下文 |
+
 #### Framework
 
 | NuGet Package                                                                                         | Version                                                                    | Download                                                                    | Description                                 |
@@ -94,7 +101,6 @@ EasilyNET Packages
 | [EasilyNET.Images](https://www.nuget.org/packages/EasilyNET.Images)                                   | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Images)                  | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Images)                  | 一些涉及到图形的工具包,目前仅有 QrCode      |
 | [EasilyNET.RabbitBus.AspNetCore](https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore)       | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.RabbitBus.AspNetCore)    | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.RabbitBus.AspNetCore)    | 基于 RabbitMQ 的消息总线处理方案            |
 | [EasilyNET.Security](https://www.nuget.org/packages/EasilyNET.Security)                               | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Security)                | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Security)                | AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4       |
-| [EasilyNET.EntityFrameworkCore](https://www.nuget.org/packages/EasilyNET.EntityFrameworkCore) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.EntityFrameworkCore) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.EntityFrameworkCore) | EntityFrameworkCore相关，Repository，上下文 |
 
 #### Mongo
 
