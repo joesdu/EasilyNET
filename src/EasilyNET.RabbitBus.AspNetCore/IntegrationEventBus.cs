@@ -270,6 +270,7 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
         }
     }
 
+    // ReSharper disable once ReplaceAsyncWithTaskReturn
     private async Task ProcessEvent(Type eventType, string message, Action ack)
     {
         var eventName = subsManager.GetEventKey(eventType);
@@ -347,6 +348,7 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
         }
     }
 
+    // ReSharper disable once ReplaceAsyncWithTaskReturn
     private async Task ProcessDeadLetterEvent(Type eventType, string message, Action ack)
     {
         var eventName = deadManager.GetEventKey(eventType);

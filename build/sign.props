@@ -5,6 +5,7 @@
 		<SignAssembly>True</SignAssembly>
 		<AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)EasilyNET.snk</AssemblyOriginatorKeyFile>
 		<DelaySign>False</DelaySign>
+		<Copyright>© EasilyNET Organization. All rights reserved.</Copyright>
 		<NoWarn>$(NoWarn);CS8002</NoWarn>
 	</PropertyGroup>
 </Project>

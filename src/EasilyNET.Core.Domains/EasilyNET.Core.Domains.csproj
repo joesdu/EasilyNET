@@ -1,27 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-    <Import Project="..\..\build\common.props"/>
+	<Import Project="..\..\build\common.props" />
 
-    <PropertyGroup>
-        <AssemblyTitle>$(PackagePrefix).Core.Domains</AssemblyTitle>
-        <AssemblyName>$(PackagePrefix).Core.Domains</AssemblyName>
-        <PackageId>$(PackagePrefix).Core.Domains</PackageId>
-        <PackageTags></PackageTags>
-        <PackageReleaseNotes>
-        </PackageReleaseNotes>
-        <RootNamespace>EasilyNET.Core.Domains</RootNamespace>
-    </PropertyGroup>
+	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).Core.Domains</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).Core.Domains</AssemblyName>
+		<PackageId>$(PackagePrefix).Core.Domains</PackageId>
+		<PackageTags></PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.Core.Domains</RootNamespace>
+	</PropertyGroup>
 
-    <PropertyGroup>
-        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Core.Domains</PackageProjectUrl>
-        <Description></Description>
-    </PropertyGroup>
+	<PropertyGroup>
+		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Core.Domains</PackageProjectUrl>
+		<Description></Description>
+	</PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="MediatR" Version="12.1.1"/>
-    </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="MediatR" Version="12.1.1" />
+	</ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj"/>
-    </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
+	</ItemGroup>
 
 </Project>
