@@ -57,7 +57,7 @@ internal sealed class Sm4
     /// <param name="b"></param>
     /// <param name="i"></param>
     /// <returns></returns>
-    private static long GetULongByBe(byte[] b, int i) => (long)(b[i] & 0xff) << 24 | (uint)((b[i + 1] & 0xff) << 16) | (uint)((b[i + 2] & 0xff) << 8) | b[i + 3] & 0xff & 0xffffffffL;
+    private static long GetULongByBe(byte[] b, int i) => ((long)(b[i] & 0xff) << 24) | (uint)((b[i + 1] & 0xff) << 16) | (uint)((b[i + 2] & 0xff) << 8) | (b[i + 3] & 0xff & 0xffffffffL);
 
     /// <summary>
     /// 解密 非线性τ函数B=τ(A)
@@ -67,9 +67,9 @@ internal sealed class Sm4
     /// <param name="i"></param>
     private static void PutULongToBe(long n, byte[] b, int i)
     {
-        b[i] = (byte)(int)(0xFF & n >> 24);
-        b[i + 1] = (byte)(int)(0xFF & n >> 16);
-        b[i + 2] = (byte)(int)(0xFF & n >> 8);
+        b[i] = (byte)(int)(0xFF & (n >> 24));
+        b[i + 1] = (byte)(int)(0xFF & (n >> 16));
+        b[i + 2] = (byte)(int)(0xFF & (n >> 8));
         b[i + 3] = (byte)(int)(0xFF & n);
     }
 
@@ -81,7 +81,7 @@ internal sealed class Sm4
     /// <param name="x"></param>
     /// <param name="n"></param>
     /// <returns></returns>
-    private static long RotL(long x, int n) => SHL(x, n) | x >> 32 - n;
+    private static long RotL(long x, int n) => SHL(x, n) | (x >> (32 - n));
 
     /// <summary>
     /// 将密钥逆序

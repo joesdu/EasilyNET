@@ -1,8 +1,11 @@
 ##### EasilyNET.EntityFrameworkCore
+
 ## Install Package
+
 ```shell
 Install-Package EasilyNET.EntityFrameworkCore
 ```
+
 ## 创建实体
 
 ```csharp
@@ -54,7 +57,9 @@ public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>,
 8.IHasDeletionTime、IHasSoftDelete 软删除时间，继承IHasSoftDelete，假如需要使用软删除的请就可以了。
  以上1.是必须的，请按自己的需要
 ```
+
 ## 实体映射
+
 ```csharp
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {
@@ -69,7 +74,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
 以上那些继承接口，自动映射。
 ```
-## EF上下文
+
+## EF 上下文
 
 ```csharp
 public sealed class TestDbContext : DefaultDbContext
@@ -79,29 +85,36 @@ public sealed class TestDbContext : DefaultDbContext
     {
         Database.EnsureCreated(); //不是必须的，按自己方式，最好使用命令迁移
     }
-    
+
 }
 ```
 
 ## 注册服务
+
 ```csharp
 AddEFCore<TestDbContext>(options => options.ConfigureDbContextBuilder = builder => { builder.UseSqlite("Data Source=My.db"); });
 
 AddEFCore 方法里面，只注入工作单元，假如要使用仓储请自行注入
 ```
+
 ## 仓储使用
+
 仓储有两种方式
+
 1.
+
 ```csharp
 注入：
 AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
-使用 
+使用
  _serviceProvider.GetService<IRepository<User, long>>();
 最新在构造函数下
 IRepository<User, long>
-    
+
 ```
+
 2.
+
 ```csharp
 创建:
 public interface IUserRepository : IRepository<User, long>;

@@ -4,6 +4,7 @@ using Serilog;
 using Serilog.Events;
 using System.Security.Claims;
 using WebApi.Test.Unit;
+
 Console.Title = "❤️ EasilyNET";
 AssemblyHelper.AddExcludeLibs("Npgsql.", "NPOI");
 var builder = WebApplication.CreateBuilder(args);
@@ -65,7 +66,6 @@ app.Use(async (context, next) =>
     // 在处理请求之后执行一些自定义逻辑
     // 这里可以处理响应、记录日志、执行清理操作等
 });
-
 if (app.Environment.IsDevelopment()) _ = app.UseDeveloperExceptionPage();
 
 // 添加自动化注入的一些中间件.

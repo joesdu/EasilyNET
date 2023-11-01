@@ -1,5 +1,4 @@
-﻿
-namespace EasilyNET.EntityFrameworkCore.Optiions;
+﻿namespace EasilyNET.EntityFrameworkCore.Optiions;
 
 /// <summary>
 /// 上下文配置
@@ -17,14 +16,12 @@ public class EFCoreOptions
 
     public Action<DbContextOptionsBuilder> ConfigureDbContextBuilder { get; set; } = default!;
 
-
     /// <summary>
     /// 创建
     /// </summary>
     /// <returns></returns>
-    public static EFCoreOptions Create(Action<IServiceProvider,EFCoreOptions> action,IServiceProvider serviceProvider)
+    public static EFCoreOptions Create(Action<IServiceProvider, EFCoreOptions> action, IServiceProvider serviceProvider)
     {
-  
         var options = new EFCoreOptions();
         action(serviceProvider, options);
         options.Validate();
@@ -40,7 +37,5 @@ public class EFCoreOptions
         {
             throw new InvalidOperationException("ConfigureDbContextBuilder未配置。");
         }
-        
     }
-
 }

@@ -84,7 +84,7 @@ var mongoClient = new MongoClient(clientSettings);
 - 该库参考 [SkyAPM-dotnet MongoDB](https://github.com/SkyAPM/SkyAPM-dotnet)
 - 同时参考 [Serilog.Sinks.Spectre](https://github.com/lucadecamillis/serilog-sinks-spectre)
 
-###### Seilog配置例子
+###### Seilog 配置例子
 
 ```csharp
 // 添加Serilog配置

@@ -47,7 +47,7 @@ internal static class LevelOutputFormat
         var index = (int)value;
         if (index is < 0 or > (int)LogEventLevel.Fatal)
             return Casing.Format(value.ToString(), format);
-        if (format is null || format.Length is not 2 && format.Length is not 3)
+        if (format is null || (format.Length is not 2 && format.Length is not 3))
             return Casing.Format(GetLevelMoniker(_titleCaseLevelMap, index), format);
 
         // Using int.Parse() here requires allocating a string to exclude the first character prefix.

@@ -1,5 +1,4 @@
-﻿
-namespace EasilyNET.Core.Domains;
+﻿namespace EasilyNET.Core.Domains;
 
 /// <summary>
 /// 领域事件

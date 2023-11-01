@@ -4,7 +4,6 @@ using EasilyNET.EntityFrameworkCore.Extensions;
 using MediatR;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 
 namespace EasilyNET.EntityFrameworkCore.Test;
@@ -100,25 +99,22 @@ public class RepositoryTests
     [TestMethod]
     public async Task AddUserAsync_ShouldCommand()
     {
-
-        AddUserCommand addUserCommand = new AddUserCommand(new User("Command", 200));
-        var sender = _serviceProvider?.GetService<ISender>(); 
-        var count=await sender!.Send(addUserCommand);
+        var addUserCommand = new AddUserCommand(new("Command", 200));
+        var sender = _serviceProvider?.GetService<ISender>();
+        var count = await sender!.Send(addUserCommand);
         Assert.IsTrue(count > 0);
     }
-    
+
     /// <summary>
     /// 查询用户
     /// </summary>
     [TestMethod]
     public async Task UserListQuery_ShouldUserList()
     {
-
-        UserListQuery query = new UserListQuery();
-        var sender = _serviceProvider?.GetService<ISender>(); 
-        var reulst=await sender!.Send(query);
+        var query = new UserListQuery();
+        var sender = _serviceProvider?.GetService<ISender>();
+        var reulst = await sender!.Send(query);
         Assert.IsTrue(reulst.Count > 0);
-       
     }
 }
 
@@ -174,6 +170,7 @@ public sealed class Role : Entity<long>, IAggregateRoot, IHasSoftDelete
     public string Name { get; init; } = default!;
 }
 
+// ReSharper disable once PartialTypeWithSinglePart
 public partial class Test : Entity<long>, IHasCreationTime, IHasModifierId<long?>, IMayHaveCreator<long?>, IHasDeleterId<long?>, IHasDeletionTime, IHasModificationTime;
 
 public sealed class TestDbContext : DefaultDbContext
@@ -191,7 +188,7 @@ public sealed class TestDbContext : DefaultDbContext
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
     }
 
-     //只是测试时候使用
+    //只是测试时候使用
     /// <inheritdoc />
     protected override string GetUserId() => NextId;
 }
@@ -252,21 +249,19 @@ internal sealed class AddUserCommand : ICommand<int>
     /// 添加
     /// </summary>
     /// <param name="user"></param>
-
     public AddUserCommand(User user)
     {
-
         User = user;
     }
 
-    public User User { get; private set; } 
+    public User User { get; }
 }
 
 internal sealed class AddUserCommandHandler : ICommandHandler<AddUserCommand, int>
 {
     private readonly IUserRepository _userRepository;
+
     /// <summary>
-    /// 
     /// </summary>
     /// <param name="userRepository"></param>
     public AddUserCommandHandler(IUserRepository userRepository)
@@ -284,30 +279,21 @@ internal sealed class AddUserCommandHandler : ICommandHandler<AddUserCommand, in
 }
 
 /// <summary>
-/// 
 /// </summary>
+internal sealed class UserListQuery : IQuery<List<User>> { }
 
-internal sealed class UserListQuery : IQuery<List<User>>
-{
-    
-}
-
-internal sealed class UserListQueryHandler : IQueryHandler<UserListQuery,List<User>>
+internal sealed class UserListQueryHandler : IQueryHandler<UserListQuery, List<User>>
 {
     private readonly IUserRepository _userRepository;
+
     /// <summary>
-    /// 
     /// </summary>
     /// <param name="userRepository"></param>
     public UserListQueryHandler(IUserRepository userRepository)
     {
         _userRepository = userRepository;
     }
+
     /// <inheritdoc />
-    public async Task<List<User>> Handle(UserListQuery request, CancellationToken cancellationToken)
-    {
-
-        return  await _userRepository.FindEntity.ToListAsync();
-    }
+    public async Task<List<User>> Handle(UserListQuery request, CancellationToken cancellationToken) => await _userRepository.FindEntity.ToListAsync();
 }
-

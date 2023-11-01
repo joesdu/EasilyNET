@@ -5,15 +5,15 @@
 Use this section to tell people about which versions of your project are
 currently being supported with security updates.
 
-| Version           | Supported          |
+| Version           |     Supported      |
 | ----------------- | :----------------: |
 | .NET 8            | :white_check_mark: |
 | .NET 7            | :white_check_mark: |
 | .NET 6            | :white_check_mark: |
-| .NET 5            | :x:                |
-| .NET Core 3.x     | :x:                |
-| .NET Standard 2.0 | :x:                |
-| .NET Standard 2.1 | :x:                |
+| .NET 5            |        :x:         |
+| .NET Core 3.x     |        :x:         |
+| .NET Standard 2.0 |        :x:         |
+| .NET Standard 2.1 |        :x:         |
 
 ## Reporting a Vulnerability
 
