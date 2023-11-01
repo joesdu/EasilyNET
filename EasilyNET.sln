@@ -49,6 +49,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EntityFrameworkCore", "Enti
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.EntityFrameworkCore", "src\EasilyNET.EntityFrameworkCore\EasilyNET.EntityFrameworkCore.csproj", "{ADB4A218-6CFB-456C-8272-EEAB0914C3ED}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Core.Domain.SourceGenerator", "src\EasilyNET.Core.Domain.SourceGenerator\EasilyNET.Core.Domain.SourceGenerator.csproj", "{E3C0D6E3-BA38-453A-BC9D-F1CBB29289B5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Core.Domains", "src\EasilyNET.Core.Domains\EasilyNET.Core.Domains.csproj", "{13F55DD7-FABC-47D1-8789-FD25003B260E}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{CD19FF86-B039-4A4A-8822-7C97670BC786}"
 	ProjectSection(SolutionItems) = preProject
 		Build.ps1 = Build.ps1
@@ -62,6 +66,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{3E8A3288
 		build\common.props = build\common.props
 		build\EasilyNET.snk = build\EasilyNET.snk
 		build\sign.props = build\sign.props
+		build\infos.props = build\infos.props
+		build\target.props = build\target.props
 		build\version.props = build\version.props
 	EndProjectSection
 EndProject
@@ -74,10 +80,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Test.Unit", "test\EasilyNET.Test.Unit\EasilyNET.Test.Unit.csproj", "{535C9D9D-84AC-4846-8198-C548477D70FA}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.EntityFrameworkCore.Test", "test\EasilyNET.EntityFrameworkCore.Test\EasilyNET.EntityFrameworkCore.Test.csproj", "{1F8A3464-25F4-4E0A-9BA1-E769078015E1}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Core.Domain.SourceGenerator", "src\EasilyNET.Core.Domain.SourceGenerator\EasilyNET.Core.Domain.SourceGenerator.csproj", "{E3C0D6E3-BA38-453A-BC9D-F1CBB29289B5}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.Core.Domains", "src\EasilyNET.Core.Domains\EasilyNET.Core.Domains.csproj", "{13F55DD7-FABC-47D1-8789-FD25003B260E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -157,6 +159,14 @@ Global
 		{ADB4A218-6CFB-456C-8272-EEAB0914C3ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ADB4A218-6CFB-456C-8272-EEAB0914C3ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ADB4A218-6CFB-456C-8272-EEAB0914C3ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3C0D6E3-BA38-453A-BC9D-F1CBB29289B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3C0D6E3-BA38-453A-BC9D-F1CBB29289B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3C0D6E3-BA38-453A-BC9D-F1CBB29289B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3C0D6E3-BA38-453A-BC9D-F1CBB29289B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{13F55DD7-FABC-47D1-8789-FD25003B260E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{13F55DD7-FABC-47D1-8789-FD25003B260E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{13F55DD7-FABC-47D1-8789-FD25003B260E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{13F55DD7-FABC-47D1-8789-FD25003B260E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{FDE3D67B-FA75-4806-8839-8B080893579C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{FDE3D67B-FA75-4806-8839-8B080893579C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FDE3D67B-FA75-4806-8839-8B080893579C}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -169,14 +179,6 @@ Global
 		{1F8A3464-25F4-4E0A-9BA1-E769078015E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1F8A3464-25F4-4E0A-9BA1-E769078015E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1F8A3464-25F4-4E0A-9BA1-E769078015E1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E3C0D6E3-BA38-453A-BC9D-F1CBB29289B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E3C0D6E3-BA38-453A-BC9D-F1CBB29289B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E3C0D6E3-BA38-453A-BC9D-F1CBB29289B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E3C0D6E3-BA38-453A-BC9D-F1CBB29289B5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{13F55DD7-FABC-47D1-8789-FD25003B260E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{13F55DD7-FABC-47D1-8789-FD25003B260E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{13F55DD7-FABC-47D1-8789-FD25003B260E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{13F55DD7-FABC-47D1-8789-FD25003B260E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -204,12 +206,12 @@ Global
 		{F1C997F7-DBDE-4899-9ED5-460473CEC087} = {6B734C3C-FE4C-405D-80E3-AFEAD63BCF2D}
 		{89BD9E68-8627-4E84-8873-2EC76065A2B8} = {1EA5CB17-A582-4817-8D06-39D50D65419F}
 		{ADB4A218-6CFB-456C-8272-EEAB0914C3ED} = {89BD9E68-8627-4E84-8873-2EC76065A2B8}
+		{E3C0D6E3-BA38-453A-BC9D-F1CBB29289B5} = {71FB9978-EB6D-4126-B5D1-FECED3C73D37}
+		{13F55DD7-FABC-47D1-8789-FD25003B260E} = {71FB9978-EB6D-4126-B5D1-FECED3C73D37}
 		{3E8A3288-FD80-4809-9096-B10D2D025C5E} = {CD19FF86-B039-4A4A-8822-7C97670BC786}
 		{FDE3D67B-FA75-4806-8839-8B080893579C} = {2273701E-0AEE-4F47-A8D3-96DEE1F4FEDD}
 		{535C9D9D-84AC-4846-8198-C548477D70FA} = {AE84E1FF-91D2-4D29-A281-EB281B2114E8}
 		{1F8A3464-25F4-4E0A-9BA1-E769078015E1} = {AE84E1FF-91D2-4D29-A281-EB281B2114E8}
-		{E3C0D6E3-BA38-453A-BC9D-F1CBB29289B5} = {71FB9978-EB6D-4126-B5D1-FECED3C73D37}
-		{13F55DD7-FABC-47D1-8789-FD25003B260E} = {71FB9978-EB6D-4126-B5D1-FECED3C73D37}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {04F52789-9FF4-4AB9-9132-1789A00E7E4A}
