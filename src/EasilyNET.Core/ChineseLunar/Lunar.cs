@@ -374,7 +374,7 @@ public static class Lunar
                 }
                 else
                 {
-                    if (lastLeap == 11 && result[1] == 12 || lastLeap == 12 && result[1] == 11) result[1] = 12;
+                    if ((lastLeap == 11 && result[1] == 12) || (lastLeap == 12 && result[1] == 11)) result[1] = 12;
                 }
             }
         }
@@ -545,7 +545,7 @@ public static class Lunar
         var day = date[2];
         return month is <= 12 and >= 1 &&
                day is <= 31 and >= 1 &&
-               (day != 31 || month != 2 && month != 4 && month != 6 && month != 9 && month != 11) &&
+               (day != 31 || (month != 2 && month != 4 && month != 6 && month != 9 && month != 11)) &&
                (month != 2 ||
                 day switch
                 {

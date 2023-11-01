@@ -1,5 +1,3 @@
-
-
 namespace EasilyNET.Core.Domains;
 
 /// <summary>
