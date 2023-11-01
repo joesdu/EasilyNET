@@ -111,19 +111,20 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <param name="disposing"></param>
     protected virtual void Dispose(bool disposing)
     {
-        if (!_isDisposed)
+        if (_isDisposed) return;
+        if (disposing)
         {
-            if (disposing)
-            {
-                _currentTransaction?.Dispose();
-                _currentTransaction = default;
-                //告诉GC，不要调用析构函数
-                GC.SuppressFinalize(this);
-            }
-            _isDisposed = true;
+            _currentTransaction?.Dispose();
+            _currentTransaction = default;
+            //告诉GC，不要调用析构函数
+            GC.SuppressFinalize(this);
         }
+        _isDisposed = true;
     }
 
+    /// <summary>
+    /// 析构函数
+    /// </summary>
     ~DefaultDbContext()
     {
         //不释放
