@@ -72,7 +72,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
     }
 }
 
-以上那些继承接口，自动映射。
+以上继承那些接口自动创建。
+自动把IEntityTypeConfiguration实体映射器添加到OnModelCreating(ModelBuilder modelBuilder)模型生成器中。
 ```
 
 ## EF 上下文
@@ -108,7 +109,7 @@ AddEFCore 方法里面，只注入工作单元，假如要使用仓储请自行�
 AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
 使用
  _serviceProvider.GetService<IRepository<User, long>>();
-最新在构造函数下
+最好在构造函数下
 IRepository<User, long>
 
 ```
@@ -128,3 +129,22 @@ public class UserRepository(TestDbContext dbContext) : RepositoryBase<User, long
 注入:
 AddScoped<IUserRepository, UserRepository>();
 ```
+
+## 上下文工作单元
+ `DefaultDbContext`必须继承
+
+  BeginTransactionAsync 异步开启事务
+  CommitTransactionAsync 异步提交当前事务
+  RollbackTransactionAsync 异步回滚事务
+  ApplyConfigurations 配置实体类型,可以重写
+  ConfigureBaseProperties 配置基本属性,添加ConfigureByConvention、ConfigureSoftDelete
+  DispatchSaveBeforeEventsAsync 异步调度发生前事件
+  GetUserId 得到当前用户Id,保存时候赋值到那些继承的接口字段中，可以使用AddCurrentUser()注入，也可以实现默认接口ICurrentUser
+  SetDeletedAudited 设置审计删除，IsDeleted、IHasDeletionTime，IHasDeleterId
+  SetModifierAudited 设置审计修改，LastModificationTime、LastModifierId
+  SetCreatorAudited 设置审计创建，CreationTime、IMayHaveCreator
+  DeleteBefore 删除前操作
+  UpdateBefore 更新前删除
+  AddBefore 添加前操作 
+  后面修改修改拦截器做
+  SaveChangesBeforeAsync 异步开始保存更改,自动实现审计接口属性赋值
