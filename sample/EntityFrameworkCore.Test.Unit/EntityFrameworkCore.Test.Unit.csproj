@@ -15,6 +15,10 @@
 		<DockerfileContext>..\..</DockerfileContext>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<None Include=".\README.md" Pack="true" PackagePath="" />
+		<None Include="..\..\LICENSE" Pack="true" PackagePath="" />
+	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net7.0'">
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.11" />
@@ -36,10 +40,5 @@
 		<ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
 		<ProjectReference Include="..\..\src\EasilyNET.WebCore.Swagger\EasilyNET.WebCore.Swagger.csproj" />
 	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Infra\" />
-	</ItemGroup>
-
 
 </Project>
