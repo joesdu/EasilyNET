@@ -1,7 +1,7 @@
 ﻿namespace EasilyNET.Core.Domains;
 
 /// <summary>
-/// 是否版本号
+/// 并发控制版本号
 /// </summary>
 public interface IHasRowVersion
 {

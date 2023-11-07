@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace EasilyNET.EntityFrameworkCore;
 
 /// <summary>
@@ -188,6 +190,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     {
         SetCreatorAudited(entry);
         SetModifierAudited(entry);
+        SetVersionAudited(entry);
     }
 
     /// <summary>
@@ -197,6 +200,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     protected virtual void UpdateBefore(EntityEntry entry)
     {
         SetModifierAudited(entry);
+        SetVersionAudited(entry);
     }
 
     /// <summary>
@@ -222,6 +226,31 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     {
         entry.SetCurrentValue(EFCoreShare.CreationTime, DateTime.Now);
         entry.SetPropertyValue(EFCoreShare.CreatorId, GetUserId());
+    }
+
+    /// <summary>
+    /// 设置版本号一般不用设置，假如是Sqlite就单独处理
+    /// </summary>
+    /// <param name="entry"></param>
+    protected virtual void SetVersionAudited(EntityEntry entry)
+    {
+        if (IsUseSqlite() && entry.Entity is IHasRowVersion version)
+        {
+            version.Version = Encoding.UTF8.GetBytes(Guid.NewGuid().ToString("N"));
+        }
+    }
+
+    /// <summary>
+    /// 判断是否Sqlite
+    /// </summary>
+    /// <returns></returns>
+    private bool IsUseSqlite()
+    {
+        if (Database.ProviderName?.Equals("Microsoft.EntityFrameworkCore.Sqlite", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return true;
+        }
+        return false;
     }
 
     /// <summary>
@@ -255,6 +284,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             ConfigureBasePropertiesMethodInfo?.MakeGenericMethod(entityType.ClrType).Invoke(this, new object[] { modelBuilder, entityType });
+            ApplyRowVersion(modelBuilder, entityType);
         }
     }
 
@@ -265,6 +295,29 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     protected virtual void ApplyConfigurations(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(GetType().Assembly);
+    }
+
+    /// <summary>
+    /// 根据数据库类型配置版本号
+    /// </summary>
+    /// <param name="modelBuilder"></param>
+    /// <param name="mutableEntityType"></param>
+    protected virtual void ApplyRowVersion(ModelBuilder modelBuilder, IMutableEntityType mutableEntityType)
+    {
+        if (mutableEntityType.ClrType.IsDeriveClassFrom<IHasRowVersion>())
+        {
+            var propertyBuilder = modelBuilder.Entity(mutableEntityType.ClrType).Property<byte[]>(EFCoreShare.Version).IsRequired()
+                                              .HasComment("版本号");
+            //因为Sqlite不支持rowversion，所以这里做了特殊处理，RowVersion其实就是IsConcurrencyToken+ValueGeneratedOnAddOrUpdate
+            if (IsUseSqlite())
+            {
+                propertyBuilder.IsConcurrencyToken();
+            }
+            else
+            {
+                propertyBuilder.IsRowVersion();
+            }
+        }
     }
 
     /// <summary>
