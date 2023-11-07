@@ -22,10 +22,7 @@ public class RepositoryTests
         _serviceCollection.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
         _serviceCollection.AddSingleton(SnowFlakeId.Default);
         _serviceCollection.AddMediatR(cfg => { cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()); });
-        //_serviceCollection.AddScoped<IRepository<Role, long>, Repository<Role, long>>();
         _serviceProvider = _serviceCollection.BuildServiceProvider();
-        //var testDbContext = _serviceProvider.GetService<TestDbContext>();
-        //testDbContext.Database.EnsureCreated();
     }
 
     //本人太笨了NSubstitute 测试怎么也学不会。。。。
@@ -199,19 +196,13 @@ public sealed class TestDbContext : DefaultDbContext
     protected override string GetUserId() => NextId;
 }
 
-public interface IUserRepository : IRepository<User, long>
-{
-    Task UpdateName(string name, long id);
-}
+public interface IUserRepository : IRepository<User, long> { }
 
 /// <summary>
 /// UserRepository
 /// </summary>
 /// <param name="dbContext"></param>
-public class UserRepository(TestDbContext dbContext) : RepositoryBase<User, long, TestDbContext>(dbContext), IUserRepository
-{
-    public async Task UpdateName(string name, long id) => await dbContext.Database.ExecuteSqlAsync($"UPDATE  user set  Name= '{name}'  WHERE Id = {id}");
-}
+public class UserRepository(TestDbContext dbContext) : RepositoryBase<User, long, TestDbContext>(dbContext), IUserRepository { }
 
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {
