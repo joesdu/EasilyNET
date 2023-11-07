@@ -39,4 +39,9 @@ public static class EFCoreShare
     /// 删除时间
     /// </summary>
     public const string DeletionTime = nameof(IHasDeletionTime.DeletionTime);
+
+    /// <summary>
+    /// 版本号，并发冲突
+    /// </summary>
+    public const string Version = nameof(IHasRowVersion.Version);
 }
