@@ -2,6 +2,7 @@ using EasilyNET.Core.BaseType;
 using EasilyNET.Core.Domains.Commands;
 using EasilyNET.EntityFrameworkCore.Extensions;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
@@ -11,23 +12,21 @@ namespace EasilyNET.EntityFrameworkCore.Test;
 [TestClass]
 public class RepositoryTests
 {
-    //本人太笨了NSubstitute 测试怎么也学不会。。。。
-    // private DbContextOptions<TestDbContext> DummyOptions { get; } = new DbContextOptionsBuilder<TestDbContext>().UseSqlite("Data Source=My.db").Options;
-
     private readonly IServiceCollection _serviceCollection = new ServiceCollection();
     private readonly IServiceProvider _serviceProvider;
 
     public RepositoryTests()
     {
-        _serviceCollection.AddEFCore<TestDbContext>(options => options.ConfigureDbContextBuilder = builder => { builder.UseSqlite("Data Source=My.db"); });
-        // _serviceCollection.AddDbContext<DefaultDbContext, TestDbContext>(options => { options.UseSqlite("Data Source=My.db"); });
+        _serviceCollection.AddEFCore<TestDbContext>(options => { options.ConfigureDbContextBuilder = builder => builder.UseSqlite("Data Source=My.db").LogTo(Console.WriteLine, LogLevel.Information); });
         _serviceCollection.AddScoped<IUserRepository, UserRepository>();
         _serviceCollection.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
         _serviceCollection.AddSingleton(SnowFlakeId.Default);
         _serviceCollection.AddMediatR(cfg => { cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()); });
-        // _serviceCollection.AddScoped<IRepository<Role, long>, Repository<Role, long>>();
         _serviceProvider = _serviceCollection.BuildServiceProvider();
     }
+
+    //本人太笨了NSubstitute 测试怎么也学不会。。。。
+    private DbContextOptions<TestDbContext> DummyOptions { get; } = new DbContextOptionsBuilder<TestDbContext>().UseSqlite("Data Source=My.db").Options;
 
     [TestMethod]
     public async Task AddUserAsync_ShouldAddUserToDatabase()
@@ -133,6 +132,8 @@ public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>,
 
     public int Age { get; }
 
+    public byte[] Version { get; set; } = default!;
+
     /// <inheritdoc />
     public DateTime CreationTime { get; set; }
 
@@ -157,7 +158,7 @@ public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>,
     }
 }
 
-public sealed class Role : Entity<long>, IAggregateRoot, IHasSoftDelete
+public sealed class Role : Entity<long>, IAggregateRoot
 {
     private Role() { }
 
@@ -167,7 +168,9 @@ public sealed class Role : Entity<long>, IAggregateRoot, IHasSoftDelete
         Name = name;
     }
 
-    public string Name { get; init; } = default!;
+    public string Name { get; set; } = default!;
+
+    public byte[] Version { get; set; } = default!;
 }
 
 // ReSharper disable once PartialTypeWithSinglePart
@@ -193,13 +196,13 @@ public sealed class TestDbContext : DefaultDbContext
     protected override string GetUserId() => NextId;
 }
 
-public interface IUserRepository : IRepository<User, long>;
+public interface IUserRepository : IRepository<User, long> { }
 
 /// <summary>
 /// UserRepository
 /// </summary>
 /// <param name="dbContext"></param>
-public class UserRepository(TestDbContext dbContext) : RepositoryBase<User, long, TestDbContext>(dbContext), IUserRepository;
+public class UserRepository(TestDbContext dbContext) : RepositoryBase<User, long, TestDbContext>(dbContext), IUserRepository { }
 
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {
@@ -222,7 +225,6 @@ internal sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
     {
         builder.HasKey(o => o.Id);
         builder.Property(o => o.Name).IsRequired().HasMaxLength(50);
-
         // builder.ConfigureByConvention();
         builder.ToTable("Role");
     }

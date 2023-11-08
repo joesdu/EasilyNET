@@ -251,4 +251,16 @@ public static class DateTimeExtension
     /// <param name="dateTime"></param>
     /// <returns></returns>
     public static TimeOnly ToTimeOnly(this DateTime dateTime) => TimeOnly.FromDateTime(dateTime);
+
+    /// <summary>
+    /// 将 DateTime 转换为 byte[]
+    /// </summary>
+    /// <param name="dateTime"></param>
+    /// <returns></returns>
+    public static byte[] ToByteArray(this DateTime dateTime)
+    {
+        var ticks = dateTime.Ticks;
+        var bytes = BitConverter.GetBytes(ticks);
+        return bytes;
+    }
 }
