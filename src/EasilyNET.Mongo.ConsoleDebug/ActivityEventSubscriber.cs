@@ -139,7 +139,6 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
         }.NoBorder().NoSafeBorder().Expand());
     }
 
-#pragma warning disable IDE0051
     private void Handle(CommandStartedEvent @event)
     {
         if (RequestIdWithCollectionName.Count > 50) RequestIdWithCollectionName.Clear();
@@ -199,5 +198,4 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
         if (!CommandsWithCollectionNameAsValue.Contains(@event.CommandName)) return;
         WritStatus(@event.RequestId, false);
     }
-#pragma warning restore IDE0051
 }
