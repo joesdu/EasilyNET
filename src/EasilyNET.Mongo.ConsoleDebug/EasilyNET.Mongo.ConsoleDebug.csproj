@@ -19,7 +19,7 @@
 	<ItemGroup>
 		<PackageReference Include="MongoDB.Driver.Core" Version="2.22.0" />
 		<PackageReference Include="Serilog" Version="3.1.0" />
-		<PackageReference Include="Spectre.Console.Json" Version="0.47.1-preview.0.28" />
+		<PackageReference Include="Spectre.Console.Json" Version="0.47.1-preview.0.29" />
 	</ItemGroup>
 
 </Project>
