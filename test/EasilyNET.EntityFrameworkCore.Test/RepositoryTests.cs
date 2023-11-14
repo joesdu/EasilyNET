@@ -17,7 +17,12 @@ public class RepositoryTests
 
     public RepositoryTests()
     {
-        _serviceCollection.AddEFCore<TestDbContext>(options => { options.ConfigureDbContextBuilder = builder => builder.UseSqlite("Data Source=My.db").LogTo(Console.WriteLine, LogLevel.Information); });
+        _serviceCollection.AddEFCore<TestDbContext>(options =>
+        {
+            options.ConfigureDbContextBuilder =
+                builder =>
+                    builder.UseSqlite("Data Source=My.db", o => o.MigrationsAssembly(nameof(RepositoryTests))).LogTo(Console.WriteLine, LogLevel.Information);
+        });
         _serviceCollection.AddScoped<IUserRepository, UserRepository>();
         _serviceCollection.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
         _serviceCollection.AddSingleton(SnowFlakeId.Default);
