@@ -21,7 +21,7 @@
 	</ItemGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net6.0' OR '$(TargetFramework)' == 'net7.0'">
-		<PackageReference Include="Duende.IdentityServer" Version="6.3.6" />
+		<PackageReference Include="Duende.IdentityServer" Version="7.0.0-preview.2" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
