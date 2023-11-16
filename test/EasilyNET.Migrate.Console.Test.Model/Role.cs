@@ -1,6 +1,7 @@
 ﻿using EasilyNET.Core.Domains;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using System;
 
 namespace EasilyNET.Migrate.Console.Test.Model;
 
@@ -24,6 +25,7 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
     {
         builder.HasKey(o => o.Id);
         builder.Property(o => o.Name).IsRequired().HasMaxLength(50);
+        builder.HasIndex("Name", "UserId");
         builder.ToTable("Role");
     }
 }
