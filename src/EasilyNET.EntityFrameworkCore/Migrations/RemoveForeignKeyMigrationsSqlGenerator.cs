@@ -1,21 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations.Operations;
+﻿namespace EasilyNET.EntityFrameworkCore.Migrations;
 
-namespace EasilyNET.EntityFrameworkCore.Migrations;
-
-/// <summary>
+/// <remarks>
 /// 删除外键迁移Sql生成
-/// </summary>
-public class RemoveForeignKeyMigrationsSqlGenerator : MigrationsSqlGenerator
+/// </remarks>
+/// <param name="dependencies"></param>
+public class RemoveForeignKeyMigrationsSqlGenerator(MigrationsSqlGeneratorDependencies dependencies) : MigrationsSqlGenerator(dependencies)
 {
     /// <summary>
     /// 外键操作集合
     /// </summary>
     private readonly IList<AddForeignKeyOperation> _addForeignKeyOperations = new List<AddForeignKeyOperation>();
-
-    /// <summary>
-    /// </summary>
-    /// <param name="dependencies"></param>
-    public RemoveForeignKeyMigrationsSqlGenerator(MigrationsSqlGeneratorDependencies dependencies) : base(dependencies) { }
 
     /// <summary>
     /// 创建表操作

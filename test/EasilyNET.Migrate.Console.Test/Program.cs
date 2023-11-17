@@ -24,7 +24,7 @@ var slice = new ArraySegment<string>(dir, 0, dir.Length - 5);
 var path = Path.Combine(slice.ToArray());
 var rootPath = Path.Combine(path, "EasilyNET.Migrate.Console.Test.Model");
 var testDbContext = serviceProvider.GetService<TestDbContext>()!;
-var name = "Init_123";
+const string name = "Init_123";
 var isMigration = testDbContext.Database.GetPendingMigrations().Where(o => o.Contains(name))!.Any();
 
 //暂时不更新，因为8.0问题
