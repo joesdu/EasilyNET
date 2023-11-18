@@ -15,13 +15,7 @@ namespace EasilyNET.EntityFrameworkCore.Migrations;
 /// <param name="detector"></param>
 /// <param name="factory"></param>
 /// <param name="dependencies"></param>
-public class MigrationsModelDifferWithoutForeignKey(
-IRelationalTypeMappingSource mappingSource,
-IMigrationsAnnotationProvider provider,
-IChangeDetector detector,
-IUpdateAdapterFactory factory,
-CommandBatchPreparerDependencies dependencies
-)
+public class MigrationsModelDifferWithoutForeignKey(IRelationalTypeMappingSource mappingSource, IMigrationsAnnotationProvider provider, IChangeDetector detector, IUpdateAdapterFactory factory, CommandBatchPreparerDependencies dependencies)
     : MigrationsModelDiffer(mappingSource, provider, detector, factory, dependencies)
 #elif NET7_0_OR_GREATER
 /// <summary>

@@ -36,7 +36,7 @@ public class MigrationService(ILogger<MigrationService>? logger) : IMigrationSer
         {
             if (!string.IsNullOrWhiteSpace(eventArgs.Data))
             {
-                _logger.LogTrace(eventArgs.Data);
+                _logger.LogTrace("{msg}", eventArgs.Data);
             }
         };
         process.ErrorDataReceived += (_, eventArgs) =>
@@ -75,7 +75,7 @@ public class MigrationService(ILogger<MigrationService>? logger) : IMigrationSer
         {
             if (!string.IsNullOrWhiteSpace(eventArgs.Data))
             {
-                _logger.LogTrace(eventArgs.Data);
+                _logger.LogTrace("{msg}", eventArgs.Data);
             }
         };
         process.ErrorDataReceived += (_, eventArgs) =>
@@ -118,7 +118,7 @@ public class MigrationService(ILogger<MigrationService>? logger) : IMigrationSer
         {
             if (!string.IsNullOrWhiteSpace(eventArgs.Data))
             {
-                _logger.LogTrace(eventArgs.Data);
+                _logger.LogTrace("{msg}", eventArgs.Data);
             }
         };
         process.ErrorDataReceived += (_, eventArgs) =>
@@ -159,7 +159,7 @@ public class MigrationService(ILogger<MigrationService>? logger) : IMigrationSer
         {
             if (!string.IsNullOrWhiteSpace(eventArgs.Data))
             {
-                _logger.LogTrace(eventArgs.Data);
+                _logger.LogTrace("{msg}", eventArgs.Data);
             }
         };
         process.ErrorDataReceived += (_, eventArgs) =>
