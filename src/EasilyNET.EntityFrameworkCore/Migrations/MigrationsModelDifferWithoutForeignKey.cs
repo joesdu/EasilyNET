@@ -1,7 +1,9 @@
 ﻿#if NET7_0_OR_GREATER
 #pragma warning disable EF1001 // Internal EF Core API usage.
 #endif
-
+#if NET6_0
+#pragma warning disable EF1001 // Internal EF Core API usage.
+#endif
 namespace EasilyNET.EntityFrameworkCore.Migrations;
 
 #if NET6_0
@@ -14,21 +16,13 @@ namespace EasilyNET.EntityFrameworkCore.Migrations;
 /// <param name="factory"></param>
 /// <param name="dependencies"></param>
 public class MigrationsModelDifferWithoutForeignKey(
-IRelationalTypeMappingSource mappingSource, 
+IRelationalTypeMappingSource mappingSource,
 IMigrationsAnnotationProvider provider,
-#pragma warning disable EF1001
-IChangeDetector detector, 
-#pragma warning restore EF1001 
-#pragma warning disable EF1001
-IUpdateAdapterFactory factory, 
-#pragma warning restore EF1001 
-#pragma warning disable EF1001
+IChangeDetector detector,
+IUpdateAdapterFactory factory,
 CommandBatchPreparerDependencies dependencies
-#pragma warning restore EF1001 
 )
-#pragma warning disable EF1001
     : MigrationsModelDiffer(mappingSource, provider, detector, factory, dependencies)
-#pragma warning restore EF1001 
 #elif NET7_0_OR_GREATER
 /// <summary>
 /// 迁移文件不生成外键关系和外键索引
@@ -48,9 +42,7 @@ public class MigrationsModelDifferWithoutForeignKey(IRelationalTypeMappingSource
     /// <returns></returns>
     public override IReadOnlyList<MigrationOperation> GetDifferences(IRelationalModel? source, IRelationalModel? target)
     {
-#pragma warning disable EF1001 // Internal EF Core API usage.
         var getDifferences = base.GetDifferences(source, target);
-#pragma warning restore EF1001 // Internal EF Core API usage.
         var operations = getDifferences
                          .Where(op => op is not AddForeignKeyOperation)
                          .Where(op => op is not DropForeignKeyOperation)
