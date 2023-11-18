@@ -1,12 +1,9 @@
 ﻿#if NET7_0_OR_GREATER
 #pragma warning disable EF1001 // Internal EF Core API usage.
 #endif
-
 #if NET6_0
-using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
-using Microsoft.EntityFrameworkCore.Update;
+#pragma warning disable EF1001 // Internal EF Core API usage.
 #endif
-
 namespace EasilyNET.EntityFrameworkCore.Migrations;
 
 #if NET6_0
@@ -18,7 +15,13 @@ namespace EasilyNET.EntityFrameworkCore.Migrations;
 /// <param name="detector"></param>
 /// <param name="factory"></param>
 /// <param name="dependencies"></param>
-public class MigrationsModelDifferWithoutForeignKey(IRelationalTypeMappingSource mappingSource, IMigrationsAnnotationProvider provider, IChangeDetector detector, IUpdateAdapterFactory factory, CommandBatchPreparerDependencies dependencies)
+public class MigrationsModelDifferWithoutForeignKey(
+IRelationalTypeMappingSource mappingSource,
+IMigrationsAnnotationProvider provider,
+IChangeDetector detector,
+IUpdateAdapterFactory factory,
+CommandBatchPreparerDependencies dependencies
+)
     : MigrationsModelDiffer(mappingSource, provider, detector, factory, dependencies)
 #elif NET7_0_OR_GREATER
 /// <summary>
