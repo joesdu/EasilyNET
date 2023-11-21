@@ -18,7 +18,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Polly" Version="8.2.0" />
-		<PackageReference Include="RabbitMQ.Client" Version="7.0.0-alpha.0" />
+		<PackageReference Include="RabbitMQ.Client" Version="7.0.0-alpha.1" />
 		<PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
