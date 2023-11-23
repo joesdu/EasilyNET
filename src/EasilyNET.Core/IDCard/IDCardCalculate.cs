@@ -1,6 +1,7 @@
 ﻿using EasilyNET.Core.Enums;
 using EasilyNET.Core.Misc;
 
+// ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 
@@ -48,20 +49,6 @@ public static class IDCardCalculate
     }
 
     /// <summary>
-    /// 根据出生日期，计算精确的年龄
-    /// </summary>
-    /// <param name="birthday">生日(<see cref="DateTime" />)</param>
-    /// <returns>精确年龄</returns>
-    public static int CalculateAge(DateTime birthday)
-    {
-        var now = DateTime.Now;
-        var age = now.Year - birthday.Year;
-        //再考虑月、天的因素
-        if (now.Month < birthday.Month || now.Month != birthday.Month || now.Day >= birthday.Day) age--;
-        return age;
-    }
-
-    /// <summary>
     /// 根据身份证号码计算出性别
     /// </summary>
     /// <param name="no">身份证号码</param>
@@ -79,26 +66,11 @@ public static class IDCardCalculate
     }
 
     /// <summary>
-    /// 根据身份证号码计算生日日期
-    /// </summary>
-    /// <param name="no">身份证号</param>
-    /// <param name="birthday">生日(<see cref="DateOnly" />)</param>
-    public static void CalculateBirthday(this string no, out DateOnly birthday)
-    {
-        no.ValidateIDCard();
-        birthday = no.Length switch
-        {
-            18 => DateOnly.FromDateTime($"{no.Substring(6, 4)}-{no.Substring(10, 2)}-{no.Substring(12, 2)}".ToDateTime()),
-            15 => DateOnly.FromDateTime($"19{no.Substring(6, 2)}-{no.Substring(8, 2)}-{no.Substring(10, 2)}".ToDateTime()),
-            _  => throw new("该身份证号无法正确计算出生日")
-        };
-    }
-
-    /// <summary>
     /// 根据出生日期，计算精确的年龄
     /// </summary>
     /// <param name="birthday">生日(<see cref="DateOnly" />)</param>
     /// <returns>精确年龄</returns>
+    // ReSharper disable once MemberCanBePrivate.Global
     public static int CalculateAge(DateOnly birthday)
     {
         var now = DateTime.Now;
@@ -106,5 +78,23 @@ public static class IDCardCalculate
         //再考虑月、天的因素
         if (now.Month < birthday.Month || now.Month != birthday.Month || now.Day >= birthday.Day) age--;
         return age;
+    }
+
+    /// <summary>
+    /// 根据出生日期，计算精确的年龄
+    /// </summary>
+    /// <param name="birthday">生日(<see cref="DateTime" />)</param>
+    /// <returns>精确年龄</returns>
+    public static int CalculateAge(DateTime birthday) => CalculateAge(DateOnly.FromDateTime(birthday));
+
+    /// <summary>
+    /// 根据身份证号码计算生日日期
+    /// </summary>
+    /// <param name="no">身份证号</param>
+    /// <param name="birthday">生日(<see cref="DateOnly" />)</param>
+    public static void CalculateBirthday(this string no, out DateOnly birthday)
+    {
+        no.CalculateBirthday(out DateTime date);
+        birthday = DateOnly.FromDateTime(date);
     }
 }
