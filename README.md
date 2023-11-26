@@ -17,13 +17,13 @@ EasilyNET Packages
 - 简单的二维码生成和读取
 - 基于 RabbitMQ 的消息总线实现
 - 对 MongoDB 驱动的一些封装,方便使用以及一些常用的默认配置
-- 雪花ID,一些常用的数据类型,枚举,扩展方法等
+- 雪花 ID,一些常用的数据类型,枚举,扩展方法等
 - 自动模块化注入服务
-- MongoDB 添加(dynamic|object)类型的序列化和反序列化支持 ( MongoDB 在 2.19至2.20 版之间移除了这两个类型的支持)
+- MongoDB 添加(dynamic|object)类型的序列化和反序列化支持 ( MongoDB 在 2.19 至 2.20 版之间移除了这两个类型的支持)
 - IdentityServer 6.x ,7.x 的 MongoDB 持久化支持
 - MongoDB GridFS 用法的简单支持(常用用法)和使用案例.
 - 在 WebAPI 中集成一些常见的过滤器和中间件
-- 对 Swagger 文档添加分组,隐藏 API和添加部分数据类型默认值显示的支持,方便前端工程师查阅
+- 对 Swagger 文档添加分组,隐藏 API 和添加部分数据类型默认值显示的支持,方便前端工程师查阅
 - 对 MongoDB 执行命令添加个性化输出.(EasilyNET.Mongo.ConsoleDebug)
 
 #### Core
@@ -71,8 +71,8 @@ EasilyNET Packages
 - Fork 本项目到你自己的仓库.
 - 创建一个属于你自己的分支,名字随便你怎么取.
 - 然后提交代码到你自己仓库的分支上.
-- 然后到本项目创建一个PR.
-- 等待管理员合并PR后即可删除掉你自己的仓库.
+- 然后到本项目创建一个 PR.
+- 等待管理员合并 PR 后即可删除掉你自己的仓库.
 
 ### Git 贡献提交规范
 
