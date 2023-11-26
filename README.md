@@ -12,70 +12,19 @@ git config core.ignorecase false
 
 EasilyNET Packages
 
-- AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4
-- mongodb based distributed locks
-- simple qrcode
-- eventbus with rabbitmq
-- simplifying the use of mongodb drivers
-- some common tool extensions
-- automatic module injection
-- mongodb adds (dynamic|object) serialization support (mongodb.driver 2.19-2.20 onwards has removed it)
-- mongodb storage support for identityserver 6
-- mongodb gridfs usage simplification support
-- integration of some common filters, middleware in webapi
-
-#### Recently Updated
-
-- remove property injection
-- EasilyNET.Mongo.ConsoleDebug add new style
-
-```text
-╭───────────────────────────Command──────────────────────────────╮╭──────────────────Calendar──────────────────╮
-│ {                                                              ││                2023 August                 │
-│   "insert" : "mongo.test",                                     ││ ┌─────┬─────┬─────┬─────┬─────┬─────┬────┐ │
-│   "ordered" : true,                                            ││ │ Sun │ Mon │ Tue │ Wed │ Thu │ Fri │ S… │ │
-│   "$db" : "test1",                                             ││ ├─────┼─────┼─────┼─────┼─────┼─────┼────┤ │
-│   "lsid" : {                                                   ││ │     │     │ 1   │ 2   │ 3   │ 4   │ 5  │ │
-│     "id" : CSUUID("f12dd90d-2f58-4655-9bf2-cbce2d9bd2c4")      ││ │ 6   │ 7   │ 8   │ 9   │ 10  │ 11  │ 12 │ │
-│   },                                                           ││ │ 13  │ 14  │ 15  │ 16  │ 17  │ 18  │ 19 │ │
-│   "documents" : [{                                             ││ │ 20  │ 21  │ 22  │ 23* │ 24  │ 25  │ 26 │ │
-│       "_id" : ObjectId("64e57f266a1a63e69c52b9cb"),            ││ │ 27  │ 28  │ 29  │ 30  │ 31  │     │    │ │
-│       "dateTime" : ISODate("2023-08-23T03:38:14.121Z"),        ││ │     │     │     │     │     │     │    │ │
-│       "timeSpan" : "00:00:50",                                 ││ └─────┴─────┴─────┴─────┴─────┴─────┴────┘ │
-│       "dateOnly" : "2023-08-23",                               │╰────────────────────────────────────────────╯
-│       "timeOnly" : "11:38:14",                                 │╭────────────────────Info────────────────────╮
-│       "nullableDateOnly" : "2023-08-23",                       ││ {                                          │
-│       "nullableTimeOnly" : null                                ││    "RequestId": 86,                        │
-│     }]                                                         ││    "Timestamp": "2023-08-23 03:38:14",     │
-│ }                                                              ││    "Method": "insert",                     │
-│                                                                ││    "DatabaseName": "test1",                │
-│                                                                ││    "CollectionName": "mongo.test",         │
-│                                                                ││    "ConnectionInfo": {                     │
-│                                                                ││       "ClusterId": 1,                      │
-│                                                                ││       "EndPoint": "127.0.0.1:27018"        │
-│                                                                ││    }                                       │
-│                                                                ││ }                                          │
-│                                                                │╰────────────────────────────────────────────╯
-│                                                                │╭───────────────Request Status───────────────╮
-│                                                                ││ ┌───────────┬────────────────┬───────────┐ │
-│                                                                ││ │ RequestId │      Time      │  Status   │ │
-│                                                                ││ ├───────────┼────────────────┼───────────┤ │
-│                                                                ││ │    86     │ 11:38:14.12640 │ Succeeded │ │
-│                                                                ││ └───────────┴────────────────┴───────────┘ │
-│                                                                │╰────────────────────────────────────────────╯
-│                                                                │╭───────────────────NiuNiu───────────────────╮
-│                                                                ││   --------------------------------------   │
-│                                                                ││ /     Only two things are infinite,      \ │
-│                                                                ││ \   the universe and human stupidity.    / │
-│                                                                ││   --------------------------------------   │
-│                                                                ││              ^__^     O   ^__^             │
-│                                                                ││      _______/(oo)      o  (oo)\_______     │
-│                                                                ││  /\/(       /(__)         (__)\       )\/\ │
-│                                                                ││     ||w----||                 ||----w||    │
-│                                                                ││     ||     ||                 ||     ||    │
-│                                                                ││ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ │
-╰────────────────────────────────────────────────────────────────╯╰────────────────────────────────────────────╯
-```
+- AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4 加密,验签等算法
+- 基于 MongoDB 的分布式锁
+- 简单的二维码生成和读取
+- 基于 RabbitMQ 的消息总线实现
+- 对 MongoDB 驱动的一些封装,方便使用以及一些常用的默认配置
+- 雪花ID,一些常用的数据类型,枚举,扩展方法等
+- 自动模块化注入服务
+- MongoDB 添加(dynamic|object)类型的序列化和反序列化支持 ( MongoDB 在 2.19至2.20 版之间移除了这两个类型的支持)
+- IdentityServer 6.x ,7.x 的 MongoDB 持久化支持
+- MongoDB GridFS 用法的简单支持(常用用法)和使用案例.
+- 在 WebAPI 中集成一些常见的过滤器和中间件
+- 对 Swagger 文档添加分组,隐藏 API和添加部分数据类型默认值显示的支持,方便前端工程师查阅
+- 对 MongoDB 执行命令添加个性化输出.(EasilyNET.Mongo.ConsoleDebug)
 
 #### Core
 
@@ -117,14 +66,13 @@ EasilyNET Packages
 
 <img src="https://www.jetbrains.com/shop/static/images/jetbrains-logo-inv.svg" height="100">
 
-## How to participate in this project
+## 如何为本项目做出贡献
 
-- fork the project to your own repository.
-- then create a branch of your own, name it whatever you want, such as your nickname, or the name of the feature you are
-  working on.
-- then commit to your own repository.
-- then go to this project and create pull requests.
-- wait for the administrator to merge the project and then delete your own repository fork.
+- Fork 本项目到你自己的仓库.
+- 创建一个属于你自己的分支,名字随便你怎么取.
+- 然后提交代码到你自己仓库的分支上.
+- 然后到本项目创建一个PR.
+- 等待管理员合并PR后即可删除掉你自己的仓库.
 
 ### Git 贡献提交规范
 
