@@ -97,7 +97,7 @@ public static class StringExtension
     public static bool IsNumber(this string value) => value.Validate(@"^\d+$");
 
     /// <summary>
-    /// 快速验证一个字符串是否符合指定的正则表达式
+    /// 快速验证一个字符串是否符合指定正则表达式
     /// </summary>
     /// <param name="value">需验证的字符串</param>
     /// <param name="express">正则表达式的内容</param>
