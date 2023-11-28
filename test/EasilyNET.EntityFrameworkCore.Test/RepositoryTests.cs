@@ -1,43 +1,14 @@
-using EasilyNET.Core.BaseType;
-using EasilyNET.Core.Domains.Commands;
-using EasilyNET.EntityFrameworkCore.Extensions;
-using MediatR;
-using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
-
 namespace EasilyNET.EntityFrameworkCore.Test;
 
 [TestClass]
 public class RepositoryTests
 {
-    private readonly IServiceCollection _serviceCollection = new ServiceCollection();
-    private readonly IServiceProvider _serviceProvider;
-
-    public RepositoryTests()
-    {
-        _serviceCollection.AddEFCore<TestDbContext>(options =>
-        {
-            options.ConfigureDbContextBuilder =
-                builder =>
-                    builder.UseSqlite("Data Source=My.db", o => o.MigrationsAssembly(nameof(RepositoryTests))).LogTo(Console.WriteLine, LogLevel.Information);
-        });
-        _serviceCollection.AddScoped<IUserRepository, UserRepository>();
-        _serviceCollection.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
-        _serviceCollection.AddSingleton(SnowFlakeId.Default);
-        _serviceCollection.AddMediatR(cfg => { cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()); });
-        _serviceProvider = _serviceCollection.BuildServiceProvider();
-    }
-
-    //本人太笨了NSubstitute 测试怎么也学不会。。。。
-    private DbContextOptions<TestDbContext> DummyOptions { get; } = new DbContextOptionsBuilder<TestDbContext>().UseSqlite("Data Source=My.db").Options;
-
     [TestMethod]
     public async Task AddUserAsync_ShouldAddUserToDatabase()
     {
-        // Arrange
-        var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
+        using var application = ApplicationFactory.Create<TestAppModule>();
+        application.Initialize();
+        var userRepository = application.ServiceProvider!.GetRequiredService<IUserRepository>();
         for (var i = 0; i < 10; i++)
         {
             var user = new User($"大黄瓜_{i}", 18);
@@ -47,13 +18,15 @@ public class RepositoryTests
         var re = await userRepository.UnitOfWork.SaveChangesAsync();
         // Assert
         Assert.IsTrue(re > 0);
+        // Arrange
     }
 
     [TestMethod]
     public async Task UpdateUserAsync_ShouldUpdateUserToDatabase()
     {
+        using var application = ApplicationFactory.Create<TestAppModule>();
         // Arrange
-        var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
+        var userRepository = application.ServiceProvider!.GetRequiredService<IUserRepository>();
         // Act
         var user = await userRepository.FindEntity.FirstOrDefaultAsync();
         user?.ChangeName("大黄瓜_Test");
@@ -67,8 +40,9 @@ public class RepositoryTests
     [TestMethod]
     public async Task DeleteUserAsync_ShouldDeleteUserToDatabase()
     {
+        using var application = ApplicationFactory.Create<TestAppModule>();
         // Arrange
-        var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
+        var userRepository = application.ServiceProvider!.GetRequiredService<IUserRepository>();
         // Act
         var user = await userRepository.FindEntity.FirstOrDefaultAsync();
         userRepository.Remove(user!);
@@ -83,9 +57,10 @@ public class RepositoryTests
     [TestMethod]
     public async Task AddRoleAsync_ShouldAddRoleToDatabase()
     {
+        using var application = ApplicationFactory.Create<TestAppModule>();
         // Arrange
-        var snowFlakeId = _serviceProvider.GetService<ISnowFlakeId>();
-        var roleRepository = _serviceProvider.GetService<IRepository<Role, long>>();
+        var snowFlakeId = application.ServiceProvider!.GetService<ISnowFlakeId>();
+        var roleRepository = application.ServiceProvider!.GetService<IRepository<Role, long>>();
         for (var i = 0; i < 10; i++)
         {
             var role = new Role(snowFlakeId!.NextId(), $"大黄瓜_{i}");
@@ -103,8 +78,9 @@ public class RepositoryTests
     [TestMethod]
     public async Task AddUserAsync_ShouldCommand()
     {
+        using var application = ApplicationFactory.Create<TestAppModule>();
         var addUserCommand = new AddUserCommand(new("Command", 200));
-        var sender = _serviceProvider?.GetService<ISender>();
+        var sender = application.ServiceProvider?.GetService<ISender>();
         var count = await sender!.Send(addUserCommand);
         Assert.IsTrue(count > 0);
     }
@@ -115,8 +91,9 @@ public class RepositoryTests
     [TestMethod]
     public async Task UserListQuery_ShouldUserList()
     {
+        using var application = ApplicationFactory.Create<TestAppModule>();
         var query = new UserListQuery();
-        var sender = _serviceProvider?.GetService<ISender>();
+        var sender = application.ServiceProvider?.GetService<ISender>();
         var reulst = await sender!.Send(query);
         Assert.IsTrue(reulst.Count > 0);
     }

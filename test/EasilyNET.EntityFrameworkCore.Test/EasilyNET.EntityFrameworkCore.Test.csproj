@@ -25,6 +25,7 @@
         <PackageReference Include="NSubstitute" Version="5.1.0" />
     </ItemGroup>
     <ItemGroup>
+        <ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.Core.Domain.SourceGenerator\EasilyNET.Core.Domain.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
         <ProjectReference Include="..\..\src\EasilyNET.EntityFrameworkCore\EasilyNET.EntityFrameworkCore.csproj" />
     </ItemGroup>

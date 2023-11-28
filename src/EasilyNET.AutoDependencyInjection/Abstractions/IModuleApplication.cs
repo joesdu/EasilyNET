@@ -7,7 +7,7 @@ namespace EasilyNET.AutoDependencyInjection.Abstractions;
 /// <summary>
 /// 模块化应用
 /// </summary>
-internal interface IModuleApplication : IDisposable
+public interface IModuleApplication : IDisposable
 {
     /// <summary>
     /// 启动模块类型

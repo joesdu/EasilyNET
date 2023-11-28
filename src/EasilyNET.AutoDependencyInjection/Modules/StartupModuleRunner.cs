@@ -25,11 +25,11 @@ internal class StartupModuleRunner : ModuleApplicationBase, IStartupModuleRunner
     /// <param name="services"></param>
     public void ConfigureServices(IServiceCollection services)
     {
-        var context = new ConfigureServicesContext(services);
-        _ = services.AddSingleton(context);
+        var context = new ConfigureServicesContext(Services);
+        _ = Services.AddSingleton(context);
         foreach (var config in Modules)
         {
-            _ = services.AddSingleton(config);
+            _ = Services.AddSingleton(config);
             config.ConfigureServices(context);
         }
     }
@@ -41,9 +41,7 @@ internal class StartupModuleRunner : ModuleApplicationBase, IStartupModuleRunner
     public void Initialize(IServiceProvider service)
     {
         SetServiceProvider(service);
-        using var scope = ServiceProvider?.CreateScope();
-        var ctx = new ApplicationContext(scope?.ServiceProvider);
-        foreach (var cfg in Modules) cfg.ApplicationInitialization(ctx);
+        InitializeModules();
     }
 
     /// <summary>
