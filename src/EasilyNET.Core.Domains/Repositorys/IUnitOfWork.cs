@@ -20,9 +20,10 @@ public interface IUnitOfWork : IDisposable
     /// <summary>
     /// 异步开启事务
     /// </summary>
+    /// <param name="isolationLevel"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task BeginTransactionAsync(CancellationToken cancellationToken = default);
+    Task BeginTransactionAsync(IsolationLevel isolationLevel = IsolationLevel.Unspecified, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 异步提交并清除当前事务

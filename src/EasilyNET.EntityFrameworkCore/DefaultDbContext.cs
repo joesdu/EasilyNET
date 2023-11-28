@@ -1,3 +1,4 @@
+using System.Data;
 using System.Text;
 
 namespace EasilyNET.EntityFrameworkCore;
@@ -63,11 +64,16 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <summary>
     /// 异步开启事务
     /// </summary>
+    /// <param name="isolationLevel"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public virtual async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
+    public virtual async Task BeginTransactionAsync(IsolationLevel isolationLevel = IsolationLevel.Unspecified, CancellationToken cancellationToken = default)
     {
-        _currentTransaction = await Database.BeginTransactionAsync(cancellationToken);
+        if (_currentTransaction is not null)
+        {
+            Logger?.LogDebug("开启事务");
+            _currentTransaction = await Database.BeginTransactionAsync(isolationLevel, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -79,6 +85,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     {
         if (HasActiveTransaction)
         {
+            Logger?.LogDebug("提交事务");
             await _currentTransaction?.CommitAsync(cancellationToken)!;
             _currentTransaction = default;
         }
@@ -92,6 +99,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     {
         if (HasActiveTransaction)
         {
+            Logger?.LogDebug("回滚事务");
             await _currentTransaction?.RollbackAsync(cancellationToken)!;
             _currentTransaction = default;
         }
@@ -108,9 +116,18 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     }
 
     /// <summary>
-    /// 释放
+    /// 析构函数
     /// </summary>
-    /// <param name="disposing"></param>
+    ~DefaultDbContext()
+    {
+        //不释放
+        Dispose(false);
+    }
+
+    /// <summary>
+    /// 释放对象所占用的非托管和托管资源。
+    /// </summary>
+    /// <param name="disposing">为 true 则释放托管资源和非托管资源；为 false 则仅释放非托管资源。</param>
     protected virtual void Dispose(bool disposing)
     {
         if (_isDisposed) return;
@@ -118,19 +135,11 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         {
             _currentTransaction?.Dispose();
             _currentTransaction = default;
+            base.Dispose();
             //告诉GC，不要调用析构函数
             GC.SuppressFinalize(this);
         }
         _isDisposed = true;
-    }
-
-    /// <summary>
-    /// 析构函数
-    /// </summary>
-    ~DefaultDbContext()
-    {
-        //不释放
-        Dispose(false);
     }
 
     /// <inheritdoc />
@@ -149,10 +158,10 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <returns></returns>
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-        await SaveChangesBeforeAsync(cancellationToken);
-        var count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        await SaveChangesBeforeAsync(cancellationToken).ConfigureAwait(false);
+        var count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken).ConfigureAwait(false);
         Logger?.LogInformation($"保存{count}条数据");
-        await SaveChangesAfterAsync(cancellationToken);
+        await SaveChangesAfterAsync(cancellationToken).ConfigureAwait(false);
         return count;
     }
 
