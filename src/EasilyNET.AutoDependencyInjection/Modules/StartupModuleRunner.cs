@@ -40,12 +40,10 @@ internal class StartupModuleRunner : ModuleApplicationBase, IStartupModuleRunner
     /// <summary>
     /// Dispose
     /// </summary>
-    public new void Dispose()
+    public override void Dispose()
     {
         base.Dispose();
-        if (ServiceProvider is IDisposable disposableServiceProvider) disposableServiceProvider.Dispose();
         ServiceScope?.Dispose();
-        GC.SuppressFinalize(this);
     }
 
     /// <summary>
