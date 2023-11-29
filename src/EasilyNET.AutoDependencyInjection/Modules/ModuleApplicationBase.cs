@@ -81,6 +81,7 @@ internal class ModuleApplicationBase : IModuleApplication
     /// </summary>
     public virtual void Dispose()
     {
+        if (ServiceProvider is IDisposable disposableServiceProvider) disposableServiceProvider.Dispose();
         GC.SuppressFinalize(this);
     }
 
