@@ -16,31 +16,24 @@ internal class StartupModuleRunner : ModuleApplicationBase, IStartupModuleRunner
     /// <param name="services"></param>
     internal StartupModuleRunner(Type startupModuleType, IServiceCollection services) : base(startupModuleType, services)
     {
-        _ = services.AddSingleton<IStartupModuleRunner>(this);
+        services.AddSingleton<IStartupModuleRunner>(this);
+        ConfigureServices();
     }
 
-    /// <summary>
-    /// 配置服务
-    /// </summary>
-    /// <param name="services"></param>
-    public void ConfigureServices(IServiceCollection services)
+    private IServiceScope? ServiceScope { get; set; }
+
+    /// <inheritdoc />
+    public void Initialize(IServiceProvider? provider = null)
     {
-        var context = new ConfigureServicesContext(Services);
-        _ = Services.AddSingleton(context);
-        foreach (var config in Modules)
+        if (provider is not null)
         {
-            _ = Services.AddSingleton(config);
-            config.ConfigureServices(context);
+            SetServiceProvider(provider);
         }
-    }
-
-    /// <summary>
-    /// 初始化
-    /// </summary>
-    /// <param name="service"></param>
-    public void Initialize(IServiceProvider service)
-    {
-        SetServiceProvider(service);
+        else
+        {
+            ServiceScope = Services.BuildServiceProvider().CreateScope();
+            SetServiceProvider(ServiceScope.ServiceProvider);
+        }
         InitializeModules();
     }
 
@@ -51,6 +44,21 @@ internal class StartupModuleRunner : ModuleApplicationBase, IStartupModuleRunner
     {
         base.Dispose();
         if (ServiceProvider is IDisposable disposableServiceProvider) disposableServiceProvider.Dispose();
+        ServiceScope?.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// 配置服务
+    /// </summary>
+    private void ConfigureServices()
+    {
+        var context = new ConfigureServicesContext(Services);
+        Services.AddSingleton(context);
+        foreach (var config in Modules)
+        {
+            Services.AddSingleton(config);
+            config.ConfigureServices(context);
+        }
     }
 }

@@ -12,7 +12,6 @@ using Microsoft.Extensions.Logging;
 
 using (var application = ApplicationFactory.Create<TestAppModule>())
 {
-    application.Initialize();
     var serviceProvider = application.ServiceProvider!;
     var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
     var migrationService = serviceProvider.GetService<IMigrationService>();

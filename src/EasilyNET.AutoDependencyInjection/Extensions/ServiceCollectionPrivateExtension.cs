@@ -1,6 +1,5 @@
 ﻿using EasilyNET.AutoDependencyInjection;
 using EasilyNET.AutoDependencyInjection.Abstractions;
-using Microsoft.Extensions.Configuration;
 
 // ReSharper disable UnusedMember.Global
 
@@ -11,28 +10,6 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static partial class ServiceCollectionExtension
 {
-    /// <summary>
-    /// 得到已注入的服务
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="services"></param>
-    /// <returns></returns>
-    public static T? GetService<T>(this IServiceCollection services) => services.GetBuildService<T>();
-
-    /// <summary>
-    /// 获取 <see cref="IConfiguration" /> 服务
-    /// </summary>
-    /// <param name="services"></param>
-    /// <returns></returns>
-    public static IConfiguration GetConfiguration(this IServiceCollection services) => services.GetBuildService<IConfiguration>() ?? throw new("未找到IConfiguration服务");
-
-    /// <summary>
-    /// 获取 <see cref="IConfiguration" /> 服务
-    /// </summary>
-    /// <param name="provider"></param>
-    /// <returns></returns>
-    public static IConfiguration GetConfiguration(this IServiceProvider provider) => provider.GetRequiredService<IConfiguration>();
-
     /// <summary>
     /// 得到已注入的服务
     /// </summary>
@@ -69,19 +46,6 @@ public static partial class ServiceCollectionExtension
     {
         var service = services.GetSingletonInstanceOrNull<T>();
         return service is null ? throw new InvalidOperationException($"找不到Singleton服务: {typeof(T).AssemblyQualifiedName}") : service;
-    }
-
-    /// <summary>
-    /// 试着添加对象适配器
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="services"></param>
-    /// <returns></returns>
-    internal static ObjectAccessor<T> TryAddObjectAccessor<T>(this IServiceCollection services)
-    {
-        return services.Any(s => s.ServiceType == typeof(ObjectAccessor<T>))
-                   ? services.GetSingletonInstance<ObjectAccessor<T>>()
-                   : services.AddObjectAccessor<T>();
     }
 
     /// <summary>
