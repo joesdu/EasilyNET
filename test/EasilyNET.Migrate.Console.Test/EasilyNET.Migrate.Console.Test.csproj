@@ -19,6 +19,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
 		<ProjectReference Include="..\..\src\EasilyNET.EntityFrameworkCore\EasilyNET.EntityFrameworkCore.csproj" />
 		<ProjectReference Include="..\EasilyNET.Migrate.Console.Test.Model\EasilyNET.Migrate.Console.Test.Model.csproj" />
 	</ItemGroup>

@@ -1,4 +1,5 @@
 ﻿using EasilyNET.AutoDependencyInjection.Abstractions;
+using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.Core.Misc;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq.Expressions;
@@ -12,6 +13,7 @@ namespace EasilyNET.AutoDependencyInjection.Modules;
 /// </summary>
 internal class ModuleApplicationBase : IModuleApplication
 {
+
     /// <summary>
     /// 构造函数
     /// </summary>
@@ -26,6 +28,21 @@ internal class ModuleApplicationBase : IModuleApplication
         _ = services.TryAddObjectAccessor<IServiceProvider>();
         Source = GetEnabledAllModule(services);
         Modules = LoadModules;
+    }
+
+
+    /// <summary>
+    /// 配置服务
+    /// </summary>
+    public virtual void ConfigureServices()
+    {
+        var context = new ConfigureServicesContext(Services);
+        _ = Services.AddSingleton(context);
+        foreach (var config in Modules)
+        {
+            _ = Services.AddSingleton(config);
+            config.ConfigureServices(context);
+        }
     }
 
     /// <summary>
@@ -119,5 +136,13 @@ internal class ModuleApplicationBase : IModuleApplication
         if (!module.Enable) return null;
         _ = services.AddSingleton(moduleType, module);
         return module;
+    }
+
+    protected virtual void InitializeModules()
+    {
+
+        using var scope = ServiceProvider?.CreateScope();
+        var ctx = new ApplicationContext(scope?.ServiceProvider);
+        foreach (var cfg in Modules) cfg.ApplicationInitialization(ctx);
     }
 }

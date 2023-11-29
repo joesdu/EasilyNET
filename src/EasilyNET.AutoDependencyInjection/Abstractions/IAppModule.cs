@@ -5,7 +5,7 @@ namespace EasilyNET.AutoDependencyInjection.Abstractions;
 /// <summary>
 /// 定义模块加载接口
 /// </summary>
-internal interface IAppModule : IApplicationInitialization
+public interface IAppModule : IApplicationInitialization
 {
     /// <summary>
     /// 是否启用

@@ -5,7 +5,7 @@ namespace EasilyNET.AutoDependencyInjection.Abstractions;
 /// <summary>
 /// 应用初始化接口
 /// </summary>
-internal interface IApplicationInitialization
+public interface IApplicationInitialization
 {
     /// <summary>
     /// 应用初始化
