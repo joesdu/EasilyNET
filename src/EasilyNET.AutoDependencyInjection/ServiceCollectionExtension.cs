@@ -3,15 +3,14 @@ using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 
-// ReSharper disable UnusedMethodReturnValue.Global
 // ReSharper disable UnusedMember.Global
-// ReSharper disable UnusedType.Global
 
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
-/// 服务集合扩展
+/// <see cref="IServiceCollection" /> 扩展
 /// </summary>
 public static partial class ServiceCollectionExtension
 {
@@ -20,7 +19,6 @@ public static partial class ServiceCollectionExtension
     /// </summary>
     /// <param name="applicationContext"></param>
     /// <returns></returns>
-    // ReSharper disable once UnusedMethodReturnValue.Global
     public static IApplicationBuilder GetApplicationBuilder(this ApplicationContext applicationContext) => applicationContext.ServiceProvider.GetRequiredService<IObjectAccessor<IApplicationBuilder>>().Value!;
 
     /// <summary>
@@ -35,8 +33,7 @@ public static partial class ServiceCollectionExtension
         var obj = new ObjectAccessor<IApplicationBuilder>();
         services.Add(ServiceDescriptor.Singleton(typeof(ObjectAccessor<IApplicationBuilder>), obj));
         services.Add(ServiceDescriptor.Singleton(typeof(IObjectAccessor<IApplicationBuilder>), obj));
-        var runner = new StartupModuleRunner(typeof(T), services);
-        runner.ConfigureServices(services);
+        ApplicationFactory.Create<T>(services);
         return services;
     }
 
@@ -52,4 +49,26 @@ public static partial class ServiceCollectionExtension
         runner.Initialize(builder.ApplicationServices);
         return builder;
     }
+
+    /// <summary>
+    /// 得到已注入的服务
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="services"></param>
+    /// <returns></returns>
+    public static T? GetService<T>(this IServiceCollection services) => services.GetBuildService<T>();
+
+    /// <summary>
+    /// 获取 <see cref="IConfiguration" /> 服务
+    /// </summary>
+    /// <param name="services"></param>
+    /// <returns></returns>
+    public static IConfiguration GetConfiguration(this IServiceCollection services) => services.GetBuildService<IConfiguration>() ?? throw new("未找到IConfiguration服务");
+
+    /// <summary>
+    /// 获取 <see cref="IConfiguration" /> 服务
+    /// </summary>
+    /// <param name="provider"></param>
+    /// <returns></returns>
+    public static IConfiguration GetConfiguration(this IServiceProvider provider) => provider.GetRequiredService<IConfiguration>();
 }

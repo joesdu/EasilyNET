@@ -7,7 +7,6 @@ public class RepositoryTests
     public async Task AddUserAsync_ShouldAddUserToDatabase()
     {
         using var application = ApplicationFactory.Create<TestAppModule>();
-        application.Initialize();
         var userRepository = application.ServiceProvider!.GetRequiredService<IUserRepository>();
         for (var i = 0; i < 10; i++)
         {
@@ -25,7 +24,6 @@ public class RepositoryTests
     public async Task UpdateUserAsync_ShouldUpdateUserToDatabase()
     {
         using var application = ApplicationFactory.Create<TestAppModule>();
-        application.Initialize();
         // Arrange
         var userRepository = application.ServiceProvider!.GetRequiredService<IUserRepository>();
         // Act
@@ -42,7 +40,6 @@ public class RepositoryTests
     public async Task DeleteUserAsync_ShouldDeleteUserToDatabase()
     {
         using var application = ApplicationFactory.Create<TestAppModule>();
-        application.Initialize();
         // Arrange
         var userRepository = application.ServiceProvider!.GetRequiredService<IUserRepository>();
         // Act
@@ -60,7 +57,6 @@ public class RepositoryTests
     public async Task AddRoleAsync_ShouldAddRoleToDatabase()
     {
         using var application = ApplicationFactory.Create<TestAppModule>();
-        application.Initialize();
         // Arrange
         var snowFlakeId = application.ServiceProvider!.GetService<ISnowFlakeId>();
         var roleRepository = application.ServiceProvider!.GetService<IRepository<Role, long>>();
@@ -82,7 +78,6 @@ public class RepositoryTests
     public async Task AddUserAsync_ShouldCommand()
     {
         using var application = ApplicationFactory.Create<TestAppModule>();
-        application.Initialize();
         var addUserCommand = new AddUserCommand(new("Command", 200));
         var sender = application.ServiceProvider?.GetService<ISender>();
         var count = await sender!.Send(addUserCommand);
@@ -96,7 +91,6 @@ public class RepositoryTests
     public async Task UserListQuery_ShouldUserList()
     {
         using var application = ApplicationFactory.Create<TestAppModule>();
-        application.Initialize();
         var query = new UserListQuery();
         var sender = application.ServiceProvider?.GetService<ISender>();
         var reulst = await sender!.Send(query);
