@@ -4,9 +4,7 @@ using System.Reflection;
 
 namespace EasilyNET.AutoDependencyInjection.Modules;
 
-/// <summary>
-/// AppModule
-/// </summary>
+/// <inheritdoc />
 public class AppModule : IAppModule
 {
     /// <summary>

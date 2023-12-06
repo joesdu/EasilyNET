@@ -1,7 +1,7 @@
-﻿using EasilyNET.Core.BaseType;
-using Microsoft.Extensions.DependencyInjection;
+﻿using EasilyNET.Core.Abstractions;
+using EasilyNET.WebCore;
 
-namespace EasilyNET.WebCore.Extensions;
+namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// </summary>

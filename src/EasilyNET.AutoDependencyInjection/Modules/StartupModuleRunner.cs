@@ -4,16 +4,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace EasilyNET.AutoDependencyInjection.Modules;
 
-/// <summary>
-/// 启动模块运行器
-/// </summary>
+/// <inheritdoc cref="IStartupModuleRunner" />
 internal class StartupModuleRunner : ModuleApplicationBase, IStartupModuleRunner
 {
-    /// <summary>
-    /// 程序启动运行时
-    /// </summary>
-    /// <param name="startupModuleType"></param>
-    /// <param name="services"></param>
+    /// <inheritdoc />
     internal StartupModuleRunner(Type startupModuleType, IServiceCollection services) : base(startupModuleType, services)
     {
         services.AddSingleton<IStartupModuleRunner>(this);
@@ -37,9 +31,7 @@ internal class StartupModuleRunner : ModuleApplicationBase, IStartupModuleRunner
         InitializeModules();
     }
 
-    /// <summary>
-    /// Dispose
-    /// </summary>
+    /// <inheritdoc />
     public override void Dispose()
     {
         base.Dispose();

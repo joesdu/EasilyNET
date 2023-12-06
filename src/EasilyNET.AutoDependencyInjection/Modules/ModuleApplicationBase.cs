@@ -8,9 +8,7 @@ using System.Linq.Expressions;
 
 namespace EasilyNET.AutoDependencyInjection.Modules;
 
-/// <summary>
-/// 模块应用基础
-/// </summary>
+/// <inheritdoc />
 internal class ModuleApplicationBase : IModuleApplication
 {
     /// <summary>
@@ -76,9 +74,7 @@ internal class ModuleApplicationBase : IModuleApplication
     /// </summary>
     public IEnumerable<IAppModule> Source { get; }
 
-    /// <summary>
-    /// Dispose
-    /// </summary>
+    /// <inheritdoc />
     public virtual void Dispose()
     {
         if (ServiceProvider is IDisposable disposableServiceProvider) disposableServiceProvider.Dispose();

@@ -2,9 +2,7 @@
 
 namespace EasilyNET.AutoDependencyInjection.Contexts;
 
-/// <summary>
-/// 自定义应用上下文
-/// </summary>
+/// <inheritdoc />
 public sealed class ApplicationContext : IServiceProviderAccessor
 {
     /// <summary>

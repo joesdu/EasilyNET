@@ -302,7 +302,7 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
                     var handler = scope?.ServiceProvider.GetService(subscriptionType);
                     if (handler is null) continue;
                     await Task.Yield();
-                    var obj = method.Invoke(handler, new[] { integrationEvent });
+                    var obj = method.Invoke(handler, [integrationEvent]);
                     if (obj is null) continue;
                     await (Task)obj;
                     ack.Invoke();
@@ -380,7 +380,7 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
                     var handler = scope?.ServiceProvider.GetService(subscriptionType);
                     if (handler is null) continue;
                     await Task.Yield();
-                    var obj = method.Invoke(handler, new[] { integrationEvent });
+                    var obj = method.Invoke(handler, [integrationEvent]);
                     if (obj is null) continue;
                     await (Task)obj;
                     ack.Invoke();
