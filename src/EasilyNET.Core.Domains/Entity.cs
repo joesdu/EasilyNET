@@ -66,7 +66,7 @@ public abstract class Entity<TKey> : Entity where TKey : IEquatable<TKey>
     public virtual TKey Id { get; protected set; } = default!;
 
     /// <inheritdoc />
-    public override object[] GetKeys() => new object[] { Id };
+    public override object[] GetKeys() => [Id];
 
     /// <summary>
     /// 比较是否值和引用都相等
@@ -109,14 +109,7 @@ public abstract class Entity<TKey> : Entity where TKey : IEquatable<TKey>
     /// 当前 <see cref="T:System.Object" /> 的哈希代码。 <br /> 如果 <c>Id</c> 为 <c>null</c> 则返回0， 如果不为
     /// <c>null</c> 则返回 <c>Id</c> 对应的哈希值
     /// </returns>
-    public override int GetHashCode()
-    {
-        if (!IsTransient())
-        {
-            return Id.GetHashCode() ^ 31;
-        }
-        return Id.GetHashCode();
-    }
+    public override int GetHashCode() => !IsTransient() ? Id.GetHashCode() ^ 31 : Id.GetHashCode();
 
     /// <summary>
     /// 等于

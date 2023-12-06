@@ -1,6 +1,6 @@
 ﻿using System.Security.Claims;
 
-namespace EasilyNET.Core.BaseType;
+namespace EasilyNET.Core.Abstractions;
 
 /// <summary>
 /// 当前用户
@@ -14,18 +14,4 @@ public interface ICurrentUser
     /// <typeparam name="TKey">动态键</typeparam>
     /// <returns></returns>
     public TKey? GetUserId<TKey>(string type = ClaimTypes.NameIdentifier);
-}
-
-/// <summary>
-/// 可空
-/// </summary>
-public class NullCurrentUser : ICurrentUser
-{
-    /// <summary>
-    /// 当前实例
-    /// </summary>
-    public static readonly NullCurrentUser Instance = new();
-
-    /// <inheritdoc />
-    public TKey? GetUserId<TKey>(string type = ClaimTypes.NameIdentifier) => default;
 }

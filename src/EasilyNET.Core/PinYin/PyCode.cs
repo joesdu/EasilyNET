@@ -3,7 +3,7 @@
 internal static class PyCode
 {
     internal static string[] Codes { get; } =
-    {
+    [
         "a     :阿啊吖嗄腌锕",
         "ai    :爱埃碍矮挨唉哎哀皑癌蔼艾隘捱嗳嗌嫒瑷暧砹锿霭",
         "an    :安按暗岸案俺氨胺鞍谙埯揞犴庵桉铵鹌黯",
@@ -403,5 +403,5 @@ internal static class PyCode
         "zui   :最罪嘴醉蕞",
         "zun   :尊遵撙樽鳟",
         "zuo   :作做左座坐昨佐柞阼唑嘬怍胙祚"
-    };
+    ];
 }

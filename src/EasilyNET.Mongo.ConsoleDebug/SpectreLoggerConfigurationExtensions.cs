@@ -32,9 +32,6 @@ public static class SpectreLoggerConfigurationExtensions
     /// to be changed at runtime.
     /// </param>
     /// <returns>Configuration object allowing method chaining.</returns>
-    public static LoggerConfiguration SpectreConsole(this LoggerSinkConfiguration loggerConfiguration,
-        string outputTemplate = DefaultConsoleOutputTemplate,
-        LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
-        LoggingLevelSwitch? levelSwitch = null) =>
+    public static LoggerConfiguration SpectreConsole(this LoggerSinkConfiguration loggerConfiguration, LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum, string outputTemplate = DefaultConsoleOutputTemplate, LoggingLevelSwitch? levelSwitch = null) =>
         loggerConfiguration.Sink(new SpectreConsoleSink(outputTemplate), restrictedToMinimumLevel, levelSwitch);
 }

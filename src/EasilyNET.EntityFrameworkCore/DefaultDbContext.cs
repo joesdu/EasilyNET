@@ -1,3 +1,5 @@
+using EasilyNET.Core;
+using EasilyNET.Core.Abstractions;
 using System.Data;
 using System.Text;
 
@@ -59,7 +61,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <summary>
     /// 是否激活事务
     /// </summary>
-    public bool HasActiveTransaction => _currentTransaction != null;
+    public bool HasActiveTransaction => _currentTransaction is not null;
 
     /// <summary>
     /// 异步开启事务
@@ -160,7 +162,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     {
         await SaveChangesBeforeAsync(cancellationToken).ConfigureAwait(false);
         var count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken).ConfigureAwait(false);
-        Logger?.LogInformation($"保存{count}条数据");
+        Logger?.LogInformation("保存{count}条数据", count);
         await SaveChangesAfterAsync(cancellationToken).ConfigureAwait(false);
         return count;
     }
@@ -186,6 +188,9 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
                 case EntityState.Deleted:
                     DeleteBefore(entityEntry);
                     break;
+                case EntityState.Detached:
+                case EntityState.Unchanged:
+                default: continue;
             }
         }
         await DispatchSaveBeforeEventsAsync(cancellationToken);
@@ -253,14 +258,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// 判断是否Sqlite
     /// </summary>
     /// <returns></returns>
-    private bool IsUseSqlite()
-    {
-        if (Database.ProviderName?.Equals("Microsoft.EntityFrameworkCore.Sqlite", StringComparison.OrdinalIgnoreCase) == true)
-        {
-            return true;
-        }
-        return false;
-    }
+    private bool IsUseSqlite() => Database.ProviderName?.Equals("Microsoft.EntityFrameworkCore.Sqlite", StringComparison.OrdinalIgnoreCase) == true;
 
     /// <summary>
     /// 设置修改审计
@@ -292,7 +290,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         base.OnModelCreating(modelBuilder);
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
-            ConfigureBasePropertiesMethodInfo?.MakeGenericMethod(entityType.ClrType).Invoke(this, new object[] { modelBuilder, entityType });
+            ConfigureBasePropertiesMethodInfo?.MakeGenericMethod(entityType.ClrType).Invoke(this, [modelBuilder, entityType]);
             ApplyRowVersion(modelBuilder, entityType);
         }
     }
@@ -313,19 +311,16 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <param name="mutableEntityType"></param>
     protected virtual void ApplyRowVersion(ModelBuilder modelBuilder, IMutableEntityType mutableEntityType)
     {
-        if (mutableEntityType.ClrType.IsDeriveClassFrom<IHasRowVersion>())
+        if (!mutableEntityType.ClrType.IsDeriveClassFrom<IHasRowVersion>()) return;
+        var propertyBuilder = modelBuilder.Entity(mutableEntityType.ClrType).Property<byte[]>(EFCoreShare.Version).IsRequired().HasComment("版本号");
+        //因为Sqlite不支持row version，所以这里做了特殊处理，RowVersion其实就是IsConcurrencyToken+ValueGeneratedOnAddOrUpdate
+        if (IsUseSqlite())
         {
-            var propertyBuilder = modelBuilder.Entity(mutableEntityType.ClrType).Property<byte[]>(EFCoreShare.Version).IsRequired()
-                                              .HasComment("版本号");
-            //因为Sqlite不支持rowversion，所以这里做了特殊处理，RowVersion其实就是IsConcurrencyToken+ValueGeneratedOnAddOrUpdate
-            if (IsUseSqlite())
-            {
-                propertyBuilder.IsConcurrencyToken();
-            }
-            else
-            {
-                propertyBuilder.IsRowVersion();
-            }
+            propertyBuilder.IsConcurrencyToken();
+        }
+        else
+        {
+            propertyBuilder.IsRowVersion();
         }
     }
 
@@ -362,5 +357,5 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// 得到当前用户
     /// </summary>
     /// <returns></returns>
-    protected virtual string GetUserId() => CurrentUser.GetUserId<string>()!;
+    protected virtual string? GetUserId() => CurrentUser.GetUserId<string>();
 }

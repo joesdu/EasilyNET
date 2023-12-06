@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.BaseType;
+﻿using EasilyNET.Core.Abstractions;
 using EasilyNET.Core.Misc;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
@@ -22,5 +22,5 @@ public class CurrentWebUser : ICurrentUser
     }
 
     /// <inheritdoc />
-    public TKey? GetUserId<TKey>(string type = ClaimTypes.NameIdentifier) => _context.HttpContext!.User!.FindFirst(type)!.Value.ChangeType<TKey>();
+    public TKey? GetUserId<TKey>(string type = ClaimTypes.NameIdentifier) => _context.HttpContext!.User.FindFirst(type)!.Value.ChangeType<TKey>();
 }

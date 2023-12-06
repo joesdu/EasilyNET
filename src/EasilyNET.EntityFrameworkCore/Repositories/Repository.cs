@@ -35,7 +35,7 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     public IUnitOfWork UnitOfWork => DbContext;
 
     /// <inheritdoc />
-    public ValueTask<TEntity?> FindAsync(TKey id, CancellationToken cancellationToken = default) => DbContext.Set<TEntity>().FindAsync(new object[] { id }, cancellationToken);
+    public ValueTask<TEntity?> FindAsync(TKey id, CancellationToken cancellationToken = default) => DbContext.Set<TEntity>().FindAsync([id], cancellationToken);
 
     /// <inheritdoc />
     public IQueryable<TEntity> Find(Expression<Func<TEntity, bool>> predicate) => FindEntity.Where(predicate);

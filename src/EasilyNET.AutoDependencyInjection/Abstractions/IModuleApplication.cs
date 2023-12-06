@@ -4,9 +4,7 @@
 
 namespace EasilyNET.AutoDependencyInjection.Abstractions;
 
-/// <summary>
-/// 模块化应用
-/// </summary>
+/// <inheritdoc />
 public interface IModuleApplication : IDisposable
 {
     /// <summary>

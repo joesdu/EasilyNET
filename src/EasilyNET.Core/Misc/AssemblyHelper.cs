@@ -13,7 +13,7 @@ namespace EasilyNET.Core.Misc;
 // ReSharper disable once UnusedType.Global
 public static class AssemblyHelper
 {
-    private static readonly string[] Filters = { "dotnet-", "Microsoft.", "mscorlib", "netstandard", "System", "Windows" };
+    private static readonly string[] Filters = ["dotnet-", "Microsoft.", "mscorlib", "netstandard", "System", "Windows"];
     private static readonly IEnumerable<Assembly>? _allAssemblies;
     private static readonly IEnumerable<Type>? _allTypes;
 

@@ -4,9 +4,7 @@
 
 namespace EasilyNET.AutoDependencyInjection.Attributes;
 
-/// <summary>
-/// DependsOnAttribute
-/// </summary>
+/// <inheritdoc cref="IDependedTypesProvider" />
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
 public sealed class DependsOnAttribute(params Type[] dependedTypes) : Attribute, IDependedTypesProvider
 {

@@ -2,9 +2,7 @@
 
 namespace EasilyNET.AutoDependencyInjection.Abstractions;
 
-/// <summary>
-/// 定义模块加载接口
-/// </summary>
+/// <inheritdoc />
 public interface IAppModule : IApplicationInitialization
 {
     /// <summary>
