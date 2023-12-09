@@ -250,7 +250,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         if (entry.Entity is IHasRowVersion version)
         {
 
-            version.Version = GetRowVersion(entry.Entity)!;
+            version.Version = Encoding.UTF8.GetBytes(Guid.NewGuid().ToString("N"));
         }
     }
 
@@ -261,13 +261,9 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <returns></returns>
     protected virtual byte[]? GetRowVersion(object entiry)
     {
-        if (entiry is IHasRowVersion version)
+        if (entiry is IHasRowVersion)
         {
-            if (version.Version is not null)
-            {
-                return version.Version;
-            }
-            return Encoding.UTF8.GetBytes(Guid.NewGuid().ToString());
+            return Encoding.UTF8.GetBytes(Guid.NewGuid().ToString("N"));
 
         }
         return default;
@@ -326,7 +322,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     protected virtual void ApplyRowVersion(ModelBuilder modelBuilder, IMutableEntityType mutableEntityType)
     {
         if (!mutableEntityType.ClrType.IsDeriveClassFrom<IHasRowVersion>()) return;
-        modelBuilder.Entity(mutableEntityType.ClrType).Property<byte[]>(EFCoreShare.Version).HasComment("版本号").IsConcurrencyToken();
+        modelBuilder.Entity(mutableEntityType.ClrType).Property<byte[]>(EFCoreShare.Version).IsRequired(true).HasComment("版本号").IsConcurrencyToken();
     }
 
     /// <summary>
