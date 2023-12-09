@@ -19,6 +19,6 @@ public static class MediatorExtension
                            .SelectMany(x => x.Entity.DomainEvents!)
                            .ToList();
         domainEntities?.ToList().ForEach(o => o.Entity.ClearDomainEvent());
-        await domainEvents?.ForAsync(async (e, index) => { await mediator.Publish(e, cancellationToken)!; }, cancellationToken);
+        await domainEvents?.ForAsync((e, index) => mediator.Publish((object)e, cancellationToken), cancellationToken)!;
     }
 }
