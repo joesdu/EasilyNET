@@ -1,7 +1,4 @@
-﻿using System.Diagnostics;
-using System.Text;
-
-namespace EasilyNET.EntityFrameworkCore.Migrations;
+﻿namespace EasilyNET.EntityFrameworkCore.Migrations;
 
 /// <summary>
 /// 自动迁移
@@ -11,168 +8,112 @@ namespace EasilyNET.EntityFrameworkCore.Migrations;
 /// <param name="logger"></param>
 public class MigrationService(ILogger<MigrationService>? logger) : IMigrationService
 {
+    private const string FileName = "dotnet";
+
+    /// <summary>
+    /// 工具参数
+    /// </summary>
+    private const string Tool = "tool";
+
+    /// <summary>
+    /// 工具安装
+    /// </summary>
+    private const string ToolInstall = "install";
+
+    /// <summary>
+    /// 工具更新
+    /// </summary>
+    private const string ToolUpdate = "update";
+
+    /// <summary>
+    /// 全局参数
+    /// </summary>
+    private const string Global = "--global";
+
+    /// <summary>
+    /// dotnet ef 参数
+    /// </summary>
+    private const string Dotnet_EF = "dotnet-ef";
+
+    /// <summary>
+    /// ef migrations
+    /// </summary>
+    private const string Ef_Migrations = "ef migrations";
+
+    /// <summary>
+    /// ef migrations add
+    /// </summary>
+    private const string Add = "add";
+
+    /// <summary>
+    /// -v显示详细输出。
+    /// </summary>
+    private const string Verbose = "-v";
+
+    /// <summary>
+    /// ef database update
+    /// </summary>
+    private const string Ef_Database_Update = "ef database update";
+
     private readonly ILogger<MigrationService> _logger = logger ?? NullLogger<MigrationService>.Instance;
 
     /// <summary>
     /// 安装dotnet-ef工具
     /// </summary>
-    public void InstallEfTool()
+    public async Task InstallEfToolAsync()
     {
-        _logger.LogTrace("准备install dotnet-ef 全局工具.");
-        var process = new Process
-        {
-            StartInfo = new("dotnet", "tool install --global dotnet-ef")
-            {
-                UseShellExecute = false, // 使用操作系统的外壳来启动
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8
-            }
-        };
-        process.OutputDataReceived += (_, eventArgs) =>
-        {
-            if (!string.IsNullOrWhiteSpace(eventArgs.Data))
-            {
-                _logger.LogTrace("{msg}", eventArgs.Data);
-            }
-        };
-        process.ErrorDataReceived += (_, eventArgs) =>
-        {
-            if (!string.IsNullOrWhiteSpace(eventArgs.Data))
-            {
-                _logger.LogTrace("失败:{msg}", eventArgs.Data);
-            }
-        };
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        process.WaitForExit();
+        _logger.LogInformation("准备install dotnet-ef 全局工具.");
+        await ExecuteBufferedAsync($"{Tool} {ToolInstall} {Global} {Dotnet_EF}");
     }
 
     /// <summary>
     /// </summary>
     /// <returns></returns>
-    public void UpdateEfTool()
+    public async Task UpdateEfToolAsync()
     {
-        _logger.LogTrace("准备update dotnet-ef 全局工具.");
-        var process = new Process
-        {
-            StartInfo = new("dotnet", "tool update --global dotnet-ef")
-            {
-                UseShellExecute = false, // 使用操作系统的外壳来启动
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8
-            }
-        };
-        process.OutputDataReceived += (_, eventArgs) =>
-        {
-            if (!string.IsNullOrWhiteSpace(eventArgs.Data))
-            {
-                _logger.LogTrace("{msg}", eventArgs.Data);
-            }
-        };
-        process.ErrorDataReceived += (_, eventArgs) =>
-        {
-            if (!string.IsNullOrWhiteSpace(eventArgs.Data))
-            {
-                _logger.LogTrace("失败:{msg}", eventArgs.Data);
-            }
-        };
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        process.WaitForExit();
+        _logger.LogInformation("准备update dotnet-ef 全局工具.");
+        await ExecuteBufferedAsync($"{Tool} {ToolUpdate} {Global} {Dotnet_EF}");
     }
 
     /// <summary>
     /// </summary>
     /// <param name="name"></param>
     /// <param name="dbContextRootPath"></param>
-    public void AddMigration(string name, string dbContextRootPath)
+    /// <param name="isVerbose">是否显示详细输出</param>
+    public async Task AddMigrationAsync(string name, string dbContextRootPath, bool isVerbose = false)
     {
         name.NotNullOrEmpty(" 请设置迁移名称");
         dbContextRootPath.NotNullOrEmpty("请设置上下根目录");
         _logger.LogTrace("准备执行添加迁移:{name}，上下文根路径为:{dbContextRootPath}", name, dbContextRootPath);
-        var process = new Process
-        {
-            StartInfo = new("dotnet", $"ef migrations add {name} -v")
-            {
-                UseShellExecute = false, // 使用操作系统的外壳来启动
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8,
-                WorkingDirectory = dbContextRootPath
-            }
-        };
-        process.OutputDataReceived += (_, eventArgs) =>
-        {
-            if (!string.IsNullOrWhiteSpace(eventArgs.Data))
-            {
-                _logger.LogTrace("{msg}", eventArgs.Data);
-            }
-        };
-        process.ErrorDataReceived += (_, eventArgs) =>
-        {
-            if (!string.IsNullOrWhiteSpace(eventArgs.Data))
-            {
-                _logger.LogTrace("失败:{msg}", eventArgs.Data);
-            }
-        };
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        process.WaitForExit();
-        process.Close(); // 关闭进程
+        await ExecuteBufferedAsync($"{Ef_Migrations} {Add} {name} {(isVerbose ? Verbose : string.Empty)}", dbContextRootPath);
     }
 
     /// <summary>
     /// </summary>
-    public void UpdateDatabase(string dbContextRootPath)
+    public async Task UpdateDatabaseAsync(string dbContextRootPath)
     {
-        _logger.LogTrace("准备更新数据库");
+        _logger.LogInformation("准备更新数据库");
         dbContextRootPath.NotNullOrEmpty("请设置上下根目录");
-        var process = new Process
+        await ExecuteBufferedAsync($"{Ef_Database_Update}", dbContextRootPath);
+    }
+
+    /// <summary>
+    /// 异步执行
+    /// </summary>
+    /// <param name="arguments">参数</param>
+    /// <param name="workingDirPath">工作路径</param>
+    /// <returns></returns>
+    private async Task ExecuteBufferedAsync(string arguments, string? workingDirPath = default)
+    {
+        arguments.NotNullOrEmpty(nameof(arguments));
+        var command = Cli.Wrap(FileName).WithValidation(CommandResultValidation.None)
+                         .WithStandardOutputPipe(PipeTarget.ToDelegate(msg => { _logger.LogTrace(msg); }, Encoding.UTF8))
+                         .WithStandardErrorPipe(PipeTarget.ToDelegate(msg => { _logger.LogError(msg); }, Encoding.UTF8))
+                         .WithArguments(arguments);
+        if (!string.IsNullOrWhiteSpace(workingDirPath))
         {
-            StartInfo = new("dotnet", "ef database update")
-            {
-                UseShellExecute = false, // 使用操作系统的外壳来启动
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8,
-                WorkingDirectory = dbContextRootPath
-            }
-        };
-        process.OutputDataReceived += (_, eventArgs) =>
-        {
-            if (!string.IsNullOrWhiteSpace(eventArgs.Data))
-            {
-                _logger.LogTrace("{msg}", eventArgs.Data);
-            }
-        };
-        process.ErrorDataReceived += (_, eventArgs) =>
-        {
-            if (!string.IsNullOrWhiteSpace(eventArgs.Data))
-            {
-                _logger.LogTrace("失败:{msg}", eventArgs.Data);
-            }
-        };
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        process.WaitForExit();
-        process.Close(); // 关闭进程
+            command = command.WithWorkingDirectory(workingDirPath);
+        }
+        await command.ExecuteBufferedAsync(Encoding.UTF8, Encoding.UTF8);
     }
 }

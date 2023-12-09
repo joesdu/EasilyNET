@@ -8,11 +8,11 @@ namespace EasilyNET.Migrate.Console.Test.Model;
 
 /// <summary>
 /// </summary>
-public class User : Entity<Guid>
+public sealed class User : AggregateRootWithRowVersion<Guid>
 {
     public string Name { get; set; } = default!;
 
-    public int Age { get; }
+    public int Age { get; set; }
 
     /// <summary>
     /// </summary>

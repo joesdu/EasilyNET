@@ -1,18 +1,19 @@
-﻿using EasilyNET.EntityFrameworkCore.Migrations;
+﻿using EasilyNET.EntityFrameworkCore;
+using EasilyNET.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Microsoft.Extensions.Logging;
 using System;
+using System.Reflection;
 
-namespace EasilyNET.EntityFrameworkCore.Test.DbContexts;
+namespace EasilyNET.Migrate.Console.Test.Model;
 
 internal class TestDbContextFactory : IDesignTimeDbContextFactory<TestDbContext>
 {
     public TestDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<TestDbContext>();
-        optionsBuilder.UseSqlite("Data Source=My.db").LogTo(Console.WriteLine, LogLevel.Information);
+        optionsBuilder.UseSqlite("Data Source=My.db");
         return new(optionsBuilder.Options, null);
     }
 }
@@ -26,5 +27,15 @@ public sealed class TestDbContext : DefaultDbContext
         optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RemoveForeignKeyMigrationsSqlGenerator>();
         optionsBuilder.ReplaceService<IMigrationsModelDiffer, MigrationsModelDifferWithoutForeignKey>();
         base.OnConfiguring(optionsBuilder);
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+    }
+
+    protected override void ApplyConfigurations(ModelBuilder modelBuilder)
+    {
+        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
     }
 }

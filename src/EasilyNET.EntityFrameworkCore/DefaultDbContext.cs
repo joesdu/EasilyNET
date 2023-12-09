@@ -1,7 +1,6 @@
 using EasilyNET.Core;
 using EasilyNET.Core.Abstractions;
 using System.Data;
-using System.Text;
 
 namespace EasilyNET.EntityFrameworkCore;
 
@@ -243,22 +242,37 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     }
 
     /// <summary>
-    /// 设置版本号一般不用设置，假如是Sqlite就单独处理
+    /// 设置版本号
     /// </summary>
     /// <param name="entry"></param>
     protected virtual void SetVersionAudited(EntityEntry entry)
     {
-        if (IsUseSqlite() && entry.Entity is IHasRowVersion version)
+        if (entry.Entity is IHasRowVersion version)
         {
-            version.Version = Encoding.UTF8.GetBytes(Guid.NewGuid().ToString("N"));
+
+            version.Version = GetRowVersion(entry.Entity)!;
         }
     }
 
     /// <summary>
-    /// 判断是否Sqlite
+    /// 得到行版本号
     /// </summary>
+    /// <param name="entiry"></param>
     /// <returns></returns>
-    private bool IsUseSqlite() => Database.ProviderName?.Equals("Microsoft.EntityFrameworkCore.Sqlite", StringComparison.OrdinalIgnoreCase) == true;
+    protected virtual byte[]? GetRowVersion(object entiry)
+    {
+        if (entiry is IHasRowVersion version)
+        {
+            if (version.Version is not null)
+            {
+                return version.Version;
+            }
+            return Encoding.UTF8.GetBytes(Guid.NewGuid().ToString());
+
+        }
+        return default;
+    }
+
 
     /// <summary>
     /// 设置修改审计
@@ -312,16 +326,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     protected virtual void ApplyRowVersion(ModelBuilder modelBuilder, IMutableEntityType mutableEntityType)
     {
         if (!mutableEntityType.ClrType.IsDeriveClassFrom<IHasRowVersion>()) return;
-        var propertyBuilder = modelBuilder.Entity(mutableEntityType.ClrType).Property<byte[]>(EFCoreShare.Version).IsRequired().HasComment("版本号");
-        //因为Sqlite不支持row version，所以这里做了特殊处理，RowVersion其实就是IsConcurrencyToken+ValueGeneratedOnAddOrUpdate
-        if (IsUseSqlite())
-        {
-            propertyBuilder.IsConcurrencyToken();
-        }
-        else
-        {
-            propertyBuilder.IsRowVersion();
-        }
+        modelBuilder.Entity(mutableEntityType.ClrType).Property<byte[]>(EFCoreShare.Version).HasComment("版本号").IsConcurrencyToken();
     }
 
     /// <summary>
