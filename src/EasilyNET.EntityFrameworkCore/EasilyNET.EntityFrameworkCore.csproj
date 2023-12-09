@@ -32,6 +32,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <PackageReference Include="CliWrap" Version="3.6.4" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\EasilyNET.Core.Domains\EasilyNET.Core.Domains.csproj" />
 	</ItemGroup>
 

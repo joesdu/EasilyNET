@@ -3,7 +3,7 @@ namespace EasilyNET.EntityFrameworkCore.Test;
 [TestClass]
 public class RepositoryTests
 {
-    [TestMethod]
+    [TestMethod, Priority(1)]
     public async Task AddUserAsync_ShouldAddUserToDatabase()
     {
         using var application = ApplicationFactory.Create<TestAppModule>();
@@ -20,14 +20,15 @@ public class RepositoryTests
         // Arrange
     }
 
-    [TestMethod]
+    [TestMethod, Priority(10)]
     public async Task UpdateUserAsync_ShouldUpdateUserToDatabase()
     {
         using var application = ApplicationFactory.Create<TestAppModule>();
         // Arrange
         var userRepository = application.ServiceProvider!.GetRequiredService<IUserRepository>();
         // Act
-        var user = await userRepository.FindEntity.FirstOrDefaultAsync();
+        var user = await userRepository.FindEntity.FirstAsync();
+        Debug.WriteLine($"更新用户{user.Id}_{user.Name}");
         user?.ChangeName("大黄瓜_Test");
         userRepository.Update(user!);
         await userRepository.UnitOfWork.SaveChangesAsync();
@@ -36,7 +37,7 @@ public class RepositoryTests
         Assert.IsTrue(newUser?.Equals(user));
     }
 
-    [TestMethod]
+    [TestMethod, Priority(3)]
     public async Task DeleteUserAsync_ShouldDeleteUserToDatabase()
     {
         using var application = ApplicationFactory.Create<TestAppModule>();
@@ -53,7 +54,7 @@ public class RepositoryTests
     /// <summary>
     /// 添加角色
     /// </summary>
-    [TestMethod]
+    [TestMethod, Priority(4)]
     public async Task AddRoleAsync_ShouldAddRoleToDatabase()
     {
         using var application = ApplicationFactory.Create<TestAppModule>();
@@ -74,7 +75,7 @@ public class RepositoryTests
     /// <summary>
     /// 命令添加用户
     /// </summary>
-    [TestMethod]
+    [TestMethod, Priority(5)]
     public async Task AddUserAsync_ShouldCommand()
     {
         using var application = ApplicationFactory.Create<TestAppModule>();
@@ -87,18 +88,18 @@ public class RepositoryTests
     /// <summary>
     /// 查询用户
     /// </summary>
-    [TestMethod]
+    [TestMethod, Priority(6)]
     public async Task UserListQuery_ShouldUserList()
     {
         using var application = ApplicationFactory.Create<TestAppModule>();
         var query = new UserListQuery();
-        var sender = application.ServiceProvider?.GetService<ISender>();
+        var sender = application.ServiceProvider?.GetService<IMediator>();
         var reulst = await sender!.Send(query);
         Assert.IsTrue(reulst.Count > 0);
     }
 }
 
-public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>, IHasCreationTime, IHasModifierId<long?>, IHasModificationTime, IHasDeleterId<long?>, IHasDeletionTime, IQuery<UserListQuery>
+public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>, IHasCreationTime, IHasModifierId<long?>, IHasModificationTime, IHasDeleterId<long?>, IHasDeletionTime, IQuery<UserListQuery>, IHasRowVersion
 {
     private User() { }
 
@@ -112,8 +113,6 @@ public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>,
     public string Name { get; private set; } = default!;
 
     public int Age { get; }
-
-    public byte[] Version { get; set; } = default!;
 
     /// <inheritdoc />
     public DateTime CreationTime { get; set; }
@@ -130,6 +129,8 @@ public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>,
     /// <inheritdoc />
     public long? LastModifierId { get; set; }
 
+    public byte[] Version { get; set; } = default!;
+
     /// <inheritdoc />
     public long? CreatorId { get; set; }
 
@@ -139,7 +140,7 @@ public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>,
     }
 }
 
-public sealed class Role : Entity<long>, IAggregateRoot
+public sealed class Role : Entity<long>, IAggregateRoot, IHasRowVersion
 {
     private Role() { }
 
@@ -255,8 +256,8 @@ internal sealed class AddUserCommandHandler : ICommandHandler<AddUserCommand, in
     /// <inheritdoc />
     public async Task<int> Handle(AddUserCommand request, CancellationToken cancellationToken)
     {
-        await _userRepository.AddAsync(request.User);
-        var count = await _userRepository.UnitOfWork.SaveChangesAsync();
+        await _userRepository.AddAsync(request.User, cancellationToken);
+        var count = await _userRepository.UnitOfWork.SaveChangesAsync(cancellationToken);
         return count;
     }
 }
@@ -278,5 +279,9 @@ internal sealed class UserListQueryHandler : IQueryHandler<UserListQuery, List<U
     }
 
     /// <inheritdoc />
-    public async Task<List<User>> Handle(UserListQuery request, CancellationToken cancellationToken) => await _userRepository.FindEntity.ToListAsync();
+    public async Task<List<User>> Handle(UserListQuery request, CancellationToken cancellationToken)
+    {
+        Debug.WriteLine("Handle_下读取用户");
+        return await _userRepository.FindEntity.ToListAsync(cancellationToken);
+    }
 }

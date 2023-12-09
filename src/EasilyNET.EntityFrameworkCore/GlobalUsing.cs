@@ -1,3 +1,6 @@
+global using CliWrap;
+global using CliWrap.Buffered;
+global using CliWrap.Builders;
 global using EasilyNET.Core.BaseType;
 global using EasilyNET.Core.Domains;
 global using EasilyNET.Core.Misc;
@@ -18,6 +21,7 @@ global using Microsoft.Extensions.Logging;
 global using Microsoft.Extensions.Logging.Abstractions;
 global using System.Linq.Expressions;
 global using System.Reflection;
+global using System.Text;
 #if NET6_0
 global using Microsoft.EntityFrameworkCore.Update;
 global using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;

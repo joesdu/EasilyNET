@@ -7,7 +7,7 @@ namespace EasilyNET.Migrate.Console.Test.Model;
 
 /// <summary>
 /// </summary>
-public sealed class Role : Entity<Guid>
+public sealed class Role : AggregateRootWithRowVersion<Guid>
 {
     public string Name { get; set; } = default!;
 
@@ -25,7 +25,7 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
     {
         builder.HasKey(o => o.Id);
         builder.Property(o => o.Name).IsRequired().HasMaxLength(50);
-        builder.HasIndex("Name", "UserId");
+        //builder.HasIndex("Name", "UserId");
         builder.ToTable("Role");
     }
 }
