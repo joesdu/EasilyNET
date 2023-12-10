@@ -161,6 +161,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     {
         await SaveChangesBeforeAsync(cancellationToken).ConfigureAwait(false);
         var count = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken).ConfigureAwait(false);
+        ChangeTracker.AutoDetectChangesEnabled = true;
         Logger?.LogInformation("保存{count}条数据", count);
         await SaveChangesAfterAsync(cancellationToken).ConfigureAwait(false);
         return count;
@@ -173,7 +174,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <returns></returns>
     protected virtual async Task SaveChangesBeforeAsync(CancellationToken cancellationToken = default)
     {
-        IEnumerable<EntityEntry> entityEntries = ChangeTracker.Entries<Entity>();
+        IEnumerable<EntityEntry> entityEntries = ChangeTracker.Entries();
         foreach (var entityEntry in entityEntries)
         {
             switch (entityEntry.State)

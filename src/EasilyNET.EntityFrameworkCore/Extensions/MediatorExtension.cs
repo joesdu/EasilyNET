@@ -13,12 +13,13 @@ public static class MediatorExtension
     /// <param name="cancellationToken"></param>
     public static async Task DispatchDomainEventsAsync(this IMediator mediator, DefaultDbContext ctx, CancellationToken cancellationToken = default)
     {
-        var domainEntities = ctx.ChangeTracker.Entries<Entity>()
-                                .Where(o => o.Entity.DomainEvents != null && o.Entity.DomainEvents!.Any()).ToList();
-        var domainEvents = domainEntities?
-                           .SelectMany(x => x.Entity.DomainEvents!)
-                           .ToList();
-        domainEntities?.ToList().ForEach(o => o.Entity.ClearDomainEvent());
-        await domainEvents?.ForAsync((e, index) => mediator.Publish((object)e, cancellationToken), cancellationToken)!;
+        await ctx.ChangeTracker.Entries<IGenerateDomainEvents>()
+                 .Where(o => o.Entity.GetDomainEvents() is not null && o.Entity.GetDomainEvents()!.Any()).Select(o => o.Entity)
+                 .SelectMany(o =>
+                 {
+                     var domainEvents = o.GetDomainEvents()!.ToList();
+                     o.ClearDomainEvent();
+                     return domainEvents;
+                 }).ForeachAsync(async e => await mediator.Publish(e, cancellationToken), cancellationToken);
     }
 }
