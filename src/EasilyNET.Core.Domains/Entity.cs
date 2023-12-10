@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations.Schema;
-
 namespace EasilyNET.Core.Domains;
 
 //ReSharper disable VirtualMemberNeverOverridden.Global
@@ -9,17 +7,6 @@ namespace EasilyNET.Core.Domains;
 /// </summary>
 public abstract class Entity
 {
-    /// <summary>
-    /// 领域事件不映射
-    /// </summary>
-    [NotMapped]
-    private List<IDomainEvent>? _domainEvents;
-
-    /// <summary>
-    /// 领域事件集合
-    /// </summary>
-    [NotMapped]
-    public IReadOnlyCollection<IDomainEvent>? DomainEvents => _domainEvents?.AsReadOnly()!;
 
     /// <summary>
     /// 得到主键
@@ -32,33 +19,13 @@ public abstract class Entity
     /// <returns></returns>
     public override string ToString() => $"[Entity: {GetType().Name}] Keys = {string.Join(",", GetKeys())}";
 
-    /// <summary>
-    /// 添加领域事件
-    /// </summary>
-    /// <param name="domainEvent">领域事件</param>
-    public void AddDomainEvent(IDomainEvent domainEvent)
-    {
-        _domainEvents ??= [];
-        _domainEvents.Add(domainEvent);
-    }
-
-    /// <summary>
-    /// 移除领域事件
-    /// </summary>
-    /// <param name="domainEvent">领域事件</param>
-    public void RemoveDomainEvent(IDomainEvent domainEvent) => _domainEvents?.Remove(domainEvent);
-
-    /// <summary>
-    /// 清空领域事件
-    /// </summary>
-    public void ClearDomainEvent() => _domainEvents?.Clear();
 }
 
 /// <summary>
 /// 泛型实体，用来限定。
 /// </summary>
 /// <typeparam name="TKey">动态类型</typeparam>
-public abstract class Entity<TKey> : Entity where TKey : IEquatable<TKey>
+public abstract class Entity<TKey> : Entity, IEntity<TKey> where TKey : IEquatable<TKey>
 {
     /// <summary>
     /// 主键
@@ -127,3 +94,5 @@ public abstract class Entity<TKey> : Entity where TKey : IEquatable<TKey>
     /// <returns></returns>
     public static bool operator !=(Entity<TKey> left, Entity<TKey> right) => !(left == right);
 }
+
+

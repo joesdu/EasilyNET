@@ -20,6 +20,9 @@ public class RepositoryTests
         // Arrange
     }
 
+    /// <summary>
+    /// </summary>
+    /// <returns></returns>
     [TestMethod, Priority(10)]
     public async Task UpdateUserAsync_ShouldUpdateUserToDatabase()
     {
@@ -37,7 +40,10 @@ public class RepositoryTests
         Assert.IsTrue(newUser?.Equals(user));
     }
 
-    [TestMethod, Priority(3)]
+    /// <summary>
+    /// </summary>
+    /// <returns></returns>
+    [TestMethod, Priority(20)]
     public async Task DeleteUserAsync_ShouldDeleteUserToDatabase()
     {
         using var application = ApplicationFactory.Create<TestAppModule>();
@@ -45,6 +51,7 @@ public class RepositoryTests
         var userRepository = application.ServiceProvider!.GetRequiredService<IUserRepository>();
         // Act
         var user = await userRepository.FindEntity.FirstOrDefaultAsync();
+        Debug.WriteLine($"删除用户{user.Id}_{user.Name}");
         userRepository.Remove(user!);
         var count = await userRepository.UnitOfWork.SaveChangesAsync();
         // Assert
@@ -64,7 +71,7 @@ public class RepositoryTests
         for (var i = 0; i < 10; i++)
         {
             var role = new Role(snowFlakeId!.NextId(), $"大黄瓜_{i}");
-            await roleRepository!.AddAsync(role);
+            await roleRepository.AddAsync(role);
         }
         // Act
         var count = await roleRepository!.UnitOfWork.SaveChangesAsync();
@@ -99,7 +106,7 @@ public class RepositoryTests
     }
 }
 
-public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>, IHasCreationTime, IHasModifierId<long?>, IHasModificationTime, IHasDeleterId<long?>, IHasDeletionTime, IQuery<UserListQuery>, IHasRowVersion
+public sealed class User : AggregateRoot<long>, IMayHaveCreator<long?>, IHasCreationTime, IHasModifierId<long?>, IHasModificationTime, IHasDeleterId<long?>, IHasDeletionTime, IQuery<UserListQuery>, IHasRowVersion
 {
     private User() { }
 
@@ -129,6 +136,8 @@ public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>,
     /// <inheritdoc />
     public long? LastModifierId { get; set; }
 
+    /// <summary>
+    /// </summary>
     public byte[] Version { get; set; } = default!;
 
     /// <inheritdoc />
@@ -140,7 +149,7 @@ public sealed class User : Entity<long>, IAggregateRoot, IMayHaveCreator<long?>,
     }
 }
 
-public sealed class Role : Entity<long>, IAggregateRoot, IHasRowVersion
+public sealed class Role : Entity<long>, IHasRowVersion
 {
     private Role() { }
 
@@ -151,6 +160,8 @@ public sealed class Role : Entity<long>, IAggregateRoot, IHasRowVersion
     }
 
     public string Name { get; set; } = default!;
+
+    public long Id { get; set; }
 
     public byte[] Version { get; set; } = default!;
 }

@@ -1,11 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>preview</LangVersion>
+	</PropertyGroup>
 
-    <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <LangVersion>preview</LangVersion>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
-    <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.25" />
     </ItemGroup>
     <ItemGroup Condition="'$(TargetFramework)' == 'net7.0'">

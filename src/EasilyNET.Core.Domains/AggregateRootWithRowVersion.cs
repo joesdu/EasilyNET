@@ -4,7 +4,7 @@
 /// 聚合根实现并版本号
 /// </summary>
 /// <typeparam name="TKey"></typeparam>
-public abstract class AggregateRootWithRowVersion<TKey> : BasicAggregateRoot<TKey>
+public abstract class AggregateRootWithRowVersion<TKey> : AggregateRoot<TKey>
     where TKey : IEquatable<TKey>
 {
     /// <summary>
