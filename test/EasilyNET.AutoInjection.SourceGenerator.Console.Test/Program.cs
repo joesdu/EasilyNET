@@ -83,3 +83,18 @@ public class Test4 { }
 public class Test5 : ITest5 { }
 
 public interface ITest5 { }
+
+[DependencyInjection(ServiceLifetime.Scoped)]
+public abstract class Test6 { }
+
+[DependencyInjection(ServiceLifetime.Scoped)]
+public class Test7 : Test8, ITset7 { }
+
+public interface ITset7 { }
+
+public abstract class Test8 { }
+
+[DependencyInjection(ServiceLifetime.Scoped)]
+public class Test9 : Test10 { }
+
+public class Test10 { }
