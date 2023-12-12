@@ -28,6 +28,8 @@ internal class Program
 //        return services;
 //    }
 //}
+[DependencyInjection(ServiceLifetime.Scoped)]
+public class Test3 { }
 
 public interface ITestTransient : IAA1p, ITransientDependency;
 
@@ -72,9 +74,6 @@ public class Test1<T, T1> : ITest1<T, T1>
 {
     public string GetTest() => "Test1";
 }
-
-[DependencyInjection(ServiceLifetime.Scoped)]
-public class Test3 { }
 
 [DependencyInjection(ServiceLifetime.Scoped, AddSelf = true)]
 public class Test4 { }

@@ -1,12 +1,10 @@
-﻿using System.Diagnostics;
-
-namespace EasilyNET.AutoInjection.SourceGenerator;
+﻿namespace EasilyNET.AutoInjection.SourceGenerator;
 //https://github.com/dotnet/roslyn/blob/main/docs/features/source-generators.cookbook.md
 /// <summary>
 /// 自动注入生成器
 /// </summary>
-[Generator(LanguageNames.CSharp)]
-public sealed class AutoInjectionSourceGenerator : ISourceGenerator
+//[Generator(LanguageNames.CSharp)]
+public sealed class AutoInjectionSourceGenerator
 {
     /// <summary>
     /// 默认名字
