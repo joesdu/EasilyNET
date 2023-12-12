@@ -1,13 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	
+	<Import Project="..\..\build\sign.props" />
+	<Import Project="..\..\build\version.props" />
+	<Import Project="..\..\build\infos.props" />
 	<PropertyGroup>
-		<LangVersion>preview</LangVersion>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 		<CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-		<IsPackable>false</IsPackable>
+		<LangVersion>preview</LangVersion>
+		<!--<IsPackable>false</IsPackable>-->
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />

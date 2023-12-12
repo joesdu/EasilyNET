@@ -3,8 +3,8 @@
 /// <summary>
 /// 自动注入生成器
 /// </summary>
-[Generator(LanguageNames.CSharp)]
-public sealed class AutoInjectionSourceGenerator : ISourceGenerator
+//[Generator(LanguageNames.CSharp)]
+public sealed class AutoInjectionSourceGenerator
 {
     /// <summary>
     /// 默认名字
@@ -105,10 +105,10 @@ public sealed class AutoInjectionSourceGenerator : ISourceGenerator
 
     public void Initialize(GeneratorInitializationContext context)
     {
-        //if (!Debugger.IsAttached)
-        //{
-        //    Debugger.Launch();
-        //}
+        // if (!Debugger.IsAttached)
+        // {
+        //     Debugger.Launch();
+        // }
         context.RegisterForSyntaxNotifications(static () => new DependencySyntaxReceiver());
     }
 }
@@ -139,6 +139,11 @@ internal sealed class DependencySyntaxReceiver : ISyntaxContextReceiver
 
             //获取类型声明符号
             var typeSymbol = (ITypeSymbol)semanticModel.GetDeclaredSymbol(classSyntax)!; //定义成员
+
+            if (typeSymbol.IsAbstract) //抽象
+            {
+                return;
+            }
             var interfaces = typeSymbol.Interfaces;
 
             var attr = typeSymbol.GetAttributes().FirstOrDefault(o => o.AttributeClass?.ToDisplayString() == DependencyInjectionAttributeName);
