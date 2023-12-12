@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Threading;
 
 namespace EasilyNET.AutoInjection.SourceGenerator;
@@ -31,10 +30,10 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        if (!Debugger.IsAttached)
-        {
-            Debugger.Launch();
-        }
+        //if (!Debugger.IsAttached)
+        //{
+        //    Debugger.Launch();
+        //}
 
         var pipeline = context.SyntaxProvider.CreateSyntaxProvider(SyntacticPredicate, SemanticTransform).Where(static context => context is not null).Collect();
 
@@ -179,13 +178,6 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
         var lifetime = (int)attr.ConstructorArguments[0].Value!;
 
 
-        foreach (var attribute in typeSymbol.GetAttributes())
-        {
-            foreach (var parameter in attribute.NamedArguments)
-            {
-
-            }
-        }
         //是否要添加自己
         var addSelf = attr.ConstructorArguments.ElementAtOrDefault(1).Value;
         ClassMetadata classMetadata = new ClassMetadata(typeSymbol, GetLifetime(lifetime));
