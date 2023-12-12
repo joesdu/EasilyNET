@@ -1,5 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Threading;
+﻿
 
 namespace EasilyNET.AutoInjection.SourceGenerator;
 
@@ -28,6 +27,10 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
     private const string IgnoreDependencyAttributeName = "EasilyNET.AutoDependencyInjection.Core.Attributes.IgnoreDependencyAttribute";
     private const string DependencyInjectionAttributeName = "EasilyNET.AutoDependencyInjection.Core.Attributes.DependencyInjectionAttribute";
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="context"></param>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         //if (!Debugger.IsAttached)
@@ -62,17 +65,22 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
     }
 
 #nullable enable
+    ///// <summary>
+    ///// 执行生成 
+    ///// </summary>
+    ///// <param name="sourceContext">上下文</param>
+    ///// <param name="source">
+    ///// ValueTuple<ImmutableArray<ClassMetadata>, ValueTuple<string, string>>
+    ///// Item1=>ImmutableArray<ClassMetadata>;
+    ///// Item2.Item1=>RootNamespace
+    ///// Item2.Item2=>MethodName
+    /////</param>
+
     /// <summary>
-    /// 执行生成 
+    /// 执行生成
     /// </summary>
-    /// <param name="sourceContext">上下文</param>
-    /// <param name="source">
-    /// ValueTuple<ImmutableArray<ClassMetadata>, ValueTuple<string, string>>
-    /// Item1=>ImmutableArray<ClassMetadata>;
-    /// Item2.Item1=>RootNamespace
-    /// Item2.Item2=>MethodName
-    /// 源
-    ///</param>
+    /// <param name="sourceContext"></param>
+    /// <param name="source"></param>
     private void ExecuteGeneration(
         SourceProductionContext sourceContext,
         (ImmutableArray<ClassMetadata> ClassMetadatas, (string? RootNamespace, string? MethodName) Options) source)
@@ -96,6 +104,11 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
         var add = "Add";
         using (codeContext.CodeBlock())
         {
+            codeContext.WriteLines(" /// <summary>");
+            codeContext.WriteLines(" /// 自动注入");
+            codeContext.WriteLines(" /// </summary>");
+            codeContext.WriteLines(" /// <param name=\"services\"></param>");
+            codeContext.WriteLines(" /// <returns></returns>");
             codeContext.WriteLines($"public static IServiceCollection {add}{Prefix}{methodName}(this IServiceCollection services)");
             using (codeContext.CodeBlock())
             {
@@ -128,10 +141,11 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
 
     private static bool SyntacticPredicate(SyntaxNode syntaxNode, CancellationToken cancellationToken)
     {
-        return syntaxNode is ClassDeclarationSyntax { AttributeLists.Count: > 0 } classDeclaration
-               && classDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword)
-               && !classDeclaration.Modifiers.Any(SyntaxKind.AbstractKeyword)
-               && !classDeclaration.Modifiers.Any(SyntaxKind.StaticKeyword);
+        if (syntaxNode is ClassDeclarationSyntax classDeclaration)
+        {
+            return (classDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword) && !classDeclaration.Modifiers.Any(SyntaxKind.AbstractKeyword) && !classDeclaration.Modifiers.Any(SyntaxKind.StaticKeyword)) || classDeclaration.AttributeLists.Count > 0;
+        }
+        return false;
     }
 
     /// <summary>
