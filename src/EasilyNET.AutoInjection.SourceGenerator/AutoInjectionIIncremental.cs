@@ -1,6 +1,4 @@
-﻿
-
-namespace EasilyNET.AutoInjection.SourceGenerator;
+﻿namespace EasilyNET.AutoInjection.SourceGenerator;
 
 //https://github.com/dotnet/roslyn/blob/main/docs/features/incremental-generators.md
 /// <summary>
@@ -19,16 +17,16 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
     /// </summary>
     private const string Prefix = "Auto";
 
-
-
     private const string TransientDependencyName = "EasilyNET.AutoDependencyInjection.Core.Abstractions.ITransientDependency";
     private const string ScopedDependencyName = "EasilyNET.AutoDependencyInjection.Core.Abstractions.IScopedDependency";
     private const string SingletonDependencyName = "EasilyNET.AutoDependencyInjection.Core.Abstractions.ISingletonDependency";
+#pragma warning disable IDE0051
+    // ReSharper disable once UnusedMember.Local
     private const string IgnoreDependencyAttributeName = "EasilyNET.AutoDependencyInjection.Core.Attributes.IgnoreDependencyAttribute";
+#pragma warning restore IDE0051
     private const string DependencyInjectionAttributeName = "EasilyNET.AutoDependencyInjection.Core.Attributes.DependencyInjectionAttribute";
 
     /// <summary>
-    /// 
     /// </summary>
     /// <param name="context"></param>
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -37,12 +35,10 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
         //{
         //    Debugger.Launch();
         //}
-
         var pipeline = context.SyntaxProvider.CreateSyntaxProvider(SyntacticPredicate, SemanticTransform).Where(static context => context is not null).Collect();
 
         //得到命名空间
-        var assemblyName = context.CompilationProvider
-                                  .Select(static (c, _) => c.AssemblyName);
+        var assemblyName = context.CompilationProvider.Select(static (c, _) => c.AssemblyName);
 
         //得到.csproj下配置名字
         //< PropertyGroup >
@@ -51,20 +47,16 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
         //<ItemGroup >
         //<CompilerVisibleProperty Include = "InjectionName" />
         //</ItemGroup >
-        var methodName = context.AnalyzerConfigOptionsProvider
-                                .Select(static (c, _) =>
-                                {
-                                    c.GlobalOptions.TryGetValue("build_property.InjectionName", out var methodName);
-                                    return methodName;
-                                });
-
-
+        var methodName = context.AnalyzerConfigOptionsProvider.Select(static (c, _) =>
+        {
+            c.GlobalOptions.TryGetValue("build_property.InjectionName", out var methodName);
+            return methodName;
+        });
         var options = assemblyName.Combine(methodName);
         var generation = pipeline.Combine(options);
-        context.RegisterSourceOutput(generation, ExecuteGeneration);
+        context.RegisterSourceOutput(generation, ExecuteGeneration!);
     }
 
-#nullable enable
     ///// <summary>
     ///// 执行生成 
     ///// </summary>
@@ -81,11 +73,8 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
     /// </summary>
     /// <param name="sourceContext"></param>
     /// <param name="source"></param>
-    private void ExecuteGeneration(
-        SourceProductionContext sourceContext,
-        (ImmutableArray<ClassMetadata> ClassMetadatas, (string? RootNamespace, string? MethodName) Options) source)
+    private void ExecuteGeneration(SourceProductionContext sourceContext, (ImmutableArray<ClassMetadata> ClassMetadatas, (string? RootNamespace, string? MethodName) Options) source)
     {
-
         //方法名
         var methodName = source.Options.MethodName;
         //如果空值，就使用默认名
@@ -101,7 +90,7 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
         codeContext.WriteLines("using Microsoft.Extensions.DependencyInjection;");
         codeContext.WriteLines($"namespace {source.Options.RootNamespace};");
         codeContext.WriteLines($"public static partial class _{Prefix}{methodName}");
-        var add = "Add";
+        const string add = "Add";
         using (codeContext.CodeBlock())
         {
             codeContext.WriteLines(" /// <summary>");
@@ -114,22 +103,17 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
             {
                 foreach (var temp in source.ClassMetadatas)
                 {
-
                     foreach (var serviceType in temp.ServiceTypes)
                     {
-
                         codeContext.WriteLines($"services.Add(new ServiceDescriptor(typeof({GetTypeName(serviceType)}), typeof({GetTypeName(temp.ImplementationType)}),ServiceLifetime.{temp.Lifetime}));");
                     }
                 }
                 codeContext.WriteLines("return services;");
             }
         }
-
         var sourceCode = codeContext.SourceCode;
         var extensionTextFormatted = CSharpSyntaxTree.ParseText(sourceCode).GetRoot().NormalizeWhitespace().SyntaxTree.GetText().ToString();
-
         sourceContext.AddSource($"{Prefix}{methodName}.g.cs", SourceText.From(extensionTextFormatted, Encoding.UTF8));
-
     }
 
     /// <summary>
@@ -138,15 +122,8 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
     /// <param name="syntaxNode"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-
-    private static bool SyntacticPredicate(SyntaxNode syntaxNode, CancellationToken cancellationToken)
-    {
-        if (syntaxNode is ClassDeclarationSyntax classDeclaration)
-        {
-            return (classDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword) && !classDeclaration.Modifiers.Any(SyntaxKind.AbstractKeyword) && !classDeclaration.Modifiers.Any(SyntaxKind.StaticKeyword)) || classDeclaration.AttributeLists.Count > 0;
-        }
-        return false;
-    }
+    private static bool SyntacticPredicate(SyntaxNode syntaxNode, CancellationToken cancellationToken) =>
+        syntaxNode is ClassDeclarationSyntax classDeclaration && ((classDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword) && !classDeclaration.Modifiers.Any(SyntaxKind.AbstractKeyword) && !classDeclaration.Modifiers.Any(SyntaxKind.StaticKeyword)) || classDeclaration.AttributeLists.Count > 0);
 
     /// <summary>
     /// 语义转换
@@ -156,12 +133,9 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
     /// <returns></returns>
     private static ClassMetadata? SemanticTransform(GeneratorSyntaxContext context, CancellationToken _)
     {
-
         var typeSymbol = (ITypeSymbol)context.SemanticModel.GetDeclaredSymbol(context.Node)!; //定义成
-
         return CreateAttributeMetadata(typeSymbol) ?? CreateClassMetadata(typeSymbol);
     }
-
 
     /// <summary>
     /// 创建元数据
@@ -182,23 +156,21 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
     /// <returns></returns>
     private static ClassMetadata? CreateAttributeMetadata(ITypeSymbol typeSymbol)
     {
-
         var attr = typeSymbol.GetAttributes().FirstOrDefault(o => o.AttributeClass?.ToDisplayString() == DependencyInjectionAttributeName);
         if (attr is null)
         {
-
             return default;
         }
         var lifetime = (int)attr.ConstructorArguments[0].Value!;
 
-
         //是否要添加自己
         var addSelf = attr.ConstructorArguments.ElementAtOrDefault(1).Value;
-        ClassMetadata classMetadata = new ClassMetadata(typeSymbol, GetLifetime(lifetime));
-
+        var classMetadata = new ClassMetadata(typeSymbol, GetLifetime(lifetime));
         classMetadata.AddServiceTypes(bool.TryParse(addSelf?.ToString(), out var addSelfResult) && addSelfResult
                                           ? new[] { typeSymbol }
-                                          : (typeSymbol.Interfaces.Any() ? typeSymbol.Interfaces : new[] { typeSymbol }));
+                                          : typeSymbol.Interfaces.Any()
+                                              ? typeSymbol.Interfaces
+                                              : new[] { typeSymbol });
         return classMetadata;
     }
 
@@ -208,14 +180,13 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
     /// <param name="value"></param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-
     private static string GetLifetime(string value) =>
         value switch
         {
             SingletonDependencyName => "Singleton",
-            ScopedDependencyName => "Scoped",
+            ScopedDependencyName    => "Scoped",
             TransientDependencyName => "Transient",
-            _ => throw new NotImplementedException()
+            _                       => throw new NotImplementedException()
         };
 
     /// <summary>
@@ -238,31 +209,22 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
     /// </summary>
     /// <param name="typeSymbol"></param>
     /// <returns></returns>
-    private string GetTypeName(ITypeSymbol typeSymbol)
+    private static string GetTypeName(ISymbol typeSymbol)
     {
-        if (typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTypeSymbol)
-        {
-            var name = typeSymbol.Name;
-            var typeParameters = namedTypeSymbol.TypeParameters;
-            return $"{name}<{new string(',', typeParameters.Length - 1)}>";
-        }
-        return typeSymbol.ToDisplayString();
+        if (typeSymbol is not INamedTypeSymbol { IsGenericType: true } namedTypeSymbol) return typeSymbol.ToDisplayString();
+        var name = typeSymbol.Name;
+        var typeParameters = namedTypeSymbol.TypeParameters;
+        return $"{name}<{new string(',', typeParameters.Length - 1)}>";
     }
-
-
 }
 
 /// <summary>
 /// 数元数据
 /// </summary>
-/// <remarks>
-/// 构造函数
-/// </remarks>
 /// <param name="implementationType">实例类型</param>
 /// <param name="lifetime">生命周期</param>
 public sealed class ClassMetadata(ITypeSymbol implementationType, string lifetime)
 {
-
     /// <summary>
     /// 实例类型
     /// </summary>
@@ -286,7 +248,6 @@ public sealed class ClassMetadata(ITypeSymbol implementationType, string lifetim
     public ClassMetadata AddServiceTypes(IEnumerable<ITypeSymbol> serviceTypes)
     {
         ServiceTypes.AddRange(serviceTypes);
-
         return this;
     }
 }

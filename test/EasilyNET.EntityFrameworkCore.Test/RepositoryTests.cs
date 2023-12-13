@@ -51,7 +51,7 @@ public class RepositoryTests
         var userRepository = application.ServiceProvider!.GetRequiredService<IUserRepository>();
         // Act
         var user = await userRepository.FindEntity.FirstOrDefaultAsync();
-        Debug.WriteLine($"删除用户{user.Id}_{user.Name}");
+        Debug.WriteLine($"删除用户{user?.Id}_{user?.Name}");
         userRepository.Remove(user!);
         var count = await userRepository.UnitOfWork.SaveChangesAsync();
         // Assert
@@ -71,7 +71,7 @@ public class RepositoryTests
         for (var i = 0; i < 10; i++)
         {
             var role = new Role(snowFlakeId!.NextId(), $"大黄瓜_{i}");
-            await roleRepository.AddAsync(role);
+            await roleRepository!.AddAsync(role);
         }
         // Act
         var count = await roleRepository!.UnitOfWork.SaveChangesAsync();
@@ -160,8 +160,6 @@ public sealed class Role : Entity<long>, IHasRowVersion
     }
 
     public string Name { get; set; } = default!;
-
-    public long Id { get; set; }
 
     public byte[] Version { get; set; } = default!;
 }

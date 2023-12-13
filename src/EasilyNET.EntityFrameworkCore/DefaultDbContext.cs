@@ -174,7 +174,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <returns></returns>
     protected virtual async Task SaveChangesBeforeAsync(CancellationToken cancellationToken = default)
     {
-        IEnumerable<EntityEntry> entityEntries = ChangeTracker.Entries();
+        var entityEntries = ChangeTracker.Entries();
         foreach (var entityEntry in entityEntries)
         {
             switch (entityEntry.State)
