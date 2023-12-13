@@ -2,20 +2,21 @@
 
 using EasilyNET.AutoDependencyInjection.Core.Abstractions;
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
+using EasilyNET.AutoInjection.SourceGenerator.Console.Test;
 using Microsoft.Extensions.DependencyInjection;
 
 internal class Program
 {
     private static void Main(string[] args)
     {
-        //IServiceCollection serviceCollection = new ServiceCollection();
-        //var service = serviceCollection.AddAutodd();
-        //var provider = service.BuildServiceProvider();
-        //var test1 = provider.GetService<ITest<User>>();
-        //Console.WriteLine(test1!.GetTest());
-        //var test2 = provider.GetService<ITest1<User, User>>();
-        //Console.WriteLine(test2!.GetTest());
-        //Console.ReadKey();
+        IServiceCollection serviceCollection = new ServiceCollection();
+        var service = serviceCollection.AddAutoInjection();
+        var provider = service.BuildServiceProvider();
+        var test1 = provider.GetService<ITest<User>>();
+        Console.WriteLine(test1!.GetTest());
+        var test2 = provider.GetService<ITest1<User, User>>();
+        Console.WriteLine(test2!.GetTest());
+        Console.ReadKey();
     }
 }
 
