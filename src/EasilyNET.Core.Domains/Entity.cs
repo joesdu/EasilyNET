@@ -7,7 +7,6 @@ namespace EasilyNET.Core.Domains;
 /// </summary>
 public abstract class Entity
 {
-
     /// <summary>
     /// 得到主键
     /// </summary>
@@ -18,7 +17,6 @@ public abstract class Entity
     /// </summary>
     /// <returns></returns>
     public override string ToString() => $"[Entity: {GetType().Name}] Keys = {string.Join(",", GetKeys())}";
-
 }
 
 /// <summary>
@@ -94,5 +92,3 @@ public abstract class Entity<TKey> : Entity, IEntity<TKey> where TKey : IEquatab
     /// <returns></returns>
     public static bool operator !=(Entity<TKey> left, Entity<TKey> right) => !(left == right);
 }
-
-
