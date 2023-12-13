@@ -1,9 +1,9 @@
-﻿namespace EasilyNET.AutoInjection.SourceGenerator;
+﻿namespace EasilyNET.SourceGenerator.Share;
 
 /// <summary>
 /// 代码生成器上下文
 /// </summary>
-public sealed class CodeGenerationContext
+public class CodeGenerationContext
 {
     /// <summary>
     /// 写入
@@ -20,6 +20,11 @@ public sealed class CodeGenerationContext
     /// 输出生成代码
     /// </summary>
     public string SourceCode => _writer.ToString();
+
+    /// <summary>
+    /// 输出生成代码转换(C#格式化后默认的格式)后文本,默认使用UTF8
+    /// </summary>
+    public virtual SourceText SourceText => SourceText.From(CSharpSyntaxTree.ParseText(SourceCode).GetRoot().NormalizeWhitespace().SyntaxTree.GetText().ToString(), Encoding.UTF8);
 
     /// <summary>
     /// 错误信息

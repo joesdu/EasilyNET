@@ -1,4 +1,5 @@
-﻿namespace EasilyNET.AutoInjection.SourceGenerator;
+﻿
+namespace EasilyNET.AutoInjection.SourceGenerator;
 
 //https://github.com/dotnet/roslyn/blob/main/docs/features/incremental-generators.md
 /// <summary>
@@ -20,10 +21,6 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
     private const string TransientDependencyName = "EasilyNET.AutoDependencyInjection.Core.Abstractions.ITransientDependency";
     private const string ScopedDependencyName = "EasilyNET.AutoDependencyInjection.Core.Abstractions.IScopedDependency";
     private const string SingletonDependencyName = "EasilyNET.AutoDependencyInjection.Core.Abstractions.ISingletonDependency";
-#pragma warning disable IDE0051
-    // ReSharper disable once UnusedMember.Local
-    private const string IgnoreDependencyAttributeName = "EasilyNET.AutoDependencyInjection.Core.Attributes.IgnoreDependencyAttribute";
-#pragma warning restore IDE0051
     private const string DependencyInjectionAttributeName = "EasilyNET.AutoDependencyInjection.Core.Attributes.DependencyInjectionAttribute";
 
     /// <summary>
@@ -111,9 +108,7 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
                 codeContext.WriteLines("return services;");
             }
         }
-        var sourceCode = codeContext.SourceCode;
-        var extensionTextFormatted = CSharpSyntaxTree.ParseText(sourceCode).GetRoot().NormalizeWhitespace().SyntaxTree.GetText().ToString();
-        sourceContext.AddSource($"{Prefix}{methodName}.g.cs", SourceText.From(extensionTextFormatted, Encoding.UTF8));
+        sourceContext.AddSource($"{Prefix}{methodName}.g.cs", codeContext.SourceText);
     }
 
     /// <summary>
@@ -184,9 +179,9 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
         value switch
         {
             SingletonDependencyName => "Singleton",
-            ScopedDependencyName    => "Scoped",
+            ScopedDependencyName => "Scoped",
             TransientDependencyName => "Transient",
-            _                       => throw new NotImplementedException()
+            _ => throw new NotImplementedException()
         };
 
     /// <summary>

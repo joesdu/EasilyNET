@@ -69,6 +69,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{3E8A3288
 		build\infos.props = build\infos.props
 		build\sign.props = build\sign.props
 		build\target.props = build\target.props
+		C:\Users\lurud\source\repos\SourceGeneratorSample\sourceGenerator.share.props = C:\Users\lurud\source\repos\SourceGeneratorSample\sourceGenerator.share.props
 		build\version.props = build\version.props
 	EndProjectSection
 EndProject
@@ -91,6 +92,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.AutoInjection.SourceGenerator", "src\EasilyNET.AutoInjection.SourceGenerator\EasilyNET.AutoInjection.SourceGenerator.csproj", "{D74BE978-252F-4FAF-AC1F-1CFDB1EA0E9E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.AutoInjection.SourceGenerator.Console.Test", "test\EasilyNET.AutoInjection.SourceGenerator.Console.Test\EasilyNET.AutoInjection.SourceGenerator.Console.Test.csproj", "{650BBFD7-1E78-4734-8C47-4921E57D3BCB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.SourceGenerator.Share", "src\EasilyNET.SourceGenerator.Share\EasilyNET.SourceGenerator.Share.csproj", "{883F9409-5A46-455D-9163-07DE2E056437}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -210,6 +213,10 @@ Global
 		{650BBFD7-1E78-4734-8C47-4921E57D3BCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{650BBFD7-1E78-4734-8C47-4921E57D3BCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{650BBFD7-1E78-4734-8C47-4921E57D3BCB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{883F9409-5A46-455D-9163-07DE2E056437}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{883F9409-5A46-455D-9163-07DE2E056437}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{883F9409-5A46-455D-9163-07DE2E056437}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{883F9409-5A46-455D-9163-07DE2E056437}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -248,6 +255,7 @@ Global
 		{5F27D32F-19FE-4744-A8B5-16C4DCDE6EC9} = {AE84E1FF-91D2-4D29-A281-EB281B2114E8}
 		{D74BE978-252F-4FAF-AC1F-1CFDB1EA0E9E} = {BD6D1E2B-691E-4E8B-9E8D-E7FD2EDDF1F8}
 		{650BBFD7-1E78-4734-8C47-4921E57D3BCB} = {AE84E1FF-91D2-4D29-A281-EB281B2114E8}
+		{883F9409-5A46-455D-9163-07DE2E056437} = {71FB9978-EB6D-4126-B5D1-FECED3C73D37}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {04F52789-9FF4-4AB9-9132-1789A00E7E4A}
