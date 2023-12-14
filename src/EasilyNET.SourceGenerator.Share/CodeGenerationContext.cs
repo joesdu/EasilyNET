@@ -9,6 +9,7 @@ public class CodeGenerationContext
     /// 写入
     /// </summary>
     private readonly StringBuilder _writer = new();
+    
 
     /// <summary>
     /// 缩进级别

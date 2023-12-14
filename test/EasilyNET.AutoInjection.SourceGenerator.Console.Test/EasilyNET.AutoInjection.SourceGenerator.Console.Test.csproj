@@ -11,13 +11,14 @@
 	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
 	</ItemGroup>
 	<PropertyGroup>
-		<InjectionName></InjectionName>
+		<InjectionName>ConsoleInjection</InjectionName>
 	</PropertyGroup>
 	<ItemGroup>
 		<CompilerVisibleProperty Include="InjectionName" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection.Core\EasilyNET.AutoDependencyInjection.Core.csproj" />
+		<ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
 		<ProjectReference Include="..\..\src\EasilyNET.AutoInjection.SourceGenerator\EasilyNET.AutoInjection.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	
 	</ItemGroup>

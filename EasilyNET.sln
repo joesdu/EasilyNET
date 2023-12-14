@@ -68,8 +68,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{3E8A3288
 		build\EasilyNET.snk = build\EasilyNET.snk
 		build\infos.props = build\infos.props
 		build\sign.props = build\sign.props
+		build\sg.share.props = build\sg.share.props
 		build\target.props = build\target.props
-		C:\Users\lurud\source\repos\SourceGeneratorSample\sourceGenerator.share.props = C:\Users\lurud\source\repos\SourceGeneratorSample\sourceGenerator.share.props
 		build\version.props = build\version.props
 	EndProjectSection
 EndProject
@@ -93,7 +93,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.AutoInjection.Sou
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.AutoInjection.SourceGenerator.Console.Test", "test\EasilyNET.AutoInjection.SourceGenerator.Console.Test\EasilyNET.AutoInjection.SourceGenerator.Console.Test.csproj", "{650BBFD7-1E78-4734-8C47-4921E57D3BCB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.SourceGenerator.Share", "src\EasilyNET.SourceGenerator.Share\EasilyNET.SourceGenerator.Share.csproj", "{883F9409-5A46-455D-9163-07DE2E056437}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.SourceGenerator.Share", "src\EasilyNET.SourceGenerator.Share\EasilyNET.SourceGenerator.Share.csproj", "{883F9409-5A46-455D-9163-07DE2E056437}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

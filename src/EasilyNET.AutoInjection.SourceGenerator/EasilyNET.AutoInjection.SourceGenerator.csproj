@@ -1,22 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<Import Project="..\..\build\sign.props" />
-	<Import Project="..\..\build\version.props" />
-	<Import Project="..\..\build\infos.props" />
+	<Import Project="..\..\build\sg.share.props" />
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 		<CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-		<LangVersion>preview</LangVersion>
 		<!--<IsPackable>false</IsPackable>-->
 	</PropertyGroup>
-	<ItemGroup>
-		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-	</ItemGroup>
-	<ItemGroup>
-	  <ProjectReference Include="..\EasilyNET.SourceGenerator.Share\EasilyNET.SourceGenerator.Share.csproj" />
-	</ItemGroup>
 	<ItemGroup>
 		<None Update="Injection.Generators.props">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

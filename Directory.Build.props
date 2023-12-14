@@ -4,9 +4,4 @@
 	<PropertyGroup>
 		<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
 	</PropertyGroup>
-
-
-	<ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0' and '$(MSBuildProjectFile)'!='EasilyNET.SourceGenerator.Share.csproj' " >
-		<ProjectReference Include="..\EasilyNET.SourceGenerator.Share\EasilyNET.SourceGenerator.Share.csproj"  OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
-	</ItemGroup>
 </Project>
