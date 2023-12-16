@@ -1,4 +1,5 @@
 ﻿using EasilyNET.SourceGenerator.Share;
+using System.Text.RegularExpressions;
 
 namespace EasilyNET.Core.Domain.SourceGenerator;
 
@@ -8,6 +9,27 @@ namespace EasilyNET.Core.Domain.SourceGenerator;
 [Generator(LanguageNames.CSharp)]
 public sealed class AuditedEntitySourceGenerator : ISourceGenerator
 {
+
+    private const string IMayHaveCreatorName = "EasilyNET.Core.Domains.IMayHaveCreator";
+    private const string IIHasCreateTimeName = "EasilyNET.Core.Domains.IHasCreationTime";
+    private const string IHasDeleterId = "EasilyNET.Core.Domains.IHasDeleterId";
+    private const string IHasDeletionTime = "EasilyNET.Core.Domains.IHasDeletionTime";
+    private const string IHasModificationTime = "EasilyNET.Core.Domains.IHasModificationTime";
+    private const string IHasModifierId = "EasilyNET.Core.Domains.IHasModifierId";
+
+    /// <summary>
+    /// 过滤
+    /// </summary>
+    private readonly HashSet<string> _filter = new(StringComparer.Ordinal)
+    {
+        IMayHaveCreatorName,
+        IIHasCreateTimeName,
+        IHasDeleterId,
+        IHasDeletionTime,
+        IHasModificationTime,
+        IHasModifierId
+    };
+
     /// <inheritdoc />
     public void Initialize(GeneratorInitializationContext context)
     {
@@ -54,13 +76,7 @@ public sealed class AuditedEntitySourceGenerator : ISourceGenerator
                     continue;
                 }
                 //只处理这接口
-                foreach (var interfaceSymbol in classSymbol.AllInterfaces.Where(i =>
-                             i.Name is "IMayHaveCreator" or
-                                 "IHasCreationTime" or
-                                 "IHasModifierId" or
-                                 "IHasModificationTime" or
-                                 "IHasDeleterId" or
-                                 "IHasDeletionTime"))
+                foreach (var interfaceSymbol in classSymbol.AllInterfaces.Where(i => _filter.Contains(i.IsGenericType ? RemoveAngleBrackets(i.ToDisplayString()) : i.ToDisplayString())))
                 {
                     //得到接口属性
                     var propertySymbols = interfaceSymbol.GetMembers().OfType<IPropertySymbol>();
@@ -91,5 +107,18 @@ public sealed class AuditedEntitySourceGenerator : ISourceGenerator
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// 使用正则表达式去掉尖括号
+    /// </summary>
+    /// <param name="input"></param>
+    /// <returns></returns>
+    private string RemoveAngleBrackets(string input)
+    {
+        // 使用正则表达式去掉尖括号
+        var pattern = "<[^>]*>";
+        var result = Regex.Replace(input, pattern, "");
+        return result;
     }
 }
