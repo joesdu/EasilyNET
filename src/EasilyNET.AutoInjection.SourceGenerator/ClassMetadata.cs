@@ -1,4 +1,6 @@
-﻿namespace EasilyNET.AutoInjection.SourceGenerator;
+﻿using Microsoft.CodeAnalysis;
+
+namespace EasilyNET.AutoInjection.SourceGenerator;
 
 /// <summary>
 /// 数元数据

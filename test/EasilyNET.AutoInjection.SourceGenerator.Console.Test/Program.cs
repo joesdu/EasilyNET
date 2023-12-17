@@ -5,12 +5,15 @@ using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Core.Abstractions;
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.AutoInjection.SourceGenerator.Console.Test;
 using Microsoft.Extensions.DependencyInjection;
+
+#pragma warning disable CA1050
+
+// ReSharper disable ClassNeverInstantiated.Global
 
 internal class Program
 {
-    private static void Main(string[] args)
+    private static void Main()
     {
         using (var provider = ApplicationFactory.Create<AppConsoleModule>())
         {
@@ -28,15 +31,12 @@ internal class Program
             serviceProvider.GetService<Test3>()?.GetTest();
             serviceProvider.GetService<Test4>()?.GetTest();
             serviceProvider.GetService<ITest5>()?.GetTest();
-            serviceProvider.GetService<ITset7>()?.GetTest();
+            serviceProvider.GetService<ITest7>()?.GetTest();
             serviceProvider.GetService<Test9>()?.GetTest();
             serviceProvider.GetService<Test11>()?.GetTest();
             serviceProvider.GetService<Test13>()?.GetTest();
             serviceProvider.GetService<ITest14>()?.GetTest();
         }
-        //IServiceCollection serviceCollection = new ServiceCollection();
-        //var service = serviceCollection.AddAutoInjection();
-        //var provider = service.BuildServiceProvider();
         Console.ReadKey();
     }
 }
@@ -45,29 +45,15 @@ public sealed class AppConsoleModule : AppModule
 {
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        context.Services.AddAutoConsoleInjection();
+        // TODO: @瓜哥,解决报错问题
+        //context.Services.AddAutoConsoleInjection();
         base.ConfigureServices(context);
     }
 }
 
-//public static class _Dependency
-//{
-//    /// <summary>
-//    /// 自动注入
-//    /// </summary>
-//    /// <param name="services"></param>
-//    /// <returns></returns>
-//    public static IServiceCollection AddAutoInjection1(this IServiceCollection services)
-//    {
-//        services.Add(new(typeof(ITestTransient), typeof(TestTransient), ServiceLifetime.Singleton));
-//        return services;
-//    }
-//}
-//
-
 public interface ITestTransient : IAA1p, IAA, ITransientDependency
 {
-    void GetTest(string name);
+    new void GetTest(string name);
 }
 
 public interface ITestScoped : IScopedDependency
@@ -82,22 +68,22 @@ public interface ITestSingleton : ISingletonDependency
 
 public class TestTransient : ITestTransient
 {
-    public void GetTest(string name) => Console.WriteLine($"{typeof(TestTransient).Name}_{name}");
+    public void GetTest(string name) => Console.WriteLine($"{nameof(TestTransient)}_{name}");
 }
 
 public class TestScoped : ITestScoped
 {
-    public void GetTest(string name) => Console.WriteLine($"{typeof(TestScoped).Name}_{name}");
+    public void GetTest(string name) => Console.WriteLine($"{nameof(TestScoped)}_{name}");
 }
 
 public class TestScoped1 : ITestScoped
 {
-    public void GetTest(string name) => Console.WriteLine($"{typeof(TestScoped1).Name}_{name}");
+    public void GetTest(string name) => Console.WriteLine($"{nameof(TestScoped1)}_{name}");
 }
 
 public class TestSingleton : ITestSingleton
 {
-    public void GetTest(string name) => Console.WriteLine($"{typeof(TestSingleton).Name}_{name}");
+    public void GetTest(string name) => Console.WriteLine($"{nameof(TestSingleton)}_{name}");
 }
 
 public interface IAA
@@ -107,7 +93,7 @@ public interface IAA
 
 public class AA : IAA
 {
-    public void GetTest(string name) => Console.WriteLine($"{typeof(AA).Name}_{name}");
+    public void GetTest(string name) => Console.WriteLine($"{nameof(AA)}_{name}");
 }
 
 public interface IAA1p
@@ -115,19 +101,19 @@ public interface IAA1p
     void GetTest(string name);
 }
 
-public class User { }
+public class User;
 
-public interface ITest<T> : ITransientDependency
+public interface ITest<in T> : ITransientDependency
 {
     void GetTest(T name);
 }
 
-public class Test<User> : ITest<User>
+public class Test<T> : ITest<User>
 {
     public void GetTest(User name) => Console.WriteLine($"{typeof(Test<User>).Name}_{name}");
 }
 
-public interface ITest1<T, T1> : ITransientDependency
+public interface ITest1<in T, in T1> : ITransientDependency
 {
     void GetTest(T t, T1 t1);
 }
@@ -140,19 +126,19 @@ public class Test1<T, T1> : ITest1<T, T1>
 [DependencyInjection(ServiceLifetime.Scoped)]
 public class Test3
 {
-    public void GetTest() => Console.WriteLine($"{typeof(Test3).Name}");
+    public void GetTest() => Console.WriteLine($"{nameof(Test3)}");
 }
 
 [DependencyInjection(ServiceLifetime.Scoped, AddSelf = true)]
 public class Test4
 {
-    public void GetTest() => Console.WriteLine($"{typeof(Test4).Name}");
+    public void GetTest() => Console.WriteLine($"{nameof(Test4)}");
 }
 
 [DependencyInjection(ServiceLifetime.Scoped)]
 public class Test5 : ITest5
 {
-    public void GetTest() => Console.WriteLine($"{typeof(Test5).Name}");
+    public void GetTest() => Console.WriteLine($"{nameof(Test5)}");
 }
 
 public interface ITest5
@@ -161,41 +147,41 @@ public interface ITest5
 }
 
 [DependencyInjection(ServiceLifetime.Scoped)]
-public abstract class Test6 { }
+public class Test6;
 
 [DependencyInjection(ServiceLifetime.Scoped)]
-public class Test7 : Test8, ITset7
+public class Test7 : Test8, ITest7
 {
     public void GetTest()
     {
-        Console.WriteLine($"{typeof(Test7).Name}");
+        Console.WriteLine($"{nameof(Test7)}");
     }
 }
 
-public interface ITset7
+public interface ITest7
 {
     public void GetTest();
 }
 
-public abstract class Test8 { }
+public class Test8;
 
 [DependencyInjection(ServiceLifetime.Scoped)]
 public class Test9 : Test10
 {
     public void GetTest()
     {
-        Console.WriteLine($"{typeof(Test9).Name}");
+        Console.WriteLine($"{nameof(Test9)}");
     }
 }
 
-public class Test10 { }
+public class Test10;
 
 [DependencyInjection(ServiceLifetime.Scoped)]
 public class Test11 : IScopedDependency
 {
     public void GetTest()
     {
-        Console.WriteLine($"{typeof(Test11).Name}");
+        Console.WriteLine($"{nameof(Test11)}");
     }
 }
 
@@ -204,7 +190,7 @@ public class Test12 : IScopedDependency
 {
     public void GetTest()
     {
-        Console.WriteLine($"{typeof(Test12).Name}");
+        Console.WriteLine($"{nameof(Test12)}");
     }
 }
 
@@ -213,7 +199,7 @@ public class Test13
 {
     public void GetTest()
     {
-        Console.WriteLine($"{typeof(Test13).Name}");
+        Console.WriteLine($"{nameof(Test13)}");
     }
 }
 
@@ -221,7 +207,7 @@ public class Test14 : ITest14
 {
     public void GetTest()
     {
-        Console.WriteLine($"{typeof(Test14).Name}");
+        Console.WriteLine($"{nameof(Test14)}");
     }
 }
 
@@ -231,4 +217,4 @@ public interface ITest14 : IScopedDependency
 }
 
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class MyAttribute : Attribute { }
+public sealed class MyAttribute : Attribute;

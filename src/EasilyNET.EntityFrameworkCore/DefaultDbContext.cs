@@ -137,8 +137,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
             _currentTransaction?.Dispose();
             _currentTransaction = default;
             base.Dispose();
-            //告诉GC，不要调用析构函数
-            GC.SuppressFinalize(this);
         }
         _isDisposed = true;
     }
@@ -257,16 +255,9 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <summary>
     /// 得到行版本号
     /// </summary>
-    /// <param name="entiry"></param>
+    /// <param name="entity"></param>
     /// <returns></returns>
-    protected virtual byte[]? GetRowVersion(object entiry)
-    {
-        if (entiry is IHasRowVersion)
-        {
-            return Encoding.UTF8.GetBytes(Guid.NewGuid().ToString("N"));
-        }
-        return default;
-    }
+    protected virtual byte[]? GetRowVersion(object entity) => entity is IHasRowVersion ? Encoding.UTF8.GetBytes(Guid.NewGuid().ToString("N")) : default;
 
     /// <summary>
     /// 设置修改审计

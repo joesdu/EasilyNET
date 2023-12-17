@@ -1,4 +1,7 @@
 ﻿using EasilyNET.SourceGenerator.Share;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Text.RegularExpressions;
 
 namespace EasilyNET.Core.Domain.SourceGenerator;
@@ -9,7 +12,6 @@ namespace EasilyNET.Core.Domain.SourceGenerator;
 [Generator(LanguageNames.CSharp)]
 public sealed class AuditedEntitySourceGenerator : ISourceGenerator
 {
-
     private const string IMayHaveCreatorName = "EasilyNET.Core.Domains.IMayHaveCreator";
     private const string IIHasCreateTimeName = "EasilyNET.Core.Domains.IHasCreationTime";
     private const string IHasDeleterId = "EasilyNET.Core.Domains.IHasDeleterId";
@@ -95,7 +97,7 @@ public sealed class AuditedEntitySourceGenerator : ISourceGenerator
                         codeContext.WriteLines("using System;");
                         codeContext.WriteLines("using System.ComponentModel;");
                         codeContext.WriteLines($"namespace {ns};");
-                        codeContext.WriteLines($"public partial class  {classSymbol.Name}");
+                        codeContext.WriteLines($"public partial class {classSymbol.Name}");
                         using (codeContext.CodeBlock())
                         {
                             codeContext.WriteLines($"public {propertyType} {propertyName} {{{getName} {setName}}}");
@@ -114,10 +116,10 @@ public sealed class AuditedEntitySourceGenerator : ISourceGenerator
     /// </summary>
     /// <param name="input"></param>
     /// <returns></returns>
-    private string RemoveAngleBrackets(string input)
+    private static string RemoveAngleBrackets(string input)
     {
         // 使用正则表达式去掉尖括号
-        var pattern = "<[^>]*>";
+        const string pattern = "<[^>]*>";
         var result = Regex.Replace(input, pattern, "");
         return result;
     }

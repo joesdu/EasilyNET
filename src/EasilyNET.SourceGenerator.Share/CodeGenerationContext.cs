@@ -1,21 +1,27 @@
-﻿namespace EasilyNET.SourceGenerator.Share;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Text;
+using System.Text;
+
+// ReSharper disable ClassWithVirtualMembersNeverInherited.Global
+
+namespace EasilyNET.SourceGenerator.Share;
 
 /// <summary>
 /// 代码生成器上下文
 /// </summary>
-public class CodeGenerationContext
+public sealed class CodeGenerationContext
 {
     /// <summary>
     /// 写入
     /// </summary>
     private readonly StringBuilder _writer = new();
-    
 
     /// <summary>
     /// 缩进级别
     /// </summary>
 
-    public int IndentLevel { get; private set; }
+    internal int IndentLevel { get; set; }
 
     /// <summary>
     /// 输出生成代码
@@ -25,7 +31,7 @@ public class CodeGenerationContext
     /// <summary>
     /// 输出生成代码转换(C#格式化后默认的格式)后文本,默认使用UTF8
     /// </summary>
-    public virtual SourceText SourceText => SourceText.From(CSharpSyntaxTree.ParseText(SourceCode).GetRoot().NormalizeWhitespace().SyntaxTree.GetText().ToString(), Encoding.UTF8);
+    public SourceText SourceText => SourceText.From(CSharpSyntaxTree.ParseText(SourceCode).GetRoot().NormalizeWhitespace().SyntaxTree.GetText().ToString(), Encoding.UTF8);
 
     /// <summary>
     /// 错误信息
@@ -69,43 +75,4 @@ public class CodeGenerationContext
     /// </summary>
     /// <returns></returns>
     public IDisposable Indent() => new IndentScope(this);
-
-    /// <summary>
-    /// 代码块范围
-    /// </summary>
-    private class CodeBlockScope : IDisposable
-    {
-        private readonly CodeGenerationContext _context;
-        private readonly string _end;
-
-        public CodeBlockScope(CodeGenerationContext context, string start, string end)
-        {
-            _end = end;
-            _context = context;
-            _context.WriteLines(start);
-            _context.IndentLevel++;
-        }
-
-        public void Dispose()
-        {
-            _context.IndentLevel--;
-            _context.WriteLines(_end);
-        }
-    }
-
-    /// <summary>
-    /// 缩进范围
-    /// </summary>
-    private class IndentScope : IDisposable
-    {
-        private readonly CodeGenerationContext _context;
-
-        public IndentScope(CodeGenerationContext context)
-        {
-            _context = context;
-            _context.IndentLevel++;
-        }
-
-        public void Dispose() => _context.IndentLevel--;
-    }
 }

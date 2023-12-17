@@ -2,6 +2,7 @@
 
 <Project>
 	<PropertyGroup>
-		<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
+		<!--控制生成产物目录-->
+		<!--<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>-->
 	</PropertyGroup>
 </Project>

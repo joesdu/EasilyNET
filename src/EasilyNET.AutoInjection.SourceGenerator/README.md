@@ -1,10 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿#### EasilyNET.AutoInjection.SourceGenerator
 
-namespace EasilyNET.AutoInjection.SourceGenerator
-{
-    class README
-    {
-    }
-}
+
