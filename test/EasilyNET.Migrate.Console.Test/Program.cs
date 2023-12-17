@@ -1,9 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using EasilyNET.AutoDependencyInjection;
-using EasilyNET.AutoDependencyInjection.Contexts;
-using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.EntityFrameworkCore.Extensions;
 using EasilyNET.EntityFrameworkCore.Migrations;
 using EasilyNET.Migrate.Console.Test.Model;
 using Microsoft.EntityFrameworkCore;
@@ -52,34 +49,16 @@ using (var application = ApplicationFactory.Create<TestAppModule>())
             //File.Copy(dbFilePath, rootDbFilePath, true);
         }
         logger?.LogInformation("开始添加种子数据");
-        var seedDatas = serviceProvider.GetServices<IDbSetup>();
-        foreach (var seedData in seedDatas)
+        var dbSets = serviceProvider.GetServices<IDbSetup>();
+        foreach (var dbSet in dbSets)
         {
-            await seedData.Init();
+            await dbSet.Init();
         }
         logger?.LogInformation("种子数据添加成功");
     }
     catch (Exception e)
     {
-        logger.LogError(e.Message);
+        logger?.LogError("{msg}", e.Message);
     }
 }
 Console.ReadKey();
-
-/// <inheritdoc />
-public sealed class TestAppModule : AppModule
-{
-    public override void ConfigureServices(ConfigureServicesContext context)
-    {
-        var services = context.Services;
-        services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Trace));
-        //services.AddDbContext<TestDbContext>(a => a.UseSqlite("Data Source=My.db"));
-        services.AddEFCore<TestDbContext>(options => options.ConfigureDbContextBuilder =
-                                                         builder =>
-                                                             builder.UseSqlite("Data Source=My.db").LogTo(Console.WriteLine, LogLevel.Information));
-        services.AddRepository();
-        services.AddSingleton<IMigrationService, MigrationService>();
-        services.AddScoped<IDbSetup, DbSetupUser>();
-        //services.AddScoped<ISeedData, RoleSeedData>();
-    }
-}

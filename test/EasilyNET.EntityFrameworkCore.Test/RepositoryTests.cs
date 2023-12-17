@@ -115,8 +115,8 @@ public class RepositoryTests
         using var application = ApplicationFactory.Create<TestAppModule>();
         var query = new UserListQuery();
         var sender = application.ServiceProvider?.GetService<IMediator>();
-        var reulst = await sender!.Send(query);
-        Assert.IsTrue(reulst.Count > 0);
+        var result = await sender!.Send(query);
+        Assert.IsTrue(result.Count > 0);
     }
 }
 
