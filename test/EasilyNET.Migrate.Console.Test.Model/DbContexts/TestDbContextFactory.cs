@@ -18,10 +18,8 @@ internal class TestDbContextFactory : IDesignTimeDbContextFactory<TestDbContext>
     }
 }
 
-public sealed class TestDbContext : DefaultDbContext
+public sealed class TestDbContext(DbContextOptions options, IServiceProvider? serviceProvider) : DefaultDbContext(options, serviceProvider)
 {
-    public TestDbContext(DbContextOptions options, IServiceProvider? serviceProvider) : base(options, serviceProvider) { }
-
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RemoveForeignKeyMigrationsSqlGenerator>();
