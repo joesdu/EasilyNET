@@ -1,16 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<Import Project="..\..\build\sg.share.props" />
+
 	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 		<CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-		<!--<IsPackable>false</IsPackable>-->
 	</PropertyGroup>
+
 	<ItemGroup>
-		<None Update="Injection.Generators.props">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
+		<CompilerVisibleProperty Include="InjectioName" />
 	</ItemGroup>
 </Project>

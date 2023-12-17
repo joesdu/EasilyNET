@@ -10,6 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+// ReSharper disable ClassNeverInstantiated.Global
+
 using (var application = ApplicationFactory.Create<TestAppModule>())
 {
     var serviceProvider = application.ServiceProvider!;
@@ -18,8 +20,8 @@ using (var application = ApplicationFactory.Create<TestAppModule>())
     var dir = AppDomain.CurrentDomain.BaseDirectory.Split(Path.DirectorySeparatorChar);
     var slice = new ArraySegment<string>(dir, 0, dir.Length - 5);
     var slice1 = new ArraySegment<string>(dir, 0, dir.Length);
-    var path = Path.Combine(slice.ToArray());
-    var curPath = Path.Combine(slice1.ToArray());
+    var path = Path.Combine([.. slice]);
+    var curPath = Path.Combine([.. slice1]);
     var rootPath = Path.Combine(path, "EasilyNET.Migrate.Console.Test.Model");
     var testDbContext = serviceProvider.GetService<TestDbContext>()!;
     const string name = "Init_123";
@@ -35,7 +37,7 @@ using (var application = ApplicationFactory.Create<TestAppModule>())
             await migrationService?.AddMigrationAsync(name, rootPath)!;
         }
         //await migrationService?.UpdateDatabaseAsync(rootPath)!;
-        var dbName = "My.db";
+        const string dbName = "My.db";
         //拷贝文件
         logger?.LogInformation("拷贝数据库文件");
         var dbFilePath = Path.Combine(rootPath, dbName);
@@ -64,19 +66,17 @@ using (var application = ApplicationFactory.Create<TestAppModule>())
 }
 Console.ReadKey();
 
+/// <inheritdoc />
 public sealed class TestAppModule : AppModule
 {
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var services = context.Services;
-        services.AddLogging(builder => { builder.AddConsole().SetMinimumLevel(LogLevel.Trace); });
+        services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Trace));
         //services.AddDbContext<TestDbContext>(a => a.UseSqlite("Data Source=My.db"));
-        services.AddEFCore<TestDbContext>(options =>
-        {
-            options.ConfigureDbContextBuilder =
-                builder =>
-                    builder.UseSqlite("Data Source=My.db").LogTo(Console.WriteLine, LogLevel.Information);
-        });
+        services.AddEFCore<TestDbContext>(options => options.ConfigureDbContextBuilder =
+                                                         builder =>
+                                                             builder.UseSqlite("Data Source=My.db").LogTo(Console.WriteLine, LogLevel.Information));
         services.AddRepository();
         services.AddSingleton<IMigrationService, MigrationService>();
         services.AddScoped<IDbSetup, DbSetupUser>();

@@ -67,8 +67,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{3E8A3288
 		build\common.props = build\common.props
 		build\EasilyNET.snk = build\EasilyNET.snk
 		build\infos.props = build\infos.props
-		build\sign.props = build\sign.props
 		build\sg.share.props = build\sg.share.props
+		build\sign.props = build\sign.props
 		build\target.props = build\target.props
 		build\version.props = build\version.props
 	EndProjectSection
@@ -82,8 +82,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Test.Unit", "test\EasilyNET.Test.Unit\EasilyNET.Test.Unit.csproj", "{535C9D9D-84AC-4846-8198-C548477D70FA}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.EntityFrameworkCore.Test", "test\EasilyNET.EntityFrameworkCore.Test\EasilyNET.EntityFrameworkCore.Test.csproj", "{1F8A3464-25F4-4E0A-9BA1-E769078015E1}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EntityFrameworkCore.Test.Unit", "sample\EntityFrameworkCore.Test.Unit\EntityFrameworkCore.Test.Unit.csproj", "{B5B4754B-1A3B-4CCF-B1A8-BF03B272E004}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Migrate.Console.Test", "test\EasilyNET.Migrate.Console.Test\EasilyNET.Migrate.Console.Test.csproj", "{4DC7E6F9-2A89-40BF-9088-46114751F483}"
 EndProject
@@ -193,10 +191,6 @@ Global
 		{1F8A3464-25F4-4E0A-9BA1-E769078015E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1F8A3464-25F4-4E0A-9BA1-E769078015E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1F8A3464-25F4-4E0A-9BA1-E769078015E1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B5B4754B-1A3B-4CCF-B1A8-BF03B272E004}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B5B4754B-1A3B-4CCF-B1A8-BF03B272E004}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B5B4754B-1A3B-4CCF-B1A8-BF03B272E004}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B5B4754B-1A3B-4CCF-B1A8-BF03B272E004}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4DC7E6F9-2A89-40BF-9088-46114751F483}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4DC7E6F9-2A89-40BF-9088-46114751F483}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4DC7E6F9-2A89-40BF-9088-46114751F483}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -250,7 +244,6 @@ Global
 		{FDE3D67B-FA75-4806-8839-8B080893579C} = {2273701E-0AEE-4F47-A8D3-96DEE1F4FEDD}
 		{535C9D9D-84AC-4846-8198-C548477D70FA} = {AE84E1FF-91D2-4D29-A281-EB281B2114E8}
 		{1F8A3464-25F4-4E0A-9BA1-E769078015E1} = {AE84E1FF-91D2-4D29-A281-EB281B2114E8}
-		{B5B4754B-1A3B-4CCF-B1A8-BF03B272E004} = {2273701E-0AEE-4F47-A8D3-96DEE1F4FEDD}
 		{4DC7E6F9-2A89-40BF-9088-46114751F483} = {AE84E1FF-91D2-4D29-A281-EB281B2114E8}
 		{5F27D32F-19FE-4744-A8B5-16C4DCDE6EC9} = {AE84E1FF-91D2-4D29-A281-EB281B2114E8}
 		{D74BE978-252F-4FAF-AC1F-1CFDB1EA0E9E} = {BD6D1E2B-691E-4E8B-9E8D-E7FD2EDDF1F8}

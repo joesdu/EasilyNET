@@ -1,4 +1,11 @@
-﻿namespace EasilyNET.AutoInjection.SourceGenerator;
+﻿using EasilyNET.SourceGenerator.Share;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Immutable;
+using System.Diagnostics;
+
+namespace EasilyNET.AutoInjection.SourceGenerator;
 
 //https://github.com/dotnet/roslyn/blob/main/docs/features/incremental-generators.md
 /// <summary>
@@ -41,7 +48,6 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var pipeline = context.SyntaxProvider.CreateSyntaxProvider(SyntacticPredicate, SemanticTransform).Where(static context => context is not null).Collect();
-
         //得到命名空间
         var assemblyName = context.CompilationProvider.Select(static (c, _) => c.AssemblyName);
 
@@ -78,7 +84,7 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
     /// </summary>
     /// <param name="sourceContext"></param>
     /// <param name="source"></param>
-    private void ExecuteGeneration(SourceProductionContext sourceContext, (ImmutableArray<ClassMetadata> ClassMetadatas, (string? RootNamespace, string? MethodName) Options) source)
+    private static void ExecuteGeneration(SourceProductionContext sourceContext, (ImmutableArray<ClassMetadata> ClassMetadatas, (string? RootNamespace, string? MethodName) Options) source)
     {
         if (!source.ClassMetadatas.Any())
         {
@@ -100,7 +106,6 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
         codeContext.WriteLines("using System;");
         codeContext.WriteLines("using Microsoft.Extensions.DependencyInjection;");
         codeContext.WriteLines($"namespace {source.Options.RootNamespace};");
-        
         codeContext.WriteLines("[global::System.Runtime.CompilerServices.CompilerGeneratedAttribute]");
         codeContext.WriteLines($"public static partial class _{Prefix}{methodName}");
         const string add = "Add";
@@ -153,11 +158,7 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
     private static ClassMetadata? SemanticTransform(GeneratorSyntaxContext context, CancellationToken _)
     {
         var typeSymbol = (ITypeSymbol)context.SemanticModel.GetDeclaredSymbol(context.Node)!; //定义成
-        if (HasIgnoreDependencyAttribute(typeSymbol))
-        {
-            return default;
-        }
-        return CreateAttributeMetadata(typeSymbol) ?? CreateClassMetadata(typeSymbol);
+        return HasIgnoreDependencyAttribute(typeSymbol) ? default : CreateAttributeMetadata(typeSymbol) ?? CreateClassMetadata(typeSymbol);
     }
 
     /// <summary>
@@ -168,8 +169,7 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
     private static ClassMetadata? CreateClassMetadata(ITypeSymbol typeSymbol)
     {
         //如果没有继承那三个系统自带的生命周期接口中，其中一个
-        var dependencyInterface = typeSymbol.AllInterfaces.FirstOrDefault(o =>
-            _ignoredInterfaces.Contains(o.ToDisplayString()));
+        var dependencyInterface = typeSymbol.AllInterfaces.FirstOrDefault(o => _ignoredInterfaces.Contains(o.ToDisplayString()));
         if (dependencyInterface is null)
         {
             return default;
@@ -185,7 +185,7 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
         //        interfaceNamedTypeSymbols.Add(@interface);
         //    }
         //}
-        var allInterfaces = GetAllInterfaceNamedTypeSymbols(typeSymbol)!;
+        var allInterfaces = GetAllInterfaceNamedTypeSymbols(typeSymbol);
         return new ClassMetadata(typeSymbol, GetLifetime(dependencyInterface.ToDisplayString()))
             //如果当前类没有接口，就添加当前类
             .AddServiceTypes(allInterfaces.Any() ? allInterfaces : new[] { typeSymbol });
@@ -207,7 +207,7 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
     /// 判断是否忽略依赖注入特性
     /// </summary>
     /// <returns></returns>
-    private static bool HasIgnoreDependencyAttribute(ITypeSymbol namedTypeSymbol)
+    private static bool HasIgnoreDependencyAttribute(ISymbol namedTypeSymbol)
     {
         return namedTypeSymbol.GetAttributes().Any(attr => attr.AttributeClass?.ToDisplayString() == IgnoreDependencyAttributeName);
     }
@@ -253,9 +253,9 @@ public sealed class AutoInjectionIIncremental : IIncrementalGenerator
         value switch
         {
             SingletonDependencyName => "Singleton",
-            ScopedDependencyName => "Scoped",
+            ScopedDependencyName    => "Scoped",
             TransientDependencyName => "Transient",
-            _ => throw new NotImplementedException()
+            _                       => throw new NotImplementedException()
         };
 
     /// <summary>

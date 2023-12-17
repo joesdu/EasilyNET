@@ -1,3 +1,17 @@
+using EasilyNET.AutoDependencyInjection;
+using EasilyNET.Core.BaseType;
+using EasilyNET.Core.Domains;
+using EasilyNET.Core.Domains.Commands;
+using EasilyNET.EntityFrameworkCore.Extensions;
+using EasilyNET.EntityFrameworkCore.Repositories;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Diagnostics;
+using System.Reflection;
+
 namespace EasilyNET.EntityFrameworkCore.Test;
 
 [TestClass]
@@ -236,37 +250,25 @@ internal sealed class AddUserDomainEventHandler : IDomainEventHandler<AddUserDom
 /// <summary>
 /// 添加用户命令
 /// </summary>
-internal sealed class AddUserCommand : ICommand<int>
+/// <remarks>
+/// 添加
+/// </remarks>
+/// <param name="user"></param>
+internal sealed class AddUserCommand(User user) : ICommand<int>
 {
-    /// <summary>
-    /// 添加
-    /// </summary>
-    /// <param name="user"></param>
-    public AddUserCommand(User user)
-    {
-        User = user;
-    }
-
-    public User User { get; }
+    public User User { get; } = user;
 }
 
-internal sealed class AddUserCommandHandler : ICommandHandler<AddUserCommand, int>
+/// <summary>
+/// </summary>
+/// <param name="userRepository"></param>
+internal sealed class AddUserCommandHandler(IUserRepository userRepository) : ICommandHandler<AddUserCommand, int>
 {
-    private readonly IUserRepository _userRepository;
-
-    /// <summary>
-    /// </summary>
-    /// <param name="userRepository"></param>
-    public AddUserCommandHandler(IUserRepository userRepository)
-    {
-        _userRepository = userRepository;
-    }
-
     /// <inheritdoc />
     public async Task<int> Handle(AddUserCommand request, CancellationToken cancellationToken)
     {
-        await _userRepository.AddAsync(request.User, cancellationToken);
-        var count = await _userRepository.UnitOfWork.SaveChangesAsync(cancellationToken);
+        await userRepository.AddAsync(request.User, cancellationToken);
+        var count = await userRepository.UnitOfWork.SaveChangesAsync(cancellationToken);
         return count;
     }
 }
@@ -275,22 +277,15 @@ internal sealed class AddUserCommandHandler : ICommandHandler<AddUserCommand, in
 /// </summary>
 internal sealed class UserListQuery : IQuery<List<User>> { }
 
-internal sealed class UserListQueryHandler : IQueryHandler<UserListQuery, List<User>>
+/// <summary>
+/// </summary>
+/// <param name="userRepository"></param>
+internal sealed class UserListQueryHandler(IUserRepository userRepository) : IQueryHandler<UserListQuery, List<User>>
 {
-    private readonly IUserRepository _userRepository;
-
-    /// <summary>
-    /// </summary>
-    /// <param name="userRepository"></param>
-    public UserListQueryHandler(IUserRepository userRepository)
-    {
-        _userRepository = userRepository;
-    }
-
     /// <inheritdoc />
     public async Task<List<User>> Handle(UserListQuery request, CancellationToken cancellationToken)
     {
         Debug.WriteLine("Handle_下读取用户");
-        return await _userRepository.FindEntity.ToListAsync(cancellationToken);
+        return await userRepository.FindEntity.ToListAsync(cancellationToken);
     }
 }

@@ -17,7 +17,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="MongoDB.Driver.Core" Version="2.23.0" />
+		<PackageReference Include="MongoDB.Driver.Core" Version="2.23.1" />
 		<PackageReference Include="Serilog" Version="3.1.2-dev-02097" />
 		<PackageReference Include="Spectre.Console.Json" Version="0.48.1-preview.0.5" />
 	</ItemGroup>
