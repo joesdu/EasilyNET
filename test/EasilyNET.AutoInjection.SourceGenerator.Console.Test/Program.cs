@@ -5,6 +5,7 @@ using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Core.Abstractions;
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.AutoDependencyInjection.Modules;
+using EasilyNET.AutoInjection.SourceGenerator.Console.Test;
 using Microsoft.Extensions.DependencyInjection;
 
 #pragma warning disable CA1050
@@ -46,7 +47,10 @@ public sealed class AppConsoleModule : AppModule
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         // TODO: @瓜哥,解决报错问题
-        //context.Services.AddAutoConsoleInjection();
+        //1.重新编译一下
+        //2.重启VS
+        //3.添加EasilyNET.AutoInjection.SourceGenerator.Console.Test 引用 
+        context.Services.AddAutoConsoleInjection();
         base.ConfigureServices(context);
     }
 }
