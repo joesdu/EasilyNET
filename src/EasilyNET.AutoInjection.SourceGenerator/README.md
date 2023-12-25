@@ -39,7 +39,8 @@ public class TestTransient : ITestTransient
 
 ## 添加自动注入
 
-1.builder.Services.AddAutoInjection(); 2.添加本程序引用（using EasilyNET.AutoInjection.SourceGenerator.Console.Test）
+- 1.builder.Services.AddAutoInjection(); 
+- 2.添加本程序引用（using EasilyNET.AutoInjection.SourceGenerator.Console.Test）
 
 ### 如何自定义名字
 
