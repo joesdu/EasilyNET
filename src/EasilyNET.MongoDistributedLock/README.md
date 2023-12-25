@@ -1,4 +1,4 @@
-﻿#### EasilyNET.MongoDistributedLock
+#### EasilyNET.MongoDistributedLock
 
 - 基于 [GitHub 开源项目](https://github.com/gritse/mongo-lock)
 

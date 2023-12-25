@@ -28,8 +28,8 @@ body:
         - Any(Default)
         - Arm64
         - Arm32
-        - x64 
-        - x86 
+        - x64
+        - x86
         - macOS Rosetta 2
         - LoongArch
     validations:

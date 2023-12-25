@@ -1,4 +1,4 @@
-﻿#### EasilyNET.MongoDistributedLock.AspNetCore
+#### EasilyNET.MongoDistributedLock.AspNetCore
 
 - EasilyNET.MongoDistributedLock.AspNetCore 让基于 EasilyNET.MongoDistributedLock 的使用更简单.
 

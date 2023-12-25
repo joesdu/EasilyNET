@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.SourceGenerator.Share;
+namespace EasilyNET.SourceGenerator.Share;
 
 /// <summary>
 /// 缩进范围

@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.BaseType;
+using EasilyNET.Core.BaseType;
 using System.Text.Json.Serialization;
 
 namespace EasilyNET.RabbitBus.Core;

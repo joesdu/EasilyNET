@@ -1,4 +1,4 @@
-﻿using EasilyNET.Images.QrCode;
+using EasilyNET.Images.QrCode;
 using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 

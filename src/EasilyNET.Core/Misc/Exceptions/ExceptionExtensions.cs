@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Core.Misc.Exceptions;
+namespace EasilyNET.Core.Misc.Exceptions;
 
 /// <summary>
 /// 异常扩展

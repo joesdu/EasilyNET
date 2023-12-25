@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Core.Domains;
+namespace EasilyNET.Core.Domains;
 
 /// <summary>
 /// 是否可空创建者ID

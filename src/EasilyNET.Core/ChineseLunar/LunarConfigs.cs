@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Core.ChineseLunar;
+namespace EasilyNET.Core.ChineseLunar;
 
 internal static class LunarConfigs
 {

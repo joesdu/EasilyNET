@@ -1,4 +1,4 @@
-﻿using RabbitMQ.Client;
+using RabbitMQ.Client;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Configs;
 

@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.RabbitBus.Core.Attributes;
+namespace EasilyNET.RabbitBus.Core.Attributes;
 
 /// <summary>
 /// Rabbit字典

@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Core.Domains.Commands;
+namespace EasilyNET.Core.Domains.Commands;
 
 /// <summary>
 /// 查询处理器

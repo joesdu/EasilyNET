@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace EasilyNET.AutoInjection.SourceGenerator.MsTest.Tests;
 
 /// <summary>
-/// µ¥Ôª²âÊÔ
+/// å•å…ƒæµ‹è¯•
 /// </summary>
 [TestClass]
 public class AutoInjectionTest
@@ -16,9 +16,9 @@ public class AutoInjectionTest
     {
         using var application = ApplicationFactory.Create<TestAppModule>();
         var test = application.ServiceProvider!.GetService<ITestTransient>();
-        var re = test?.GetTest("´ó»Æ¹Ï");
+        var re = test?.GetTest("å¤§é»„ç“œ");
         // Assert
-        Assert.IsTrue(re == $"{nameof(ITestTransient)}_´ó»Æ¹Ï");
+        Assert.IsTrue(re == $"{nameof(ITestTransient)}_å¤§é»„ç“œ");
     }
 
     /// <summary>
@@ -28,9 +28,9 @@ public class AutoInjectionTest
     {
         using var application = ApplicationFactory.Create<TestAppModule>();
         var test = application.ServiceProvider!.GetService<ITestScoped>();
-        var re = test?.GetTest("´ó»Æ¹Ï");
+        var re = test?.GetTest("å¤§é»„ç“œ");
         // Assert
-        Assert.IsTrue(re == $"{nameof(ITestScoped)}_´ó»Æ¹Ï");
+        Assert.IsTrue(re == $"{nameof(ITestScoped)}_å¤§é»„ç“œ");
     }
 
     /// <summary>
@@ -40,9 +40,9 @@ public class AutoInjectionTest
     {
         using var application = ApplicationFactory.Create<TestAppModule>();
         var test = application.ServiceProvider!.GetService<ITestSingleton>();
-        var re = test?.GetTest("´ó»Æ¹Ï");
+        var re = test?.GetTest("å¤§é»„ç“œ");
         // Assert
-        Assert.IsTrue(re == $"{nameof(ITestSingleton)}_´ó»Æ¹Ï");
+        Assert.IsTrue(re == $"{nameof(ITestSingleton)}_å¤§é»„ç“œ");
     }
 }
 

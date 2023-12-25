@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Core.Domains;
+namespace EasilyNET.Core.Domains;
 
 /// <summary>
 /// 表示一个领域事件处理程序

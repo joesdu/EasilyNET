@@ -1,4 +1,4 @@
-﻿using EasilyNET.EntityFrameworkCore;
+using EasilyNET.EntityFrameworkCore;
 using EasilyNET.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;

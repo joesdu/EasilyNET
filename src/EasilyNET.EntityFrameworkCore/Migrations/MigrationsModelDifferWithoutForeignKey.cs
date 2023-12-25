@@ -1,4 +1,4 @@
-﻿#if NET7_0_OR_GREATER
+#if NET7_0_OR_GREATER
 #pragma warning disable EF1001 // Internal EF Core API usage.
 #endif
 #if NET6_0

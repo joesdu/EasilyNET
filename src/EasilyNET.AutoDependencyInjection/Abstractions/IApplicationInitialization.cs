@@ -1,4 +1,4 @@
-﻿using EasilyNET.AutoDependencyInjection.Contexts;
+using EasilyNET.AutoDependencyInjection.Contexts;
 
 namespace EasilyNET.AutoDependencyInjection.Abstractions;
 

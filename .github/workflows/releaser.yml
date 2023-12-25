@@ -3,11 +3,11 @@ name: Release
 on:
   push:
     tags:
-      - '*.*.*'
+      - "*.*.*"
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: 
+    environment:
       name: NUGET_ENV
     steps:
       - name: Checkout
@@ -32,4 +32,3 @@ jobs:
         with:
           name: artifacts
           path: artifacts/**/*
-      
