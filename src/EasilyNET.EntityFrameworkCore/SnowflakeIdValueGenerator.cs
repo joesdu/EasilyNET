@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.EntityFrameworkCore;
+namespace EasilyNET.EntityFrameworkCore;
 
 /// <summary>
 /// 雪花值生成

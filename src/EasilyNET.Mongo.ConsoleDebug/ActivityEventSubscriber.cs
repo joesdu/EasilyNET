@@ -1,4 +1,4 @@
-﻿using MongoDB.Bson;
+using MongoDB.Bson;
 using MongoDB.Driver.Core.Events;
 using Spectre.Console;
 using Spectre.Console.Json;

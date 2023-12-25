@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.EntityFrameworkCore.Options;
+namespace EasilyNET.EntityFrameworkCore.Options;
 
 /// <summary>
 /// 上下文配置

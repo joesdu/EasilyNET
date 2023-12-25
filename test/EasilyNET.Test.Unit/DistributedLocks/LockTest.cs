@@ -1,4 +1,4 @@
-﻿using EasilyNET.MongoDistributedLock;
+using EasilyNET.MongoDistributedLock;
 using FluentAssertions;
 using MongoDB.Bson;
 using MongoDB.Driver;

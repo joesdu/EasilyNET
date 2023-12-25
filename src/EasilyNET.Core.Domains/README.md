@@ -1,4 +1,4 @@
-﻿#### EasilyNET.Core.Domains
+#### EasilyNET.Core.Domains
 
 领域相关东西
 

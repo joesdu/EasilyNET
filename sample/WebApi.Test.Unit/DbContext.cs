@@ -1,4 +1,4 @@
-﻿using EasilyNET.Mongo.Core;
+using EasilyNET.Mongo.Core;
 using MongoDB.Driver;
 
 // ReSharper disable ClassNeverInstantiated.Global

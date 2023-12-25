@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.RabbitBus.Core;
+namespace EasilyNET.RabbitBus.Core;
 
 /// <summary>
 /// 死信消息处理

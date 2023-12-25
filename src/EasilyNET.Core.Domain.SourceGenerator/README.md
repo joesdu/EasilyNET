@@ -1,2 +1,1 @@
 ##### EasilyNET.Core.Domain.SourceGenerator
-  

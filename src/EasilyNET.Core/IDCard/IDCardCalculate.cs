@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.Enums;
+using EasilyNET.Core.Enums;
 using EasilyNET.Core.Misc;
 
 // ReSharper disable MemberCanBePrivate.Global

@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.EntityFrameworkCore.Migrations;
+namespace EasilyNET.EntityFrameworkCore.Migrations;
 
 /// <remarks>
 /// 删除外键迁移Sql生成

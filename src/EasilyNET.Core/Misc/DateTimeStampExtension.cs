@@ -1,4 +1,4 @@
-﻿// ReSharper disable UnusedMember.Global
+// ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
 
 using System.Globalization;

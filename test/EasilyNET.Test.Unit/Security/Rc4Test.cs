@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.Misc;
+using EasilyNET.Core.Misc;
 using EasilyNET.Security;
 using FluentAssertions;
 using System.Text;

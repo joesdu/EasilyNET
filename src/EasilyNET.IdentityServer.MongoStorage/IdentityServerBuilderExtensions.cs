@@ -1,4 +1,4 @@
-﻿using Duende.IdentityServer.Services;
+using Duende.IdentityServer.Services;
 using Duende.IdentityServer.Stores;
 using EasilyNET.IdentityServer.MongoStorage;
 using MongoDB.Driver;

@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.EntityFrameworkCore.Migrations;
+namespace EasilyNET.EntityFrameworkCore.Migrations;
 
 /// <summary>
 /// 自动迁移

@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.EntityFrameworkCore;
+namespace EasilyNET.EntityFrameworkCore;
 
 /// <summary>
 /// EF CORE共享

@@ -1,4 +1,4 @@
-﻿using EasilyNET.EntityFrameworkCore.Options;
+using EasilyNET.EntityFrameworkCore.Options;
 using EasilyNET.EntityFrameworkCore.Repositories;
 
 namespace EasilyNET.EntityFrameworkCore.Extensions;

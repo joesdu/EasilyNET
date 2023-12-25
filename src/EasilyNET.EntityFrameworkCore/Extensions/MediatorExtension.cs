@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.EntityFrameworkCore.Extensions;
+namespace EasilyNET.EntityFrameworkCore.Extensions;
 
 /// <summary>
 /// 扩展

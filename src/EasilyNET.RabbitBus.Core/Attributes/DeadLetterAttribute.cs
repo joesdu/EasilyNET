@@ -1,4 +1,4 @@
-﻿using EasilyNET.RabbitBus.Core.Enums;
+using EasilyNET.RabbitBus.Core.Enums;
 
 // ReSharper disable ClassNeverInstantiated.Global
 

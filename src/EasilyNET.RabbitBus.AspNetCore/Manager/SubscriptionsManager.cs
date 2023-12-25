@@ -1,4 +1,4 @@
-﻿using EasilyNET.RabbitBus.AspNetCore.Abstraction;
+using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using System.Collections.Concurrent;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Manager;

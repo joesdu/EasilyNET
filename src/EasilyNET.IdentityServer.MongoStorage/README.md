@@ -1,4 +1,4 @@
-﻿#### IdentityServer 6.x Data Persistence for MongoDB
+#### IdentityServer 6.x Data Persistence for MongoDB
 
 ###### 如何使用.
 

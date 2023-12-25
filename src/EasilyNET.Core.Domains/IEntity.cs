@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Core.Domains;
+namespace EasilyNET.Core.Domains;
 
 /// <summary>
 /// 实现接口

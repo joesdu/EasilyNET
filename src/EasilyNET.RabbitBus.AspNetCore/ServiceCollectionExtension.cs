@@ -1,4 +1,4 @@
-﻿using EasilyNET.RabbitBus;
+using EasilyNET.RabbitBus;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Manager;

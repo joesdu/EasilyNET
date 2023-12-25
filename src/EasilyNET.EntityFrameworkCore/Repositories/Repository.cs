@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.EntityFrameworkCore.Repositories;
+namespace EasilyNET.EntityFrameworkCore.Repositories;
 
 /// <summary>
 /// </summary>

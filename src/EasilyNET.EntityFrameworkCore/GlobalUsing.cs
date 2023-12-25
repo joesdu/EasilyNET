@@ -1,6 +1,5 @@
 global using CliWrap;
 global using CliWrap.Buffered;
-global using CliWrap.Builders;
 global using EasilyNET.Core.BaseType;
 global using EasilyNET.Core.Domains;
 global using EasilyNET.Core.Misc;
