@@ -46,10 +46,9 @@ public sealed class AppConsoleModule : AppModule
 {
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        // TODO: @瓜哥,解决报错问题
         //1.重新编译一下
         //2.重启VS
-        //3.添加EasilyNET.AutoInjection.SourceGenerator.Console.Test 引用 
+        //3.添加 EasilyNET.AutoInjection.SourceGenerator.Console.Test 名称空间
         context.Services.AddAutoConsoleInjection();
         base.ConfigureServices(context);
     }
