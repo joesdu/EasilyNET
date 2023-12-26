@@ -10,6 +10,7 @@
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0' and '$(MSBuildProjectFile)'!='EasilyNET.SourceGenerator.Share.csproj' ">
+		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
 		<ProjectReference Include="..\..\src\EasilyNET.SourceGenerator.Share\EasilyNET.SourceGenerator.Share.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
 	</ItemGroup>
 
