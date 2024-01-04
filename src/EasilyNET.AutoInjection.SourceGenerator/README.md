@@ -6,9 +6,6 @@
 Install-Package EasilyNET.AutoDependencyInjection.Core
 Install-Package EasilyNET.AutoInjection.SourceGenerator
 ```
-
-- 是否有必要手动引入 EasilyNET.AutoDependencyInjection.Core
-
 ## 创建要自动注入
 
 ### 使用特性注入
