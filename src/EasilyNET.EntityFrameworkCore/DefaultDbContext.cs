@@ -144,9 +144,22 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
+
         base.OnConfiguring(optionsBuilder);
+        ConfigLogLogging(optionsBuilder);
+    }
+
+    /// <summary>
+    /// 处理日志
+    /// </summary>
+    /// <param name="optionsBuilder"></param>
+    protected virtual void ConfigLogLogging(DbContextOptionsBuilder optionsBuilder)
+    {
+#if DEBUG
         optionsBuilder.EnableDetailedErrors();
         optionsBuilder.EnableSensitiveDataLogging();
+#endif
+
     }
 
     /// <summary>
