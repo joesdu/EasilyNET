@@ -340,7 +340,7 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         {
             return;
         }
-        if (!typeof(Entity).IsAssignableFrom(typeof(TEntity)))
+        if (!typeof(IEntity).IsAssignableFrom(typeof(TEntity)))
         {
             return;
         }

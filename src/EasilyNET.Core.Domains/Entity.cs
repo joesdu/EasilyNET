@@ -23,7 +23,7 @@ public abstract class Entity
 /// 泛型实体，用来限定。
 /// </summary>
 /// <typeparam name="TKey">动态类型</typeparam>
-public abstract class Entity<TKey> : Entity, IEntity<TKey> where TKey : IEquatable<TKey>
+public abstract class Entity<TKey> : Entity, IEntity, IEntity<TKey> where TKey : IEquatable<TKey>
 {
     /// <summary>
     /// 主键

@@ -1,14 +1,18 @@
-namespace EasilyNET.Core.Domains;
+﻿namespace EasilyNET.Core.Domains;
 
 /// <summary>
-/// 实现接口
+/// 接口实体
 /// </summary>
-/// <typeparam name="TKey">动态键</typeparam>
-public interface IEntity<TKey>
-    where TKey : IEquatable<TKey>
+public interface IEntity
 {
     /// <summary>
-    /// 主键
+    /// 得到主键
     /// </summary>
-    TKey Id { get; }
+    /// <returns>返回主键对象</returns>
+    public object[] GetKeys();
+
+    /// <summary>
+    /// </summary>
+    /// <returns></returns>
+    public string ToString();
 }
