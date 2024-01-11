@@ -11,8 +11,4 @@ public interface IEntity
     /// <returns>返回主键对象</returns>
     public object[] GetKeys();
 
-    /// <summary>
-    /// </summary>
-    /// <returns></returns>
-    public string ToString();
 }
