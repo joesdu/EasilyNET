@@ -10,5 +10,5 @@ public abstract class AggregateRootWithRowVersion<TKey> : AggregateRoot<TKey>
     /// <summary>
     /// 并发版本号
     /// </summary>
-    public byte[] Version { get; set; } = default!;
+    public virtual byte[] Version { get; set; } = default!;
 }

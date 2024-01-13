@@ -9,5 +9,5 @@ public interface IHasDeleterId<TDeleterId>
     /// <summary>
     /// 最后删除者ID
     /// </summary>
-    TDeleterId? DeleterId { get; set; }
+    TDeleterId? DeleterId { get; }
 }

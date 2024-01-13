@@ -1,5 +1,6 @@
 using EasilyNET.Core;
 using EasilyNET.Core.Abstractions;
+using EasilyNET.Core.Helpers;
 using System.Data;
 
 namespace EasilyNET.EntityFrameworkCore;
@@ -259,9 +260,10 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <param name="entry"></param>
     protected virtual void SetVersionAudited(EntityEntry entry)
     {
-        if (entry.Entity is IHasRowVersion version)
+        if (entry.Entity is IHasRowVersion { Version: null } version)
         {
-            version.Version = Encoding.UTF8.GetBytes(Guid.NewGuid().ToString("N"));
+            ObjectHelper.TrySetProperty(version, o => o.Version, () => GetRowVersion(entry.Entity));
+            //version.Version = Encoding.UTF8.GetBytes(Guid.NewGuid().ToString("N"));
         }
     }
 
