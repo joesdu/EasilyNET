@@ -8,5 +8,5 @@ public interface IHasRowVersion
     /// <summary>
     /// 版本号
     /// </summary>
-    byte[] Version { get; set; }
+    byte[] Version { get; }
 }

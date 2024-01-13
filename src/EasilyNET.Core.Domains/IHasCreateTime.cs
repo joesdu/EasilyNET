@@ -8,5 +8,5 @@ public interface IHasCreationTime
     /// <summary>
     /// 创建时间
     /// </summary>
-    public DateTime CreationTime { get; set; }
+    public DateTime CreationTime { get; }
 }
