@@ -10,5 +10,4 @@ public interface IEntity
     /// </summary>
     /// <returns>返回主键对象</returns>
     public object[] GetKeys();
-
 }

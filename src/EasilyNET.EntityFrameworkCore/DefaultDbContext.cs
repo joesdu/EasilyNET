@@ -145,7 +145,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-
         base.OnConfiguring(optionsBuilder);
         ConfigLogLogging(optionsBuilder);
     }
@@ -160,7 +159,6 @@ public abstract class DefaultDbContext : DbContext, IUnitOfWork
         optionsBuilder.EnableDetailedErrors();
         optionsBuilder.EnableSensitiveDataLogging();
 #endif
-
     }
 
     /// <summary>

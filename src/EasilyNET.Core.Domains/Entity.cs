@@ -25,13 +25,13 @@ public abstract class Entity
 /// <typeparam name="TKey">动态类型</typeparam>
 public abstract class Entity<TKey> : Entity, IEntity, IEntity<TKey> where TKey : IEquatable<TKey>
 {
+    /// <inheritdoc />
+    public override object[] GetKeys() => [Id];
+
     /// <summary>
     /// 主键
     /// </summary>
     public virtual TKey Id { get; protected set; } = default!;
-
-    /// <inheritdoc />
-    public override object[] GetKeys() => [Id];
 
     /// <summary>
     /// 比较是否值和引用都相等
