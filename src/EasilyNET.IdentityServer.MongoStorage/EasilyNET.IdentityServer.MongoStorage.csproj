@@ -21,11 +21,11 @@
 	</ItemGroup>
 
 	<ItemGroup Condition=" '$(TargetFramework)' == 'net6.0' OR '$(TargetFramework)' == 'net7.0'">
-		<PackageReference Include="Duende.IdentityServer" Version="6.3.7" />
+		<PackageReference Include="Duende.IdentityServer" Version="6.3.8" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-		<PackageReference Include="Duende.IdentityServer" Version="7.0.0-preview.3" />
+		<PackageReference Include="Duende.IdentityServer" Version="7.0.0-rc.2" />
 	</ItemGroup>
 
 </Project>
