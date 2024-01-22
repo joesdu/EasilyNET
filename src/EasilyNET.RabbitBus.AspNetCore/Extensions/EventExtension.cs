@@ -1,4 +1,4 @@
-using EasilyNET.RabbitBus.Core;
+using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Attributes;
 using System.Reflection;
 
@@ -6,14 +6,14 @@ using System.Reflection;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Extensions;
 
-internal static class IntegrationEventExtension
+internal static class EventExtension
 {
     /// <summary>
     /// 获取Header的属性
     /// </summary>
     /// <param name="event"></param>
     /// <returns></returns>
-    internal static IDictionary<string, object?>? GetHeaderAttributes(this IIntegrationEvent @event)
+    internal static IDictionary<string, object?>? GetHeaderAttributes(this IEvent @event)
     {
         var type = @event.GetType();
         var rabbitHeaderAttributes = type.GetCustomAttributes<RabbitHeaderAttribute>();
@@ -25,7 +25,7 @@ internal static class IntegrationEventExtension
     /// </summary>
     /// <param name="event"></param>
     /// <returns></returns>
-    internal static IDictionary<string, object?>? GetExchangeArgAttributes(this IIntegrationEvent @event)
+    internal static IDictionary<string, object?>? GetExchangeArgAttributes(this IEvent @event)
     {
         var type = @event.GetType();
         var exchangeArgs = type.GetCustomAttributes<RabbitExchangeArgAttribute>();
@@ -48,7 +48,7 @@ internal static class IntegrationEventExtension
     /// </summary>
     /// <param name="event"></param>
     /// <returns></returns>
-    internal static IDictionary<string, object?>? GetQueueArgAttributes(this IIntegrationEvent @event)
+    internal static IDictionary<string, object?>? GetQueueArgAttributes(this IEvent @event)
     {
         var type = @event.GetType();
         var queueArgs = type.GetCustomAttributes<RabbitQueueArgAttribute>();

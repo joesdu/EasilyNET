@@ -2,7 +2,7 @@ using EasilyNET.RabbitBus;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Manager;
-using EasilyNET.RabbitBus.Core;
+using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
@@ -74,15 +74,15 @@ public static class ServiceCollectionExtension
 
     private static void AddIntegrationEventBus(this IServiceCollection service, int retry)
     {
-        service.AddSingleton<IIntegrationEventBus, IntegrationEventBus>(sp =>
+        service.AddSingleton<IBus, EventBus>(sp =>
                {
                    var rabbitConn = sp.GetRequiredService<IPersistentConnection>();
-                   var logger = sp.GetRequiredService<ILogger<IntegrationEventBus>>();
+                   var logger = sp.GetRequiredService<ILogger<EventBus>>();
                    var subsManager = sp.GetRequiredService<SubscriptionsManager>();
                    var deadLetterManager = sp.GetRequiredService<DeadLetterSubscriptionsManager>();
                    return rabbitConn is null
                               ? throw new(nameof(rabbitConn))
-                              : new IntegrationEventBus(rabbitConn, retry, subsManager, deadLetterManager, sp, logger);
+                              : new EventBus(rabbitConn, retry, subsManager, deadLetterManager, sp, logger);
                })
                .AddSingleton<SubscriptionsManager>()
                .AddSingleton<DeadLetterSubscriptionsManager>()

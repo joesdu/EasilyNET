@@ -28,7 +28,7 @@ builder.Services.AddTransient<TestEventHandler>();
 /// 测试消息类型
 /// </summary>
 [Rabbit("hoyo.test", EExchange.Routing, "test", "orderqueue2")]
-public class TestEvent : IntegrationEvent
+public class TestEvent : Event
 {
     /// <summary>
     /// 消息
@@ -39,7 +39,7 @@ public class TestEvent : IntegrationEvent
 /// <summary>
 /// 消息处理Handler
 /// </summary>
-public class TestEventHandler : IIntegrationEventHandler<TestEvent>
+public class TestEventHandler : IEventHandler<TestEvent>
 {
     private readonly ILogger<TestEventHandler> _logger;
     /// <summary>
@@ -66,9 +66,9 @@ public class TestEventHandler : IIntegrationEventHandler<TestEvent>
 - Step3.使用消息队列发送消息
 
 ```csharp
-private readonly IIntegrationEventBus _ibus;
+private readonly IBus _ibus;
 // 控制器构造函数伪代码
-construct(IIntegrationEventBus ibus){
+construct(IBus ibus){
    _ibus = ibus;
 }
 /// <summary>
