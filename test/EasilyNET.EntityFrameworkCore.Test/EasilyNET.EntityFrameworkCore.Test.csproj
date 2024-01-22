@@ -8,18 +8,18 @@
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.25" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.26" />
     </ItemGroup>
     <ItemGroup Condition="'$(TargetFramework)' == 'net7.0'">
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="7.0.14" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="7.0.15" />
     </ItemGroup>
     <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.1" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0-preview-23577-04" />
-        <PackageReference Include="MSTest.TestAdapter" Version="3.2.0-preview.23623.1" />
-        <PackageReference Include="MSTest.TestFramework" Version="3.2.0-preview.23623.1" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0-release-23619-01" />
+        <PackageReference Include="MSTest.TestAdapter" Version="3.2.0-preview.24069.3" />
+        <PackageReference Include="MSTest.TestFramework" Version="3.2.0-preview.24069.3" />
         <PackageReference Include="coverlet.collector" Version="6.0.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
