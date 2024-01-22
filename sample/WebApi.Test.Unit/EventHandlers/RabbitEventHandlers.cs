@@ -1,5 +1,5 @@
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
-using EasilyNET.RabbitBus.Core;
+using EasilyNET.RabbitBus.Core.Abstraction;
 using System.Text.Json;
 using WebApi.Test.Unit.Events;
 
@@ -10,7 +10,7 @@ namespace WebApi.Test.Unit.EventHandlers;
 /// <inheritdoc />
 /// 若是要测试死信队列,需要将这个注释掉.
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
-public class HelloWorldEventHandlers : IIntegrationEventHandler<HelloWorldEvent>
+public class HelloWorldEventHandlers : IEventHandler<HelloWorldEvent>
 {
     /// <inheritdoc />
     public Task HandleAsync(HelloWorldEvent @event)
@@ -22,7 +22,7 @@ public class HelloWorldEventHandlers : IIntegrationEventHandler<HelloWorldEvent>
 
 /// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
-public class DeadLetterEventHandlers : IIntegrationEventDeadLetterHandler<HelloWorldEvent>
+public class DeadLetterEventHandlers : IEventDeadLetterHandler<HelloWorldEvent>
 {
     /// <inheritdoc />
     public Task HandleAsync(HelloWorldEvent @event)
@@ -34,7 +34,7 @@ public class DeadLetterEventHandlers : IIntegrationEventDeadLetterHandler<HelloW
 
 /// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
-public class WorkQueuesEventOneHandlers : IIntegrationEventHandler<WorkQueuesEvent>
+public class WorkQueuesEventOneHandlers : IEventHandler<WorkQueuesEvent>
 {
     /// <inheritdoc />
     public Task HandleAsync(WorkQueuesEvent @event)
@@ -48,7 +48,7 @@ public class WorkQueuesEventOneHandlers : IIntegrationEventHandler<WorkQueuesEve
 
 /// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
-public class FanoutEventOneHandlers : IIntegrationEventHandler<FanoutEventOne>
+public class FanoutEventOneHandlers : IEventHandler<FanoutEventOne>
 {
     /// <inheritdoc />
     public Task HandleAsync(FanoutEventOne @event)
@@ -60,7 +60,7 @@ public class FanoutEventOneHandlers : IIntegrationEventHandler<FanoutEventOne>
 
 /// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
-public class FanoutEventTwoHandlers : IIntegrationEventHandler<FanoutEventTwo>
+public class FanoutEventTwoHandlers : IEventHandler<FanoutEventTwo>
 {
     /// <inheritdoc />
     public Task HandleAsync(FanoutEventTwo @event)
@@ -76,7 +76,7 @@ public class FanoutEventTwoHandlers : IIntegrationEventHandler<FanoutEventTwo>
 
 /// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
-public class DirectEventOneHandlers : IIntegrationEventHandler<DirectEventOne>
+public class DirectEventOneHandlers : IEventHandler<DirectEventOne>
 {
     /// <inheritdoc />
     public Task HandleAsync(DirectEventOne @event)
@@ -88,7 +88,7 @@ public class DirectEventOneHandlers : IIntegrationEventHandler<DirectEventOne>
 
 /// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
-public class DirectEventTwoHandlers : IIntegrationEventHandler<DirectEventTwo>
+public class DirectEventTwoHandlers : IEventHandler<DirectEventTwo>
 {
     /// <inheritdoc />
     public Task HandleAsync(DirectEventTwo @event)
@@ -104,7 +104,7 @@ public class DirectEventTwoHandlers : IIntegrationEventHandler<DirectEventTwo>
 
 /// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
-public class TopicEventOneHandlers : IIntegrationEventHandler<TopicEventOne>
+public class TopicEventOneHandlers : IEventHandler<TopicEventOne>
 {
     /// <inheritdoc />
     public Task HandleAsync(TopicEventOne @event)
@@ -116,7 +116,7 @@ public class TopicEventOneHandlers : IIntegrationEventHandler<TopicEventOne>
 
 /// <inheritdoc />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
-public class TopicEventTwoHandlers : IIntegrationEventHandler<TopicEventTwo>
+public class TopicEventTwoHandlers : IEventHandler<TopicEventTwo>
 {
     /// <inheritdoc />
     public Task HandleAsync(TopicEventTwo @event)

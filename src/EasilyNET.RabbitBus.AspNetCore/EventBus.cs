@@ -2,6 +2,7 @@ using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using EasilyNET.RabbitBus.AspNetCore.Extensions;
 using EasilyNET.RabbitBus.Core;
+using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Attributes;
 using EasilyNET.RabbitBus.Core.Enums;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,22 +18,13 @@ using System.Text.Json;
 
 namespace EasilyNET.RabbitBus;
 
-internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry, ISubscriptionsManager subsManager, ISubscriptionsManager deadManager, IServiceProvider sp, ILogger<IntegrationEventBus> logger) : IIntegrationEventBus, IDisposable
+internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscriptionsManager subsManager, ISubscriptionsManager deadManager, IServiceProvider sp, ILogger<EventBus> logger) : IBus, IDisposable
 {
-    private const string HandleName = nameof(IIntegrationEventHandler<IIntegrationEvent>.HandleAsync);
+    private const string HandleName = nameof(IEventHandler<IEvent>.HandleAsync);
     private bool disposed;
 
     /// <inheritdoc />
-    public void Dispose()
-    {
-        if (disposed) return;
-        subsManager.Clear();
-        deadManager.Clear();
-        disposed = true;
-    }
-
-    /// <inheritdoc />
-    public void Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IIntegrationEvent
+    public void Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
     {
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
         if (!conn.IsConnected) _ = conn.TryConnect();
@@ -69,7 +61,7 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
     }
 
     /// <inheritdoc />
-    public void Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IIntegrationEvent
+    public void Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
     {
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
         if (!conn.IsConnected) _ = conn.TryConnect();
@@ -120,6 +112,15 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
         });
     }
 
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (disposed) return;
+        subsManager.Clear();
+        deadManager.Clear();
+        disposed = true;
+    }
+
     internal void Subscribe()
     {
         if (!conn.IsConnected) _ = conn.TryConnect();
@@ -128,7 +129,7 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
 
     private void InitialRabbit()
     {
-        var events = AssemblyHelper.FindTypes(o => o is { IsClass: true, IsAbstract: false } && o.IsBaseOn(typeof(IntegrationEvent)) && o.HasAttribute<RabbitAttribute>());
+        var events = AssemblyHelper.FindTypes(o => o is { IsClass: true, IsAbstract: false } && o.IsBaseOn(typeof(Event)) && o.HasAttribute<RabbitAttribute>());
         foreach (var eventType in events)
         {
             var rabbitAttr = eventType.GetCustomAttribute<RabbitAttribute>()!;
@@ -147,7 +148,7 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
                                                                  IsClass: true,
                                                                  IsAbstract: false
                                                              } &&
-                                                             o.IsBaseOn(typeof(IIntegrationEventHandler<>))).Select(s => s.GetTypeInfo());
+                                                             o.IsBaseOn(typeof(IEventHandler<>))).Select(s => s.GetTypeInfo());
                 var handler = handlers.FirstOrDefault(o => o.ImplementedInterfaces.Any(s => s.GenericTypeArguments.Contains(eventType)));
                 using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
                 if (handler is null) return;
@@ -168,7 +169,7 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
                                                                          IsClass: true,
                                                                          IsAbstract: false
                                                                      } &&
-                                                                     o.IsBaseOn(typeof(IIntegrationEventDeadLetterHandler<>))).Select(s => s.GetTypeInfo());
+                                                                     o.IsBaseOn(typeof(IEventDeadLetterHandler<>))).Select(s => s.GetTypeInfo());
                     var xdl_handler = xdl_handlers.FirstOrDefault(o => o.ImplementedInterfaces.Any(s => s.GenericTypeArguments.Contains(eventType)));
                     if (xdl_handler is null) return;
                     using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
@@ -288,7 +289,7 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
                 foreach (var subscriptionType in subscriptionTypes)
                 {
                     var integrationEvent = JsonSerializer.Deserialize(message, eventType, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    var concreteType = typeof(IIntegrationEventHandler<>).MakeGenericType(eventType);
+                    var concreteType = typeof(IEventHandler<>).MakeGenericType(eventType);
                     if (integrationEvent is null)
                     {
                         throw new($"集成事件{nameof(integrationEvent)}不能为空");
@@ -366,7 +367,7 @@ internal sealed class IntegrationEventBus(IPersistentConnection conn, int retry,
                 foreach (var subscriptionType in subscriptionTypes)
                 {
                     var integrationEvent = JsonSerializer.Deserialize(message, eventType, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    var concreteType = typeof(IIntegrationEventDeadLetterHandler<>).MakeGenericType(eventType);
+                    var concreteType = typeof(IEventDeadLetterHandler<>).MakeGenericType(eventType);
                     if (integrationEvent is null)
                     {
                         throw new($"集成事件{nameof(integrationEvent)}不能为空");

@@ -1,4 +1,4 @@
-using EasilyNET.RabbitBus.Core;
+using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -12,7 +12,7 @@ internal class SubscribeService(IServiceProvider serviceProvider) : BackgroundSe
     protected override async Task ExecuteAsync(CancellationToken cancelToken)
     {
         using var scope = serviceProvider.CreateScope();
-        var eventBus = scope.ServiceProvider.GetService<IIntegrationEventBus>() as IntegrationEventBus ?? throw new("RabbitMQ集成事件总线没有注册");
+        var eventBus = scope.ServiceProvider.GetService<IBus>() as EventBus ?? throw new("RabbitMQ集成事件总线没有注册");
         eventBus.Subscribe();
         while (!cancelToken.IsCancellationRequested) await Task.Delay(5000, cancelToken);
     }

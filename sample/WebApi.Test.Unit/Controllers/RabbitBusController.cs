@@ -1,5 +1,5 @@
 using EasilyNET.Core.Language;
-using EasilyNET.RabbitBus.Core;
+using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Test.Unit.Events;
@@ -10,7 +10,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// 消息总线测试控制器
 /// </summary>
 [ApiController, Route("api/[controller]/[action]"), ApiGroup("RabbitBus", "v1", "RabbitBus Test")]
-public class RabbitBusController(IIntegrationEventBus ibus) : ControllerBase
+public class RabbitBusController(IBus ibus) : ControllerBase
 {
     /// <summary>
     /// 发送HelloWorld消息

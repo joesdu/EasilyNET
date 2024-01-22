@@ -1,9 +1,9 @@
-namespace EasilyNET.RabbitBus.Core;
+namespace EasilyNET.RabbitBus.Core.Abstraction;
 
 /// <summary>
 /// 集成事件处理器
 /// </summary>
-public interface IIntegrationEventHandler<in TIntegrationEvent> where TIntegrationEvent : IIntegrationEvent
+public interface IEventHandler<in TIntegrationEvent> where TIntegrationEvent : IEvent
 {
     /// <summary>
     /// 消息处理器

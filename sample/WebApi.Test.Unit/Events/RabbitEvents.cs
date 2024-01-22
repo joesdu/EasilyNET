@@ -11,7 +11,7 @@ namespace WebApi.Test.Unit.Events;
 /// 测试HelloWorld模式消息类型
 /// </summary>
 [Rabbit(EWorkModel.None, queue: "hello.world"), DeadLetter(EWorkModel.None, "xdl.hello", queue: "xdl.hello.world"), RabbitQueueArg("x-message-ttl", 5000)]
-public class HelloWorldEvent : IntegrationEvent
+public class HelloWorldEvent : Event
 {
     /// <summary>
     /// 摘要
@@ -23,7 +23,7 @@ public class HelloWorldEvent : IntegrationEvent
 /// 测试WorkQueues模式消息类型
 /// </summary>
 [Rabbit(EWorkModel.None, queue: "work.queue")]
-public class WorkQueuesEvent : IntegrationEvent
+public class WorkQueuesEvent : Event
 {
     /// <summary>
     /// 摘要
@@ -37,7 +37,7 @@ public class WorkQueuesEvent : IntegrationEvent
 /// 测试发布/订阅(Publish)模式消息类型
 /// </summary>
 [Rabbit(EWorkModel.PublishSubscribe, "fanout_exchange", queue: "fanout_queue1")]
-public class FanoutEventOne : IntegrationEvent
+public class FanoutEventOne : Event
 {
     /// <summary>
     /// 摘要
@@ -50,7 +50,7 @@ public class FanoutEventOne : IntegrationEvent
 /// </summary>
 [Rabbit(EWorkModel.PublishSubscribe, "fanout_exchange", queue: "fanout_queue2")]
 // ReSharper disable once ClassNeverInstantiated.Global
-public class FanoutEventTwo : IntegrationEvent
+public class FanoutEventTwo : Event
 {
     /// <summary>
     /// 摘要
@@ -66,7 +66,7 @@ public class FanoutEventTwo : IntegrationEvent
 /// 测试路由(Routing)模式消息类型
 /// </summary>
 [Rabbit(EWorkModel.Routing, "direct_exchange", "direct.queue1", "direct_queue1")]
-public class DirectEventOne : IntegrationEvent
+public class DirectEventOne : Event
 {
     /// <summary>
     /// 摘要
@@ -79,7 +79,7 @@ public class DirectEventOne : IntegrationEvent
 /// </summary>
 [Rabbit(EWorkModel.Routing, "direct_exchange", "direct.queue2", "direct_queue2")]
 // ReSharper disable once ClassNeverInstantiated.Global
-public class DirectEventTwo : IntegrationEvent
+public class DirectEventTwo : Event
 {
     /// <summary>
     /// 摘要
@@ -95,7 +95,7 @@ public class DirectEventTwo : IntegrationEvent
 /// 测试主题(Topic)模式消息类型
 /// </summary>
 [Rabbit(EWorkModel.Topics, "topic_exchange", "topic.queue.*", "topic_queue1")]
-public class TopicEventOne : IntegrationEvent
+public class TopicEventOne : Event
 {
     /// <summary>
     /// 摘要
@@ -108,7 +108,7 @@ public class TopicEventOne : IntegrationEvent
 /// </summary>
 [Rabbit(EWorkModel.Topics, "topic_exchange", "topic.queue.1", "topic_queue2")]
 // ReSharper disable once ClassNeverInstantiated.Global
-public class TopicEventTwo : IntegrationEvent
+public class TopicEventTwo : Event
 {
     /// <summary>
     /// 摘要

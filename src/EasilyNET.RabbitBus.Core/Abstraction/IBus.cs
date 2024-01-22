@@ -1,9 +1,9 @@
-namespace EasilyNET.RabbitBus.Core;
+namespace EasilyNET.RabbitBus.Core.Abstraction;
 
 /// <summary>
 /// 发送事件接口定义
 /// </summary>
-public interface IIntegrationEventBus
+public interface IBus
 {
     /// <summary>
     /// 发送事件
@@ -14,7 +14,7 @@ public interface IIntegrationEventBus
     /// <param name="priority">使用优先级需要先使用RabbitQueueArg特性为队列声明"x-max-priority"参数否则也不会生效,推荐设置0-9之间的数值</param>
     /// <param name="cancellationToken">CancellationToken</param>
     // ReSharper disable once UnusedMember.Global
-    void Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IIntegrationEvent;
+    void Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent;
 
     /// <summary>
     /// 延时事件发送
@@ -26,5 +26,5 @@ public interface IIntegrationEventBus
     /// <param name="priority">使用优先级需要先使用RabbitQueueArg特性为队列声明"x-max-priority"参数否则也不会生效,推荐设置0-9之间的数值</param>
     /// <param name="cancellationToken">CancellationToken</param>
     // ReSharper disable once UnusedMember.Global
-    void Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IIntegrationEvent;
+    void Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent;
 }
