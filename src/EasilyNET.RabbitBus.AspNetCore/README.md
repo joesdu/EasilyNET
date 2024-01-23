@@ -27,7 +27,7 @@ builder.Services.AddTransient<TestEventHandler>();
 /// <summary>
 /// 测试消息类型
 /// </summary>
-[Rabbit("hoyo.test", EExchange.Routing, "test", "orderqueue2")]
+[ExchangeInfo("hoyo.test", EModel.Routing, "test", "orderqueue2")]
 public class TestEvent : Event
 {
     /// <summary>

@@ -90,7 +90,7 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, ILogg
                 _connection.ConnectionShutdown += OnConnectionShutdown;
                 _connection.CallbackException += OnCallbackException;
                 _connection.ConnectionBlocked += OnConnectionBlocked;
-                logger.LogInformation("RabbitMQ客户端获取了与[{HostName}]的持久连接,并订阅了故障事件", _connection.Endpoint.HostName);
+                logger.LogInformation("RabbitMQ客户端获取了与[{HostName}]的连接,并订阅了故障事件", _connection.Endpoint.HostName);
                 _channelPool = new(_connection, _maxPoolCount);
                 logger.LogInformation("RabbitBus channel pool max count: {Count}", _maxPoolCount);
                 _disposed = false;
@@ -104,28 +104,28 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, ILogg
         }
         finally
         {
-            _ = _connLock.Release();
+            _connLock.Release();
         }
     }
 
     private void OnConnectionBlocked(object? sender, ConnectionBlockedEventArgs e)
     {
         if (_disposed) return;
-        logger.LogWarning("RabbitMQ连接关闭,正在尝试重新连接...");
-        _ = TryConnect();
+        logger.LogWarning("RabbitMQ连接关闭,正在尝试重新连接");
+        TryConnect();
     }
 
     private void OnCallbackException(object? sender, CallbackExceptionEventArgs e)
     {
         if (_disposed) return;
-        logger.LogWarning("RabbitMQ连接抛出异常,在重试...");
-        _ = TryConnect();
+        logger.LogWarning("RabbitMQ连接抛出异常,正在重试");
+        TryConnect();
     }
 
     private void OnConnectionShutdown(object? sender, ShutdownEventArgs reason)
     {
         if (_disposed) return;
-        logger.LogWarning("RabbitMQ连接处于关闭状态,正在尝试重新连接...");
-        _ = TryConnect();
+        logger.LogWarning("RabbitMQ连接处于关闭状态,正在尝试重新连接");
+        TryConnect();
     }
 }

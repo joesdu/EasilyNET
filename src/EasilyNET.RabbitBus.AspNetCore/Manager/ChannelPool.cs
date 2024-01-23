@@ -12,6 +12,7 @@ internal sealed class ChannelPool(IConnection connection, uint maxSize) : IChann
     {
         foreach (var channel in _channels)
         {
+            channel.Close();
             channel.Dispose();
         }
     }
@@ -27,6 +28,7 @@ internal sealed class ChannelPool(IConnection connection, uint maxSize) : IChann
             _channels.Add(channel);
             return;
         }
+        channel.Close();
         channel.Dispose();
     }
 }

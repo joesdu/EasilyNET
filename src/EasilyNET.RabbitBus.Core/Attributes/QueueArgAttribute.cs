@@ -5,4 +5,4 @@ namespace EasilyNET.RabbitBus.Core.Attributes;
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
 // ReSharper disable once ClassNeverInstantiated.Global
-public class RabbitQueueArgAttribute(string key, object value) : RabbitDictionaryAttribute(key, value);
+public class QueueArgAttribute(string key, object value) : RabbitDictionaryAttribute(key, value);

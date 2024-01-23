@@ -11,7 +11,7 @@ public class RabbitDictionaryAttribute : Attribute
     /// </summary>
     /// <param name="key"></param>
     /// <param name="value"></param>
-    protected RabbitDictionaryAttribute(string key, object value)
+    protected RabbitDictionaryAttribute(string key, object? value)
     {
         Key = key;
         Value = value;
@@ -25,5 +25,5 @@ public class RabbitDictionaryAttribute : Attribute
     /// <summary>
     /// 值
     /// </summary>
-    public object Value { get; }
+    public object? Value { get; }
 }

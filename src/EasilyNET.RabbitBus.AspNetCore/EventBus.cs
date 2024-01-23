@@ -21,6 +21,13 @@ namespace EasilyNET.RabbitBus;
 internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscriptionsManager subsManager, ISubscriptionsManager deadManager, IServiceProvider sp, ILogger<EventBus> logger) : IBus, IDisposable
 {
     private const string HandleName = nameof(IEventHandler<IEvent>.HandleAsync);
+
+    private static readonly JsonSerializerOptions jsonSerializerOptions = new()
+    {
+        WriteIndented = false,
+        PropertyNameCaseInsensitive = true
+    };
+
     private bool disposed;
 
     /// <inheritdoc />
@@ -30,7 +37,7 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         if (!conn.IsConnected) _ = conn.TryConnect();
         var type = @event.GetType();
         logger.LogTrace("创建通道来发布事件: {EventId} ({EventName})", @event.EventId, type.Name);
-        var r_attr = type.GetCustomAttribute<RabbitAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(RabbitAttribute)}>,无法创建发布事件");
+        var r_attr = type.GetCustomAttribute<ExchangeInfoAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(ExchangeInfoAttribute)}>,无法创建发布事件");
         if (!r_attr.Enable) return;
         var channel = conn.GetChannel();
         var properties = new BasicProperties
@@ -41,12 +48,12 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         };
         var headers = @event.GetHeaderAttributes();
         if (headers is not null && headers.Count is not 0) properties.Headers = headers;
-        if (r_attr is not { WorkModel: EWorkModel.None })
+        if (r_attr is not { WorkModel: EModel.None })
         {
             var exchange_args = @event.GetExchangeArgAttributes();
             channel.ExchangeDeclare(r_attr.ExchangeName, r_attr.WorkModel.ToDescription(), true, arguments: exchange_args);
         }
-        var body = JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType(), new JsonSerializerOptions { WriteIndented = true });
+        var body = JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType(), jsonSerializerOptions);
         // 创建Policy规则
         var policy = Policy.Handle<BrokerUnreachableException>()
                            .Or<SocketException>()
@@ -67,9 +74,9 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         if (!conn.IsConnected) _ = conn.TryConnect();
         var type = @event.GetType();
         logger.LogTrace("创建通道来发布事件: {EventId} ({EventName})", @event.EventId, type.Name);
-        var rabbitAttr = type.GetCustomAttribute<RabbitAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(RabbitAttribute)}>,无法发布事件");
+        var rabbitAttr = type.GetCustomAttribute<ExchangeInfoAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(ExchangeInfoAttribute)}>,无法发布事件");
         if (!rabbitAttr.Enable) return;
-        if (rabbitAttr is not { WorkModel: EWorkModel.Delayed }) throw new($"延时队列的交换机类型必须为{nameof(EWorkModel.Delayed)}");
+        if (rabbitAttr is not { WorkModel: EModel.Delayed }) throw new($"延时队列的交换机类型必须为{nameof(EModel.Delayed)}");
         var channel = conn.GetChannel();
         var properties = new BasicProperties
         {
@@ -98,7 +105,7 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         }
         ////创建延时交换机,type类型为x-delayed-message
         channel.ExchangeDeclare(rabbitAttr.ExchangeName, rabbitAttr.WorkModel.ToDescription(), true, false, exchange_args);
-        var body = JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType(), new JsonSerializerOptions { WriteIndented = true });
+        var body = JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType(), jsonSerializerOptions);
         // 创建Policy规则
         var policy = Policy.Handle<BrokerUnreachableException>()
                            .Or<SocketException>()
@@ -129,17 +136,17 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
 
     private void InitialRabbit()
     {
-        var events = AssemblyHelper.FindTypes(o => o is { IsClass: true, IsAbstract: false } && o.IsBaseOn(typeof(Event)) && o.HasAttribute<RabbitAttribute>());
+        var events = AssemblyHelper.FindTypes(o => o is { IsClass: true, IsAbstract: false } && o.IsBaseOn(typeof(Event)) && o.HasAttribute<ExchangeInfoAttribute>());
         foreach (var eventType in events)
         {
-            var rabbitAttr = eventType.GetCustomAttribute<RabbitAttribute>()!;
+            var rabbitAttr = eventType.GetCustomAttribute<ExchangeInfoAttribute>()!;
             if (!rabbitAttr.Enable) continue;
-            var xdlAttr = eventType.GetCustomAttribute<DeadLetterAttribute>();
+            var xdlAttr = eventType.GetCustomAttribute<DeadLetterExchangeInfoAttribute>();
             var eventName = subsManager.GetEventKey(eventType);
             Task.Factory.StartNew(() =>
             {
                 using var consumerChannel = CreateConsumerChannel(rabbitAttr, eventType, xdlAttr);
-                if (rabbitAttr is not { WorkModel: EWorkModel.None })
+                if (rabbitAttr is not { WorkModel: EModel.None })
                 {
                     DoInternalSubscription(eventName, rabbitAttr, consumerChannel);
                 }
@@ -183,7 +190,7 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         }
     }
 
-    private IChannel CreateConsumerChannel(RabbitAttribute attr, Type eventType, DeadLetterAttribute? xdlAttr = null)
+    private IChannel CreateConsumerChannel(ExchangeInfoAttribute attr, Type eventType, DeadLetterExchangeInfoAttribute? xdlAttr = null)
     {
         logger.LogTrace("创建消费者通道");
         var channel = conn.GetChannel();
@@ -194,19 +201,19 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
             queue_args.Add("x-dead-letter-exchange", xdlAttr.ExchangeName);
             queue_args.Add("x-dead-letter-routing-key", xdlAttr.RoutingKey);
             logger.LogTrace("创建死信消费者通道");
-            var model = xdlAttr.WorkModel is EWorkModel.Delayed or EWorkModel.None ? "direct" : xdlAttr.WorkModel.ToDescription();
+            var model = xdlAttr.WorkModel is EModel.Delayed or EModel.None ? "direct" : xdlAttr.WorkModel.ToDescription();
             //创建死信交换机
             channel.ExchangeDeclare(xdlAttr.ExchangeName, model, true);
             //创建死信队列
             _ = channel.QueueDeclare(xdlAttr.Queue, true, false, false);
         }
-        if (attr is not { WorkModel: EWorkModel.None })
+        if (attr is not { WorkModel: EModel.None })
         {
             var exchange_args = eventType.GetExchangeArgAttributes();
             if (exchange_args is not null)
             {
                 var success = exchange_args.TryGetValue("x-delayed-type", out _);
-                if (!success && attr is { WorkModel: EWorkModel.Delayed }) exchange_args.Add("x-delayed-type", "direct"); //x-delayed-type必须加
+                if (!success && attr is { WorkModel: EModel.Delayed }) exchange_args.Add("x-delayed-type", "direct"); //x-delayed-type必须加
             }
             //创建交换机
             channel.ExchangeDeclare(attr.ExchangeName, attr.WorkModel.ToDescription(), true, false, exchange_args);
@@ -223,7 +230,7 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         return channel;
     }
 
-    private void DoInternalSubscription(string eventName, RabbitAttribute attr, IChannel channel)
+    private void DoInternalSubscription(string eventName, ExchangeInfoAttribute attr, IChannel channel)
     {
         var containsKey = subsManager.HasSubscriptionsForEvent(eventName);
         if (containsKey) return;
@@ -231,7 +238,7 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         channel.QueueBind(attr.Queue, attr.ExchangeName, attr.RoutingKey);
     }
 
-    private void DoInternalSubscription(string eventName, DeadLetterAttribute attr, IChannel channel)
+    private void DoInternalSubscription(string eventName, DeadLetterExchangeInfoAttribute attr, IChannel channel)
     {
         var containsKey = deadManager.HasSubscriptionsForEvent(eventName);
         if (containsKey) return;
@@ -239,10 +246,10 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         channel.QueueBind(attr.Queue, attr.ExchangeName, attr.RoutingKey);
     }
 
-    private void StartBasicConsume(Type eventType, RabbitAttribute attr, IChannel channel)
+    private void StartBasicConsume(Type eventType, ExchangeInfoAttribute attr, IChannel channel)
     {
         logger.LogTrace("启动消费者");
-        var qos = eventType.GetCustomAttribute<RabbitQosAttribute>();
+        var qos = eventType.GetCustomAttribute<QosAttribute>();
         if (qos is not null) channel.BasicQos(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
         var consumer = new AsyncEventingBasicConsumer(channel);
         _ = channel.BasicConsume(attr.Queue, false, consumer);
@@ -288,7 +295,7 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
                 var subscriptionTypes = subsManager.GetHandlersForEvent(eventName);
                 foreach (var subscriptionType in subscriptionTypes)
                 {
-                    var integrationEvent = JsonSerializer.Deserialize(message, eventType, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var integrationEvent = JsonSerializer.Deserialize(message, eventType, jsonSerializerOptions);
                     var concreteType = typeof(IEventHandler<>).MakeGenericType(eventType);
                     if (integrationEvent is null)
                     {
@@ -316,10 +323,10 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         }
     }
 
-    private void StartBasicConsume(Type eventType, DeadLetterAttribute xdlAttr, IChannel channel)
+    private void StartBasicConsume(Type eventType, DeadLetterExchangeInfoAttribute xdlAttr, IChannel channel)
     {
         logger.LogTrace("启动死信队列消费");
-        var qos = eventType.GetCustomAttribute<RabbitQosAttribute>();
+        var qos = eventType.GetCustomAttribute<QosAttribute>();
         if (qos is not null) channel.BasicQos(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
         var consumer = new AsyncEventingBasicConsumer(channel);
         _ = channel.BasicConsume(xdlAttr.Queue, false, consumer);
@@ -366,7 +373,7 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
                 var subscriptionTypes = deadManager.GetHandlersForEvent(eventName);
                 foreach (var subscriptionType in subscriptionTypes)
                 {
-                    var integrationEvent = JsonSerializer.Deserialize(message, eventType, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var integrationEvent = JsonSerializer.Deserialize(message, eventType, jsonSerializerOptions);
                     var concreteType = typeof(IEventDeadLetterHandler<>).MakeGenericType(eventType);
                     if (integrationEvent is null)
                     {

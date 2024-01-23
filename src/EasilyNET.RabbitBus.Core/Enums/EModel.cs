@@ -7,7 +7,7 @@ namespace EasilyNET.RabbitBus.Core.Enums;
 /// <summary>
 /// 交换机工作模式
 /// </summary>
-public enum EWorkModel
+public enum EModel
 {
     /// <summary>
     /// 不设置交换机,使用默认交换机

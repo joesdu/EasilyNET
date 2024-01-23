@@ -16,7 +16,7 @@ internal static class EventExtension
     internal static IDictionary<string, object?>? GetHeaderAttributes(this IEvent @event)
     {
         var type = @event.GetType();
-        var rabbitHeaderAttributes = type.GetCustomAttributes<RabbitHeaderAttribute>();
+        var rabbitHeaderAttributes = type.GetCustomAttributes<HeaderAttribute>();
         return RabbitDictionariesByDic(rabbitHeaderAttributes);
     }
 
@@ -28,7 +28,7 @@ internal static class EventExtension
     internal static IDictionary<string, object?>? GetExchangeArgAttributes(this IEvent @event)
     {
         var type = @event.GetType();
-        var exchangeArgs = type.GetCustomAttributes<RabbitExchangeArgAttribute>();
+        var exchangeArgs = type.GetCustomAttributes<ExchangeArgAttribute>();
         return RabbitDictionariesByDic(exchangeArgs);
     }
 
@@ -39,7 +39,7 @@ internal static class EventExtension
     /// <returns></returns>
     internal static IDictionary<string, object?>? GetExchangeArgAttributes(this Type eventType)
     {
-        var exchangeArgs = eventType.GetCustomAttributes<RabbitExchangeArgAttribute>();
+        var exchangeArgs = eventType.GetCustomAttributes<ExchangeArgAttribute>();
         return RabbitDictionariesByDic(exchangeArgs);
     }
 
@@ -51,7 +51,7 @@ internal static class EventExtension
     internal static IDictionary<string, object?>? GetQueueArgAttributes(this IEvent @event)
     {
         var type = @event.GetType();
-        var queueArgs = type.GetCustomAttributes<RabbitQueueArgAttribute>();
+        var queueArgs = type.GetCustomAttributes<QueueArgAttribute>();
         return RabbitDictionariesByDic(queueArgs);
     }
 
@@ -62,7 +62,7 @@ internal static class EventExtension
     /// <returns></returns>
     internal static IDictionary<string, object?>? GetQueueArgAttributes(this Type eventType)
     {
-        var queueArgs = eventType.GetCustomAttributes<RabbitQueueArgAttribute>();
+        var queueArgs = eventType.GetCustomAttributes<QueueArgAttribute>();
         return RabbitDictionariesByDic(queueArgs);
     }
 
@@ -73,6 +73,6 @@ internal static class EventExtension
     /// <returns></returns>
     private static Dictionary<string, object?>? RabbitDictionariesByDic(this IEnumerable<RabbitDictionaryAttribute>? rda_s)
     {
-        return rda_s?.ToDictionary(k => k.Key, v => v?.Value);
+        return rda_s?.ToDictionary(k => k.Key, v => v.Value);
     }
 }
