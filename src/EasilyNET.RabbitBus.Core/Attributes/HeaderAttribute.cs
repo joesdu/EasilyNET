@@ -3,7 +3,7 @@
 namespace EasilyNET.RabbitBus.Core.Attributes;
 
 /// <summary>
-/// RabbitMQ交换机参数特性
+/// 添加RabbitMQ, Headers参数特性
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class RabbitExchangeArgAttribute(string key, object value) : RabbitDictionaryAttribute(key, value);
+public sealed class HeaderAttribute(string key, object value) : RabbitDictionaryAttribute(key, value);

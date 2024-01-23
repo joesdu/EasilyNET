@@ -9,31 +9,31 @@ namespace EasilyNET.RabbitBus.Core.Attributes;
 /// <a href="https://www.rabbitmq.com/dlx.html">Dead Letter Exchanges</a>
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class DeadLetterAttribute(EWorkModel workModel, string exchangeName = "", string routingKey = "", string queue = "", bool enable = true) : Attribute
+public sealed class DeadLetterExchangeInfoAttribute(EModel workModel, string exchangeName = "", string routingKey = "", string queue = "", bool enable = true) : Attribute
 {
     /// <summary>
     /// 交换机名称
     /// </summary>
     public string ExchangeName { get; } = workModel switch
     {
-        EWorkModel.PublishSubscribe => string.IsNullOrWhiteSpace(exchangeName) ? "xdl.amq.fanout" : exchangeName,
-        EWorkModel.Routing          => string.IsNullOrWhiteSpace(exchangeName) ? "xdl.amq.direct" : exchangeName,
-        EWorkModel.Topics           => string.IsNullOrWhiteSpace(exchangeName) ? "xdl.amq.topic" : exchangeName,
-        _                           => ExchangeNameCheck(exchangeName)
+        EModel.PublishSubscribe => string.IsNullOrWhiteSpace(exchangeName) ? "xdl.amq.fanout" : exchangeName,
+        EModel.Routing          => string.IsNullOrWhiteSpace(exchangeName) ? "xdl.amq.direct" : exchangeName,
+        EModel.Topics           => string.IsNullOrWhiteSpace(exchangeName) ? "xdl.amq.topic" : exchangeName,
+        _                       => ExchangeNameCheck(exchangeName)
     };
 
     /// <summary>
     /// 交换机模式
     /// </summary>
-    public EWorkModel WorkModel { get; } = workModel;
+    public EModel WorkModel { get; } = workModel;
 
     /// <summary>
     /// 路由键《路由键和队列名称配合使用》
     /// </summary>
     public string RoutingKey { get; } = workModel switch
     {
-        EWorkModel.None => queue,
-        _               => routingKey
+        EModel.None => queue,
+        _           => routingKey
     };
 
     /// <summary>
