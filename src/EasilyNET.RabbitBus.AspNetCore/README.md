@@ -75,13 +75,13 @@ construct(IBus ibus){
 /// 创建一个延时消息,同时发送一个普通消息做对比
 /// </summary>
 [HttpPost("TTLTest")]
-public void TTLTest()
+public async Task TTLTest()
 {
     var rand = new Random();
     var ttl = rand.Next(1000, 10000);
     var ttlobj = new DelayedMessageEvent() { Message = $"延迟{ttl}毫秒,当前时间{DateTime.Now:yyyy-MM-dd HH:mm:ss}" };
     // 延时队列需要服务端安装延时队列插件.
-    _ibus.Publish(ttlobj, (uint)ttl);
-    _ibus.Publish(ttlobj);
+    await _ibus.Publish(ttlobj, (uint)ttl);
+    await _ibus.Publish(ttlobj);
 }
 ```
