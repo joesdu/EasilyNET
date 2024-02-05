@@ -16,16 +16,16 @@ internal abstract class IPersistentConnection
     /// 尝试链接
     /// </summary>
     /// <returns></returns>
-    internal abstract bool TryConnect();
+    internal abstract Task TryConnect();
 
     /// <summary>
     /// 从池中获取Channel
     /// </summary>
     /// <returns></returns>
-    internal abstract IChannel GetChannel();
+    internal abstract Task<IChannel> GetChannel();
 
     /// <summary>
     /// 归还连接池通道
     /// </summary>
-    internal abstract void ReturnChannel(IChannel channel);
+    internal abstract Task ReturnChannel(IChannel channel);
 }

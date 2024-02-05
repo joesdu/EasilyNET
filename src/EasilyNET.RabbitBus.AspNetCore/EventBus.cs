@@ -31,15 +31,14 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
     private bool disposed;
 
     /// <inheritdoc />
-    public void Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
+    public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
     {
-        if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
-        if (!conn.IsConnected) _ = conn.TryConnect();
+        if (!conn.IsConnected) await conn.TryConnect();
         var type = @event.GetType();
         logger.LogTrace("创建通道来发布事件: {EventId} ({EventName})", @event.EventId, type.Name);
-        var r_attr = type.GetCustomAttribute<ExchangeInfoAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(ExchangeInfoAttribute)}>,无法创建发布事件");
-        if (!r_attr.Enable) return;
-        var channel = conn.GetChannel();
+        var info = type.GetCustomAttribute<ExchangeInfoAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(ExchangeInfoAttribute)}>,无法创建发布事件");
+        if (!info.Enable) return;
+        var channel = await conn.GetChannel();
         var properties = new BasicProperties
         {
             Persistent = true,
@@ -48,36 +47,37 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         };
         var headers = @event.GetHeaderAttributes();
         if (headers is not null && headers.Count is not 0) properties.Headers = headers;
-        if (r_attr is not { WorkModel: EModel.None })
+        if (info is not { WorkModel: EModel.None })
         {
             var exchange_args = @event.GetExchangeArgAttributes();
-            channel.ExchangeDeclare(r_attr.ExchangeName, r_attr.WorkModel.ToDescription(), true, arguments: exchange_args);
+            await channel.ExchangeDeclareAsync(info.ExchangeName, info.WorkModel.ToDescription(), true, arguments: exchange_args);
         }
+        // 在发布事件前检查是否已经取消发布
+        if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
         var body = JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType(), jsonSerializerOptions);
         // 创建Policy规则
         var policy = Policy.Handle<BrokerUnreachableException>()
                            .Or<SocketException>()
                            .WaitAndRetry(retry, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
                                logger.LogError(ex, "无法发布事件: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
-        policy.Execute(async () =>
+        await policy.Execute(async () =>
         {
             logger.LogTrace("发布事件: {EventId}", @event.EventId);
-            await channel.BasicPublishAsync(r_attr.ExchangeName, routingKey ?? r_attr.RoutingKey, properties, body, true);
-            conn.ReturnChannel(channel);
+            await channel.BasicPublishAsync(info.ExchangeName, routingKey ?? info.RoutingKey, properties, body, true);
+            await conn.ReturnChannel(channel);
         });
     }
 
     /// <inheritdoc />
-    public void Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
+    public async Task Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
     {
-        if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
-        if (!conn.IsConnected) _ = conn.TryConnect();
+        if (!conn.IsConnected) await conn.TryConnect();
         var type = @event.GetType();
         logger.LogTrace("创建通道来发布事件: {EventId} ({EventName})", @event.EventId, type.Name);
-        var rabbitAttr = type.GetCustomAttribute<ExchangeInfoAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(ExchangeInfoAttribute)}>,无法发布事件");
-        if (!rabbitAttr.Enable) return;
-        if (rabbitAttr is not { WorkModel: EModel.Delayed }) throw new($"延时队列的交换机类型必须为{nameof(EModel.Delayed)}");
-        var channel = conn.GetChannel();
+        var info = type.GetCustomAttribute<ExchangeInfoAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(ExchangeInfoAttribute)}>,无法发布事件");
+        if (!info.Enable) return;
+        if (info is not { WorkModel: EModel.Delayed }) throw new($"延时队列的交换机类型必须为{nameof(EModel.Delayed)}");
+        var channel = await conn.GetChannel();
         var properties = new BasicProperties
         {
             Persistent = true,
@@ -104,18 +104,20 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
             exchange_args["x-delayed-type"] = !xDelayedType || delayedType is null ? "direct" : delayedType;
         }
         ////创建延时交换机,type类型为x-delayed-message
-        channel.ExchangeDeclare(rabbitAttr.ExchangeName, rabbitAttr.WorkModel.ToDescription(), true, false, exchange_args);
+        await channel.ExchangeDeclareAsync(info.ExchangeName, info.WorkModel.ToDescription(), true, false, exchange_args);
+        // 在发布事件前检查是否已经取消发布
+        if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
         var body = JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType(), jsonSerializerOptions);
         // 创建Policy规则
         var policy = Policy.Handle<BrokerUnreachableException>()
                            .Or<SocketException>()
                            .WaitAndRetry(retry, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
                                logger.LogError(ex, "无法发布事件: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
-        policy.Execute(async () =>
+        await policy.Execute(async () =>
         {
             logger.LogTrace("发布事件: {EventId}", @event.EventId);
-            await channel.BasicPublishAsync(rabbitAttr.ExchangeName, routingKey ?? rabbitAttr.RoutingKey, properties, body, true);
-            conn.ReturnChannel(channel);
+            await channel.BasicPublishAsync(info.ExchangeName, routingKey ?? info.RoutingKey, properties, body, true);
+            await conn.ReturnChannel(channel);
         });
     }
 
@@ -128,27 +130,27 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         disposed = true;
     }
 
-    internal void Subscribe()
+    internal async Task Subscribe()
     {
-        if (!conn.IsConnected) _ = conn.TryConnect();
-        InitialRabbit();
+        if (!conn.IsConnected) await conn.TryConnect();
+        await InitialRabbit();
     }
 
-    private void InitialRabbit()
+    private async Task InitialRabbit()
     {
         var events = AssemblyHelper.FindTypes(o => o is { IsClass: true, IsAbstract: false } && o.IsBaseOn(typeof(Event)) && o.HasAttribute<ExchangeInfoAttribute>());
         foreach (var eventType in events)
         {
-            var rabbitAttr = eventType.GetCustomAttribute<ExchangeInfoAttribute>()!;
-            if (!rabbitAttr.Enable) continue;
-            var xdlAttr = eventType.GetCustomAttribute<DeadLetterExchangeInfoAttribute>();
+            var infoAttr = eventType.GetCustomAttribute<ExchangeInfoAttribute>()!;
+            if (!infoAttr.Enable) continue;
+            var dlx = eventType.GetCustomAttribute<DeadLetterExchangeInfoAttribute>();
             var eventName = subsManager.GetEventKey(eventType);
-            Task.Factory.StartNew(() =>
+            await Task.Factory.StartNew(async () =>
             {
-                using var consumerChannel = CreateConsumerChannel(rabbitAttr, eventType, xdlAttr);
-                if (rabbitAttr is not { WorkModel: EModel.None })
+                using var channel = await CreateConsumerChannel(infoAttr, eventType, dlx);
+                if (infoAttr is not { WorkModel: EModel.None })
                 {
-                    DoInternalSubscription(eventName, rabbitAttr, consumerChannel);
+                    await DoInternalSubscription(eventName, infoAttr.ExchangeName, infoAttr, channel, false);
                 }
                 var handlers = AssemblyHelper.FindTypes(o => o is
                                                              {
@@ -163,49 +165,49 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
                 // 检查消费者是否已经注册,若是未注册则不启动消费.
                 if (handle is null) return;
                 subsManager.AddSubscription(eventType, handler);
-                StartBasicConsume(eventType, rabbitAttr, consumerChannel);
+                await StartBasicConsume(eventType, infoAttr, channel, false);
             }, TaskCreationOptions.LongRunning);
-            if (xdlAttr is not null)
+            if (dlx is not null)
             {
-                Task.Factory.StartNew(() =>
+                await Task.Factory.StartNew(async () =>
                 {
-                    using var consumerChannel = CreateConsumerChannel(rabbitAttr, eventType, xdlAttr);
-                    DoInternalSubscription(eventName, xdlAttr, consumerChannel);
+                    using var channel = await CreateConsumerChannel(infoAttr, eventType, dlx);
+                    await DoInternalSubscription(eventName, dlx.ExchangeName, dlx, channel, true);
                     var xdl_handlers = AssemblyHelper.FindTypes(o => o is
                                                                      {
                                                                          IsClass: true,
                                                                          IsAbstract: false
                                                                      } &&
                                                                      o.IsBaseOn(typeof(IEventDeadLetterHandler<>))).Select(s => s.GetTypeInfo());
-                    var xdl_handler = xdl_handlers.FirstOrDefault(o => o.ImplementedInterfaces.Any(s => s.GenericTypeArguments.Contains(eventType)));
-                    if (xdl_handler is null) return;
+                    var handler = xdl_handlers.FirstOrDefault(o => o.ImplementedInterfaces.Any(s => s.GenericTypeArguments.Contains(eventType)));
+                    if (handler is null) return;
                     using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
-                    var handle = scope?.ServiceProvider.GetService(xdl_handler);
+                    var handle = scope?.ServiceProvider.GetService(handler);
                     // 检查消费者是否已经注册,若是未注册则不启动消费.
                     if (handle is null) return;
-                    deadManager.AddSubscription(eventType, xdl_handler);
-                    StartBasicConsume(eventType, xdlAttr, consumerChannel);
+                    deadManager.AddSubscription(eventType, handler);
+                    await StartBasicConsume(eventType, dlx, channel, true);
                 }, TaskCreationOptions.LongRunning);
             }
         }
     }
 
-    private IChannel CreateConsumerChannel(ExchangeInfoAttribute attr, Type eventType, DeadLetterExchangeInfoAttribute? xdlAttr = null)
+    private async Task<IChannel> CreateConsumerChannel(ExchangeInfoAttribute attr, Type eventType, DeadLetterExchangeInfoAttribute? dlx = null)
     {
         logger.LogTrace("创建消费者通道");
-        var channel = conn.GetChannel();
+        var channel = await conn.GetChannel();
         var queue_args = eventType.GetQueueArgAttributes();
-        if (xdlAttr is not null && xdlAttr.Enable)
+        if (dlx is not null && dlx.Enable)
         {
             queue_args ??= new Dictionary<string, object?>();
-            queue_args.Add("x-dead-letter-exchange", xdlAttr.ExchangeName);
-            queue_args.Add("x-dead-letter-routing-key", xdlAttr.RoutingKey);
+            queue_args.Add("x-dead-letter-exchange", dlx.ExchangeName);
+            queue_args.Add("x-dead-letter-routing-key", dlx.RoutingKey);
             logger.LogTrace("创建死信消费者通道");
-            var model = xdlAttr.WorkModel is EModel.Delayed or EModel.None ? "direct" : xdlAttr.WorkModel.ToDescription();
+            var model = dlx.WorkModel is EModel.Delayed or EModel.None ? "direct" : dlx.WorkModel.ToDescription();
             //创建死信交换机
-            channel.ExchangeDeclare(xdlAttr.ExchangeName, model, true);
+            await channel.ExchangeDeclareAsync(dlx.ExchangeName, model, true);
             //创建死信队列
-            _ = channel.QueueDeclare(xdlAttr.Queue, true, false, false);
+            _ = await channel.QueueDeclareAsync(dlx.Queue, true, false, false);
         }
         if (attr is not { WorkModel: EModel.None })
         {
@@ -216,43 +218,35 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
                 if (!success && attr is { WorkModel: EModel.Delayed }) exchange_args.Add("x-delayed-type", "direct"); //x-delayed-type必须加
             }
             //创建交换机
-            channel.ExchangeDeclare(attr.ExchangeName, attr.WorkModel.ToDescription(), true, false, exchange_args);
+            await channel.ExchangeDeclareAsync(attr.ExchangeName, attr.WorkModel.ToDescription(), true, false, exchange_args);
         }
         //创建队列
-        _ = channel.QueueDeclare(attr.Queue, true, false, false, queue_args);
-        channel.CallbackException += (_, ea) =>
+        await channel.QueueDeclareAsync(attr.Queue, true, false, false, queue_args);
+        channel.CallbackException += async (_, ea) =>
         {
             logger.LogWarning(ea.Exception, "重新创建消费者通道");
             subsManager.Clear();
             deadManager.Clear();
-            Subscribe();
+            await Subscribe();
         };
         return channel;
     }
 
-    private void DoInternalSubscription(string eventName, ExchangeInfoAttribute attr, IChannel channel)
+    private async Task DoInternalSubscription(string eventName, string exchangeName, ExchangeAttribute attr, IChannel channel, bool isDeadLet)
     {
-        var containsKey = subsManager.HasSubscriptionsForEvent(eventName);
+        var containsKey = isDeadLet ? deadManager.HasSubscriptionsForEvent(eventName) : subsManager.HasSubscriptionsForEvent(eventName);
         if (containsKey) return;
-        if (!conn.IsConnected) _ = conn.TryConnect();
-        channel.QueueBind(attr.Queue, attr.ExchangeName, attr.RoutingKey);
+        if (!conn.IsConnected) await conn.TryConnect();
+        await channel.QueueBindAsync(attr.Queue, exchangeName, attr.RoutingKey);
     }
 
-    private void DoInternalSubscription(string eventName, DeadLetterExchangeInfoAttribute attr, IChannel channel)
-    {
-        var containsKey = deadManager.HasSubscriptionsForEvent(eventName);
-        if (containsKey) return;
-        if (!conn.IsConnected) _ = conn.TryConnect();
-        channel.QueueBind(attr.Queue, attr.ExchangeName, attr.RoutingKey);
-    }
-
-    private void StartBasicConsume(Type eventType, ExchangeInfoAttribute attr, IChannel channel)
+    private async Task StartBasicConsume(Type eventType, ExchangeAttribute attr, IChannel channel, bool isDeadLet)
     {
         logger.LogTrace("启动消费者");
         var qos = eventType.GetCustomAttribute<QosAttribute>();
-        if (qos is not null) channel.BasicQos(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
+        if (qos is not null) await channel.BasicQosAsync(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
         var consumer = new AsyncEventingBasicConsumer(channel);
-        _ = channel.BasicConsume(attr.Queue, false, consumer);
+        await channel.BasicConsumeAsync(attr.Queue, false, consumer);
         consumer.Received += async (_, ea) =>
         {
             var message = Encoding.UTF8.GetString(ea.Body.Span);
@@ -262,7 +256,7 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
                 {
                     throw new InvalidOperationException($"假异常请求:{message}");
                 }
-                await ProcessEvent(eventType, message, () => channel.BasicAck(ea.DeliveryTag, false));
+                await ProcessEvent(eventType, message, isDeadLet, () => channel.BasicAck(ea.DeliveryTag, false));
             }
             catch (Exception ex)
             {
@@ -274,130 +268,68 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         while (true)
         {
             if (channel.IsClosed) break;
-            Thread.Sleep(100000);
+            await Task.Delay(100000);
         }
     }
 
-    // ReSharper disable once ReplaceAsyncWithTaskReturn
-    private async Task ProcessEvent(Type eventType, string message, Action ack)
+    private async Task ProcessEvent(Type eventType, string message, bool isDeadLet, Action ack)
     {
-        var eventName = subsManager.GetEventKey(eventType);
+        var eventName = isDeadLet ? deadManager.GetEventKey(eventType) : subsManager.GetEventKey(eventType);
         logger.LogTrace("处理事件: {EventName}", eventName);
-        if (subsManager.HasSubscriptionsForEvent(eventName))
+        var policy = Policy.Handle<BrokerUnreachableException>()
+                           .Or<SocketException>()
+                           .WaitAndRetry(retry, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
+                               logger.LogError(ex, "无法消费事件: {EventName} 超时 {Timeout}s ({ExceptionMessage})", eventName, $"{time.TotalSeconds:n1}", ex.Message));
+        switch (isDeadLet)
         {
-            var policy = Policy.Handle<BrokerUnreachableException>()
-                               .Or<SocketException>()
-                               .WaitAndRetry(retry, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
-                                   logger.LogError(ex, "无法消费事件: {EventName} 超时 {Timeout}s ({ExceptionMessage})", eventName, $"{time.TotalSeconds:n1}", ex.Message));
-            await policy.Execute(async () =>
-            {
-                using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
-                var subscriptionTypes = subsManager.GetHandlersForEvent(eventName);
-                foreach (var subscriptionType in subscriptionTypes)
+            case false when subsManager.HasSubscriptionsForEvent(eventName):
+                await policy.Execute(async () =>
                 {
-                    var integrationEvent = JsonSerializer.Deserialize(message, eventType, jsonSerializerOptions);
-                    var concreteType = typeof(IEventHandler<>).MakeGenericType(eventType);
-                    if (integrationEvent is null)
+                    var subscriptionTypes = subsManager.GetHandlersForEvent(eventName);
+                    foreach (var subscriptionType in subscriptionTypes)
                     {
-                        throw new($"集成事件{nameof(integrationEvent)}不能为空");
+                        var concreteType = typeof(IEventHandler<>).MakeGenericType(eventType);
+                        await HandleMessage(eventType, message, concreteType, subscriptionType, ack);
                     }
-                    var method = concreteType.GetMethod(HandleName);
-                    if (method is null)
+                });
+                break;
+            case true when deadManager.HasSubscriptionsForEvent(eventName):
+                await policy.Execute(async () =>
+                {
+                    var subscriptionTypes = deadManager.GetHandlersForEvent(eventName);
+                    foreach (var subscriptionType in subscriptionTypes)
                     {
-                        logger.LogError($"无法找到{nameof(integrationEvent)}事件处理器下处理方法");
-                        throw new($"无法找到{nameof(integrationEvent)}事件处理器下处理方法");
+                        var concreteType = typeof(IEventDeadLetterHandler<>).MakeGenericType(eventType);
+                        await HandleMessage(eventType, message, concreteType, subscriptionType, ack);
                     }
-                    var handler = scope?.ServiceProvider.GetService(subscriptionType);
-                    if (handler is null) continue;
-                    await Task.Yield();
-                    var obj = method.Invoke(handler, [integrationEvent]);
-                    if (obj is null) continue;
-                    await (Task)obj;
-                    ack.Invoke();
-                }
-            });
-        }
-        else
-        {
-            logger.LogError("没有订阅事件:{EventName}", eventName);
+                });
+                break;
+            default:
+                logger.LogError("没有订阅事件:{EventName}", eventName);
+                break;
         }
     }
 
-    private void StartBasicConsume(Type eventType, DeadLetterExchangeInfoAttribute xdlAttr, IChannel channel)
+    private async Task HandleMessage(Type eventType, string message, Type concreteType, Type subscriptionType, Action ack)
     {
-        logger.LogTrace("启动死信队列消费");
-        var qos = eventType.GetCustomAttribute<QosAttribute>();
-        if (qos is not null) channel.BasicQos(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
-        var consumer = new AsyncEventingBasicConsumer(channel);
-        _ = channel.BasicConsume(xdlAttr.Queue, false, consumer);
-        consumer.Received += async (_, ea) =>
+        var @event = JsonSerializer.Deserialize(message, eventType, jsonSerializerOptions);
+        if (@event is null)
         {
-            var message = Encoding.UTF8.GetString(ea.Body.Span);
-            try
-            {
-                if (message.Contains("throw-fake-exception", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    throw new InvalidOperationException($"假异常请求:{message}");
-                }
-                await ProcessDeadLetterEvent(eventType, message, () => channel.BasicAck(ea.DeliveryTag, false));
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "错误处理消息:{Message}", message);
-            }
-            // Even on exception we take the message off the queue.
-            // in a REAL WORLD app this should be handled with a Dead Letter Exchange (DLX). 
-            // For more information see: https://www.rabbitmq.com/dlx.html
-        };
-        while (true)
-        {
-            if (channel.IsClosed) break;
-            Thread.Sleep(100000);
+            throw new($"集成事件{nameof(@event)}不能为空");
         }
-    }
-
-    // ReSharper disable once ReplaceAsyncWithTaskReturn
-    private async Task ProcessDeadLetterEvent(Type eventType, string message, Action ack)
-    {
-        var eventName = deadManager.GetEventKey(eventType);
-        logger.LogTrace("处理死信事件: {EventName}", eventName);
-        if (deadManager.HasSubscriptionsForEvent(eventName))
+        var method = concreteType.GetMethod(HandleName);
+        if (method is null)
         {
-            var policy = Policy.Handle<BrokerUnreachableException>()
-                               .Or<SocketException>()
-                               .WaitAndRetry(retry, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
-                                   logger.LogError(ex, "无法消费事件: {EventName} 超时 {Timeout}s ({ExceptionMessage})", eventName, $"{time.TotalSeconds:n1}", ex.Message));
-            await policy.Execute(async () =>
-            {
-                using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
-                var subscriptionTypes = deadManager.GetHandlersForEvent(eventName);
-                foreach (var subscriptionType in subscriptionTypes)
-                {
-                    var integrationEvent = JsonSerializer.Deserialize(message, eventType, jsonSerializerOptions);
-                    var concreteType = typeof(IEventDeadLetterHandler<>).MakeGenericType(eventType);
-                    if (integrationEvent is null)
-                    {
-                        throw new($"集成事件{nameof(integrationEvent)}不能为空");
-                    }
-                    var method = concreteType.GetMethod(HandleName);
-                    if (method is null)
-                    {
-                        logger.LogError($"无法找到{nameof(integrationEvent)}事件处理器下处理方法");
-                        throw new($"无法找到{nameof(integrationEvent)}事件处理器下处理方法");
-                    }
-                    var handler = scope?.ServiceProvider.GetService(subscriptionType);
-                    if (handler is null) continue;
-                    await Task.Yield();
-                    var obj = method.Invoke(handler, [integrationEvent]);
-                    if (obj is null) continue;
-                    await (Task)obj;
-                    ack.Invoke();
-                }
-            });
+            logger.LogError($"无法找到{nameof(@event)}事件处理器下处理方法");
+            throw new($"无法找到{nameof(@event)}事件处理器下处理方法");
         }
-        else
-        {
-            logger.LogError("没有订阅死信事件:{EventName}", eventName);
-        }
+        using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
+        var handler = scope?.ServiceProvider.GetService(subscriptionType);
+        if (handler is null) return;
+        await Task.Yield();
+        var obj = method.Invoke(handler, [@event]);
+        if (obj is null) return;
+        await (Task)obj;
+        ack.Invoke();
     }
 }
