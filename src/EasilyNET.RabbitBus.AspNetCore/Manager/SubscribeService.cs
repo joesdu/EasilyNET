@@ -13,7 +13,7 @@ internal class SubscribeService(IServiceProvider serviceProvider) : BackgroundSe
     {
         using var scope = serviceProvider.CreateScope();
         var eventBus = scope.ServiceProvider.GetService<IBus>() as EventBus ?? throw new("RabbitMQ集成事件总线没有注册");
-        eventBus.Subscribe();
+        await eventBus.Subscribe();
         while (!cancelToken.IsCancellationRequested) await Task.Delay(5000, cancelToken);
     }
 }

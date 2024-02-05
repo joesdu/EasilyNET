@@ -14,7 +14,7 @@ public interface IBus
     /// <param name="priority">使用优先级需要先使用RabbitQueueArg特性为队列声明"x-max-priority"参数否则也不会生效,推荐设置0-9之间的数值</param>
     /// <param name="cancellationToken">CancellationToken</param>
     // ReSharper disable once UnusedMember.Global
-    void Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent;
+    Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent;
 
     /// <summary>
     /// 延时事件发送
@@ -26,5 +26,5 @@ public interface IBus
     /// <param name="priority">使用优先级需要先使用RabbitQueueArg特性为队列声明"x-max-priority"参数否则也不会生效,推荐设置0-9之间的数值</param>
     /// <param name="cancellationToken">CancellationToken</param>
     // ReSharper disable once UnusedMember.Global
-    void Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent;
+    Task Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent;
 }

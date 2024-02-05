@@ -9,7 +9,7 @@ namespace EasilyNET.RabbitBus.Core.Attributes;
 /// <a href="https://www.rabbitmq.com/dlx.html">Dead Letter Exchanges</a>
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class DeadLetterExchangeInfoAttribute(EModel workModel, string exchangeName = "", string routingKey = "", string queue = "", bool enable = true) : Attribute
+public sealed class DeadLetterExchangeInfoAttribute(EModel workModel, string exchangeName = "", string routingKey = "", string queue = "", bool enable = true) : ExchangeAttribute(workModel, routingKey, queue, enable)
 {
     /// <summary>
     /// 交换机名称
@@ -21,38 +21,4 @@ public sealed class DeadLetterExchangeInfoAttribute(EModel workModel, string exc
         EModel.Topics           => string.IsNullOrWhiteSpace(exchangeName) ? "xdl.amq.topic" : exchangeName,
         _                       => ExchangeNameCheck(exchangeName)
     };
-
-    /// <summary>
-    /// 交换机模式
-    /// </summary>
-    public EModel WorkModel { get; } = workModel;
-
-    /// <summary>
-    /// 路由键《路由键和队列名称配合使用》
-    /// </summary>
-    public string RoutingKey { get; } = workModel switch
-    {
-        EModel.None => queue,
-        _           => routingKey
-    };
-
-    /// <summary>
-    /// 队列名称《队列名称和路由键配合使用》
-    /// </summary>
-    public string Queue { get; } = queue;
-
-    /// <summary>
-    /// 是否启用队列
-    /// </summary>
-    public bool Enable { get; } = enable;
-
-    private static string ExchangeNameCheck(string exchangeName)
-    {
-#if NET7_0_OR_GREATER
-        ArgumentException.ThrowIfNullOrEmpty(exchangeName, nameof(exchangeName));
-#else
-        if (string.IsNullOrWhiteSpace(exchangeName)) throw new ArgumentNullException(nameof(exchangeName));
-#endif
-        return exchangeName;
-    }
 }

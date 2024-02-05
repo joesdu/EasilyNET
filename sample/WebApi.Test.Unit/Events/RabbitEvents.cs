@@ -10,8 +10,8 @@ namespace WebApi.Test.Unit.Events;
 /// <summary>
 /// 测试HelloWorld模式消息类型
 /// </summary>
-//[ExchangeInfo(EModel.None, queue: "hello.world")]
-[DeadLetterExchangeInfo(EModel.None, "xdl.hello", queue: "xdl.hello.world"), QueueArg("x-message-ttl", 5000)]
+[ExchangeInfo(EModel.None, queue: "hello.world")]
+//[DeadLetterExchangeInfo(EModel.None, "xdl.hello", queue: "xdl.hello.world"), QueueArg("x-message-ttl", 5000)]
 public class HelloWorldEvent : Event
 {
     /// <summary>

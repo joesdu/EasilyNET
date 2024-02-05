@@ -16,21 +16,21 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     /// 发送HelloWorld消息
     /// </summary>
     [HttpPost]
-    public void HelloWorld()
+    public async Task HelloWorld()
     {
         var rand = new Random();
-        ibus.Publish(new HelloWorldEvent(), priority: (byte)rand.Next(0, 9));
+        await ibus.Publish(new HelloWorldEvent(), priority: (byte)rand.Next(0, 9));
     }
 
     /// <summary>
     /// 发送WorkQueues消息
     /// </summary>
     [HttpPost]
-    public void WorkQueues()
+    public async Task WorkQueues()
     {
         foreach (var i in ..10_0000)
         {
-            ibus.Publish(new WorkQueuesEvent
+            await ibus.Publish(new WorkQueuesEvent
             {
                 Summary = $"WorkQueuesEvent:{i}"
             });
@@ -41,28 +41,24 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     /// Fanout(发布订阅)发送消息,设置两个队列,所以应该输出两条信息
     /// </summary>
     [HttpPost]
-    public void Fanout(CancellationToken cancellationToken)
-    {
-        ibus.Publish(new FanoutEventOne(), cancellationToken: cancellationToken);
-    }
+    public async Task Fanout(CancellationToken cancellationToken) => await ibus.Publish(new FanoutEventOne(), cancellationToken: cancellationToken);
 
     /// <summary>
     /// 路由模式(direct)模式发送消息,只向单一主题发送消息
     /// </summary>
     [HttpPost]
-    public Task DirectQueue1(CancellationToken cancellationToken)
+    public async Task DirectQueue1(CancellationToken cancellationToken)
     {
-        Task.Run(() => ibus.Publish(new DirectEventOne(), "direct.queue1", cancellationToken: cancellationToken), cancellationToken);
-        return Task.CompletedTask;
+        await ibus.Publish(new DirectEventOne(), "direct.queue1", cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// 路由模式(direct)发送消息,只向单一主题发送消息
     /// </summary>
     [HttpPost]
-    public void DirectQueue2()
+    public async Task DirectQueue2()
     {
-        ibus.Publish(new DirectEventOne(), "direct.queue2");
+        await ibus.Publish(new DirectEventOne(), "direct.queue2");
     }
 
     /// <summary>
@@ -70,9 +66,9 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     /// 只配置了topic.queue.*和topic.queue.1,所以该接口应该只输出两条信息.
     /// </summary>
     [HttpPost]
-    public void TopicTo1()
+    public async Task TopicTo1()
     {
-        ibus.Publish(new TopicEventOne(), "topic.queue.1");
+        await ibus.Publish(new TopicEventOne(), "topic.queue.1");
     }
 
     /// <summary>
@@ -80,9 +76,9 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     /// 只配置了topic.queue.*和topic.queue.1,所以该接口应该只输出一条信息.
     /// </summary>
     [HttpPost]
-    public void TopicTo2()
+    public async Task TopicTo2()
     {
-        ibus.Publish(new TopicEventOne(), "topic.queue.2");
+        await ibus.Publish(new TopicEventOne(), "topic.queue.2");
     }
 
     /// <summary>
@@ -90,8 +86,8 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     /// 只配置了topic.queue.*和topic.queue.1,所以该接口应该只输出一条信息.
     /// </summary>
     [HttpPost]
-    public void TopicTo3()
+    public async Task TopicTo3()
     {
-        ibus.Publish(new TopicEventOne(), "topic.queue.3");
+        await ibus.Publish(new TopicEventOne(), "topic.queue.3");
     }
 }
