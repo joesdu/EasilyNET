@@ -24,7 +24,7 @@ public static class ObjectHelper
     /// <param name="valueFactory">值工厂</param>
     public static void TrySetProperty<TObject, TValue>(TObject obj, Expression<Func<TObject, TValue>> propertySelector, Func<TValue> valueFactory)
     {
-        TrySetProperty(obj, propertySelector, x => valueFactory());
+        TrySetProperty(obj, propertySelector, _ => valueFactory());
     }
 
     /// <summary>
@@ -49,6 +49,6 @@ public static class ObjectHelper
             var propertyInfo = obj?.GetType().GetProperties().FirstOrDefault(o => o.Name == memberExpression.Member.Name && o.GetSetMethod(true) is not null);
             return propertyInfo;
         }));
-        property?.Value?.SetValue(obj, valueFactory(obj));
+        property.Value?.SetValue(obj, valueFactory(obj));
     }
 }

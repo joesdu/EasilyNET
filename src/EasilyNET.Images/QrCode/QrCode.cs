@@ -128,7 +128,7 @@ public static class QrCode
 #else
         if (string.IsNullOrWhiteSpace(base64)) throw new("base64 is null or empty");
 #endif
-        var data = base64[(base64.IndexOf(",", StringComparison.Ordinal) + 1)..];
+        var data = base64[(base64.IndexOf(',', StringComparison.Ordinal) + 1)..];
         return Decode(Convert.FromBase64String(data));
     }
 
@@ -148,7 +148,7 @@ public static class QrCode
 #else
         if (string.IsNullOrWhiteSpace(base64)) throw new("base64 is null or empty");
 #endif
-        var data = base64[(base64.IndexOf(",", StringComparison.Ordinal) + 1)..];
+        var data = base64[(base64.IndexOf(',', StringComparison.Ordinal) + 1)..];
         var json = Decode(Convert.FromBase64String(data));
         return JsonSerializer.Deserialize<T>(json);
     }
