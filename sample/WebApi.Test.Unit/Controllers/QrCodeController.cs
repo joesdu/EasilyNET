@@ -23,6 +23,6 @@ public class QrCodeController : ControllerBase
     /// </summary>
     /// <param name="base64"></param>
     /// <returns></returns>
-    [HttpGet("Decode/{base64}")]
-    public string Decode(string base64) => QrCode.Decode(base64);
+    [HttpPost("Decode")]
+    public string Decode([FromBody] string base64) => QrCode.Decode(base64);
 }
