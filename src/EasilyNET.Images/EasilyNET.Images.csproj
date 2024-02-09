@@ -17,7 +17,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.7" />
+		<PackageReference Include="SkiaSharp" Version="3.0.0-preview.1.8" />
+		<PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.0.0-preview.1.8" />
 		<PackageReference Include="ZXing.Net" Version="0.16.9" />
 	</ItemGroup>
 
