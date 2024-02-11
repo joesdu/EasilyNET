@@ -19,7 +19,7 @@ public static class ObjectExtension
     public static void Require<TException>(bool assertion, string message) where TException : Exception
     {
         if (assertion) return;
-#if NET7_0_OR_GREATER
+#if NET8_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(message, nameof(message));
 #else
         if (string.IsNullOrWhiteSpace(message)) throw new ArgumentNullException(nameof(message));
@@ -105,26 +105,18 @@ public static class ObjectExtension
     /// <returns></returns>
     public static object? ChangeType(this object? value, Type type)
     {
-        if (value == null || value is DBNull)
+        if (value is null or DBNull)
         {
             return null;
         }
-
         //如果是Nullable类型
         if (type.IsNullable())
         {
             type = type.GetUnNullableType();
         }
-        if (type == typeof(Guid))
-        {
-            Guid.TryParse(value.ToString(), out var newGuid);
-            return newGuid;
-        }
-        if (value?.GetType() == typeof(Guid))
-        {
-            return value.ToString();
-        }
-        return Convert.ChangeType(value, type);
+        if (type != typeof(Guid)) return Convert.ChangeType(value, type);
+        var success = Guid.TryParse(value.ToString(), out var newGuid);
+        return success ? newGuid : Convert.ChangeType(value, type);
     }
 
     /// <summary>

@@ -123,7 +123,7 @@ public static class QrCode
     /// <returns>编码到二维码中的信息</returns>
     public static string Decode(string base64)
     {
-#if NET7_0_OR_GREATER
+#if NET8_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(base64, nameof(base64));
 #else
         if (string.IsNullOrWhiteSpace(base64)) throw new("base64 is null or empty");
@@ -143,7 +143,7 @@ public static class QrCode
     /// <returns></returns>
     public static T? Decode<T>(string base64)
     {
-#if NET7_0_OR_GREATER
+#if NET8_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(base64, nameof(base64));
 #else
         if (string.IsNullOrWhiteSpace(base64)) throw new("base64 is null or empty");

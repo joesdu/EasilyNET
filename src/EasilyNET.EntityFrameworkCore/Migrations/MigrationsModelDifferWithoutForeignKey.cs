@@ -1,9 +1,7 @@
-#if NET7_0_OR_GREATER
+// ReSharper disable ClassNeverInstantiated.Global
+
 #pragma warning disable EF1001 // Internal EF Core API usage.
-#endif
-#if NET6_0
-#pragma warning disable EF1001 // Internal EF Core API usage.
-#endif
+
 namespace EasilyNET.EntityFrameworkCore.Migrations;
 
 #if NET6_0
@@ -17,7 +15,7 @@ namespace EasilyNET.EntityFrameworkCore.Migrations;
 /// <param name="dependencies"></param>
 public class MigrationsModelDifferWithoutForeignKey(IRelationalTypeMappingSource mappingSource, IMigrationsAnnotationProvider provider, IChangeDetector detector, IUpdateAdapterFactory factory, CommandBatchPreparerDependencies dependencies)
     : MigrationsModelDiffer(mappingSource, provider, detector, factory, dependencies)
-#elif NET7_0_OR_GREATER
+#elif NET8_0_OR_GREATER
 /// <summary>
 /// 迁移文件不生成外键关系和外键索引
 /// </summary>
@@ -44,7 +42,7 @@ public class MigrationsModelDifferWithoutForeignKey(IRelationalTypeMappingSource
         List<AddForeignKeyOperation> foreignKeyOperations = [];
         foreach (var operation in operations.OfType<CreateTableOperation>())
         {
-            foreignKeyOperations.AddRange(operation.ForeignKeys.ToArray());
+            foreignKeyOperations.AddRange([.. operation.ForeignKeys]);
             operation.ForeignKeys.Clear();
         }
         var foreignKes = foreignKeyOperations.Select(o => $"IX_{o.Table}_{string.Join("_", o.Columns)}");
