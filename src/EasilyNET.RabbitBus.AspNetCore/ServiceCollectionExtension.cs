@@ -64,7 +64,7 @@ public static class ServiceCollectionExtension
     /// <param name="poolCount">Channel池数量,默认为: 计算机上逻辑处理器的数量</param>
     public static void AddRabbitBus(this IServiceCollection service, string conn, int retry = 5, uint poolCount = 0)
     {
-#if NET7_0_OR_GREATER
+#if NET8_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(conn, nameof(conn));
 #else
         if (string.IsNullOrWhiteSpace(conn)) throw new("链接字符串不能为空");
@@ -110,7 +110,7 @@ public static class ServiceCollectionExtension
     private static IServiceCollection RabbitPersistentConnection(this IServiceCollection service, RabbitMultiConfig config)
     {
         if (config.AmqpTcpEndpoints is null || config.AmqpTcpEndpoints.Count is 0)
-            throw new ArgumentNullException($"{nameof(config.AmqpTcpEndpoints)}不能为空", nameof(config.AmqpTcpEndpoints));
+            throw new($"{nameof(config.AmqpTcpEndpoints)}不能为空");
         service.AddSingleton<IPersistentConnection>(sp =>
         {
             var logger = sp.GetRequiredService<ILogger<PersistentConnection>>();
