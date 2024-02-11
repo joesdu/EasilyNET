@@ -76,7 +76,7 @@ public class MongoModule : AppModule
         //};
         context.Services.AddMongoContext<DbContext>(new()
         {
-            Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
+            Servers = [new("127.0.0.1", 27018)],
             Credential = MongoCredential.CreateCredential("admin", "guest", "guest"),
             LinqProvider = LinqProvider.V3,
             ClusterConfigurator = s => s.Subscribe(new ActivityEventSubscriber())
@@ -88,6 +88,5 @@ public class MongoModule : AppModule
         context.Services.AddMongoContext<DbContext2>(config, c => c.DatabaseName = "test2");
         context.Services.RegisterSerializer(new DateOnlySerializerAsString());
         context.Services.RegisterSerializer(new TimeOnlySerializerAsString());
-        //context.Services.RegisterDynamicSerializer();
     }
 }
