@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global

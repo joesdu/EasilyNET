@@ -1,4 +1,4 @@
-using EasilyNET.RabbitBus.AspNetCore.Abstraction;
+﻿using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using RabbitMQ.Client;
 using System.Collections.Concurrent;
 

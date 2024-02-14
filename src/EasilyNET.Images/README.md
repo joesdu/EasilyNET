@@ -1,4 +1,4 @@
-#### EasilyNET.Images
+﻿#### EasilyNET.Images
 
 包含 QRCode 工具,由于绘图等一些操作需要平台依赖包支持,所以会较大,因此单独打包.
 简化二维码生成,一般仅需使用 Encode 就够了.

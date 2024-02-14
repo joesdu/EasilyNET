@@ -1,4 +1,4 @@
-namespace EasilyNET.AutoDependencyInjection.Abstractions;
+﻿namespace EasilyNET.AutoDependencyInjection.Abstractions;
 
 /// <summary>
 /// 对象存取器

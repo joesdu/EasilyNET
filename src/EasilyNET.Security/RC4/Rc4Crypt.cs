@@ -1,4 +1,4 @@
-// ReSharper disable SuggestBaseTypeForParameter
+﻿// ReSharper disable SuggestBaseTypeForParameter
 // ReSharper disable ParameterTypeCanBeEnumerable.Local
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global

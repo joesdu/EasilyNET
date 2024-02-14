@@ -1,4 +1,4 @@
-using EasilyNET.AutoDependencyInjection.Attributes;
+﻿using EasilyNET.AutoDependencyInjection.Attributes;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 

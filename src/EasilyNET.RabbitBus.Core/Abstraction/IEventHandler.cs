@@ -1,4 +1,4 @@
-namespace EasilyNET.RabbitBus.Core.Abstraction;
+﻿namespace EasilyNET.RabbitBus.Core.Abstraction;
 
 /// <summary>
 /// 集成事件处理器

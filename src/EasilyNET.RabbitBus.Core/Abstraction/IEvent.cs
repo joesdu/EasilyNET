@@ -1,4 +1,4 @@
-// ReSharper disable UnusedMemberInSuper.Global
+﻿// ReSharper disable UnusedMemberInSuper.Global
 
 // ReSharper disable UnusedMemberInSuper.Global
 

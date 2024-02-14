@@ -1,4 +1,4 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global

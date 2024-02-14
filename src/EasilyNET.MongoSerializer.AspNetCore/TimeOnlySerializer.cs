@@ -1,4 +1,4 @@
-using MongoDB.Bson.Serialization;
+﻿using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 
 // ReSharper disable UnusedType.Global

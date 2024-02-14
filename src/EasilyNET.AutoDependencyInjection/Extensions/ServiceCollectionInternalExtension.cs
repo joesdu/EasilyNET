@@ -1,4 +1,4 @@
-using EasilyNET.AutoDependencyInjection;
+﻿using EasilyNET.AutoDependencyInjection;
 
 // ReSharper disable UnusedMethodReturnValue.Global
 

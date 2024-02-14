@@ -1,4 +1,4 @@
-using EasilyNET.AutoDependencyInjection.Abstractions;
+﻿using EasilyNET.AutoDependencyInjection.Abstractions;
 
 // ReSharper disable UnusedType.Global
 

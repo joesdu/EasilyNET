@@ -1,4 +1,4 @@
-using EasilyNET.AutoDependencyInjection.Core.Attributes;
+﻿using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EasilyNET.AutoDependencyInjection.Core.Abstractions;

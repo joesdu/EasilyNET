@@ -1,4 +1,4 @@
-// ReSharper disable SuggestBaseTypeForParameter
+﻿// ReSharper disable SuggestBaseTypeForParameter
 
 namespace EasilyNET.Security;
 

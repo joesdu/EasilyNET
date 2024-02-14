@@ -1,4 +1,4 @@
-using EasilyNET.WebCore.Swagger.Attributes;
+﻿using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 using Microsoft.OpenApi.Models;

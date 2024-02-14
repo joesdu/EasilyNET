@@ -1,4 +1,4 @@
-namespace EasilyNET.Mongo.ConsoleDebug.Style;
+﻿namespace EasilyNET.Mongo.ConsoleDebug.Style;
 
 internal static class Casing
 {

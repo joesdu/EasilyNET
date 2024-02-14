@@ -1,4 +1,4 @@
-using EasilyNET.AutoDependencyInjection.Core.Attributes;
+﻿using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using System.Text.Json;
 using WebApi.Test.Unit.Events;

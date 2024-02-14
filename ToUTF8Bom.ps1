@@ -1,7 +1,7 @@
 # 定义要处理的文件夹路径
 $folder = $pwd.Path
 # 定义要转换的目标编码
-$targetEncoding = "UTF8"
+$targetEncoding = "UTF8BOM"
 # 定义要排除的文件夹名称
 $exclude = "bin", "obj"
 # 定义要转换的文件类型
@@ -47,7 +47,7 @@ function Get-FileEncoding {
     switch ($byte[0..1] -join '-') {
         '254-255' { return [Text.Encoding]::BigEndianUnicode }
         '255-254' { return [Text.Encoding]::Unicode }
-        '255-239' { return [Text.Encoding]::UTF8 }
+        '255-239' { return [Text.Encoding]::UTF8BOM }
         default {
             if ($byte[0] -eq 0) { return [Text.Encoding]::UTF32 }
             else { return [Text.Encoding]::Default }

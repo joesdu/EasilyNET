@@ -1,4 +1,4 @@
-using EasilyNET.RabbitBus.Core.Abstraction;
+﻿using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 

@@ -1,4 +1,4 @@
-namespace EasilyNET.WebCore.JsonConverters;
+﻿namespace EasilyNET.WebCore.JsonConverters;
 
 internal static class Constant
 {

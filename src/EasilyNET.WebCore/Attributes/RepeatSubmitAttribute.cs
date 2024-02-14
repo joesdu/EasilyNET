@@ -1,4 +1,4 @@
-namespace EasilyNET.WebCore.Attributes;
+﻿namespace EasilyNET.WebCore.Attributes;
 
 /// <summary>
 /// 防抖特性
