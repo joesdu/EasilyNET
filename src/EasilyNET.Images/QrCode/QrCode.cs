@@ -123,11 +123,7 @@ public static class QrCode
     /// <returns>编码到二维码中的信息</returns>
     public static string Decode(string base64)
     {
-#if NET8_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(base64, nameof(base64));
-#else
-        if (string.IsNullOrWhiteSpace(base64)) throw new("base64 is null or empty");
-#endif
         var data = base64[(base64.IndexOf(',', StringComparison.Ordinal) + 1)..];
         return Decode(Convert.FromBase64String(data));
     }
@@ -143,11 +139,7 @@ public static class QrCode
     /// <returns></returns>
     public static T? Decode<T>(string base64)
     {
-#if NET8_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(base64, nameof(base64));
-#else
-        if (string.IsNullOrWhiteSpace(base64)) throw new("base64 is null or empty");
-#endif
         var data = base64[(base64.IndexOf(',', StringComparison.Ordinal) + 1)..];
         var json = Decode(Convert.FromBase64String(data));
         return JsonSerializer.Deserialize<T>(json);

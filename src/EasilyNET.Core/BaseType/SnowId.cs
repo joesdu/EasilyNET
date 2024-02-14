@@ -50,11 +50,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     /// <param name="bytes">The bytes.</param>
     public SnowId(byte[] bytes)
     {
-#if NET7_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(bytes, nameof(bytes));
-#else
-        if (bytes is null) throw new ArgumentNullException(nameof(bytes));
-#endif
         ArgumentExceptionExtensions.ThrowIf(() => bytes.Length != 12, "Byte array must be 12 bytes long", nameof(bytes));
         //if (bytes.Length != 12)
         //{

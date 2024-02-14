@@ -19,7 +19,7 @@ EasilyNET Packages
 - 对 MongoDB 驱动的一些封装,方便使用以及一些常用的默认配置
 - 雪花 ID,一些常用的数据类型,枚举,扩展方法等
 - 自动模块化注入服务
-- MongoDB 添加(dynamic|object)类型的序列化和反序列化支持 ( MongoDB 在 2.19 - 2.20 版之间移除了这两个类型的支持)
+- MongoDB 添加(dynamic|object)类型的支持 ( MongoDB 在 2.19 - 2.20 版之间移除了这两个类型的支持),添加 DateOnly 和 TimeOnly 的支持
 - IdentityServer 6.x ,7.x 的 MongoDB 持久化支持 (需要重构)
 - MongoDB GridFS 用法的简单支持(常用用法)和使用案例.
 - 在 WebAPI 中集成一些常见的过滤器和中间件
@@ -34,20 +34,11 @@ EasilyNET Packages
 | [EasilyNET.WebCore](https://www.nuget.org/packages/EasilyNET.WebCore)                 | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.WebCore)         | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.WebCore)         | 提供 JsonConverter,和全局统一返回和异常处理支持,以及一些 WebAPI 常用的东西     |
 | [EasilyNET.WebCore.Swagger](https://www.nuget.org/packages/EasilyNET.WebCore.Swagger) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.WebCore.Swagger) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.WebCore.Swagger) | 提供 Swagger 的一些 Filter 实现.                                               |
 
-#### EntityFramework Core
-
-| NuGet Package                                                                                 | Version                                                                | Download                                                                | Description                                  |
-| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------- |
-| [EasilyNET.Core.Domains](https://www.nuget.org/packages/EasilyNET.Core.Domains)               | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Core.Domains)        | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Core.Domains)        | 提供 Entity、IUnitOfWork、IRepository 等功能 |
-| [EasilyNET.Core.Domain.SourceGenerator](https://www.nuget.org/packages/EasilyNET.Core.Domain.SourceGenerator) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Core.Domain.SourceGenerator) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Core.Domain.SourceGenerator) | Domains下接口IMayHaveCreator、IHasCreationTime、IHasDeleterId、IHasDeletionTime、IHasModificationTime、IHasModifierId代码生成 |
-| [EasilyNET.EntityFrameworkCore](https://www.nuget.org/packages/EasilyNET.EntityFrameworkCore) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.EntityFrameworkCore) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.EntityFrameworkCore) | EntityFrameworkCore 相关，Repository，上下文 |
-
 #### Framework
 
 | NuGet Package                                                                                         | Version                                                                    | Download                                                                    | Description                                 |
 | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------- |
 | [EasilyNET.AutoDependencyInjection](https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.AutoDependencyInjection) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection) | 模块化自动注入服务,特性和接口注入等多种方式 |
-| [EasilyNET.AutoInjection.SourceGenerator](https://www.nuget.org/packages/EasilyNET.AutoInjection.SourceGenerator) | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.AutoInjection.SourceGenerator) | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.AutoInjection.SourceGenerator) |使用 SourceGenerator 代码编译时实现特性和接口注入等多种方式，不使用模块化，要自行实现|
 | [EasilyNET.Images](https://www.nuget.org/packages/EasilyNET.Images)                                   | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Images)                  | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Images)                  | 一些涉及到图形的工具包,目前仅有 QrCode      |
 | [EasilyNET.RabbitBus.AspNetCore](https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore)       | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.RabbitBus.AspNetCore)    | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.RabbitBus.AspNetCore)    | 基于 RabbitMQ 的消息总线处理方案            |
 | [EasilyNET.Security](https://www.nuget.org/packages/EasilyNET.Security)                               | ![Nuget](https://img.shields.io/nuget/v/EasilyNET.Security)                | ![Nuget](https://img.shields.io/nuget/dt/EasilyNET.Security)                | AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4       |

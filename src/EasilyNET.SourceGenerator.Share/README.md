@@ -1,1 +1,0 @@
-#### EasilyNET.SourceGenerator.Share

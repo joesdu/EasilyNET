@@ -19,11 +19,7 @@ public static class ObjectExtension
     public static void Require<TException>(bool assertion, string message) where TException : Exception
     {
         if (assertion) return;
-#if NET8_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(message, nameof(message));
-#else
-        if (string.IsNullOrWhiteSpace(message)) throw new ArgumentNullException(nameof(message));
-#endif
         throw (TException)Activator.CreateInstance(typeof(TException), message)!;
     }
 

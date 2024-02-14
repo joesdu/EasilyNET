@@ -64,11 +64,7 @@ public static class ServiceCollectionExtension
     /// <param name="poolCount">Channel池数量,默认为: 计算机上逻辑处理器的数量</param>
     public static void AddRabbitBus(this IServiceCollection service, string conn, int retry = 5, uint poolCount = 0)
     {
-#if NET8_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(conn, nameof(conn));
-#else
-        if (string.IsNullOrWhiteSpace(conn)) throw new("链接字符串不能为空");
-#endif
         service.RabbitPersistentConnection(conn, retry, poolCount).AddEventBus(retry);
     }
 

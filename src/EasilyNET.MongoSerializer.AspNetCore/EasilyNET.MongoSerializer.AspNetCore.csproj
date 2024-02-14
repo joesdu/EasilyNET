@@ -18,7 +18,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="MongoDB.Bson" Version="2.23.1" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0-preview.1.24080.9" />
 	</ItemGroup>
 
 </Project>

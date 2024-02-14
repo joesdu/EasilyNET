@@ -28,4 +28,8 @@
 		<PackageReference Include="Duende.IdentityServer" Version="7.0.1" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+		<PackageReference Include="Duende.IdentityServer" Version="7.0.1" />
+	</ItemGroup>
+
 </Project>
