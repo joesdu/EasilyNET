@@ -1,4 +1,4 @@
-namespace EasilyNET.MongoGridFS.AspNetCore;
+﻿namespace EasilyNET.MongoGridFS.AspNetCore;
 
 /// <summary>
 /// 定义一些常量

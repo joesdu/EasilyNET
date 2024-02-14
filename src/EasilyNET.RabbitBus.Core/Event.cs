@@ -1,4 +1,4 @@
-using EasilyNET.Core.BaseType;
+﻿using EasilyNET.Core.BaseType;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using System.Text.Json.Serialization;
 

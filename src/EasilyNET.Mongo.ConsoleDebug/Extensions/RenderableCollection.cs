@@ -1,4 +1,4 @@
-using Spectre.Console.Rendering;
+﻿using Spectre.Console.Rendering;
 
 namespace EasilyNET.Mongo.ConsoleDebug.Extensions;
 

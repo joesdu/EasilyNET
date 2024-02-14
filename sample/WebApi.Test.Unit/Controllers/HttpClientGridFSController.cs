@@ -1,4 +1,4 @@
-using EasilyNET.WebCore.Swagger.Attributes;
+﻿using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Test.Unit.Controllers;

@@ -1,4 +1,4 @@
-### EasilyNET.Mongo.ConsoleDebug
+﻿### EasilyNET.Mongo.ConsoleDebug
 
 > 常使用 EF 的小伙伴就应该能够知道,可以让 EF 生产的 SQL 语句输出到控制台,在开发的时候非常方便调试.<br/>
 > 而 MongoDB 却没有这样的功能,所以产生了这个库,虽然不完美,但是能够解决一些开发过程中不方便排查问题的情况.

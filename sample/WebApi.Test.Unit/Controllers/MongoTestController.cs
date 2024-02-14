@@ -1,4 +1,4 @@
-using EasilyNET.WebCore.Swagger.Attributes;
+﻿using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using System.ComponentModel;

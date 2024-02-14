@@ -1,4 +1,4 @@
-namespace EasilyNET.AutoDependencyInjection.Abstractions;
+﻿namespace EasilyNET.AutoDependencyInjection.Abstractions;
 
 /// <summary>
 /// 被依赖的类型提供方

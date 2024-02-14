@@ -1,4 +1,4 @@
-using EasilyNET.WebCore.Middleware;
+﻿using EasilyNET.WebCore.Middleware;
 
 // ReSharper disable UnusedMethodReturnValue.Global
 // ReSharper disable UnusedMember.Global

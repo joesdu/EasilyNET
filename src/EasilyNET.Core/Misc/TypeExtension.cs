@@ -1,4 +1,4 @@
-using EasilyNET.Core.Attributes;
+﻿using EasilyNET.Core.Attributes;
 using System.ComponentModel;
 using System.Reflection;
 using System.Text;

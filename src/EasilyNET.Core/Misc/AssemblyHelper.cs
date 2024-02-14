@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyModel;
+﻿using Microsoft.Extensions.DependencyModel;
 using System.Reflection;
 using System.Runtime.Loader;
 

@@ -1,4 +1,4 @@
-using EasilyNET.Mongo.AspNetCore;
+﻿using EasilyNET.Mongo.AspNetCore;
 using EasilyNET.Mongo.Core;
 using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;

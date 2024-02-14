@@ -1,4 +1,4 @@
-using EasilyNET.Core.Misc;
+﻿using EasilyNET.Core.Misc;
 using Serilog;
 using Serilog.Events;
 using System.Security.Claims;

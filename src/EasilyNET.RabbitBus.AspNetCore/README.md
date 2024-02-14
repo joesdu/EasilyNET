@@ -1,4 +1,4 @@
-#### EasilyNET.RabbitBus.AspNetCore
+﻿#### EasilyNET.RabbitBus.AspNetCore
 
 ##### 如何使用
 

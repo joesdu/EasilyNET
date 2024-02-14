@@ -1,4 +1,4 @@
-using EasilyNET.AutoDependencyInjection.Abstractions;
+﻿using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Modules;
 using Microsoft.Extensions.DependencyInjection;
 

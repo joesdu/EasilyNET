@@ -1,4 +1,4 @@
-using EasilyNET.Core.Misc;
+﻿using EasilyNET.Core.Misc;
 using FluentAssertions;
 
 namespace EasilyNET.Core.Test.Unit;

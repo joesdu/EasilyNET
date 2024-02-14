@@ -1,4 +1,4 @@
-using EasilyNET.AutoDependencyInjection;
+﻿using EasilyNET.AutoDependencyInjection;
 using EasilyNET.AutoDependencyInjection.Abstractions;
 
 // ReSharper disable UnusedMember.Global

@@ -1,4 +1,4 @@
-using Serilog.Events;
+﻿using Serilog.Events;
 using Spectre.Console.Rendering;
 
 namespace EasilyNET.Mongo.ConsoleDebug.Attributes;

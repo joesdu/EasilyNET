@@ -1,4 +1,4 @@
-### EasilyNET.MongoGridFS.AspNetCore
+﻿### EasilyNET.MongoGridFS.AspNetCore
 
 - 从 Minio.AspNetCore 得到灵感.创建一个 MongoDBGridFS 的服务注册方案.
 

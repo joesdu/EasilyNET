@@ -1,4 +1,4 @@
-using EasilyNET.Core.Abstractions;
+﻿using EasilyNET.Core.Abstractions;
 using EasilyNET.Core.Misc;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;

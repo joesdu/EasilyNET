@@ -1,4 +1,4 @@
-namespace EasilyNET.RabbitBus.Core.Abstraction;
+﻿namespace EasilyNET.RabbitBus.Core.Abstraction;
 
 /// <summary>
 /// 发送事件接口定义

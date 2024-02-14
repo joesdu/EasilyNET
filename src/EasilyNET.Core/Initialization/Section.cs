@@ -1,4 +1,4 @@
-namespace EasilyNET.Core.Initialization;
+﻿namespace EasilyNET.Core.Initialization;
 
 /// <summary>
 /// 节

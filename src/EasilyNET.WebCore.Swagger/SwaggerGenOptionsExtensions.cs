@@ -1,4 +1,4 @@
-using EasilyNET.Core.Misc;
+﻿using EasilyNET.Core.Misc;
 using EasilyNET.WebCore.Swagger.Attributes;
 using EasilyNET.WebCore.Swagger.SwaggerFilters;
 using Microsoft.AspNetCore.Builder;

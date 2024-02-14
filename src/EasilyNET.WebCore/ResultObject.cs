@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 
 namespace EasilyNET.WebCore;
 

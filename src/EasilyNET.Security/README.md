@@ -1,4 +1,4 @@
-##### EasilyNET.Security
+﻿##### EasilyNET.Security
 
 一个.Net 中常用的加密算法的封装.降低加密解密的使用复杂度.
 

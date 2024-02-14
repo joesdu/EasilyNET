@@ -1,4 +1,4 @@
-namespace EasilyNET.Core.PinYin;
+﻿namespace EasilyNET.Core.PinYin;
 
 internal static class PyCode
 {

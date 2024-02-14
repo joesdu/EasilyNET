@@ -1,4 +1,4 @@
-namespace EasilyNET.Core.Attributes;
+﻿namespace EasilyNET.Core.Attributes;
 
 /// <summary>
 /// 基础特性

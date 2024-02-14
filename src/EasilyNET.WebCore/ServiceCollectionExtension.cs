@@ -1,4 +1,4 @@
-using EasilyNET.Core.Abstractions;
+﻿using EasilyNET.Core.Abstractions;
 using EasilyNET.WebCore;
 
 namespace Microsoft.Extensions.DependencyInjection;

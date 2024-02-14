@@ -1,4 +1,4 @@
-using Org.BouncyCastle.Utilities.Encoders;
+﻿using Org.BouncyCastle.Utilities.Encoders;
 using System.Text;
 
 // ReSharper disable ReturnTypeCanBeEnumerable.Global
