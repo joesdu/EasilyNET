@@ -11,11 +11,11 @@ jobs:
       name: NUGET_ENV
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Setup .Net SDK
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.x
       - name: Build and Test
@@ -28,7 +28,7 @@ jobs:
         run: ./Push.ps1
         shell: pwsh
       - name: Artifacts
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v4
         with:
           name: artifacts
           path: artifacts/**/*
