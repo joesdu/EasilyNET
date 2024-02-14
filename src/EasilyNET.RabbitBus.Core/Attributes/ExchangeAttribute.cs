@@ -40,11 +40,7 @@ public class ExchangeAttribute(EModel workModel, string routingKey = "", string 
     /// <returns></returns>
     static protected string ExchangeNameCheck(string exchangeName)
     {
-#if NET8_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(exchangeName, nameof(exchangeName));
-#else
-        if (string.IsNullOrWhiteSpace(exchangeName)) throw new ArgumentNullException(nameof(exchangeName));
-#endif
         return exchangeName;
     }
 }

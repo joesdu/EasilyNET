@@ -32,19 +32,12 @@ exec { & dotnet test -c Release --no-build -l trx --verbosity=normal }
 
 # Core
 exec { & dotnet pack .\src\EasilyNET.Core\EasilyNET.Core.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
-exec { & dotnet pack .\src\EasilyNET.SourceGenerator.Share\EasilyNET.SourceGenerator.Share.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.WebCore\EasilyNET.WebCore.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.WebCore.Swagger\EasilyNET.WebCore.Swagger.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
-
-# EntityFramework Core
-exec { & dotnet pack .\src\EasilyNET.Core.Domain.SourceGenerator\EasilyNET.Core.Domain.SourceGenerator.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
-exec { & dotnet pack .\src\EasilyNET.Core.Domains\EasilyNET.Core.Domains.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
-exec { & dotnet pack .\src\EasilyNET.EntityFrameworkCore\EasilyNET.EntityFrameworkCore.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 
 # Framework
 exec { & dotnet pack .\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.AutoDependencyInjection.Core\EasilyNET.AutoDependencyInjection.Core.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
-exec { & dotnet pack .\src\EasilyNET.AutoInjection.SourceGenerator\EasilyNET.AutoInjection.SourceGenerator.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.Images\EasilyNET.Images.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.RabbitBus.AspNetCore\EasilyNET.RabbitBus.AspNetCore.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.RabbitBus.Core\EasilyNET.RabbitBus.Core.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }

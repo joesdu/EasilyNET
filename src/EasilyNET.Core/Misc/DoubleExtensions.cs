@@ -8,11 +8,7 @@ namespace EasilyNET.Core.Misc;
 /// <summary>
 /// double 扩展
 /// </summary>
-#if NET8_0_OR_GREATER
 public static partial class DoubleExtensions
-#else
-public static class DoubleExtensions
-#endif
 {
     /// <summary>
     /// 转decimal
@@ -40,13 +36,8 @@ public static class DoubleExtensions
     public static string ToRmb(this decimal number)
     {
         var s = number.ToString("#L#E#D#C#K#E#D#C#J#E#D#C#I#E#D#C#H#E#D#C#G#E#D#C#F#E#D#C#.0B0A");
-#if NET8_0_OR_GREATER
         var d = AmountNumber().Replace(s, "${b}${z}");
         return ToCapitalized().Replace(d, m => "负元空零壹贰叁肆伍陆柒捌玖空空空空空空空分角拾佰仟万亿兆京垓秭穰"[m.Value[0] - '-'].ToString());
-#else
-        var d = Regex.Replace(s, @"((?<=-|^)[^1-9]*)|((?'z'0)[0A-E]*((?=[1-9])|(?'-z'(?=[F-L\.]|$))))|((?'b'[F-L])(?'z'0)[0A-L]*((?=[1-9])|(?'-z'(?=[\.]|$))))", "${b}${z}");
-        return Regex.Replace(d, ".", m => "负元空零壹贰叁肆伍陆柒捌玖空空空空空空空分角拾佰仟万亿兆京垓秭穰"[m.Value[0] - '-'].ToString());
-#endif
     }
 
     /// <summary>
@@ -56,11 +47,9 @@ public static class DoubleExtensions
     /// <returns>返回大写形式</returns>
     public static string ToRmb(this double number) => ((decimal)number).ToRmb();
 
-#if NET8_0_OR_GREATER
     [GeneratedRegex(@"((?<=-|^)[^1-9]*)|((?'z'0)[0A-E]*((?=[1-9])|(?'-z'(?=[F-L\.]|$))))|((?'b'[F-L])(?'z'0)[0A-L]*((?=[1-9])|(?'-z'(?=[\.]|$))))")]
     private static partial Regex AmountNumber();
 
     [GeneratedRegex(".")]
     private static partial Regex ToCapitalized();
-#endif
 }

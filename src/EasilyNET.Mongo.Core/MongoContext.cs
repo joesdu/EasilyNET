@@ -37,11 +37,7 @@ public class MongoContext : IDisposable
     /// </returns>
     public IMongoCollection<TDocument> GetCollection<TDocument>(string name)
     {
-#if NET6_0
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException(nameof(name));
-#else
         ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
-#endif
         return Database.GetCollection<TDocument>(name);
     }
 
@@ -54,11 +50,7 @@ public class MongoContext : IDisposable
     /// </returns>
     public IMongoDatabase GetDatabase(string name)
     {
-#if NET6_0
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException(nameof(name));
-#else
         ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
-#endif
         return Client.GetDatabase(name);
     }
 

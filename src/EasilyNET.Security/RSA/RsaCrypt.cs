@@ -77,11 +77,7 @@ public static class RsaCrypt
     public static void Encrypt(string xmlPublicKey, byte[] content, out byte[] secret)
     {
         if (content.Length is 0) throw new("加密字符串不能为空.");
-#if NET7_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(xmlPublicKey, nameof(xmlPublicKey));
-#else
-        if (string.IsNullOrWhiteSpace(xmlPublicKey)) throw new ArgumentException("错误的公匙");
-#endif
         using var rsaProvider = new RSACryptoServiceProvider();
         rsaProvider.FromXmlString(xmlPublicKey);          //载入公钥
         var bufferSize = (rsaProvider.KeySize >> 3) - 11; //单块最大长度
@@ -109,11 +105,7 @@ public static class RsaCrypt
     public static void Decrypt(string xmlPrivateKey, byte[] secret, out byte[] context)
     {
         if (secret.Length is 0) throw new("解密字符串不能为空.");
-#if NET7_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(xmlPrivateKey, nameof(xmlPrivateKey));
-#else
-        if (string.IsNullOrWhiteSpace(xmlPrivateKey)) throw new ArgumentException("错误的私匙");
-#endif
         using var rsaProvider = new RSACryptoServiceProvider();
         rsaProvider.FromXmlString(xmlPrivateKey);
         var bufferSize = rsaProvider.KeySize >> 3;
