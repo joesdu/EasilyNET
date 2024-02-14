@@ -23,7 +23,7 @@ jobs:
         shell: pwsh
       - name: Push to NuGet
         env:
-          NUGET_URL: ${{ env.NUGET_URL }}
+          NUGET_URL: ${{ vars.NUGET_URL }}
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: ./Push.ps1
         shell: pwsh
