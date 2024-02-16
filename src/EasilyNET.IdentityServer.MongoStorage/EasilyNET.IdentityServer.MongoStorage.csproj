@@ -13,10 +13,11 @@
 
 	<PropertyGroup>
 		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.IdentityServer.MongoStorage</PackageProjectUrl>
-		<Description>IdentityServer 6.x MongoDB持久化</Description>
+		<Description>IdentityServer 7.x MongoDB持久化</Description>
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Mapster" Version="7.4.1-pre01" />
 		<PackageReference Include="MongoDB.Driver" Version="2.23.1" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.4.0-preview1" />
 	</ItemGroup>

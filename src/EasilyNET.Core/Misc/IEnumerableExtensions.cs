@@ -920,8 +920,8 @@ public static class IEnumerableExtensions
     /// <returns></returns>
     public static (List<T1> adds, List<T2> remove, List<T1> updates) CompareChanges<T1, T2>(this IEnumerable<T1>? first, IEnumerable<T2>? second, Func<T1, T2, bool> condition)
     {
-        first ??= new List<T1>();
-        second ??= new List<T2>();
+        first ??= [];
+        second ??= [];
         var firstSource = first as ICollection<T1> ?? first.ToList();
         var secondSource = second as ICollection<T2> ?? second.ToList();
         var add = firstSource.ExceptBy(secondSource, condition).ToList();
@@ -944,7 +944,7 @@ public static class IEnumerableExtensions
     /// <typeparam name="T"></typeparam>
     /// <param name="list"></param>
     /// <returns></returns>
-    public static IEnumerable<T> AsNotNull<T>(this IEnumerable<T>? list) => list ?? new List<T>();
+    public static IEnumerable<T> AsNotNull<T>(this IEnumerable<T>? list) => list ?? [];
 
     /// <summary>
     /// 满足条件时执行筛选条件
