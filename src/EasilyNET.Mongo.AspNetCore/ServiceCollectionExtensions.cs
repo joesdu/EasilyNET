@@ -56,7 +56,7 @@ public static class ServiceCollectionExtensions
     public static void AddMongoContext<T>(this IServiceCollection services, string connStr, Action<ClientOptions>? option = null) where T : MongoContext
     {
         // 从字符串解析Url
-        var mongoUrl = new MongoUrl(connStr);
+        var mongoUrl = MongoUrl.Create(connStr);
         var settings = MongoClientSettings.FromUrl(mongoUrl);
         // 配置自定义配置
         var options = new ClientOptions();

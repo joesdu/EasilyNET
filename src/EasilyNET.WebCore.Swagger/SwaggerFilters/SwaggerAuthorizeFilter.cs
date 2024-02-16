@@ -24,8 +24,8 @@ public sealed class SwaggerAuthorizeFilter : IOperationFilter
                                     .Union(context.MethodInfo.GetCustomAttributes(true))
                                     .OfType<AuthorizeAttribute>();
         if (!authAttributes!.Any()) return;
-        operation.Security = new List<OpenApiSecurityRequirement>
-        {
+        operation.Security =
+        [
             new()
             {
                 {
@@ -43,7 +43,7 @@ public sealed class SwaggerAuthorizeFilter : IOperationFilter
                     new List<string>()
                 }
             }
-        };
+        ];
         operation.Responses.Add("401", new() { Description = "Unauthorized" });
     }
 }

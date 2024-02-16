@@ -22,7 +22,7 @@ public class LockTests
     {
         var setting = new MongoClientSettings
         {
-            Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
+            Servers = [new("127.0.0.1", 27018)],
             Credential = MongoCredential.CreateCredential("admin", "guest", "guest"),
             LinqProvider = LinqProvider.V3
         };
@@ -153,7 +153,7 @@ public class LockTests
                 }
             }));
         }
-        Task.WaitAll(tasks.ToArray());
+        Task.WaitAll([.. tasks]);
         bucket.SequenceEqual(Enumerable.Range(0, 401)).Should().BeTrue();
     }
 

@@ -39,7 +39,7 @@ public static class ServiceCollectionExtensions
     /// <returns></returns>
     public static IServiceCollection AddMongoGridFS(this IServiceCollection services, string connectionString, Action<GridFSBucketOptions>? configure = null)
     {
-        var url = new MongoUrl(connectionString);
+        var url = MongoUrl.Create(connectionString);
         var name = string.IsNullOrWhiteSpace(url.DatabaseName) ? Constant.DefaultDbName : url.DatabaseName;
         var db = new MongoClient(url).GetDatabase(name);
         services.AddMongoGridFS(db, configure);
