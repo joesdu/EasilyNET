@@ -19,7 +19,7 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     public async Task HelloWorld()
     {
         var rand = new Random();
-        await ibus.Publish(new HelloWorldEvent(), priority: (byte)rand.Next(0, 9));
+        await ibus.Publish(new HelloWorldEvent(), priority: (byte)rand.Next(0, 9)).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -33,7 +33,7 @@ public class RabbitBusController(IBus ibus) : ControllerBase
             await ibus.Publish(new WorkQueuesEvent
             {
                 Summary = $"WorkQueuesEvent:{i}"
-            });
+            }).ConfigureAwait(false);
         }
     }
 
@@ -41,7 +41,7 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     /// Fanout(发布订阅)发送消息,设置两个队列,所以应该输出两条信息
     /// </summary>
     [HttpPost]
-    public async Task Fanout(CancellationToken cancellationToken) => await ibus.Publish(new FanoutEventOne(), cancellationToken: cancellationToken);
+    public async Task Fanout(CancellationToken cancellationToken) => await ibus.Publish(new FanoutEventOne(), cancellationToken: cancellationToken).ConfigureAwait(false);
 
     /// <summary>
     /// 路由模式(direct)模式发送消息,只向单一主题发送消息
@@ -49,7 +49,7 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     [HttpPost]
     public async Task DirectQueue1(CancellationToken cancellationToken)
     {
-        await ibus.Publish(new DirectEventOne(), "direct.queue1", cancellationToken: cancellationToken);
+        await ibus.Publish(new DirectEventOne(), "direct.queue1", cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     [HttpPost]
     public async Task DirectQueue2()
     {
-        await ibus.Publish(new DirectEventOne(), "direct.queue2");
+        await ibus.Publish(new DirectEventOne(), "direct.queue2").ConfigureAwait(false);
     }
 
     /// <summary>
@@ -68,7 +68,7 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     [HttpPost]
     public async Task TopicTo1()
     {
-        await ibus.Publish(new TopicEventOne(), "topic.queue.1");
+        await ibus.Publish(new TopicEventOne(), "topic.queue.1").ConfigureAwait(false);
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     [HttpPost]
     public async Task TopicTo2()
     {
-        await ibus.Publish(new TopicEventOne(), "topic.queue.2");
+        await ibus.Publish(new TopicEventOne(), "topic.queue.2").ConfigureAwait(false);
     }
 
     /// <summary>
@@ -88,6 +88,6 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     [HttpPost]
     public async Task TopicTo3()
     {
-        await ibus.Publish(new TopicEventOne(), "topic.queue.3");
+        await ibus.Publish(new TopicEventOne(), "topic.queue.3").ConfigureAwait(false);
     }
 }
