@@ -93,7 +93,7 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, ILogg
                 _connection.ConnectionShutdown += OnConnectionShutdown;
                 _connection.CallbackException += OnCallbackException;
                 _connection.ConnectionBlocked += OnConnectionBlocked;
-                logger.LogInformation("RabbitMQ客户端获取了与 {HostName} 的连接,并订阅了故障事件", _connection.Endpoint.HostName);
+                logger.LogInformation("RabbitMQ客户端获取了与 {HostName} 的连接", _connection.Endpoint.HostName);
                 _channelPool = new(_connection, _poolCount);
                 logger.LogInformation("RabbitBus channel pool count: {Count}", _poolCount);
             }

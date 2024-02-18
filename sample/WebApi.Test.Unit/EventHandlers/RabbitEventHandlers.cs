@@ -1,5 +1,5 @@
-﻿using EasilyNET.AutoDependencyInjection.Core.Attributes;
-using EasilyNET.RabbitBus.Core.Abstraction;
+﻿using EasilyNET.RabbitBus.Core.Abstraction;
+using EasilyNET.RabbitBus.Core.Attributes;
 using System.Text.Json;
 using WebApi.Test.Unit.Events;
 
@@ -8,8 +8,7 @@ using WebApi.Test.Unit.Events;
 namespace WebApi.Test.Unit.EventHandlers;
 
 /// <inheritdoc />
-/// 若是要测试死信队列,需要将这个注释掉.
-[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
+[IgnoreHandler]
 public class HelloWorldEventHandlers : IEventHandler<HelloWorldEvent>
 {
     /// <inheritdoc />
@@ -21,8 +20,7 @@ public class HelloWorldEventHandlers : IEventHandler<HelloWorldEvent>
 }
 
 /// <inheritdoc />
-[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
-public class DeadLetterEventHandlers : IEventDeadLetterHandler<HelloWorldEvent>
+public class DeadLetterEventHandlers : IEventHandler<HelloWorldEvent>
 {
     /// <inheritdoc />
     public Task HandleAsync(HelloWorldEvent @event)
@@ -33,7 +31,6 @@ public class DeadLetterEventHandlers : IEventDeadLetterHandler<HelloWorldEvent>
 }
 
 /// <inheritdoc />
-[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
 public class WorkQueuesEventOneHandlers : IEventHandler<WorkQueuesEvent>
 {
     /// <inheritdoc />
@@ -47,7 +44,6 @@ public class WorkQueuesEventOneHandlers : IEventHandler<WorkQueuesEvent>
 #region Fanout(发布/订阅)模式
 
 /// <inheritdoc />
-[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
 public class FanoutEventOneHandlers : IEventHandler<FanoutEventOne>
 {
     /// <inheritdoc />
@@ -59,7 +55,6 @@ public class FanoutEventOneHandlers : IEventHandler<FanoutEventOne>
 }
 
 /// <inheritdoc />
-[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
 public class FanoutEventTwoHandlers : IEventHandler<FanoutEventTwo>
 {
     /// <inheritdoc />
@@ -75,7 +70,6 @@ public class FanoutEventTwoHandlers : IEventHandler<FanoutEventTwo>
 #region Routing(路由)模式
 
 /// <inheritdoc />
-[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
 public class DirectEventOneHandlers : IEventHandler<DirectEventOne>
 {
     /// <inheritdoc />
@@ -87,7 +81,6 @@ public class DirectEventOneHandlers : IEventHandler<DirectEventOne>
 }
 
 /// <inheritdoc />
-[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
 public class DirectEventTwoHandlers : IEventHandler<DirectEventTwo>
 {
     /// <inheritdoc />
@@ -103,7 +96,6 @@ public class DirectEventTwoHandlers : IEventHandler<DirectEventTwo>
 #region (Topic)主题模式
 
 /// <inheritdoc />
-[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
 public class TopicEventOneHandlers : IEventHandler<TopicEventOne>
 {
     /// <inheritdoc />
@@ -115,7 +107,6 @@ public class TopicEventOneHandlers : IEventHandler<TopicEventOne>
 }
 
 /// <inheritdoc />
-[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
 public class TopicEventTwoHandlers : IEventHandler<TopicEventTwo>
 {
     /// <inheritdoc />

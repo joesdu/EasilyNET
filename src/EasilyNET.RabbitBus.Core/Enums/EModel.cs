@@ -34,7 +34,7 @@ public enum EModel
     Topics,
 
     /// <summary>
-    /// 延时x-delayed-message模式,必须添加<code>RabbitExchangeArgAttribute</code>特性,键:x-delayed-type,值为RabbitMQ所支持的.
+    /// 延时 x-delayed-message 模式
     /// </summary>
     [Description("x-delayed-message")]
     Delayed

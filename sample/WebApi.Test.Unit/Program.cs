@@ -1,6 +1,8 @@
 ﻿using EasilyNET.Core.Misc;
 using Serilog;
 using Serilog.Events;
+using Serilog.Sinks.SystemConsole.Themes;
+using System.Security.Claims;
 using WebApi.Test.Unit;
 
 Console.Title = "❤️ EasilyNET";
@@ -31,14 +33,14 @@ builder.Host.UseSerilog((hbc, lc) =>
       .WriteTo.Async(wt =>
       {
           wt.Debug();
+          wt.Console(theme: AnsiConsoleTheme.Code);
           if (hbc.HostingEnvironment.IsDevelopment())
           {
-              //wt.Console();
-              wt.SpectreConsole();
+              //wt.SpectreConsole();
           }
           else
           {
-              wt.Console();
+              wt.Console(theme: AnsiConsoleTheme.Code);
           }
           //var mongo = builder.Services.GetService<DbContext>()?.Database;
           //if (mongo is not null)
@@ -62,15 +64,16 @@ builder.Host.UseSerilog((hbc, lc) =>
       });
 });
 var app = builder.Build();
-//app.Use((context, next) =>
-//{
-//    // 在处理请求之前执行一些自定义逻辑
-//    // 这里可以对请求进行修改、记录日志、验证身份等操作
-//    context.User.AddIdentity(new(new Claim[] { new(ClaimTypes.NameIdentifier, "帅气的大黄瓜") }));
-//    return next.Invoke();
-//    // 在处理请求之后执行一些自定义逻辑
-//    // 这里可以处理响应、记录日志、执行清理操作等
-//});
+app.Use((context, next) =>
+{
+    // 在处理请求之前执行一些自定义逻辑
+    // 这里可以对请求进行修改、记录日志、验证身份等操作
+    // ReSharper disable once ArrangeObjectCreationWhenTypeNotEvident
+    context.User.AddIdentity(new([new Claim(ClaimTypes.NameIdentifier, "帅气的大黄瓜")]));
+    return next.Invoke();
+    // 在处理请求之后执行一些自定义逻辑
+    // 这里可以处理响应、记录日志、执行清理操作等
+});
 if (app.Environment.IsDevelopment()) _ = app.UseDeveloperExceptionPage();
 
 // 添加自动化注入的一些中间件.

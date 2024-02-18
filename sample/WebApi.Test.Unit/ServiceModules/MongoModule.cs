@@ -76,7 +76,7 @@ public class MongoModule : AppModule
         //};
         context.Services.AddMongoContext<DbContext>(new()
         {
-            Servers = [new("127.0.0.1", 27018)],
+            Servers = [new("127.0.0.1", 27017)],
             Credential = MongoCredential.CreateCredential("admin", "guest", "guest"),
             LinqProvider = LinqProvider.V3,
             ClusterConfigurator = s => s.Subscribe(new ActivityEventSubscriber())

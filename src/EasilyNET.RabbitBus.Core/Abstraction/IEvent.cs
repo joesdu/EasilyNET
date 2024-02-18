@@ -1,8 +1,4 @@
-﻿// ReSharper disable UnusedMemberInSuper.Global
-
-// ReSharper disable UnusedMemberInSuper.Global
-
-using EasilyNET.Core.BaseType;
+﻿using EasilyNET.Core.BaseType;
 
 namespace EasilyNET.RabbitBus.Core.Abstraction;
 
@@ -17,9 +13,4 @@ public interface IEvent
     /// <see cref="SnowId" />
     /// </summary>
     string EventId { get; }
-
-    /// <summary>
-    /// 事件创建时间
-    /// </summary>
-    DateTime EventCreateDate { get; }
 }

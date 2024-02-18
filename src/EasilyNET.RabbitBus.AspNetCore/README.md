@@ -1,5 +1,9 @@
 ﻿#### EasilyNET.RabbitBus.AspNetCore
 
+- 支持延时队列,服务端需要启用 [rabbitmq-delayed-message-exchange](https://github.com/rabbitmq/rabbitmq-delayed-message-exchange) 插件
+- 支持同一个消息被多个 Handler 消费
+- 若是就是想写多个 Handler 但是又希望某些 Handler 不执行,可以在不需要的 Handler 上标记 [IgnoreHandler] 特性
+
 ##### 如何使用
 
 - 首先使用 Nuget 包管理工具添加依赖 EasilyNET.RabbitBus.AspNetCore
@@ -16,18 +20,15 @@ builder.Services.AddRabbitBus(c =>
     c.PassWord = "password";
     ...
 });
-
-// 注册服务
-builder.Services.AddTransient<TestEventHandler>();
 ```
 
 - Step2.接下来配置事件和事件处理器
 
 ```csharp
 /// <summary>
-/// 测试消息类型
+/// 测试消息类型,消息继承自 IEvent 或者 Event
 /// </summary>
-[ExchangeInfo("hoyo.test", EModel.Routing, "test", "orderqueue2")]
+[Exchange("hoyo.test", EModel.Routing, "test", "orderqueue2")]
 public class TestEvent : Event
 {
     /// <summary>
@@ -39,17 +40,8 @@ public class TestEvent : Event
 /// <summary>
 /// 消息处理Handler
 /// </summary>
-public class TestEventHandler : IEventHandler<TestEvent>
+public class TestEventHandler(ILogger<TestEventHandler> logger) : IEventHandler<TestEvent>
 {
-    private readonly ILogger<TestEventHandler> _logger;
-    /// <summary>
-    /// 构造函数
-    /// </summary>
-    /// <param name="logger"></param>
-    public TestEventHandler(ILogger<TestEventHandler> logger)
-    {
-        _logger = logger;
-    }
     /// <summary>
     /// 当消息到达的时候执行的Action
     /// </summary>
@@ -57,7 +49,26 @@ public class TestEventHandler : IEventHandler<TestEvent>
     /// <returns></returns>
     public Task HandleAsync(TestEvent @event)
     {
-        _logger.LogInformation("TestEvent_{event}-----{date}", @event.Message, DateTime.Now);
+        logger.LogInformation("TestEvent_{event}-----{date}", @event.Message, DateTime.Now);
+        return Task.CompletedTask;
+    }
+}
+
+/// <summary>
+/// 若是存在同一个消息多个 Handler 实现,比如这里我们写了两个 Handler,那么发送一次消息这两个 Handler 均会执行.
+/// </summary>
+/// 若是不希望这个 Handler 执行可以标记
+[IgnoreHandler]
+public class TestEventHandlerSecond(ILogger<TestEventHandlerSecond> logger) : IEventHandler<TestEvent>
+{
+    /// <summary>
+    /// 当消息到达的时候执行的Action
+    /// </summary>
+    /// <param name="event"></param>
+    /// <returns></returns>
+    public Task HandleAsync(TestEvent @event)
+    {
+        logger.LogInformation("TestEvent_{event}-----{date}", @event.Message, DateTime.Now);
         return Task.CompletedTask;
     }
 }
