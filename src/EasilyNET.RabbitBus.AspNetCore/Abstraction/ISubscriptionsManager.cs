@@ -1,12 +1,12 @@
 ﻿namespace EasilyNET.RabbitBus.AspNetCore.Abstraction;
 
 /// <summary>
-/// 订阅管理器接口
+/// 订阅管理
 /// </summary>
 internal interface ISubscriptionsManager
 {
     /// <summary>
-    /// 清除所有订阅
+    /// 清除所有
     /// </summary>
     void Clear();
 
@@ -14,22 +14,25 @@ internal interface ISubscriptionsManager
     /// 添加订阅
     /// </summary>
     /// <param name="eventType">事件类型</param>
+    /// <param name="isDlx">是否是延时队列</param>
     /// <param name="handlerType">事件处理器类型</param>
-    void AddSubscription(Type eventType, Type handlerType);
+    void AddSubscription(Type eventType, bool isDlx, IEnumerable<Type> handlerType);
 
     /// <summary>
-    /// 获取事件处理程序
+    /// 获取消息处理程序
     /// </summary>
-    /// <param name="eventName"></param>
+    /// <param name="name"></param>
+    /// <param name="isDlx">是否是延迟消息</param>
     /// <returns></returns>
-    IEnumerable<Type> GetHandlersForEvent(string eventName);
+    IEnumerable<Type> GetHandlersForEvent(string name, bool isDlx);
 
     /// <summary>
     /// 判断订阅者是否存在
     /// </summary>
-    /// <param name="eventName"></param>
+    /// <param name="name"></param>
+    /// <param name="isDlx">是否是延迟消息</param>
     /// <returns></returns>
-    bool HasSubscriptionsForEvent(string eventName);
+    bool HasSubscriptionsForEvent(string name, bool isDlx);
 
     /// <summary>
     /// 获取事件Key

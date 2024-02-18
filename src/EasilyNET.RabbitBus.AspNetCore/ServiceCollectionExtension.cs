@@ -1,8 +1,10 @@
-﻿using EasilyNET.RabbitBus;
+﻿using EasilyNET.Core.Misc;
+using EasilyNET.RabbitBus;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Manager;
 using EasilyNET.RabbitBus.Core.Abstraction;
+using EasilyNET.RabbitBus.Core.Attributes;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
@@ -68,20 +70,31 @@ public static class ServiceCollectionExtension
         service.RabbitPersistentConnection(conn, retry, poolCount).AddEventBus(retry);
     }
 
+    private static void InjectHandler(this IServiceCollection service)
+    {
+        var handlers = AssemblyHelper.FindTypes(o => o is
+                                                     {
+                                                         IsClass: true,
+                                                         IsAbstract: false
+                                                     } &&
+                                                     o.IsBaseOn(typeof(IEventHandler<>)) &&
+                                                     !o.HasAttribute<IgnoreHandlerAttribute>());
+        foreach (var handler in handlers) service.AddSingleton(handler);
+    }
+
     private static void AddEventBus(this IServiceCollection service, int retry)
     {
+        service.InjectHandler();
         service.AddSingleton<IBus, EventBus>(sp =>
                {
                    var rabbitConn = sp.GetRequiredService<IPersistentConnection>();
                    var logger = sp.GetRequiredService<ILogger<EventBus>>();
                    var subsManager = sp.GetRequiredService<SubscriptionsManager>();
-                   var deadLetterManager = sp.GetRequiredService<DeadLetterSubscriptionsManager>();
                    return rabbitConn is null
                               ? throw new(nameof(rabbitConn))
-                              : new EventBus(rabbitConn, retry, subsManager, deadLetterManager, sp, logger);
+                              : new EventBus(rabbitConn, retry, subsManager, sp, logger);
                })
                .AddSingleton<SubscriptionsManager>()
-               .AddSingleton<DeadLetterSubscriptionsManager>()
                .AddHostedService<SubscribeService>();
     }
 
