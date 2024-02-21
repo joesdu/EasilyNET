@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <Import Project="..\..\build\common.props" />
-
+    
     <PropertyGroup>
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
     </PropertyGroup>
-
+    
     <ItemGroup>
         <PackageReference Include="FluentAssertions" Version="7.0.0-alpha.3" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0-preview-24080-01" />
@@ -16,7 +16,7 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
     </ItemGroup>
-
+    
     <ItemGroup>
         <ProjectReference Include="..\..\src\EasilyNET.Core\EasilyNET.Core.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.MongoDistributedLock\EasilyNET.MongoDistributedLock.csproj" />

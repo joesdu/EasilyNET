@@ -1,40 +1,40 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<Import Project="..\..\build\common.props" />
-
-	<PropertyGroup>
-		<AssemblyTitle>$(PackagePrefix).RabbitBus.AspNetCore</AssemblyTitle>
-		<AssemblyName>$(PackagePrefix).RabbitBus.AspNetCore</AssemblyName>
-		<PackageId>$(PackagePrefix).RabbitBus.AspNetCore</PackageId>
-		<PackageTags>RabbitMQ;EventBus</PackageTags>
-		<PackageReleaseNotes>
-		</PackageReleaseNotes>
-		<RootNamespace>EasilyNET.RabbitBus.AspNetCore</RootNamespace>
-	</PropertyGroup>
-
-	<PropertyGroup>
-		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore</PackageProjectUrl>
-		<Description>基于RabbitMQ实现的消息总线,参考eShop EventBus</Description>
-	</PropertyGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Polly" Version="8.3.0" />
-		<PackageReference Include="RabbitMQ.Client" Version="7.0.0-alpha.3" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-		<PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-		<PackageReference Include="Microsoft.Extensions.DependencyModel" Version="9.0.0-preview.1.24080.9" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0-preview.1.24080.9" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0-preview.1.24080.9" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="..\EasilyNET.RabbitBus.Core\EasilyNET.RabbitBus.Core.csproj" />
-	</ItemGroup>
+    <Import Project="..\..\build\common.props" />
+    
+    <PropertyGroup>
+        <AssemblyTitle>$(PackagePrefix).RabbitBus.AspNetCore</AssemblyTitle>
+        <AssemblyName>$(PackagePrefix).RabbitBus.AspNetCore</AssemblyName>
+        <PackageId>$(PackagePrefix).RabbitBus.AspNetCore</PackageId>
+        <PackageTags>RabbitMQ;EventBus</PackageTags>
+        <PackageReleaseNotes>
+        </PackageReleaseNotes>
+        <RootNamespace>EasilyNET.RabbitBus.AspNetCore</RootNamespace>
+    </PropertyGroup>
+    
+    <PropertyGroup>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore</PackageProjectUrl>
+        <Description>基于RabbitMQ实现的消息总线,参考eShop EventBus</Description>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Polly" Version="8.3.0" />
+        <PackageReference Include="RabbitMQ.Client" Version="7.0.0-alpha.3" />
+    </ItemGroup>
+    
+    <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+        <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    </ItemGroup>
+    
+    <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+        <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="9.0.0-preview.1.24080.9" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0-preview.1.24080.9" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0-preview.1.24080.9" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <ProjectReference Include="..\EasilyNET.RabbitBus.Core\EasilyNET.RabbitBus.Core.csproj" />
+    </ItemGroup>
 
 </Project>
