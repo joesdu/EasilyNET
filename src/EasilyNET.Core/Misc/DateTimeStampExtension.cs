@@ -156,7 +156,7 @@ public static class DateTimeStampExtension
                     break;
                 default:
                 {
-                    if (value.IndexOf(':') != -1)
+                    if (value.Contains(':'))
                     {
                         return TimeSpan.TryParse(value, out result);
                     }

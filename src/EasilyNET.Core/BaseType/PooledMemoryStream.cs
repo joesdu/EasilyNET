@@ -16,7 +16,7 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     private const float OverExpansionFactor = 2;
     private readonly ArrayPool<byte> _pool;
 
-    private byte[] _data = Array.Empty<byte>();
+    private byte[] _data = [];
     private bool _isDisposed;
     private int _length;
 
@@ -191,10 +191,7 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     public override void SetLength(long value)
     {
         AssertNotDisposed();
-        if (value < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(value));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(value);
         if (value > Capacity)
         {
             SetCapacity((int)value);
@@ -236,10 +233,7 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     /// <exception cref="ArgumentNullException"></exception>
     public void WriteTo(Stream stream)
     {
-        if (stream == null)
-        {
-            throw new ArgumentNullException(nameof(stream));
-        }
+        ArgumentNullException.ThrowIfNull(stream);
         AssertNotDisposed();
         stream.Write(_data, 0, (int)Length);
     }
@@ -292,13 +286,7 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void AssertNotDisposed()
-    {
-        if (_isDisposed)
-        {
-            throw new ObjectDisposedException(nameof(PooledMemoryStream));
-        }
-    }
+    private void AssertNotDisposed() => ObjectDisposedException.ThrowIf(_isDisposed, typeof(PooledMemoryStream));
 
     /// <summary>
     /// 获取Span

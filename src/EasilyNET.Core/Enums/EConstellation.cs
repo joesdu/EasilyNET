@@ -6,7 +6,7 @@
 namespace EasilyNET.Core.Enums;
 
 /// <summary>
-/// 十二星座
+/// 星座
 /// </summary>
 public enum EConstellation
 {
