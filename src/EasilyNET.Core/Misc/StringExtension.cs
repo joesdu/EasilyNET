@@ -15,14 +15,17 @@ namespace EasilyNET.Core.Misc;
 /// <summary>
 /// 字符串String扩展
 /// </summary>
-public static class StringExtension
+public static partial class StringExtension
 {
     /// <summary>
     /// 移除字符串中所有空白符
     /// </summary>
     /// <param name="value">字符串</param>
     /// <returns></returns>
-    public static string RemoveWhiteSpace(this string value) => Regex.Replace(value, @"\s", string.Empty);
+    public static string RemoveWhiteSpace(this string value) => RemoveWhiteSpaceRegex().Replace(value, string.Empty);
+
+    [GeneratedRegex(@"\s")]
+    private static partial Regex RemoveWhiteSpaceRegex();
 
     /// <summary>
     /// 以特定字符间隔的字符串转化为字符串集合
@@ -436,11 +439,11 @@ public static class StringExtension
     /// <returns></returns>
     public static bool Contains(this string source, IEnumerable<string> keys, bool ignoreCase = true)
     {
-        if (keys is not ICollection<string> array)
+        if (keys is not string[] array)
         {
             array = keys.ToArray();
         }
-        return array.Count != 0 && !string.IsNullOrEmpty(source) && (ignoreCase ? array.Any(item => source.Contains(item, StringComparison.InvariantCultureIgnoreCase)) : array.Any(source.Contains));
+        return array.Length != 0 && !string.IsNullOrEmpty(source) && (ignoreCase ? array.Any(item => source.Contains(item, StringComparison.InvariantCultureIgnoreCase)) : array.Any(source.Contains));
     }
 
     /// <summary>
@@ -452,11 +455,11 @@ public static class StringExtension
     /// <returns></returns>
     public static bool ContainsSafety(this string source, IEnumerable<string> keys, bool ignoreCase = true)
     {
-        if (keys is not ICollection<string> array)
+        if (keys is not string[] array)
         {
             array = keys.ToArray();
         }
-        if (array.Count == 0 || string.IsNullOrEmpty(source))
+        if (array.Length == 0 || string.IsNullOrEmpty(source))
             return false;
         var flag = false;
         if (ignoreCase)
@@ -485,11 +488,11 @@ public static class StringExtension
     /// <returns></returns>
     public static bool EndsWith(this string source, IEnumerable<string> keys, bool ignoreCase = true)
     {
-        if (keys is not ICollection<string> array)
+        if (keys is not string[] array)
         {
             array = keys.ToArray();
         }
-        if (array.Count == 0 || string.IsNullOrEmpty(source))
+        if (array.Length == 0 || string.IsNullOrEmpty(source))
             return false;
         var pattern = $"({array.Select(Regex.Escape).Join("|")})$";
         return ignoreCase ? Regex.IsMatch(source, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(source, pattern);
@@ -504,11 +507,11 @@ public static class StringExtension
     /// <returns></returns>
     public static bool StartsWith(this string source, IEnumerable<string> keys, bool ignoreCase = true)
     {
-        if (keys is not ICollection<string> array)
+        if (keys is not string[] array)
         {
             array = keys.ToArray();
         }
-        if (array.Count == 0 || string.IsNullOrEmpty(source))
+        if (array.Length == 0 || string.IsNullOrEmpty(source))
             return false;
         var pattern = $"^({array.Select(Regex.Escape).Join("|")})";
         return ignoreCase ? Regex.IsMatch(source, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(source, pattern);

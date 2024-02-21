@@ -12,7 +12,7 @@ namespace EasilyNET.Core.Misc;
 /// <summary>
 /// Type扩展.
 /// </summary>
-public static class TypeExtension
+public static partial class TypeExtension
 {
     /// <summary>
     /// 判断类型是否为Nullable类型
@@ -183,7 +183,7 @@ public static class TypeExtension
             return type.Name;
         }
         var sb = new StringBuilder();
-        sb.Append($"{Regex.Replace(type.Name, @"\`\d+$", "")}<");
+        sb.Append($"{FriendlyTypeNameRegex().Replace(type.Name, "")}<");
         foreach (var typeParameter in typeInfo.GetGenericArguments())
         {
             sb.Append($"{typeParameter.GetFriendlyTypeName()}, ");
@@ -192,4 +192,7 @@ public static class TypeExtension
         sb.Append('>');
         return sb.ToString();
     }
+
+    [GeneratedRegex(@"\`\d+$")]
+    private static partial Regex FriendlyTypeNameRegex();
 }

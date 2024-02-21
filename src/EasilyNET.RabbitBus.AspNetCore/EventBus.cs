@@ -155,14 +155,6 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
                 {
                     await DoInternalSubscription(@event.Name, exc, channel);
                 }
-                //using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
-                //for (var i = 0; i < handler.Count; i++)
-                //{
-                //    var handlerService = scope?.ServiceProvider.GetService(handler[i]);
-                //    // 检查消费者是否已经注册,若是未注册则不启动消费.
-                //    // 这里由于我们在注入服务的时候,已经注册了服务,并非用户手动注入，所以这里没有必要再检查是否注册.
-                //    if (handlerService is null) handler.RemoveAt(i);
-                //}
                 subsManager.AddSubscription(@event, exc.IsDlx, handler);
                 await StartBasicConsume(@event, exc, channel);
             }, TaskCreationOptions.LongRunning);
@@ -225,7 +217,7 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
                 {
                     throw new InvalidOperationException($"假异常请求:{message}");
                 }
-                await ProcessEvent(eventType, message, exc.IsDlx, () => channel.BasicAck(ea.DeliveryTag, false));
+                await ProcessEvent(eventType, message, exc.IsDlx, async () => await channel.BasicAckAsync(ea.DeliveryTag, false).ConfigureAwait(false));
             }
             catch (Exception ex)
             {
@@ -241,7 +233,7 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         }
     }
 
-    private async Task ProcessEvent(Type eventType, string message, bool isDlx, Action ack)
+    private async Task ProcessEvent(Type eventType, string message, bool isDlx, Func<ValueTask> ack)
     {
         logger.LogTrace("处理事件: {EventName}", eventType.Name);
         var policy = Policy.Handle<BrokerUnreachableException>()
@@ -274,7 +266,7 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
                     if (obj is null) continue;
                     await (Task)obj;
                 }
-                ack.Invoke();
+                await ack.Invoke();
             });
         }
         else

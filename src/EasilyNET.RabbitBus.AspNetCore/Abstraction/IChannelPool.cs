@@ -1,5 +1,7 @@
 ﻿using RabbitMQ.Client;
 
+// ReSharper disable UnusedMemberInSuper.Global
+
 namespace EasilyNET.RabbitBus.AspNetCore.Abstraction;
 
 internal interface IChannelPool

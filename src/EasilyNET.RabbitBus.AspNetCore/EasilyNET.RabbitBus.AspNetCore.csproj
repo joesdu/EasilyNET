@@ -18,7 +18,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Polly" Version="8.3.0" />
-		<PackageReference Include="RabbitMQ.Client" Version="7.0.0-alpha.2" />
+		<PackageReference Include="RabbitMQ.Client" Version="7.0.0-alpha.3" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">

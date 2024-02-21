@@ -12,14 +12,17 @@ public static class RandomExtensions
     /// 生成真正的随机数
     /// </summary>
     /// <param name="rand"></param>
-    /// <param name="maxValue"></param>
+    /// <param name="startIndex">起始数,默认: 0</param>
+    /// <param name="maxValue">
+    ///     <see cref="int.MaxValue" />
+    /// </param>
     /// <returns></returns>
     // ReSharper disable once UnusedParameter.Global
 #pragma warning disable IDE0060
-    public static int StrictNext(this Random rand, int maxValue = int.MaxValue)
+    public static int StrictNext(this Random rand, int startIndex = 0, int maxValue = int.MaxValue)
 #pragma warning restore IDE0060
     {
-        return new Random(BitConverter.ToInt32(Guid.NewGuid().ToByteArray(), 0)).Next(maxValue);
+        return new Random(BitConverter.ToInt32(Guid.NewGuid().ToByteArray(), startIndex)).Next(maxValue);
     }
 
     /// <summary>

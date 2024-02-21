@@ -1,6 +1,7 @@
 ﻿using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using System.Collections.Concurrent;
+using System.Reflection;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 
@@ -11,7 +12,7 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
     private readonly ConcurrentDictionary<string, IList<Type>> _handlers = new();
 
     /// <inheritdoc />
-    public void AddSubscription(Type eventType, bool isDlx, IEnumerable<Type> handlerType) => DoAddSubscription(eventType.Name, isDlx, handlerType);
+    public void AddSubscription(Type eventType, bool isDlx, IList<TypeInfo> handlerType) => DoAddSubscription(eventType.Name, isDlx, handlerType);
 
     /// <inheritdoc />
     public IEnumerable<Type> GetHandlersForEvent(string name, bool isDlx) => isDlx ? _dlxHandlers[name] : _handlers[name];
@@ -29,7 +30,7 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
     /// <inheritdoc />
     public string GetEventKey(Type type) => type.Name;
 
-    private void DoAddSubscription(string name, bool isDlx, IEnumerable<Type> handlerType)
+    private void DoAddSubscription(string name, bool isDlx, IList<TypeInfo> handlerType)
     {
         if (HasSubscriptionsForEvent(name, isDlx)) return;
         if (isDlx)
