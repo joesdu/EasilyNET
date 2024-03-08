@@ -4,6 +4,7 @@ using Spectre.Console;
 using Spectre.Console.Json;
 using Spectre.Console.Rendering;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 // ReSharper disable UnusedMember.Global
@@ -139,6 +140,7 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
         }.NoBorder().NoSafeBorder().Expand());
     }
 
+    [SuppressMessage("CodeQuality", "IDE0051:删除未使用的私有成员", Justification = "<挂起>")]
     private void Handle(CommandStartedEvent @event)
     {
         if (RequestIdWithCollectionName.Count > 50) RequestIdWithCollectionName.Clear();
@@ -175,6 +177,7 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
         }
     }
 
+    [SuppressMessage("CodeQuality", "IDE0051:删除未使用的私有成员", Justification = "<挂起>")]
     private void Handle(CommandSucceededEvent @event)
     {
         if (!_options.Enable) return;
@@ -187,6 +190,7 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
         WritStatus(@event.RequestId, true);
     }
 
+    [SuppressMessage("CodeQuality", "IDE0051:删除未使用的私有成员", Justification = "<挂起>")]
     private void Handle(CommandFailedEvent @event)
     {
         if (!_options.Enable) return;

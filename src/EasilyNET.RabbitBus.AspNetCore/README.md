@@ -1,6 +1,10 @@
 ﻿#### EasilyNET.RabbitBus.AspNetCore
 
-- 支持延时队列,服务端需要启用 [rabbitmq-delayed-message-exchange](https://github.com/rabbitmq/rabbitmq-delayed-message-exchange) 插件
+-
+
+支持延时队列,服务端需要启用 [rabbitmq-delayed-message-exchange](https://github.com/rabbitmq/rabbitmq-delayed-message-exchange)
+插件
+
 - 支持同一个消息被多个 Handler 消费
 - 若是就是想写多个 Handler 但是又希望某些 Handler 不执行,可以在不需要的 Handler 上标记 [IgnoreHandler] 特性
 

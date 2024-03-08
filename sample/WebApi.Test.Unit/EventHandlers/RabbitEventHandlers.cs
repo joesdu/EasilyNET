@@ -8,7 +8,6 @@ using WebApi.Test.Unit.Events;
 namespace WebApi.Test.Unit.EventHandlers;
 
 /// <inheritdoc />
-[IgnoreHandler]
 public class HelloWorldEventHandlers : IEventHandler<HelloWorldEvent>
 {
     /// <inheritdoc />
@@ -20,6 +19,7 @@ public class HelloWorldEventHandlers : IEventHandler<HelloWorldEvent>
 }
 
 /// <inheritdoc />
+[IgnoreHandler]
 public class DeadLetterEventHandlers : IEventHandler<HelloWorldEvent>
 {
     /// <inheritdoc />

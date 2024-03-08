@@ -9,18 +9,18 @@ namespace WebApi.Test.Unit.Controllers;
 /// 测试mongodb的一些功能
 /// </summary>
 [ApiController, Route("api/[controller]"), ApiGroup("MongoTest", "v1", "MongoDB一些测试")]
-public class MongoTestController(DbContext db1, DbContext2 db2) : ControllerBase
+public class MongoTestController(DbContext db) : ControllerBase
 {
     private readonly FilterDefinitionBuilder<MongoTest> bf = Builders<MongoTest>.Filter;
 
     /// <summary>
-    /// 添加一个动态数据,新版MongoDB不支持动态类型了,可以使用EasilyNET.Mongo.Extension来提供支持,可便于快速测试一些代码.
+    /// 添加一个动态数据,可便于快速测试一些代码.
     /// </summary>
     /// <returns></returns>
     [HttpPost("PostOneTest")]
     public async Task PostOneTest()
     {
-        var coll = db1.GetDatabase("newdb1").GetCollection<dynamic>("test.new1");
+        var coll = db.GetCollection<dynamic>("test.new1");
         await coll.InsertOneAsync(new
         {
             Decimal = 3.235223462346m,
@@ -46,7 +46,7 @@ public class MongoTestController(DbContext db1, DbContext2 db2) : ControllerBase
             NullableDateOnly = DateOnly.FromDateTime(DateTime.Now),
             NullableTimeOnly = null
         };
-        _ = db1.Test.InsertOneAsync(o);
+        _ = db.Test.InsertOneAsync(o);
         return Task.CompletedTask;
     }
 
@@ -55,7 +55,7 @@ public class MongoTestController(DbContext db1, DbContext2 db2) : ControllerBase
     /// </summary>
     /// <returns></returns>
     [HttpGet("MongoGet")]
-    public async Task<IEnumerable<MongoTest>> MongoGet() => await db1.Test.Find(bf.Empty).ToListAsync();
+    public async Task<IEnumerable<MongoTest>> MongoGet() => await db.Test.Find(bf.Empty).ToListAsync();
 
     /// <summary>
     /// 初始化Test2
@@ -70,66 +70,31 @@ public class MongoTestController(DbContext db1, DbContext2 db2) : ControllerBase
             var date = DateOnly.FromDateTime(DateTime.Now.AddDays(i));
             os.Add(new() { Id = Guid.NewGuid().ToString(), Date = date, Index = i });
         }
-        var session = await db1.GetStartedSessionAsync();
-        await db1.Test2.InsertManyAsync(session, os);
+        var session = await db.GetStartedSessionAsync();
+        await db.Test2.InsertManyAsync(session, os);
         await session.CommitTransactionAsync();
     }
 
     /// <summary>
-    /// 使用ID查询
+    /// 使用ID查询Test2
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
     [HttpGet("Test2")]
     public async Task<MongoTest2> GetTest2(string id)
     {
-        return await db1.Test2.Find(c => c.Id == id).SingleOrDefaultAsync();
+        return await db.Test2.Find(c => c.Id == id).SingleOrDefaultAsync();
     }
 
     /// <summary>
-    /// 发送长数据,试试MongoDB.ConsoleDebug输出的JSON字符串,是否会截断
-    /// </summary>
-    /// <returns></returns>
-    [HttpPost("LongData")]
-    public async Task PostLongData()
-    {
-        var data = "10086".PadLeft(3000, '*');
-        await db1.Database.GetCollection<dynamic>("long.data").InsertOneAsync(new
-        {
-            Data = data
-        });
-    }
-
-    /// <summary>
-    /// 查询测试
+    /// 查询测试Test2
     /// </summary>
     /// <returns></returns>
     [HttpPost("Search")]
     public async Task<dynamic> Search(Search search)
     {
-        var result = await db1.Test2.Find(c => c.Date >= search.Start && c.Date <= search.End).ToListAsync();
+        var result = await db.Test2.Find(c => c.Date >= search.Start && c.Date <= search.End).ToListAsync();
         return result;
-    }
-
-    /// <summary>
-    /// 初始化Db2Test
-    /// </summary>
-    /// <returns></returns>
-    [HttpPost("Db2Test")]
-    public async Task Db2Test()
-    {
-        var os = new List<MongoTest>();
-        for (var i = 0; i < 30; i++)
-        {
-            os.Add(new()
-            {
-                DateTime = DateTime.Now,
-                TimeSpan = TimeSpan.FromMilliseconds(50000d),
-                DateOnly = DateOnly.FromDateTime(DateTime.Now.AddDays(i)),
-                TimeOnly = TimeOnly.FromDateTime(DateTime.Now.AddDays(i))
-            });
-        }
-        await db2.Test.InsertManyAsync(os);
     }
 }
 

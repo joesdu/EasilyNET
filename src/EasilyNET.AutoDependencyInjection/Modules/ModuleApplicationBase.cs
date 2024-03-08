@@ -2,6 +2,7 @@
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.Core.Misc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
@@ -23,7 +24,7 @@ internal class ModuleApplicationBase : IModuleApplication
         Services = services;
         services.AddSingleton<IModuleApplication>(this);
         services.TryAddObjectAccessor<IServiceProvider>();
-        Source = GetEnabledAllModule(services);
+        Source = GetAllEnabledModule(services);
         Modules = LoadModules;
     }
 
@@ -86,11 +87,11 @@ internal class ModuleApplicationBase : IModuleApplication
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
-    private static IEnumerable<IAppModule> GetEnabledAllModule(IServiceCollection services)
+    private static IEnumerable<IAppModule> GetAllEnabledModule(IServiceCollection services)
     {
         var types = AssemblyHelper.FindTypes(AppModule.IsAppModule);
-        var modules = types.Select(o => CreateModule(services, o)).Where(c => c is not null);
-        return modules.Distinct()!;
+        var modules = types.Select(o => CreateModule(services, o)).ToList().Where(c => c is not null);
+        return modules!;
     }
 
     /// <summary>
@@ -114,7 +115,12 @@ internal class ModuleApplicationBase : IModuleApplication
     {
         var module = Expression.Lambda(Expression.New(moduleType)).Compile().DynamicInvoke() as IAppModule;
         ArgumentNullException.ThrowIfNull(module, nameof(moduleType));
-        if (!module.Enable) return null;
+        if (!module.Enable)
+        {
+            var logger = services.GetService<ILogger<ModuleApplicationBase>>();
+            logger?.LogWarning("{name} is disabled", moduleType.Name);
+            return null;
+        }
         services.AddSingleton(moduleType, module);
         return module;
     }

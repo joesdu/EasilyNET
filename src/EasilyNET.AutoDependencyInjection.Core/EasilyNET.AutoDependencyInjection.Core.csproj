@@ -1,27 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<Import Project="..\..\build\common.props" />
-
-	<PropertyGroup>
-		<AssemblyTitle>$(PackagePrefix).AutoDependencyInjection.Core</AssemblyTitle>
-		<AssemblyName>$(PackagePrefix).AutoDependencyInjection.Core</AssemblyName>
-		<PackageId>$(PackagePrefix).AutoDependencyInjection.Core</PackageId>
-		<PackageTags>AutoDependencyInjection</PackageTags>
-		<PackageReleaseNotes>
-		</PackageReleaseNotes>
-		<RootNamespace>EasilyNET.AutoDependencyInjection.Core</RootNamespace>
-	</PropertyGroup>
-
-	<PropertyGroup>
-		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection.Core</PackageProjectUrl>
-		<Description>自动注入和属性注入以及模块化核心库</Description>
-	</PropertyGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0-preview.1.24080.9" />
-	</ItemGroup>
+    <Import Project="..\..\build\common.props" />
+    
+    <PropertyGroup>
+        <AssemblyTitle>$(PackagePrefix).AutoDependencyInjection.Core</AssemblyTitle>
+        <AssemblyName>$(PackagePrefix).AutoDependencyInjection.Core</AssemblyName>
+        <PackageId>$(PackagePrefix).AutoDependencyInjection.Core</PackageId>
+        <PackageTags>AutoDependencyInjection</PackageTags>
+        <PackageReleaseNotes>
+        </PackageReleaseNotes>
+        <RootNamespace>EasilyNET.AutoDependencyInjection.Core</RootNamespace>
+    </PropertyGroup>
+    
+    <PropertyGroup>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection.Core</PackageProjectUrl>
+        <Description>自动注入和属性注入以及模块化核心库</Description>
+    </PropertyGroup>
+    
+    <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+    </ItemGroup>
+    
+    <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0-preview.1.24080.9" />
+    </ItemGroup>
 
 </Project>

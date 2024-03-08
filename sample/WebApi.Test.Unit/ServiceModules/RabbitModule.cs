@@ -11,7 +11,7 @@ public class RabbitModule : AppModule
     /// <inheritdoc />
     public RabbitModule()
     {
-        Enable = false;
+        Enable = true;
     }
 
     /// <inheritdoc />

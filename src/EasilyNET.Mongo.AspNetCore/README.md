@@ -4,7 +4,7 @@
 - 数据库中字段名驼峰命名,ID,Id 自动转化成 ObjectId.
 - 可配置部分类的 Id 字段不存为 ObjectId,而存为 string 类型.
 - 自动本地化 MongoDB 时间类型
-- 添加.Net6 Date/Time Only 类型支持(TimeOnly 理论上应该是兼容原 TimeSpan 数据类型).
+- 添加.Net6 Date/Time Only 类型支持
 - 添加 SkyWalking-APM 探针支持,未依赖 Agent,所以需要手动传入参数.
 
 ---
@@ -13,11 +13,9 @@
 
 - Nuget 安装 EasilyNET.Mongo.AspNetCore
 - 推荐同时安装 EasilyNET.MongoSerializer.AspNetCore 包,添加了对 .Net6+ 的 Date/Time Only 类型
-- 在系统环境变量或者 Docker 容器中设置环境变量名称为: CONNECTIONSTRINGS_MONGO = mongodb 链接字符串 或者在
-  appsettings.json 中添加,
+- 在系统环境变量或者 Docker 容器中设置环境变量名称为: CONNECTIONSTRINGS_MONGO = mongodb 链接字符串 或者在 appsettings.json 中添加,
 - 现在你也可以参考 example.api 项目查看直接传入相关数据.
-- 添加 APM
-  探针支持,根据 [SkyApm.Diagnostics.MongoDB](https://github.com/SkyAPM/SkyAPM-dotnet/tree/main/src/SkyApm.Diagnostics.MongoDB)
+- 添加 APM 探针支持,根据 [SkyApm.Diagnostics.MongoDB](https://github.com/SkyAPM/SkyAPM-dotnet/tree/main/src/SkyApm.Diagnostics.MongoDB)
 
 ```json
 {
@@ -39,12 +37,12 @@ builder.Services.AddMongoContext<DbContext>(builder.Configuration, c =>
 {
     // 配置数据库名称,覆盖掉连接字符串中的数据库名称
     c.DatabaseName = "test23";
-    // 配置不需要将Id字段存储为ObjectID的类型.使用$unwind操作符的时候,ObjectId在转换上会有一些问题.
+    // 配置不需要将Id字段存储为ObjectID的类型.使用$unwind操作符的时候,ObjectId在转换上会有一些问题,所以需要将其调整为字符串.
     c.ObjectIdToStringTypes = new()
     {
         typeof(MongoTest2)
     };
-    // 是否使用HoyoMongo的一些默认转换配置.包含如下内容:
+    // 是否使用默认转换配置.包含如下内容:
     // 1.小驼峰字段名称 如: pageSize ,linkPhone
     // 2.忽略代码中未定义的字段
     // 3.将ObjectID字段 _id 映射到实体中的ID或者Id字段,反之亦然.在存入数据的时候将Id或者ID映射为 _id
@@ -68,7 +66,8 @@ builder.Services.AddMongoContext<DbContext>(builder.Configuration, c =>
     };
 });
 // 添加.NET6+新的TimeOnly和DateOnly数据类型的序列化方案和添加动态类型支持
-builder.Services.RegisterSerializer().RegisterDynamicSerializer();
+builder.Services.RegisterSerializer(new DateOnlySerializerAsString());
+builder.Services.RegisterSerializer(new TimeOnlySerializerAsString());
 // 注册别的序列化方案
 builder.Services.RegisterSerializer(new DoubleSerializer(BsonType.Double));
 ...
@@ -95,12 +94,12 @@ public class EasilyNETMongoModule : AppModule
         //{
         //    // 配置数据库名称,覆盖掉连接字符串中的数据库名称
         //    c.DatabaseName = "test23";
-        //    // 配置不需要将Id字段存储为ObjectID的类型.使用$unwind操作符的时候,ObjectId在转换上会有一些问题.
+        //    // 配置不需要将Id字段存储为ObjectID的类型.使用$unwind操作符的时候,ObjectId在转换上会有一些问题,所以需要将其调整为字符串.
         //    c.ObjectIdToStringTypes = new()
         //    {
         //        typeof(MongoTest2)
         //    };
-        //    // 是否使用HoyoMongo的一些默认转换配置.包含如下内容:
+        //    // 是否使用默认转换配置.包含如下内容:
         //    // 1.小驼峰字段名称 如: pageSize ,linkPhone
         //    // 2.忽略代码中未定义的字段
         //    // 3.将ObjectID字段 _id 映射到实体中的ID或者Id字段,反之亦然.在存入数据的时候将Id或者ID映射为 _id
@@ -124,7 +123,6 @@ public class EasilyNETMongoModule : AppModule
         //});
         //context.Services.AddMongoContext<DbContext2>(config);
         //context.Services.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
-        //context.Services.RegisterSerializer().RegisterDynamicSerializer();
 
         // 例子二:使用MongoClientSettings配置
         context.Services.AddMongoContext<DbContext>(new MongoClientSettings
@@ -144,7 +142,7 @@ public class EasilyNETMongoModule : AppModule
             {
                 typeof(MongoTest2)
             };
-            // 是否使用HoyoMongo的一些默认转换配置.包含如下内容:
+            // 是否使用默认转换配置.包含如下内容:
             // 1.小驼峰字段名称 如: pageSize ,linkPhone
             // 2.忽略代码中未定义的字段
             // 3.将ObjectID字段 _id 映射到实体中的ID或者Id字段,反之亦然.在存入数据的时候将Id或者ID映射为 _id
@@ -158,6 +156,7 @@ public class EasilyNETMongoModule : AppModule
                 }
             };
         });
+        // 注册另一个DbContext
         context.Services.AddMongoContext<DbContext2>(config, c =>
         {
             c.DefaultConventionRegistry = true;
@@ -169,7 +168,6 @@ public class EasilyNETMongoModule : AppModule
                 }
             };
         });
-        //context.Services.RegisterSerializer().RegisterDynamicSerializer();
     }
 }
 ```

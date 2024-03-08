@@ -19,9 +19,6 @@ var builder = WebApplication.CreateBuilder(args);
 //    });
 //    op.ListenAnyIP(80, lo => lo.Protocols = HttpProtocols.Http1);
 //});
-// 自动注入服务模块
-builder.Services.AddApplication<AppWebModule>();
-builder.Services.AddCurrentUser();
 // 添加Serilog配置
 builder.Host.UseSerilog((hbc, lc) =>
 {
@@ -32,11 +29,29 @@ builder.Host.UseSerilog((hbc, lc) =>
       .Enrich.FromLogContext()
       .WriteTo.Async(wt =>
       {
-          wt.Debug();
-          wt.Console(theme: AnsiConsoleTheme.Code);
           if (hbc.HostingEnvironment.IsDevelopment())
           {
               //wt.SpectreConsole();
+              wt.Debug();
+              wt.Console(theme: new AnsiConsoleTheme(new Dictionary<ConsoleThemeStyle, string>
+              {
+                  [ConsoleThemeStyle.Text] = "\x1b[38;5;151m",
+                  [ConsoleThemeStyle.SecondaryText] = "\x1b[38;5;245m",
+                  [ConsoleThemeStyle.TertiaryText] = "\x1b[38;5;244m",
+                  [ConsoleThemeStyle.Invalid] = "\x1b[38;5;214m",
+                  [ConsoleThemeStyle.Null] = "\x1b[38;5;248m",
+                  [ConsoleThemeStyle.Name] = "\x1b[38;5;141m",
+                  [ConsoleThemeStyle.String] = "\x1b[38;5;168m",
+                  [ConsoleThemeStyle.Number] = "\x1b[38;5;141m",
+                  [ConsoleThemeStyle.Boolean] = "\x1b[38;5;248m",
+                  [ConsoleThemeStyle.Scalar] = "\x1b[38;5;119m",
+                  [ConsoleThemeStyle.LevelVerbose] = "\x1b[37m",
+                  [ConsoleThemeStyle.LevelDebug] = "\x1b[37m",
+                  [ConsoleThemeStyle.LevelInformation] = "\x1b[37;1m",
+                  [ConsoleThemeStyle.LevelWarning] = "\x1b[38;5;208m",
+                  [ConsoleThemeStyle.LevelError] = "\x1b[38;5;197m\x1b[48;5;238m",
+                  [ConsoleThemeStyle.LevelFatal] = "\x1b[38;5;197m\x1b[48;5;238m"
+              }));
           }
           else
           {
@@ -63,6 +78,10 @@ builder.Host.UseSerilog((hbc, lc) =>
           //}
       });
 });
+
+// 自动注入服务模块
+builder.Services.AddApplication<AppWebModule>();
+builder.Services.AddCurrentUser();
 var app = builder.Build();
 app.Use((context, next) =>
 {

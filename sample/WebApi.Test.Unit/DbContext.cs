@@ -18,12 +18,3 @@ public class DbContext : MongoContext
     /// </summary>
     public IMongoCollection<MongoTest2> Test2 => GetCollection<MongoTest2>("mongo.test2");
 }
-
-/// <inheritdoc />
-public class DbContext2 : MongoContext
-{
-    /// <summary>
-    /// MongoTest
-    /// </summary>
-    public IMongoCollection<MongoTest> Test => GetCollection<MongoTest>("mongo.test2");
-}

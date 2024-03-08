@@ -1,22 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<Import Project="..\..\build\common.props" />
-
-	<PropertyGroup>
-		<AssemblyTitle>$(PackagePrefix).Mongo.Core</AssemblyTitle>
-		<AssemblyName>$(PackagePrefix).Mongo.Core</AssemblyName>
-		<PackageId>$(PackagePrefix).Mongo.Core</PackageId>
-		<PackageTags>MongoDB</PackageTags>
-		<PackageReleaseNotes>
-		</PackageReleaseNotes>
-		<RootNamespace>EasilyNET.Mongo.Core</RootNamespace>
-	</PropertyGroup>
-
-	<PropertyGroup>
-		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.Core</PackageProjectUrl>
-		<Description>MongoDB 驱动的服务包,方便使用 Mongo 数据库.</Description>
-	</PropertyGroup>
-
-	<ItemGroup>
-		<PackageReference Include="MongoDB.Driver" Version="2.23.2" />
-	</ItemGroup>
+    <Import Project="..\..\build\common.props" />
+    
+    <PropertyGroup>
+        <AssemblyTitle>$(PackagePrefix).Mongo.Core</AssemblyTitle>
+        <AssemblyName>$(PackagePrefix).Mongo.Core</AssemblyName>
+        <PackageId>$(PackagePrefix).Mongo.Core</PackageId>
+        <PackageTags>MongoDB</PackageTags>
+        <PackageReleaseNotes>
+        </PackageReleaseNotes>
+        <RootNamespace>EasilyNET.Mongo.Core</RootNamespace>
+    </PropertyGroup>
+    
+    <PropertyGroup>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.Core</PackageProjectUrl>
+        <Description>MongoDB 驱动的服务包,方便使用 Mongo 数据库.</Description>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="MongoDB.Driver" Version="2.24.0" />
+    </ItemGroup>
 </Project>
