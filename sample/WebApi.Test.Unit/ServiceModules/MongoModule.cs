@@ -2,7 +2,6 @@
 using EasilyNET.AutoDependencyInjection.Modules;
 using EasilyNET.Mongo.ConsoleDebug;
 using EasilyNET.MongoSerializer.AspNetCore;
-using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 
 namespace WebApi.Test.Unit;
@@ -35,7 +34,7 @@ public class MongoModule : AppModule
         //{
         //    // 配置数据库名称,覆盖掉连接字符串中的数据库名称
         //    c.DatabaseName = "test23";
-        //    // 配置不需要将Id字段存储为ObjectID的类型.使用$unwind操作符的时候,ObjectId在转换上会有一些问题.
+        //    // 配置不需要将Id字段存储为ObjectID的类型.使用$unwind操作符的时候,ObjectId在转换上会有一些问题,所以需要将其调整为字符串.
         //    c.ObjectIdToStringTypes = new()
         //    {
         //        typeof(MongoTest2)
@@ -69,23 +68,24 @@ public class MongoModule : AppModule
         //        cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber());
         //    };
         //});
-        //HashSet<string> CommandsWithCollectionName = new()
-        //{
-        //    "mongo.test",
-        //    "long.data"
-        //};
-        context.Services.AddMongoContext<DbContext>(new()
+        HashSet<string> CommandsWithCollectionName =
+        [
+            "mongo.test",
+            "long.data"
+        ];
+        context.Services.AddMongoContext<DbContext>(config, c =>
         {
-            Servers = [new("127.0.0.1", 27017)],
-            Credential = MongoCredential.CreateCredential("admin", "guest", "guest"),
-            LinqProvider = LinqProvider.V3,
-            ClusterConfigurator = s => s.Subscribe(new ActivityEventSubscriber())
-        }, c =>
-        {
-            c.DatabaseName = "test1";
-            c.DefaultConventionRegistry = true;
+            c.DatabaseName = "easilynet";
+            c.ClientSettings = cs =>
+            {
+                cs.ClusterConfigurator = s => s.Subscribe(new ActivityEventSubscriber(new()
+                {
+                    Enable = true,
+                    ShouldStartCollection = x => CommandsWithCollectionName.Contains(x)
+                }));
+                cs.LinqProvider = LinqProvider.V3;
+            };
         });
-        context.Services.AddMongoContext<DbContext2>(config, c => c.DatabaseName = "test2");
         context.Services.RegisterSerializer(new DateOnlySerializerAsString());
         context.Services.RegisterSerializer(new TimeOnlySerializerAsString());
     }

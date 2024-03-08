@@ -11,10 +11,12 @@ internal static class RendersCommon
 {
     internal static IEnumerable<IRenderable> RenderProperty(LogEvent logEvent, PropertyToken token, IFormatProvider? formatProvider = null)
     {
-        if (!logEvent.Properties.ContainsKey(token.PropertyName)) yield break;
-        var propValue = logEvent.Properties[token.PropertyName]
-                                .ToString(token.Format, formatProvider).TrimStart('\"').TrimEnd('\"').Replace("\\\"", "\"")
-                                .Exec(Markup.Escape);
+        if (!logEvent.Properties.TryGetValue(token.PropertyName, out var property)) yield break;
+        var propValue = property
+                        .ToString(token.Format, formatProvider)
+                        .TrimStart('\"').TrimEnd('\"')
+                        .Replace("\\\"", "\"")
+                        .Exec(Markup.Escape);
         propValue = token.PropertyName switch
         {
             "StatusCode" or "ElapsedMilliseconds" => propValue.Exec(DefaultStyle.HighlightNumber),

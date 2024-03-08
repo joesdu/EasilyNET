@@ -71,11 +71,13 @@ internal static class LevelOutputFormat
                    };
     }
 
-    private static string GetLevelMoniker(IReadOnlyList<string[]> caseLevelMap, int index, int width)
+    // ReSharper disable once SuggestBaseTypeForParameter
+    private static string GetLevelMoniker(string[][] caseLevelMap, int index, int width)
     {
         var caseLevel = caseLevelMap[index];
         return caseLevel[Math.Min(width, caseLevel.Length) - 1];
     }
 
-    private static string GetLevelMoniker(IReadOnlyList<string[]> caseLevelMap, int index) => caseLevelMap[index][^1];
+    // ReSharper disable once SuggestBaseTypeForParameter
+    private static string GetLevelMoniker(string[][] caseLevelMap, int index) => caseLevelMap[index][^1];
 }

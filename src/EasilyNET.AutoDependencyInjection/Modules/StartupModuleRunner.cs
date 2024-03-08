@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace EasilyNET.AutoDependencyInjection.Modules;
 
 /// <inheritdoc cref="IStartupModuleRunner" />
-internal class StartupModuleRunner : ModuleApplicationBase, IStartupModuleRunner
+internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModuleRunner
 {
     /// <inheritdoc />
     internal StartupModuleRunner(Type startupModuleType, IServiceCollection services) : base(startupModuleType, services)

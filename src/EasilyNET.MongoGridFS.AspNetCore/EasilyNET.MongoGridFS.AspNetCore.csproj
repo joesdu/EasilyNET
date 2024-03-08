@@ -21,7 +21,7 @@
     </ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="MongoDB.Driver.GridFS" Version="2.23.2" />
+        <PackageReference Include="MongoDB.Driver.GridFS" Version="2.24.0" />
     </ItemGroup>
 
 </Project>

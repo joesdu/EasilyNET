@@ -12,8 +12,8 @@ namespace WebApi.Test.Unit.Events;
 /// <summary>
 /// 测试HelloWorld模式消息类型
 /// </summary>
-//[Exchange(EModel.None, queue: "hello.world")]
-[Exchange(EModel.Delayed, "xdl.hello", queue: "xdl.hello.world", isDlx: true), QueueArg("x-message-ttl", 5000)]
+[Exchange(EModel.None, queue: "hello.world")]
+//[Exchange(EModel.Delayed, "xdl.hello", queue: "xdl.hello.world", isDlx: true), QueueArg("x-message-ttl", 5000)]
 public class HelloWorldEvent : IEvent
 {
     /// <summary>
