@@ -8,6 +8,7 @@ using WebApi.Test.Unit;
 Console.Title = "❤️ EasilyNET";
 AssemblyHelper.AddExcludeLibs("Npgsql.");
 var builder = WebApplication.CreateBuilder(args);
+
 // 配置Kestrel支持HTTP1,2,3
 //builder.WebHost.ConfigureKestrel((_, op) =>
 //{
@@ -33,30 +34,26 @@ builder.Host.UseSerilog((hbc, lc) =>
           {
               //wt.SpectreConsole();
               wt.Debug();
-              wt.Console(theme: new AnsiConsoleTheme(new Dictionary<ConsoleThemeStyle, string>
-              {
-                  [ConsoleThemeStyle.Text] = "\x1b[38;5;151m",
-                  [ConsoleThemeStyle.SecondaryText] = "\x1b[38;5;245m",
-                  [ConsoleThemeStyle.TertiaryText] = "\x1b[38;5;244m",
-                  [ConsoleThemeStyle.Invalid] = "\x1b[38;5;214m",
-                  [ConsoleThemeStyle.Null] = "\x1b[38;5;248m",
-                  [ConsoleThemeStyle.Name] = "\x1b[38;5;141m",
-                  [ConsoleThemeStyle.String] = "\x1b[38;5;168m",
-                  [ConsoleThemeStyle.Number] = "\x1b[38;5;141m",
-                  [ConsoleThemeStyle.Boolean] = "\x1b[38;5;248m",
-                  [ConsoleThemeStyle.Scalar] = "\x1b[38;5;119m",
-                  [ConsoleThemeStyle.LevelVerbose] = "\x1b[37m",
-                  [ConsoleThemeStyle.LevelDebug] = "\x1b[37m",
-                  [ConsoleThemeStyle.LevelInformation] = "\x1b[37;1m",
-                  [ConsoleThemeStyle.LevelWarning] = "\x1b[38;5;208m",
-                  [ConsoleThemeStyle.LevelError] = "\x1b[38;5;197m\x1b[48;5;238m",
-                  [ConsoleThemeStyle.LevelFatal] = "\x1b[38;5;197m\x1b[48;5;238m"
-              }));
           }
-          else
+          wt.Console(theme: new AnsiConsoleTheme(new Dictionary<ConsoleThemeStyle, string>
           {
-              wt.Console(theme: AnsiConsoleTheme.Code);
-          }
+              [ConsoleThemeStyle.Text] = "\x1b[38;5;151m",
+              [ConsoleThemeStyle.SecondaryText] = "\x1b[38;5;245m",
+              [ConsoleThemeStyle.TertiaryText] = "\x1b[38;5;244m",
+              [ConsoleThemeStyle.Invalid] = "\x1b[38;5;214m",
+              [ConsoleThemeStyle.Null] = "\x1b[38;5;248m",
+              [ConsoleThemeStyle.Name] = "\x1b[38;5;141m",
+              [ConsoleThemeStyle.String] = "\x1b[38;5;168m",
+              [ConsoleThemeStyle.Number] = "\x1b[38;5;141m",
+              [ConsoleThemeStyle.Boolean] = "\x1b[38;5;248m",
+              [ConsoleThemeStyle.Scalar] = "\x1b[38;5;119m",
+              [ConsoleThemeStyle.LevelVerbose] = "\x1b[37m",
+              [ConsoleThemeStyle.LevelDebug] = "\x1b[37m",
+              [ConsoleThemeStyle.LevelInformation] = "\x1b[37;1m",
+              [ConsoleThemeStyle.LevelWarning] = "\x1b[38;5;208m",
+              [ConsoleThemeStyle.LevelError] = "\x1b[38;5;197m\x1b[48;5;238m",
+              [ConsoleThemeStyle.LevelFatal] = "\x1b[38;5;197m\x1b[48;5;238m"
+          }));
           //var mongo = builder.Services.GetService<DbContext>()?.Database;
           //if (mongo is not null)
           //{
@@ -99,4 +96,5 @@ if (app.Environment.IsDevelopment()) _ = app.UseDeveloperExceptionPage();
 app.InitializeApplication();
 app.UseRepeatSubmit();
 app.MapControllers();
+app.Run();
 app.Run();
