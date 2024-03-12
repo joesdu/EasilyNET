@@ -1,4 +1,4 @@
-﻿using EasilyNET.MongoDistributedLock;
+using EasilyNET.MongoDistributedLock;
 using EasilyNET.MongoDistributedLock.Attributes;
 using Microsoft.Extensions.DependencyInjection.Abstraction;
 using MongoDB.Bson;

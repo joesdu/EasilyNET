@@ -1,0 +1,27 @@
+<Project>
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageVersion Include="BouncyCastle.Cryptography" Version="2.3.0" />
+        <PackageVersion Include="MongoDB.Bson" Version="2.24.0" />
+        <PackageVersion Include="MongoDB.Driver" Version="2.24.0" />
+        <PackageVersion Include="MongoDB.Driver.Core" Version="2.24.0" />
+        <PackageVersion Include="MongoDB.Driver.GridFS" Version="2.24.0" />
+        <PackageVersion Include="Polly" Version="8.3.1" />
+        <PackageVersion Include="RabbitMQ.Client" Version="7.0.0-alpha.4" />
+        <PackageVersion Include="Serilog" Version="4.0.0-dev-02122" />
+        <PackageVersion Include="SkiaSharp" Version="3.0.0-preview.2.1" />
+        <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.0.0-preview.2.1" />
+        <PackageVersion Include="Spectre.Console.Json" Version="0.48.1-preview.0.35" />
+        <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.5.0" />
+        <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.5.0" />
+        <PackageVersion Include="ZXing.Net" Version="0.16.9" />
+        <!--microsoft asp.net core -->
+        <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0-preview.1.24080.9" />
+        <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="9.0.0-preview.1.24080.9" />
+        <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.0-preview.1.24080.9" />
+        <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0-preview.1.24080.9" />
+        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0-preview.1.24080.9" />
+    </ItemGroup>
+</Project>

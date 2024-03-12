@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Mongo.AspNetCore;
+namespace EasilyNET.Mongo.AspNetCore;
 
 /// <summary>
 /// MongoDb的一些静态默认参数

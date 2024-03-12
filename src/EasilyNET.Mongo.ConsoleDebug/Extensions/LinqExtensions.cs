@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Mongo.ConsoleDebug.Extensions;
+namespace EasilyNET.Mongo.ConsoleDebug.Extensions;
 
 /// <summary>
 /// LinqExtensions

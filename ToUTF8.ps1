@@ -1,7 +1,7 @@
 # 定义要处理的文件夹路径
 $folder = $pwd.Path
 # 定义要转换的目标编码
-$targetEncoding = "UTF8BOM"
+$targetEncoding = "UTF8"
 # 定义要排除的文件夹名称
 $exclude = "bin", "obj"
 # 定义要转换的文件类型
@@ -19,7 +19,7 @@ foreach ($file in $files) {
             $currentEncoding = Get-FileEncoding -Path $file.FullName
         }
         catch {
-            Write-Warning "无法获取文件 $file 的编码，使用默认编码。"
+            Write-Warning "无法获取文件 $file 的编码,使用默认编码."
         }
         # 如果文件的编码与目标编码不同，则进行转换
         if ($currentEncoding -ne $targetEncoding) {
@@ -28,7 +28,7 @@ foreach ($file in $files) {
             # 写入文件内容，使用目标编码
             Set-Content -Path $file.FullName -Encoding $targetEncoding -Value $content
             # 输出转换结果
-            Write-Output "已将文件 $file 从 $currentEncoding 转换为 $targetEncoding 。"
+            Write-Output "已将文件 $file 从 $currentEncoding 转换为 $targetEncoding"
         }
     }
 }
@@ -47,7 +47,7 @@ function Get-FileEncoding {
     switch ($byte[0..1] -join '-') {
         '254-255' { return [Text.Encoding]::BigEndianUnicode }
         '255-254' { return [Text.Encoding]::Unicode }
-        '255-239' { return [Text.Encoding]::UTF8BOM }
+        '255-239' { return [Text.Encoding]::UTF8 }
         default {
             if ($byte[0] -eq 0) { return [Text.Encoding]::UTF32 }
             else { return [Text.Encoding]::Default }

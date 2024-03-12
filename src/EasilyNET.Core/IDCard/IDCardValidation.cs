@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.Language;
+using EasilyNET.Core.Language;
 
 namespace EasilyNET.Core.IdCard;
 

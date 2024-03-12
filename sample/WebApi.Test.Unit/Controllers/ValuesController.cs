@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.Enums;
+using EasilyNET.Core.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Test.Unit.Controllers;

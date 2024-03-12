@@ -1,4 +1,4 @@
-﻿### EasilyNET.Mongo.AspNetCore
+### EasilyNET.Mongo.AspNetCore
 
 - 一个 MongoDB 驱动的服务包,方便使用 MongoDB 数据库.
 - 数据库中字段名驼峰命名,ID,Id 自动转化成 ObjectId.

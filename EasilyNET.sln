@@ -1,9 +1,11 @@
-﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33402.96
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{1EA5CB17-A582-4817-8D06-39D50D65419F}"
+	ProjectSection(SolutionItems) = preProject
+		src\Directory.Packages.props = src\Directory.Packages.props
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Framework", "Framework", "{BD6D1E2B-691E-4E8B-9E8D-E7FD2EDDF1F8}"
 EndProject
@@ -12,8 +14,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.RabbitBus.AspNetCore", "src\EasilyNET.RabbitBus.AspNetCore\EasilyNET.RabbitBus.AspNetCore.csproj", "{0941E0F3-4C47-4090-8498-409E219E997B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Mongo", "Mongo", "{6B734C3C-FE4C-405D-80E3-AFEAD63BCF2D}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.IdentityServer.MongoStorage", "src\EasilyNET.IdentityServer.MongoStorage\EasilyNET.IdentityServer.MongoStorage.csproj", "{6B9F6FF5-6343-42B8-A234-F738237D75D8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Mongo.AspNetCore", "src\EasilyNET.Mongo.AspNetCore\EasilyNET.Mongo.AspNetCore.csproj", "{DB755B9D-D734-443D-8A79-587B7D8C8CE6}"
 EndProject
@@ -49,20 +49,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		Build.ps1 = Build.ps1
 		Directory.Build.props = Directory.Build.props
+		EasilyNET.snk = EasilyNET.snk
+		gitemoji.md = gitemoji.md
 		LICENSE = LICENSE
 		Push.ps1 = Push.ps1
 		README.md = README.md
-		ToUTF8Bom.ps1 = ToUTF8Bom.ps1
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{3E8A3288-FD80-4809-9096-B10D2D025C5E}"
-	ProjectSection(SolutionItems) = preProject
-		build\common.props = build\common.props
-		build\EasilyNET.snk = build\EasilyNET.snk
-		build\infos.props = build\infos.props
-		build\sign.props = build\sign.props
-		build\target.props = build\target.props
-		build\version.props = build\version.props
+		ToUTF8.ps1 = ToUTF8.ps1
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sample", "sample", "{2273701E-0AEE-4F47-A8D3-96DEE1F4FEDD}"
@@ -87,10 +79,6 @@ Global
 		{0941E0F3-4C47-4090-8498-409E219E997B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0941E0F3-4C47-4090-8498-409E219E997B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0941E0F3-4C47-4090-8498-409E219E997B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6B9F6FF5-6343-42B8-A234-F738237D75D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6B9F6FF5-6343-42B8-A234-F738237D75D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6B9F6FF5-6343-42B8-A234-F738237D75D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6B9F6FF5-6343-42B8-A234-F738237D75D8}.Release|Any CPU.Build.0 = Release|Any CPU
 		{DB755B9D-D734-443D-8A79-587B7D8C8CE6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DB755B9D-D734-443D-8A79-587B7D8C8CE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DB755B9D-D734-443D-8A79-587B7D8C8CE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -164,7 +152,6 @@ Global
 		{B6DFBBBD-4B4F-4AE2-8D65-4B9F51FB5CA2} = {BD6D1E2B-691E-4E8B-9E8D-E7FD2EDDF1F8}
 		{0941E0F3-4C47-4090-8498-409E219E997B} = {BD6D1E2B-691E-4E8B-9E8D-E7FD2EDDF1F8}
 		{6B734C3C-FE4C-405D-80E3-AFEAD63BCF2D} = {1EA5CB17-A582-4817-8D06-39D50D65419F}
-		{6B9F6FF5-6343-42B8-A234-F738237D75D8} = {6B734C3C-FE4C-405D-80E3-AFEAD63BCF2D}
 		{DB755B9D-D734-443D-8A79-587B7D8C8CE6} = {6B734C3C-FE4C-405D-80E3-AFEAD63BCF2D}
 		{2A3F55E3-E89B-496B-94DC-27F49D1998D8} = {6B734C3C-FE4C-405D-80E3-AFEAD63BCF2D}
 		{B22152F2-8BDE-4494-92DA-19CD5ACCC99D} = {6B734C3C-FE4C-405D-80E3-AFEAD63BCF2D}
@@ -180,7 +167,6 @@ Global
 		{AC36AE56-981E-4910-9D1C-DD17D4EC28AD} = {BD6D1E2B-691E-4E8B-9E8D-E7FD2EDDF1F8}
 		{107F28AD-E038-47A5-8720-EDECF0DD1E36} = {6B734C3C-FE4C-405D-80E3-AFEAD63BCF2D}
 		{F1C997F7-DBDE-4899-9ED5-460473CEC087} = {6B734C3C-FE4C-405D-80E3-AFEAD63BCF2D}
-		{3E8A3288-FD80-4809-9096-B10D2D025C5E} = {CD19FF86-B039-4A4A-8822-7C97670BC786}
 		{FDE3D67B-FA75-4806-8839-8B080893579C} = {2273701E-0AEE-4F47-A8D3-96DEE1F4FEDD}
 		{535C9D9D-84AC-4846-8198-C548477D70FA} = {AE84E1FF-91D2-4D29-A281-EB281B2114E8}
 	EndGlobalSection

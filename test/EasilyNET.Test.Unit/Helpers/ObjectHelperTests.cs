@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Core.Helpers.Tests;
+namespace EasilyNET.Core.Helpers.Tests;
 
 /// <summary>
 /// 对象帮助类测试

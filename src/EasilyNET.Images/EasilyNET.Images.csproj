@@ -1,5 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-    <Import Project="..\..\build\common.props" />
+<Project Sdk="Microsoft.NET.Sdk">
     
     <PropertyGroup>
         <AssemblyTitle>$(PackagePrefix).Images</AssemblyTitle>
@@ -17,9 +16,9 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <PackageReference Include="SkiaSharp" Version="3.0.0-preview.2.1" />
-        <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.0.0-preview.2.1" />
-        <PackageReference Include="ZXing.Net" Version="0.16.9" />
+        <PackageReference Include="SkiaSharp" />
+        <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" />
+        <PackageReference Include="ZXing.Net" />
     </ItemGroup>
 
 </Project>

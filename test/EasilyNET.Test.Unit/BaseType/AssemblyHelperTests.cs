@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.Attributes;
+using EasilyNET.Core.Attributes;
 using EasilyNET.Core.Misc;
 using System.Runtime.Loader;
 

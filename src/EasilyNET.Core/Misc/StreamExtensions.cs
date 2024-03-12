@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.BaseType;
+using EasilyNET.Core.BaseType;
 using System.Text;
 
 // ReSharper disable UnusedMember.Global

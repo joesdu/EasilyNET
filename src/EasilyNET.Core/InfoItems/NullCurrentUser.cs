@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.Abstractions;
+using EasilyNET.Core.Abstractions;
 using System.Security.Claims;
 
 namespace EasilyNET.Core;

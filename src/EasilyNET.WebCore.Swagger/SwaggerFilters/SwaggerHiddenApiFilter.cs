@@ -1,4 +1,4 @@
-﻿using EasilyNET.WebCore.Swagger.Attributes;
+using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Reflection;

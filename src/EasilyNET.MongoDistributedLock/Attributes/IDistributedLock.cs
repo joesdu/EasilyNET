@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.MongoDistributedLock.Attributes;
+namespace EasilyNET.MongoDistributedLock.Attributes;
 
 /// <summary>
 /// IDistributedLock

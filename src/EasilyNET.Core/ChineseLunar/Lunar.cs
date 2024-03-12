@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 参考GitHub大神的Java项目所改.链接如下:
  * https://github.com/iceenongli/nongli
  */

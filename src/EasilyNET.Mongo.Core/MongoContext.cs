@@ -1,4 +1,4 @@
-﻿using MongoDB.Driver;
+using MongoDB.Driver;
 
 // ReSharper disable MemberCanBeProtected.Global
 

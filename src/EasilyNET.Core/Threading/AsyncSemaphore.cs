@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Core.Threading;
+namespace EasilyNET.Core.Threading;
 
 /// <summary>
 /// 异步信号。

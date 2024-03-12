@@ -1,5 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-    <Import Project="..\..\build\common.props" />
+<Project Sdk="Microsoft.NET.Sdk">
     
     <PropertyGroup>
         <AssemblyTitle>$(PackagePrefix).MongoDistributedLock</AssemblyTitle>
@@ -17,7 +16,7 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <PackageReference Include="MongoDB.Driver" Version="2.24.0" />
+        <PackageReference Include="MongoDB.Driver" />
     </ItemGroup>
 
 </Project>

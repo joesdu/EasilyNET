@@ -1,4 +1,4 @@
-﻿using EasilyNET.MongoGridFS.AspNetCore;
+using EasilyNET.MongoGridFS.AspNetCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;

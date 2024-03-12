@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.WebCore.Swagger.Attributes;
+namespace EasilyNET.WebCore.Swagger.Attributes;
 
 /// <summary>
 /// 被此特性标记的Action或者控制器可在Swagger文档中隐藏.
