@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <Import Project="..\..\build\common.props" />
     
     <PropertyGroup>
         <AssemblyTitle>$(PackagePrefix).WebCore.Swagger</AssemblyTitle>
@@ -17,8 +16,8 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.5.0" />
-        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.5.0" />
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" />
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" />
     </ItemGroup>
     
     <ItemGroup>

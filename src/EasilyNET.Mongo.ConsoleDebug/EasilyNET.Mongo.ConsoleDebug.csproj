@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <Import Project="..\..\build\common.props" />
     
     <PropertyGroup>
         <AssemblyTitle>$(PackagePrefix).Mongo.ConsoleDebug</AssemblyTitle>
@@ -17,9 +16,9 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <PackageReference Include="MongoDB.Driver.Core" Version="2.24.0" />
-        <PackageReference Include="Serilog" Version="4.0.0-dev-02122" />
-        <PackageReference Include="Spectre.Console.Json" Version="0.48.1-preview.0.35" />
+        <PackageReference Include="MongoDB.Driver.Core" />
+        <PackageReference Include="Serilog" />
+        <PackageReference Include="Spectre.Console.Json" />
     </ItemGroup>
 
 </Project>

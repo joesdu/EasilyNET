@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <Import Project="..\..\build\common.props" />
     
     <PropertyGroup>
         <AssemblyTitle>$(PackagePrefix).MongoGridFS.AspNetCore</AssemblyTitle>
@@ -21,7 +20,7 @@
     </ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="MongoDB.Driver.GridFS" Version="2.24.0" />
+        <PackageReference Include="MongoDB.Driver.GridFS" />
     </ItemGroup>
 
 </Project>

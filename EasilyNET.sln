@@ -1,9 +1,11 @@
-
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33402.96
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{1EA5CB17-A582-4817-8D06-39D50D65419F}"
+	ProjectSection(SolutionItems) = preProject
+		src\Directory.Packages.props = src\Directory.Packages.props
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Framework", "Framework", "{BD6D1E2B-691E-4E8B-9E8D-E7FD2EDDF1F8}"
 EndProject
@@ -47,21 +49,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		Build.ps1 = Build.ps1
 		Directory.Build.props = Directory.Build.props
+		EasilyNET.snk = EasilyNET.snk
 		gitemoji.md = gitemoji.md
 		LICENSE = LICENSE
 		Push.ps1 = Push.ps1
 		README.md = README.md
 		ToUTF8.ps1 = ToUTF8.ps1
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{3E8A3288-FD80-4809-9096-B10D2D025C5E}"
-	ProjectSection(SolutionItems) = preProject
-		build\common.props = build\common.props
-		build\EasilyNET.snk = build\EasilyNET.snk
-		build\infos.props = build\infos.props
-		build\sign.props = build\sign.props
-		build\target.props = build\target.props
-		build\version.props = build\version.props
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sample", "sample", "{2273701E-0AEE-4F47-A8D3-96DEE1F4FEDD}"
@@ -174,7 +167,6 @@ Global
 		{AC36AE56-981E-4910-9D1C-DD17D4EC28AD} = {BD6D1E2B-691E-4E8B-9E8D-E7FD2EDDF1F8}
 		{107F28AD-E038-47A5-8720-EDECF0DD1E36} = {6B734C3C-FE4C-405D-80E3-AFEAD63BCF2D}
 		{F1C997F7-DBDE-4899-9ED5-460473CEC087} = {6B734C3C-FE4C-405D-80E3-AFEAD63BCF2D}
-		{3E8A3288-FD80-4809-9096-B10D2D025C5E} = {CD19FF86-B039-4A4A-8822-7C97670BC786}
 		{FDE3D67B-FA75-4806-8839-8B080893579C} = {2273701E-0AEE-4F47-A8D3-96DEE1F4FEDD}
 		{535C9D9D-84AC-4846-8198-C548477D70FA} = {AE84E1FF-91D2-4D29-A281-EB281B2114E8}
 	EndGlobalSection
