@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core;
+using EasilyNET.Core;
 using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;

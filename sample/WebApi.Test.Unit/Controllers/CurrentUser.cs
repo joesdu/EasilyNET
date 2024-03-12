@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.Abstractions;
+using EasilyNET.Core.Abstractions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Test.Unit.Controllers;

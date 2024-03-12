@@ -1,4 +1,4 @@
-﻿using EasilyNET.WebCore.Attributes;
+using EasilyNET.WebCore.Attributes;
 using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 

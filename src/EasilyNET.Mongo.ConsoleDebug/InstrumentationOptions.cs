@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Mongo.ConsoleDebug;
+namespace EasilyNET.Mongo.ConsoleDebug;
 
 /// <summary>
 /// 选项

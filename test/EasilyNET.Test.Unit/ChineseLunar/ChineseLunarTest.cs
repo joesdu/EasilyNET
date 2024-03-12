@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.ChineseLunar;
+using EasilyNET.Core.ChineseLunar;
 using EasilyNET.Core.Enums;
 using EasilyNET.Core.Misc;
 using FluentAssertions;

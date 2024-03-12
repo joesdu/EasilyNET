@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.Misc;
+using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using System.Collections.Concurrent;
 using System.Reflection;

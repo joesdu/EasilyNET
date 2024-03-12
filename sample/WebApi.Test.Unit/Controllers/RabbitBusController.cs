@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.Language;
+using EasilyNET.Core.Language;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;

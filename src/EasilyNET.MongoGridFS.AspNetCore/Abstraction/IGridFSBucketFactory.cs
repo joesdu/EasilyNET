@@ -1,4 +1,4 @@
-﻿using MongoDB.Driver;
+using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
 
 namespace EasilyNET.MongoGridFS.AspNetCore;

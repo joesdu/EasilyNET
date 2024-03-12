@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.RabbitBus.Core.Attributes;
+namespace EasilyNET.RabbitBus.Core.Attributes;
 
 /// <summary>
 /// 忽略消息处理Handler

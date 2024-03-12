@@ -1,4 +1,4 @@
-﻿using EasilyNET.AutoDependencyInjection.Contexts;
+using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using EasilyNET.WebCore.Filters;
 using EasilyNET.WebCore.JsonConverters;

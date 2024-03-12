@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.Enums;
+using EasilyNET.Core.Enums;
 using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Serialization;

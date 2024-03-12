@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Security;
+namespace EasilyNET.Security;
 
 /// <summary>
 /// Sm4Context

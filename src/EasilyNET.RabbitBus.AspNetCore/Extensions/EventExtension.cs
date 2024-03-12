@@ -1,4 +1,4 @@
-﻿using EasilyNET.RabbitBus.Core.Abstraction;
+using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Attributes;
 using System.Reflection;
 
