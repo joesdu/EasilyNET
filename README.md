@@ -24,6 +24,7 @@ EasilyNET Packages
 - 在 WebAPI 中集成一些常见的过滤器和中间件
 - 对 Swagger 文档添加分组,隐藏 API 和添加部分数据类型默认值显示的支持,方便前端工程师查阅
 - 对 MongoDB 执行命令添加个性化输出.(EasilyNET.Mongo.ConsoleDebug)
+- 部分库的[使用案例](./sample/WebApi.Test.Unit/README.md)
 
 #### Core
 

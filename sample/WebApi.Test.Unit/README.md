@@ -17,16 +17,8 @@ docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=guest" -p 1433:1433 --name s
 - 本地使用 docker 启动 RabbitMQ 服务并添加延时队列
 
 ```bash
-# 启动RabbitMQ服务
-docker run --name rabbitmq -p 5672:5672 -p 15672:15672 -d --rm -it -e RABBITMQ_DEFAULT_USER=guest -e RABBITMQ_DEFAULT_PASS=guest rabbitmq:management
-# 下载延时插件,下载rabbitmq_delayed_message_exchange-*.ez插件并上传到指定文件夹中
-# RabbitMQ官网[插件列表地址](https://www.rabbitmq.com/community-plugins.html)
-# 延时插件[GitHub仓库地址](https://github.com/rabbitmq/rabbitmq-delayed-message-exchange)
-# 将延时插件拷贝到容器中,其中插件路径根据实际情况替换
-docker cp "C:\Users\Niu\Downloads\rabbitmq_delayed_message_exchange-3.11.1.ez" rabbitmq:/plugins
-# 进入容器并启动插件
-docker exec -it rabbitmq /bin/bash
-rabbitmq-plugins enable rabbitmq_delayed_message_exchange
+# 启动RabbitMQ服务,该镜像包含 delayed_message_exchange 插件
+docker run --name rabbitmq -p 5672:5672 -p 15672:15672 -d --rm -it -e RABBITMQ_DEFAULT_USER=guest -e RABBITMQ_DEFAULT_PASS=guest dygood/rabbitmq:3.13-management-dlx
 ```
 
 - 本地使用 docker 启动 Minio 服务
