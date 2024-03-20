@@ -1042,7 +1042,7 @@ public static class IEnumerableExtensions
     {
         StringBuilder sb = new();
         var enumerable = values as TSource[] ?? values.ToArray();
-        if (!enumerable.Any())
+        if (enumerable.Length == 0)
         {
             return string.Empty;
         }

@@ -244,7 +244,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 
     /// <summary>
     /// 获取当前进程 ID.此方法之所以存在,是因为 CAS 在调用堆栈上的操作方式,在执行方法之前检查权限.
-    /// 因此,如果我们内联此调用,则调用方法将不会在引发异常之前执行,该异常要求在我们不一定控制的更高级别进行try/catch
+    /// 因此,如果我们内联此调用,则调用方法将不会在引发异常之前执行,该异常要求在我们不一定控制更高级别进行try/catch
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static int GetCurrentProcessId() => Environment.ProcessId;
@@ -276,7 +276,8 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
         return secondsSinceEpoch is < uint.MinValue or > uint.MaxValue ? throw new ArgumentOutOfRangeException(nameof(timestamp)) : (int)(uint)secondsSinceEpoch;
     }
 
-    private static void FromByteArray(IReadOnlyList<byte> bytes, int offset, out int a, out int b, out int c)
+    // ReSharper disable once SuggestBaseTypeForParameter
+    private static void FromByteArray(byte[] bytes, int offset, out int a, out int b, out int c)
     {
         a = (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
         b = (bytes[offset + 4] << 24) | (bytes[offset + 5] << 16) | (bytes[offset + 6] << 8) | bytes[offset + 7];

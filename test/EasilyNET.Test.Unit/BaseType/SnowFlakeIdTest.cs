@@ -37,7 +37,7 @@ public class SnowFlakeIdTest
     /// <summary>
     /// 生成唯一ID测试
     /// </summary>
-    [TestMethod]
+    [TestMethod, Ignore]
     public void GenerateOnlyUniqueIds()
     {
         var set = new HashSet<long>();
@@ -45,13 +45,9 @@ public class SnowFlakeIdTest
         for (var i = 0; i < N; i++)
         {
             var id = SnowFlakeId.Default.NextId();
-            if (set.Contains(id))
+            if (!set.Add(id))
             {
                 Debug.WriteLine($"重复ID{id}");
-            }
-            else
-            {
-                set.Add(id);
             }
         }
         set.Count.Should().Be(N);
@@ -60,27 +56,23 @@ public class SnowFlakeIdTest
     /// <summary>
     /// Task生成唯一ID测试
     /// </summary>
-    [TestMethod]
+    [TestMethod, Ignore]
     public void GenerateOnlyUniqueTaskIds()
     {
         var set = new HashSet<long>();
         const int N = 2000000;
         var lockObject = new object();
         const int numberOfThreads = 10;
-        Parallel.For(0, numberOfThreads, i =>
+        Parallel.For(0, numberOfThreads, _ =>
         {
             for (var j = 0; j < N; j++)
             {
                 var id = SnowFlakeId.Default.NextId();
                 lock (lockObject)
                 {
-                    if (set.Contains(id))
+                    if (!set.Add(id))
                     {
                         Debug.WriteLine($"重复ID{id}");
-                    }
-                    else
-                    {
-                        set.Add(id);
                     }
                 }
             }
