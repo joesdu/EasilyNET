@@ -1,6 +1,9 @@
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
+#pragma warning disable IDE0060 // 删除未使用的参数
+#pragma warning disable IDE0048 // 为清楚起见，请添加括号
+
 namespace EasilyNET.Core.Misc;
 
 /// <summary>
@@ -18,12 +21,7 @@ public static class RandomExtensions
     /// </param>
     /// <returns></returns>
     // ReSharper disable once UnusedParameter.Global
-#pragma warning disable IDE0060
-    public static int StrictNext(this Random rand, int startIndex = 0, int maxValue = int.MaxValue)
-#pragma warning restore IDE0060
-    {
-        return new Random(BitConverter.ToInt32(Guid.NewGuid().ToByteArray(), startIndex)).Next(maxValue);
-    }
+    public static int StrictNext(this Random rand, int startIndex = 0, int maxValue = int.MaxValue) => new Random(BitConverter.ToInt32(Guid.NewGuid().ToByteArray(), startIndex)).Next(maxValue);
 
     /// <summary>
     /// 产生正态分布的随机数
@@ -37,8 +35,6 @@ public static class RandomExtensions
         var u1 = 1.0 - rand.NextDouble();
         var u2 = 1.0 - rand.NextDouble();
         var randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
-#pragma warning disable IDE0048
         return mean + stdDev * randStdNormal;
-#pragma warning restore IDE0048
     }
 }

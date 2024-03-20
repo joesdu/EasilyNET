@@ -61,9 +61,7 @@ public static partial class StringExtension
     /// <returns></returns>
     public static string ToTitleUpperCase(this string value, bool lower = true)
     {
-#pragma warning disable SYSLIB1045 // 转换为“GeneratedRegexAttribute”。
-        var regex = new Regex(@"\w+");
-#pragma warning restore SYSLIB1045 // 转换为“GeneratedRegexAttribute”。
+        var regex = ToTitleUpperCaseRegex();
         return regex.Replace(value,
             delegate(Match m)
             {
@@ -73,6 +71,9 @@ public static partial class StringExtension
                 return $"{header}{str[1..]}";
             });
     }
+
+    [GeneratedRegex(@"\w+")]
+    private static partial Regex ToTitleUpperCaseRegex();
 
     /// <summary>
     /// 字符串插入指定分隔符
@@ -158,19 +159,38 @@ public static partial class StringExtension
         if (string.IsNullOrWhiteSpace(value.Trim())) return value;
         value = value.Trim();
         var masks = mask.ToString().PadLeft(4, mask);
-#pragma warning disable SYSLIB1045 // 转换为“GeneratedRegexAttribute”。
         return value.Length switch
         {
-            >= 11 => Regex.Replace(value, "(.{3}).*(.{4})", $"$1{masks}$2"),
-            10    => Regex.Replace(value, "(.{3}).*(.{3})", $"$1{masks}$2"),
-            9     => Regex.Replace(value, "(.{2}).*(.{3})", $"$1{masks}$2"),
-            8     => Regex.Replace(value, "(.{2}).*(.{2})", $"$1{masks}$2"),
-            7     => Regex.Replace(value, "(.{1}).*(.{2})", $"$1{masks}$2"),
-            6     => Regex.Replace(value, "(.{1}).*(.{1})", $"$1{masks}$2"),
-            _     => Regex.Replace(value, "(.{1}).*", $"$1{masks}")
+            >= 11 => MaskElevenRegex().Replace(value, $"$1{masks}$2"),
+            10    => MaskTenRegex().Replace(value, $"$1{masks}$2"),
+            9     => MaskNineRegex().Replace(value, $"$1{masks}$2"),
+            8     => MaskEightRegex().Replace(value, $"$1{masks}$2"),
+            7     => MaskSevenRegex().Replace(value, $"$1{masks}$2"),
+            6     => MaskSixRegex().Replace(value, $"$1{masks}$2"),
+            _     => MaskLessThanSixRegex().Replace(value, $"$1{masks}")
         };
-#pragma warning restore SYSLIB1045 // 转换为“GeneratedRegexAttribute”。
     }
+
+    [GeneratedRegex("(.{3}).*(.{4})")]
+    private static partial Regex MaskElevenRegex();
+
+    [GeneratedRegex("(.{3}).*(.{3})")]
+    private static partial Regex MaskTenRegex();
+
+    [GeneratedRegex("(.{2}).*(.{3})")]
+    private static partial Regex MaskNineRegex();
+
+    [GeneratedRegex("(.{2}).*(.{2})")]
+    private static partial Regex MaskEightRegex();
+
+    [GeneratedRegex("(.{1}).*(.{2})")]
+    private static partial Regex MaskSevenRegex();
+
+    [GeneratedRegex("(.{1}).*(.{1})")]
+    private static partial Regex MaskSixRegex();
+
+    [GeneratedRegex("(.{1}).*")]
+    private static partial Regex MaskLessThanSixRegex();
 
     /// <summary>
     /// 根据正则替换
@@ -270,9 +290,7 @@ public static partial class StringExtension
     /// <param name="force">true:当无法转换成功时抛出异常.false:当无法转化成功时返回null</param>
     public static DateTime? ToDateTime(this string value, bool force)
     {
-#pragma warning disable SYSLIB1045
-        value = Regex.Replace(value, "[^a-zA-Z0-9]", "-");
-#pragma warning restore SYSLIB1045
+        value = ToDateTimeRegex().Replace(value, "-");
         if (value.Split('-').Length == 1 && value.Length == 8)
         {
             value = string.Join("-", value[..4], value.Substring(4, 2), value.Substring(6, 2));
@@ -283,6 +301,9 @@ public static partial class StringExtension
                        ? throw new("string format is not correct,must like:2020/10/01,2020-10-01,20201001,2020.10.01")
                        : null;
     }
+
+    [GeneratedRegex("[^a-zA-Z0-9]")]
+    private static partial Regex ToDateTimeRegex();
 
     /// <summary>
     /// 将字符串转化为固定日期格式字符串,如:20180506 --> 2018-05-06

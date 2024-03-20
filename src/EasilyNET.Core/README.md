@@ -24,6 +24,7 @@
 
 **ChangeLog:**
 
+- 新增 DeepCopy
 - 添加异步锁
 - 新增雪花 ID 算法.以及一些扩展方法.
 - 新增 Ini 文件帮助类.
@@ -101,4 +102,15 @@ var age = "52305199405088125".CalculateAge(); // Int32
  const int workerId = 123;
  SnowFlakeId.SetDefaultSnowFlakeId(new(workerId));
  var id = SnowFlakeId.Default.NextId();
+```
+
+### DeepCopy
+
+```csharp
+class Person
+{
+    public string Name { get; set; } = "张三";
+}
+var person= new Person();
+var person2 = person.DeepCopy();
 ```

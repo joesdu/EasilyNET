@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Linq.Expressions;
 using System.Reflection;
 
 // ReSharper disable MemberCanBePrivate.Global
@@ -10,6 +12,11 @@ namespace EasilyNET.Core.Misc;
 /// </summary>
 public static class ObjectExtension
 {
+    /// <summary>
+    /// 使用了一个ConcurrentDictionary来缓存对象的属性信息.对于同一个对象和属性,只需要进行一次反射操作,之后的操作可以直接从缓存中获取属性信息,这在处理大量对象时可以提高性能
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, Lazy<PropertyInfo?>> CachedObjectProperties = new();
+
     /// <summary>
     /// 验证指定值的断言<paramref name="assertion" />是否为真，如果不为真，抛出指定消息<paramref name="message" />的指定类型<typeparamref name="TException" />异常
     /// </summary>
@@ -116,10 +123,60 @@ public static class ObjectExtension
     }
 
     /// <summary>
-    /// 转成可空类型
+    /// 转换类型
     /// </summary>
     /// <param name="value">值</param>
     /// <typeparam name="T">要转成的类型</typeparam>
     /// <returns></returns>
     public static T? ChangeType<T>(this object? value) => (T?)ChangeType(value, typeof(T));
+
+    /// <summary>
+    /// 当需要在运行时动态地设置对象的属性值时,这个方法在多线程环境中也是安全的,在编写需要根据不同输入动态设置对象属性的通用数据映射函数时非常有用
+    /// </summary>
+    /// <typeparam name="TObject">动态对象</typeparam>
+    /// <typeparam name="TValue">动态值</typeparam>
+    /// <param name="obj">要设置对象</param>
+    /// <param name="propertySelector">属性条件</param>
+    /// <param name="valueFactory">在需要的时候才计算属性的值,处理计算成本较高或依赖于其他因素的属性值时非常有用</param>
+    public static bool TrySetProperty<TObject, TValue>(this TObject obj, Expression<Func<TObject, TValue>> propertySelector, Func<TValue> valueFactory)
+    {
+        return TrySetProperty(obj, propertySelector, _ => valueFactory());
+    }
+
+    /// <summary>
+    /// 当需要在运行时动态地设置对象的属性值时,这个方法在多线程环境中也是安全的,在编写需要根据不同输入动态设置对象属性的通用数据映射函数时非常有用
+    /// </summary>
+    /// <typeparam name="TObject">动态对象</typeparam>
+    /// <typeparam name="TValue">动态值</typeparam>
+    /// <param name="obj">要设置对象</param>
+    /// <param name="propertySelector">属性条件</param>
+    /// <param name="valueFactory">在需要的时候才计算属性的值,处理计算成本较高或依赖于其他因素的属性值时非常有用</param>
+    public static bool TrySetProperty<TObject, TValue>(this TObject obj, Expression<Func<TObject, TValue>> propertySelector, Func<TObject, TValue> valueFactory)
+    {
+        var cacheKey = $"{obj?.GetType().FullName}_{propertySelector}";
+        var property = CachedObjectProperties.GetOrAdd(cacheKey, _ => new(() =>
+        {
+            if (propertySelector.Body is not MemberExpression memberExpression)
+            {
+                return default;
+            }
+            //if (propertySelector.Body is not { NodeType: ExpressionType.MemberAccess  } var memberExpression) return default;
+            //根据成员表达式，获取对应属性，并且有set访问属性
+            var propertyInfo = obj?.GetType().GetProperties().FirstOrDefault(o => o.Name == memberExpression.Member.Name && o.GetSetMethod(true) is not null);
+            return propertyInfo;
+        }));
+        if (property.Value == null)
+        {
+            return false;
+        }
+        try
+        {
+            property.Value.SetValue(obj, valueFactory(obj));
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }
