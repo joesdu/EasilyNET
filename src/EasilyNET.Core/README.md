@@ -24,7 +24,7 @@
 
 **ChangeLog:**
 
-- 新增 DeepCopy
+- 新增 DeepCopy, BigNumber
 - 添加异步锁
 - 新增雪花 ID 算法.以及一些扩展方法.
 - 新增 Ini 文件帮助类.
