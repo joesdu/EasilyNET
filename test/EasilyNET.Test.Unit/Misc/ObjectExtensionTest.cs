@@ -1,10 +1,13 @@
-namespace EasilyNET.Core.Helpers.Tests;
+using EasilyNET.Core.Misc;
+using FluentAssertions;
+
+namespace EasilyNET.Test.Unit.Misc;
 
 /// <summary>
 /// 对象帮助类测试
 /// </summary>
 [TestClass]
-public class ObjectHelperTests
+public class ObjectExtension
 {
     /// <summary>
     /// 测试设置Name属性结果等于true
@@ -13,8 +16,9 @@ public class ObjectHelperTests
     public void TestTrySetPropertyNameWhenTrue()
     {
         var person = new Person();
-        ObjectHelper.TrySetProperty(person, o => o.Name, () => "大黄瓜");
-        Assert.AreEqual(person.Name, "大黄瓜");
+        var succeed = person.TrySetProperty(o => o.Name, () => "大黄瓜");
+        succeed.Should().BeTrue();
+        person.Name.Should().Be("大黄瓜");
     }
 
     /// <summary>
@@ -27,8 +31,9 @@ public class ObjectHelperTests
         {
             Age = 1
         };
-        ObjectHelper.TrySetProperty(person, o => o.Age, value => value.Age + 1);
-        Assert.AreEqual(person.Age, 2);
+        var succeed = person.TrySetProperty(o => o.Age, value => value.Age + 1);
+        succeed.Should().BeTrue();
+        person.Age.Should().Be(2);
     }
 
     /// <summary>
@@ -41,29 +46,19 @@ public class ObjectHelperTests
         {
             Time = DateTime.Now
         };
-        Assert.IsTrue(person.Time.HasValue);
-        ObjectHelper.TrySetProperty(person, o => o.Time, () => null);
-        Assert.AreEqual(person.Time, null);
+        person.Time.HasValue.Should().BeTrue();
+        var succeed = person.TrySetProperty(o => o.Time, () => null);
+        succeed.Should().BeTrue();
+        person.Time.Should().BeNull();
     }
 }
 
-/// <summary>
-/// Person
-/// </summary>
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 public class Person
 {
-    /// <summary>
-    /// Name
-    /// </summary>
     public string? Name { get; set; }
 
-    /// <summary>
-    /// Age
-    /// </summary>
     public int Age { get; set; }
 
-    /// <summary>
-    /// Time
-    /// </summary>
     public DateTime? Time { get; set; }
 }

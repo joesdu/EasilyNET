@@ -74,6 +74,249 @@
 	<s:Int64 x:Key="/Default/CodeStyle/CodeFormatting/XmlFormatter/WRAP_LIMIT/@EntryValue">300</s:Int64>
 	<s:Boolean x:Key="/Default/CodeStyle/CodeFormatting/XmlFormatter/WRAP_LINES/@EntryValue">False</s:Boolean>
 	<s:Boolean x:Key="/Default/CodeStyle/CodeFormatting/XmlFormatter/WrapInsideText/@EntryValue">True</s:Boolean>
+	<s:String x:Key="/Default/CodeStyle/CSharpFileLayoutPatterns/Pattern/@EntryValue">&lt;Patterns xmlns="urn:schemas-jetbrains-com:member-reordering-patterns"&gt;
+  &lt;TypePattern DisplayName="Non-reorderable types"&gt;
+    &lt;TypePattern.Match&gt;
+      &lt;Or&gt;
+        &lt;And&gt;
+          &lt;Kind Is="Interface" /&gt;
+          &lt;Or&gt;
+            &lt;HasAttribute Name="System.Runtime.InteropServices.InterfaceTypeAttribute" /&gt;
+            &lt;HasAttribute Name="System.Runtime.InteropServices.ComImport" /&gt;
+          &lt;/Or&gt;
+        &lt;/And&gt;
+        &lt;Kind Is="Struct" /&gt;
+        &lt;HasAttribute Name="JetBrains.Annotations.NoReorderAttribute" /&gt;
+        &lt;HasAttribute Name="JetBrains.Annotations.NoReorder" /&gt;
+      &lt;/Or&gt;
+    &lt;/TypePattern.Match&gt;
+  &lt;/TypePattern&gt;
+
+  &lt;TypePattern DisplayName="xUnit.net Test Classes" RemoveRegions="All"&gt;
+    &lt;TypePattern.Match&gt;
+      &lt;And&gt;
+        &lt;Kind Is="Class" /&gt;
+        &lt;HasMember&gt;
+          &lt;And&gt;
+            &lt;Kind Is="Method" /&gt;
+            &lt;HasAttribute Name="Xunit.FactAttribute" Inherited="True" /&gt;
+            &lt;HasAttribute Name="Xunit.TheoryAttribute" Inherited="True" /&gt;
+          &lt;/And&gt;
+        &lt;/HasMember&gt;
+      &lt;/And&gt;
+    &lt;/TypePattern.Match&gt;
+    
+    &lt;Entry DisplayName="Fields"&gt;
+      &lt;Entry.Match&gt;
+        &lt;And&gt;
+          &lt;Kind Is="Field" /&gt;
+          &lt;Not&gt;
+            &lt;Static /&gt;
+          &lt;/Not&gt;
+        &lt;/And&gt;
+      &lt;/Entry.Match&gt;
+
+      &lt;Entry.SortBy&gt;
+        &lt;Readonly /&gt;
+        &lt;Name /&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName="Constructors"&gt;
+      &lt;Entry.Match&gt;
+        &lt;Kind Is="Constructor" /&gt;
+      &lt;/Entry.Match&gt;
+
+      &lt;Entry.SortBy&gt;
+        &lt;Static/&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName="Teardown Methods"&gt;
+      &lt;Entry.Match&gt;
+        &lt;And&gt;
+          &lt;Kind Is="Method" /&gt;
+          &lt;ImplementsInterface Name="System.IDisposable" /&gt;
+        &lt;/And&gt;
+      &lt;/Entry.Match&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName="All other members" /&gt;
+
+    &lt;Entry DisplayName="Test Methods" Priority="100"&gt;
+      &lt;Entry.Match&gt;
+        &lt;And&gt;
+          &lt;Kind Is="Method" /&gt;
+          &lt;HasAttribute Name="Xunit.FactAttribute" Inherited="false" /&gt;
+          &lt;HasAttribute Name="Xunit.TheoryAttribute" Inherited="false" /&gt;
+        &lt;/And&gt;
+      &lt;/Entry.Match&gt;
+
+      &lt;Entry.SortBy&gt;
+        &lt;Name /&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+  &lt;/TypePattern&gt;
+
+  &lt;TypePattern DisplayName="NUnit Test Fixtures" RemoveRegions="All"&gt;
+    &lt;TypePattern.Match&gt;
+      &lt;And&gt;
+        &lt;Kind Is="Class" /&gt;
+        &lt;Or&gt;
+          &lt;HasAttribute Name="NUnit.Framework.TestFixtureAttribute" Inherited="true" /&gt;
+          &lt;HasAttribute Name="NUnit.Framework.TestFixtureSourceAttribute" Inherited="true" /&gt;
+          &lt;HasMember&gt;
+            &lt;And&gt;
+              &lt;Kind Is="Method" /&gt;
+              &lt;HasAttribute Name="NUnit.Framework.TestAttribute" Inherited="false" /&gt;
+              &lt;HasAttribute Name="NUnit.Framework.TestCaseAttribute" Inherited="false" /&gt;
+              &lt;HasAttribute Name="NUnit.Framework.TestCaseSourceAttribute" Inherited="false" /&gt;
+            &lt;/And&gt;
+          &lt;/HasMember&gt;
+        &lt;/Or&gt;
+      &lt;/And&gt;
+    &lt;/TypePattern.Match&gt;
+
+    &lt;Entry DisplayName="Setup/Teardown Methods"&gt;
+      &lt;Entry.Match&gt;
+        &lt;And&gt;
+          &lt;Kind Is="Method" /&gt;
+          &lt;Or&gt;
+            &lt;HasAttribute Name="NUnit.Framework.SetUpAttribute" Inherited="true" /&gt;
+            &lt;HasAttribute Name="NUnit.Framework.TearDownAttribute" Inherited="true" /&gt;
+            &lt;HasAttribute Name="NUnit.Framework.TestFixtureSetUpAttribute" Inherited="true" /&gt;
+            &lt;HasAttribute Name="NUnit.Framework.TestFixtureTearDownAttribute" Inherited="true" /&gt;
+            &lt;HasAttribute Name="NUnit.Framework.OneTimeSetUpAttribute" Inherited="true" /&gt;
+            &lt;HasAttribute Name="NUnit.Framework.OneTimeTearDownAttribute" Inherited="true" /&gt;
+          &lt;/Or&gt;
+        &lt;/And&gt;
+      &lt;/Entry.Match&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName="All other members" /&gt;
+
+    &lt;Entry DisplayName="Test Methods" Priority="100"&gt;
+      &lt;Entry.Match&gt;
+        &lt;And&gt;
+          &lt;Kind Is="Method" /&gt;
+          &lt;HasAttribute Name="NUnit.Framework.TestAttribute" Inherited="false" /&gt;
+          &lt;HasAttribute Name="NUnit.Framework.TestCaseAttribute" Inherited="false" /&gt;
+          &lt;HasAttribute Name="NUnit.Framework.TestCaseSourceAttribute" Inherited="false" /&gt;
+        &lt;/And&gt;
+      &lt;/Entry.Match&gt;
+
+      &lt;Entry.SortBy&gt;
+        &lt;Name /&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+  &lt;/TypePattern&gt;
+
+  &lt;TypePattern DisplayName="Default Pattern"&gt;
+    &lt;Entry DisplayName="Public Delegates" Priority="100"&gt;
+      &lt;Entry.Match&gt;
+        &lt;And&gt;
+          &lt;Access Is="Public" /&gt;
+          &lt;Kind Is="Delegate" /&gt;
+        &lt;/And&gt;
+      &lt;/Entry.Match&gt;
+
+      &lt;Entry.SortBy&gt;
+        &lt;Name /&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName="Public Enums" Priority="100"&gt;
+      &lt;Entry.Match&gt;
+        &lt;And&gt;
+          &lt;Access Is="Public" /&gt;
+          &lt;Kind Is="Enum" /&gt;
+        &lt;/And&gt;
+      &lt;/Entry.Match&gt;
+
+      &lt;Entry.SortBy&gt;
+        &lt;Name /&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName="Static Fields and Constants"&gt;
+      &lt;Entry.Match&gt;
+        &lt;Or&gt;
+          &lt;Kind Is="Constant" /&gt;
+          &lt;And&gt;
+            &lt;Kind Is="Field" /&gt;
+            &lt;Static /&gt;
+          &lt;/And&gt;
+        &lt;/Or&gt;
+      &lt;/Entry.Match&gt;
+
+      &lt;Entry.SortBy&gt;
+        &lt;Kind&gt;
+          &lt;Kind.Order&gt;
+            &lt;DeclarationKind&gt;Constant&lt;/DeclarationKind&gt;
+            &lt;DeclarationKind&gt;Field&lt;/DeclarationKind&gt;
+          &lt;/Kind.Order&gt;
+        &lt;/Kind&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName="Fields"&gt;
+      &lt;Entry.Match&gt;
+        &lt;And&gt;
+          &lt;Kind Is="Field" /&gt;
+          &lt;Not&gt;
+            &lt;Static /&gt;
+          &lt;/Not&gt;
+        &lt;/And&gt;
+      &lt;/Entry.Match&gt;
+
+      &lt;Entry.SortBy&gt;
+        &lt;Readonly /&gt;
+        &lt;Name /&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName="Constructors"&gt;
+      &lt;Entry.Match&gt;
+        &lt;Kind Is="Constructor" /&gt;
+      &lt;/Entry.Match&gt;
+
+      &lt;Entry.SortBy&gt;
+        &lt;Static/&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName="Properties, Indexers"&gt;
+      &lt;Entry.Match&gt;
+        &lt;Or&gt;
+          &lt;Kind Is="Property" /&gt;
+          &lt;Kind Is="Indexer" /&gt;
+        &lt;/Or&gt;
+      &lt;/Entry.Match&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName="Interface Implementations" Priority="100"&gt;
+      &lt;Entry.Match&gt;
+        &lt;And&gt;
+          &lt;Kind Is="Member" /&gt;
+          &lt;ImplementsInterface /&gt;
+        &lt;/And&gt;
+      &lt;/Entry.Match&gt;
+
+      &lt;Entry.SortBy&gt;
+        &lt;ImplementsInterface Immediate="true" /&gt;
+      &lt;/Entry.SortBy&gt;
+    &lt;/Entry&gt;
+
+    &lt;Entry DisplayName="All other members" /&gt;
+
+    &lt;Entry DisplayName="Nested Types"&gt;
+      &lt;Entry.Match&gt;
+        &lt;Kind Is="Type" /&gt;
+      &lt;/Entry.Match&gt;
+    &lt;/Entry&gt;
+  &lt;/TypePattern&gt;
+&lt;/Patterns&gt;
+</s:String>
 	<s:Boolean x:Key="/Default/CodeStyle/CSharpUsing/SortUsingsWithSystemFirst/@EntryValue">False</s:Boolean>
 	<s:Boolean x:Key="/Default/CodeStyle/CSharpVarKeywordUsage/UseRoslynLogicForEvidentTypes/@EntryValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/CodeStyle/Generate/=EqualityMembers/@KeyIndexDefined">True</s:Boolean>
@@ -83,6 +326,9 @@
 	<s:String x:Key="/Default/CodeStyle/Generate/=Implementations/Options/=Mutable/@EntryIndexedValue">False</s:String>
 	<s:Boolean x:Key="/Default/CodeStyle/Naming/CSharpAutoNaming/IsNotificationDisabled/@EntryValue">True</s:Boolean>
 	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/PredefinedNamingRules/=PublicFields/@EntryIndexedValue">&lt;Policy Inspect="True" Prefix="" Suffix="" Style="AaBb"&gt;&lt;ExtraRule Prefix="" Suffix="" Style="aaBb" /&gt;&lt;/Policy&gt;</s:String>
+	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/UserRules/=53eecf85_002Dd821_002D40e8_002Dac97_002Dfdb734542b84/@EntryIndexedValue">&lt;Policy&gt;&lt;Descriptor Staticness="Instance" AccessRightKinds="Protected, ProtectedInternal, Internal, Public, PrivateProtected" Description="Instance fields (not private)"&gt;&lt;ElementKinds&gt;&lt;Kind Name="FIELD" /&gt;&lt;Kind Name="READONLY_FIELD" /&gt;&lt;/ElementKinds&gt;&lt;/Descriptor&gt;&lt;Policy Inspect="True" Prefix="" Suffix="" Style="AaBb"&gt;&lt;ExtraRule Prefix="" Suffix="" Style="aaBb" /&gt;&lt;/Policy&gt;&lt;/Policy&gt;</s:String>
+	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/UserRules/=70345118_002D4b40_002D4ece_002D937c_002Dbbeb7a0b2e70/@EntryIndexedValue">&lt;Policy&gt;&lt;Descriptor Staticness="Static" AccessRightKinds="Protected, ProtectedInternal, Internal, Public, PrivateProtected" Description="Static fields (not private)"&gt;&lt;ElementKinds&gt;&lt;Kind Name="FIELD" /&gt;&lt;/ElementKinds&gt;&lt;/Descriptor&gt;&lt;Policy Inspect="True" Prefix="" Suffix="" Style="AaBb"&gt;&lt;ExtraRule Prefix="" Suffix="" Style="aaBb" /&gt;&lt;/Policy&gt;&lt;/Policy&gt;</s:String>
+	<s:Boolean x:Key="/Default/Dpa/IsIssuesNotificationEnabled/@EntryValue">False</s:Boolean>
 	
 	
 	
@@ -97,13 +343,16 @@
 	<s:Boolean x:Key="/Default/Environment/Feedback/ShouldPrompt/@EntryValue">False</s:Boolean>
 	
 	
-	<s:Int64 x:Key="/Default/Environment/Hierarchy/GeneratedFilesCacheKey/Timestamp/@EntryValue">83</s:Int64>
+	<s:Int64 x:Key="/Default/Environment/Hierarchy/GeneratedFilesCacheKey/Timestamp/@EntryValue">9046</s:Int64>
 	<s:String x:Key="/Default/Environment/Hierarchy/NuGetOptions/DefaultPackageManagementFormat/@EntryValue">PackageReference</s:String>
-	<s:Boolean x:Key="/Default/Environment/Hierarchy/NuGetOptions/IncludePrerelease/@EntryValue">False</s:Boolean>
+	
 	
 	<s:Boolean x:Key="/Default/Environment/MemoryUsageIndicator/IsVisible/@EntryValue">True</s:Boolean>
 	<s:String x:Key="/Default/Environment/PerformanceGuide/SwitchBehaviour/=Roslyn_002Dswea/@EntryIndexedValue">LIVE_MONITOR</s:String>
+	<s:String x:Key="/Default/Environment/PerformanceGuide/SwitchBehaviour/=SolExp_002DTrack/@EntryIndexedValue">DO_NOTHING</s:String>
 	<s:String x:Key="/Default/Environment/PerformanceGuide/SwitchConflictResolutionMode/=Roslyn_002Dswea/@EntryIndexedValue">NOTIFY</s:String>
+	<s:String x:Key="/Default/Environment/PerformanceGuide/SwitchConflictResolutionMode/=SolExp_002DTrack/@EntryIndexedValue"></s:String>
+	<s:Boolean x:Key="/Default/Environment/PerformanceGuide/SwitchConflictResolutionMode/=SolExp_002DTrack/@EntryIndexRemoved">True</s:Boolean>
 	<s:Int64 x:Key="/Default/Environment/SearchAndNavigation/DefaultOccurrencesGroupingIndices/=JetBrains_002EReSharper_002EFeature_002EServices_002ERefactorings_002EConflicts_002EOccurrences_002EConflictOccurrencesDescriptor/@EntryIndexedValue">9</s:Int64>
 	<s:Int64 x:Key="/Default/Environment/SearchAndNavigation/DefaultOccurrencesGroupingIndices/=JetBrains_002EReSharper_002EFeatures_002EInspections_002EAnalyzeReferences_002EAnalyzeReferencesDescriptor/@EntryIndexedValue">2</s:Int64>
 	<s:Int64 x:Key="/Default/Environment/SearchAndNavigation/DefaultOccurrencesGroupingIndices/=JetBrains_002EReSharper_002EFeatures_002EInspections_002EAnalyzeReferences_002ERemoveUnused_002EUnusedReferencesDescriptor/@EntryIndexedValue">0</s:Int64>
@@ -113,28 +362,35 @@
 	<s:Boolean x:Key="/Default/Environment/SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EPsi_002ECSharp_002ECodeStyle_002ECSharpPlaceEmbeddedOnSameLineMigration/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/Environment/SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EPsi_002ECSharp_002ECodeStyle_002ECSharpUseContinuousIndentInsideBracesMigration/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/Environment/SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EPsi_002ECSharp_002ECodeStyle_002ESettingsUpgrade_002EMigrateBlankLinesAroundFieldToBlankLinesAroundProperty/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/Environment/SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EPsi_002ECSharp_002ECodeStyle_002ESettingsUpgrade_002EPredefinedNamingRulesToUserRulesUpgrade/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/Environment/UpdatesManger/IsParticipateInEap/@EntryValue">True</s:Boolean>
-	<s:String x:Key="/Default/Environment/UpdatesManger/LastUpdateCheck/@EntryValue">11/01/2023 18:52:26</s:String>
-	<s:String x:Key="/Default/Environment/UpdatesManger/LastUpdateCheckPerHost/=ReSharperPlatformVs17/@EntryIndexedValue">11/01/2023 10:54:22</s:String>
+	<s:String x:Key="/Default/Environment/UpdatesManger/LastUpdateCheck/@EntryValue">03/15/2024 00:30:03</s:String>
+	<s:String x:Key="/Default/Environment/UpdatesManger/LastUpdateCheckPerHost/=ReSharperPlatformVs17/@EntryIndexedValue">03/14/2024 16:35:00</s:String>
 	
 	
 	<s:String x:Key="/Default/Environment/UserInterface/ShortcutSchemeName/@EntryValue">VS</s:String>
 	<s:String x:Key="/Default/Environment/UserInterface/ThemedIcon/IconThemeSelection/@EntryValue">GrayDark</s:String>
 	<s:String x:Key="/Default/Environment/UserInterface/ThemedIcon/IconThemeSelectionExtensionForFluentDesign/@EntryValue">Never</s:String>
+	<s:Boolean x:Key="/Default/GrammarAndSpelling/GrammarChecking/Exceptions/=the_0020clients_0020collection_002E/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/GrammarAndSpelling/GrammarChecking/Exceptions/=the_0020jobs_0020collection_002E/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/GrammarAndSpelling/GrammarChecking/Exceptions/=the_0020keys_0020collection_002E/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/GrammarAndSpelling/GrammarChecking/Exceptions/=will_0020included/@EntryIndexedValue">True</s:Boolean>
 	<s:String x:Key="/Default/GrammarAndSpelling/GrammarChecking/LanguagesStates/=_4E2D_6587/@EntryIndexedValue">Enabled</s:String>
-	<s:String x:Key="/Default/Housekeeping/DiskCleanup/LastRunTime/@EntryValue">11/01/2023 18:56:24</s:String>
+	<s:String x:Key="/Default/Housekeeping/DiskCleanup/LastRunTime/@EntryValue">03/15/2024 13:47:50</s:String>
 	<s:Boolean x:Key="/Default/Housekeeping/ExtensionManager/IncludePrereleasePackages/@EntryValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=AutoNamingFeatureSuggester/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=AutoStackTraceExplorerExplainer/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=EditorConfigFeatureSuggester/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=NullabilityAnnotationAssistSuggester/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=ReSharperBuildSuggester/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=ReSharperJsTsFeatureSuggester/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=ReSharperSurveyFeatureSuggester241Eap7/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=TabNavigationExplainer/@EntryIndexedValue">True</s:Boolean>
 	
 	<s:Boolean x:Key="/Default/Housekeeping/GlobalSettingsUpgraded/IsUpgraded/@EntryValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/Housekeeping/IntellisenseHousekeeping/HintUsed/@EntryValue">True</s:Boolean>
-	<s:String x:Key="/Default/Housekeeping/Layout/DialogWindows/OptionsDialogView/Position/@EntryValue">[5,-30](1298,768)</s:String>
+	<s:String x:Key="/Default/Housekeeping/Layout/DialogWindows/OptionsDialogView/Position/@EntryValue">[-17,-100](1298,768)</s:String>
 	<s:String x:Key="/Default/Housekeeping/Layout/DialogWindows/RefactoringWizardWindow/Location/@EntryValue">-211,-121</s:String>
 	<s:Double x:Key="/Default/Housekeeping/Layout/DialogWindows/RegularExpressionEditorWindow/InputColumnWidth/@EntryValue">422</s:Double>
 	<s:Double x:Key="/Default/Housekeeping/Layout/DialogWindows/RegularExpressionEditorWindow/InputRowHeight/@EntryValue">268.5</s:Double>
@@ -147,13 +403,14 @@
 	
 	
 	<s:Boolean x:Key="/Default/Housekeeping/LiveTemplatesHousekeeping/HotspotSessionHintIsShown/@EntryValue">True</s:Boolean>
-	<s:String x:Key="/Default/Housekeeping/OptionsDialog/SelectedPageId/@EntryValue">CSharpIndentStylePage</s:String>
+	<s:String x:Key="/Default/Housekeeping/OptionsDialog/SelectedPageId/@EntryValue">LanguageInjections</s:String>
 	<s:Boolean x:Key="/Default/Housekeeping/SubmitToTrackerExceptionReportService/ShowBrowserFormAfterSubmission/@EntryValue">True</s:Boolean>
+	<s:Double x:Key="/Default/Housekeeping/TreeModelBrowserPanelPersistence/PreviewSplitterVerticalProportion/=UnitTestSessionDescriptor/@EntryIndexedValue">1</s:Double>
 	<s:Boolean x:Key="/Default/Housekeeping/UpgradeFromExceptionReport/DefaultReporterBehaviorChanged/@EntryValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/Housekeeping/UpgradeFromExceptionReport/UpgradePerformed/@EntryValue">True</s:Boolean>
-	<s:String x:Key="/Default/Housekeeping/VsShortcutsNotSetNotification/NotificationShownDateTimeUtc/@EntryValue">03/01/2023 09:57:28</s:String>
+	<s:String x:Key="/Default/Housekeeping/VsShortcutsNotSetNotification/NotificationShownDateTimeUtc/@EntryValue">02/23/2024 04:49:50</s:String>
 	<s:Boolean x:Key="/Default/Housekeeping/VsShortcutsNotSetNotification/ShowNotificationsForNone/@EntryValue">False</s:Boolean>
-	<s:String x:Key="/Default/Housekeeping/WhatsNewShown/WhatsNewShownIndexedEntry/=RS0/@EntryIndexedValue">2023.2</s:String>
+	<s:String x:Key="/Default/Housekeeping/WhatsNewShown/WhatsNewShownIndexedEntry/=RS0/@EntryIndexedValue">2023.3</s:String>
 	
 	
 	
@@ -182,6 +439,7 @@
 	
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Daur/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Deang/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/UserDictionary/Words/=deepskyblue/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Derung/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Dongxiang/@EntryIndexedValue">True</s:Boolean>
 	
@@ -218,6 +476,7 @@
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Lhoba/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Lisu/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Maonan/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/UserDictionary/Words/=Mapster/@EntryIndexedValue">True</s:Boolean>
 	
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Mongo/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Monguor/@EntryIndexedValue">True</s:Boolean>
@@ -246,6 +505,8 @@
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=RABBITMQPASSWD/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=RABBITMQUSER/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=relname/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/UserDictionary/Words/=Renderable/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/UserDictionary/Words/=renderables/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=repositorie/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=RGB/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=RRGGBB/@EntryIndexedValue">True</s:Boolean>
@@ -257,6 +518,7 @@
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Spectre/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=sqlite/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=strs/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/UserDictionary/Words/=Suisui/@EntryIndexedValue">True</s:Boolean>
 	
 	
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=tyrz/@EntryIndexedValue">True</s:Boolean>

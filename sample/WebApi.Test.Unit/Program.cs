@@ -2,7 +2,6 @@ using EasilyNET.Core.Misc;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
-using System.Security.Claims;
 using WebApi.Test.Unit;
 
 Console.Title = "❤️ EasilyNET";
@@ -78,23 +77,12 @@ builder.Host.UseSerilog((hbc, lc) =>
 
 // 自动注入服务模块
 builder.Services.AddApplication<AppWebModule>();
-builder.Services.AddCurrentUser();
+//
 var app = builder.Build();
-app.Use((context, next) =>
-{
-    // 在处理请求之前执行一些自定义逻辑
-    // 这里可以对请求进行修改、记录日志、验证身份等操作
-    // ReSharper disable once ArrangeObjectCreationWhenTypeNotEvident
-    context.User.AddIdentity(new([new Claim(ClaimTypes.NameIdentifier, "帅气的大黄瓜")]));
-    return next.Invoke();
-    // 在处理请求之后执行一些自定义逻辑
-    // 这里可以处理响应、记录日志、执行清理操作等
-});
 if (app.Environment.IsDevelopment()) _ = app.UseDeveloperExceptionPage();
 
 // 添加自动化注入的一些中间件.
 app.InitializeApplication();
 app.UseRepeatSubmit();
 app.MapControllers();
-app.Run();
 app.Run();
