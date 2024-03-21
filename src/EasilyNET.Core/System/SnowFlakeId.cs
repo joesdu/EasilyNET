@@ -1,4 +1,4 @@
-namespace EasilyNET.Core.BaseType;
+namespace EasilyNET.Core.System;
 
 /// <remarks>
 /// 基于Twitter的snowflake算法

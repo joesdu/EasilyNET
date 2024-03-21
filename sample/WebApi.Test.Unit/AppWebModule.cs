@@ -34,7 +34,6 @@ public class AppWebModule : AppModule
     {
         base.ApplicationInitialization(context);
         var app = context.GetApplicationBuilder();
-        app.UseErrorHandling();
         app.UseResponseTime();
         // 先认证
         app.UseAuthentication();

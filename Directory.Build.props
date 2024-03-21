@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <Project>
-
 	<PropertyGroup>
-		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
 		<Authors>joesdu</Authors>
 		<PackagePrefix>EasilyNET</PackagePrefix>
 		<RepositoryType>git</RepositoryType>
@@ -43,7 +41,7 @@
 	<PropertyGroup>
 		<VersionMajor>2</VersionMajor>
 		<VersionMinor>2</VersionMinor>
-		<VersionPatch>1</VersionPatch>
+		<VersionPatch>2</VersionPatch>
 		<VersionQuality></VersionQuality>
 		<VersionPrefix>$(VersionMajor).$(VersionMinor).$(VersionPatch)$(VersionQuality)</VersionPrefix>
 	</PropertyGroup>

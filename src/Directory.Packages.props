@@ -1,9 +1,11 @@
 <Project>
   <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="BouncyCastle.Cryptography" Version="2.3.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
     <PackageVersion Include="MongoDB.Bson" Version="2.24.0" />
     <PackageVersion Include="MongoDB.Driver" Version="2.24.0" />
     <PackageVersion Include="MongoDB.Driver.Core" Version="2.24.0" />

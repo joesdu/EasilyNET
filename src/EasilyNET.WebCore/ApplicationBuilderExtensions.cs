@@ -19,13 +19,6 @@ public static class ApplicationBuilderExtensions
     public static IApplicationBuilder UseResponseTime(this IApplicationBuilder builder) => builder.UseMiddleware<ResponseTimeMiddleware>();
 
     /// <summary>
-    /// 使用全局异常中间件
-    /// </summary>
-    /// <param name="builder"></param>
-    /// <returns></returns>
-    public static IApplicationBuilder UseErrorHandling(this IApplicationBuilder builder) => builder.UseMiddleware<ErrorHandlingMiddleware>();
-
-    /// <summary>
     /// 使用防抖中间件
     /// </summary>
     /// <param name="builder"></param>
