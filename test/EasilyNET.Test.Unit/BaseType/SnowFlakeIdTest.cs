@@ -1,4 +1,4 @@
-using EasilyNET.Core.BaseType;
+using EasilyNET.Core.System;
 using FluentAssertions;
 using System.Diagnostics;
 

@@ -18,6 +18,12 @@ public class SwaggerModule : AppModule
     private const string title = "WebApi.Test";
 
     /// <inheritdoc />
+    public SwaggerModule()
+    {
+        Enable = true;
+    }
+
+    /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -48,7 +54,7 @@ public class SwaggerModule : AppModule
     public override void ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationBuilder();
-        _ = app.UseSwagger().UseSwaggerUI(c =>
+        app.UseSwagger().UseSwaggerUI(c =>
         {
             // 配置默认文档
             c.SwaggerEndpoint($"/swagger/{name}/swagger.json", $"{title} {version}");

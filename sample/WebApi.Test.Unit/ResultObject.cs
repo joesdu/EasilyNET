@@ -1,11 +1,11 @@
 using System.Net;
 
-namespace EasilyNET.WebCore;
+namespace WebApi.Test.Unit;
 
 /// <summary>
 /// 返回对象实体
 /// </summary>
-public class ResultObject
+public sealed class ResultObject
 {
     /// <summary>
     /// 状态码

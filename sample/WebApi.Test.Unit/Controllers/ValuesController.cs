@@ -1,5 +1,7 @@
 using EasilyNET.Core.Enums;
+using EasilyNET.Core.System;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 
 namespace WebApi.Test.Unit.Controllers;
 
@@ -12,13 +14,41 @@ public class ValuesController : ControllerBase
     /// <summary>
     /// Error
     /// </summary>
-    [HttpGet]
-    public void GetError() => throw new("测试异常");
+    [HttpGet("Error")]
+    public void GetError() => throw new BusinessException(HttpStatusCode.Forbidden, "403异常");
+
+    /// <summary>
+    /// Error
+    /// </summary>
+    [HttpGet("Error2")]
+    public void GetError2() => throw new("500异常,来自其他非BusinessException");
+
+    /// <summary>
+    /// 空
+    /// </summary>
+    [HttpGet("Null")]
+    public void GetNull()
+    {
+        Console.WriteLine(nameof(GetNull));
+    }
 
     /// <summary>
     /// 测试枚举类型
     /// </summary>
     /// <returns></returns>
-    [HttpGet]
+    [HttpGet("Enum")]
     public EGender GetEnumTest() => EGender.男;
+
+    /// <summary>
+    /// 测试枚举类型
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("Object")]
+    public dynamic GetObject() =>
+        new
+        {
+            Name = "张三",
+            Age = 21,
+            Gender = EGender.女
+        };
 }

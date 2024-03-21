@@ -1,4 +1,5 @@
 using EasilyNET.Core.Misc;
+using EasilyNET.WebCore.Handlers;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -19,6 +20,7 @@ var builder = WebApplication.CreateBuilder(args);
 //    });
 //    op.ListenAnyIP(80, lo => lo.Protocols = HttpProtocols.Http1);
 //});
+
 // 添加Serilog配置
 builder.Host.UseSerilog((hbc, lc) =>
 {
@@ -75,12 +77,17 @@ builder.Host.UseSerilog((hbc, lc) =>
       });
 });
 
+// 添加 ProblemDetails 服务
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<BusinessExceptionHandler>();
+
 // 自动注入服务模块
 builder.Services.AddApplication<AppWebModule>();
 //
 var app = builder.Build();
-if (app.Environment.IsDevelopment()) _ = app.UseDeveloperExceptionPage();
-
+if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
+// 异常处理中间件
+app.UseExceptionHandler();
 // 添加自动化注入的一些中间件.
 app.InitializeApplication();
 app.UseRepeatSubmit();

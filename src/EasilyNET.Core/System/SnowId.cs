@@ -22,7 +22,7 @@ using System.Security;
 
 // ReSharper disable UnusedMember.Global
 
-namespace EasilyNET.Core.BaseType;
+namespace EasilyNET.Core.System;
 
 /// <summary>
 /// <see cref="SnowId" /> 算法兼容MongoDB的 <see langword="ObjectId" /> ,因此他们可以互相强制转换

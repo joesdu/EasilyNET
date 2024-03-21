@@ -1,13 +1,13 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+// ReSharper disable UnusedType.Global
+// ReSharper disable UnusedMember.Global
 // ReSharper disable SuggestBaseTypeForParameterInConstructor
 // ReSharper disable ClassNeverInstantiated.Global
 
-namespace EasilyNET.WebCore.Middleware;
+namespace WebApi.Test.Unit.Middleware;
 
 /// <summary>
 /// 全局异常中间件
@@ -16,6 +16,8 @@ namespace EasilyNET.WebCore.Middleware;
 /// <param name="logger"></param>
 internal class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger)
 {
+    private static readonly JsonSerializerOptions options = new() { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
+
     /// <summary>
     /// Invoke
     /// </summary>
@@ -38,8 +40,17 @@ internal class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandli
         logger.LogError("发生未处理异常: {Ex}", ex.ToString());
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
         options.Converters.Add(new JsonStringEnumConverter());
         return context.Response.WriteAsync(JsonSerializer.Serialize(new ResultObject { StatusCode = HttpStatusCode.InternalServerError, Msg = ex.Message, Data = default }, options));
     }
+}
+
+internal static class ErrorHandleExtension
+{
+    /// <summary>
+    /// 使用全局异常中间件
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <returns></returns>
+    internal static IApplicationBuilder UseErrorHandling(this IApplicationBuilder builder) => builder.UseMiddleware<ErrorHandlingMiddleware>();
 }

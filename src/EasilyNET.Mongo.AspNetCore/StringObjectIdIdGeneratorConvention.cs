@@ -20,6 +20,6 @@ internal sealed class StringToObjectIdIdGeneratorConvention : ConventionBase, IP
     {
         var idMemberMap = classMap.IdMemberMap;
         if (idMemberMap is null || idMemberMap.IdGenerator is not null) return;
-        if (idMemberMap.MemberType == typeof(string)) _ = idMemberMap.SetIdGenerator(StringObjectIdGenerator.Instance).SetSerializer(new StringSerializer(BsonType.ObjectId));
+        if (idMemberMap.MemberType == typeof(string)) idMemberMap.SetIdGenerator(StringObjectIdGenerator.Instance).SetSerializer(new StringSerializer(BsonType.ObjectId));
     }
 }

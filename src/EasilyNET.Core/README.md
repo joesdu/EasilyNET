@@ -5,32 +5,65 @@
 
 - 枚举类型:
 
-| 名称           | 用途     |
-|--------------|--------|
-| EGender      | 性别     |
-| ENation      | 中国民族   |
+| 名称         | 用途         |
+| ------------ | ------------ |
+| EGender      | 性别         |
+| ENation      | 中国民族     |
 | ETimeOverlap | 时间重合情况 |
+| EZodiac      | 生肖         |
 
 - 业务常用数据类型.
 
-| 名称            | 用途                             |
-|---------------|--------------------------------|
-| IdNameItem    | 包含 ID 和 Name 字段的基础类            |
-| OperationInfo | 操作信息,包含操作人以及时间和是否完成            |
-| Operator      | 操作人,包含 rid 和名称字段               |
+| 名称          | 用途                                                    |
+| ------------- | ------------------------------------------------------- |
+| IdNameItem    | 包含 ID 和 Name 字段的基础类                            |
+| OperationInfo | 操作信息,包含操作人以及时间和是否完成                   |
+| Operator      | 操作人,包含 rid 和名称字段                              |
 | ReferenceItem | 通常用来保存关联的业务信息,如 ID 和名称或者其他相关数据 |
 
 - 其他的还有分页信息等.
 
-**ChangeLog:**
+### **ChangeLog:**
 
-- 新增 DeepCopy, BigNumber
+- 新增基于表达式树和 Reflection 的 DeepCopy, BigNumber
 - 添加异步锁
 - 新增雪花 ID 算法.以及一些扩展方法.
 - 新增 Ini 文件帮助类.
 - 一些基础库,如数据类型,一些公共静态方法,工具函数.包含数组,日期,字符串,中国农历,拼音,身份证验证等功能
 - 将 EasilyNET.Extensions 库合并到 Core 中.
 - 新增百度坐标(BD09)、国测局坐标(火星坐标,GCJ02)、和 WGS84 坐标系之间的转换
+
+### 新增 C# 语法糖
+
+- 正常写法
+
+```csharp
+int[] array = [1, 2, 3];
+foreach (var i in array)
+{
+    Console.WriteLine(i);
+}
+OutPut: 1,2,3
+```
+
+- 新增的语法糖
+
+```csharp
+foreach (var i in ..3)
+{
+    Console.WriteLine(i);
+}
+OutPut: 0,1,2,3
+foreach (var i in 1..3)
+{
+    Console.WriteLine(i);
+}
+OutPut: 1,2,3
+```
+
+### ZIP 压缩
+
+- CompressionHelper 和 ZipHelper,CompressionHelper 用于压缩/解压 字节数组,ZipHelper 用于文件和文件夹的压缩和解压
 
 ### 当前互联网地图的坐标系现状
 
@@ -87,13 +120,21 @@ var gender = "52305199405088125".CalculateGender(); // EGender
 var age = "52305199405088125".CalculateAge(); // Int32
 ```
 
+### 雪花 ID 算法
+
+```csharp
+// 基于 MongoDB 的 ObjectId,产生24位长度16进制字符串,
+// 可以与 MongoDB 的 ObjectID 互转.
+var snow = SnowId.GenerateNewId();
+```
+
 ### 雪花算法,支持 Long 类型
 
 ```csharp
  var id = SnowFlakeId.Default.NextId(); 方便使用
  也可以
-  var snowFlake=new SnowFlakeId(1,0l);
-  var nextId =snowFlake.NextId();
+ var snowFlake=new SnowFlakeId(1,0l);
+ var nextId =snowFlake.NextId();
 ```
 
 `设置不一样的workerId`

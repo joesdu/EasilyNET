@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
     
     <PropertyGroup>
-        <IsPackable>false</IsPackable>
+	    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+		<IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
 	    <NoWarn>$(NoWarn);NU5104;CS1591</NoWarn>
     </PropertyGroup>

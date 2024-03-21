@@ -8,6 +8,7 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:9.0-preview AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+COPY ["src/Directory.Packages.props", "src/"]
 COPY ["sample/WebApi.Test.Unit/WebApi.Test.Unit.csproj", "sample/WebApi.Test.Unit/"]
 COPY ["src/EasilyNET.AutoDependencyInjection/EasilyNET.AutoDependencyInjection.csproj", "src/EasilyNET.AutoDependencyInjection/"]
 COPY ["src/EasilyNET.AutoDependencyInjection.Core/EasilyNET.AutoDependencyInjection.Core.csproj", "src/EasilyNET.AutoDependencyInjection.Core/"]
@@ -25,13 +26,14 @@ COPY ["src/EasilyNET.RabbitBus.Core/EasilyNET.RabbitBus.Core.csproj", "src/Easil
 COPY ["src/EasilyNET.Security/EasilyNET.Security.csproj", "src/EasilyNET.Security/"]
 COPY ["src/EasilyNET.WebCore.Swagger/EasilyNET.WebCore.Swagger.csproj", "src/EasilyNET.WebCore.Swagger/"]
 COPY ["src/EasilyNET.WebCore/EasilyNET.WebCore.csproj", "src/EasilyNET.WebCore/"]
-RUN dotnet restore "sample/WebApi.Test.Unit/WebApi.Test.Unit.csproj"
+RUN dotnet restore "./sample/WebApi.Test.Unit/WebApi.Test.Unit.csproj"
 COPY . .
 WORKDIR "/src/sample/WebApi.Test.Unit"
-RUN dotnet build "WebApi.Test.Unit.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "./WebApi.Test.Unit.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "WebApi.Test.Unit.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "./WebApi.Test.Unit.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
