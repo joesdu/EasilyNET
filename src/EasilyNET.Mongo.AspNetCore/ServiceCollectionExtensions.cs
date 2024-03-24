@@ -42,7 +42,11 @@ public static class ServiceCollectionExtensions
     /// <param name="option"><see cref="BasicClientOptions" /> 其他一些配置</param>
     public static void AddMongoContext<T>(this IServiceCollection services, IConfiguration configuration, Action<ClientOptions>? option = null) where T : MongoContext
     {
-        var connStr = configuration["CONNECTIONSTRINGS_MONGO"] ?? configuration.GetConnectionString("Mongo") ?? throw new("💔:no [CONNECTIONSTRINGS_MONGO] env or ConnectionStrings.Mongo is null in appsettings.json");
+        var connStr = configuration.GetConnectionString("Mongo") ?? Environment.GetEnvironmentVariable("CONNECTIONSTRINGS_MONGO");
+        if (string.IsNullOrWhiteSpace(connStr))
+        {
+            throw new("💔: appsettings.json中无ConnectionStrings.Mongo配置或环境变量中不存在CONNECTIONSTRINGS_MONGO");
+        }
         services.AddMongoContext<T>(connStr, option);
     }
 
