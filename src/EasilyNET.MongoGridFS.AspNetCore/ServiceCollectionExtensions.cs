@@ -1,4 +1,5 @@
 using EasilyNET.MongoGridFS.AspNetCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
@@ -16,6 +17,19 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
+    /// 使用容器中的 <see cref="IMongoDatabase" /> 来配置MongoGridFS
+    /// </summary>
+    /// <param name="services"></param>
+    /// <param name="configure"></param>
+    /// <returns></returns>
+    public static IServiceCollection AddMongoGridFS(this IServiceCollection services, Action<GridFSBucketOptions>? configure = null)
+    {
+        var db = services.BuildServiceProvider().GetService<IMongoDatabase>() ?? throw new("请先注册IMongoDatabase服务");
+        services.AddMongoGridFS(db, configure);
+        return services;
+    }
+
+    /// <summary>
     /// 使用 <see cref="MongoClientSettings" /> 来配置MongoGridFS
     /// </summary>
     /// <param name="services"></param>
@@ -31,15 +45,20 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// 使用链接字符的方式配置MongoGridFS
+    /// 使用 <see cref="IConfiguration" /> 配置MongoGridFS
     /// </summary>
     /// <param name="services"></param>
-    /// <param name="connectionString">数据库链接字符串</param>
+    /// <param name="configuration">从环境变量和appsettings.json中读取,若是appsettings.json中不存在则会回退到环境变量中读取</param>
     /// <param name="configure"></param>
     /// <returns></returns>
-    public static IServiceCollection AddMongoGridFS(this IServiceCollection services, string connectionString, Action<GridFSBucketOptions>? configure = null)
+    public static IServiceCollection AddMongoGridFS(this IServiceCollection services, IConfiguration configuration, Action<GridFSBucketOptions>? configure = null)
     {
-        var url = MongoUrl.Create(connectionString);
+        var connStr = configuration.GetConnectionString("Mongo") ?? Environment.GetEnvironmentVariable("CONNECTIONSTRINGS_MONGO");
+        if (string.IsNullOrWhiteSpace(connStr))
+        {
+            throw new("💔: appsettings.json中无ConnectionStrings.Mongo配置或环境变量中不存在CONNECTIONSTRINGS_MONGO");
+        }
+        var url = MongoUrl.Create(connStr);
         var name = string.IsNullOrWhiteSpace(url.DatabaseName) ? Constant.DefaultDbName : url.DatabaseName;
         var db = new MongoClient(url).GetDatabase(name);
         services.AddMongoGridFS(db, configure);

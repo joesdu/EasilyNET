@@ -48,13 +48,17 @@ public static class ServiceCollectionExtension
     /// 添加消息总线RabbitMQ服务(单节点模式)
     /// </summary>
     /// <param name="service"></param>
-    /// <param name="config">IConfiguration,从json配置ConnectionString.Rabbit中获取链接</param>
+    /// <param name="config">IConfiguration,从json配置ConnectionString.Rabbit中获取链接若是不存在则从系统环境变量中获取CONNECTIONSTRINGS_RABBIT</param>
     /// <param name="retry">重试次数</param>
     /// <param name="poolCount">Channel池数量,默认为: 计算机上逻辑处理器的数量</param>
     public static void AddRabbitBus(this IServiceCollection service, IConfiguration config, int retry = 5, uint poolCount = 0)
     {
-        var conn = config.GetConnectionString("Rabbit") ?? throw new("链接字符串不能为空");
-        service.AddRabbitBus(conn, retry, poolCount);
+        var connStr = config.GetConnectionString("Rabbit") ?? Environment.GetEnvironmentVariable("CONNECTIONSTRINGS_RABBIT");
+        if (string.IsNullOrWhiteSpace(connStr))
+        {
+            throw new("💔: appsettings.json中无ConnectionStrings.Rabbit配置或环境变量中不存在CONNECTIONSTRINGS_RABBIT");
+        }
+        service.AddRabbitBus(connStr, retry, poolCount);
     }
 
     /// <summary>

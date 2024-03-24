@@ -31,8 +31,10 @@ public static partial class ServiceCollectionExtension
     {
         ArgumentNullException.ThrowIfNull(services, nameof(services));
         var obj = new ObjectAccessor<IApplicationBuilder>();
+#pragma warning disable CA2263 // Prefer generic overload when type is known
         services.Add(ServiceDescriptor.Singleton(typeof(ObjectAccessor<IApplicationBuilder>), obj));
         services.Add(ServiceDescriptor.Singleton(typeof(IObjectAccessor<IApplicationBuilder>), obj));
+#pragma warning restore CA2263 // Prefer generic overload when type is known
         ApplicationFactory.Create<T>(services);
         return services;
     }
