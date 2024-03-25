@@ -100,7 +100,7 @@ public static class ServiceCollectionExtensions
         {
             ConventionRegistry.Register($"{Constant.Pack}-{ObjectId.GenerateNewId()}", new ConventionPack
             {
-                new CamelCaseElementNameConvention(),             // 驼峰名称格式
+                new CamelCaseElementNameConvention(),             // 小驼峰名称格式
                 new IgnoreExtraElementsConvention(true),          // 忽略掉实体中不存在的字段
                 new NamedIdMemberConvention("Id", "ID"),          // _id映射为实体中的ID或者Id
                 new EnumRepresentationConvention(BsonType.String) // 将枚举类型存储为字符串格式

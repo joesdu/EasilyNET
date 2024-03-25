@@ -13,13 +13,13 @@ public class CorsModule : AppModule
     {
         var config = context.Services.GetConfiguration();
         var allow = config["AllowedHosts"] ?? "*";
-        _ = context.Services.AddCors(c => c.AddPolicy("AllowedHosts", s => s.WithOrigins(allow.Split(",")).AllowAnyMethod().AllowAnyHeader()));
+        context.Services.AddCors(c => c.AddPolicy("AllowedHosts", s => s.WithOrigins(allow.Split(",")).AllowAnyMethod().AllowAnyHeader()));
     }
 
     /// <inheritdoc />
     public override void ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationBuilder();
-        _ = app.UseCors("AllowedHosts");
+        app.UseCors("AllowedHosts");
     }
 }

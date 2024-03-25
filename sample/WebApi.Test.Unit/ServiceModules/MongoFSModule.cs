@@ -2,7 +2,6 @@ using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using MongoDB.Driver;
 
 namespace WebApi.Test.Unit;
 
@@ -20,7 +19,6 @@ public class MongoFSModule : AppModule
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        var db = context.Services.GetService<IMongoDatabase>() ?? throw new("请先注册IMongoDatabase服务");
         context.Services.Configure<FormOptions>(c =>
                {
                    c.MultipartHeadersLengthLimit = int.MaxValue;
@@ -29,6 +27,6 @@ public class MongoFSModule : AppModule
                })
                .Configure<KestrelServerOptions>(c => c.Limits.MaxRequestBodySize = null)
                .Configure<IISServerOptions>(c => c.MaxRequestBodySize = null);
-        context.Services.AddMongoGridFS(db);
+        context.Services.AddMongoGridFS();
     }
 }
