@@ -1,3 +1,4 @@
+using EasilyNET.Core.Enums;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.Security.Cryptography;
@@ -684,5 +685,84 @@ public static partial class StringExtension
             _ = builder.Append(t.ToString("X2"));
         }
         return builder.ToString();
+    }
+
+    /// <summary>
+    /// 将小驼峰命名转为大驼峰命名,如: FirstName
+    /// </summary>
+    public static string ToUpperCamelCase(this string value) =>
+        // 将第一个字母大写并与其余字符串连接
+        string.IsNullOrEmpty(value) ? value : $"{char.ToUpperInvariant(value[0])}{value[1..]}";
+
+    /// <summary>
+    /// 将大驼峰命名转为小驼峰命名,如: firstName
+    /// </summary>
+    public static string ToLowerCamelCase(this string value)
+    {
+        var firstChar = value[0];
+        if (firstChar == char.ToLowerInvariant(firstChar)) return value;
+        var name = value.ToCharArray();
+        name[0] = char.ToLowerInvariant(firstChar);
+        return new(name);
+    }
+
+    /// <summary>
+    /// 将大(小)驼峰命名转为蛇形命名,如: first_name
+    /// </summary>
+    public static string ToSnakeCase(this string value)
+    {
+        var builder = new StringBuilder();
+        var previousUpper = false;
+        for (var i = 0; i < value.Length; i++)
+        {
+            var c = value[i];
+            if (char.IsUpper(c))
+            {
+                if (i > 0 && !previousUpper)
+                {
+                    builder.Append('_');
+                }
+                builder.Append(char.ToLowerInvariant(c));
+                previousUpper = true;
+            }
+            else
+            {
+                builder.Append(c);
+                previousUpper = false;
+            }
+        }
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// 将蛇形命名转化成驼峰命名
+    /// </summary>
+    /// <param name="value"></param>
+    /// <param name="toType">目标方式,默认:小驼峰</param>
+    /// <returns></returns>
+    public static string SnakeCaseToCamelCase(this string value, ECamelCase toType = ECamelCase.LowerCamelCase)
+    {
+        if (string.IsNullOrEmpty(value)) return value;
+        // 分割字符串，然后将每个单词(除了第一个)的首字母大写
+        var words = value.Split('_');
+        int index;
+        if (toType is ECamelCase.LowerCamelCase)
+        {
+            // 第一个单词首字母小写
+            words[0] = $"{char.ToLowerInvariant(words[0][0])}{words[0][1..]}";
+            index = 1;
+        }
+        else
+        {
+            index = 0;
+        }
+        for (; index < words.Length; index++)
+        {
+            if (words[index].Length > 0)
+            {
+                words[index] = $"{char.ToUpperInvariant(words[index][0])}{words[index][1..]}";
+            }
+        }
+        return string.Join("", words);
     }
 }

@@ -27,7 +27,7 @@ public class SwaggerModule : AppModule
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-        _ = context.Services.AddSwaggerGen(c =>
+        context.Services.AddSwaggerGen(c =>
         {
             // 配置默认的文档信息
             c.SwaggerDoc(name, new()
