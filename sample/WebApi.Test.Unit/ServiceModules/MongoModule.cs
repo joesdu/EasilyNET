@@ -14,7 +14,7 @@ public class MongoModule : AppModule
     /// <inheritdoc />
     public MongoModule()
     {
-        Enable = false;
+        Enable = true;
     }
 
     /// <inheritdoc />
@@ -84,6 +84,20 @@ public class MongoModule : AppModule
                     ShouldStartCollection = x => CommandsWithCollectionName.Contains(x)
                 }));
                 cs.LinqProvider = LinqProvider.V3;
+                // https://www.mongodb.com/docs/drivers/csharp/current/fundamentals/logging/#log-messages-by-category
+                cs.LoggingSettings = new(LoggerFactory.Create(b =>
+                {
+                    b.AddConfiguration(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        //{ "LogLevel:Default", "Debug" },
+                        //{ "LogLevel:MongoDB.SDAM", "Debug" },
+                        { "LogLevel:MongoDB.COMMAND", "Debug" }
+                        //{ "LogLevel:MongoDB.CONNECTION", "Debug" },
+                        //{ "LogLevel:MongoDB.INTERNAL.*", "Debug" },
+                        //{ "LogLevel:MongoDB.SERVERSELECTION", "Debug" }
+                    }).Build());
+                    b.AddSimpleConsole();
+                }));
             };
         });
         context.Services.RegisterSerializer(new DateOnlySerializerAsString());
