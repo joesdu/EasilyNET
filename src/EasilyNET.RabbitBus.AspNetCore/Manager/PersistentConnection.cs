@@ -1,5 +1,7 @@
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
+using EasilyNET.RabbitBus.AspNetCore.Configs;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Polly;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -11,19 +13,24 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <summary>
 /// RabbitMQ持久链接
 /// </summary>
-/// <param name="connFactory"></param>
-/// <param name="logger"></param>
-/// <param name="retry">重试次数</param>
-/// <param name="poolCount">Channel线程数量</param>
-/// <param name="endpoints"></param>
-internal sealed class PersistentConnection(IConnectionFactory connFactory, ILogger<PersistentConnection> logger, int retry = 5, uint poolCount = 0, List<AmqpTcpEndpoint>? endpoints = null) : IPersistentConnection, IDisposable
+internal sealed class PersistentConnection : IPersistentConnection, IDisposable
 {
-    private readonly IConnectionFactory _connFactory = connFactory ?? throw new ArgumentNullException(nameof(connFactory));
+    private readonly IConnectionFactory _connFactory;
     private readonly SemaphoreSlim _connLock = new(1, 1);
-    private readonly uint _poolCount = poolCount < 1 ? (uint)Environment.ProcessorCount : poolCount;
+    private readonly uint _poolCount;
+    private readonly RabbitConfig config;
     private ChannelPool? _channelPool;
     private IConnection? _connection;
     private bool _disposed;
+    private readonly ILogger<PersistentConnection> _logger;
+
+    public PersistentConnection(IConnectionFactory connFactory, IOptionsMonitor<RabbitConfig> options, ILogger<PersistentConnection> logger)
+    {
+        _connFactory = connFactory ?? throw new ArgumentNullException(nameof(connFactory));
+        config = options.Get(Constant.OptionName);
+        _poolCount = config.PoolCount < 1 ? (uint)Environment.ProcessorCount : config.PoolCount;
+        _logger = logger;
+    }
 
     /// <inheritdoc />
     internal override bool IsConnected => _connection is not null && _connection.IsOpen;
@@ -44,7 +51,7 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, ILogg
                 }
                 catch (Exception ex)
                 {
-                    logger.LogCritical("{Message}", ex.Message);
+                    _logger.LogCritical("{Message}", ex.Message);
                 }
             }
             if (_channelPool is null) return;
@@ -54,7 +61,7 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, ILogg
             }
             catch (Exception ex)
             {
-                logger.LogCritical("{Message}", ex.Message);
+                _logger.LogCritical("{Message}", ex.Message);
             }
         }
         _disposed = true;
@@ -76,15 +83,15 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, ILogg
     /// <inheritdoc />
     internal override async Task TryConnect()
     {
-        logger.LogInformation("RabbitMQ客户端尝试连接");
+        _logger.LogInformation("RabbitMQ客户端尝试连接");
         await _connLock.WaitAsync();
         try
         {
             var policy = Policy.Handle<SocketException>()
                                .Or<BrokerUnreachableException>()
-                               .WaitAndRetry(retry, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
-                                   logger.LogWarning(ex, "RabbitMQ客户端在 {TimeOut}s 超时后无法创建链接,({ExceptionMessage})", $"{time.TotalSeconds:n1}", ex.Message));
-            await policy.Execute(async () => _connection = endpoints is not null && endpoints.Count > 0 ? await _connFactory.CreateConnectionAsync(endpoints) : await _connFactory.CreateConnectionAsync());
+                               .WaitAndRetry(config.RetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
+                                   _logger.LogWarning(ex, "RabbitMQ客户端在 {TimeOut}s 超时后无法创建链接,({ExceptionMessage})", $"{time.TotalSeconds:n1}", ex.Message));
+            await policy.Execute(async () => _connection = config.AmqpTcpEndpoints is not null && config.AmqpTcpEndpoints.Count > 0 ? await _connFactory.CreateConnectionAsync(config.AmqpTcpEndpoints) : await _connFactory.CreateConnectionAsync());
         }
         finally
         {
@@ -93,13 +100,13 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, ILogg
                 _connection.ConnectionShutdown += OnConnectionShutdown;
                 _connection.CallbackException += OnCallbackException;
                 _connection.ConnectionBlocked += OnConnectionBlocked;
-                logger.LogInformation("RabbitMQ客户端与 {HostName} 建立了连接", _connection.Endpoint.HostName);
+                _logger.LogInformation("RabbitMQ客户端与 {HostName} 建立了连接", _connection.Endpoint.HostName);
                 _channelPool = new(_connection, _poolCount);
-                logger.LogInformation("RabbitBus channel pool count: {Count}", _poolCount);
+                _logger.LogInformation("RabbitBus channel pool count: {Count}", _poolCount);
             }
             else
             {
-                logger.LogCritical("RabbitMQ连接不能被创建和打开");
+                _logger.LogCritical("RabbitMQ连接不能被创建和打开");
             }
             _connLock.Release();
         }
@@ -107,19 +114,19 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, ILogg
 
     private void OnConnectionBlocked(object? sender, ConnectionBlockedEventArgs e)
     {
-        logger.LogWarning("RabbitMQ连接关闭,正在尝试重新连接");
+        _logger.LogWarning("RabbitMQ连接关闭,正在尝试重新连接");
         Task.Factory.StartNew(async () => await TryConnect());
     }
 
     private void OnCallbackException(object? sender, CallbackExceptionEventArgs e)
     {
-        logger.LogWarning("RabbitMQ连接抛出异常,正在重试");
+        _logger.LogWarning("RabbitMQ连接抛出异常,正在重试");
         Task.Factory.StartNew(async () => await TryConnect());
     }
 
     private void OnConnectionShutdown(object? sender, ShutdownEventArgs reason)
     {
-        logger.LogWarning("RabbitMQ连接处于关闭状态,正在尝试重新连接");
+        _logger.LogWarning("RabbitMQ连接处于关闭状态,正在尝试重新连接");
         Task.Factory.StartNew(async () => await TryConnect());
     }
 }
