@@ -1,17 +1,17 @@
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus;
+using EasilyNET.RabbitBus.AspNetCore;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Manager;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Attributes;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
+using System.Diagnostics.CodeAnalysis;
 
-// ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
-// ReSharper disable UnusedType.Global
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -21,60 +21,33 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static class ServiceCollectionExtension
 {
     /// <summary>
-    /// 添加消息总线RabbitMQ服务(集群模式)
+    /// 添加消息总线RabbitMQ服务
     /// </summary>
-    /// <param name="service"></param>
+    /// <param name="services"></param>
     /// <param name="action"></param>
-    public static void AddRabbitBus(this IServiceCollection service, Action<RabbitMultiConfig>? action = null)
-    {
-        RabbitMultiConfig config = new();
-        action?.Invoke(config);
-        service.RabbitPersistentConnection(config).AddEventBus(config.RetryCount);
-    }
+    public static void AddRabbitBus(this IServiceCollection services, Action<RabbitConfig>? action = null) => services.RabbitPersistentConnection(config => action?.Invoke(config)).AddEventBus();
 
     /// <summary>
     /// 添加消息总线RabbitMQ服务(单节点模式)
     /// </summary>
-    /// <param name="service"></param>
+    /// <param name="services"></param>
+    /// <param name="configuration">IConfiguration,从json配置ConnectionString.Rabbit中获取链接若是不存在则从系统环境变量中获取CONNECTIONSTRINGS_RABBIT</param>
     /// <param name="action"></param>
-    public static void AddRabbitBus(this IServiceCollection service, Action<RabbitSingleConfig>? action = null)
+    public static void AddRabbitBus(this IServiceCollection services, IConfiguration configuration, Action<RabbitConfig>? action = null)
     {
-        RabbitSingleConfig config = new();
-        action?.Invoke(config);
-        service.RabbitPersistentConnection(config).AddEventBus(config.RetryCount);
-    }
-
-    /// <summary>
-    /// 添加消息总线RabbitMQ服务(单节点模式)
-    /// </summary>
-    /// <param name="service"></param>
-    /// <param name="config">IConfiguration,从json配置ConnectionString.Rabbit中获取链接若是不存在则从系统环境变量中获取CONNECTIONSTRINGS_RABBIT</param>
-    /// <param name="retry">重试次数</param>
-    /// <param name="poolCount">Channel池数量,默认为: 计算机上逻辑处理器的数量</param>
-    public static void AddRabbitBus(this IServiceCollection service, IConfiguration config, int retry = 5, uint poolCount = 0)
-    {
-        var connStr = config.GetConnectionString("Rabbit") ?? Environment.GetEnvironmentVariable("CONNECTIONSTRINGS_RABBIT");
+        var connStr = configuration.GetConnectionString("Rabbit") ?? Environment.GetEnvironmentVariable("CONNECTIONSTRINGS_RABBIT");
         if (string.IsNullOrWhiteSpace(connStr))
         {
             throw new("💔: appsettings.json中无ConnectionStrings.Rabbit配置或环境变量中不存在CONNECTIONSTRINGS_RABBIT");
         }
-        service.AddRabbitBus(connStr, retry, poolCount);
+        services.RabbitPersistentConnection(options =>
+        {
+            action?.Invoke(options);
+            options.ConnectionString = connStr;
+        }).AddEventBus();
     }
 
-    /// <summary>
-    /// 添加消息总线RabbitMQ服务
-    /// </summary>
-    /// <param name="service"></param>
-    /// <param name="conn">AMQP链接字符串</param>
-    /// <param name="retry">重试次数</param>
-    /// <param name="poolCount">Channel池数量,默认为: 计算机上逻辑处理器的数量</param>
-    public static void AddRabbitBus(this IServiceCollection service, string conn, int retry = 5, uint poolCount = 0)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(conn, nameof(conn));
-        service.RabbitPersistentConnection(conn, retry, poolCount).AddEventBus(retry);
-    }
-
-    private static void InjectHandler(this IServiceCollection service)
+    private static void InjectHandler(this IServiceCollection services)
     {
         var handlers = AssemblyHelper.FindTypes(o => o is
                                                      {
@@ -83,72 +56,64 @@ public static class ServiceCollectionExtension
                                                      } &&
                                                      o.IsBaseOn(typeof(IEventHandler<>)) &&
                                                      !o.HasAttribute<IgnoreHandlerAttribute>());
-        foreach (var handler in handlers) service.AddSingleton(handler);
+        foreach (var handler in handlers) services.AddSingleton(handler);
     }
 
-    private static void AddEventBus(this IServiceCollection service, int retry)
+    [SuppressMessage("Style", "IDE0046:转换为条件表达式", Justification = "<挂起>")]
+    private static IServiceCollection RabbitPersistentConnection(this IServiceCollection services, Action<RabbitConfig> options)
     {
-        service.InjectHandler();
-        service.AddSingleton<IBus, EventBus>(sp =>
-               {
-                   var rabbitConn = sp.GetRequiredService<IPersistentConnection>();
-                   var logger = sp.GetRequiredService<ILogger<EventBus>>();
-                   var subsManager = sp.GetRequiredService<SubscriptionsManager>();
-                   return rabbitConn is null
-                              ? throw new(nameof(rabbitConn))
-                              : new EventBus(rabbitConn, retry, subsManager, sp, logger);
-               })
-               .AddSingleton<SubscriptionsManager>()
-               .AddHostedService<SubscribeService>();
-    }
-
-    private static IServiceCollection RabbitPersistentConnection(this IServiceCollection service, RabbitSingleConfig config)
-    {
-        service.AddSingleton<IPersistentConnection>(sp =>
+        services.Configure(Constant.OptionName, options);
+        services.AddSingleton<IConnectionFactory, ConnectionFactory>(sp =>
         {
-            var logger = sp.GetRequiredService<ILogger<PersistentConnection>>();
-            return new PersistentConnection(new ConnectionFactory
+            var conf = sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>();
+            var config = conf.Get(Constant.OptionName);
+            if (config.ConnectionString is not null && !string.IsNullOrWhiteSpace(config.ConnectionString))
             {
-                HostName = config.Host,
-                UserName = config.UserName,
-                Password = config.PassWord,
-                Port = config.Port,
-                VirtualHost = config.VirtualHost,
-                DispatchConsumersAsync = true
-            }, logger, config.RetryCount, config.PoolCount);
+                return new()
+                {
+                    Uri = new(config.ConnectionString),
+                    DispatchConsumersAsync = true
+                };
+            }
+            if (config.AmqpTcpEndpoints is not null && config.AmqpTcpEndpoints.Count is not 0)
+            {
+                return new()
+                {
+                    UserName = config.UserName,
+                    Password = config.PassWord,
+                    VirtualHost = config.VirtualHost,
+                    DispatchConsumersAsync = true
+                };
+            }
+            if (config.Host is not null && !string.IsNullOrWhiteSpace(config.Host))
+            {
+                return new()
+                {
+                    HostName = config.Host,
+                    UserName = config.UserName,
+                    Password = config.PassWord,
+                    Port = config.Port,
+                    VirtualHost = config.VirtualHost,
+                    DispatchConsumersAsync = true
+                };
+            }
+            throw new("无法从配置中创建链接");
         });
-        return service;
+        services.AddSingleton<IPersistentConnection, PersistentConnection>();
+        return services;
     }
 
-    private static IServiceCollection RabbitPersistentConnection(this IServiceCollection service, RabbitMultiConfig config)
+    private static void AddEventBus(this IServiceCollection services)
     {
-        if (config.AmqpTcpEndpoints is null || config.AmqpTcpEndpoints.Count is 0)
-            throw new($"{nameof(config.AmqpTcpEndpoints)}不能为空");
-        service.AddSingleton<IPersistentConnection>(sp =>
+        services.InjectHandler();
+        services.AddSingleton<IBusSerializerFactory, BusSerializerFactory>();
+        services.AddSingleton(sp =>
         {
-            var logger = sp.GetRequiredService<ILogger<PersistentConnection>>();
-            return new PersistentConnection(new ConnectionFactory
-            {
-                UserName = config.UserName,
-                Password = config.PassWord,
-                VirtualHost = config.VirtualHost,
-                DispatchConsumersAsync = true
-            }, logger, config.RetryCount, config.PoolCount, config.AmqpTcpEndpoints);
+            var factory = sp.GetRequiredService<IBusSerializerFactory>();
+            return factory.CreateSerializer();
         });
-        return service;
-    }
-
-    private static IServiceCollection RabbitPersistentConnection(this IServiceCollection service, string conn, int retry, uint poolCount)
-    {
-        service.AddSingleton<IPersistentConnection>(sp =>
-        {
-            var logger = sp.GetRequiredService<ILogger<PersistentConnection>>();
-            return new PersistentConnection(new ConnectionFactory
-            {
-                Uri = new(conn),
-                DispatchConsumersAsync = true
-            }, logger, retry, poolCount);
-        });
-        return service;
+        services.AddSingleton<ISubscriptionsManager, SubscriptionsManager>();
+        services.AddSingleton<IBus, EventBus>();
+        services.AddHostedService<SubscribeService>();
     }
 }

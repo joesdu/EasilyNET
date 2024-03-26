@@ -1,31 +1,28 @@
 using EasilyNET.Core.Misc;
+using EasilyNET.RabbitBus.AspNetCore;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
+using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Extensions;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Attributes;
 using EasilyNET.RabbitBus.Core.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Polly;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Text;
-using System.Text.Json;
 
 namespace EasilyNET.RabbitBus;
 
-internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscriptionsManager subsManager, IServiceProvider sp, ILogger<EventBus> logger) : IBus, IDisposable
+internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<RabbitConfig> options, ISubscriptionsManager subsManager, IBusSerializer serializer, IServiceProvider sp, ILogger<EventBus> logger) : IBus, IDisposable
 {
     private const string HandleName = nameof(IEventHandler<IEvent>.HandleAsync);
 
-    private static readonly JsonSerializerOptions jsonSerializerOptions = new()
-    {
-        WriteIndented = false,
-        PropertyNameCaseInsensitive = true
-    };
+    private readonly RabbitConfig config = options.Get(Constant.OptionName);
 
     private bool disposed;
 
@@ -52,11 +49,13 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         }
         // 在发布事件前检查是否已经取消发布
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
-        var body = JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType(), jsonSerializerOptions);
+        var body = serializer.Serialize(@event, @event.GetType());
+        // 压缩数据
+        //var compressedBytes = LZ4Pickler.Pickle(body, LZ4Level.L07_HC);
         // 创建Policy规则
         var policy = Policy.Handle<BrokerUnreachableException>()
                            .Or<SocketException>()
-                           .WaitAndRetry(retry, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
+                           .WaitAndRetry(config.RetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
                                logger.LogError(ex, "无法发布: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
         await policy.Execute(async () =>
         {
@@ -104,11 +103,13 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, false, exc_args);
         // 在发布事件前检查是否已经取消发布
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
-        var body = JsonSerializer.SerializeToUtf8Bytes(@event, @event.GetType(), jsonSerializerOptions);
+        var body = serializer.Serialize(@event, @event.GetType());
+        // 压缩数据
+        //var compressedBytes = LZ4Pickler.Pickle(body, LZ4Level.L07_HC);
         // 创建Policy规则
         var policy = Policy.Handle<BrokerUnreachableException>()
                            .Or<SocketException>()
-                           .WaitAndRetry(retry, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
+                           .WaitAndRetry(config.RetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
                                logger.LogError(ex, "无法发布: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
         await policy.Execute(async () =>
         {
@@ -210,18 +211,17 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         await channel.BasicConsumeAsync(exc.Queue, false, consumer);
         consumer.Received += async (_, ea) =>
         {
-            var message = Encoding.UTF8.GetString(ea.Body.Span);
             try
             {
-                if (message.Contains("throw-fake-exception", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    throw new InvalidOperationException($"假异常请求:{message}");
-                }
-                await ProcessEvent(eventType, message, exc.IsDlx, async () => await channel.BasicAckAsync(ea.DeliveryTag, false).ConfigureAwait(false));
+                //if (message.Contains("throw-fake-exception", StringComparison.InvariantCultureIgnoreCase))
+                //{
+                //    throw new InvalidOperationException($"假异常请求:{message}");
+                //}
+                await ProcessEvent(eventType, ea.Body.Span.ToArray(), exc.IsDlx, async () => await channel.BasicAckAsync(ea.DeliveryTag, false).ConfigureAwait(false));
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "错误处理消息:{Message}", message);
+                logger.LogError(ex, "消息处理发生错误,DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
                 // 先注释掉,若是消费者没写对,造成大量消息重新入队,容易拖垮MQ,这里的处理办法是长时间不确认,所有消息由Unacked重新变为Ready
                 //channel.BasicNack(ea.DeliveryTag, false, true);
             }
@@ -233,16 +233,18 @@ internal sealed class EventBus(IPersistentConnection conn, int retry, ISubscript
         }
     }
 
-    private async Task ProcessEvent(Type eventType, string message, bool isDlx, Func<ValueTask> ack)
+    private async Task ProcessEvent(Type eventType, byte[] message, bool isDlx, Func<ValueTask> ack)
     {
         logger.LogTrace("处理事件: {EventName}", eventType.Name);
         var policy = Policy.Handle<BrokerUnreachableException>()
                            .Or<SocketException>()
-                           .WaitAndRetry(retry, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
+                           .WaitAndRetry(config.RetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
                                logger.LogError(ex, "无法消费: {EventName} 超时 {Timeout}s ({ExceptionMessage})", eventType.Name, $"{time.TotalSeconds:n1}", ex.Message));
         if (subsManager.HasSubscriptionsForEvent(eventType.Name, isDlx))
         {
-            var @event = JsonSerializer.Deserialize(message, eventType, jsonSerializerOptions);
+            // 解压缩数据
+            //var decompressedBytes = LZ4Pickler.Unpickle(message);
+            var @event = serializer.Deserialize(message, eventType);
             var handlerTypes = subsManager.GetHandlersForEvent(eventType.Name, isDlx);
             using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
             await policy.Execute(async () =>

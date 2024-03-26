@@ -16,6 +16,7 @@
     </PropertyGroup>
     
     <ItemGroup>
+        <PackageReference Include="MessagePack" />
         <PackageReference Include="Polly" />
         <PackageReference Include="RabbitMQ.Client" />
     </ItemGroup>

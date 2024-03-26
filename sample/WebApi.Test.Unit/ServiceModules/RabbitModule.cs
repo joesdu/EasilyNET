@@ -1,5 +1,6 @@
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
+using EasilyNET.RabbitBus.AspNetCore.Enums;
 
 namespace WebApi.Test.Unit;
 
@@ -18,6 +19,11 @@ public class RabbitModule : AppModule
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var config = context.Services.GetConfiguration();
-        context.Services.AddRabbitBus(config, poolCount: (uint)Environment.ProcessorCount);
+        context.Services.AddRabbitBus(config, c =>
+        {
+            c.PoolCount = (uint)Environment.ProcessorCount;
+            c.RetryCount = 5;
+            c.Serializer = ESerializer.MessagePack;
+        });
     }
 }
