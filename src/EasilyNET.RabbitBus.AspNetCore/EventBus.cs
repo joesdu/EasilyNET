@@ -50,8 +50,6 @@ internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<Rabbi
         // 在发布事件前检查是否已经取消发布
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
         var body = serializer.Serialize(@event, @event.GetType());
-        // 压缩数据
-        //var compressedBytes = LZ4Pickler.Pickle(body, LZ4Level.L07_HC);
         // 创建Policy规则
         var policy = Policy.Handle<BrokerUnreachableException>()
                            .Or<SocketException>()
@@ -104,8 +102,6 @@ internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<Rabbi
         // 在发布事件前检查是否已经取消发布
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
         var body = serializer.Serialize(@event, @event.GetType());
-        // 压缩数据
-        //var compressedBytes = LZ4Pickler.Pickle(body, LZ4Level.L07_HC);
         // 创建Policy规则
         var policy = Policy.Handle<BrokerUnreachableException>()
                            .Or<SocketException>()
@@ -242,8 +238,6 @@ internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<Rabbi
                                logger.LogError(ex, "无法消费: {EventName} 超时 {Timeout}s ({ExceptionMessage})", eventType.Name, $"{time.TotalSeconds:n1}", ex.Message));
         if (subsManager.HasSubscriptionsForEvent(eventType.Name, isDlx))
         {
-            // 解压缩数据
-            //var decompressedBytes = LZ4Pickler.Unpickle(message);
             var @event = serializer.Deserialize(message, eventType);
             var handlerTypes = subsManager.GetHandlersForEvent(eventType.Name, isDlx);
             using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
