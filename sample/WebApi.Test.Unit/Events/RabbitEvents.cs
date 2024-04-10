@@ -51,6 +51,11 @@ public class FanoutEventOne : Event
     /// 摘要
     /// </summary>
     public string? Summary { get; set; } = "fanout_queue1";
+
+    /// <summary>
+    /// 字符串列表
+    /// </summary>
+    public List<string> StringList { get; set; } = ["one", "two", "three"];
 }
 
 /// <summary>

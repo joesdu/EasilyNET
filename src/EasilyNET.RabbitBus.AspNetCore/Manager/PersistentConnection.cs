@@ -17,12 +17,12 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
 {
     private readonly IConnectionFactory _connFactory;
     private readonly SemaphoreSlim _connLock = new(1, 1);
+    private readonly ILogger<PersistentConnection> _logger;
     private readonly uint _poolCount;
     private readonly RabbitConfig config;
     private ChannelPool? _channelPool;
     private IConnection? _connection;
     private bool _disposed;
-    private readonly ILogger<PersistentConnection> _logger;
 
     public PersistentConnection(IConnectionFactory connFactory, IOptionsMonitor<RabbitConfig> options, ILogger<PersistentConnection> logger)
     {
