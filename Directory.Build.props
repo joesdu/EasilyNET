@@ -27,7 +27,7 @@
 		<!--<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>-->
 		<NoWarn>$(NoWarn);NU5104</NoWarn>
 		<!--控制生成产物目录-->
-        <!--<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>-->
+		<!--<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>-->
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
@@ -37,7 +37,7 @@
 		<Copyright>© EasilyNET Organization. All rights reserved.</Copyright>
 		<NoWarn>$(NoWarn);CS8002</NoWarn>
 	</PropertyGroup>
-	
+
 	<PropertyGroup>
 		<VersionMajor>2</VersionMajor>
 		<VersionMinor>2</VersionMinor>
