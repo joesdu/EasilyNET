@@ -41,8 +41,8 @@
 	<PropertyGroup>
 		<VersionMajor>2</VersionMajor>
 		<VersionMinor>2</VersionMinor>
-		<VersionPatch>7</VersionPatch>
-		<VersionQuality>2</VersionQuality>
+		<VersionPatch>8</VersionPatch>
+		<VersionQuality></VersionQuality>
 		<VersionPrefix>$(VersionMajor).$(VersionMinor).$(VersionPatch)$(VersionQuality)</VersionPrefix>
 	</PropertyGroup>
 </Project>

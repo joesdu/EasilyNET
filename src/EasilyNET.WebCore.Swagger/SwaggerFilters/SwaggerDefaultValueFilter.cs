@@ -1,3 +1,4 @@
+using EasilyNET.Core.Misc;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -31,17 +32,10 @@ public sealed class SwaggerDefaultValueFilter : ISchemaFilter
             foreach (var property in schema.Properties)
             {
                 // Only assign default value to the proper element.
-                if (ToCamelCase(info.Name) != property.Key) continue;
+                if (info.Name.ToLowerCamelCase() != property.Key) continue;
                 property.Value.Example = defaultAttribute.Value as IOpenApiAny;
                 break;
             }
         }
     }
-
-    /// <summary>
-    /// 转成驼峰形式
-    /// </summary>
-    /// <param name="name"></param>
-    /// <returns></returns>
-    private static string ToCamelCase(string name) => char.ToLowerInvariant(name[0]) + name[1..];
 }

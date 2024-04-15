@@ -14,7 +14,7 @@ public class MongoModule : AppModule
     /// <inheritdoc />
     public MongoModule()
     {
-        Enable = true;
+        Enable = !true;
     }
 
     /// <inheritdoc />
