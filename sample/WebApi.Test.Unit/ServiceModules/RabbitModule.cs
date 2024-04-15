@@ -12,7 +12,7 @@ public class RabbitModule : AppModule
     /// <inheritdoc />
     public RabbitModule()
     {
-        Enable = true;
+        Enable = !true;
     }
 
     /// <inheritdoc />
