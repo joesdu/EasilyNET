@@ -15,7 +15,7 @@
     <PackageVersion Include="Serilog" Version="4.0.0-dev-02149" />
     <PackageVersion Include="SkiaSharp" Version="3.0.0-preview.3.1" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.0.0-preview.3.1" />
-    <PackageVersion Include="Spectre.Console.Json" Version="0.48.1-preview.0.41" />
+    <PackageVersion Include="Spectre.Console.Json" Version="0.48.1-preview.0.44" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.5.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.5.0" />
     <PackageVersion Include="ZXing.Net" Version="0.16.9" />
