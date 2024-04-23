@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "*.*.*"
+env:
+  DOTNET_VERSION: "9.0.x"
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,7 +19,7 @@ jobs:
       - name: Setup .Net SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 9.0.x
+          dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Build and Test
         run: ./Build.ps1
         shell: pwsh
@@ -27,8 +29,8 @@ jobs:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: ./Push.ps1
         shell: pwsh
-      - name: Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: artifacts
-          path: artifacts/**/*
+      # - name: Artifacts
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: artifacts
+      #     path: artifacts/**/*
