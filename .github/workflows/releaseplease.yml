@@ -1,7 +1,7 @@
 # This workflow will build a .NET project
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
 
-name: .NET Release Please
+name: Release Please
 
 on:
   push:
@@ -9,8 +9,6 @@ on:
   pull_request:
     branches: [ "main" ]
 
-env:
-  DOTNET_VERSION: "9.0.x"
 jobs:
   build:
 
@@ -18,17 +16,6 @@ jobs:
     environment:
       name: NUGET_ENV
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
     - name: release-please-action
       # You may pin to the exact commit or the version.
       # uses: google-github-actions/release-please-action@f0145e31b50c56905571d69a63bbe997c0ce6dd1
@@ -42,4 +29,5 @@ jobs:
         draft: true
         # mark pull request as a draft
         draft-pull-request: true
+        changelog-types: '[{"type": "types", "section":"Types", "hidden": false},{"type": "revert", "section":"Reverts", "hidden": false},{"type": "feat", "section": "Features", "hidden": false},{"type": "fix", "section": "Bug Fixes", "hidden": false},{"type": "improvement", "section": "Feature Improvements", "hidden": false},{"type": "docs", "section":"Docs", "hidden": false},{"type": "style", "section":"Styling", "hidden": false},{"type": "refactor", "section":"Code Refactoring", "hidden": false},{"type": "perf", "section":"Performance Improvements", "hidden": false},{"type": "test", "section":"Tests", "hidden": false},{"type": "build", "section":"Build System", "hidden": false},{"type": "ci", "section":"CI", "hidden":false}]'
           
