@@ -9,6 +9,8 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  DOTNET_VERSION: "9.0.x"
 jobs:
   build:
 
@@ -20,7 +22,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: ${{ env.DOTNET_VERSION }}
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
