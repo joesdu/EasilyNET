@@ -37,7 +37,7 @@ jobs:
         # GitHub token for creating and grooming release PRs, defaults to using secrets.GITHUB_TOKEN
         token: ${{secrets.RELEASE_TOKEN}}
         # what type of release is this, one of (ruby, python, node, terraform-module)
-        release-type: dotnet-yoshi
+        release-type: dotnet
         # mark release as a draft
         draft: true
         # mark pull request as a draft
