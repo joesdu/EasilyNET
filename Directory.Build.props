@@ -40,14 +40,10 @@
 
 	<PropertyGroup>
 		<VersionMajor>2</VersionMajor>
-		<!-- 使用 yyyy 格式的年份作为次版本号 -->
-		<VersionMinor>$([System.DateTime]::Now.ToString("yyyy"))</VersionMinor>
-		<!-- 使用 MMdd 格式的日期作为构建号 -->
-		<VersionBuild>$([System.DateTime]::Now.ToString("MMdd"))</VersionBuild>
-		<!-- 可以选择添加一个较小的修订号，例如当天的小时和分钟 -->
-		<VersionRevision>$([System.DateTime]::Now.ToString("HHmm"))</VersionRevision>
+		<!-- 使用 yyyy 格式的年份作为次版本号,使用 MMdd 格式的日期作为构建号 -->
+		<VersionRevision>$([System.DateTime]::Now.ToString("yyyy.MMdd.HHmm"))</VersionRevision>
 		<!-- 组合版本号 -->
-		<Version>$(VersionMajor).$(VersionMinor).$(VersionBuild).$(VersionRevision)</Version>
+		<Version>$(VersionMajor).$(VersionRevision)</Version>
 		<FileVersion>$(Version)</FileVersion>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
 		<!-- 使用 AssemblyInformationalVersion 来包含完整的版本信息 -->
