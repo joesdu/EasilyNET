@@ -37,7 +37,7 @@ internal sealed class ChannelPool(IConnection connection, uint poolCount) : ICha
             {
                 channel.Dispose();
             }
-            catch (Exception)
+            catch
             {
                 // Log the exception or handle it as needed.
             }
