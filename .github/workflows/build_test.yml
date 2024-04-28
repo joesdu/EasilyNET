@@ -9,6 +9,7 @@ on:
       - main
 env:
   DOTNET_VERSION: "9.0.x"
+  TZ: Asia/Shanghai
 jobs:
   build:
     runs-on: ubuntu-latest
