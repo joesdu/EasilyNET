@@ -5,7 +5,7 @@
 		<Authors>joesdu</Authors>
 		<PackagePrefix>EasilyNET</PackagePrefix>
 		<RepositoryType>git</RepositoryType>
-		<RepositoryUrl>https://github.com/EasilyNET/EasilyNET</RepositoryUrl>
+		<RepositoryUrl>https://github.com/joesdu/EasilyNET</RepositoryUrl>
 		<GenerateAssemblyConfigurationAttribute>True</GenerateAssemblyConfigurationAttribute>
 		<GenerateAssemblyCompanyAttribute>True</GenerateAssemblyCompanyAttribute>
 		<GenerateAssemblyProductAttribute>True</GenerateAssemblyProductAttribute>
