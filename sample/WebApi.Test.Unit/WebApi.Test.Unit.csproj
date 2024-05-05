@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
         <LangVersion>preview</LangVersion>
-        <RepositoryUrl>https://github.com/EasilyNET/EasilyNET</RepositoryUrl>
+        <RepositoryUrl>https://github.com/joesdu/EasilyNET</RepositoryUrl>
         <Nullable>enable</Nullable>
         <Authors>joesdu</Authors>
         <ImplicitUsings>enable</ImplicitUsings>
