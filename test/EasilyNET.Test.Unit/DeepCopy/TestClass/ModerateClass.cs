@@ -17,8 +17,6 @@ public class ModerateClass(int propertyPrivate, bool propertyProtected, string f
 
     public string PropertyPublic2 { get; set; }
 
-    protected bool PropertyProtected2 { get; set; }
-
     private int PropertyPrivate { get; set; } = propertyPrivate + 1;
 
     public SimpleClass SimpleClassProperty { get; set; }

@@ -4,7 +4,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="BouncyCastle.Cryptography" Version="2.3.0" />
+    <PackageVersion Include="BouncyCastle.Cryptography" Version="2.3.1" />
     <PackageVersion Include="MessagePack" Version="2.6.100-alpha" />
     <PackageVersion Include="MongoDB.Bson" Version="2.25.0" />
     <PackageVersion Include="MongoDB.Driver" Version="2.25.0" />
@@ -12,7 +12,7 @@
     <PackageVersion Include="MongoDB.Driver.GridFS" Version="2.25.0" />
     <PackageVersion Include="Polly" Version="8.3.1" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.0.0-alpha.5" />
-    <PackageVersion Include="Serilog" Version="4.0.0-dev-02163" />
+    <PackageVersion Include="Serilog" Version="4.0.0-dev-02167" />
     <PackageVersion Include="SkiaSharp" Version="3.0.0-preview.3.1" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.0.0-preview.3.1" />
     <PackageVersion Include="Spectre.Console.Json" Version="0.49.2-preview.0.4" />

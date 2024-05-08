@@ -1,3 +1,5 @@
+// ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
+
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>

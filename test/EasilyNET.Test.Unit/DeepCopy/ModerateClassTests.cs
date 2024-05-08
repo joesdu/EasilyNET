@@ -42,7 +42,7 @@ public class ModerateClassTests
         // check that structs copied well (but with different instances of subclasses)
         Assert_StructsAreEqual(m.StructField, mCopy.StructField);
 
-        // chech that classes in structs in structs are copied well
+        // check that classes in struct in structs are copied well
         Assert_DeeperStructsAreEqual(m.DeeperStructField, mCopy.DeeperStructField);
 
         // generic classes are well copied
@@ -55,13 +55,11 @@ public class ModerateClassTests
         SimpleClassTests.Assert_AreEqualButNotSame(m.ReadonlySimpleClassField, mCopy.ReadonlySimpleClassField);
 
         // array of subclasses copied well
-        if (m.SimpleClassArray != null)
+        if (m.SimpleClassArray == null) return;
+        Assert.AreEqual(m.SimpleClassArray.Length, mCopy.SimpleClassArray.Length);
+        for (var i = 0; i < m.SimpleClassArray.Length; i++)
         {
-            Assert.AreEqual(m.SimpleClassArray.Length, mCopy.SimpleClassArray.Length);
-            for (var i = 0; i < m.SimpleClassArray.Length; i++)
-            {
-                SimpleClassTests.Assert_AreEqualButNotSame(m.SimpleClassArray[i], mCopy.SimpleClassArray[i]);
-            }
+            SimpleClassTests.Assert_AreEqualButNotSame(m.SimpleClassArray[i], mCopy.SimpleClassArray[i]);
         }
     }
 

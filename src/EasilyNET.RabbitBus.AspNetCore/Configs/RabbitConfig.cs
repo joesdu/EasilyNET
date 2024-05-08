@@ -1,6 +1,8 @@
 ﻿using EasilyNET.RabbitBus.AspNetCore.Enums;
 using RabbitMQ.Client;
 
+// ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
+
 namespace EasilyNET.RabbitBus.AspNetCore.Configs;
 
 /// <summary>

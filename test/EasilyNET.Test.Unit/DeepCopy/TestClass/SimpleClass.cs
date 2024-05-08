@@ -21,7 +21,7 @@ public class SimpleClass : ISimpleClass
 
     private int PropertyPrivate { get; set; }
 
-    public string PropertyPublic { get; set; }
+    public string PropertyPublic { get; set; } = string.Empty;
 
     public static SimpleClass CreateForTests(int seed) =>
         new(seed, seed % 2 == 1, "seed_" + seed)
