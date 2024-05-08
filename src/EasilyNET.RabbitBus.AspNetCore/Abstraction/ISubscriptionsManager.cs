@@ -35,11 +35,4 @@ internal interface ISubscriptionsManager
     /// <param name="isDlx">是否是延迟消息</param>
     /// <returns></returns>
     bool HasSubscriptionsForEvent(string name, bool isDlx);
-
-    /// <summary>
-    /// 获取事件Key
-    /// </summary>
-    /// <param name="type"></param>
-    /// <returns></returns>
-    string GetEventKey(Type type);
 }

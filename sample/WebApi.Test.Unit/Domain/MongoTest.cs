@@ -8,6 +8,7 @@ public class MongoTest
     /// <summary>
     /// ID
     /// </summary>
+    // ReSharper disable once UnusedMember.Global
     public string Id { get; set; } = string.Empty;
 
     /// <summary>

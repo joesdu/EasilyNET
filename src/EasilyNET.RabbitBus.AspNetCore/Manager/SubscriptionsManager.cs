@@ -27,9 +27,6 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
         _dlxHandlers.Clear();
     }
 
-    /// <inheritdoc />
-    public string GetEventKey(Type type) => type.Name;
-
     private void DoAddSubscription(string name, bool isDlx, IList<TypeInfo> handlerType)
     {
         if (HasSubscriptionsForEvent(name, isDlx)) return;

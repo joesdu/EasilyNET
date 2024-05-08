@@ -119,5 +119,6 @@ public class Search
     /// 测试数值类型的参数设置默认值
     /// </summary>
     [DefaultValue(30)]
+    // ReSharper disable once UnusedMember.Global
     public int Index { get; set; }
 }
