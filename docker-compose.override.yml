@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  mongodb-primary:
+    image: bitnami/mongodb:latest
+    environment:
+      - TZ=Asia/Shanghai
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb-primary
+      - MONGODB_REPLICA_SET_MODE=primary
+      - MONGODB_REPLICA_SET_NAME=rs1
+      - MONGODB_ROOT_USER=joe
+      - MONGODB_ROOT_PASSWORD=a123456
+      - MONGODB_REPLICA_SET_KEY=HxplckY2jXSwfDRE
+    ports:
+      - 27017:27017
+    volumes:
+      - 'mongodb_master_data:/bitnami/mongodb'
+
+  mongodb-secondary:
+    image: bitnami/mongodb:latest
+    depends_on:
+      - mongodb-primary
+    environment:
+      - TZ=Asia/Shanghai
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb-secondary
+      - MONGODB_REPLICA_SET_MODE=secondary
+      - MONGODB_REPLICA_SET_NAME=rs1
+      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
+      - MONGODB_INITIAL_PRIMARY_HOST=mongodb-primary
+      - MONGODB_INITIAL_PRIMARY_ROOT_USER=joe
+      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=a123456
+      - MONGODB_REPLICA_SET_KEY=HxplckY2jXSwfDRE
+
+  mongodb-arbiter:
+    image: bitnami/mongodb:latest
+    depends_on:
+      - mongodb-primary
+    environment:
+      - TZ=Asia/Shanghai
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb-arbiter
+      - MONGODB_REPLICA_SET_MODE=arbiter
+      - MONGODB_REPLICA_SET_NAME=rs1
+      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
+      - MONGODB_INITIAL_PRIMARY_HOST=mongodb-primary
+      - MONGODB_INITIAL_PRIMARY_ROOT_USER=joe
+      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=a123456
+      - MONGODB_REPLICA_SET_KEY=HxplckY2jXSwfDRE
+
+  rabbit:
+    image: dygood/rabbitmq-dlx:latest
+    environment:
+      - TZ=Asia/Shanghai
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=a123456
+    ports:
+      - 15672:15672
+
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:8.0.0-preview.6
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - 18888:18888
+      - 4317:18889
+
+  webapi.test.unit:
+    environment:
+      - TZ=Asia/Shanghai
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      # ²Î¿¼Á´½Ó: https://www.rabbitmq.com/uri-spec.html
+      - CONNECTIONSTRINGS_RABBIT=amqp://admin:a123456@rabbit:5672/%2f
+      - CONNECTIONSTRINGS_MONGO=mongodb://joe:a123456@mongodb-primary:27017,mongodb-secondary:27017/?authSource=admin&serverSelectionTimeoutMS=1000
+    ports:
+      - 8080:8080
+
+volumes:
+  mongodb_master_data:
+    driver: local

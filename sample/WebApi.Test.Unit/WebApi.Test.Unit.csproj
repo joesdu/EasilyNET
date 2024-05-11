@@ -13,6 +13,7 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
         <DockerfileContext>..\..</DockerfileContext>
+        <DockerComposeProjectPath>..\..\docker-compose.dcproj</DockerComposeProjectPath>
     </PropertyGroup>
     
     <ItemGroup>
@@ -22,6 +23,13 @@
     
     <ItemGroup>
         <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.20.1" />
+        <PackageReference Include="OpenTelemetry" Version="1.8.1" />
+        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.8.1" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.8.1" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.8.1" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.8.0-beta.1" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.8.1" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.8.0" />
         <PackageReference Include="Serilog.AspNetCore" Version="8.0.2-dev-00338" />
         <PackageReference Include="Serilog.Sinks.Async" Version="1.5.0" />
         <PackageReference Include="Serilog.Sinks.MongoDB" Version="5.4.1" />
@@ -30,7 +38,6 @@
     
     <ItemGroup>
         <ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
-        <ProjectReference Include="..\..\src\EasilyNET.Images\EasilyNET.Images.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.Mongo.ConsoleDebug\EasilyNET.Mongo.ConsoleDebug.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.MongoDistributedLock.AspNetCore\EasilyNET.MongoDistributedLock.AspNetCore.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.MongoSerializer.AspNetCore\EasilyNET.MongoSerializer.AspNetCore.csproj" />

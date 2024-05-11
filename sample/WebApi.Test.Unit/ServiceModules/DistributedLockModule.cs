@@ -11,7 +11,7 @@ public sealed class DistributedLockModule : AppModule
     /// <inheritdoc />
     public DistributedLockModule()
     {
-        Enable = false;
+        Enable = true;
     }
 
     /// <inheritdoc />

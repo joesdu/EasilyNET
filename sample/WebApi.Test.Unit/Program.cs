@@ -1,8 +1,11 @@
 using EasilyNET.Core.Misc;
 using EasilyNET.WebCore.Handlers;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
+using System.Reflection;
 using WebApi.Test.Unit;
 
 Console.Title = "❤️ EasilyNET";
@@ -84,7 +87,28 @@ builder.Services.AddExceptionHandler<BusinessExceptionHandler>();
 
 // 自动注入服务模块
 builder.Services.AddApplication<AppWebModule>();
-//
+// OpenTelemetry
+builder.Logging.AddOpenTelemetry(c =>
+{
+    c.IncludeScopes = true;
+    c.IncludeFormattedMessage = true;
+});
+// OpenTelemetry
+builder.Services.AddOpenTelemetry()
+       .WithMetrics(c =>
+       {
+           c.AddRuntimeInstrumentation();
+           c.AddMeter("Microsoft.AspNetCore.Hosting",
+               "Microsoft.AspNetCore.Server.Kestrel",
+               "System.Net.Http",
+               nameof(Assembly.GetName));
+       })
+       .WithTracing(c =>
+       {
+           c.AddAspNetCoreInstrumentation();
+           c.AddHttpClientInstrumentation();
+           c.AddGrpcClientInstrumentation();
+       });
 var app = builder.Build();
 if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
 // 异常处理中间件
