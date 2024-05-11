@@ -10,14 +10,11 @@
 		<GenerateAssemblyCompanyAttribute>True</GenerateAssemblyCompanyAttribute>
 		<GenerateAssemblyProductAttribute>True</GenerateAssemblyProductAttribute>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
-		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<None Include=".\README.md" Pack="true" PackagePath="" />
-		<None Include="..\..\LICENSE" Pack="true" PackagePath="" />
 	</ItemGroup>
 
 	<PropertyGroup>

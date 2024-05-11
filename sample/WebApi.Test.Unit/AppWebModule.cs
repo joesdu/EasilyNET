@@ -1,6 +1,7 @@
 using EasilyNET.AutoDependencyInjection.Attributes;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
+using EasilyNET.WebCore.Handlers;
 
 // ReSharper disable ClassNeverInstantiated.Global
 
@@ -17,8 +18,8 @@ namespace WebApi.Test.Unit;
     typeof(MemoryCacheModule),
     typeof(MongoModule),
     typeof(MongoFSModule),
-    typeof(RabbitModule),
     typeof(DistributedLockModule),
+    typeof(RabbitModule),
     typeof(SwaggerModule))]
 public class AppWebModule : AppModule
 {
@@ -26,6 +27,10 @@ public class AppWebModule : AppModule
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         base.ConfigureServices(context);
+        // 添加 ProblemDetails 服务
+        context.Services.AddProblemDetails();
+        context.Services.AddExceptionHandler<BusinessExceptionHandler>();
+        // 添加HttpContextAccessor
         context.Services.AddHttpContextAccessor();
     }
 

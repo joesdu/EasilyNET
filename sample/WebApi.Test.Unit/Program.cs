@@ -1,11 +1,12 @@
 using EasilyNET.Core.Misc;
-using EasilyNET.WebCore.Handlers;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
+using Serilog.Sinks.OpenTelemetry;
 using Serilog.Sinks.SystemConsole.Themes;
-using System.Reflection;
 using WebApi.Test.Unit;
 
 Console.Title = "❤️ EasilyNET";
@@ -40,81 +41,65 @@ builder.Host.UseSerilog((hbc, lc) =>
               //wt.SpectreConsole();
               wt.Debug();
           }
-          wt.Console(theme: new AnsiConsoleTheme(new Dictionary<ConsoleThemeStyle, string>
+          wt.Console(theme: AnsiConsoleTheme.Code);
+          wt.OpenTelemetry(c =>
           {
-              [ConsoleThemeStyle.Text] = "\x1b[38;5;151m",
-              [ConsoleThemeStyle.SecondaryText] = "\x1b[38;5;245m",
-              [ConsoleThemeStyle.TertiaryText] = "\x1b[38;5;244m",
-              [ConsoleThemeStyle.Invalid] = "\x1b[38;5;214m",
-              [ConsoleThemeStyle.Null] = "\x1b[38;5;248m",
-              [ConsoleThemeStyle.Name] = "\x1b[38;5;141m",
-              [ConsoleThemeStyle.String] = "\x1b[38;5;168m",
-              [ConsoleThemeStyle.Number] = "\x1b[38;5;141m",
-              [ConsoleThemeStyle.Boolean] = "\x1b[38;5;248m",
-              [ConsoleThemeStyle.Scalar] = "\x1b[38;5;119m",
-              [ConsoleThemeStyle.LevelVerbose] = "\x1b[37m",
-              [ConsoleThemeStyle.LevelDebug] = "\x1b[37m",
-              [ConsoleThemeStyle.LevelInformation] = "\x1b[37;1m",
-              [ConsoleThemeStyle.LevelWarning] = "\x1b[38;5;208m",
-              [ConsoleThemeStyle.LevelError] = "\x1b[38;5;197m\x1b[48;5;238m",
-              [ConsoleThemeStyle.LevelFatal] = "\x1b[38;5;197m\x1b[48;5;238m"
-          }));
-          //var mongo = builder.Services.GetService<DbContext>()?.Database;
-          //if (mongo is not null)
-          //{
-          //    wt.MongoDBBson(c =>
-          //    {
-          //        // 使用链接字符串
-          //        //var connectionString = hbc.Configuration["CONNECTIONSTRINGS_MONGO"];
-          //        //if (string.IsNullOrWhiteSpace(connectionString)) connectionString = hbc.Configuration.GetConnectionString("Mongo");
-          //        //if (string.IsNullOrWhiteSpace(connectionString)) throw new("链接字符串不能为空");
-          //        //var mongoUrl = new MongoUrl(connectionString);
-          //        //var mongoDbInstance = new MongoClient(mongoUrl).GetDatabase("serilog");
-
-          //        // 设置别的数据库作为日志库
-          //        // var mongo = builder.Services.GetService<IMongoDatabase>()?.Client.GetDatabase("serilog") ?? throw new("无法从Ioc容器中获取到Mongo服务");
-          //        // sink will use the IMongoDatabase instance provided
-          //        c.SetMongoDatabase(mongo);
-          //        c.SetCollectionName("serilog");
-          //    });
-          //}
+              c.Protocol = OtlpProtocol.Grpc;
+              c.Endpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT") ?? "http://localhost:4317";
+              c.Headers = new Dictionary<string, string>
+              {
+                  ["x-otlp-api-key"] = Environment.GetEnvironmentVariable("DASHBOARD__OTLP__PRIMARYAPIKEY") ?? string.Empty
+              };
+              c.ResourceAttributes = new Dictionary<string, object>
+              {
+                  ["service.name"] = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ?? "EasilyNET",
+                  ["service.version"] = "1.0.0"
+              };
+          });
       });
 });
 
-// 添加 ProblemDetails 服务
-builder.Services.AddProblemDetails();
-builder.Services.AddExceptionHandler<BusinessExceptionHandler>();
-
-// 自动注入服务模块
-builder.Services.AddApplication<AppWebModule>();
-// OpenTelemetry
-builder.Logging.AddOpenTelemetry(c =>
-{
-    c.IncludeScopes = true;
-    c.IncludeFormattedMessage = true;
-});
 // OpenTelemetry
 builder.Services.AddOpenTelemetry()
        .WithMetrics(c =>
        {
            c.AddRuntimeInstrumentation();
-           c.AddMeter("Microsoft.AspNetCore.Hosting",
+           c.AddMeter([
+               "Microsoft.AspNetCore.Hosting",
                "Microsoft.AspNetCore.Server.Kestrel",
                "System.Net.Http",
-               nameof(Assembly.GetName));
+               "WebApi.Test.Unit"
+           ]);
+           c.AddOtlpExporter();
        })
        .WithTracing(c =>
        {
+           if (builder.Environment.IsDevelopment())
+           {
+               c.SetSampler<AlwaysOnSampler>();
+           }
            c.AddAspNetCoreInstrumentation();
            c.AddHttpClientInstrumentation();
            c.AddGrpcClientInstrumentation();
+           c.AddOtlpExporter();
        });
+builder.Services.Configure<OtlpExporterOptions>(c => c.Headers = $"x-otlp-api-key={Environment.GetEnvironmentVariable("DASHBOARD__OTLP__PRIMARYAPIKEY")}");
+builder.Services.AddHealthChecks().AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
+builder.Services.ConfigureHttpClientDefaults(c => c.AddStandardResilienceHandler());
+builder.Services.AddMetrics();
+// 自动注入服务模块
+builder.Services.AddApplication<AppWebModule>();
+//
 var app = builder.Build();
 if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
 // 异常处理中间件
 app.UseExceptionHandler();
 // 添加自动化注入的一些中间件.
 app.InitializeApplication();
-app.UseRepeatSubmit();
+app.MapHealthChecks("/health");
+app.MapHealthChecks("/alive", new()
+{
+    Predicate = r => r.Tags.Contains("live")
+});
 app.MapControllers();
 app.Run();

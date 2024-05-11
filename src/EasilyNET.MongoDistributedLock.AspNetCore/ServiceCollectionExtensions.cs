@@ -1,5 +1,4 @@
 using EasilyNET.MongoDistributedLock;
-using Microsoft.Extensions.DependencyInjection.Abstraction;
 using MongoDB.Driver;
 
 // ReSharper disable UnusedType.Global
@@ -20,9 +19,6 @@ public static class ServiceCollectionExtensions
     /// <param name="options"></param>
     public static void AddMongoDistributedLock(this IServiceCollection services, Action<LockOptions>? options = null)
     {
-        var option = new LockOptions();
-        options?.Invoke(option);
-        services.AddSingleton<IMongoLockFactory, MongoLockFactory>();
         var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredService<IMongoClient>();
         services.AddMongoDistributedLock(client, options);
@@ -67,6 +63,6 @@ public static class ServiceCollectionExtensions
         }
         var locks = db.GetCollection<LockAcquire>(option.AcquireCollName);
         var signal = db.GetCollection<ReleaseSignal>(option.SignalCollName);
-        services.AddSingleton(() => MongoLockFactory.Instance(locks, signal));
+        services.AddSingleton(_ => MongoLockFactory.Instance(locks, signal));
     }
 }

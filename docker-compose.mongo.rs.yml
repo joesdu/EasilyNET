@@ -1,0 +1,53 @@
+#version '3.8'
+
+services:  
+  mongodb_primary:
+    image: bitnami/mongodb:latest
+    environment:
+      - TZ=Asia/Shanghai
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb_primary
+      - MONGODB_REPLICA_SET_MODE=primary
+      - MONGODB_REPLICA_SET_NAME=rs1
+      - MONGODB_ROOT_USER=joe
+      - MONGODB_ROOT_PASSWORD=a123456
+      - MONGODB_REPLICA_SET_KEY=HxplckY2jXSwfDRE
+    ports:
+      - 27017:27017
+    volumes:
+      - 'mongodb_master_data:/bitnami/mongodb'
+
+  mongodb_secondary:
+    image: bitnami/mongodb:latest
+    depends_on:
+      - mongodb_primary
+    environment:
+      - TZ=Asia/Shanghai
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb_secondary
+      - MONGODB_REPLICA_SET_MODE=secondary
+      - MONGODB_REPLICA_SET_NAME=rs1
+      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
+      - MONGODB_INITIAL_PRIMARY_HOST=mongodb_primary
+      - MONGODB_INITIAL_PRIMARY_ROOT_USER=joe
+      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=a123456
+      - MONGODB_REPLICA_SET_KEY=HxplckY2jXSwfDRE
+    ports:
+      - 27018:27017
+
+  mongodb_arbiter:
+    image: bitnami/mongodb:latest
+    depends_on:
+      - mongodb_primary
+    environment:
+      - TZ=Asia/Shanghai
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb_arbiter
+      - MONGODB_REPLICA_SET_MODE=arbiter
+      - MONGODB_REPLICA_SET_NAME=rs1
+      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
+      - MONGODB_INITIAL_PRIMARY_HOST=mongodb_primary
+      - MONGODB_INITIAL_PRIMARY_ROOT_USER=joe
+      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=a123456
+      - MONGODB_REPLICA_SET_KEY=HxplckY2jXSwfDRE
+
+volumes:
+  mongodb_master_data:
+    driver: local

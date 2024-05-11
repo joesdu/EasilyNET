@@ -3,8 +3,13 @@
     "Docker Compose": {
       "commandName": "DockerCompose",
       "commandVersion": "1.0",
+      "composeLaunchAction": "LaunchBrowser",
+      "composeLaunchServiceName": "webapi.test.unit",
+      "composeLaunchUrl": "/swagger",
       "serviceActions": {
-        "webapi.test.unit": "StartDebugging"
+        "webapi.test.unit": "StartDebugging",
+        "aspire_dashboard": "StartWithoutDebugging",
+        "rabbit": "StartWithoutDebugging"
       }
     }
   }
