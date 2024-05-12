@@ -133,10 +133,10 @@ internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<Rabbi
     {
         var events = AssemblyHelper.FindTypes(o => o is { IsClass: true, IsAbstract: false } && o.IsBaseOn(typeof(IEvent)) && o.HasAttribute<ExchangeAttribute>());
         var handlers = AssemblyHelper.FindTypes(o => o is
-        {
-            IsClass: true,
-            IsAbstract: false
-        } &&
+                                                     {
+                                                         IsClass: true,
+                                                         IsAbstract: false
+                                                     } &&
                                                      o.IsBaseOn(typeof(IEventHandler<>)) &&
                                                      !o.HasAttribute<IgnoreHandlerAttribute>()).Select(s => s.GetTypeInfo()).ToList();
         foreach (var @event in events)

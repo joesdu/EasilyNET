@@ -1,22 +1,20 @@
-<Project>
+<?xml version="1.0" encoding="utf-8"?>
 
+<Project>
 	<PropertyGroup>
 		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 	</PropertyGroup>
-
 	<ItemGroup>
 		<None Include="..\..\LICENSE" Pack="true" PackagePath="" />
 	</ItemGroup>
-
 	<PropertyGroup>
 		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
 		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
 	</PropertyGroup>
-
 	<ItemGroup>
 		<PackageVersion Include="BouncyCastle.Cryptography" Version="2.4.0-beta.61" />
-		<PackageVersion Include="MessagePack" Version="2.6.100-alpha" />
+		<PackageVersion Include="MessagePack" Version="3.0.54-alpha" />
 		<PackageVersion Include="MongoDB.Bson" Version="2.25.0" />
 		<PackageVersion Include="MongoDB.Driver" Version="2.25.0" />
 		<PackageVersion Include="MongoDB.Driver.Core" Version="2.25.0" />
@@ -34,5 +32,4 @@
 		<PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0-preview.3.24172.9" />
 		<PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0-preview.3.24172.9" />
 	</ItemGroup>
-
 </Project>
