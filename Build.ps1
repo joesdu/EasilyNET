@@ -22,13 +22,14 @@ function Exec
     }
 }
 
+$solution = "EasilyNET.sln"
 $artifacts = ".\artifacts"
 
 if(Test-Path $artifacts) { Remove-Item $artifacts -Force -Recurse }
 
-exec { & dotnet clean -c Release }
-exec { & dotnet build -c Release }
-exec { & dotnet test -c Release --no-build -l trx --verbosity=normal }
+exec { & dotnet clean $solution -c Release }
+exec { & dotnet build $solution -c Release }
+exec { & dotnet test $solution -c Release --no-build -l trx --verbosity=normal }
 
 # Core
 exec { & dotnet pack .\src\EasilyNET.Core\EasilyNET.Core.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
@@ -43,7 +44,6 @@ exec { & dotnet pack .\src\EasilyNET.RabbitBus.Core\EasilyNET.RabbitBus.Core.csp
 exec { & dotnet pack .\src\EasilyNET.Security\EasilyNET.Security.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 
 # Mongo
-# exec { & dotnet pack .\src\EasilyNET.IdentityServer.MongoStorage\EasilyNET.IdentityServer.MongoStorage.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.Mongo.AspNetCore\EasilyNET.Mongo.AspNetCore.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.Mongo.ConsoleDebug\EasilyNET.Mongo.ConsoleDebug.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.Mongo.Core\EasilyNET.Mongo.Core.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
