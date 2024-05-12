@@ -164,7 +164,7 @@ public class MongoLockController(IMongoLockFactory lockFactory) : ControllerBase
                 }
             }));
         }
-        Task.WaitAll(tasks.ToArray());
+        Task.WaitAll([.. tasks]);
         var result = bucket.SequenceEqual(Enumerable.Range(0, 401));
         return new
         {
