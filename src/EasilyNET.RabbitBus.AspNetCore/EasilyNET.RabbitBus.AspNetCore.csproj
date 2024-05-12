@@ -19,18 +19,9 @@
         <PackageReference Include="MessagePack" />
         <PackageReference Include="Polly" />
         <PackageReference Include="RabbitMQ.Client" />
-    </ItemGroup>
-    
-    <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-        <PackageReference Include="Microsoft.Extensions.DependencyModel" VersionOverride="8.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" VersionOverride="8.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" VersionOverride="8.0.1" />
-    </ItemGroup>
-    
-    <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-        <PackageReference Include="Microsoft.Extensions.DependencyModel" />
-        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+		<PackageReference Include="Microsoft.Extensions.DependencyModel" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     </ItemGroup>
     
     <ItemGroup>

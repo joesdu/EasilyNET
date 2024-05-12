@@ -1,0 +1,8 @@
+#version: '3.4'
+
+services:
+  webapi.test.unit:
+    image: ${DOCKER_REGISTRY-}webapitestunit
+    build:
+      context: .
+      dockerfile: sample/WebApi.Test.Unit/Dockerfile

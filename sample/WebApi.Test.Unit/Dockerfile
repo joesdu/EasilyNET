@@ -13,7 +13,6 @@ COPY ["sample/WebApi.Test.Unit/WebApi.Test.Unit.csproj", "sample/WebApi.Test.Uni
 COPY ["src/EasilyNET.AutoDependencyInjection/EasilyNET.AutoDependencyInjection.csproj", "src/EasilyNET.AutoDependencyInjection/"]
 COPY ["src/EasilyNET.AutoDependencyInjection.Core/EasilyNET.AutoDependencyInjection.Core.csproj", "src/EasilyNET.AutoDependencyInjection.Core/"]
 COPY ["src/EasilyNET.Core/EasilyNET.Core.csproj", "src/EasilyNET.Core/"]
-COPY ["src/EasilyNET.Images/EasilyNET.Images.csproj", "src/EasilyNET.Images/"]
 COPY ["src/EasilyNET.Mongo.ConsoleDebug/EasilyNET.Mongo.ConsoleDebug.csproj", "src/EasilyNET.Mongo.ConsoleDebug/"]
 COPY ["src/EasilyNET.MongoDistributedLock.AspNetCore/EasilyNET.MongoDistributedLock.AspNetCore.csproj", "src/EasilyNET.MongoDistributedLock.AspNetCore/"]
 COPY ["src/EasilyNET.MongoDistributedLock/EasilyNET.MongoDistributedLock.csproj", "src/EasilyNET.MongoDistributedLock/"]

@@ -13,7 +13,7 @@ public class MongoFSModule : AppModule
     /// <inheritdoc />
     public MongoFSModule()
     {
-        Enable = false;
+        Enable = true;
     }
 
     /// <inheritdoc />

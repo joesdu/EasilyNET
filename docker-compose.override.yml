@@ -1,0 +1,35 @@
+#version: '3.4'
+
+services:
+
+  rabbit:
+    image: dygood/rabbitmq-dlx:latest
+    environment:
+      - TZ=Asia/Shanghai
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=a123456
+    ports:
+      - 15672:15672
+
+  aspire_dashboard:
+    image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:8.0.0-preview.6
+    environment:
+      - TZ=Asia/Shanghai
+      - DASHBOARD__OTLP__AUTHMODE=ApiKey
+      - DASHBOARD__OTLP__PRIMARYAPIKEY=${DASHBOARD__OTLP__PRIMARYAPIKEY}
+    ports:
+      - 18888:18888
+      - 4317:18889
+
+  webapi.test.unit:
+    environment:
+      - TZ=Asia/Shanghai
+      - ASPNETCORE_ENVIRONMENT=Development
+      - OTEL_SERVICE_NAME=EasilyNET
+      - OTEL_METRIC_EXPORT_INTERVAL=5000
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+      - DASHBOARD__OTLP__PRIMARYAPIKEY=${DASHBOARD__OTLP__PRIMARYAPIKEY}
+      - CONNECTIONSTRINGS_MONGO=${CONNECTIONSTRINGS_MONGO}
+      - CONNECTIONSTRINGS_RABBIT=${CONNECTIONSTRINGS_RABBIT}
+    ports:
+      - 8080:8080

@@ -8,12 +8,12 @@ using WebApi.Test.Unit.Events;
 namespace WebApi.Test.Unit.EventHandlers;
 
 /// <inheritdoc />
-public class HelloWorldEventHandlers : IEventHandler<HelloWorldEvent>
+public class HelloWorldEventHandlers(ILogger<HelloWorldEventHandlers> logger) : IEventHandler<HelloWorldEvent>
 {
     /// <inheritdoc />
     public Task HandleAsync(HelloWorldEvent @event)
     {
-        Console.WriteLine($"[消息处理自:{nameof(HelloWorldEventHandlers)}]-{JsonSerializer.Serialize(@event)}");
+        logger.LogInformation("[消息处理自:{handler}]-{msg}", nameof(HelloWorldEventHandlers), JsonSerializer.Serialize(@event));
         return Task.CompletedTask;
     }
 }

@@ -18,7 +18,6 @@ EasilyNET Packages
 
 - AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4 加密,验签等算法
 - 基于 MongoDB 的分布式锁
-- 简单的二维码生成和读取
 - 基于 RabbitMQ 的消息总线实现
 - 对 MongoDB 驱动的一些封装,方便使用以及一些常用的默认配置
 - 雪花 ID,一些常用的数据类型,枚举,扩展方法等
@@ -43,7 +42,6 @@ EasilyNET Packages
 | NuGet Package                           | Version      | Download     | Document                                                  |
 | --------------------------------------- | ------------ | ------------ | --------------------------------------------------------- |
 | [EasilyNET.AutoDependencyInjection][17] | ![Nuget][18] | ![Nuget][19] | [文档](./src/EasilyNET.AutoDependencyInjection/README.md) |
-| [EasilyNET.Images][20]                  | ![Nuget][21] | ![Nuget][22] | [文档](./src/EasilyNET.Images/README.md)                  |
 | [EasilyNET.RabbitBus.AspNetCore][23]    | ![Nuget][24] | ![Nuget][25] | [文档](./src/EasilyNET.RabbitBus.AspNetCore/README.md)    |
 | [EasilyNET.Security][26]                | ![Nuget][27] | ![Nuget][28] | [文档](./src/EasilyNET.Security/README.md)                |
 
@@ -110,9 +108,6 @@ EasilyNET Packages
 [17]: https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection
 [18]: https://img.shields.io/nuget/v/EasilyNET.AutoDependencyInjection
 [19]: https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection
-[20]: https://www.nuget.org/packages/EasilyNET.Images
-[21]: https://img.shields.io/nuget/v/EasilyNET.Images
-[22]: https://img.shields.io/nuget/dt/EasilyNET.Images
 [23]: https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore
 [24]: https://img.shields.io/nuget/v/EasilyNET.RabbitBus.AspNetCore
 [25]: https://img.shields.io/nuget/dt/EasilyNET.RabbitBus.AspNetCore
