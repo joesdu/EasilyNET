@@ -7,7 +7,7 @@ namespace WebApi.Test.Unit;
 /// <summary>
 /// Rabbit服务注册
 /// </summary>
-public class RabbitModule : AppModule
+internal sealed class RabbitModule : AppModule
 {
     /// <inheritdoc />
     public RabbitModule()

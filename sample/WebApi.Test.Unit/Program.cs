@@ -1,8 +1,4 @@
 using EasilyNET.Core.Misc;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using OpenTelemetry.Exporter;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
@@ -45,57 +41,42 @@ builder.Host.UseSerilog((hbc, lc) =>
           wt.OpenTelemetry(c =>
           {
               c.Protocol = OtlpProtocol.Grpc;
-              c.Endpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT") ?? "http://localhost:4317";
+              c.Endpoint = hbc.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? "http://localhost:4317";
               c.Headers = new Dictionary<string, string>
               {
-                  ["x-otlp-api-key"] = Environment.GetEnvironmentVariable("DASHBOARD__OTLP__PRIMARYAPIKEY") ?? string.Empty
+                  ["x-otlp-api-key"] = hbc.Configuration["DASHBOARD_OTLP_PRIMARYAPIKEY"] ?? string.Empty
               };
               c.ResourceAttributes = new Dictionary<string, object>
               {
-                  ["service.name"] = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ?? "EasilyNET",
+                  ["service.name"] = hbc.Configuration["OTEL_SERVICE_NAME"] ?? "EasilyNET",
                   ["service.version"] = "1.0.0"
               };
           });
       });
 });
 
-// OpenTelemetry
-builder.Services.AddOpenTelemetry()
-       .WithMetrics(c =>
-       {
-           c.AddRuntimeInstrumentation();
-           c.AddMeter([
-               "Microsoft.AspNetCore.Hosting",
-               "Microsoft.AspNetCore.Server.Kestrel",
-               "System.Net.Http",
-               "WebApi.Test.Unit"
-           ]);
-           c.AddOtlpExporter();
-       })
-       .WithTracing(c =>
-       {
-           if (builder.Environment.IsDevelopment())
-           {
-               c.SetSampler<AlwaysOnSampler>();
-           }
-           c.AddAspNetCoreInstrumentation();
-           c.AddHttpClientInstrumentation();
-           c.AddGrpcClientInstrumentation();
-           c.AddOtlpExporter();
-       });
-builder.Services.Configure<OtlpExporterOptions>(c => c.Headers = $"x-otlp-api-key={Environment.GetEnvironmentVariable("DASHBOARD__OTLP__PRIMARYAPIKEY")}");
-builder.Services.AddHealthChecks().AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
-builder.Services.ConfigureHttpClientDefaults(c => c.AddStandardResilienceHandler());
-builder.Services.AddMetrics();
 // 自动注入服务模块
 builder.Services.AddApplication<AppWebModule>();
-//
 var app = builder.Build();
 if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
-// 异常处理中间件
-app.UseExceptionHandler();
+app.Use(async (c, next) =>
+{
+    c.Response.Headers.AddRange([
+        new("Strict-Transport-Security", "max-age=63072000; includeSubdomains; preload"),
+        new("X-Content-Type-Options", "nosniff"),
+        new("X-XSS-Protection", "1; mode=block"),
+        new("X-Frame-Options", "sameorigin"),
+        new("Referrer-Policy", "strict-origin-when-cross-origin"),
+        new("X-Download-Options", "noopen"),
+        new("X-Permitted-Cross-Domain-Policies", "none"),
+        new("Cache-control", "max-age=1, no-cache, no-store, must-revalidate, private")
+    ]);
+    await next();
+});
+
 // 添加自动化注入的一些中间件.
 app.InitializeApplication();
+// 配置健康检查端点
 app.MapHealthChecks("/health");
 app.MapHealthChecks("/alive", new()
 {

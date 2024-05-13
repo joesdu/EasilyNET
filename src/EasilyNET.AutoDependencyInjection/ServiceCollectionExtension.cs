@@ -3,6 +3,7 @@ using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 
 // ReSharper disable UnusedMember.Global
@@ -65,7 +66,14 @@ public static partial class ServiceCollectionExtension
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
-    public static IConfiguration GetConfiguration(this IServiceCollection services) => services.GetBuildService<IConfiguration>() ?? throw new("未找到IConfiguration服务");
+    public static IConfiguration GetConfiguration(this IServiceCollection services) => services.GetBuildService<IConfiguration>() ?? throw new($"未找到{nameof(IConfiguration)}服务");
+
+    /// <summary>
+    /// 获取 <see cref="IWebHostEnvironment" /> 服务
+    /// </summary>
+    /// <param name="services"></param>
+    /// <returns></returns>
+    public static IWebHostEnvironment GetWebHostEnvironment(this IServiceCollection services) => services.GetService<IWebHostEnvironment>() ?? throw new($"未找到{nameof(IWebHostEnvironment)}服务");
 
     /// <summary>
     /// 获取 <see cref="IConfiguration" /> 服务

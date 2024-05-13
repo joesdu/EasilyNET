@@ -12,6 +12,7 @@ namespace WebApi.Test.Unit;
  * 该处模块注入顺序为从上至下,本类AppWebModule最先注册.所以本类中中间件注册函数ApplicationInitialization最先执行.
  */
 [DependsOn(typeof(DependencyAppModule),
+    typeof(ResponseCompressionModule),
     typeof(CorsModule),
     typeof(ControllersModule),
     typeof(OutPutCachingModule),
@@ -20,8 +21,9 @@ namespace WebApi.Test.Unit;
     typeof(MongoFSModule),
     typeof(DistributedLockModule),
     typeof(RabbitModule),
-    typeof(SwaggerModule))]
-public class AppWebModule : AppModule
+    typeof(SwaggerModule),
+    typeof(OpenTelemetryModule))]
+internal sealed class AppWebModule : AppModule
 {
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
@@ -39,6 +41,8 @@ public class AppWebModule : AppModule
     {
         base.ApplicationInitialization(context);
         var app = context.GetApplicationBuilder();
+        // 全局异常处理中间件
+        app.UseExceptionHandler();
         app.UseResponseTime();
         // 先认证
         app.UseAuthentication();

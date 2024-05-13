@@ -10,11 +10,11 @@ using System.Text.Json.Serialization;
 namespace WebApi.Test.Unit.Middleware;
 
 /// <summary>
-/// 全局异常中间件
+/// 全局异常中间件(使用自定义返回格式)
 /// </summary>
 /// <param name="next"></param>
 /// <param name="logger"></param>
-internal class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger)
+internal sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger)
 {
     private static readonly JsonSerializerOptions options = new() { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
 
@@ -48,7 +48,7 @@ internal class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandli
 internal static class ErrorHandleExtension
 {
     /// <summary>
-    /// 使用全局异常中间件
+    /// 使用全局异常中间件(使用自定义返回格式)
     /// </summary>
     /// <param name="builder"></param>
     /// <returns></returns>

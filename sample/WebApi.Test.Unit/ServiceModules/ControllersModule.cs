@@ -14,7 +14,7 @@ namespace WebApi.Test.Unit;
 /// <summary>
 /// 注册一些控制器的基本内容
 /// </summary>
-public class ControllersModule : AppModule
+internal sealed class ControllersModule : AppModule
 {
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
