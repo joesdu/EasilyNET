@@ -6,7 +6,7 @@ namespace WebApi.Test.Unit;
 /// <summary>
 /// 配置跨域服务及中间件
 /// </summary>
-public class CorsModule : AppModule
+public sealed class CorsModule : AppModule
 {
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)

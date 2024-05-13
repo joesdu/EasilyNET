@@ -7,7 +7,7 @@ namespace WebApi.Test.Unit;
 /// <summary>
 /// Swagger文档的配置
 /// </summary>
-public class SwaggerModule : AppModule
+public sealed class SwaggerModule : AppModule
 {
     /**
      * https://github.com/domaindrivendev/Swashbuckle.AspNetCore

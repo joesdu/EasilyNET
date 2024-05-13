@@ -8,7 +8,7 @@ namespace WebApi.Test.Unit;
 /// <summary>
 /// GridFS
 /// </summary>
-public class MongoFSModule : AppModule
+public sealed class MongoFSModule : AppModule
 {
     /// <inheritdoc />
     public MongoFSModule()

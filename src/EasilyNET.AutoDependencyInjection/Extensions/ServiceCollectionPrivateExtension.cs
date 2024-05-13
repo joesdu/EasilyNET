@@ -65,10 +65,12 @@ public static partial class ServiceCollectionExtension
     /// <returns></returns>
     private static ObjectAccessor<T> AddObjectAccessor<T>(this IServiceCollection services, ObjectAccessor<T> accessor)
     {
-        if (services.Any(s => s.ServiceType == typeof(ObjectAccessor<T>))) throw new("在类型“{typeof(T).AssemblyQualifiedName)}”之前注册了对象");
+        if (services.Any(s => s.ServiceType == typeof(ObjectAccessor<T>))) throw new($"在类型“{typeof(T).AssemblyQualifiedName}”之前注册了对象");
         //Add to the beginning for fast retrieve
+#pragma warning disable CA2263 // 类型已知时首选泛型重载
         services.Insert(0, ServiceDescriptor.Singleton(typeof(ObjectAccessor<T>), accessor));
         services.Insert(0, ServiceDescriptor.Singleton(typeof(IObjectAccessor<T>), accessor));
+#pragma warning restore CA2263 // 类型已知时首选泛型重载
         return accessor;
     }
 }

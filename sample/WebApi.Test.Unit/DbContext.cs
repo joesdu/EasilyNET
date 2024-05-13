@@ -6,7 +6,7 @@ using MongoDB.Driver;
 namespace WebApi.Test.Unit;
 
 /// <inheritdoc />
-public class DbContext : MongoContext
+public sealed class DbContext : MongoContext
 {
     /// <summary>
     /// MongoTest

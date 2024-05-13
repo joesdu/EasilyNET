@@ -20,8 +20,9 @@ namespace WebApi.Test.Unit;
     typeof(MongoFSModule),
     typeof(DistributedLockModule),
     typeof(RabbitModule),
-    typeof(SwaggerModule))]
-public class AppWebModule : AppModule
+    typeof(SwaggerModule),
+    typeof(OpenTelemetryModule))]
+public sealed class AppWebModule : AppModule
 {
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
@@ -39,6 +40,8 @@ public class AppWebModule : AppModule
     {
         base.ApplicationInitialization(context);
         var app = context.GetApplicationBuilder();
+        // 全局异常处理中间件
+        app.UseExceptionHandler();
         app.UseResponseTime();
         // 先认证
         app.UseAuthentication();

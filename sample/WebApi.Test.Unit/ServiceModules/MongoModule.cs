@@ -9,7 +9,7 @@ namespace WebApi.Test.Unit;
 /// <summary>
 /// MongoDB驱动模块
 /// </summary>
-public class MongoModule : AppModule
+public sealed class MongoModule : AppModule
 {
     /// <inheritdoc />
     public MongoModule()
