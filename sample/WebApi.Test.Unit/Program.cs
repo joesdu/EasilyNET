@@ -44,7 +44,7 @@ builder.Host.UseSerilog((hbc, lc) =>
               c.Endpoint = hbc.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? "http://localhost:4317";
               c.Headers = new Dictionary<string, string>
               {
-                  ["x-otlp-api-key"] = hbc.Configuration["DASHBOARD__OTLP__PRIMARYAPIKEY"] ?? string.Empty
+                  ["x-otlp-api-key"] = hbc.Configuration["DASHBOARD_OTLP_PRIMARYAPIKEY"] ?? string.Empty
               };
               c.ResourceAttributes = new Dictionary<string, object>
               {
@@ -59,6 +59,20 @@ builder.Host.UseSerilog((hbc, lc) =>
 builder.Services.AddApplication<AppWebModule>();
 var app = builder.Build();
 if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
+app.Use(async (c, next) =>
+{
+    c.Response.Headers.AddRange([
+        new("Strict-Transport-Security", "max-age=63072000; includeSubdomains; preload"),
+        new("X-Content-Type-Options", "nosniff"),
+        new("X-XSS-Protection", "1; mode=block"),
+        new("X-Frame-Options", "sameorigin"),
+        new("Referrer-Policy", "strict-origin-when-cross-origin"),
+        new("X-Download-Options", "noopen"),
+        new("X-Permitted-Cross-Domain-Policies", "none"),
+        new("Cache-control", "max-age=1, no-cache, no-store, must-revalidate, private")
+    ]);
+    await next();
+});
 
 // 添加自动化注入的一些中间件.
 app.InitializeApplication();

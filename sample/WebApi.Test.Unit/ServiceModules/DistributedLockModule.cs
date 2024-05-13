@@ -6,7 +6,7 @@ namespace WebApi.Test.Unit;
 /// <summary>
 /// 分布式锁
 /// </summary>
-public sealed class DistributedLockModule : AppModule
+internal sealed class DistributedLockModule : AppModule
 {
     /// <inheritdoc />
     public DistributedLockModule()

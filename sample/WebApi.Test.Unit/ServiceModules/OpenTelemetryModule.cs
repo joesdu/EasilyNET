@@ -10,12 +10,11 @@ namespace WebApi.Test.Unit;
 /// <summary>
 /// OpenTelemetry相关内容
 /// </summary>
-public sealed class OpenTelemetryModule : AppModule
+internal sealed class OpenTelemetryModule : AppModule
 {
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        // OpenTelemetry
         var config = context.Services.GetConfiguration();
         var env = context.Services.GetWebHostEnvironment();
         context.Services.AddOpenTelemetry()
@@ -43,9 +42,9 @@ public sealed class OpenTelemetryModule : AppModule
                });
         context.Services.Configure<OtlpExporterOptions>(c =>
         {
-            if (!string.IsNullOrWhiteSpace(config["DASHBOARD__OTLP__PRIMARYAPIKEY"]))
+            if (!string.IsNullOrWhiteSpace(config["DASHBOARD_OTLP_PRIMARYAPIKEY"]))
             {
-                c.Headers = $"x-otlp-api-key={config["DASHBOARD__OTLP__PRIMARYAPIKEY"]}";
+                c.Headers = $"x-otlp-api-key={config["DASHBOARD_OTLP_PRIMARYAPIKEY"]}";
             }
         });
         context.Services.AddHealthChecks().AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);

@@ -9,7 +9,7 @@ namespace WebApi.Test.Unit;
 /// <summary>
 /// MongoDB驱动模块
 /// </summary>
-public sealed class MongoModule : AppModule
+internal sealed class MongoModule : AppModule
 {
     /// <inheritdoc />
     public MongoModule()
@@ -68,11 +68,6 @@ public sealed class MongoModule : AppModule
         //        cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber());
         //    };
         //});
-        HashSet<string> CommandsWithCollectionName =
-        [
-            "mongo.test",
-            "long.data"
-        ];
         context.Services.AddMongoContext<DbContext>(config, c =>
         {
             c.DatabaseName = "easilynet";
@@ -80,24 +75,23 @@ public sealed class MongoModule : AppModule
             {
                 cs.ClusterConfigurator = s => s.Subscribe(new ActivityEventSubscriber(new()
                 {
-                    Enable = true,
-                    ShouldStartCollection = x => CommandsWithCollectionName.Contains(x)
+                    Enable = true
                 }));
                 cs.LinqProvider = LinqProvider.V3;
                 // https://www.mongodb.com/docs/drivers/csharp/current/fundamentals/logging/#log-messages-by-category
-                cs.LoggingSettings = new(LoggerFactory.Create(b =>
-                {
-                    b.AddConfiguration(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-                    {
-                        //{ "LogLevel:Default", "Debug" },
-                        //{ "LogLevel:MongoDB.SDAM", "Debug" },
-                        { "LogLevel:MongoDB.COMMAND", "Debug" }
-                        //{ "LogLevel:MongoDB.CONNECTION", "Debug" },
-                        //{ "LogLevel:MongoDB.INTERNAL.*", "Debug" },
-                        //{ "LogLevel:MongoDB.SERVERSELECTION", "Debug" }
-                    }).Build());
-                    b.AddSimpleConsole();
-                }));
+                //cs.LoggingSettings = new(LoggerFactory.Create(b =>
+                //{
+                //    b.AddConfiguration(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+                //    {
+                //        //{ "LogLevel:Default", "Debug" },
+                //        //{ "LogLevel:MongoDB.SDAM", "Debug" },
+                //        { "LogLevel:MongoDB.COMMAND", "Debug" }
+                //        //{ "LogLevel:MongoDB.CONNECTION", "Debug" },
+                //        //{ "LogLevel:MongoDB.INTERNAL.*", "Debug" },
+                //        //{ "LogLevel:MongoDB.SERVERSELECTION", "Debug" }
+                //    }).Build());
+                //    b.AddSimpleConsole();
+                //}));
             };
         });
         context.Services.RegisterSerializer(new DateOnlySerializerAsString());
