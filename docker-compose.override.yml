@@ -12,7 +12,7 @@ services:
       - 15672:15672
 
   aspire_dashboard:
-    image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:8.0.0-preview.6
+    image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest
     environment:
       - TZ=Asia/Shanghai
       - DASHBOARD__OTLP__AUTHMODE=ApiKey
