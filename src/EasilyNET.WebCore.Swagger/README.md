@@ -10,6 +10,10 @@
 
 - 在 Swagger 文档中给需要 Authorize 的接口添加 🔒
 
+### 最新变化
+
+- SwaggerIgnoreAttribute由于官方已经提供了同名特性,所以这里删除相关代码.
+
 ### 可用特性
 
 - ApiGroupAttribute 对控制器进行分组.便于将特有的功能分到一个组方便管理.
