@@ -19,12 +19,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		Build.ps1 = Build.ps1
 		Directory.Build.props = Directory.Build.props
+		docker-compose.mongo.rs.yml = docker-compose.mongo.rs.yml
 		EasilyNET.snk = EasilyNET.snk
 		gitemoji.md = gitemoji.md
 		LICENSE = LICENSE
 		Push.ps1 = Push.ps1
 		README.md = README.md
-		docker-compose.mongo.rs.yml = docker-compose.mongo.rs.yml
 		ToUTF8.ps1 = ToUTF8.ps1
 	EndProjectSection
 EndProject
@@ -76,9 +76,6 @@ Global
 		{0946F8C0-D42D-D461-E119-5C393FC1F932}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0946F8C0-D42D-D461-E119-5C393FC1F932}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0946F8C0-D42D-D461-E119-5C393FC1F932}.Release|Any CPU.Build.0 = Release|Any CPU
-		{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F71CC94F-31EF-2277-8F41-D2191F2C6430}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F71CC94F-31EF-2277-8F41-D2191F2C6430}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F71CC94F-31EF-2277-8F41-D2191F2C6430}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -143,6 +140,9 @@ Global
 		{9B426136-DC85-603B-94FB-F3C0B2E72713}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9B426136-DC85-603B-94FB-F3C0B2E72713}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9B426136-DC85-603B-94FB-F3C0B2E72713}.Release|Any CPU.Build.0 = Release|Any CPU
+		{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -171,21 +171,5 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BF2C0069-ED43-44A1-A66C-2CC1B62E3EA3}
-	EndGlobalSection
-EndGlobal
-C0B2E72713} = {4F9DEAE5-078F-E77A-2E4A-FEB6FFE226FF}
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {BF2C0069-ED43-44A1-A66C-2CC1B62E3EA3}
-	EndGlobalSection
-EndGlobal
- = postSolution
-		SolutionGuid = {BF2C0069-ED43-44A1-A66C-2CC1B62E3EA3}
-	EndGlobalSection
-EndGlobal
-onGuid = {BF2C0069-ED43-44A1-A66C-2CC1B62E3EA3}
-	EndGlobalSection
-EndGlobal
-D43-44A1-A66C-2CC1B62E3EA3}
 	EndGlobalSection
 EndGlobal
