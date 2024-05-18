@@ -1,20 +1,30 @@
 #version: '3.4'
 
 services:
+  garnet:
+    image: ghcr.io/joesdu/garnet:latest
+    environment:
+      - TZ=Asia/Chongqing
+    ports:
+      - 3278:3278
+    deploy:
+      resources:
+        limits:
+          memory: 5G
 
   rabbit:
-    image: dygood/rabbitmq-dlx:latest
+    image: ghcr.io/joesdu/rabbitmq-dlx:latest
     environment:
-      - TZ=Asia/Shanghai
+      - TZ=Asia/Chongqing
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=a123456
     ports:
       - 15672:15672
 
   aspire_dashboard:
-    image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:8.0.0-preview.6
+    image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest
     environment:
-      - TZ=Asia/Shanghai
+      - TZ=Asia/Chongqing
       - DASHBOARD__OTLP__AUTHMODE=ApiKey
       - DASHBOARD__OTLP__PRIMARYAPIKEY=${DASHBOARD_OTLP_PRIMARYAPIKEY}
       - DASHBOARD__TELEMETRYLIMITS__MAXLOGCOUNT=1000
@@ -26,7 +36,7 @@ services:
 
   webapi.test.unit:
     environment:
-      - TZ=Asia/Shanghai
+      - TZ=Asia/Chongqing
       - ASPNETCORE_ENVIRONMENT=Development
       - OTEL_SERVICE_NAME=EasilyNET
       - OTEL_METRIC_EXPORT_INTERVAL=5000

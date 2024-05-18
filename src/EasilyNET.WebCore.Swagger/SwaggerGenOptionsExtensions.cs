@@ -59,9 +59,7 @@ public static class SwaggerGenOptionsExtensions
         }
         op.DocumentFilter<SwaggerHiddenApiFilter>();
         op.OperationFilter<SwaggerAuthorizeFilter>();
-        op.OperationFilter<SwaggerParamIgnoreFilter>();
         op.SchemaFilter<SwaggerDefaultValueFilter>();
-        op.SchemaFilter<SwaggerPropertyIgnoreFilter>();
     }
 
     /// <summary>
