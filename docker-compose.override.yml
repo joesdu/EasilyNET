@@ -10,7 +10,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 5G
+          memory: 2G
 
   rabbit:
     image: ghcr.io/joesdu/rabbitmq-dlx:latest
