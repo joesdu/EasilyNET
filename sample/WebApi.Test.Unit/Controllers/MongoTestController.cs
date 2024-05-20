@@ -81,10 +81,7 @@ public class MongoTestController(DbContext db) : ControllerBase
     /// <param name="id"></param>
     /// <returns></returns>
     [HttpGet("Test2")]
-    public async Task<MongoTest2> GetTest2(string id)
-    {
-        return await db.Test2.Find(c => c.Id == id).SingleOrDefaultAsync();
-    }
+    public async Task<MongoTest2> GetTest2(string id) => await db.Test2.Find(c => c.Id == id).SingleOrDefaultAsync();
 
     /// <summary>
     /// 查询测试Test2
@@ -106,19 +103,19 @@ public class Search
     /// <summary>
     /// 开始日期
     /// </summary>
-    [DefaultValue(typeof(DateOnly), "2022-11-02")] //对象类型设置默认值没啥用.就当是给开发人员看吧.
+    [DefaultValue(typeof(DateOnly), "2022-11-02")]
     public DateOnly Start { get; set; }
 
     /// <summary>
     /// 结束日期
     /// </summary>
-    [DefaultValue("2022-11-05")]
+    [DefaultValue(typeof(DateOnly), "2022-11-05")]
     public DateOnly End { get; set; }
 
     /// <summary>
     /// 测试数值类型的参数设置默认值
     /// </summary>
-    [DefaultValue(30)]
     // ReSharper disable once UnusedMember.Global
+    [DefaultValue(30)]
     public int Index { get; set; }
 }

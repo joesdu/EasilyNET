@@ -10,7 +10,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 5G
+          memory: 2G
 
   rabbit:
     image: ghcr.io/joesdu/rabbitmq-dlx:latest
@@ -45,4 +45,4 @@ services:
       - CONNECTIONSTRINGS_MONGO=${CONNECTIONSTRINGS_MONGO}
       - CONNECTIONSTRINGS_RABBIT=${CONNECTIONSTRINGS_RABBIT}
     ports:
-      - 8080:8080
+      - 8848:8080

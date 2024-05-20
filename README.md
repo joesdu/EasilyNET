@@ -14,6 +14,22 @@
 git config core.ignorecase false
 ```
 
+本项目为 docker-compose 的编排,用于展示项目的效果以及单独为项目启动一些服务.
+
+- 目前包含的服务列表如下:
+
+| 服务名称        | 服务描述           | 端口映射   | 镜像名称                                                 |
+| --------------- | ------------------ | ---------- | -------------------------------------------------------- |
+| Garnet          | 超高性能分布式缓存 | 3278       | ghcr.io/joesdu/garnet:latest                             |
+| RabbitMQ        | 消息队列           | 15672      | ghcr.io/joesdu/rabbitmq-dlx:latest                       |
+| AspireDashboard | 可观测性           | 18888,4317 | mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest |
+
+- 使用 docker-compose 启动 MongoDB 副本集集群,使用本项目中的 yml 文件启动 MongoDB 副本集集群
+
+```bash
+docker compose -f docker-compose.mongo.rs.yml up -d
+```
+
 EasilyNET Packages
 
 - AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4 加密,验签等算法
@@ -79,13 +95,12 @@ EasilyNET Packages
 | docs     | 文档(documentation)                                      |
 | style    | 格式(不影响代码运行的变动)                               |
 | refactor | 重构(即不是新增功能,也不是修改 bug 的代码变动)           |
-| perf     | 优化相关,比如提升性能、体验                             |
+| perf     | 优化相关,比如提升性能、体验                              |
 | test     | 增加测试                                                 |
 | chore    | 构建过程或辅助工具的变动                                 |
 | revert   | 回滚到上一个版本                                         |
 | merge    | 代码合并                                                 |
 | sync     | 同步主线或分支的 Bug                                     |
-
 
 <!--文档中的各项链接-->
 
