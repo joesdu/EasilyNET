@@ -79,7 +79,7 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
     public virtual async Task<IEnumerable<GridFSItem>> PostMulti([FromForm] UploadGridFSMulti fs, CancellationToken cancellationToken)
     {
         if (fs.File is null || fs.File.Count == 0) throw new("no files find");
-        if (fs.DeleteIds.Count > 0) _ = Delete(cancellationToken, fs.DeleteIds.ToArray());
+        if (fs.DeleteIds.Count > 0) _ = Delete(cancellationToken, [.. fs.DeleteIds]);
         var rsList = new List<GridFSItem>();
         var infos = new List<GridFSItemInfo>();
         foreach (var item in fs.File)
