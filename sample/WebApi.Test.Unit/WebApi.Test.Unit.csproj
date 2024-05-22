@@ -8,20 +8,20 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0-preview.3.24172.13" />
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0-preview.3.24172.13" />
-        <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="9.0.0-preview.3.24209.3" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0-preview.4.24267.6" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0-preview.4.24267.6" />
+        <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="9.0.0-preview.4.24271.2" />
         <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.20.1" />
-        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.8.1" />
-        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.8.1" />
+        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0-alpha.1" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0-alpha.1" />
         <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.8.1" />
         <PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.8.0-beta.1" />
         <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.8.1" />
-        <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.8.0" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.8.1" />
         <PackageReference Include="Serilog.AspNetCore" Version="8.0.2-dev-00338" />
         <PackageReference Include="Serilog.Sinks.Async" Version="1.5.0" />
         <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="3.0.0-dev-00298" />
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.1" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     </ItemGroup>
     
     <ItemGroup>
