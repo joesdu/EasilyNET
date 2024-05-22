@@ -22,13 +22,13 @@
     <PackageVersion Include="RabbitMQ.Client" Version="7.0.0-alpha.6" />
     <PackageVersion Include="Serilog" Version="4.0.0-dev-02174" />
     <PackageVersion Include="Spectre.Console.Json" Version="0.49.2-preview.0.5" />
-    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.6.1" />
-    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.6.1" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.6.2" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.6.2" />
     <!--microsoft asp.net core -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0-preview.3.24172.9" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="9.0.0-preview.3.24172.9" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.0-preview.3.24172.9" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0-preview.3.24172.9" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0-preview.3.24172.9" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0-preview.4.24266.19" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="9.0.0-preview.4.24266.19" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.0-preview.4.24266.19" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0-preview.4.24266.19" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0-preview.4.24266.19" />
   </ItemGroup>
 </Project>
