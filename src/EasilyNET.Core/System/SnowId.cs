@@ -76,7 +76,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     public SnowId(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        var bytes = value.ParseHex();
+        var bytes = Convert.FromHexString(value);
         FromByteArray(bytes, 0, out _a, out _b, out _c);
     }
 

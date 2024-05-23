@@ -64,7 +64,7 @@ public static partial class StringExtension
     {
         var regex = ToTitleUpperCaseRegex();
         return regex.Replace(value,
-            delegate(Match m)
+            delegate (Match m)
             {
                 var str = m.ToString();
                 if (!char.IsLower(str[0])) return str;
@@ -163,12 +163,12 @@ public static partial class StringExtension
         return value.Length switch
         {
             >= 11 => MaskElevenRegex().Replace(value, $"$1{masks}$2"),
-            10    => MaskTenRegex().Replace(value, $"$1{masks}$2"),
-            9     => MaskNineRegex().Replace(value, $"$1{masks}$2"),
-            8     => MaskEightRegex().Replace(value, $"$1{masks}$2"),
-            7     => MaskSevenRegex().Replace(value, $"$1{masks}$2"),
-            6     => MaskSixRegex().Replace(value, $"$1{masks}$2"),
-            _     => MaskLessThanSixRegex().Replace(value, $"$1{masks}")
+            10 => MaskTenRegex().Replace(value, $"$1{masks}$2"),
+            9 => MaskNineRegex().Replace(value, $"$1{masks}$2"),
+            8 => MaskEightRegex().Replace(value, $"$1{masks}$2"),
+            7 => MaskSevenRegex().Replace(value, $"$1{masks}$2"),
+            6 => MaskSixRegex().Replace(value, $"$1{masks}$2"),
+            _ => MaskLessThanSixRegex().Replace(value, $"$1{masks}")
         };
     }
 
@@ -230,7 +230,7 @@ public static partial class StringExtension
     /// </summary>
     /// <param name="s"></param>
     /// <returns></returns>
-    public static string AsNotNull(this string s) => string.IsNullOrEmpty(s) ? "" : s;
+    public static string AsNotNull(this string? s) => string.IsNullOrEmpty(s) ? "" : s;
 
     /// <summary>
     /// 转成非null
@@ -354,20 +354,6 @@ public static partial class StringExtension
     public static MemoryStream ToStream(this string value) => value.ToStream(Encoding.UTF8);
 
     /// <summary>
-    /// 将字符串拆分为数组
-    /// </summary>
-    /// <param name="value">需转换的字符串</param>
-    /// <param name="separator">分割符</param>
-    /// <returns>字符串数组</returns>
-    public static string[] Split(this string value, string separator)
-    {
-        var collection = value.ToStringCollection(separator);
-        var vs = new string[collection.Count];
-        collection.CopyTo(vs, 0);
-        return vs;
-    }
-
-    /// <summary>
     /// 转换为Guid类型
     /// </summary>
     /// <param name="str"></param>
@@ -435,21 +421,6 @@ public static partial class StringExtension
                 *pEnd-- = temp;
             }
         }
-    }
-
-    /// <summary>
-    /// 使用StringBuilder和索引器的方式反转字符串,该函数不会修改原字符串
-    /// </summary>
-    /// <param name="value">待反转字符串</param>
-    /// <returns>反转后的结果</returns>
-    public static string ReverseByStringBuilder(this string value)
-    {
-        var sb = new StringBuilder(value.Length);
-        for (var i = value.Length; i > 0;)
-        {
-            _ = sb.Append(value[--i]);
-        }
-        return sb.ToString();
     }
 
     /// <summary>
@@ -557,18 +528,6 @@ public static partial class StringExtension
     public static bool RegexMatch(this string source, Regex regex) => !string.IsNullOrEmpty(source) && regex.IsMatch(source);
 
     /// <summary>
-    /// 将十六进制字符串解析为其等效字节数组
-    /// </summary>
-    /// <param name="hex">要分析的十六进制字符串</param>
-    /// <returns>十六进制字符串的字节等效项</returns>
-    public static byte[] ParseHex(this string hex) =>
-        string.IsNullOrWhiteSpace(hex)
-            ? throw new ArgumentNullException(nameof(hex))
-            : !hex.TryParseHex(out var bytes)
-                ? throw new FormatException("String should contain only hexadecimal digits.")
-                : bytes!;
-
-    /// <summary>
     /// 尝试将十六进制字符串解析为字节数组
     /// </summary>
     /// <param name="hex">十六进制字符串</param>
@@ -622,46 +581,6 @@ public static partial class StringExtension
     /// <param name="value">值(假定介于 0 和 15 之间)</param>
     /// <returns>十六进制字符</returns>
     public static char ToHexChar(this int value) => (char)(value + (value < 10 ? '0' : 'a' - 10));
-
-    /// <summary>
-    /// 将字节数组转换为十六进制字符串
-    /// </summary>
-    /// <param name="bytes">字节数组</param>
-    /// <returns>十六进制字符串</returns>
-    public static string ToHex(this byte[] bytes)
-    {
-        ArgumentNullException.ThrowIfNull(bytes);
-        var length = bytes.Length;
-        var c = new char[length * 2];
-        for (int i = 0, j = 0; i < length; i++)
-        {
-            var b = bytes[i];
-            c[j++] = (b >> 4).ToHexChar();
-            c[j++] = (b & 0x0f).ToHexChar();
-        }
-        return new(c);
-    }
-
-    /// <summary>
-    /// 将十六进制字符串解析为其等效字节数组
-    /// </summary>
-    /// <param name="hex"></param>
-    /// <returns></returns>
-    public static byte[] FromHex(this string hex) => hex.ParseHex();
-
-    /// <summary>
-    /// 将字节数组转换成Base64字符串
-    /// </summary>
-    /// <param name="value">字符串</param>
-    /// <returns></returns>
-    public static string ToBase64(this byte[] value) => Convert.ToBase64String(value);
-
-    /// <summary>
-    /// 将Base64字符串转化成字节数组
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    public static byte[] FromBase64(this string value) => Convert.FromBase64String(value);
 
     /// <summary>
     /// 获取16位长度的MD5大写字符串
