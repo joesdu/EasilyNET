@@ -1,4 +1,3 @@
-using EasilyNET.Core.Misc;
 using EasilyNET.Security;
 using FluentAssertions;
 using System.Text;
@@ -29,7 +28,7 @@ public class Sm2Test
 
         // 签名
         var signature = Sm2Crypt.Signature(pri_bytes, data_bytes);
-        Console.WriteLine(signature.ToBase64());
+        Console.WriteLine(Convert.ToBase64String(signature));
         // 验证签名
         var verify = Sm2Crypt.Verify(pub_bytes, data_bytes, signature);
         verify.Should().BeTrue();
@@ -55,7 +54,7 @@ public class Sm2Test
 
         // 签名
         var signature = Sm2Crypt.Signature(pri_bytes, data_bytes, userid_bytes);
-        Console.WriteLine(signature.ToBase64());
+        Console.WriteLine(Convert.ToBase64String(signature));
         // 验证签名
         var verify = Sm2Crypt.Verify(pub_bytes, data_bytes, signature, userid_bytes);
         verify.Should().BeTrue();

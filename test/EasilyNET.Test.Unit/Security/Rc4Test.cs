@@ -1,4 +1,3 @@
-using EasilyNET.Core.Misc;
 using EasilyNET.Security;
 using FluentAssertions;
 using System.Text;
@@ -23,7 +22,7 @@ public class Rc4Test
         var key = "123456"u8.ToArray();
         var byte_data = Encoding.UTF8.GetBytes(data);
         var secret = Rc4Crypt.Encrypt(byte_data, key);
-        var base64 = secret.ToBase64();
+        var base64 = Convert.ToBase64String(secret);
         base64.Should().Be("TZEdFUtAevoL");
         var data_result = Rc4Crypt.Decrypt(secret, key);
         var result = Encoding.UTF8.GetString(data_result);
