@@ -1,4 +1,3 @@
-using EasilyNET.Core.Misc;
 using EasilyNET.Security;
 using FluentAssertions;
 using System.Text;
@@ -49,9 +48,9 @@ public class RsaTest
         // 将原文解析到二进制数组格式
         var byte_data = Encoding.UTF8.GetBytes(data);
         RsaCrypt.Encrypt(key.PublicKey, byte_data, out var secret_data);
-        var secret_str = secret_data.ToBase64();
+        var secret_str = Convert.ToBase64String(secret_data);
         Console.WriteLine(secret_str);
-        RsaCrypt.Decrypt(key.PrivateKey, secret_str.FromBase64(), out var data_byte);
+        RsaCrypt.Decrypt(key.PrivateKey, Convert.FromBase64String(secret_str), out var data_byte);
         Encoding.UTF8.GetString(data_byte).Should().Be(data);
     }
 
@@ -73,9 +72,9 @@ public class RsaTest
         var byte_data = Encoding.UTF8.GetBytes(data);
         var key_from_base64 = GetXmlFromBase64();
         RsaCrypt.Encrypt(key_from_base64.PublicKey, byte_data, out var secret_data);
-        var secret_str = secret_data.ToBase64();
+        var secret_str = Convert.ToBase64String(secret_data);
         Console.WriteLine(secret_str);
-        RsaCrypt.Decrypt(key_from_base64.PrivateKey, secret_str.FromBase64(), out var data_byte);
+        RsaCrypt.Decrypt(key_from_base64.PrivateKey, Convert.FromBase64String(secret_str), out var data_byte);
         Encoding.UTF8.GetString(data_byte).Should().Be(data);
     }
 
@@ -90,7 +89,7 @@ public class RsaTest
         // 将原文解析到二进制数组格式
         var byte_data = Encoding.UTF8.GetBytes(data);
         var secret_data = RsaCrypt.Encrypt(keys.PublicKey, byte_data);
-        var secret_str = secret_data.ToBase64();
+        var secret_str = Convert.ToBase64String(secret_data);
         Console.WriteLine(secret_str);
         var data_byte = RsaCrypt.Decrypt(keys.PrivateKey, secret_data);
         Encoding.UTF8.GetString(data_byte).Should().Be(data);
