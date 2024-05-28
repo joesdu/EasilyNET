@@ -22,7 +22,7 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<!--<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>-->
-		<NoWarn>$(NoWarn);NU5104</NoWarn>
+		<NoWarn>$(NoWarn);NU5104;CS9057;</NoWarn>
 		<!--控制生成产物目录-->
 		<!--<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>-->
 	</PropertyGroup>
@@ -32,7 +32,7 @@
 		<AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)EasilyNET.snk</AssemblyOriginatorKeyFile>
 		<DelaySign>False</DelaySign>
 		<Copyright>© joesdu. All rights reserved.</Copyright>
-		<NoWarn>$(NoWarn);CS8002</NoWarn>
+		<NoWarn>$(NoWarn);CS8002;</NoWarn>
 	</PropertyGroup>
 
 	<PropertyGroup>

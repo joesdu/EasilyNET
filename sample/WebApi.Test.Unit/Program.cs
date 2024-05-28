@@ -48,8 +48,7 @@ builder.Host.UseSerilog((hbc, lc) =>
               };
               c.ResourceAttributes = new Dictionary<string, object>
               {
-                  ["service.name"] = hbc.Configuration["OTEL_SERVICE_NAME"] ?? "EasilyNET",
-                  ["service.version"] = "1.0.0"
+                  ["service.name"] = hbc.Configuration["OTEL_SERVICE_NAME"] ?? "EasilyNET"
               };
           });
       });
