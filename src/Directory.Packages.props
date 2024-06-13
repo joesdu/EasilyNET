@@ -14,10 +14,10 @@
   <ItemGroup>
     <PackageVersion Include="BouncyCastle.Cryptography" Version="2.4.0" />
     <PackageVersion Include="MessagePack" Version="3.0.54-alpha" />
-    <PackageVersion Include="MongoDB.Bson" Version="2.25.0" />
-    <PackageVersion Include="MongoDB.Driver" Version="2.25.0" />
-    <PackageVersion Include="MongoDB.Driver.Core" Version="2.25.0" />
-    <PackageVersion Include="MongoDB.Driver.GridFS" Version="2.25.0" />
+    <PackageVersion Include="MongoDB.Bson" Version="2.26.0" />
+    <PackageVersion Include="MongoDB.Driver" Version="2.26.0" />
+    <PackageVersion Include="MongoDB.Driver.Core" Version="2.26.0" />
+    <PackageVersion Include="MongoDB.Driver.GridFS" Version="2.26.0" />
     <PackageVersion Include="Polly" Version="8.4.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.0.0-rc.1" />
     <PackageVersion Include="Serilog" Version="4.0.0" />
