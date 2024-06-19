@@ -11,7 +11,12 @@ internal sealed class OutPutCachingModule : AppModule
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        context.Services.AddOutputCache();
+        var config = context.Services.GetConfiguration();
+        context.Services.AddStackExchangeRedisOutputCache(c =>
+        {
+            c.Configuration = config["CONNECTIONSTRINGS_GARNET"];
+            c.InstanceName = "EasilyNET";
+        });
     }
 
     /// <inheritdoc />

@@ -1,4 +1,4 @@
-using EasilyNET.AutoDependencyInjection;
+using EasilyNET.AutoDependencyInjection.Abstractions;
 
 // ReSharper disable UnusedMethodReturnValue.Global
 
@@ -15,10 +15,11 @@ public static partial class ServiceCollectionExtension
     /// <typeparam name="T"></typeparam>
     /// <param name="services"></param>
     /// <returns></returns>
-    internal static ObjectAccessor<T> TryAddObjectAccessor<T>(this IServiceCollection services)
+    internal static void TryAddObjectAccessor<T>(this IServiceCollection services)
     {
-        return services.Any(s => s.ServiceType == typeof(ObjectAccessor<T>))
-                   ? services.GetSingletonInstance<ObjectAccessor<T>>()
-                   : services.AddObjectAccessor<T>();
+        if (services.All(s => s.ServiceType != typeof(IObjectAccessor<T>)))
+        {
+            services.AddObjectAccessor<T>();
+        }
     }
 }

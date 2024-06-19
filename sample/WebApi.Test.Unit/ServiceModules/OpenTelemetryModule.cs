@@ -21,12 +21,7 @@ internal sealed class OpenTelemetryModule : AppModule
                .WithMetrics(c =>
                {
                    c.AddRuntimeInstrumentation();
-                   c.AddMeter([
-                       "Microsoft.AspNetCore.Hosting",
-                       "Microsoft.AspNetCore.Server.Kestrel",
-                       "System.Net.Http",
-                       "WebApi.Test.Unit"
-                   ]);
+                   c.AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel", "System.Net.Http", "WebApi.Test.Unit");
                    c.AddOtlpExporter();
                })
                .WithTracing(c =>
@@ -50,5 +45,16 @@ internal sealed class OpenTelemetryModule : AppModule
         context.Services.AddHealthChecks().AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
         context.Services.ConfigureHttpClientDefaults(c => c.AddStandardResilienceHandler());
         context.Services.AddMetrics();
+    }
+
+    public override void ApplicationInitialization(ApplicationContext context)
+    {
+        var app = context.GetApplicationBuilder() as WebApplication ?? throw new("app is null");
+        // 配置健康检查端点
+        app.MapHealthChecks("/health");
+        app.MapHealthChecks("/alive", new()
+        {
+            Predicate = r => r.Tags.Contains("live")
+        });
     }
 }
