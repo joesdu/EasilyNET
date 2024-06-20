@@ -1,5 +1,6 @@
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
+using WebApi.Test.Unit.Common;
 
 namespace WebApi.Test.Unit;
 
@@ -15,7 +16,7 @@ internal sealed class OutPutCachingModule : AppModule
         context.Services.AddStackExchangeRedisOutputCache(c =>
         {
             c.Configuration = config["CONNECTIONSTRINGS_GARNET"];
-            c.InstanceName = "EasilyNET";
+            c.InstanceName = Constant.InstanceName;
         });
     }
 

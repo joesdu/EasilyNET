@@ -4,8 +4,9 @@ using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
 using Serilog.Sinks.SystemConsole.Themes;
 using WebApi.Test.Unit;
+using WebApi.Test.Unit.Common;
 
-Console.Title = "❤️ EasilyNET";
+Console.Title = $"❤️ {Constant.InstanceName}";
 AssemblyHelper.AddExcludeLibs("Npgsql.");
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,7 +49,7 @@ builder.Host.UseSerilog((hbc, lc) =>
               };
               c.ResourceAttributes = new Dictionary<string, object>
               {
-                  ["service.name"] = hbc.Configuration["OTEL_SERVICE_NAME"] ?? "EasilyNET"
+                  ["service.name"] = hbc.Configuration["OTEL_SERVICE_NAME"] ?? Constant.InstanceName
               };
           });
       });

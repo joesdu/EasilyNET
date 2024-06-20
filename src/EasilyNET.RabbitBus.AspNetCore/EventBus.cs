@@ -13,6 +13,7 @@ using Polly;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
+using System.Collections.Concurrent;
 using System.Net.Sockets;
 using System.Reflection;
 
@@ -21,6 +22,7 @@ namespace EasilyNET.RabbitBus;
 internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<RabbitConfig> options, ISubscriptionsManager subsManager, IBusSerializer serializer, IServiceProvider sp, ILogger<EventBus> logger) : IBus, IDisposable
 {
     private const string HandleName = nameof(IEventHandler<IEvent>.HandleAsync);
+    private readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Delegate> _handleAsyncDelegateCache = [];
 
     private readonly RabbitConfig config = options.Get(Constant.OptionName);
 
@@ -31,7 +33,7 @@ internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<Rabbi
     {
         if (!conn.IsConnected) await conn.TryConnect();
         var type = @event.GetType();
-        var exc = type.GetCustomAttribute<ExchangeAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(ExchangeAttribute)}>,无法创建发布事件");
+        var exc = type.GetCustomAttribute<ExchangeAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(ExchangeAttribute)}>,无法创建消息");
         if (!exc.Enable) return;
         var channel = await conn.GetChannel();
         var properties = new BasicProperties
@@ -53,9 +55,9 @@ internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<Rabbi
         // 创建Policy规则
         var policy = Policy.Handle<BrokerUnreachableException>()
                            .Or<SocketException>()
-                           .WaitAndRetry(config.RetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
+                           .WaitAndRetryAsync(config.RetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
                                logger.LogError(ex, "无法发布: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
-        await policy.Execute(async () =>
+        await policy.ExecuteAsync(async () =>
         {
             logger.LogTrace("发布: {EventId}", @event.EventId);
             await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, properties, body, true).ConfigureAwait(false);
@@ -68,9 +70,9 @@ internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<Rabbi
     {
         if (!conn.IsConnected) await conn.TryConnect();
         var type = @event.GetType();
-        var exc = type.GetCustomAttribute<ExchangeAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(ExchangeAttribute)}>,无法发布事件");
+        var exc = type.GetCustomAttribute<ExchangeAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(ExchangeAttribute)}>,无法创建消息");
         if (!exc.Enable) return;
-        if (exc is not { WorkModel: EModel.Delayed } | exc.IsDlx is not true) throw new($"延时队列的交换机类型必须为{nameof(EModel.Delayed)}且 isDlx 参数必须为 true");
+        if (exc is not { WorkModel: EModel.Delayed } | exc.IsDlx is not true) throw new($"延时队列的交换机类型必须为{nameof(EModel.Delayed)}且 {nameof(ExchangeAttribute.IsDlx)} 必须为 true");
         var channel = await conn.GetChannel();
         var properties = new BasicProperties
         {
@@ -105,9 +107,9 @@ internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<Rabbi
         // 创建Policy规则
         var policy = Policy.Handle<BrokerUnreachableException>()
                            .Or<SocketException>()
-                           .WaitAndRetry(config.RetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
+                           .WaitAndRetryAsync(config.RetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
                                logger.LogError(ex, "无法发布: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
-        await policy.Execute(async () =>
+        await policy.ExecuteAsync(async () =>
         {
             logger.LogTrace("发布: {EventId}", @event.EventId);
             await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, properties, body, true).ConfigureAwait(false);
@@ -132,11 +134,7 @@ internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<Rabbi
     private async Task InitialRabbit()
     {
         var events = AssemblyHelper.FindTypes(o => o is { IsClass: true, IsAbstract: false } && o.IsBaseOn(typeof(IEvent)) && o.HasAttribute<ExchangeAttribute>());
-        var handlers = AssemblyHelper.FindTypes(o => o is
-                                                     {
-                                                         IsClass: true,
-                                                         IsAbstract: false
-                                                     } &&
+        var handlers = AssemblyHelper.FindTypes(o => o is { IsClass: true, IsAbstract: false } &&
                                                      o.IsBaseOn(typeof(IEventHandler<>)) &&
                                                      !o.HasAttribute<IgnoreHandlerAttribute>()).Select(s => s.GetTypeInfo()).ToList();
         foreach (var @event in events)
@@ -209,10 +207,6 @@ internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<Rabbi
         {
             try
             {
-                //if (message.Contains("throw-fake-exception", StringComparison.InvariantCultureIgnoreCase))
-                //{
-                //    throw new InvalidOperationException($"假异常请求:{message}");
-                //}
                 await ProcessEvent(eventType, ea.Body.Span.ToArray(), exc.IsDlx, async () => await channel.BasicAckAsync(ea.DeliveryTag, false).ConfigureAwait(false));
             }
             catch (Exception ex)
@@ -234,33 +228,34 @@ internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<Rabbi
         logger.LogTrace("处理事件: {EventName}", eventType.Name);
         var policy = Policy.Handle<BrokerUnreachableException>()
                            .Or<SocketException>()
-                           .WaitAndRetry(config.RetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
+                           .WaitAndRetryAsync(config.RetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
                                logger.LogError(ex, "无法消费: {EventName} 超时 {Timeout}s ({ExceptionMessage})", eventType.Name, $"{time.TotalSeconds:n1}", ex.Message));
         if (subsManager.HasSubscriptionsForEvent(eventType.Name, isDlx))
         {
             var @event = serializer.Deserialize(message, eventType);
             var handlerTypes = subsManager.GetHandlersForEvent(eventType.Name, isDlx);
             using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
-            await policy.Execute(async () =>
+            await policy.ExecuteAsync(async () =>
             {
                 foreach (var handlerType in handlerTypes)
                 {
-                    if (@event is null)
+                    var key = (handlerType, eventType);
+                    if (!_handleAsyncDelegateCache.TryGetValue(key, out var cachedDelegate))
                     {
-                        throw new($"{nameof(@event)}不能为空");
+                        var method = handlerType.GetMethod(HandleName, [eventType]);
+                        if (method is null)
+                        {
+                            logger.LogError($"无法找到{nameof(@event)}事件处理器");
+                            continue; // 或者抛出异常
+                        }
+                        var delegateType = typeof(HandleAsyncDelegate<>).MakeGenericType(eventType);
+                        var handler = scope?.ServiceProvider.GetService(handlerType);
+                        if (handler is null) continue;
+                        var handleAsyncDelegate = Delegate.CreateDelegate(delegateType, handler, method);
+                        _handleAsyncDelegateCache[key] = handleAsyncDelegate;
+                        cachedDelegate = handleAsyncDelegate;
                     }
-                    var method = typeof(IEventHandler<>).MakeGenericType(eventType).GetMethod(HandleName);
-                    if (method is null)
-                    {
-                        logger.LogError($"无法找到{nameof(@event)}事件处理器下处理方法");
-                        throw new($"无法找到{nameof(@event)}事件处理器下处理方法");
-                    }
-                    var handler = scope?.ServiceProvider.GetService(handlerType);
-                    if (handler is null) continue;
-                    await Task.Yield();
-                    var obj = method.Invoke(handler, [@event]);
-                    if (obj is null) continue;
-                    await (Task)obj;
+                    if (cachedDelegate.DynamicInvoke(@event) is Task task) await task;
                 }
                 await ack.Invoke();
             });
@@ -270,4 +265,6 @@ internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<Rabbi
             logger.LogError("没有订阅事件:{EventName}", eventType.Name);
         }
     }
+
+    private delegate Task HandleAsyncDelegate<in TEvent>(TEvent @event) where TEvent : IEvent;
 }
