@@ -2,11 +2,9 @@ using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Polly;
+using Polly.Registry;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using RabbitMQ.Client.Exceptions;
-using System.Net.Sockets;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 
@@ -18,6 +16,7 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
     private readonly IConnectionFactory _connFactory;
     private readonly SemaphoreSlim _connLock = new(1, 1);
     private readonly ILogger<PersistentConnection> _logger;
+    private readonly ResiliencePipelineProvider<string> _pipelineProvider;
     private readonly uint _poolCount;
     private readonly SemaphoreSlim _reconnectLock = new(1, 1); // 用于控制重连并发的信号量
     private readonly RabbitConfig config;
@@ -26,12 +25,13 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
     private bool _disposed;
     private bool _isReconnecting; // 用于控制重连尝试的标志位
 
-    public PersistentConnection(IConnectionFactory connFactory, IOptionsMonitor<RabbitConfig> options, ILogger<PersistentConnection> logger)
+    public PersistentConnection(IConnectionFactory connFactory, IOptionsMonitor<RabbitConfig> options, ILogger<PersistentConnection> logger, ResiliencePipelineProvider<string> pipelineProvider)
     {
         _connFactory = connFactory ?? throw new ArgumentNullException(nameof(connFactory));
         config = options.Get(Constant.OptionName);
         _poolCount = config.PoolCount < 1 ? (uint)Environment.ProcessorCount : config.PoolCount;
         _logger = logger;
+        _pipelineProvider = pipelineProvider;
     }
 
     /// <inheritdoc />
@@ -93,11 +93,11 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
         await _connLock.WaitAsync();
         try
         {
-            var policy = Policy.Handle<SocketException>()
-                               .Or<BrokerUnreachableException>()
-                               .WaitAndRetryAsync(config.RetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
-                                   _logger.LogWarning(ex, "RabbitMQ客户端在 {TimeOut}s 超时后无法创建链接,({ExceptionMessage})", $"{time.TotalSeconds:n1}", ex.Message));
-            await policy.ExecuteAsync(async () => _connection = config.AmqpTcpEndpoints is not null && config.AmqpTcpEndpoints.Count > 0 ? await _connFactory.CreateConnectionAsync(config.AmqpTcpEndpoints) : await _connFactory.CreateConnectionAsync());
+            var pipeline = _pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
+            await pipeline.ExecuteAsync(async ct =>
+                _connection = config.AmqpTcpEndpoints is not null && config.AmqpTcpEndpoints.Count > 0
+                                  ? await _connFactory.CreateConnectionAsync(config.AmqpTcpEndpoints, ct)
+                                  : await _connFactory.CreateConnectionAsync(ct));
         }
         finally
         {

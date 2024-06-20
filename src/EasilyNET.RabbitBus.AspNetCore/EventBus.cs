@@ -1,30 +1,24 @@
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
-using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Extensions;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Attributes;
 using EasilyNET.RabbitBus.Core.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Polly;
+using Polly.Registry;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using RabbitMQ.Client.Exceptions;
 using System.Collections.Concurrent;
-using System.Net.Sockets;
 using System.Reflection;
 
 namespace EasilyNET.RabbitBus;
 
-internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<RabbitConfig> options, ISubscriptionsManager subsManager, IBusSerializer serializer, IServiceProvider sp, ILogger<EventBus> logger) : IBus, IDisposable
+internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager subsManager, IBusSerializer serializer, IServiceProvider sp, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pipelineProvider) : IBus, IDisposable
 {
     private const string HandleName = nameof(IEventHandler<IEvent>.HandleAsync);
     private readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Delegate> _handleAsyncDelegateCache = [];
-
-    private readonly RabbitConfig config = options.Get(Constant.OptionName);
 
     private bool disposed;
 
@@ -52,15 +46,11 @@ internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<Rabbi
         // 在发布事件前检查是否已经取消发布
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
         var body = serializer.Serialize(@event, @event.GetType());
-        // 创建Policy规则
-        var policy = Policy.Handle<BrokerUnreachableException>()
-                           .Or<SocketException>()
-                           .WaitAndRetryAsync(config.RetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
-                               logger.LogError(ex, "无法发布: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
-        await policy.ExecuteAsync(async () =>
+        var pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
+        await pipeline.ExecuteAsync(async ct =>
         {
             logger.LogTrace("发布: {EventId}", @event.EventId);
-            await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, properties, body, true).ConfigureAwait(false);
+            await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, properties, body, true, ct).ConfigureAwait(false);
             await conn.ReturnChannel(channel).ConfigureAwait(false);
         }).ConfigureAwait(false);
     }
@@ -104,15 +94,11 @@ internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<Rabbi
         // 在发布事件前检查是否已经取消发布
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
         var body = serializer.Serialize(@event, @event.GetType());
-        // 创建Policy规则
-        var policy = Policy.Handle<BrokerUnreachableException>()
-                           .Or<SocketException>()
-                           .WaitAndRetryAsync(config.RetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
-                               logger.LogError(ex, "无法发布: {EventId} 超时 {Timeout}s ({ExceptionMessage})", @event.EventId, $"{time.TotalSeconds:n1}", ex.Message));
-        await policy.ExecuteAsync(async () =>
+        var pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
+        await pipeline.ExecuteAsync(async ct =>
         {
             logger.LogTrace("发布: {EventId}", @event.EventId);
-            await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, properties, body, true).ConfigureAwait(false);
+            await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, properties, body, true, ct).ConfigureAwait(false);
             await conn.ReturnChannel(channel).ConfigureAwait(false);
         }).ConfigureAwait(false);
     }
@@ -226,16 +212,13 @@ internal sealed class EventBus(IPersistentConnection conn, IOptionsMonitor<Rabbi
     private async Task ProcessEvent(Type eventType, byte[] message, bool isDlx, Func<ValueTask> ack)
     {
         logger.LogTrace("处理事件: {EventName}", eventType.Name);
-        var policy = Policy.Handle<BrokerUnreachableException>()
-                           .Or<SocketException>()
-                           .WaitAndRetryAsync(config.RetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
-                               logger.LogError(ex, "无法消费: {EventName} 超时 {Timeout}s ({ExceptionMessage})", eventType.Name, $"{time.TotalSeconds:n1}", ex.Message));
         if (subsManager.HasSubscriptionsForEvent(eventType.Name, isDlx))
         {
             var @event = serializer.Deserialize(message, eventType);
             var handlerTypes = subsManager.GetHandlersForEvent(eventType.Name, isDlx);
             using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
-            await policy.ExecuteAsync(async () =>
+            var pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
+            await pipeline.ExecuteAsync(async _ =>
             {
                 foreach (var handlerType in handlerTypes)
                 {

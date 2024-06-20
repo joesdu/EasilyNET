@@ -7,9 +7,14 @@ using EasilyNET.RabbitBus.AspNetCore.Manager;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Attributes;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Polly;
+using Polly.Timeout;
 using RabbitMQ.Client;
+using RabbitMQ.Client.Exceptions;
 using System.Diagnostics.CodeAnalysis;
+using System.Net.Sockets;
 
 // ReSharper disable UnusedMember.Global
 
@@ -49,13 +54,14 @@ public static class ServiceCollectionExtension
 
     private static void InjectHandler(this IServiceCollection services)
     {
-        var handlers = AssemblyHelper.FindTypes(o => o is
-                                                     {
-                                                         IsClass: true,
-                                                         IsAbstract: false
-                                                     } &&
-                                                     o.IsBaseOn(typeof(IEventHandler<>)) &&
-                                                     !o.HasAttribute<IgnoreHandlerAttribute>());
+        var handlers = AssemblyHelper.FindTypes(o =>
+            o is
+            {
+                IsClass: true,
+                IsAbstract: false
+            } &&
+            o.IsBaseOn(typeof(IEventHandler<>)) &&
+            !o.HasAttribute<IgnoreHandlerAttribute>());
         foreach (var handler in handlers) services.AddSingleton(handler);
     }
 
@@ -98,6 +104,28 @@ public static class ServiceCollectionExtension
                 };
             }
             throw new("无法从配置中创建链接");
+        });
+        services.AddResiliencePipeline(Constant.ResiliencePipelineName, (builder, context) =>
+        {
+            var conf = context.ServiceProvider.GetRequiredService<IOptionsMonitor<RabbitConfig>>();
+            var config = conf.Get(Constant.OptionName);
+            builder.AddRetry(new()
+            {
+                ShouldHandle = new PredicateBuilder().Handle<BrokerUnreachableException>().Handle<SocketException>().Handle<TimeoutRejectedException>(),
+                MaxRetryAttempts = config.RetryCount,
+                Delay = TimeSpan.FromMilliseconds(1200),
+                BackoffType = DelayBackoffType.Exponential,
+                UseJitter = true,
+                MaxDelay = TimeSpan.FromSeconds(10),
+                OnRetry = args =>
+                {
+                    var ex = args.Outcome.Exception!;
+                    var logger = context.ServiceProvider.GetRequiredService<ILogger<IPersistentConnection>>();
+                    logger.LogWarning(ex, "RabbitMQ客户端在 {TimeOut}s 超时后失败,({ExceptionMessage})", $"{args.Duration:n1}", ex.Message);
+                    return ValueTask.CompletedTask;
+                }
+            });
+            builder.AddTimeout(TimeSpan.FromMinutes(1));
         });
         services.AddSingleton<IPersistentConnection, PersistentConnection>();
         return services;
