@@ -109,18 +109,18 @@ public static class ServiceCollectionExtension
         {
             var conf = context.ServiceProvider.GetRequiredService<IOptionsMonitor<RabbitConfig>>();
             var config = conf.Get(Constant.OptionName);
+            var logger = context.ServiceProvider.GetRequiredService<ILogger<IPersistentConnection>>();
             builder.AddRetry(new()
             {
                 ShouldHandle = new PredicateBuilder().Handle<BrokerUnreachableException>().Handle<SocketException>().Handle<TimeoutRejectedException>(),
                 MaxRetryAttempts = config.RetryCount,
-                Delay = TimeSpan.FromMilliseconds(1200),
+                Delay = TimeSpan.FromMilliseconds(500),
                 BackoffType = DelayBackoffType.Exponential,
                 UseJitter = true,
                 MaxDelay = TimeSpan.FromSeconds(10),
                 OnRetry = args =>
                 {
                     var ex = args.Outcome.Exception!;
-                    var logger = context.ServiceProvider.GetRequiredService<ILogger<IPersistentConnection>>();
                     logger.LogWarning(ex, "RabbitMQ客户端在 {TimeOut}s 超时后失败,({ExceptionMessage})", $"{args.Duration:n1}", ex.Message);
                     return ValueTask.CompletedTask;
                 }

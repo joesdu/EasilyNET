@@ -218,9 +218,9 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
             var handlerTypes = subsManager.GetHandlersForEvent(eventType.Name, isDlx);
             using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
             var pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
-            await pipeline.ExecuteAsync(async _ =>
+            foreach (var handlerType in handlerTypes)
             {
-                foreach (var handlerType in handlerTypes)
+                await pipeline.ExecuteAsync(async _ =>
                 {
                     var key = (handlerType, eventType);
                     if (!_handleAsyncDelegateCache.TryGetValue(key, out var cachedDelegate))
@@ -229,19 +229,19 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
                         if (method is null)
                         {
                             logger.LogError($"无法找到{nameof(@event)}事件处理器");
-                            continue; // 或者抛出异常
+                            return; // 或者抛出异常
                         }
                         var delegateType = typeof(HandleAsyncDelegate<>).MakeGenericType(eventType);
                         var handler = scope?.ServiceProvider.GetService(handlerType);
-                        if (handler is null) continue;
+                        if (handler is null) return;
                         var handleAsyncDelegate = Delegate.CreateDelegate(delegateType, handler, method);
                         _handleAsyncDelegateCache[key] = handleAsyncDelegate;
                         cachedDelegate = handleAsyncDelegate;
                     }
                     if (cachedDelegate.DynamicInvoke(@event) is Task task) await task;
-                }
-                await ack.Invoke();
-            });
+                    await ack.Invoke();
+                });
+            }
         }
         else
         {
