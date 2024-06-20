@@ -1,5 +1,6 @@
 using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using MongoDB.Driver;
 using System.ComponentModel;
 
@@ -54,7 +55,7 @@ public class MongoTestController(DbContext db) : ControllerBase
     /// 测试从MongoDB中取出插入的数据,再返回到Swagger查看数据JSON转换是否正常
     /// </summary>
     /// <returns></returns>
-    [HttpGet("MongoGet")]
+    [HttpGet("MongoGet"), OutputCache]
     public async Task<IEnumerable<MongoTest>> MongoGet() => await db.Test.Find(bf.Empty).ToListAsync();
 
     /// <summary>

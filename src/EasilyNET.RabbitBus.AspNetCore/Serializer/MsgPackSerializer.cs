@@ -9,7 +9,9 @@ namespace EasilyNET.RabbitBus.AspNetCore.Serializer;
 /// </summary>
 internal sealed class MsgPackSerializer : IBusSerializer
 {
-    private static readonly MessagePackSerializerOptions options = MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance).WithCompression(MessagePackCompression.Lz4Block);
+    private static readonly MessagePackSerializerOptions options = MessagePackSerializerOptions.Standard
+                                                                                               .WithResolver(ContractlessStandardResolver.Instance)
+                                                                                               .WithCompression(MessagePackCompression.Lz4Block);
 
     /// <inheritdoc />
     public byte[] Serialize(object? obj, Type type) => MessagePackSerializer.Serialize(type, obj, options);

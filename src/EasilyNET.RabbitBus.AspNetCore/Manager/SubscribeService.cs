@@ -12,7 +12,7 @@ internal sealed class SubscribeService(IServiceProvider serviceProvider) : Backg
     protected override async Task ExecuteAsync(CancellationToken cancelToken)
     {
         using var scope = serviceProvider.CreateScope();
-        var bus = scope.ServiceProvider.GetService<IBus>() as EventBus ?? throw new("RabbitMQ集成事件总线没有注册");
+        var bus = scope.ServiceProvider.GetRequiredService<IBus>() as EventBus ?? throw new("ibus service not register");
         await bus.Subscribe();
         while (!cancelToken.IsCancellationRequested) await Task.Delay(5000, cancelToken);
     }

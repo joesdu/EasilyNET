@@ -101,7 +101,7 @@ internal class ModuleApplicationBase : IModuleApplication
     protected void SetServiceProvider(IServiceProvider serviceProvider)
     {
         ServiceProvider = serviceProvider;
-        ServiceProvider.GetRequiredService<ObjectAccessor<IServiceProvider>>().Value = ServiceProvider;
+        ServiceProvider.GetRequiredService<IObjectAccessor<IServiceProvider>>().Value = ServiceProvider;
     }
 
     /// <summary>
@@ -117,7 +117,8 @@ internal class ModuleApplicationBase : IModuleApplication
         ArgumentNullException.ThrowIfNull(module, nameof(moduleType));
         if (!module.Enable)
         {
-            var logger = services.GetService<ILogger<ModuleApplicationBase>>();
+            var provider = services.BuildServiceProvider();
+            var logger = provider.GetService<ILogger<ModuleApplicationBase>>();
             logger?.LogWarning("{name} is disabled", moduleType.Name);
             return null;
         }

@@ -4,7 +4,7 @@ namespace EasilyNET.AutoDependencyInjection.Abstractions;
 /// 对象存取器
 /// </summary>
 /// <typeparam name="T"></typeparam>
-internal abstract class IObjectAccessor<T>
+internal interface IObjectAccessor<T>
 {
     /// <summary>
     /// 值

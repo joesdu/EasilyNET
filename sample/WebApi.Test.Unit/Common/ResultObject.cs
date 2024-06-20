@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace WebApi.Test.Unit;
+namespace WebApi.Test.Unit.Common;
 
 /// <summary>
 /// 返回对象实体

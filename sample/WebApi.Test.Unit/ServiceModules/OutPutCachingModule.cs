@@ -1,5 +1,6 @@
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
+using WebApi.Test.Unit.Common;
 
 namespace WebApi.Test.Unit;
 
@@ -11,7 +12,12 @@ internal sealed class OutPutCachingModule : AppModule
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        context.Services.AddOutputCache();
+        var config = context.Services.GetConfiguration();
+        context.Services.AddStackExchangeRedisOutputCache(c =>
+        {
+            c.Configuration = config["CONNECTIONSTRINGS_GARNET"];
+            c.InstanceName = Constant.InstanceName;
+        });
     }
 
     /// <inheritdoc />

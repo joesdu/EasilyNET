@@ -1,4 +1,3 @@
-using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using System.Collections.Concurrent;
 using System.Reflection;
@@ -8,14 +7,18 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <inheritdoc />
 internal sealed class SubscriptionsManager : ISubscriptionsManager
 {
-    private readonly ConcurrentDictionary<string, IList<Type>> _dlxHandlers = new();
-    private readonly ConcurrentDictionary<string, IList<Type>> _handlers = new();
+    private readonly ConcurrentDictionary<string, IList<Type>> _dlxHandlers = [];
+    private readonly ConcurrentDictionary<string, IList<Type>> _handlers = [];
 
     /// <inheritdoc />
-    public void AddSubscription(Type eventType, bool isDlx, IList<TypeInfo> handlerType) => DoAddSubscription(eventType.Name, isDlx, handlerType);
+    public void AddSubscription(Type eventType, bool isDlx, IList<TypeInfo> handlerTypes)
+    {
+        var handlerTypeList = handlerTypes.Select(ht => ht.AsType()).ToList();
+        DoAddSubscription(eventType.Name, isDlx, handlerTypeList);
+    }
 
     /// <inheritdoc />
-    public IEnumerable<Type> GetHandlersForEvent(string name, bool isDlx) => isDlx ? _dlxHandlers[name] : _handlers[name];
+    public IEnumerable<Type> GetHandlersForEvent(string name, bool isDlx) => isDlx ? _dlxHandlers.GetValueOrDefault(name, []) : _handlers.GetValueOrDefault(name, []);
 
     /// <inheritdoc />
     public bool HasSubscriptionsForEvent(string name, bool isDlx) => isDlx ? _dlxHandlers.ContainsKey(name) : _handlers.ContainsKey(name);
@@ -27,22 +30,21 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
         _dlxHandlers.Clear();
     }
 
-    private void DoAddSubscription(string name, bool isDlx, IList<TypeInfo> handlerType)
+    private void DoAddSubscription(string name, bool isDlx, IList<Type> handlerTypes)
     {
-        if (HasSubscriptionsForEvent(name, isDlx)) return;
-        if (isDlx)
+        var handlersDict = isDlx ? _dlxHandlers : _handlers;
+        if (!handlersDict.ContainsKey(name))
         {
-            _dlxHandlers.TryAdd(name, []);
-            if (_dlxHandlers[name].Any(handlerType.Contains))
-                throw new ArgumentException($"类型已注册 '{name}'", nameof(handlerType));
-            _dlxHandlers[name].AddRange(handlerType);
+            handlersDict.TryAdd(name, []);
         }
-        else
+        var handlers = handlersDict[name];
+        foreach (var handlerType in handlerTypes)
         {
-            _ = _handlers.TryAdd(name, []);
-            if (_handlers[name].Any(handlerType.Contains))
-                throw new ArgumentException($"类型已注册 '{name}'", nameof(handlerType));
-            _handlers[name].AddRange(handlerType);
+            if (handlers.Contains(handlerType))
+            {
+                throw new($"Handler type already registered for '{name}'");
+            }
+            handlers.Add(handlerType);
         }
     }
 }

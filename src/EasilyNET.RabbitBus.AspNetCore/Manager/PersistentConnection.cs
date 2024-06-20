@@ -19,10 +19,12 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
     private readonly SemaphoreSlim _connLock = new(1, 1);
     private readonly ILogger<PersistentConnection> _logger;
     private readonly uint _poolCount;
+    private readonly SemaphoreSlim _reconnectLock = new(1, 1); // 用于控制重连并发的信号量
     private readonly RabbitConfig config;
     private ChannelPool? _channelPool;
     private IConnection? _connection;
     private bool _disposed;
+    private bool _isReconnecting; // 用于控制重连尝试的标志位
 
     public PersistentConnection(IConnectionFactory connFactory, IOptionsMonitor<RabbitConfig> options, ILogger<PersistentConnection> logger)
     {
@@ -78,7 +80,11 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
                     : await _channelPool.GetChannel();
 
     /// <inheritdoc />
-    internal override async Task ReturnChannel(IChannel channel) => await _channelPool!.ReturnChannel(channel);
+    internal override async Task ReturnChannel(IChannel channel)
+    {
+        if (_channelPool is null) throw new("通道池为空");
+        await _channelPool.ReturnChannel(channel);
+    }
 
     /// <inheritdoc />
     internal override async Task TryConnect()
@@ -89,9 +95,9 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
         {
             var policy = Policy.Handle<SocketException>()
                                .Or<BrokerUnreachableException>()
-                               .WaitAndRetry(config.RetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
+                               .WaitAndRetryAsync(config.RetryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), (ex, time) =>
                                    _logger.LogWarning(ex, "RabbitMQ客户端在 {TimeOut}s 超时后无法创建链接,({ExceptionMessage})", $"{time.TotalSeconds:n1}", ex.Message));
-            await policy.Execute(async () => _connection = config.AmqpTcpEndpoints is not null && config.AmqpTcpEndpoints.Count > 0 ? await _connFactory.CreateConnectionAsync(config.AmqpTcpEndpoints) : await _connFactory.CreateConnectionAsync());
+            await policy.ExecuteAsync(async () => _connection = config.AmqpTcpEndpoints is not null && config.AmqpTcpEndpoints.Count > 0 ? await _connFactory.CreateConnectionAsync(config.AmqpTcpEndpoints) : await _connFactory.CreateConnectionAsync());
         }
         finally
         {
@@ -112,21 +118,31 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
         }
     }
 
-    private void OnConnectionBlocked(object? sender, ConnectionBlockedEventArgs e)
+    /// <summary>
+    /// 重连
+    /// </summary>
+    /// <returns></returns>
+    private async Task TryReconnect()
     {
-        _logger.LogWarning("RabbitMQ连接关闭,正在尝试重新连接");
-        Task.Factory.StartNew(async () => await TryConnect());
+        if (_isReconnecting) return;      // 如果已经在尝试重连,则直接返回
+        await _reconnectLock.WaitAsync(); // 请求重连锁
+        try
+        {
+            if (_isReconnecting) return; // 再次检查标志位,以避免重复重连
+            _isReconnecting = true;      // 设置标志位,表示开始重连尝试
+            _logger.LogWarning("RabbitMQ客户端尝试重新连接");
+            await TryConnect(); // 尝试重新连接
+        }
+        finally
+        {
+            _isReconnecting = false;  // 重置标志位,表示重连尝试结束
+            _reconnectLock.Release(); // 释放重连锁
+        }
     }
 
-    private void OnCallbackException(object? sender, CallbackExceptionEventArgs e)
-    {
-        _logger.LogWarning("RabbitMQ连接抛出异常,正在重试");
-        Task.Factory.StartNew(async () => await TryConnect());
-    }
+    private async void OnConnectionBlocked(object? sender, ConnectionBlockedEventArgs e) => await TryReconnect();
 
-    private void OnConnectionShutdown(object? sender, ShutdownEventArgs reason)
-    {
-        _logger.LogWarning("RabbitMQ连接处于关闭状态,正在尝试重新连接");
-        Task.Factory.StartNew(async () => await TryConnect());
-    }
+    private async void OnCallbackException(object? sender, CallbackExceptionEventArgs e) => await TryReconnect();
+
+    private async void OnConnectionShutdown(object? sender, ShutdownEventArgs reason) => await TryReconnect();
 }

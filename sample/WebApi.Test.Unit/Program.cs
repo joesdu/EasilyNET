@@ -4,8 +4,9 @@ using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
 using Serilog.Sinks.SystemConsole.Themes;
 using WebApi.Test.Unit;
+using WebApi.Test.Unit.Common;
 
-Console.Title = "❤️ EasilyNET";
+Console.Title = $"❤️ {Constant.InstanceName}";
 AssemblyHelper.AddExcludeLibs("Npgsql.");
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,7 +49,7 @@ builder.Host.UseSerilog((hbc, lc) =>
               };
               c.ResourceAttributes = new Dictionary<string, object>
               {
-                  ["service.name"] = hbc.Configuration["OTEL_SERVICE_NAME"] ?? "EasilyNET"
+                  ["service.name"] = hbc.Configuration["OTEL_SERVICE_NAME"] ?? Constant.InstanceName
               };
           });
       });
@@ -58,28 +59,8 @@ builder.Host.UseSerilog((hbc, lc) =>
 builder.Services.AddApplication<AppWebModule>();
 var app = builder.Build();
 if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
-app.Use(async (c, next) =>
-{
-    c.Response.Headers.AddRange([
-        new("Strict-Transport-Security", "max-age=63072000; includeSubdomains; preload"),
-        new("X-Content-Type-Options", "nosniff"),
-        new("X-XSS-Protection", "1; mode=block"),
-        new("X-Frame-Options", "sameorigin"),
-        new("Referrer-Policy", "strict-origin-when-cross-origin"),
-        new("X-Download-Options", "noopen"),
-        new("X-Permitted-Cross-Domain-Policies", "none"),
-        new("Cache-control", "max-age=1, no-cache, no-store, must-revalidate, private")
-    ]);
-    await next();
-});
 
 // 添加自动化注入的一些中间件.
 app.InitializeApplication();
-// 配置健康检查端点
-app.MapHealthChecks("/health");
-app.MapHealthChecks("/alive", new()
-{
-    Predicate = r => r.Tags.Contains("live")
-});
 app.MapControllers();
 app.Run();

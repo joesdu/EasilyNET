@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System.Net;
 using System.Text.Json.Serialization;
+using WebApi.Test.Unit.Common;
 
 // ReSharper disable UnusedType.Local
 // ReSharper disable ClassNeverInstantiated.Global

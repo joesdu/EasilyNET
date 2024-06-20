@@ -1,5 +1,6 @@
 ﻿using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Serializer;
 
@@ -11,7 +12,8 @@ internal sealed class TextJsonSerializer : IBusSerializer
     private static readonly JsonSerializerOptions options = new()
     {
         WriteIndented = false,
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver()
     };
 
     /// <inheritdoc />

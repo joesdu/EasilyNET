@@ -18,9 +18,9 @@ public static partial class ServiceCollectionExtension
     /// <summary>
     /// 获取应用程序构建器
     /// </summary>
-    /// <param name="applicationContext"></param>
+    /// <param name="context"></param>
     /// <returns></returns>
-    public static IApplicationBuilder GetApplicationBuilder(this ApplicationContext applicationContext) => applicationContext.ServiceProvider.GetRequiredService<IObjectAccessor<IApplicationBuilder>>().Value!;
+    public static IApplicationBuilder GetApplicationBuilder(this ApplicationContext context) => context.ServiceProvider.GetRequiredService<IObjectAccessor<IApplicationBuilder>>().Value!;
 
     /// <summary>
     /// 注入服务
@@ -31,11 +31,7 @@ public static partial class ServiceCollectionExtension
     public static IServiceCollection AddApplication<T>(this IServiceCollection services) where T : AppModule
     {
         ArgumentNullException.ThrowIfNull(services, nameof(services));
-        var obj = new ObjectAccessor<IApplicationBuilder>();
-#pragma warning disable CA2263 // Prefer generic overload when type is known
-        services.Add(ServiceDescriptor.Singleton(typeof(ObjectAccessor<IApplicationBuilder>), obj));
-        services.Add(ServiceDescriptor.Singleton(typeof(IObjectAccessor<IApplicationBuilder>), obj));
-#pragma warning restore CA2263 // Prefer generic overload when type is known
+        services.AddSingleton<IObjectAccessor<IApplicationBuilder>>(new ObjectAccessor<IApplicationBuilder>());
         ApplicationFactory.Create<T>(services);
         return services;
     }
@@ -47,33 +43,33 @@ public static partial class ServiceCollectionExtension
     /// <returns></returns>
     public static IApplicationBuilder InitializeApplication(this IApplicationBuilder builder)
     {
-        builder.ApplicationServices.GetRequiredService<ObjectAccessor<IApplicationBuilder>>().Value = builder;
+        builder.ApplicationServices.GetRequiredService<IObjectAccessor<IApplicationBuilder>>().Value = builder;
         var runner = builder.ApplicationServices.GetRequiredService<IStartupModuleRunner>();
         runner.Initialize(builder.ApplicationServices);
         return builder;
     }
 
     /// <summary>
-    /// 得到已注入的服务
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="services"></param>
-    /// <returns></returns>
-    public static T? GetService<T>(this IServiceCollection services) => services.GetBuildService<T>();
-
-    /// <summary>
     /// 获取 <see cref="IConfiguration" /> 服务
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
-    public static IConfiguration GetConfiguration(this IServiceCollection services) => services.GetBuildService<IConfiguration>() ?? throw new($"未找到{nameof(IConfiguration)}服务");
+    public static IConfiguration GetConfiguration(this IServiceCollection services)
+    {
+        var provider = services.BuildServiceProvider();
+        return provider.GetRequiredService<IConfiguration>();
+    }
 
     /// <summary>
     /// 获取 <see cref="IWebHostEnvironment" /> 服务
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
-    public static IWebHostEnvironment GetWebHostEnvironment(this IServiceCollection services) => services.GetService<IWebHostEnvironment>() ?? throw new($"未找到{nameof(IWebHostEnvironment)}服务");
+    public static IWebHostEnvironment GetWebHostEnvironment(this IServiceCollection services)
+    {
+        var provider = services.BuildServiceProvider();
+        return provider.GetRequiredService<IWebHostEnvironment>();
+    }
 
     /// <summary>
     /// 获取 <see cref="IConfiguration" /> 服务
