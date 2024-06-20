@@ -220,27 +220,30 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
             var pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
             foreach (var handlerType in handlerTypes)
             {
-                await pipeline.ExecuteAsync(async _ =>
+                var key = (handlerType, eventType);
+                if (!_handleAsyncDelegateCache.TryGetValue(key, out var cachedDelegate))
                 {
-                    var key = (handlerType, eventType);
-                    if (!_handleAsyncDelegateCache.TryGetValue(key, out var cachedDelegate))
+                    var method = handlerType.GetMethod(HandleName, [eventType]);
+                    if (method is null)
                     {
-                        var method = handlerType.GetMethod(HandleName, [eventType]);
-                        if (method is null)
-                        {
-                            logger.LogError($"无法找到{nameof(@event)}事件处理器");
-                            return; // 或者抛出异常
-                        }
-                        var delegateType = typeof(HandleAsyncDelegate<>).MakeGenericType(eventType);
-                        var handler = scope?.ServiceProvider.GetService(handlerType);
-                        if (handler is null) return;
-                        var handleAsyncDelegate = Delegate.CreateDelegate(delegateType, handler, method);
-                        _handleAsyncDelegateCache[key] = handleAsyncDelegate;
-                        cachedDelegate = handleAsyncDelegate;
+                        logger.LogError($"无法找到{nameof(@event)}事件处理器");
+                        return; // 或者抛出异常
                     }
-                    if (cachedDelegate.DynamicInvoke(@event) is Task task) await task;
-                    await ack.Invoke();
-                });
+                    var delegateType = typeof(HandleAsyncDelegate<>).MakeGenericType(eventType);
+                    var handler = scope?.ServiceProvider.GetService(handlerType);
+                    if (handler is null) return;
+                    var handleAsyncDelegate = Delegate.CreateDelegate(delegateType, handler, method);
+                    _handleAsyncDelegateCache[key] = handleAsyncDelegate;
+                    cachedDelegate = handleAsyncDelegate;
+                }
+                if (cachedDelegate.DynamicInvoke(@event) is Task handleTask)
+                {
+                    await pipeline.ExecuteAsync(async _ =>
+                    {
+                        await handleTask;
+                        await ack.Invoke();
+                    }).ConfigureAwait(false);
+                }
             }
         }
         else
