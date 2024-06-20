@@ -101,6 +101,13 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
         }
         finally
         {
+            // 先移除事件,以避免重复注册
+            if (_connection is not null)
+            {
+                _connection.ConnectionShutdown -= OnConnectionShutdown;
+                _connection.CallbackException -= OnCallbackException;
+                _connection.ConnectionBlocked -= OnConnectionBlocked;
+            }
             if (IsConnected && _connection is not null)
             {
                 _connection.ConnectionShutdown += OnConnectionShutdown;
