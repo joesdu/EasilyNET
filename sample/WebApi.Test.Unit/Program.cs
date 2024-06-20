@@ -30,6 +30,8 @@ builder.Host.UseSerilog((hbc, lc) =>
     lc.ReadFrom.Configuration(hbc.Configuration)
       .MinimumLevel.Override("Microsoft", logLevel)
       .MinimumLevel.Override("System", logLevel)
+      // 添加下面这行来过滤掉 Microsoft.Extensions.Resilience 的日志
+      .MinimumLevel.Override("Polly", LogEventLevel.Warning)
       .Enrich.FromLogContext()
       .WriteTo.Async(wt =>
       {
