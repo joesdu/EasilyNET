@@ -35,6 +35,9 @@ services:
       - 4317:18889
 
   webapi.test.unit:
+    depends_on:
+      - rabbit
+      - garnet
     environment:
       - TZ=Asia/Chongqing
       - ASPNETCORE_ENVIRONMENT=Development

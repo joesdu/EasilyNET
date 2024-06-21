@@ -6,36 +6,29 @@ namespace EasilyNET.RabbitBus.Core.Attributes;
 
 /// <summary>
 /// 应用交换机队列等参数
+/// 注意：当 workModel 为 None 并且 bindDlx 为 true 时，这是不被支持的组合，因为默认交换机类型已经创建不支持再绑定死信交换机。
 /// <a href="https://www.rabbitmq.com/getstarted.html"></a>
 /// </summary>
 /// <param name="workModel">工作模式 <see cref="EModel" /></param>
 /// <param name="exchangeName">交换机名称</param>
 /// <param name="routingKey">路由键</param>
 /// <param name="queue">队列名称</param>
-/// <param name="isDlx">是否延迟队列</param>
 /// <param name="enable">是否启用</param>
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class ExchangeAttribute(EModel workModel, string exchangeName = "", string routingKey = "", string queue = "", bool isDlx = false, bool enable = true) : Attribute
+public sealed class ExchangeAttribute(EModel workModel, string exchangeName = "", string routingKey = "", string queue = "", bool enable = true) : Attribute
 {
     /// <summary>
     /// 交换机名称
     /// </summary>
-    public string ExchangeName { get; } = isDlx
-                                              ? workModel switch
-                                              {
-                                                  EModel.PublishSubscribe => string.IsNullOrWhiteSpace(exchangeName) ? "xdl.amq.fanout" : exchangeName,
-                                                  EModel.Routing          => string.IsNullOrWhiteSpace(exchangeName) ? "xdl.amq.direct" : exchangeName,
-                                                  EModel.Topics           => string.IsNullOrWhiteSpace(exchangeName) ? "xdl.amq.topic" : exchangeName,
-                                                  _                       => ExchangeNameCheck(exchangeName)
-                                              }
-                                              : workModel switch
-                                              {
-                                                  EModel.PublishSubscribe => string.IsNullOrWhiteSpace(exchangeName) ? "amq.fanout" : exchangeName,
-                                                  EModel.Routing          => string.IsNullOrWhiteSpace(exchangeName) ? "amq.direct" : exchangeName,
-                                                  EModel.Topics           => string.IsNullOrWhiteSpace(exchangeName) ? "amq.topic" : exchangeName,
-                                                  EModel.Delayed          => ExchangeNameCheck(exchangeName),
-                                                  _                       => ""
-                                              };
+    public string ExchangeName { get; } = workModel switch
+    {
+        EModel.PublishSubscribe => string.IsNullOrWhiteSpace(exchangeName) ? "amq.fanout" : exchangeName,
+        EModel.Routing => string.IsNullOrWhiteSpace(exchangeName) ? "amq.direct" : exchangeName,
+        EModel.Topics => string.IsNullOrWhiteSpace(exchangeName) ? "amq.topic" : exchangeName,
+        EModel.Delayed => string.IsNullOrWhiteSpace(exchangeName) ? "amq.delayed" : exchangeName,
+        EModel.None => "",
+        _ => throw new ArgumentOutOfRangeException(nameof(workModel), workModel, null)
+    };
 
     /// <summary>
     /// 交换机模式
@@ -48,7 +41,7 @@ public sealed class ExchangeAttribute(EModel workModel, string exchangeName = ""
     public string RoutingKey { get; } = workModel switch
     {
         EModel.None => queue,
-        _           => routingKey
+        _ => routingKey
     };
 
     /// <summary>
@@ -60,20 +53,4 @@ public sealed class ExchangeAttribute(EModel workModel, string exchangeName = ""
     /// 是否启用队列
     /// </summary>
     public bool Enable { get; } = enable;
-
-    /// <summary>
-    /// 是否是延时队列
-    /// </summary>
-    public bool IsDlx { get; } = isDlx;
-
-    /// <summary>
-    /// 交换机名称检查
-    /// </summary>
-    /// <param name="exchangeName"></param>
-    /// <returns></returns>
-    private static string ExchangeNameCheck(string exchangeName)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(exchangeName, nameof(exchangeName));
-        return exchangeName;
-    }
 }

@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 
-internal sealed class ChannelPool(IConnection connection, uint poolCount) : IChannelPool, IDisposable
+internal sealed class ChannelPool(IConnection connection, uint poolCount) : IChannelPool
 {
     private readonly ConcurrentBag<IChannel> _channels = [];
     private int _currentCount; // 使用原子计数器来跟踪池中的通道数量

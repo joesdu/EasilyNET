@@ -1,6 +1,7 @@
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
+using EasilyNET.RabbitBus.AspNetCore.Enums;
 using EasilyNET.RabbitBus.AspNetCore.Extensions;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Attributes;
@@ -15,14 +16,11 @@ using System.Reflection;
 
 namespace EasilyNET.RabbitBus;
 
-internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager subsManager, IBusSerializer serializer, IServiceProvider sp, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pipelineProvider) : IBus, IDisposable
+internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager subsManager, IBusSerializer serializer, IServiceProvider sp, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pipelineProvider) : IBus
 {
     private const string HandleName = nameof(IEventHandler<IEvent>.HandleAsync);
     private readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Delegate> _handleAsyncDelegateCache = [];
 
-    private bool disposed;
-
-    /// <inheritdoc />
     public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
     {
         if (!conn.IsConnected) await conn.TryConnect();
@@ -55,14 +53,13 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         }).ConfigureAwait(false);
     }
 
-    /// <inheritdoc />
     public async Task Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
     {
         if (!conn.IsConnected) await conn.TryConnect();
         var type = @event.GetType();
         var exc = type.GetCustomAttribute<ExchangeAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(ExchangeAttribute)}>,无法创建消息");
         if (!exc.Enable) return;
-        if (exc is not { WorkModel: EModel.Delayed } | exc.IsDlx is not true) throw new($"延时队列的交换机类型必须为{nameof(EModel.Delayed)}且 {nameof(ExchangeAttribute.IsDlx)} 必须为 true");
+        if (exc is not { WorkModel: EModel.Delayed }) throw new($"延时队列的交换机类型必须为{nameof(EModel.Delayed)}");
         var channel = await conn.GetChannel();
         var properties = new BasicProperties
         {
@@ -103,14 +100,6 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         }).ConfigureAwait(false);
     }
 
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        if (disposed) return;
-        subsManager.Clear();
-        disposed = true;
-    }
-
     internal async Task Subscribe()
     {
         if (!conn.IsConnected) await conn.TryConnect();
@@ -128,17 +117,22 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
             var exc = @event.GetCustomAttribute<ExchangeAttribute>();
             if (exc is null || exc.Enable is false) continue;
             var handler = handlers.FindAll(o => o.ImplementedInterfaces.Any(s => s.GenericTypeArguments.Contains(@event)));
-            if (handler.Count is 0) continue;
-            await Task.Factory.StartNew(async () =>
+            if (handler.Count is not 0)
             {
-                using var channel = await CreateConsumerChannel(exc, @event);
-                if (exc is not { WorkModel: EModel.None })
+                await Task.Factory.StartNew(async () =>
                 {
-                    await DoInternalSubscription(@event.Name, exc, channel);
-                }
-                subsManager.AddSubscription(@event, exc.IsDlx, handler);
-                await StartBasicConsume(@event, exc, channel);
-            }, TaskCreationOptions.LongRunning);
+                    using var channel = await CreateConsumerChannel(exc, @event);
+                    var handleKind = exc.WorkModel is EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
+                    if (exc is not { WorkModel: EModel.None })
+                    {
+                        if (subsManager.HasSubscriptionsForEvent(@event.Name, handleKind)) return;
+                        if (!conn.IsConnected) await conn.TryConnect();
+                        await channel.QueueBindAsync(exc.Queue, exc.ExchangeName, exc.RoutingKey);
+                    }
+                    subsManager.AddSubscription(@event, handleKind, handler);
+                    await StartBasicConsume(@event, exc, channel);
+                }, TaskCreationOptions.LongRunning);
+            }
         }
     }
 
@@ -147,12 +141,14 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         logger.LogTrace("创建消费者通道");
         var channel = await conn.GetChannel();
         var queue_args = @event.GetQueueArgAttributes();
-        if (exc.IsDlx)
-        {
-            queue_args ??= new Dictionary<string, object?>();
-            queue_args.Add("x-dead-letter-exchange", exc.ExchangeName);
-            queue_args.Add("x-dead-letter-routing-key", exc.RoutingKey);
-        }
+        //if (exc.BindDlx)
+        //{
+        //    //创建队列
+        //    await channel.QueueDeclareAsync(exc.DeadLetterQueueName(), true, false, false);
+        //    queue_args ??= new Dictionary<string, object?>();
+        //    queue_args.Add("x-dead-letter-exchange", exc.DeadLetterExchangeName());
+        //    queue_args.Add("x-dead-letter-routing-key", exc.DeadLetterQueueName());
+        //}
         if (exc is not { WorkModel: EModel.None })
         {
             var exchange_args = @event.GetExchangeArgAttributes();
@@ -169,18 +165,11 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         channel.CallbackException += async (_, ea) =>
         {
             logger.LogWarning(ea.Exception, "重新创建消费者通道");
-            subsManager.Clear();
+            subsManager.ClearSubscriptions();
+            _handleAsyncDelegateCache.Clear();
             await Subscribe();
         };
         return channel;
-    }
-
-    private async Task DoInternalSubscription(string eventName, ExchangeAttribute exc, IChannel channel)
-    {
-        var containsKey = subsManager.HasSubscriptionsForEvent(eventName, exc.IsDlx);
-        if (containsKey) return;
-        if (!conn.IsConnected) await conn.TryConnect();
-        await channel.QueueBindAsync(exc.Queue, exc.ExchangeName, exc.RoutingKey);
     }
 
     private async Task StartBasicConsume(Type eventType, ExchangeAttribute exc, IChannel channel)
@@ -189,11 +178,12 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         if (qos is not null) await channel.BasicQosAsync(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
         var consumer = new AsyncEventingBasicConsumer(channel);
         await channel.BasicConsumeAsync(exc.Queue, false, consumer);
+        var handleKind = exc.WorkModel is EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
         consumer.Received += async (_, ea) =>
         {
             try
             {
-                await ProcessEvent(eventType, ea.Body.Span.ToArray(), exc.IsDlx, async () => await channel.BasicAckAsync(ea.DeliveryTag, false).ConfigureAwait(false));
+                await ProcessEvent(eventType, ea.Body.Span.ToArray(), handleKind, async () => await channel.BasicAckAsync(ea.DeliveryTag, false).ConfigureAwait(false));
             }
             catch (Exception ex)
             {
@@ -209,13 +199,13 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         }
     }
 
-    private async Task ProcessEvent(Type eventType, byte[] message, bool isDlx, Func<ValueTask> ack)
+    private async Task ProcessEvent(Type eventType, byte[] message, EKindOfHandler handleKind, Func<ValueTask> ack)
     {
         logger.LogTrace("处理事件: {EventName}", eventType.Name);
-        if (subsManager.HasSubscriptionsForEvent(eventType.Name, isDlx))
+        if (subsManager.HasSubscriptionsForEvent(eventType.Name, handleKind))
         {
             var @event = serializer.Deserialize(message, eventType);
-            var handlerTypes = subsManager.GetHandlersForEvent(eventType.Name, isDlx);
+            var handlerTypes = subsManager.GetHandlersForEvent(eventType.Name, handleKind);
             using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
             var pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
             foreach (var handlerType in handlerTypes)

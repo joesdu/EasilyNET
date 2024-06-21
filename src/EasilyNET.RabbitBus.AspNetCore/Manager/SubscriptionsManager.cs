@@ -1,4 +1,5 @@
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
+using EasilyNET.RabbitBus.AspNetCore.Enums;
 using System.Collections.Concurrent;
 using System.Reflection;
 
@@ -7,32 +8,49 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <inheritdoc />
 internal sealed class SubscriptionsManager : ISubscriptionsManager
 {
-    private readonly ConcurrentDictionary<string, IList<Type>> _dlxHandlers = [];
-    private readonly ConcurrentDictionary<string, IList<Type>> _handlers = [];
+    private readonly ConcurrentDictionary<string, IList<Type>> _delayedHandlers = [];
+    private readonly ConcurrentDictionary<string, IList<Type>> _normalHandlers = [];
 
-    /// <inheritdoc />
-    public void AddSubscription(Type eventType, bool isDlx, IList<TypeInfo> handlerTypes)
+    public void AddSubscription(Type eventType, EKindOfHandler handleKind, IList<TypeInfo> handlerTypes)
     {
         var handlerTypeList = handlerTypes.Select(ht => ht.AsType()).ToList();
-        DoAddSubscription(eventType.Name, isDlx, handlerTypeList);
+        DoAddSubscription(eventType.Name, handleKind, handlerTypeList);
     }
 
-    /// <inheritdoc />
-    public IEnumerable<Type> GetHandlersForEvent(string name, bool isDlx) => isDlx ? _dlxHandlers.GetValueOrDefault(name, []) : _handlers.GetValueOrDefault(name, []);
-
-    /// <inheritdoc />
-    public bool HasSubscriptionsForEvent(string name, bool isDlx) => isDlx ? _dlxHandlers.ContainsKey(name) : _handlers.ContainsKey(name);
-
-    /// <inheritdoc />
-    public void Clear()
+    public IEnumerable<Type> GetHandlersForEvent(string name, EKindOfHandler handleKind)
     {
-        _handlers.Clear();
-        _dlxHandlers.Clear();
+        return handleKind switch
+        {
+            EKindOfHandler.Normal => _normalHandlers.GetValueOrDefault(name, []),
+            EKindOfHandler.Delayed => _delayedHandlers.GetValueOrDefault(name, []),
+            _ => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
+        };
     }
 
-    private void DoAddSubscription(string name, bool isDlx, IList<Type> handlerTypes)
+    public bool HasSubscriptionsForEvent(string name, EKindOfHandler handleKind)
     {
-        var handlersDict = isDlx ? _dlxHandlers : _handlers;
+        return handleKind switch
+        {
+            EKindOfHandler.Normal => _normalHandlers.ContainsKey(name),
+            EKindOfHandler.Delayed => _delayedHandlers.ContainsKey(name),
+            _ => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
+        };
+    }
+
+    public void ClearSubscriptions()
+    {
+        _normalHandlers.Clear();
+        _delayedHandlers.Clear();
+    }
+
+    private void DoAddSubscription(string name, EKindOfHandler handleKind, IList<Type> handlerTypes)
+    {
+        var handlersDict = handleKind switch
+        {
+            EKindOfHandler.Normal => _normalHandlers,
+            EKindOfHandler.Delayed => _delayedHandlers,
+            _ => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
+        };
         if (!handlersDict.ContainsKey(name))
         {
             handlersDict.TryAdd(name, []);

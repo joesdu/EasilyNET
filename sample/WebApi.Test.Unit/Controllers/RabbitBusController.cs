@@ -29,7 +29,7 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     public async Task DeadLetter()
     {
         var rand = new Random();
-        await ibus.Publish(new HelloWorldEvent(), priority: (byte)rand.Next(0, 9), ttl: 3000);
+        await ibus.Publish(new HelloWorldEvent(), 3000, priority: (byte)rand.Next(0, 9));
     }
 
     /// <summary>
