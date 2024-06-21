@@ -23,7 +23,7 @@ internal sealed class RabbitModule : AppModule
         {
             c.PoolCount = (uint)Environment.ProcessorCount;
             c.RetryCount = 5;
-            c.Serializer = ESerializer.MessagePack;
+            c.Serializer = ESerializer.TextJson;
         });
     }
 }

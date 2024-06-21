@@ -9,5 +9,5 @@ internal interface IBusSerializerFactory
     /// 创建序列化器
     /// </summary>
     /// <returns></returns>
-    public IBusSerializer CreateSerializer();
+    IBusSerializer CreateSerializer();
 }
