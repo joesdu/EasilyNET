@@ -4,7 +4,7 @@ using RabbitMQ.Client;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Abstraction;
 
-internal interface IChannelPool
+internal interface IChannelPool : IDisposable
 {
     /// <summary>
     /// 从池中获取Channel

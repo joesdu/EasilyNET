@@ -1,3 +1,4 @@
+using EasilyNET.RabbitBus.AspNetCore.Enums;
 using System.Reflection;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Abstraction;
@@ -8,31 +9,31 @@ namespace EasilyNET.RabbitBus.AspNetCore.Abstraction;
 internal interface ISubscriptionsManager
 {
     /// <summary>
-    /// 清除所有
+    /// 清除所有订阅对应关系
     /// </summary>
-    void Clear();
+    void ClearSubscriptions();
 
     /// <summary>
     /// 添加订阅
     /// </summary>
     /// <param name="eventType">事件类型</param>
-    /// <param name="isDlx">是否是延时队列</param>
-    /// <param name="handlerType">事件处理器类型</param>
-    void AddSubscription(Type eventType, bool isDlx, IList<TypeInfo> handlerType);
+    /// <param name="handleKind">事件处理器种类</param>
+    /// <param name="handlerTypes">事件处理器类型信息</param>
+    void AddSubscription(Type eventType, EKindOfHandler handleKind, IList<TypeInfo> handlerTypes);
 
     /// <summary>
     /// 获取消息处理程序
     /// </summary>
     /// <param name="name"></param>
-    /// <param name="isDlx">是否是延迟消息</param>
+    /// <param name="handleKind">事件处理器种类</param>
     /// <returns></returns>
-    IEnumerable<Type> GetHandlersForEvent(string name, bool isDlx);
+    IEnumerable<Type> GetHandlersForEvent(string name, EKindOfHandler handleKind);
 
     /// <summary>
     /// 判断订阅者是否存在
     /// </summary>
     /// <param name="name"></param>
-    /// <param name="isDlx">是否是延迟消息</param>
+    /// <param name="handleKind">事件处理器种类</param>
     /// <returns></returns>
-    bool HasSubscriptionsForEvent(string name, bool isDlx);
+    bool HasSubscriptionsForEvent(string name, EKindOfHandler handleKind);
 }

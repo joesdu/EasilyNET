@@ -11,7 +11,7 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <summary>
 /// RabbitMQ持久链接
 /// </summary>
-internal sealed class PersistentConnection : IPersistentConnection, IDisposable
+internal sealed class PersistentConnection : IPersistentConnection
 {
     private readonly IConnectionFactory _connFactory;
     private readonly SemaphoreSlim _connLock = new(1, 1);
@@ -34,10 +34,6 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
         _pipelineProvider = pipelineProvider;
     }
 
-    /// <inheritdoc />
-    internal override bool IsConnected => _connection is not null && _connection.IsOpen;
-
-    /// <inheritdoc />
     public void Dispose()
     {
         if (!_disposed)
@@ -69,8 +65,9 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
         _disposed = true;
     }
 
-    /// <inheritdoc />
-    internal override async Task<IChannel> GetChannel() =>
+    public bool IsConnected => _connection is not null && _connection.IsOpen;
+
+    public async Task<IChannel> GetChannel() =>
         !IsConnected
             ? throw new InvalidOperationException("RabbitMQ连接失败")
             : _connection is null
@@ -79,15 +76,13 @@ internal sealed class PersistentConnection : IPersistentConnection, IDisposable
                     ? throw new("通道池为空")
                     : await _channelPool.GetChannel();
 
-    /// <inheritdoc />
-    internal override async Task ReturnChannel(IChannel channel)
+    public async Task ReturnChannel(IChannel channel)
     {
         if (_channelPool is null) throw new("通道池为空");
         await _channelPool.ReturnChannel(channel);
     }
 
-    /// <inheritdoc />
-    internal override async Task TryConnect()
+    public async Task TryConnect()
     {
         _logger.LogInformation("RabbitMQ客户端尝试连接");
         await _connLock.WaitAsync();

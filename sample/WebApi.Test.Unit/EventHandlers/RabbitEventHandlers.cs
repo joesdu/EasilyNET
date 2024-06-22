@@ -20,12 +20,12 @@ public class HelloWorldEventHandlers(ILogger<HelloWorldEventHandlers> logger) : 
 
 /// <inheritdoc />
 [IgnoreHandler]
-public class DeadLetterEventHandlers : IEventHandler<HelloWorldEvent>
+public class DelayedEventHandlers : IEventHandler<HelloWorldEvent>
 {
     /// <inheritdoc />
     public Task HandleAsync(HelloWorldEvent @event)
     {
-        Console.WriteLine($"[消息处理自:{nameof(DeadLetterEventHandlers)}]-{JsonSerializer.Serialize(@event)}");
+        Console.WriteLine($"[消息处理自:{nameof(DelayedEventHandlers)}]-{JsonSerializer.Serialize(@event)}");
         return Task.CompletedTask;
     }
 }
