@@ -53,8 +53,8 @@ internal sealed class SwaggerModule : AppModule
     /// <inheritdoc />
     public override void ApplicationInitialization(ApplicationContext context)
     {
-        var app = context.GetApplicationBuilder();
-        app.UseSwagger().UseSwaggerUI(c =>
+        var app = context.GetApplicationHost() as IApplicationBuilder;
+        app?.UseSwagger().UseSwaggerUI(c =>
         {
             // 配置默认文档
             c.SwaggerEndpoint($"/swagger/{name}/swagger.json", $"{title} {version}");

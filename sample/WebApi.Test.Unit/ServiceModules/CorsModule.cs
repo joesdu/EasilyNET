@@ -19,7 +19,7 @@ internal sealed class CorsModule : AppModule
     /// <inheritdoc />
     public override void ApplicationInitialization(ApplicationContext context)
     {
-        var app = context.GetApplicationBuilder();
-        app.UseCors("AllowedHosts");
+        var app = context.GetApplicationHost() as IApplicationBuilder;
+        app?.UseCors("AllowedHosts");
     }
 }

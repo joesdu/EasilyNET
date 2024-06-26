@@ -128,8 +128,8 @@ internal class ModuleApplicationBase : IModuleApplication
 
     protected void InitializeModules()
     {
-        using var scope = ServiceProvider?.CreateScope();
-        var ctx = new ApplicationContext(scope?.ServiceProvider);
+        using var scope = ServiceProvider.CreateScope();
+        var ctx = new ApplicationContext(scope.ServiceProvider);
         foreach (var cfg in Modules) cfg.ApplicationInitialization(ctx);
     }
 }

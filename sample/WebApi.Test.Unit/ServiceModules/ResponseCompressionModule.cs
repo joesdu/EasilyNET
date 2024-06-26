@@ -37,9 +37,9 @@ internal sealed class ResponseCompressionModule : AppModule
     /// <inheritdoc />
     public override void ApplicationInitialization(ApplicationContext context)
     {
-        var app = context.GetApplicationBuilder();
-        app.UseResponseCompression();
-        app.Use(async (c, next) =>
+        var app = context.GetApplicationHost() as IApplicationBuilder;
+        app?.UseResponseCompression();
+        app?.Use(async (c, next) =>
         {
             c.Response.Headers.Add(new("Vary", "Accept-Encoding"));
             await next();

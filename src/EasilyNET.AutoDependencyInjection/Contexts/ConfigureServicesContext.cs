@@ -6,10 +6,15 @@ namespace EasilyNET.AutoDependencyInjection.Contexts;
 /// 自定义配置服务上下文
 /// </summary>
 /// <param name="services"></param>
-public sealed class ConfigureServicesContext(IServiceCollection services)
+public sealed class ConfigureServicesContext(IServiceCollection services, IServiceProvider? provider)
 {
     /// <summary>
-    /// IServiceCollection
+    ///     <see cref="IServiceCollection" />
     /// </summary>
     public IServiceCollection Services { get; } = services;
+
+    /// <summary>
+    ///     <see cref="IServiceProvider" />
+    /// </summary>
+    public IServiceProvider? ServiceProvider { get; } = provider;
 }

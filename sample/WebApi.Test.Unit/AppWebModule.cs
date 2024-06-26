@@ -40,7 +40,7 @@ internal sealed class AppWebModule : AppModule
     public override void ApplicationInitialization(ApplicationContext context)
     {
         base.ApplicationInitialization(context);
-        var app = context.GetApplicationBuilder();
+        var app = context.GetApplicationHost() as IApplicationBuilder;
         // 全局异常处理中间件
         app.UseExceptionHandler();
         app.UseResponseTime();
