@@ -49,7 +49,18 @@ public sealed class DependencyAppModule : AppModule
                 services.Add(new(implementedInterType, implementedInterType, lifetime.Value));
                 continue;
             }
-            if (attr?.AddSelf is true) services.Add(new(implementedInterType, implementedInterType, lifetime.Value));
+            bool? addSelf = attr?.AddSelf ?? false;
+            if (addSelf is not true)
+            {
+                var addSelfProperty = implementedInterType.GetProperty("AddSelf", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+                addSelf = (bool?)(addSelfProperty?.GetValue(implementedInterType) ?? false);
+            }
+            if (addSelf is true)
+            {
+                services.Add(new(implementedInterType, implementedInterType, lifetime.Value));
+            }
+            //var addSelf = (bool?)(implementedInterType.GetProperty("AddSelf", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static)?.GetValue(implementedInterType) ?? false);
+            //if (attr?.AddSelf is true || addSelf is true) services.Add(new(implementedInterType, implementedInterType, lifetime.Value));
             foreach (var serviceType in serviceTypes.Where(o => !o.HasAttribute<IgnoreDependencyAttribute>()))
             {
                 services.Add(new(serviceType, implementedInterType, lifetime.Value));
@@ -81,6 +92,6 @@ public sealed class DependencyAppModule : AppModule
     /// <param name="context"></param>
     public override void ApplicationInitialization(ApplicationContext context)
     {
-        context.GetApplicationBuilder();
+        context.GetApplicationHost();
     }
 }

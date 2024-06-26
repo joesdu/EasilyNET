@@ -23,7 +23,7 @@ internal sealed class OutPutCachingModule : AppModule
     /// <inheritdoc />
     public override void ApplicationInitialization(ApplicationContext context)
     {
-        var app = context.GetApplicationBuilder();
-        app.UseOutputCache();
+        var app = context.GetApplicationHost() as IApplicationBuilder;
+        app?.UseOutputCache();
     }
 }

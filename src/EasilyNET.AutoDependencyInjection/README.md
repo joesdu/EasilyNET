@@ -1,6 +1,73 @@
 #### EasilyNET.AutoDependencyInjection
 
-自动注入模块,参考 ABP 的代码实现.
+- 新增 WPF 项目支持,理论上也支持 WinForm 项目,但是没有测试,使用时请注意.(仅限于 .NET 的项目,不支持 .NET Framework)
+
+##### 变化
+
+由于新增了 WPF 项目支持,所以在使用时需要注意以下几点:
+WPF 项目中,使用依赖注入,需要在 App.xaml.cs 中添加如下代码:
+
+```csharp
+[STAThread]
+public static void Main(string[] args)
+{
+    using var host = CreateHostBuilder(args).Build();
+    host.InitializeApplication();
+    host.Start();
+    var app = new App();
+    app.InitializeComponent();
+    app.MainWindow = host.Services.GetRequiredService<MainWindow>();
+    app.MainWindow.Visibility = Visibility.Visible;
+    app.Run();
+}
+
+private static IHostBuilder CreateHostBuilder(string[] args)
+{
+    return Host.CreateDefaultBuilder(args)
+               .ConfigureServices(sc => { sc.AddApplicationModules<AppServiceModules>(); });
+}
+```
+
+同时还需要调整 .csproj 文件,添加如下代码:
+
+```xml
+<ItemGroup>
+	<ApplicationDefinition Remove="App.xaml" />
+	<Page Include="App.xaml" />
+</ItemGroup>
+```
+
+再在 WPF 项目中,使用依赖注入,需要在 AppServiceModules.cs 中添加如下代码: 该类的使用方法和 Web 项目中的 AppWebModule.cs 一样.
+
+```csharp
+[DependsOn(typeof(DependencyAppModule))]
+internal sealed class AppServiceModules : AppModule { }
+```
+
+在 WPF 项目中,使用依赖注入,需要在 MainWindow.xaml.cs 中继承接口或者添加 DependencyInjection 特性如下代码:
+
+```csharp
+// 这里特性和接口二选一,推荐使用特性
+[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
+public partial class MainWindow : Window, IXXXXDependency
+
+```
+
+##### 注意事项
+
+- 接口的实现类,需要显示的继承 IScopedDependency, ISingletonDependency, ITransientDependency 接口,这些接口中新增 AddSelf 属性,用于标识是否将自己也注册为服务.行为保持和 DependencyInjection 特性中的 AddSelf 属性一致.
+- 需要注意的是,在 WPF 项目中,请将 AddSelf 属性设置为 true,否则会出现服务无法找到的问题,因为默认会注册实现类的父类,导致使用 ```host.Services.GetRequiredService<MainWindow>()``` 的方式无法找到服务.WinForm 项目中,没有测试,但是理论上也是一样的.
+- 由于新增 WPF 项目支持,所以调整了 IApplicationBuilder 为 IHost,因此 WEB 项目中的使用方式有细微的变化.
+```csharp
+// 之前的使用方式
+IApplicationBuilder app = context.GetApplicationBuilder();
+// 现在的使用方式
+IApplicationBuilder app = context.GetApplicationHost() as IApplicationBuilder;
+// 或者如下方式,根据实际情况选择
+WebApplication app = context.GetApplicationHost() as WebApplication;
+// 在 WPF 或者 WinForm 项目中,使用如下方式
+IHost app = context.GetApplicationHost();
+```
 
 ##### 如何使用
 
@@ -78,7 +145,7 @@ public class CorsModule : AppModule
     /// <param name="context"></param>
     public override void ApplicationInitialization(ApplicationContext context)
     {
-        var app = context.GetApplicationBuilder();
+        var app = context.GetApplicationBuilder() as IApplicationBuilder;
         _ = app.UseCors("AllowedHosts");
     }
 }
@@ -112,7 +179,7 @@ public class AppWebModule : AppModule
     public override void ApplicationInitialization(ApplicationContext context)
     {
         base.ApplicationInitialization(context);
-        var app = context.GetApplicationBuilder();
+        var app = context.GetApplicationBuilder() as IApplicationBuilder;
         _ = app.UseAuthorization();
         // 这里可添加自己的中间件
     }

@@ -58,7 +58,7 @@ builder.Host.UseSerilog((hbc, lc) =>
 });
 
 // 自动注入服务模块
-builder.Services.AddApplication<AppWebModule>();
+builder.Services.AddApplicationModules<AppWebModule>();
 var app = builder.Build();
 if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
 

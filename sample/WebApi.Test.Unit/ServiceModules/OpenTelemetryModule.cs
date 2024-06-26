@@ -16,7 +16,7 @@ internal sealed class OpenTelemetryModule : AppModule
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var config = context.Services.GetConfiguration();
-        var env = context.Services.GetWebHostEnvironment();
+        var env = context.ServiceProvider?.GetRequiredService<IWebHostEnvironment>() ?? throw new("获取服务出错");
         context.Services.AddOpenTelemetry()
                .WithMetrics(c =>
                {
@@ -49,10 +49,10 @@ internal sealed class OpenTelemetryModule : AppModule
 
     public override void ApplicationInitialization(ApplicationContext context)
     {
-        var app = context.GetApplicationBuilder() as WebApplication ?? throw new("app is null");
+        var app = context.GetApplicationHost() as WebApplication;
         // 配置健康检查端点
-        app.MapHealthChecks("/health");
-        app.MapHealthChecks("/alive", new()
+        app?.MapHealthChecks("/health");
+        app?.MapHealthChecks("/alive", new()
         {
             Predicate = r => r.Tags.Contains("live")
         });

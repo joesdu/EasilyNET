@@ -43,7 +43,7 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
     /// </summary>
     private void ConfigureServices()
     {
-        var context = new ConfigureServicesContext(Services);
+        var context = new ConfigureServicesContext(Services, ServiceProvider);
         Services.AddSingleton(context);
         foreach (var config in Modules)
         {

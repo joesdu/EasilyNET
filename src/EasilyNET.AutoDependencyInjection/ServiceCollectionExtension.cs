@@ -2,9 +2,8 @@ using EasilyNET.AutoDependencyInjection;
 using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 // ReSharper disable UnusedMember.Global
 
@@ -20,7 +19,7 @@ public static partial class ServiceCollectionExtension
     /// </summary>
     /// <param name="context"></param>
     /// <returns></returns>
-    public static IApplicationBuilder GetApplicationBuilder(this ApplicationContext context) => context.ServiceProvider.GetRequiredService<IObjectAccessor<IApplicationBuilder>>().Value!;
+    public static IHost GetApplicationHost(this ApplicationContext context) => context.ServiceProvider.GetRequiredService<IObjectAccessor<IHost>>().Value!;
 
     /// <summary>
     /// 注入服务
@@ -28,10 +27,10 @@ public static partial class ServiceCollectionExtension
     /// <typeparam name="T"></typeparam>
     /// <param name="services"></param>
     /// <returns></returns>
-    public static IServiceCollection AddApplication<T>(this IServiceCollection services) where T : AppModule
+    public static IServiceCollection AddApplicationModules<T>(this IServiceCollection services) where T : AppModule
     {
         ArgumentNullException.ThrowIfNull(services, nameof(services));
-        services.AddSingleton<IObjectAccessor<IApplicationBuilder>>(new ObjectAccessor<IApplicationBuilder>());
+        services.AddSingleton<IObjectAccessor<IHost>>(new ObjectAccessor<IHost>());
         ApplicationFactory.Create<T>(services);
         return services;
     }
@@ -41,11 +40,11 @@ public static partial class ServiceCollectionExtension
     /// </summary>
     /// <param name="builder"></param>
     /// <returns></returns>
-    public static IApplicationBuilder InitializeApplication(this IApplicationBuilder builder)
+    public static IHost InitializeApplication(this IHost builder)
     {
-        builder.ApplicationServices.GetRequiredService<IObjectAccessor<IApplicationBuilder>>().Value = builder;
-        var runner = builder.ApplicationServices.GetRequiredService<IStartupModuleRunner>();
-        runner.Initialize(builder.ApplicationServices);
+        builder.Services.GetRequiredService<IObjectAccessor<IHost>>().Value = builder;
+        var runner = builder.Services.GetRequiredService<IStartupModuleRunner>();
+        runner.Initialize(builder.Services);
         return builder;
     }
 
@@ -58,17 +57,6 @@ public static partial class ServiceCollectionExtension
     {
         var provider = services.BuildServiceProvider();
         return provider.GetRequiredService<IConfiguration>();
-    }
-
-    /// <summary>
-    /// 获取 <see cref="IWebHostEnvironment" /> 服务
-    /// </summary>
-    /// <param name="services"></param>
-    /// <returns></returns>
-    public static IWebHostEnvironment GetWebHostEnvironment(this IServiceCollection services)
-    {
-        var provider = services.BuildServiceProvider();
-        return provider.GetRequiredService<IWebHostEnvironment>();
     }
 
     /// <summary>
