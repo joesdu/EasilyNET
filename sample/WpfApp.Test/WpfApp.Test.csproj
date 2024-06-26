@@ -14,8 +14,8 @@
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Common" Version="8.2.2" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+		<PackageReference Include="MicaWPF" Version="6.2.8" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0-preview.5.24306.7" />
-		<PackageReference Include="WPF-UI" Version="3.0.4" />
 	</ItemGroup>
 
 	<ItemGroup>

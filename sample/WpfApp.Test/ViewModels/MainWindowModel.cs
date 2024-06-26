@@ -2,16 +2,19 @@
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 
+// ReSharper disable PartialTypeWithSinglePart
+
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace WpfApp.Test.ViewModels;
 
-/// <inheritdoc />
+/// <inheritdoc cref="ObservableObject" />
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
-public sealed class MainWindowModel : ObservableObject
+public partial class MainWindowModel : ObservableObject
 {
     /// <summary>
     /// Message
     /// </summary>
-    public string Message { get; set; } = "Hello WPF!";
+    [ObservableProperty]
+    private string message = "Hello WPF!";
 }
