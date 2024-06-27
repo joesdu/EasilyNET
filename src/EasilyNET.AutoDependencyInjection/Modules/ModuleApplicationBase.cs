@@ -128,6 +128,7 @@ internal class ModuleApplicationBase : IModuleApplication
 
     protected void InitializeModules()
     {
+        ArgumentNullException.ThrowIfNull(ServiceProvider, nameof(ServiceProvider));
         using var scope = ServiceProvider.CreateScope();
         var ctx = new ApplicationContext(scope.ServiceProvider);
         foreach (var cfg in Modules) cfg.ApplicationInitialization(ctx);
