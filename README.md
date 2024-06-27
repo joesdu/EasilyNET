@@ -14,7 +14,7 @@
 git config core.ignorecase false
 ```
 
-本项目为 docker-compose 的编排,用于展示项目的效果以及单独为项目启动一些服务.
+本项目使用 docker-compose 编排,用于展示项目的效果以及单独为项目启动一些服务.可通过VS将 docker-compose 项目设置为启动项一键启动.
 
 - 目前包含的服务列表如下:
 
@@ -37,7 +37,7 @@ EasilyNET Packages
 - 基于 RabbitMQ 的消息总线实现
 - 对 MongoDB 驱动的一些封装,方便使用以及一些常用的默认配置
 - 雪花 ID,一些常用的数据类型,枚举,扩展方法等
-- 自动模块化注入服务
+- 自动模块化注入服务,新增支持 WPF,WinForm 等项目,需使用 IHost 通用主机模式
 - MongoDB 添加 DateOnly 和 TimeOnly 的支持
 - MongoDB GridFS 用法的简单支持(常用用法)和使用案例.
 - 在 WebAPI 中集成一些常见的过滤器和中间件
