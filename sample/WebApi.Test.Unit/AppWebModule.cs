@@ -42,11 +42,11 @@ internal sealed class AppWebModule : AppModule
         base.ApplicationInitialization(context);
         var app = context.GetApplicationHost() as IApplicationBuilder;
         // 全局异常处理中间件
-        app.UseExceptionHandler();
-        app.UseResponseTime();
+        app?.UseExceptionHandler();
+        app?.UseResponseTime();
         // 先认证
-        app.UseAuthentication();
+        app?.UseAuthentication();
         // 再授权
-        app.UseAuthorization();
+        app?.UseAuthorization();
     }
 }
