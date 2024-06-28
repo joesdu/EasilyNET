@@ -1,5 +1,6 @@
 using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Contexts;
+using System.Collections.Frozen;
 using System.Reflection;
 
 namespace EasilyNET.AutoDependencyInjection.Modules;
@@ -37,8 +38,8 @@ public class AppModule : IAppModule
         List<Type> dependList = [];
         foreach (var dependedType in dependedTypes)
         {
-            var depends = dependedType.GetDependedTypes().ToArray();
-            if (depends.Length == 0) continue;
+            var depends = dependedType.GetDependedTypes().ToFrozenSet();
+            if (depends.Count == 0) continue;
             dependList.AddRange(depends);
             foreach (var type in depends) dependList.AddRange(GetDependedTypes(type));
         }
