@@ -69,13 +69,33 @@ WebApplication app = context.GetApplicationHost() as WebApplication;
 IHost app = context.GetApplicationHost();
 ```
 
+**使用接口注入时需要注意** 
+- 由于无法通过接口的方式来约束类中的静态成员,所以我们这里需要做一个约定.在类中写入如下代码来实现和特性相同的功能.(所以更推荐使用特性的方式注入)
+- 若是不声明这两个属性,可能会导致注入了其实现的类或接口,影响获取服务的结果.如在 WPF 中注册 MainWindow.cs,会注册其实现的接口类型.导致无法获取到正确的实现.
+- 这里采用较长的名字,避免和类中别的成员出现名称冲突.
+- DependencyInjectionSelf 对应 DependencyInjection 特性中的 AddSelf
+- DependencyInjectionSelfOnly 对应 DependencyInjection 特性中的 SelfOnly
+```csharp
+/// <summary>
+/// 是否添加自身
+/// </summary>
+// ReSharper disable once UnusedMember.Global
+public static bool? DependencyInjectionSelf => true;
+
+/// <summary>
+/// 仅注册自身,而不注其父类或者接口
+/// </summary>
+// ReSharper disable once UnusedMember.Global
+public static bool? DependencyInjectionSelfOnly => true;
+```
+
 ##### 如何使用
 
 - 使用 Nuget 包管理工具添加依赖包 EasilyNET.AutoDependencyInjection
 - a.使用特性注入服务
 
 ```csharp
-[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
+[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true, SelfOnly = true)]
 public class XXXService : IXXXService
 {
     // TODO: do something

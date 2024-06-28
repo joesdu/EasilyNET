@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
+// ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace EasilyNET.AutoDependencyInjection.Core.Attributes;
@@ -20,4 +21,9 @@ public sealed class DependencyInjectionAttribute(ServiceLifetime lifetime) : Att
     /// </summary>
     // ReSharper disable once UnusedAutoPropertyAccessor.Global
     public bool AddSelf { get; set; }
+
+    /// <summary>
+    /// 仅注册自身类型,而不注册接口
+    /// </summary>
+    public bool SelfOnly { get; set; }
 }

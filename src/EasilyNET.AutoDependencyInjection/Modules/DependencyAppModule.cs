@@ -3,6 +3,7 @@ using EasilyNET.AutoDependencyInjection.Core.Abstractions;
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.Core.Misc;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Frozen;
 using System.Reflection;
 
 // ReSharper disable UnusedType.Global
@@ -35,37 +36,40 @@ public sealed class DependencyAppModule : AppModule
         var types = AssemblyHelper.FindTypes(type =>
             (type is { IsClass: true, IsAbstract: false } && baseTypes.Any(b => b.IsAssignableFrom(type))) ||
             type.GetCustomAttribute<DependencyInjectionAttribute>() is not null);
-        foreach (var implementedInterType in types)
+        foreach (var implementedType in types)
         {
-            var attr = implementedInterType.GetCustomAttribute<DependencyInjectionAttribute>();
-            var typeInfo = implementedInterType.GetTypeInfo();
-            var serviceTypes = typeInfo.ImplementedInterfaces
-                                       .Where(x => x.HasMatchingGenericArity(typeInfo) && !x.HasAttribute<IgnoreDependencyAttribute>() && x != typeof(IDisposable))
-                                       .Select(t => t.GetRegistrationType(typeInfo)).ToList();
-            var lifetime = GetServiceLifetime(implementedInterType);
+            var attr = implementedType.GetCustomAttribute<DependencyInjectionAttribute>();
+            var lifetime = GetServiceLifetime(implementedType);
             if (lifetime is null) continue;
-            if (serviceTypes.Count is 0)
+            // 优化：直接从属性或特性获取AddSelf和SelfOnly的值,这里的名称属于约定项
+            var addSelf = attr?.AddSelf ?? GetPropertyValue<bool?>(implementedType, "DependencyInjectionSelf");
+            var serviceTypes = GetServiceTypes(implementedType);
+            if (serviceTypes.Count is 0 || addSelf is true)
             {
-                services.Add(new(implementedInterType, implementedInterType, lifetime.Value));
-                continue;
+                services.Add(new(implementedType, implementedType, lifetime.Value));
+                var selfOnly = attr?.SelfOnly ?? GetPropertyValue<bool?>(implementedType, "DependencyInjectionSelfOnly");
+                if (selfOnly is true || serviceTypes.Count is 0) continue;
             }
-            bool? addSelf = attr?.AddSelf ?? false;
-            if (addSelf is not true)
-            {
-                var addSelfProperty = implementedInterType.GetProperty("AddSelf", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
-                addSelf = (bool?)(addSelfProperty?.GetValue(implementedInterType) ?? false);
-            }
-            if (addSelf is true)
-            {
-                services.Add(new(implementedInterType, implementedInterType, lifetime.Value));
-            }
-            //var addSelf = (bool?)(implementedInterType.GetProperty("AddSelf", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static)?.GetValue(implementedInterType) ?? false);
-            //if (attr?.AddSelf is true || addSelf is true) services.Add(new(implementedInterType, implementedInterType, lifetime.Value));
             foreach (var serviceType in serviceTypes.Where(o => !o.HasAttribute<IgnoreDependencyAttribute>()))
             {
-                services.Add(new(serviceType, implementedInterType, lifetime.Value));
+                services.Add(new(serviceType, implementedType, lifetime.Value));
             }
         }
+    }
+
+    private static FrozenSet<Type> GetServiceTypes(Type implementation)
+    {
+        var typeInfo = implementation.GetTypeInfo();
+        return typeInfo.ImplementedInterfaces
+                       .Where(x => x.HasMatchingGenericArity(typeInfo) && !x.HasAttribute<IgnoreDependencyAttribute>() && x != typeof(IDisposable))
+                       .Select(t => t.GetRegistrationType(typeInfo)).ToFrozenSet();
+    }
+
+    // 优化：提取获取静态属性值的通用方法，减少重复代码
+    private static T? GetPropertyValue<T>(Type type, string name)
+    {
+        var property = type.GetProperty(name, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        return property is null ? default : (T?)property.GetValue(type);
     }
 
     /// <summary>

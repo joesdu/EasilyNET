@@ -9,10 +9,4 @@ namespace EasilyNET.AutoDependencyInjection.Core.Abstractions;
 /// 实现此接口的类型将自动注册为<see cref="ServiceLifetime.Singleton" /> 模式
 /// </summary>
 [IgnoreDependency]
-public interface ISingletonDependency
-{
-    /// <summary>
-    /// 是否添加自身
-    /// </summary>
-    static bool? AddSelf { get; set; } = false;
-}
+public interface ISingletonDependency;
