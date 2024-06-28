@@ -48,14 +48,14 @@ internal sealed class AppServiceModules : AppModule { }
 
 ```csharp
 // 这里特性和接口二选一,推荐使用特性
-[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true)]
+[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true, SelfOnly = true)]
 public partial class MainWindow : Window, IXXXXDependency
 
 ```
 
 ##### 注意事项
 
-- 接口的实现类,需要显示的继承 IScopedDependency, ISingletonDependency, ITransientDependency 接口,这些接口中新增 AddSelf 属性,用于标识是否将自己也注册为服务.行为保持和 DependencyInjection 特性中的 AddSelf 属性一致.
+- 接口的实现类,需要显示的继承 IScopedDependency, ISingletonDependency, ITransientDependency 接口.
 - 需要注意的是,在 WPF 项目中,请将 AddSelf 属性设置为 true,否则会出现服务无法找到的问题,因为默认会注册实现类的父类,导致使用 ```host.Services.GetRequiredService<MainWindow>()``` 的方式无法找到服务.WinForm 项目中,没有测试,但是理论上也是一样的.
 - 由于新增 WPF 项目支持,所以调整了 IApplicationBuilder 为 IHost,因此 WEB 项目中的使用方式有细微的变化.
 ```csharp
