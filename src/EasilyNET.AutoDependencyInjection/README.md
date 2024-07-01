@@ -1,6 +1,7 @@
 #### EasilyNET.AutoDependencyInjection
 
 - 新增 WPF 项目支持,理论上也支持 WinForm 项目,但是没有测试,使用时请注意.(仅限于 .NET 的项目,不支持 .NET Framework)
+- 经测试是支持 WinUI 3 类型的项目的,但是需要注意的是,WinUI 3 项目的启动方式和 WPF 项目不一样,需要自行调整.
 
 ##### 变化
 
