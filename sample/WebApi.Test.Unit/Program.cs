@@ -3,6 +3,7 @@ using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
 using Serilog.Sinks.SystemConsole.Themes;
+using System.Runtime.InteropServices;
 using WebApi.Test.Unit;
 using WebApi.Test.Unit.Common;
 
@@ -39,6 +40,11 @@ builder.Host.UseSerilog((hbc, lc) =>
           {
               //wt.SpectreConsole();
               wt.Debug();
+          }
+          if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+          {
+              // 当为Windows系统时,添加事件日志
+              wt.EventLog(Constant.InstanceName, manageEventSource: true);
           }
           wt.Console(theme: AnsiConsoleTheme.Code);
           wt.OpenTelemetry(c =>
