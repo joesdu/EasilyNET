@@ -13,6 +13,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="BouncyCastle.Cryptography" Version="2.4.0" />
+    <PackageVersion Include="LiteDB" Version="5.0.20" />
     <PackageVersion Include="MessagePack" Version="3.0.54-alpha" />
     <PackageVersion Include="MongoDB.Bson" Version="2.27.0" />
     <PackageVersion Include="MongoDB.Driver" Version="2.27.0" />
