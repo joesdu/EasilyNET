@@ -36,11 +36,10 @@ public class LiteDbContext : IDisposable
     private static ILiteDatabase GetDatabase(string conn)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(conn, nameof(conn));
-        return new LiteDatabase(conn, new BsonMapper());
+        return new LiteDatabase(conn, new());
     }
 
     /// <summary>
-    /// 
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="conn"></param>
