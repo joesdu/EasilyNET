@@ -22,10 +22,7 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
     /// </summary>
     private void ConfigureServices()
     {
-        if (ServiceProvider is null)
-        {
-            SetServiceProvider(Services.BuildServiceProvider());
-        }
+        if (ServiceProvider is null) SetServiceProvider(Services.BuildServiceProvider());
         var context = new ConfigureServicesContext(Services, ServiceProvider);
         Services.AddSingleton(context);
         foreach (var config in Modules)

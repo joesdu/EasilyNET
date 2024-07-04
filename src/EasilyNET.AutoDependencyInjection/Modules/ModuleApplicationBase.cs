@@ -63,7 +63,7 @@ internal class ModuleApplicationBase : IModuleApplication
     /// <summary>
     /// IServiceProvider?
     /// </summary>
-    public IServiceProvider? ServiceProvider { get; private set; }
+    public IServiceProvider? ServiceProvider { get; set; }
 
     /// <summary>
     /// 模块接口容器
