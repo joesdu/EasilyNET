@@ -14,35 +14,18 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
         ConfigureServices();
     }
 
-    private IServiceScope? ServiceScope { get; set; }
-
     /// <inheritdoc />
-    public void Initialize(IServiceProvider? provider = null)
-    {
-        if (provider is not null)
-        {
-            SetServiceProvider(provider);
-        }
-        else
-        {
-            ServiceScope = Services.BuildServiceProvider().CreateScope();
-            SetServiceProvider(ServiceScope.ServiceProvider);
-        }
-        InitializeModules();
-    }
-
-    /// <inheritdoc />
-    public override void Dispose()
-    {
-        base.Dispose();
-        ServiceScope?.Dispose();
-    }
+    public void Initialize() => InitializeModules();
 
     /// <summary>
     /// 配置服务
     /// </summary>
     private void ConfigureServices()
     {
+        if (ServiceProvider is null)
+        {
+            SetServiceProvider(Services.BuildServiceProvider());
+        }
         var context = new ConfigureServicesContext(Services, ServiceProvider);
         Services.AddSingleton(context);
         foreach (var config in Modules)
