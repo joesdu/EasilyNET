@@ -44,7 +44,7 @@ public static partial class ServiceCollectionExtension
     {
         builder.Services.GetRequiredService<IObjectAccessor<IHost>>().Value = builder;
         var runner = builder.Services.GetRequiredService<IStartupModuleRunner>();
-        runner.Initialize(builder.Services);
+        runner.Initialize();
         return builder;
     }
 

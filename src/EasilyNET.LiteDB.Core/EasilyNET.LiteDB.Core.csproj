@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).LiteDB.Core</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).LiteDB.Core</AssemblyName>
+		<PackageId>$(PackagePrefix).LiteDB.Core</PackageId>
+		<PackageTags>LiteDB</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.LiteDB.Core</RootNamespace>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.LiteDB.Core</PackageProjectUrl>
+		<Description>LiteDB 驱动的服务包,方便使用 LiteDB 数据库.</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="LiteDB" />
+	</ItemGroup>
+
+</Project>
