@@ -16,7 +16,7 @@ public class CustomIntEnumeratorTest
     {
         foreach (var i in ..value)
         {
-            Console.WriteLine(i.ToString());
+            Console.WriteLine(i);
         }
     }
 
@@ -29,7 +29,20 @@ public class CustomIntEnumeratorTest
     {
         foreach (var i in 1..value)
         {
-            Console.WriteLine(i.ToString());
+            Console.WriteLine(i);
+        }
+    }
+
+    /// <summary>
+    /// CustomIntEnumeratorExtension Test
+    /// </summary>
+    /// <param name="value"></param>
+    [TestMethod, DataRow(3), DataRow(5)]
+    public void OnlyValue(int value)
+    {
+        foreach (var i in value)
+        {
+            Console.WriteLine(i);
         }
     }
 }
