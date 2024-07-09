@@ -1,6 +1,9 @@
+using EasilyNET.Core.Enums;
 using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using System.ComponentModel;
 
@@ -94,6 +97,17 @@ public class MongoTestController(DbContext db) : ControllerBase
         var result = await db.Test2.Find(c => c.Date >= search.Start && c.Date <= search.End).ToListAsync();
         return result;
     }
+
+    /// <summary>
+    /// MultiEnum
+    /// </summary>
+    /// <returns></returns>
+    [HttpPost("MultiEnum")]
+    public async Task PostMultiEnum()
+    {
+        var coll = db.GetCollection<MultiEnum>(nameof(MultiEnum));
+        await coll.InsertOneAsync(new());
+    }
 }
 
 /// <summary>
@@ -119,4 +133,13 @@ public class Search
     // ReSharper disable once UnusedMember.Global
     [DefaultValue(30)]
     public int Index { get; set; }
+}
+
+file sealed class MultiEnum
+{
+    /// <summary>
+    /// IEnumerable类型的枚举需要添加该特性,才能实现每一个元素都转成字符串,可以参考: https://github.com/joesdu/EasilyNET/issues/482
+    /// </summary>
+    [BsonRepresentation(BsonType.String)]
+    public EZodiac[] Zodiac { get; set; } = [EZodiac.兔, EZodiac.牛, EZodiac.狗];
 }

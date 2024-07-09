@@ -3,9 +3,11 @@ using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
 using Serilog.Sinks.SystemConsole.Themes;
-using System.Runtime.InteropServices;
 using WebApi.Test.Unit;
 using WebApi.Test.Unit.Common;
+#if Windows
+using System.Runtime.InteropServices;
+#endif
 
 Console.Title = $"❤️ {Constant.InstanceName}";
 AssemblyHelper.AddExcludeLibs("Npgsql.");
@@ -41,11 +43,20 @@ builder.Host.UseSerilog((hbc, lc) =>
               //wt.SpectreConsole();
               wt.Debug();
           }
-          if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+#if Windows
+          Console.WriteLine("Is Windows");
+          if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && SysHelper.IsCurrentUserAdmin())
           {
-              // 当为Windows系统时,添加事件日志
+              // 当为Windows系统时,添加事件日志,需要管理员权限才能写入Windows事件查看器
+              // 避免日志信息过多,仅将错误日志写入系统事件查看器
               wt.EventLog(Constant.InstanceName, manageEventSource: true);
           }
+#endif
+          // Write To File
+          //wt.Map(le => (le.Timestamp.DateTime, le.Level), (key, log) =>
+          //    log.Async(o => o.File($"logs{Path.DirectorySeparatorChar}{key.Level}{Path.DirectorySeparatorChar}.log",
+          //        shared: true,
+          //        rollingInterval: RollingInterval.Day)));
           wt.Console(theme: AnsiConsoleTheme.Code);
           wt.OpenTelemetry(c =>
           {
