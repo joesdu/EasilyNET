@@ -13,7 +13,7 @@ namespace EasilyNET.Core.Numerics;
 /// BigNumber类提供了大数的基本运算，包括加、减、乘、除、取模、幂运算等,
 /// 用于将大十进制数和有理数与 System.Numerics.BigInteger 一起使用的库
 /// </summary>
-public class BigNumber
+public sealed class BigNumber
 {
     /// <summary>
     /// 分母
@@ -1001,9 +1001,9 @@ public class BigNumber
     {
         return obj switch
         {
-            null                => false,
+            null => false,
             BigNumber bigNumber => bigNumber == this,
-            _                   => false
+            _ => false
         };
     }
 
