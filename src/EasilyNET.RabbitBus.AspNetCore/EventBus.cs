@@ -38,7 +38,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         if (exc is not { WorkModel: EModel.None })
         {
             var exchange_args = @event.GetExchangeArgAttributes();
-            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription() ?? "", true, arguments: exchange_args);
+            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription()!, true, arguments: exchange_args);
         }
         // 在发布事件前检查是否已经取消发布
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
@@ -86,7 +86,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
             exc_args["x-delayed-type"] = !xDelayedType || delayedType is null ? "direct" : delayedType;
         }
         //创建延时交换机,type类型为x-delayed-message
-        await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription() ?? "", true, false, exc_args);
+        await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription()!, true, false, exc_args);
         // 在发布事件前检查是否已经取消发布
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
         var body = serializer.Serialize(@event, @event.GetType());
@@ -157,7 +157,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
                 if (!success && exc is { WorkModel: EModel.Delayed }) exchange_args.Add("x-delayed-type", "direct"); //x-delayed-type必须加
             }
             //创建交换机
-            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription() ?? "", true, false, exchange_args);
+            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription()!, true, false, exchange_args);
         }
         //创建队列
         await channel.QueueDeclareAsync(exc.Queue, true, false, false, queue_args);
