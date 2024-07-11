@@ -173,11 +173,17 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
 
     private async Task StartBasicConsume(Type eventType, ExchangeAttribute exc, IChannel channel)
     {
-        var qos = eventType.GetCustomAttribute<QosAttribute>();
-        if (qos is not null) await channel.BasicQosAsync(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
+        var handleKind = exc.WorkModel is EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
+        if (subsManager.HasSubscriptionsForEvent(eventType.Name, handleKind))
+        {
+            // Qos的配置通常和消费者的能力有关,所以这里从消费者的Handler中获取Qos特性
+            // 一个程序通常对同一个事件只有一个Handler,所以这里只取第一个消费者的Qos
+            var handlerType = subsManager.GetHandlersForEvent(eventType.Name, handleKind).FirstOrDefault(c => c.HasAttribute<QosAttribute>());
+            var qos = handlerType?.GetCustomAttribute<QosAttribute>();
+            if (qos is not null) await channel.BasicQosAsync(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
+        }
         var consumer = new AsyncEventingBasicConsumer(channel);
         await channel.BasicConsumeAsync(exc.Queue, false, consumer);
-        var handleKind = exc.WorkModel is EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
         consumer.Received += async (_, ea) =>
         {
             try

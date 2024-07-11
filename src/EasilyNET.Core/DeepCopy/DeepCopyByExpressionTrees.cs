@@ -294,7 +294,7 @@ public static class DeepCopyByExpressionTrees
         ///// length = ((Array)input).GetLength(i); 
         var getLengthMethod = typeof(Array).GetMethod(nameof(Array.GetLength), BindingFlags.Public | BindingFlags.Instance)!;
         var dimensionConstant = Expression.Constant(i);
-        return Expression.Assign(lengthVariable, Expression.Call(Expression.Convert(inputParameter, typeof(Array)), getLengthMethod, [dimensionConstant]));
+        return Expression.Assign(lengthVariable, Expression.Call(Expression.Convert(inputParameter, typeof(Array)), getLengthMethod, dimensionConstant));
     }
 
     private static void FieldsCopyExpressions(Type type, ParameterExpression inputParameter, ParameterExpression inputDictionary, ParameterExpression outputVariable, ParameterExpression boxingVariable, List<Expression> expressions)

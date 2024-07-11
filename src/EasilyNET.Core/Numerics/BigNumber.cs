@@ -1001,9 +1001,9 @@ public sealed class BigNumber
     {
         return obj switch
         {
-            null => false,
+            null                => false,
             BigNumber bigNumber => bigNumber == this,
-            _ => false
+            _                   => false
         };
     }
 
