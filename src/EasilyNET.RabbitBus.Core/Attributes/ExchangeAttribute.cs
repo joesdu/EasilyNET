@@ -23,11 +23,11 @@ public sealed class ExchangeAttribute(EModel workModel, string exchangeName = ""
     public string ExchangeName { get; } = workModel switch
     {
         EModel.PublishSubscribe => string.IsNullOrWhiteSpace(exchangeName) ? "amq.fanout" : exchangeName,
-        EModel.Routing => string.IsNullOrWhiteSpace(exchangeName) ? "amq.direct" : exchangeName,
-        EModel.Topics => string.IsNullOrWhiteSpace(exchangeName) ? "amq.topic" : exchangeName,
-        EModel.Delayed => string.IsNullOrWhiteSpace(exchangeName) ? "amq.delayed" : exchangeName,
-        EModel.None => "",
-        _ => throw new ArgumentOutOfRangeException(nameof(workModel), workModel, null)
+        EModel.Routing          => string.IsNullOrWhiteSpace(exchangeName) ? "amq.direct" : exchangeName,
+        EModel.Topics           => string.IsNullOrWhiteSpace(exchangeName) ? "amq.topic" : exchangeName,
+        EModel.Delayed          => string.IsNullOrWhiteSpace(exchangeName) ? "amq.delayed" : exchangeName,
+        EModel.None             => "",
+        _                       => throw new ArgumentOutOfRangeException(nameof(workModel), workModel, null)
     };
 
     /// <summary>
@@ -41,7 +41,7 @@ public sealed class ExchangeAttribute(EModel workModel, string exchangeName = ""
     public string RoutingKey { get; } = workModel switch
     {
         EModel.None => queue,
-        _ => routingKey
+        _           => routingKey
     };
 
     /// <summary>

@@ -16,9 +16,9 @@ internal sealed class BusSerializerFactory(IOptionsMonitor<RabbitConfig> options
         var config = options.Get(Constant.OptionName);
         return config.Serializer switch
         {
-            ESerializer.TextJson => new TextJsonSerializer(),
+            ESerializer.TextJson    => new TextJsonSerializer(),
             ESerializer.MessagePack => new MsgPackSerializer(),
-            _ => throw new ArgumentException("Invalid serializer type")
+            _                       => throw new ArgumentException("Invalid serializer type")
         };
     }
 }

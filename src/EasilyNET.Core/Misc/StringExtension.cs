@@ -64,7 +64,7 @@ public static partial class StringExtension
     {
         var regex = ToTitleUpperCaseRegex();
         return regex.Replace(value,
-            delegate (Match m)
+            delegate(Match m)
             {
                 var str = m.ToString();
                 if (!char.IsLower(str[0])) return str;
@@ -163,12 +163,12 @@ public static partial class StringExtension
         return value.Length switch
         {
             >= 11 => MaskElevenRegex().Replace(value, $"$1{masks}$2"),
-            10 => MaskTenRegex().Replace(value, $"$1{masks}$2"),
-            9 => MaskNineRegex().Replace(value, $"$1{masks}$2"),
-            8 => MaskEightRegex().Replace(value, $"$1{masks}$2"),
-            7 => MaskSevenRegex().Replace(value, $"$1{masks}$2"),
-            6 => MaskSixRegex().Replace(value, $"$1{masks}$2"),
-            _ => MaskLessThanSixRegex().Replace(value, $"$1{masks}")
+            10    => MaskTenRegex().Replace(value, $"$1{masks}$2"),
+            9     => MaskNineRegex().Replace(value, $"$1{masks}$2"),
+            8     => MaskEightRegex().Replace(value, $"$1{masks}$2"),
+            7     => MaskSevenRegex().Replace(value, $"$1{masks}$2"),
+            6     => MaskSixRegex().Replace(value, $"$1{masks}$2"),
+            _     => MaskLessThanSixRegex().Replace(value, $"$1{masks}")
         };
     }
 
