@@ -38,14 +38,14 @@ public static partial class ServiceCollectionExtension
     /// <summary>
     /// 初始化应用,配置中间件
     /// </summary>
-    /// <param name="builder"></param>
+    /// <param name="host"></param>
     /// <returns></returns>
-    public static IHost InitializeApplication(this IHost builder)
+    public static IHost InitializeApplication(this IHost host)
     {
-        builder.Services.GetRequiredService<IObjectAccessor<IHost>>().Value = builder;
-        var runner = builder.Services.GetRequiredService<IStartupModuleRunner>();
+        host.Services.GetRequiredService<IObjectAccessor<IHost>>().Value = host;
+        var runner = host.Services.GetRequiredService<IStartupModuleRunner>();
         runner.Initialize();
-        return builder;
+        return host;
     }
 
     /// <summary>

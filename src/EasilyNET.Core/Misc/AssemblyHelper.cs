@@ -1,6 +1,6 @@
-using Microsoft.Extensions.DependencyModel;
 using System.Reflection;
 using System.Runtime.Loader;
+using Microsoft.Extensions.DependencyModel;
 
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
@@ -13,14 +13,14 @@ namespace EasilyNET.Core.Misc;
 // ReSharper disable once UnusedType.Global
 public static class AssemblyHelper
 {
-    private static readonly string[] Filters = ["dotnet-", "Microsoft.", "mscorlib", "netstandard", "System", "Windows"];
+    private static readonly HashSet<string> Filters = ["dotnet-", "Microsoft.", "mscorlib", "netstandard", "System", "Windows"];
     private static readonly IEnumerable<Assembly>? _allAssemblies;
     private static readonly IEnumerable<Type>? _allTypes;
 
     /// <summary>
     /// 需要排除的项目
     /// </summary>
-    private static readonly List<string> FilterLibs = [];
+    private static readonly HashSet<string> FilterLibs = [];
 
     /// <summary>
     /// 构造函数
