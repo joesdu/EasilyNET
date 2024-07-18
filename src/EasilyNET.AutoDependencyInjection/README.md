@@ -1,7 +1,12 @@
 #### EasilyNET.AutoDependencyInjection
 
+- 新增KeyedService支持,可在 DependencyInjectionAttribute 中看到对应的 ServiceKey 属性,用于标识服务的 Key 值.
 - 新增 WPF 项目支持,理论上也支持 WinForm 项目,但是没有测试,使用时请注意.(仅限于 .NET 的项目,不支持 .NET Framework)
 - 经测试是支持 WinUI 3 类型的项目的,但是需要注意的是,WinUI 3 项目的启动方式和 WPF 项目不一样,需要自行调整.
+
+##### 中断性变更
+
+- 移除使用 IScopedDependency, ISingletonDependency, ITransientDependency 接口的方式,仅使用特性注入的方式.保持设计简洁性.
 
 ##### 变化
 
@@ -48,15 +53,14 @@ internal sealed class AppServiceModules : AppModule { }
 在 WPF 项目中,使用依赖注入,需要在 MainWindow.xaml.cs 中继承接口或者添加 DependencyInjection 特性如下代码:
 
 ```csharp
-// 这里特性和接口二选一,推荐使用特性
+// 使用特性配置注入信息
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true, SelfOnly = true)]
-public partial class MainWindow : Window, IXXXXDependency
+public partial class MainWindow : Window
 
 ```
 
 ##### 注意事项
 
-- 接口的实现类,需要显示的继承 IScopedDependency, ISingletonDependency, ITransientDependency 接口.
 - 需要注意的是,在 WPF 项目中,请将 AddSelf 属性设置为 true,否则会出现服务无法找到的问题,因为默认会注册实现类的父类,导致使用 ```host.Services.GetRequiredService<MainWindow>()``` 的方式无法找到服务.WinForm 项目中,没有测试,但是理论上也是一样的.
 - 由于新增 WPF 项目支持,所以调整了 IApplicationBuilder 为 IHost,因此 WEB 项目中的使用方式有细微的变化.
 ```csharp
@@ -70,30 +74,10 @@ WebApplication app = context.GetApplicationHost() as WebApplication;
 IHost app = context.GetApplicationHost();
 ```
 
-**使用接口注入时需要注意** 
-- 由于无法通过接口的方式来约束类中的静态成员,所以我们这里需要做一个约定.在类中写入如下代码来实现和特性相同的功能.(所以更推荐使用特性的方式注入)
-- 若是不声明这两个属性,可能会导致注入了其实现的类或接口,影响获取服务的结果.如在 WPF 中注册 MainWindow.cs,会注册其实现的接口类型.导致无法获取到正确的实现.
-- 这里采用较长的名字,避免和类中别的成员出现名称冲突.
-- DependencyInjectionSelf 对应 DependencyInjection 特性中的 AddSelf
-- DependencyInjectionSelfOnly 对应 DependencyInjection 特性中的 SelfOnly
-```csharp
-/// <summary>
-/// 是否添加自身
-/// </summary>
-// ReSharper disable once UnusedMember.Global
-public static bool? DependencyInjectionSelf => true;
-
-/// <summary>
-/// 仅注册自身,而不注其父类或者接口
-/// </summary>
-// ReSharper disable once UnusedMember.Global
-public static bool? DependencyInjectionSelfOnly => true;
-```
-
 ##### 如何使用
 
 - 使用 Nuget 包管理工具添加依赖包 EasilyNET.AutoDependencyInjection
-- a.使用特性注入服务
+- 使用特性注入服务
 
 ```csharp
 [DependencyInjection(ServiceLifetime.Singleton, AddSelf = true, SelfOnly = true)]
@@ -103,41 +87,6 @@ public class XXXService : IXXXService
     Console.WriteLine("使用特性注入服务");
     ...
 }
-```
-
-- b.使用接口的方式,继承 IScopedDependency, ISingletonDependency, ITransientDependency
-
-```csharp
-/// <summary>
-/// 测试模块
-/// </summary>
-public class MyTestModule : ITest, IScopedDependency
-{
-    /// <summary>
-    /// Show
-    /// </summary>
-    public void Show()
-    {
-        Console.WriteLine("Test");
-    }
-}
-
-/// <summary>
-/// 测试
-/// </summary>
-//[IgnoreDependency]
-public interface ITest
-{
-    /// <summary>
-    /// Show函数
-    /// </summary>
-    void Show();
-}
-
-// 在其他地方获取服务,并执行方法
-var test = context.Services.GetService<MyTestModule>();
-test?.Show();
-...
 ```
 
 - 3.继承 AppModule 类,然后显示加入到 AppWebModule 配置中

@@ -26,4 +26,9 @@ public sealed class DependencyInjectionAttribute(ServiceLifetime lifetime) : Att
     /// 仅注册自身类型,而不注册接口
     /// </summary>
     public bool SelfOnly { get; set; }
+
+    /// <summary>
+    /// 设置服务的键,适配KeyedService
+    /// </summary>
+    public string ServiceKey { get; set; } = string.Empty;
 }

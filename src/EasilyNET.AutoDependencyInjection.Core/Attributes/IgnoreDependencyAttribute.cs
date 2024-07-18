@@ -1,3 +1,5 @@
+// ReSharper disable ClassNeverInstantiated.Global
+
 namespace EasilyNET.AutoDependencyInjection.Core.Attributes;
 
 /// <summary>
