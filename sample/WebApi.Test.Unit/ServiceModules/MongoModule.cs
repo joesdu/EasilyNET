@@ -4,7 +4,7 @@ using EasilyNET.Mongo.ConsoleDebug;
 using EasilyNET.MongoSerializer.AspNetCore;
 using MongoDB.Driver.Linq;
 
-namespace WebApi.Test.Unit;
+namespace WebApi.Test.Unit.ServiceModules;
 
 /// <summary>
 /// MongoDB驱动模块

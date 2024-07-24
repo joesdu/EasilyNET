@@ -2,6 +2,7 @@ using EasilyNET.AutoDependencyInjection.Attributes;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using EasilyNET.WebCore.Handlers;
+using WebApi.Test.Unit.ServiceModules;
 
 // ReSharper disable ClassNeverInstantiated.Global
 
