@@ -1,16 +1,16 @@
+using System.Net;
+using System.Text.Json.Serialization;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using EasilyNET.WebCore.JsonConverters;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using System.Net;
-using System.Text.Json.Serialization;
 using WebApi.Test.Unit.Common;
 
 // ReSharper disable UnusedType.Local
 // ReSharper disable ClassNeverInstantiated.Global
 
-namespace WebApi.Test.Unit;
+namespace WebApi.Test.Unit.ServiceModules;
 
 /// <summary>
 /// 注册一些控制器的基本内容

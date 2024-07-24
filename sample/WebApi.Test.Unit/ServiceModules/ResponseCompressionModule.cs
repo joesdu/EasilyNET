@@ -1,9 +1,9 @@
-﻿using EasilyNET.AutoDependencyInjection.Contexts;
+﻿using System.IO.Compression;
+using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using Microsoft.AspNetCore.ResponseCompression;
-using System.IO.Compression;
 
-namespace WebApi.Test.Unit;
+namespace WebApi.Test.Unit.ServiceModules;
 
 /// <summary>
 /// 响应压缩

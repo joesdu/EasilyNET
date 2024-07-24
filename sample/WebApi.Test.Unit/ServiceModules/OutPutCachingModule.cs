@@ -2,7 +2,7 @@ using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using WebApi.Test.Unit.Common;
 
-namespace WebApi.Test.Unit;
+namespace WebApi.Test.Unit.ServiceModules;
 
 /// <summary>
 /// 缓存

@@ -2,7 +2,7 @@ using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using Microsoft.OpenApi.Models;
 
-namespace WebApi.Test.Unit;
+namespace WebApi.Test.Unit.ServiceModules;
 
 /// <summary>
 /// Swagger文档的配置

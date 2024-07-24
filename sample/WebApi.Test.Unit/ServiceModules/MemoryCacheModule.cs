@@ -2,7 +2,7 @@ using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using WebApi.Test.Unit.Common;
 
-namespace WebApi.Test.Unit;
+namespace WebApi.Test.Unit.ServiceModules;
 
 /// <inheritdoc />
 internal sealed class MemoryCacheModule : AppModule
