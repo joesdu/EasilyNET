@@ -14,8 +14,8 @@ namespace EasilyNET.Core.Misc;
 public static class AssemblyHelper
 {
     private static readonly HashSet<string> Filters = ["dotnet-", "Microsoft.", "mscorlib", "netstandard", "System", "Windows"];
-    private static readonly IEnumerable<Assembly>? _allAssemblies;
-    private static readonly IEnumerable<Type>? _allTypes;
+    private static readonly HashSet<Assembly>? _allAssemblies;
+    private static readonly HashSet<Type>? _allTypes;
 
     /// <summary>
     /// 需要排除的项目
@@ -27,8 +27,8 @@ public static class AssemblyHelper
     /// </summary>
     static AssemblyHelper()
     {
-        _allAssemblies = DependencyContext.Default?.GetDefaultAssemblyNames().Where(c => c.Name is not null && !Filters.Any(c.Name.StartsWith) && !FilterLibs.Any(c.Name.StartsWith)).Select(Assembly.Load);
-        _allTypes = _allAssemblies?.SelectMany(c => c.GetTypes());
+        _allAssemblies = DependencyContext.Default?.GetDefaultAssemblyNames().Where(c => c.Name is not null && !Filters.Any(c.Name.StartsWith) && !FilterLibs.Any(c.Name.StartsWith)).Select(Assembly.Load).ToHashSet();
+        _allTypes = _allAssemblies?.SelectMany(c => c.GetTypes()).ToHashSet();
     }
 
     /// <summary>
@@ -42,29 +42,29 @@ public static class AssemblyHelper
     /// </summary>
     /// <param name="assemblyNames"></param>
     /// <returns></returns>
-    public static IEnumerable<Assembly> GetAssembliesByName(params string[] assemblyNames) => assemblyNames.Select(o => AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(AppContext.BaseDirectory, $"{o}.dll")));
+    public static HashSet<Assembly> GetAssembliesByName(params string[] assemblyNames) => assemblyNames.Select(o => AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(AppContext.BaseDirectory, $"{o}.dll"))).ToHashSet();
 
     /// <summary>
     /// 查找指定条件的类型
     /// </summary>
-    public static IEnumerable<Type> FindTypes(Func<Type, bool> predicate) => _allTypes!.Where(predicate).ToArray();
+    public static HashSet<Type> FindTypes(Func<Type, bool> predicate) => _allTypes!.Where(predicate).ToHashSet();
 
     /// <summary>
     /// 查找所有指定特性标记的类型
     /// </summary>
     /// <typeparam name="TAttribute"></typeparam>
     /// <returns></returns>
-    public static IEnumerable<Type> FindTypesByAttribute<TAttribute>() where TAttribute : Attribute => FindTypesByAttribute(typeof(TAttribute));
+    public static HashSet<Type> FindTypesByAttribute<TAttribute>() where TAttribute : Attribute => FindTypesByAttribute(typeof(TAttribute));
 
     /// <summary>
     /// 查找所有指定特性标记的类型
     /// </summary>
     /// <param name="type"></param>
     /// <returns></returns>
-    public static IEnumerable<Type> FindTypesByAttribute(Type type) => _allTypes!.Where(a => a.IsDefined(type, true)).Distinct().ToArray();
+    public static HashSet<Type> FindTypesByAttribute(Type type) => _allTypes!.Where(a => a.IsDefined(type, true)).Distinct().ToHashSet();
 
     /// <summary>
     /// 查找指定条件的类型
     /// </summary>
-    public static IEnumerable<Assembly> FindAllItems(Func<Assembly, bool> predicate) => _allAssemblies!.Where(predicate).ToArray();
+    public static HashSet<Assembly> FindAllItems(Func<Assembly, bool> predicate) => _allAssemblies!.Where(predicate).ToHashSet();
 }
