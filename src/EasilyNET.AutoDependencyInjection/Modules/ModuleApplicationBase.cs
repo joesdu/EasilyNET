@@ -1,9 +1,9 @@
+using System.Linq.Expressions;
 using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.Core.Misc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Linq.Expressions;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 
@@ -24,6 +24,7 @@ internal class ModuleApplicationBase : IModuleApplication
         Services = services;
         services.AddSingleton<IModuleApplication>(this);
         services.TryAddObjectAccessor<IServiceProvider>();
+        // TODO:希望替换成使用SG的方式来注入服务,将GetAllEnabledModule函数替换掉.
         Source = GetAllEnabledModule(services);
         Modules = LoadModules;
     }
@@ -40,7 +41,7 @@ internal class ModuleApplicationBase : IModuleApplication
             var module = Source.FirstOrDefault(o => o.GetType() == StartupModuleType) ?? throw new($"类型为“{StartupModuleType.FullName}”的模块实例无法找到");
             modules.Add(module);
             var depends = module.GetDependedTypes();
-            foreach (var dependType in depends.Where(AppModule.IsAppModule))
+            foreach (var dependType in depends)
             {
                 var dependModule = Source.ToList().Find(m => m.GetType() == dependType);
                 if (dependModule is null) continue;

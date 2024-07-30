@@ -32,6 +32,8 @@
     
     <ItemGroup>
         <ProjectReference Include="..\EasilyNET.AutoDependencyInjection.Core\EasilyNET.AutoDependencyInjection.Core.csproj" />
+        <!--TODO: SG的实现暂未成功,希望能有大佬帮忙实现一下-->
+        <!--<ProjectReference Include="..\EasilyNET.AutoDependencyInjection.SourceGenerator\EasilyNET.AutoDependencyInjection.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />-->
         <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
     </ItemGroup>
 
