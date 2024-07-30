@@ -25,7 +25,7 @@ public class AppModuleSourceGenerator : IIncrementalGenerator
                                            static (ctx, _) => GetClassDeclaration(ctx))
                                        .Where(static m => m is not null);
         var compilationAndClasses = context.CompilationProvider.Combine(classDeclarations.Collect());
-        context.RegisterSourceOutput(compilationAndClasses, static (spc, source) => Execute(source.Left, source.Right!, spc));
+        context.RegisterSourceOutput(compilationAndClasses, static (spc, source) => Execute(source.Left, source.Right, spc));
     }
 
     private static bool IsClassDeclarationWithAttributes(SyntaxNode node)
@@ -40,7 +40,7 @@ public class AppModuleSourceGenerator : IIncrementalGenerator
         return result;
     }
 
-    private static void Execute(Compilation compilation, ImmutableArray<ClassDeclarationSyntax> classes, SourceProductionContext context)
+    private static void Execute(Compilation compilation, ImmutableArray<ClassDeclarationSyntax?> classes, SourceProductionContext context)
     {
         var moduleTypes = (from classDeclaration in classes
                            let model = compilation.GetSemanticModel(classDeclaration.SyntaxTree)

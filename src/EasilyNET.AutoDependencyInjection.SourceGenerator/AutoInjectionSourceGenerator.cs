@@ -27,7 +27,7 @@ public class AutoInjectionSourceGenerator : IIncrementalGenerator
 
     private static ClassDeclarationSyntax? GetClassDeclaration(GeneratorSyntaxContext context) => context.Node as ClassDeclarationSyntax;
 
-    private static void Execute(Compilation compilation, ImmutableArray<ClassDeclarationSyntax> classes, SourceProductionContext context)
+    private static void Execute(Compilation compilation, ImmutableArray<ClassDeclarationSyntax?> classes, SourceProductionContext context)
     {
         var moduleTypes = (from classDeclaration in classes
                            let model = compilation.GetSemanticModel(classDeclaration.SyntaxTree)
