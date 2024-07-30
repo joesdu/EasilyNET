@@ -14,8 +14,6 @@ namespace EasilyNET.Core.Misc;
 public static class AssemblyHelper
 {
     private static readonly HashSet<string> Filters = ["dotnet-", "Microsoft.", "mscorlib", "netstandard", "System", "Windows"];
-    private static readonly HashSet<Assembly>? _allAssemblies;
-    private static readonly HashSet<Type>? _allTypes;
 
     /// <summary>
     /// 需要排除的项目
@@ -27,9 +25,19 @@ public static class AssemblyHelper
     /// </summary>
     static AssemblyHelper()
     {
-        _allAssemblies = DependencyContext.Default?.GetDefaultAssemblyNames().Where(c => c.Name is not null && !Filters.Any(c.Name.StartsWith) && !FilterLibs.Any(c.Name.StartsWith)).Select(Assembly.Load).ToHashSet();
-        _allTypes = _allAssemblies?.SelectMany(c => c.GetTypes()).ToHashSet();
+        AllAssemblies = DependencyContext.Default?.GetDefaultAssemblyNames().Where(c => c.Name is not null && !Filters.Any(c.Name.StartsWith) && !FilterLibs.Any(c.Name.StartsWith)).Select(Assembly.Load).ToHashSet();
+        AllTypes = AllAssemblies?.SelectMany(c => c.GetTypes()).ToHashSet();
     }
+
+    /// <summary>
+    /// 获取所有扫描到符合条件的程序集
+    /// </summary>
+    public static HashSet<Assembly>? AllAssemblies { get; }
+
+    /// <summary>
+    /// 获取所有扫描到符合条件的程序集中的类型
+    /// </summary>
+    public static HashSet<Type>? AllTypes { get; }
 
     /// <summary>
     /// 添加排除项目,该排除项目可能会影响AutoDependenceInjection自动注入,请使用的时候自行测试.
@@ -47,7 +55,7 @@ public static class AssemblyHelper
     /// <summary>
     /// 查找指定条件的类型
     /// </summary>
-    public static HashSet<Type> FindTypes(Func<Type, bool> predicate) => _allTypes!.Where(predicate).ToHashSet();
+    public static HashSet<Type> FindTypes(Func<Type, bool> predicate) => AllTypes!.Where(predicate).ToHashSet();
 
     /// <summary>
     /// 查找所有指定特性标记的类型
@@ -61,10 +69,10 @@ public static class AssemblyHelper
     /// </summary>
     /// <param name="type"></param>
     /// <returns></returns>
-    public static HashSet<Type> FindTypesByAttribute(Type type) => _allTypes!.Where(a => a.IsDefined(type, true)).Distinct().ToHashSet();
+    public static HashSet<Type> FindTypesByAttribute(Type type) => AllTypes!.Where(a => a.IsDefined(type, true)).Distinct().ToHashSet();
 
     /// <summary>
     /// 查找指定条件的类型
     /// </summary>
-    public static HashSet<Assembly> FindAllItems(Func<Assembly, bool> predicate) => _allAssemblies!.Where(predicate).ToHashSet();
+    public static HashSet<Assembly> FindAllItems(Func<Assembly, bool> predicate) => AllAssemblies!.Where(predicate).ToHashSet();
 }
