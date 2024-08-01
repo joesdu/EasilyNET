@@ -1,6 +1,6 @@
-﻿using EasilyNET.RabbitBus.AspNetCore.Abstraction;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
+using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Serializer;
 

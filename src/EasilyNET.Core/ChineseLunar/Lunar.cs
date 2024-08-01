@@ -3,10 +3,10 @@
  * https://github.com/iceenongli/nongli
  */
 
-using EasilyNET.Core.Enums;
-using EasilyNET.Core.Misc;
 using System.Text;
 using System.Text.RegularExpressions;
+using EasilyNET.Core.Enums;
+using EasilyNET.Core.Misc;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global

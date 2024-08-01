@@ -1,6 +1,6 @@
+using System.Text.Json;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Attributes;
-using System.Text.Json;
 using WebApi.Test.Unit.Events;
 
 // ReSharper disable UnusedType.Global

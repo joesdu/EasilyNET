@@ -1,6 +1,6 @@
+using System.Text;
 using EasilyNET.Security;
 using FluentAssertions;
-using System.Text;
 
 // ReSharper disable StringLiteralTypo
 

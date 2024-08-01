@@ -12,6 +12,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
+		<ProjectReference Include="..\..\src\EasilyNET.Core.SourceGenerator\EasilyNET.Core.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
 		<ProjectReference Include="..\..\src\EasilyNET.WebCore.Swagger\EasilyNET.WebCore.Swagger.csproj" />
 	</ItemGroup>
 

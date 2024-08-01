@@ -1,7 +1,7 @@
+using System.Net;
 using EasilyNET.Core.Enums;
 using EasilyNET.Core.System;
 using Microsoft.AspNetCore.Mvc;
-using System.Net;
 
 namespace WebApi.Test.Unit.Controllers;
 

@@ -1,5 +1,5 @@
-using EasilyNET.Core.System;
 using System.Text;
+using EasilyNET.Core.System;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global

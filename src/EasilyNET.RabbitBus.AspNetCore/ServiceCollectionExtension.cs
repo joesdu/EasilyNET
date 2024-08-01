@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Sockets;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
@@ -12,8 +14,6 @@ using Polly;
 using Polly.Timeout;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
-using System.Diagnostics.CodeAnalysis;
-using System.Net.Sockets;
 
 // ReSharper disable UnusedMember.Global
 

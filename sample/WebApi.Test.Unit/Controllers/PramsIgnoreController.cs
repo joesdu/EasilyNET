@@ -1,7 +1,7 @@
+using System.Text.Json.Serialization;
 using EasilyNET.Core.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
-using System.Text.Json.Serialization;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 

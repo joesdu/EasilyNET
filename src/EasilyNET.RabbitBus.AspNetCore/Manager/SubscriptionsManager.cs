@@ -1,7 +1,7 @@
-using EasilyNET.RabbitBus.AspNetCore.Abstraction;
-using EasilyNET.RabbitBus.AspNetCore.Enums;
 using System.Collections.Concurrent;
 using System.Reflection;
+using EasilyNET.RabbitBus.AspNetCore.Abstraction;
+using EasilyNET.RabbitBus.AspNetCore.Enums;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 

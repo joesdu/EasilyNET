@@ -1,9 +1,9 @@
-using EasilyNET.Core.Enums;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using EasilyNET.Core.Enums;
 
 #pragma warning disable IDE0079
 

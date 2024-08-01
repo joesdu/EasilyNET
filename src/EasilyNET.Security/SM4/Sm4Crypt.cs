@@ -1,5 +1,5 @@
-using Org.BouncyCastle.Utilities.Encoders;
 using System.Text;
+using Org.BouncyCastle.Utilities.Encoders;
 
 // ReSharper disable ReturnTypeCanBeEnumerable.Global
 // ReSharper disable UnusedMember.Global

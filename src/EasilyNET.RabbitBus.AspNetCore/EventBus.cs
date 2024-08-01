@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Reflection;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using EasilyNET.RabbitBus.AspNetCore.Enums;
@@ -10,8 +12,6 @@ using Microsoft.Extensions.Logging;
 using Polly.Registry;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using System.Collections.Concurrent;
-using System.Reflection;
 
 namespace EasilyNET.RabbitBus.AspNetCore;
 
@@ -38,7 +38,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         if (exc is not { WorkModel: EModel.None })
         {
             var exchange_args = @event.GetExchangeArgAttributes();
-            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription()!, true, arguments: exchange_args);
+            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, arguments: exchange_args);
         }
         // 在发布事件前检查是否已经取消发布
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;

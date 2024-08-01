@@ -1,11 +1,11 @@
+using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using MongoDB.Bson;
 using MongoDB.Driver.Core.Events;
 using Spectre.Console;
 using Spectre.Console.Json;
 using Spectre.Console.Rendering;
-using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global

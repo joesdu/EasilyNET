@@ -1,4 +1,0 @@
-﻿#### 用于AutoDependencyInjection的SourceGenerator
-
-AutoDependencyInjection是一个用于自动注册依赖注入的库，它可以自动扫描程序集中的所有类，找到标记了AutoDependencyInjectionAttribute的类，并自动注册到IServiceCollection中。
-但是原有的实现使用了反射，会有一定的性能损耗，所以我尝试使用SourceGenerator来实现这个功能。

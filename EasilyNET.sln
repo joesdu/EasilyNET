@@ -66,9 +66,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebApi.Test.Unit", "sample\
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.AutoDependencyInjection.SourceGenerator", "src\EasilyNET.AutoDependencyInjection.SourceGenerator\EasilyNET.AutoDependencyInjection.SourceGenerator.csproj", "{F8F0840A-001A-4621-80C5-B3735E1337E4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebApi.SourceGenerator.Test", "sample\WebApi.SourceGenerator.Test\WebApi.SourceGenerator.Test.csproj", "{4A011ECD-3C24-4818-8C42-A9361BF4119A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApi.SourceGenerator.Test", "sample\WebApi.SourceGenerator.Test\WebApi.SourceGenerator.Test.csproj", "{4A011ECD-3C24-4818-8C42-A9361BF4119A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Core.SourceGenerator", "src\EasilyNET.Core.SourceGenerator\EasilyNET.Core.SourceGenerator.csproj", "{7B1CB9C6-F4EB-4FAA-A17D-345946F6DD7C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -147,14 +147,14 @@ Global
 		{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F8F0840A-001A-4621-80C5-B3735E1337E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F8F0840A-001A-4621-80C5-B3735E1337E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F8F0840A-001A-4621-80C5-B3735E1337E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F8F0840A-001A-4621-80C5-B3735E1337E4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4A011ECD-3C24-4818-8C42-A9361BF4119A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4A011ECD-3C24-4818-8C42-A9361BF4119A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4A011ECD-3C24-4818-8C42-A9361BF4119A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4A011ECD-3C24-4818-8C42-A9361BF4119A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B1CB9C6-F4EB-4FAA-A17D-345946F6DD7C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B1CB9C6-F4EB-4FAA-A17D-345946F6DD7C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B1CB9C6-F4EB-4FAA-A17D-345946F6DD7C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B1CB9C6-F4EB-4FAA-A17D-345946F6DD7C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -180,8 +180,8 @@ Global
 		{7E493CA2-CB0C-77E0-B442-5ED204493F13} = {8D626EA8-CB54-BC41-363A-217881BEBA6E}
 		{8F9C18F9-A526-DCA0-597F-90D64AE5C6C2} = {8D626EA8-CB54-BC41-363A-217881BEBA6E}
 		{9B426136-DC85-603B-94FB-F3C0B2E72713} = {4F9DEAE5-078F-E77A-2E4A-FEB6FFE226FF}
-		{F8F0840A-001A-4621-80C5-B3735E1337E4} = {E0AD1809-C64F-3D39-45E0-E424261CE16D}
 		{4A011ECD-3C24-4818-8C42-A9361BF4119A} = {4F9DEAE5-078F-E77A-2E4A-FEB6FFE226FF}
+		{7B1CB9C6-F4EB-4FAA-A17D-345946F6DD7C} = {8D626EA8-CB54-BC41-363A-217881BEBA6E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BF2C0069-ED43-44A1-A66C-2CC1B62E3EA3}
