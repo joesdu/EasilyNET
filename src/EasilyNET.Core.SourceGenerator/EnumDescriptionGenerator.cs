@@ -35,6 +35,8 @@ public class EnumDescriptionGenerator : IIncrementalGenerator
             var semanticModel = compilation.GetSemanticModel(enumDeclaration.SyntaxTree);
             var enumSymbol = semanticModel.GetDeclaredSymbol(enumDeclaration);
             if (enumSymbol is null) continue;
+            // 仅处理 public 的枚举类型
+            if (enumSymbol.DeclaredAccessibility != Accessibility.Public) continue;
             var enumName = enumSymbol.Name;
             var namespaceName = enumSymbol.ContainingNamespace.ToDisplayString();
             var compilationUnit = SyntaxFactory.CompilationUnit()
