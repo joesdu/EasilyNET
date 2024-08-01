@@ -1,8 +1,8 @@
+using System.Security.Cryptography;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Pkcs;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.X509;
-using System.Security.Cryptography;
 
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global

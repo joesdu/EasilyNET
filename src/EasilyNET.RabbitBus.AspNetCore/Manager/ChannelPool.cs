@@ -1,6 +1,6 @@
+using System.Collections.Concurrent;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using RabbitMQ.Client;
-using System.Collections.Concurrent;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 

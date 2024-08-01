@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).Core.SourceGenerator</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).Core.SourceGenerator</AssemblyName>
+		<PackageId>$(PackagePrefix).Core.SourceGenerator</PackageId>
+		<PackageTags></PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.Core.SourceGenerator</RootNamespace>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Core.SourceGenerator</PackageProjectUrl>
+		<Description>源码生成器,用于生成一些源码</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!--Package the generator in the analyzer directory of the nuget package-->
+		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+	</ItemGroup>
+
+</Project>

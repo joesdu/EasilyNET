@@ -1,7 +1,7 @@
-using EasilyNET.AutoDependencyInjection.Abstractions;
-using EasilyNET.AutoDependencyInjection.Contexts;
 using System.Collections.Frozen;
 using System.Reflection;
+using EasilyNET.AutoDependencyInjection.Abstractions;
+using EasilyNET.AutoDependencyInjection.Contexts;
 
 namespace EasilyNET.AutoDependencyInjection.Modules;
 

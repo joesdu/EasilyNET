@@ -23,8 +23,6 @@ public sealed class DependencyAppModule : AppModule
     {
         var services = context.Services;
         AddAutoInjection(services);
-        // TODO:希望替换成使用SG的方式来注入服务,将AddAutoInjection函数替换掉.
-        //AutoInjectionRegistration.RegisterServices(services);
     }
 
     /// <summary>

@@ -1,5 +1,5 @@
-using Org.BouncyCastle.Crypto.Digests;
 using System.Text;
+using Org.BouncyCastle.Crypto.Digests;
 
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global

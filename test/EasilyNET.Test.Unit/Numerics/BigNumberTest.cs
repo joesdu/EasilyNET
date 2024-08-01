@@ -1,6 +1,6 @@
-﻿using EasilyNET.Core.Numerics;
+﻿using System.Numerics;
+using EasilyNET.Core.Numerics;
 using FluentAssertions;
-using System.Numerics;
 
 namespace EasilyNET.Test.Unit.Numerics;
 

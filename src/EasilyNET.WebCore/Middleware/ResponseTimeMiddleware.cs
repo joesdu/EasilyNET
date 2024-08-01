@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Http;
 using System.Diagnostics;
+using Microsoft.AspNetCore.Http;
 
 // ReSharper disable ClassNeverInstantiated.Global
 

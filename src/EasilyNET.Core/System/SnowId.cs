@@ -13,10 +13,10 @@
  * limitations under the License.
  */
 
-using EasilyNET.Core.Misc;
-using EasilyNET.Core.Misc.Exceptions;
 using System.Runtime.CompilerServices;
 using System.Security;
+using EasilyNET.Core.Misc;
+using EasilyNET.Core.Misc.Exceptions;
 
 #pragma warning disable IDE0048
 

@@ -1,6 +1,6 @@
+using System.Text.Json.Serialization;
 using EasilyNET.Core.System;
 using EasilyNET.RabbitBus.Core.Abstraction;
-using System.Text.Json.Serialization;
 
 namespace EasilyNET.RabbitBus.Core;
 

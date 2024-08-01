@@ -1,6 +1,6 @@
+using System.Text;
 using EasilyNET.Security;
 using FluentAssertions;
-using System.Text;
 
 namespace EasilyNET.Test.Unit.Security;
 

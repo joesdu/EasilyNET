@@ -1,8 +1,8 @@
-using EasilyNET.Core.Attributes;
 using System.ComponentModel;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using EasilyNET.Core.Attributes;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global

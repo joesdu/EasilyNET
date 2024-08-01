@@ -1,6 +1,6 @@
+using System.Diagnostics;
 using EasilyNET.Core.System;
 using FluentAssertions;
-using System.Diagnostics;
 
 namespace EasilyNET.Test.Unit.BaseType;
 

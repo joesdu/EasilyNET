@@ -1,5 +1,5 @@
-using EasilyNET.RabbitBus.AspNetCore.Enums;
 using System.Reflection;
+using EasilyNET.RabbitBus.AspNetCore.Enums;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Abstraction;
 
