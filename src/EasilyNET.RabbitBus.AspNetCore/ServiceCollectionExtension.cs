@@ -76,8 +76,7 @@ public static class ServiceCollectionExtension
             {
                 return new()
                 {
-                    Uri = new(config.ConnectionString),
-                    DispatchConsumersAsync = true
+                    Uri = new(config.ConnectionString)
                 };
             }
             if (config.AmqpTcpEndpoints is not null && config.AmqpTcpEndpoints.Count is not 0)
@@ -86,8 +85,7 @@ public static class ServiceCollectionExtension
                 {
                     UserName = config.UserName,
                     Password = config.PassWord,
-                    VirtualHost = config.VirtualHost,
-                    DispatchConsumersAsync = true
+                    VirtualHost = config.VirtualHost
                 };
             }
             if (config.Host is not null && !string.IsNullOrWhiteSpace(config.Host))
@@ -98,8 +96,7 @@ public static class ServiceCollectionExtension
                     UserName = config.UserName,
                     Password = config.PassWord,
                     Port = config.Port,
-                    VirtualHost = config.VirtualHost,
-                    DispatchConsumersAsync = true
+                    VirtualHost = config.VirtualHost
                 };
             }
             throw new("无法从配置中创建链接");
