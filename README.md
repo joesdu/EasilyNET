@@ -14,7 +14,7 @@
 git config core.ignorecase false
 ```
 
-本项目使用 docker-compose 编排,用于展示项目的效果以及单独为项目启动一些服务.可通过VS将 docker-compose 项目设置为启动项一键启动.
+本项目使用 docker-compose 编排,用于展示项目的效果以及单独为项目启动一些服务.可通过 VS 将 docker-compose 项目设置为启动项一键启动.
 
 - 目前包含的服务列表如下:
 
@@ -47,17 +47,18 @@ EasilyNET Packages
 
 #### Core
 
-| NuGet Package                   | Version      | Download     | Document                                          |
-| ------------------------------- | ------------ | ------------ | ------------------------------------------------- |
-| [EasilyNET.Core][8]             | ![Nuget][9]  | ![Nuget][10] | [文档](./src/EasilyNET.Core/README.md)            |
-| [EasilyNET.WebCore][11]         | ![Nuget][12] | ![Nuget][13] | [文档](./src/EasilyNET.WebCore/README.md)         |
-| [EasilyNET.WebCore.Swagger][14] | ![Nuget][15] | ![Nuget][16] | [文档](./src/EasilyNET.WebCore.Swagger/README.md) |
+| NuGet Package                        | Version      | Download     | Document                                               |
+| ------------------------------------ | ------------ | ------------ | ------------------------------------------------------ |
+| [EasilyNET.Core][8]                  | ![Nuget][9]  | ![Nuget][10] | [文档](./src/EasilyNET.Core/README.md)                 |
+| [EasilyNET.Core.SourceGenerator][11] | ![Nuget][12] | ![Nuget][13] | [文档](./src/EasilyNET.Core.SourceGenerator/README.md) |
+| [EasilyNET.WebCore][14]              | ![Nuget][15] | ![Nuget][16] | [文档](./src/EasilyNET.WebCore/README.md)              |
+| [EasilyNET.WebCore.Swagger][17]      | ![Nuget][18] | ![Nuget][19] | [文档](./src/EasilyNET.WebCore.Swagger/README.md)      |
 
 #### Framework
 
 | NuGet Package                           | Version      | Download     | Document                                                  |
 | --------------------------------------- | ------------ | ------------ | --------------------------------------------------------- |
-| [EasilyNET.AutoDependencyInjection][17] | ![Nuget][18] | ![Nuget][19] | [文档](./src/EasilyNET.AutoDependencyInjection/README.md) |
+| [EasilyNET.AutoDependencyInjection][20] | ![Nuget][21] | ![Nuget][22] | [文档](./src/EasilyNET.AutoDependencyInjection/README.md) |
 | [EasilyNET.RabbitBus.AspNetCore][23]    | ![Nuget][24] | ![Nuget][25] | [文档](./src/EasilyNET.RabbitBus.AspNetCore/README.md)    |
 | [EasilyNET.Security][26]                | ![Nuget][27] | ![Nuget][28] | [文档](./src/EasilyNET.Security/README.md)                |
 
@@ -114,15 +115,18 @@ EasilyNET Packages
 [8]: https://www.nuget.org/packages/EasilyNET.Core
 [9]: https://img.shields.io/nuget/v/EasilyNET.Core
 [10]: https://img.shields.io/nuget/dt/EasilyNET.Core
-[11]: https://www.nuget.org/packages/EasilyNET.WebCore
-[12]: https://img.shields.io/nuget/v/EasilyNET.WebCore
-[13]: https://img.shields.io/nuget/dt/EasilyNET.WebCore
-[14]: https://www.nuget.org/packages/EasilyNET.WebCore.Swagger
-[15]: https://img.shields.io/nuget/v/EasilyNET.WebCore.Swagger
-[16]: https://img.shields.io/nuget/dt/EasilyNET.WebCore.Swagger
-[17]: https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection
-[18]: https://img.shields.io/nuget/v/EasilyNET.AutoDependencyInjection
-[19]: https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection
+[11]: https://www.nuget.org/packages/EasilyNET.Core.SourceGenerator
+[12]: https://img.shields.io/nuget/v/EasilyNET.Core.SourceGenerator
+[13]: https://img.shields.io/nuget/dt/EasilyNET.Core.SourceGenerator
+[14]: https://www.nuget.org/packages/EasilyNET.WebCore
+[15]: https://img.shields.io/nuget/v/EasilyNET.WebCore
+[16]: https://img.shields.io/nuget/dt/EasilyNET.WebCore
+[17]: https://www.nuget.org/packages/EasilyNET.WebCore.Swagger
+[18]: https://img.shields.io/nuget/v/EasilyNET.WebCore.Swagger
+[19]: https://img.shields.io/nuget/dt/EasilyNET.WebCore.Swagger
+[20]: https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection
+[21]: https://img.shields.io/nuget/v/EasilyNET.AutoDependencyInjection
+[22]: https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection
 [23]: https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore
 [24]: https://img.shields.io/nuget/v/EasilyNET.RabbitBus.AspNetCore
 [25]: https://img.shields.io/nuget/dt/EasilyNET.RabbitBus.AspNetCore
