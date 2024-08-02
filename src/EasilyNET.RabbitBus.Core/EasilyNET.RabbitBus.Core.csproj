@@ -16,7 +16,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\EasilyNET.Core.SourceGenerator\EasilyNET.Core.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
 	</ItemGroup>
 
