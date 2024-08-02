@@ -1,126 +1,127 @@
-﻿using System.Collections.Immutable;
-using System.ComponentModel;
-using System.Text;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
+﻿//using System.Collections.Immutable;
+//using System.ComponentModel;
+//using System.Text;
+//using Microsoft.CodeAnalysis;
+//using Microsoft.CodeAnalysis.CSharp;
+//using Microsoft.CodeAnalysis.CSharp.Syntax;
+//using Microsoft.CodeAnalysis.Text;
 
-namespace EasilyNET.Core.SourceGenerator;
+//namespace EasilyNET.Core.SourceGenerator;
 
-/// <summary>
-/// 用于对枚举类型添加描述信息的源代码生成器
-/// </summary>
-[Generator(LanguageNames.CSharp)]
-public class EnumDescriptionGenerator : IIncrementalGenerator
-{
-    /// <inheritdoc />
-    public void Initialize(IncrementalGeneratorInitializationContext context)
-    {
-        // 注册一个语法接收器，用于在编译期间收集枚举信息
-        var enumDeclarations = context.SyntaxProvider
-                                      .CreateSyntaxProvider(static (s, _) => s is EnumDeclarationSyntax,
-                                          static (ctx, _) => (EnumDeclarationSyntax)ctx.Node)
-                                      .Where(static m => m is not null)
-                                      .Collect();
-        var compilationAndEnums = context.CompilationProvider.Combine(enumDeclarations);
-        context.RegisterSourceOutput(compilationAndEnums, (spc, source) => Execute(source.Left, source.Right, spc));
-    }
+///// <summary>
+///// 用于对枚举类型添加描述信息的源代码生成器
+///// </summary>
+//[Generator(LanguageNames.CSharp)]
+//public class EnumDescriptionGenerator : IIncrementalGenerator
+//{
+//    /// <inheritdoc />
+//    public void Initialize(IncrementalGeneratorInitializationContext context)
+//    {
+//        // 注册一个语法接收器，用于在编译期间收集枚举信息
+//        var enumDeclarations = context.SyntaxProvider
+//                                      .CreateSyntaxProvider(static (s, _) => s is EnumDeclarationSyntax,
+//                                          static (ctx, _) => (EnumDeclarationSyntax)ctx.Node)
+//                                      .Where(static m => m is not null)
+//                                      .Collect();
+//        var compilationAndEnums = context.CompilationProvider.Combine(enumDeclarations);
+//        context.RegisterSourceOutput(compilationAndEnums, (spc, source) => Execute(source.Left, source.Right, spc));
+//    }
 
-    private static void Execute(Compilation compilation, ImmutableArray<EnumDeclarationSyntax> enums, SourceProductionContext context)
-    {
-        foreach (var enumDeclaration in enums)
-        {
-            if (enumDeclaration is null) continue;
-            var semanticModel = compilation.GetSemanticModel(enumDeclaration.SyntaxTree);
-            var enumSymbol = semanticModel.GetDeclaredSymbol(enumDeclaration);
-            if (enumSymbol is null) continue;
-            // 仅处理 public 的枚举类型
-            if (enumSymbol.DeclaredAccessibility != Accessibility.Public) continue;
-            var enumName = enumSymbol.Name;
-            var namespaceName = enumSymbol.ContainingNamespace.ToDisplayString();
-            var compilationUnit = SyntaxFactory.CompilationUnit()
-                                               .AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")))
-                                               .AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System.Collections.Generic")))
-                                               .AddMembers(SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName(namespaceName))
-                                                                        .AddMembers(SyntaxFactory.ClassDeclaration($"{enumName}Extensions")
-                                                                                                 .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword))
-                                                                                                 .WithLeadingTrivia(SyntaxFactory.Comment("""
-                                                                                                                                          /// <summary>
-                                                                                                                                          /// 提供扩展方法以获取枚举值的描述。
-                                                                                                                                          /// </summary>
-                                                                                                                                          """))
-                                                                                                 .AddMembers(GenerateDescriptionCacheField(enumName, enumSymbol),
-                                                                                                     GenerateToDescriptionMethod(enumName))));
-            var code = compilationUnit.NormalizeWhitespace().ToFullString();
-            // 在文件开头添加注释,以便标识该文件是由源代码生成器生成的
-            code = $"""
-                    // <auto-generated/>
+//    private static void Execute(Compilation compilation, ImmutableArray<EnumDeclarationSyntax> enums, SourceProductionContext context)
+//    {
+//        foreach (var enumDeclaration in enums)
+//        {
+//            if (enumDeclaration is null) continue;
+//            var semanticModel = compilation.GetSemanticModel(enumDeclaration.SyntaxTree);
+//            var enumSymbol = semanticModel.GetDeclaredSymbol(enumDeclaration);
+//            if (enumSymbol is null) continue;
+//            // 仅处理 public 的枚举类型
+//            if (enumSymbol.DeclaredAccessibility != Accessibility.Public) continue;
+//            var enumName = enumSymbol.Name;
+//            var namespaceName = enumSymbol.ContainingNamespace.ToDisplayString();
+//            var compilationUnit = SyntaxFactory.CompilationUnit()
+//                                               .AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")))
+//                                               .AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System.Collections.Generic")))
+//                                               .AddMembers(SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName(namespaceName))
+//                                                                        .AddMembers(SyntaxFactory.ClassDeclaration($"{enumName}Extensions")
+//                                                                                                 .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword))
+//                                                                                                 .WithLeadingTrivia(SyntaxFactory.Comment("""
+//                                                                                                                                          /// <summary>
+//                                                                                                                                          /// 提供扩展方法以获取枚举值的描述。
+//                                                                                                                                          /// </summary>
+//                                                                                                                                          """))
+//                                                                                                 .AddMembers(GenerateDescriptionCacheField(enumName, enumSymbol),
+//                                                                                                     GenerateToDescriptionMethod(enumName))));
+//            var code = compilationUnit.NormalizeWhitespace().ToFullString();
+//            // 在文件开头添加注释,以便标识该文件是由源代码生成器生成的
+//            code = $"""
+//                    // <auto-generated/>
 
-                    {code}
-                    """;
-            context.AddSource($"{enumName}Extensions.g.cs", SourceText.From(code, Encoding.UTF8));
-        }
-    }
+//                    {code}
+//                    """;
+//            context.AddSource($"{enumName}Extensions.g.cs", SourceText.From(code, Encoding.UTF8));
+//        }
+//    }
 
-    private static FieldDeclarationSyntax GenerateDescriptionCacheField(string enumName, INamedTypeSymbol enumSymbol)
-    {
-        var initializer = SyntaxFactory.InitializerExpression(SyntaxKind.CollectionInitializerExpression,
-            SyntaxFactory.SeparatedList<ExpressionSyntax>(enumSymbol.GetMembers().OfType<IFieldSymbol>().Select(member =>
-            {
-                var descriptionAttribute = member.GetAttributes().FirstOrDefault(attr => attr.AttributeClass?.ToDisplayString() == nameof(DescriptionAttribute));
-                var description = descriptionAttribute?.ConstructorArguments.FirstOrDefault().Value?.ToString() ?? member.Name;
-                return SyntaxFactory.InitializerExpression(SyntaxKind.ComplexElementInitializerExpression,
-                    SyntaxFactory.SeparatedList(new ExpressionSyntax[]
-                    {
-                        SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
-                            SyntaxFactory.IdentifierName(enumName),
-                            SyntaxFactory.IdentifierName(member.Name)),
-                        SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(description))
-                    }));
-            })));
-        return SyntaxFactory.FieldDeclaration(SyntaxFactory.VariableDeclaration(SyntaxFactory.GenericName(SyntaxFactory.Identifier("Dictionary"))
-                                                                                             .WithTypeArgumentList(SyntaxFactory.TypeArgumentList(SyntaxFactory.SeparatedList<TypeSyntax>(new SyntaxNodeOrToken[]
-                                                                                             {
-                                                                                                 SyntaxFactory.IdentifierName(enumName),
-                                                                                                 SyntaxFactory.Token(SyntaxKind.CommaToken),
-                                                                                                 SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword))
-                                                                                             }))))
-                                                           .AddVariables(SyntaxFactory.VariableDeclarator("DescriptionCache")
-                                                                                      .WithInitializer(SyntaxFactory.EqualsValueClause(SyntaxFactory.ObjectCreationExpression(SyntaxFactory.GenericName(SyntaxFactory.Identifier("Dictionary"))
-                                                                                                                                                                                           .WithTypeArgumentList(SyntaxFactory.TypeArgumentList(SyntaxFactory.SeparatedList<TypeSyntax>(new SyntaxNodeOrToken[]
-                                                                                                                                                                                           {
-                                                                                                                                                                                               SyntaxFactory.IdentifierName(enumName),
-                                                                                                                                                                                               SyntaxFactory.Token(SyntaxKind.CommaToken),
-                                                                                                                                                                                               SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword))
-                                                                                                                                                                                           }))))
-                                                                                                                                                    .WithInitializer(initializer)))))
-                            .AddModifiers(SyntaxFactory.Token(SyntaxKind.PrivateKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword), SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword));
-    }
+//    private static FieldDeclarationSyntax GenerateDescriptionCacheField(string enumName, INamedTypeSymbol enumSymbol)
+//    {
+//        var initializer = SyntaxFactory.InitializerExpression(SyntaxKind.CollectionInitializerExpression,
+//            SyntaxFactory.SeparatedList<ExpressionSyntax>(enumSymbol.GetMembers().OfType<IFieldSymbol>().Select(member =>
+//            {
+//                var descriptionAttribute = member.GetAttributes().FirstOrDefault(attr => attr.AttributeClass?.ToDisplayString() == nameof(DescriptionAttribute));
+//                var description = descriptionAttribute?.ConstructorArguments.FirstOrDefault().Value?.ToString() ?? member.Name;
+//                return SyntaxFactory.InitializerExpression(SyntaxKind.ComplexElementInitializerExpression,
+//                    SyntaxFactory.SeparatedList(new ExpressionSyntax[]
+//                    {
+//                        SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+//                            SyntaxFactory.IdentifierName(enumName),
+//                            SyntaxFactory.IdentifierName(member.Name)),
+//                        SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(description))
+//                    }));
+//            })));
+//        return SyntaxFactory.FieldDeclaration(SyntaxFactory.VariableDeclaration(SyntaxFactory.GenericName(SyntaxFactory.Identifier("Dictionary"))
+//                                                                                             .WithTypeArgumentList(SyntaxFactory.TypeArgumentList(SyntaxFactory.SeparatedList<TypeSyntax>(new SyntaxNodeOrToken[]
+//                                                                                             {
+//                                                                                                 SyntaxFactory.IdentifierName(enumName),
+//                                                                                                 SyntaxFactory.Token(SyntaxKind.CommaToken),
+//                                                                                                 SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword))
+//                                                                                             }))))
+//                                                           .AddVariables(SyntaxFactory.VariableDeclarator("DescriptionCache")
+//                                                                                      .WithInitializer(SyntaxFactory.EqualsValueClause(SyntaxFactory.ObjectCreationExpression(SyntaxFactory.GenericName(SyntaxFactory.Identifier("Dictionary"))
+//                                                                                                                                                                                           .WithTypeArgumentList(SyntaxFactory.TypeArgumentList(SyntaxFactory.SeparatedList<TypeSyntax>(new SyntaxNodeOrToken[]
+//                                                                                                                                                                                           {
+//                                                                                                                                                                                               SyntaxFactory.IdentifierName(enumName),
+//                                                                                                                                                                                               SyntaxFactory.Token(SyntaxKind.CommaToken),
+//                                                                                                                                                                                               SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword))
+//                                                                                                                                                                                           }))))
+//                                                                                                                                                    .WithInitializer(initializer)))))
+//                            .AddModifiers(SyntaxFactory.Token(SyntaxKind.PrivateKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword), SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword));
+//    }
 
-    private static MethodDeclarationSyntax GenerateToDescriptionMethod(string enumName) =>
-        SyntaxFactory.MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword).WithTrailingTrivia(SyntaxFactory.TriviaList(SyntaxFactory.Space))),
-                         SyntaxFactory.Identifier("ToDescription"))
-                     .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword))
-                     .AddParameterListParameters(SyntaxFactory.Parameter(SyntaxFactory.Identifier("value"))
-                                                              .WithType(SyntaxFactory.IdentifierName(enumName))
-                                                              .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.ThisKeyword))))
-                     .WithLeadingTrivia(SyntaxFactory.Comment("""
-                                                              /// <summary>
-                                                              /// 获取枚举值的描述。
-                                                              /// </summary>
-                                                              /// <param name="value">枚举值。</param>
-                                                              /// <returns>枚举值的描述。</returns>
-                                                              """))
-                     .WithBody(SyntaxFactory.Block(SyntaxFactory.ReturnStatement(SyntaxFactory.ConditionalExpression(SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
-                                                                                                                                      SyntaxFactory.IdentifierName("DescriptionCache"),
-                                                                                                                                      SyntaxFactory.IdentifierName("TryGetValue")))
-                                                                                                                                  .AddArgumentListArguments(SyntaxFactory.Argument(SyntaxFactory.IdentifierName("value")),
-                                                                                                                                      SyntaxFactory.Argument(SyntaxFactory.DeclarationExpression(SyntaxFactory.IdentifierName("var"),
-                                                                                                                                                       SyntaxFactory.SingleVariableDesignation(SyntaxFactory.Identifier("description"))))
-                                                                                                                                                   .WithRefOrOutKeyword(SyntaxFactory.Token(SyntaxKind.OutKeyword))),
-                         SyntaxFactory.IdentifierName("description"),
-                         SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
-                             SyntaxFactory.IdentifierName("value"),
-                             SyntaxFactory.IdentifierName("ToString")))))));
-}
+//    private static MethodDeclarationSyntax GenerateToDescriptionMethod(string enumName) =>
+//        SyntaxFactory.MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword).WithTrailingTrivia(SyntaxFactory.TriviaList(SyntaxFactory.Space))),
+//                         SyntaxFactory.Identifier("ToDescription"))
+//                     .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword))
+//                     .AddParameterListParameters(SyntaxFactory.Parameter(SyntaxFactory.Identifier("value"))
+//                                                              .WithType(SyntaxFactory.IdentifierName(enumName))
+//                                                              .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.ThisKeyword))))
+//                     .WithLeadingTrivia(SyntaxFactory.Comment("""
+//                                                              /// <summary>
+//                                                              /// 获取枚举值的描述。
+//                                                              /// </summary>
+//                                                              /// <param name="value">枚举值。</param>
+//                                                              /// <returns>枚举值的描述。</returns>
+//                                                              """))
+//                     .WithBody(SyntaxFactory.Block(SyntaxFactory.ReturnStatement(SyntaxFactory.ConditionalExpression(SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+//                                                                                                                                      SyntaxFactory.IdentifierName("DescriptionCache"),
+//                                                                                                                                      SyntaxFactory.IdentifierName("TryGetValue")))
+//                                                                                                                                  .AddArgumentListArguments(SyntaxFactory.Argument(SyntaxFactory.IdentifierName("value")),
+//                                                                                                                                      SyntaxFactory.Argument(SyntaxFactory.DeclarationExpression(SyntaxFactory.IdentifierName("var"),
+//                                                                                                                                                       SyntaxFactory.SingleVariableDesignation(SyntaxFactory.Identifier("description"))))
+//                                                                                                                                                   .WithRefOrOutKeyword(SyntaxFactory.Token(SyntaxKind.OutKeyword))),
+//                         SyntaxFactory.IdentifierName("description"),
+//                         SyntaxFactory.InvocationExpression(SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+//                             SyntaxFactory.IdentifierName("value"),
+//                             SyntaxFactory.IdentifierName("ToString")))))));
+//}
+
