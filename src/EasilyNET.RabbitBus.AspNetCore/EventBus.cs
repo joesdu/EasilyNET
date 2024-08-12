@@ -18,7 +18,7 @@ namespace EasilyNET.RabbitBus.AspNetCore;
 internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager subsManager, IBusSerializer serializer, IServiceProvider sp, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pipelineProvider) : IBus
 {
     private const string HandleName = nameof(IEventHandler<IEvent>.HandleAsync);
-    private readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Delegate> _handleAsyncDelegateCache = [];
+    private readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Func<object, Task>?> _handleAsyncDelegateCache = [];
 
     public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
     {
@@ -86,7 +86,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
             exc_args["x-delayed-type"] = !xDelayedType || delayedType is null ? "direct" : delayedType;
         }
         //创建延时交换机,type类型为x-delayed-message
-        await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription()!, true, false, exc_args);
+        await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, false, exc_args);
         // 在发布事件前检查是否已经取消发布
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
         var body = serializer.Serialize(@event, @event.GetType());
@@ -157,7 +157,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
                 if (!success && exc is { WorkModel: EModel.Delayed }) exchange_args.Add("x-delayed-type", "direct"); //x-delayed-type必须加
             }
             //创建交换机
-            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription()!, true, false, exchange_args);
+            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, false, exchange_args);
         }
         //创建队列
         await channel.QueueDeclareAsync(exc.Queue, true, false, false, queue_args);
@@ -224,21 +224,30 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
                         logger.LogError($"无法找到{nameof(@event)}事件处理器");
                         return; // 或者抛出异常
                     }
-                    var delegateType = typeof(HandleAsyncDelegate<>).MakeGenericType(eventType);
+                    // var delegateType = typeof(HandleAsyncDelegate<>).MakeGenericType(eventType);
                     var handler = scope?.ServiceProvider.GetService(handlerType);
                     if (handler is null) return;
-                    var handleAsyncDelegate = Delegate.CreateDelegate(delegateType, handler, method);
+                    //var handleAsyncDelegate = Delegate.CreateDelegate(typeof(Func<object, Task>), handler, method) as Func<object, Task>;
+                    var handleAsyncDelegate = CreateHandleAsyncDelegate(handler, method, eventType);
                     _handleAsyncDelegateCache[key] = handleAsyncDelegate;
                     cachedDelegate = handleAsyncDelegate;
                 }
-                if (cachedDelegate.DynamicInvoke(@event) is Task handleTask)
+                if (cachedDelegate is not null && @event is not null)
                 {
                     await pipeline.ExecuteAsync(async _ =>
                     {
-                        await handleTask;
+                        await cachedDelegate(@event);
                         await ack.Invoke();
                     }).ConfigureAwait(false);
                 }
+                //if (cachedDelegate?.DynamicInvoke(@event) is Task handleTask)
+                //{
+                //    await pipeline.ExecuteAsync(async _ =>
+                //    {
+                //        await handleTask;
+                //        await ack.Invoke();
+                //    }).ConfigureAwait(false);
+                //}
             }
         }
         else
@@ -247,5 +256,18 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         }
     }
 
-    private delegate Task HandleAsyncDelegate<in TEvent>(TEvent @event) where TEvent : IEvent;
+    private static Func<object, Task> CreateHandleAsyncDelegate(object handler, MethodInfo method, Type eventType)
+    {
+        var delegateType = typeof(Func<,>).MakeGenericType(eventType, typeof(Task));
+        var handleAsyncDelegate = Delegate.CreateDelegate(delegateType, handler, method);
+        return async @event =>
+        {
+            if (handleAsyncDelegate.DynamicInvoke(@event) is Task task)
+            {
+                await task.ConfigureAwait(false);
+            }
+        };
+    }
+
+    //private delegate Task HandleAsyncDelegate<in TEvent>(TEvent @event) where TEvent : IEvent;
 }
