@@ -1,4 +1,3 @@
-using System.Collections.Frozen;
 using System.Reflection;
 using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Contexts;
@@ -33,17 +32,28 @@ public class AppModule : IAppModule
     public IEnumerable<Type> GetDependedTypes(Type? moduleType = null)
     {
         moduleType ??= GetType();
-        var dependedTypes = moduleType.GetCustomAttributes().OfType<IDependedTypesProvider>().ToArray();
-        if (dependedTypes.Length == 0) return [];
-        List<Type> dependList = [];
-        foreach (var dependedType in dependedTypes)
+        var dependedTypes = moduleType.GetCustomAttributes().OfType<IDependedTypesProvider>();
+        if (!dependedTypes.Any()) return [];
+        var dependSet = new HashSet<Type>();
+        var stack = new Stack<Type>([moduleType]);
+        while (stack.Count > 0)
         {
-            var depends = dependedType.GetDependedTypes().ToFrozenSet();
-            if (depends.Count == 0) continue;
-            dependList.AddRange(depends);
-            foreach (var type in depends) dependList.AddRange(GetDependedTypes(type));
+            var currentType = stack.Pop();
+            if (!dependSet.Add(currentType)) continue;
+            var cdt = currentType.GetCustomAttributes().OfType<IDependedTypesProvider>();
+            foreach (var dependedType in cdt)
+            {
+                var depends = dependedType.GetDependedTypes();
+                foreach (var type in depends)
+                {
+                    if (dependSet.Add(type))
+                    {
+                        stack.Push(type);
+                    }
+                }
+            }
         }
-        return dependList.Distinct();
+        return dependSet;
     }
 
     /// <summary>
