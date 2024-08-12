@@ -139,7 +139,7 @@ public static class DeepCopyByExpressionTrees
         ///// Intended code:
         /////
         ///// var output = (<type>)input.MemberwiseClone();
-        var memberwiseCloneMethod = ObjectType.GetMethod("MemberwiseClone", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var memberwiseCloneMethod = ObjectType.GetMethod(nameof(MemberwiseClone), BindingFlags.NonPublic | BindingFlags.Instance)!;
         var memberwiseCloneInputExpression = Expression.Assign(outputVariable, Expression.Convert(Expression.Call(inputParameter, memberwiseCloneMethod), type));
         expressions.Add(memberwiseCloneInputExpression);
     }

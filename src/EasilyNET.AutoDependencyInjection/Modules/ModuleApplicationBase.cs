@@ -24,7 +24,6 @@ internal class ModuleApplicationBase : IModuleApplication
         Services = services;
         services.AddSingleton<IModuleApplication>(this);
         services.TryAddObjectAccessor<IServiceProvider>();
-        // TODO:希望替换成使用SG的方式来注入服务,将GetAllEnabledModule函数替换掉.
         Source = GetAllEnabledModule(services);
         Modules = LoadModules;
     }
@@ -43,9 +42,11 @@ internal class ModuleApplicationBase : IModuleApplication
             var depends = module.GetDependedTypes();
             foreach (var dependType in depends)
             {
-                var dependModule = Source.ToList().Find(m => m.GetType() == dependType);
-                if (dependModule is null) continue;
-                if (!modules.Contains(dependModule)) modules.Add(dependModule);
+                var dependModule = Source.FirstOrDefault(m => m.GetType() == dependType);
+                if (dependModule is not null && !modules.Contains(dependModule))
+                {
+                    modules.Add(dependModule);
+                }
             }
             return modules;
         }
