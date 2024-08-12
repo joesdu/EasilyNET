@@ -5,7 +5,7 @@ using WebApi.Test.Unit.Common;
 namespace WebApi.Test.Unit.ServiceModules;
 
 /// <inheritdoc />
-internal sealed class MemoryCacheModule : AppModule
+internal sealed class GarnetCacheModule : AppModule
 {
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
