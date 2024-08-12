@@ -36,7 +36,7 @@ namespace EasilyNET.Core.DeepCopy;
 /// </summary>
 public static class DeepCopyByReflection
 {
-    private static readonly MethodInfo? CloneMethod = typeof(object).GetMethod("Memberwise Clone", BindingFlags.NonPublic | BindingFlags.Instance);
+    private static readonly MethodInfo? CloneMethod = typeof(object).GetMethod(nameof(MemberwiseClone), BindingFlags.NonPublic | BindingFlags.Instance);
 
     /// <summary>
     /// 这个函数接收一个Type类型的参数，然后检查这个类型是否为string类型，或者这个类型是否为值类型并且是原始类型。如果满足这些条件中的任何一个，那么这个函数就会返回true，否则返回false。
