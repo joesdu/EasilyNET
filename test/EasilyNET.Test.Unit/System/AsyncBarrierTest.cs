@@ -14,9 +14,9 @@ public class AsyncBarrierTest
         var cts = new CancellationTokenSource();
         var tasks = new List<Task>
         {
-            Task.Run(async () => { await barrier.SignalAndWait(cts.Token); }),
-            Task.Run(async () => { await barrier.SignalAndWait(cts.Token); }),
-            Task.Run(async () => { await barrier.SignalAndWait(cts.Token); })
+            Task.Run(async () => await barrier.SignalAndWait(cts.Token)),
+            Task.Run(async () => await barrier.SignalAndWait(cts.Token)),
+            Task.Run(async () => await barrier.SignalAndWait(cts.Token))
         };
         await Task.WhenAll(tasks);
     }
@@ -28,12 +28,12 @@ public class AsyncBarrierTest
         var cts = new CancellationTokenSource();
         var tasks = new List<Task>
         {
-            Task.Run(async () => { await barrier.SignalAndWait(cts.Token); }),
-            Task.Run(async () => { await barrier.SignalAndWait(cts.Token); }),
+            Task.Run(async () => await barrier.SignalAndWait(cts.Token)),
+            Task.Run(async () => await barrier.SignalAndWait(cts.Token)),
             Task.Run(async () =>
             {
                 await cts.CancelAsync(); // 取消令牌
-                await Assert.ThrowsExceptionAsync<TaskCanceledException>(async () => { await barrier.SignalAndWait(cts.Token); });
+                await Assert.ThrowsExceptionAsync<TaskCanceledException>(async () => await barrier.SignalAndWait(cts.Token));
             })
         };
         try
@@ -53,8 +53,8 @@ public class AsyncBarrierTest
         var cts = new CancellationTokenSource();
         var tasks = new List<Task>
         {
-            Task.Run(async () => { await barrier.SignalAndWait(cts.Token); }),
-            Task.Run(async () => { await barrier.SignalAndWait(cts.Token); })
+            Task.Run(async () => await barrier.SignalAndWait(cts.Token)),
+            Task.Run(async () => await barrier.SignalAndWait(cts.Token))
         };
         var delayTask = Task.Delay(1000, cts.Token);
         var allTasks = Task.WhenAll(tasks);
