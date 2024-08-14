@@ -298,16 +298,16 @@ public static class Lunar
         };
     }
 
-    private static void Load(IList<string> dataInit, string data, int startYear)
+    private static void Load(string[] dataInit, string data, int startYear)
     {
         var temp = data[..4];
         dataInit[int.Parse(temp) - startYear] = data;
     }
 
-    private static string[] Load(IReadOnlyList<string> data)
+    private static string[] Load(string[] data)
     {
-        var dataTemp = new string[data.Count - 1];
-        for (var i = 1; i < data.Count; i++) dataTemp[i - 1] = AddLastMonth(data[i], data[i - 1]);
+        var dataTemp = new string[data.Length - 1];
+        for (var i = 1; i < data.Length; i++) dataTemp[i - 1] = AddLastMonth(data[i], data[i - 1]);
         return dataTemp;
     }
 
@@ -419,7 +419,7 @@ public static class Lunar
 
     /// <summary>
     /// 取前两位(上一年的十一月和十二月)
-    /// 确保每一行都包含前一年的信息.(前一年的11月和12月份)
+    /// 确保每一行都包含前一年的信息.(前一年的11月和12月)
     /// last="110_07"
     /// mid="10"
     /// </summary>
@@ -427,7 +427,7 @@ public static class Lunar
     /// <returns></returns>
     private static string GetNovemberAndDecember(string last) => last[..2];
 
-    private static int[] Cast(string now, IReadOnlyList<string> dataInit, int startYear)
+    private static int[] Cast(string now, string[] dataInit, int startYear)
     {
         var year = now[..4];
         var numYear = int.Parse(year);
@@ -538,7 +538,7 @@ public static class Lunar
     /// </summary>
     /// <param name="date">日期数组 年|月|日</param>
     /// <returns></returns>
-    private static bool Judge(IReadOnlyList<int> date)
+    private static bool Judge(int[] date)
     {
         var year = date[0];
         var month = date[1];
@@ -559,7 +559,7 @@ public static class Lunar
     /// </summary>
     /// <param name="date"></param>
     /// <returns></returns>
-    private static string Cast(IReadOnlyList<int> date) => AddZero(date[0], 4) + AddZero(date[1], 2) + AddZero(date[2], 2);
+    private static string Cast(int[] date) => AddZero(date[0], 4) + AddZero(date[1], 2) + AddZero(date[2], 2);
 
     /// <summary>
     /// 加0
