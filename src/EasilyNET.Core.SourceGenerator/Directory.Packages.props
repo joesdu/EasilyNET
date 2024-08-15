@@ -1,28 +1,27 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-
 <Project>
-	<PropertyGroup>
-		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-		<PackageLicenseFile>LICENSE</PackageLicenseFile>
-	</PropertyGroup>
-	<ItemGroup>
-		<None Include="..\..\LICENSE" Pack="true" PackagePath="" />
-	</ItemGroup>
-	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
-		<OutputItemType>Analyzer</OutputItemType>
-		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-		<!-- Generates a package at build -->
-		<IncludeBuildOutput>false</IncludeBuildOutput>
-		<!-- Do not include the generator as a lib dependency -->
-	</PropertyGroup>
-	<PropertyGroup>
-		<NoWarn>$(NoWarn);NU5128;</NoWarn>
-	</PropertyGroup>
-	<ItemGroup>
-		<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0-beta1.24324.1" />
-		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0-3.final" />
-	</ItemGroup>
+  <PropertyGroup>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
+  </ItemGroup>
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <OutputItemType>Analyzer</OutputItemType>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <!-- Generates a package at build -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <!-- Do not include the generator as a lib dependency -->
+  </PropertyGroup>
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);NU5128;</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0-beta1.24324.1" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0-1.final" />
+  </ItemGroup>
 </Project>
