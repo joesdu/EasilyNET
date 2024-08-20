@@ -45,6 +45,24 @@ EasilyNET Packages
 - 对 MongoDB 执行命令添加个性化输出.(EasilyNET.Mongo.ConsoleDebug)
 - 部分库的[使用案例](./sample/WebApi.Test.Unit/README.md)
 
+<details> 
+<summary style="font-size: 14px">English</summary>
+
+- AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4 encryption, signature verification and other algorithms
+- Distributed locks based on MongoDB
+- Message bus implementation based on RabbitMQ
+- Some encapsulation of MongoDB driver for easy use and some common default configurations
+- Snowflake ID, some common data types, enumerations, extension methods, etc.
+- Automatic modular injection services, adding support for WPF, WinForm and other projects, using IHost common host mode
+- Added support for DateOnly and TimeOnly in MongoDB
+- Simple support for MongoDB GridFS usage (common usage) and usage examples.
+- Integration of some common filters and middleware in WebAPI
+- Added support for grouping, hiding APIs, and displaying default values for some data types in Swagger documents, making it easier for front-end engineers to refer to
+- Added personalized output for executing MongoDB commands (EasilyNET.Mongo.ConsoleDebug)
+- [Usage examples](./sample/WebApi.Test.Unit/README.md) of some libraries
+
+</details>
+
 #### Core
 
 | NuGet Package                        | Version      | Download     | Document                                               |
@@ -59,19 +77,20 @@ EasilyNET Packages
 | NuGet Package                           | Version      | Download     | Document                                                  |
 | --------------------------------------- | ------------ | ------------ | --------------------------------------------------------- |
 | [EasilyNET.AutoDependencyInjection][20] | ![Nuget][21] | ![Nuget][22] | [文档](./src/EasilyNET.AutoDependencyInjection/README.md) |
-| [EasilyNET.RabbitBus.AspNetCore][23]    | ![Nuget][24] | ![Nuget][25] | [文档](./src/EasilyNET.RabbitBus.AspNetCore/README.md)    |
-| [EasilyNET.Security][26]                | ![Nuget][27] | ![Nuget][28] | [文档](./src/EasilyNET.Security/README.md)                |
+| [EasilyNET.ExpressMapper][23]           | ![Nuget][24] | ![Nuget][25] | [文档](./src/EasilyNET.ExpressMapper/README.md)           |
+| [EasilyNET.RabbitBus.AspNetCore][26]    | ![Nuget][27] | ![Nuget][28] | [文档](./src/EasilyNET.RabbitBus.AspNetCore/README.md)    |
+| [EasilyNET.Security][29]                | ![Nuget][30] | ![Nuget][31] | [文档](./src/EasilyNET.Security/README.md)                |
 
 #### Mongo
 
 | NuGet Package                                   | Version      | Download     | Document                                                          |
 | ----------------------------------------------- | ------------ | ------------ | ----------------------------------------------------------------- |
-| [EasilyNET.Mongo.AspNetCore][29]                | ![Nuget][30] | ![Nuget][31] | [文档](./src/EasilyNET.Mongo.AspNetCore/README.md)                |
-| [EasilyNET.Mongo.ConsoleDebug][32]              | ![Nuget][33] | ![Nuget][34] | [文档](./src/EasilyNET.Mongo.ConsoleDebug/README.md)              |
-| [EasilyNET.MongoDistributedLock][35]            | ![Nuget][36] | ![Nuget][37] | [文档](./src/EasilyNET.MongoDistributedLock/README.md)            |
-| [EasilyNET.MongoDistributedLock.AspNetCore][38] | ![Nuget][39] | ![Nuget][40] | [文档](./src/EasilyNET.MongoDistributedLock.AspNetCore/README.md) |
-| [EasilyNET.MongoGridFS.AspNetCore][41]          | ![Nuget][42] | ![Nuget][43] | [文档](./src/EasilyNET.MongoGridFS.AspNetCore/README.md)          |
-| [EasilyNET.MongoSerializer.AspNetCore][44]      | ![Nuget][45] | ![Nuget][46] | [文档](./src/EasilyNET.MongoSerializer.AspNetCore/README.md)      |
+| [EasilyNET.Mongo.AspNetCore][32]                | ![Nuget][33] | ![Nuget][34] | [文档](./src/EasilyNET.Mongo.AspNetCore/README.md)                |
+| [EasilyNET.Mongo.ConsoleDebug][35]              | ![Nuget][36] | ![Nuget][37] | [文档](./src/EasilyNET.Mongo.ConsoleDebug/README.md)              |
+| [EasilyNET.MongoDistributedLock][38]            | ![Nuget][39] | ![Nuget][40] | [文档](./src/EasilyNET.MongoDistributedLock/README.md)            |
+| [EasilyNET.MongoDistributedLock.AspNetCore][41] | ![Nuget][42] | ![Nuget][43] | [文档](./src/EasilyNET.MongoDistributedLock.AspNetCore/README.md) |
+| [EasilyNET.MongoGridFS.AspNetCore][44]          | ![Nuget][45] | ![Nuget][46] | [文档](./src/EasilyNET.MongoGridFS.AspNetCore/README.md)          |
+| [EasilyNET.MongoSerializer.AspNetCore][47]      | ![Nuget][48] | ![Nuget][49] | [文档](./src/EasilyNET.MongoSerializer.AspNetCore/README.md)      |
 
 #### 感谢 [JetBrains](https://www.jetbrains.com/shop/eform/opensource) 对本项目的支持!
 
@@ -84,24 +103,6 @@ EasilyNET Packages
 - 然后提交代码到你自己仓库的分支上.
 - 然后到本项目创建一个 PR.
 - 等待管理员合并 PR 后即可删除掉你自己的仓库.
-
-### Git 贡献提交规范
-
-- 使用 Emoji [参考](https://gitmoji.dev) | [Emoji 中文含义](gitemoji.md)
-
-| 代号     | 说明                                                     |
-| :------- | -------------------------------------------------------- |
-| feat     | 新功能(feature)                                          |
-| fix      | 修复 bug,可以是 QA 发现的 BUG,也可以是研发自己发现的 BUG |
-| docs     | 文档(documentation)                                      |
-| style    | 格式(不影响代码运行的变动)                               |
-| refactor | 重构(即不是新增功能,也不是修改 bug 的代码变动)           |
-| perf     | 优化相关,比如提升性能、体验                              |
-| test     | 增加测试                                                 |
-| chore    | 构建过程或辅助工具的变动                                 |
-| revert   | 回滚到上一个版本                                         |
-| merge    | 代码合并                                                 |
-| sync     | 同步主线或分支的 Bug                                     |
 
 <!--文档中的各项链接-->
 
@@ -127,27 +128,30 @@ EasilyNET Packages
 [20]: https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection
 [21]: https://img.shields.io/nuget/v/EasilyNET.AutoDependencyInjection
 [22]: https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection
-[23]: https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore
-[24]: https://img.shields.io/nuget/v/EasilyNET.RabbitBus.AspNetCore
-[25]: https://img.shields.io/nuget/dt/EasilyNET.RabbitBus.AspNetCore
-[26]: https://www.nuget.org/packages/EasilyNET.Security
-[27]: https://img.shields.io/nuget/v/EasilyNET.Security
-[28]: https://img.shields.io/nuget/dt/EasilyNET.Security
-[29]: https://www.nuget.org/packages/EasilyNET.Mongo.AspNetCore
-[30]: https://img.shields.io/nuget/v/EasilyNET.Mongo.AspNetCore
-[31]: https://img.shields.io/nuget/dt/EasilyNET.Mongo.AspNetCore
-[32]: https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug
-[33]: https://img.shields.io/nuget/v/EasilyNET.Mongo.ConsoleDebug
-[34]: https://img.shields.io/nuget/dt/EasilyNET.Mongo.ConsoleDebug
-[35]: https://www.nuget.org/packages/EasilyNET.MongoDistributedLock
-[36]: https://img.shields.io/nuget/v/EasilyNET.MongoDistributedLock
-[37]: https://img.shields.io/nuget/dt/EasilyNET.MongoDistributedLock
-[38]: https://www.nuget.org/packages/EasilyNET.MongoDistributedLock.AspNetCore
-[39]: https://img.shields.io/nuget/v/EasilyNET.MongoDistributedLock.AspNetCore
-[40]: https://img.shields.io/nuget/dt/EasilyNET.MongoDistributedLock.AspNetCore
-[41]: https://www.nuget.org/packages/EasilyNET.MongoGridFS.AspNetCore
-[42]: https://img.shields.io/nuget/v/EasilyNET.MongoGridFS.AspNetCore
-[43]: https://img.shields.io/nuget/dt/EasilyNET.MongoGridFS.AspNetCore
-[44]: https://www.nuget.org/packages/EasilyNET.MongoSerializer.AspNetCore
-[45]: https://img.shields.io/nuget/v/EasilyNET.MongoSerializer.AspNetCore
-[46]: https://img.shields.io/nuget/dt/EasilyNET.MongoSerializer.AspNetCore
+[23]: https://www.nuget.org/packages/EasilyNET.ExpressMapper
+[24]: https://img.shields.io/nuget/v/EasilyNET.ExpressMapper
+[25]: https://img.shields.io/nuget/dt/EasilyNET.ExpressMapper
+[26]: https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore
+[27]: https://img.shields.io/nuget/v/EasilyNET.RabbitBus.AspNetCore
+[28]: https://img.shields.io/nuget/dt/EasilyNET.RabbitBus.AspNetCore
+[29]: https://www.nuget.org/packages/EasilyNET.Security
+[30]: https://img.shields.io/nuget/v/EasilyNET.Security
+[31]: https://img.shields.io/nuget/dt/EasilyNET.Security
+[32]: https://www.nuget.org/packages/EasilyNET.Mongo.AspNetCore
+[33]: https://img.shields.io/nuget/v/EasilyNET.Mongo.AspNetCore
+[34]: https://img.shields.io/nuget/dt/EasilyNET.Mongo.AspNetCore
+[35]: https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug
+[36]: https://img.shields.io/nuget/v/EasilyNET.Mongo.ConsoleDebug
+[37]: https://img.shields.io/nuget/dt/EasilyNET.Mongo.ConsoleDebug
+[38]: https://www.nuget.org/packages/EasilyNET.MongoDistributedLock
+[39]: https://img.shields.io/nuget/v/EasilyNET.MongoDistributedLock
+[40]: https://img.shields.io/nuget/dt/EasilyNET.MongoDistributedLock
+[41]: https://www.nuget.org/packages/EasilyNET.MongoDistributedLock.AspNetCore
+[42]: https://img.shields.io/nuget/v/EasilyNET.MongoDistributedLock.AspNetCore
+[43]: https://img.shields.io/nuget/dt/EasilyNET.MongoDistributedLock.AspNetCore
+[44]: https://www.nuget.org/packages/EasilyNET.MongoGridFS.AspNetCore
+[45]: https://img.shields.io/nuget/v/EasilyNET.MongoGridFS.AspNetCore
+[46]: https://img.shields.io/nuget/dt/EasilyNET.MongoGridFS.AspNetCore
+[47]: https://www.nuget.org/packages/EasilyNET.MongoSerializer.AspNetCore
+[48]: https://img.shields.io/nuget/v/EasilyNET.MongoSerializer.AspNetCore
+[49]: https://img.shields.io/nuget/dt/EasilyNET.MongoSerializer.AspNetCore

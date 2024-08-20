@@ -9,23 +9,22 @@
 .EXAMPLE
   exec { svn info $repository_trunk } "Error executing SVN. Please verify SVN command-line client is installed"
 #>
-function Exec
-{
-    [CmdletBinding()]
-    param(
-        [Parameter(Position=0,Mandatory=1)][scriptblock]$cmd,
-        [Parameter(Position=1,Mandatory=0)][string]$errorMessage = ($msgs.error_bad_command -f $cmd)
-    )
-    & $cmd
-    if ($lastexitcode -ne 0) {
-        throw ("Exec: " + $errorMessage)
-    }
+function Exec {
+  [CmdletBinding()]
+  param(
+    [Parameter(Position = 0, Mandatory = 1)][scriptblock]$cmd,
+    [Parameter(Position = 1, Mandatory = 0)][string]$errorMessage = ($msgs.error_bad_command -f $cmd)
+  )
+  & $cmd
+  if ($lastexitcode -ne 0) {
+    throw ("Exec: " + $errorMessage)
+  }
 }
 
 $solution = "EasilyNET.sln"
 $artifacts = ".\artifacts"
 
-if(Test-Path $artifacts) { Remove-Item $artifacts -Force -Recurse }
+if (Test-Path $artifacts) { Remove-Item $artifacts -Force -Recurse }
 
 exec { & dotnet clean $solution -c Release }
 exec { & dotnet build $solution -c Release }
@@ -40,6 +39,7 @@ exec { & dotnet pack .\src\EasilyNET.WebCore.Swagger\EasilyNET.WebCore.Swagger.c
 # Framework
 exec { & dotnet pack .\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.AutoDependencyInjection.Core\EasilyNET.AutoDependencyInjection.Core.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
+exec { & dotnet pack .\src\EasilyNET.ExpressMapper\EasilyNET.ExpressMapper.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.RabbitBus.AspNetCore\EasilyNET.RabbitBus.AspNetCore.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.RabbitBus.Core\EasilyNET.RabbitBus.Core.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.Security\EasilyNET.Security.csproj -c Release -o $artifacts --include-symbols -p:SymbolPackageFormat=snupkg --no-build }

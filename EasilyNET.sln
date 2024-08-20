@@ -70,6 +70,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebApi.SourceGenerator.Test
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Core.SourceGenerator", "src\EasilyNET.Core.SourceGenerator\EasilyNET.Core.SourceGenerator.csproj", "{64D128C1-919B-4A60-A715-5910D5204251}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.ExpressMapper", "src\EasilyNET.ExpressMapper\EasilyNET.ExpressMapper.csproj", "{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -155,6 +157,10 @@ Global
 		{64D128C1-919B-4A60-A715-5910D5204251}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{64D128C1-919B-4A60-A715-5910D5204251}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{64D128C1-919B-4A60-A715-5910D5204251}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -182,6 +188,7 @@ Global
 		{9B426136-DC85-603B-94FB-F3C0B2E72713} = {4F9DEAE5-078F-E77A-2E4A-FEB6FFE226FF}
 		{4A011ECD-3C24-4818-8C42-A9361BF4119A} = {4F9DEAE5-078F-E77A-2E4A-FEB6FFE226FF}
 		{64D128C1-919B-4A60-A715-5910D5204251} = {8D626EA8-CB54-BC41-363A-217881BEBA6E}
+		{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5} = {E0AD1809-C64F-3D39-45E0-E424261CE16D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BF2C0069-ED43-44A1-A66C-2CC1B62E3EA3}
