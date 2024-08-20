@@ -27,11 +27,8 @@ public static class SwaggerGenOptionsExtensions
     public static void EasilySwaggerGenOptions(this SwaggerGenOptions op, string defaultDocName)
     {
         var controllers = AssemblyHelper.FindTypesByAttribute<ApiGroupAttribute>();
-        foreach (var ctrl in controllers)
+        foreach (var attr in controllers.Select(ctrl => ctrl.GetCustomAttribute<ApiGroupAttribute>()).OfType<ApiGroupAttribute>().Where(attr => !docsDic.ContainsKey(attr.Name)))
         {
-            var attr = ctrl.GetCustomAttribute<ApiGroupAttribute>();
-            if (attr is null) continue;
-            if (docsDic.ContainsKey(attr.Name)) continue;
             _ = docsDic.TryAdd(attr.Name, attr.Description);
             op.SwaggerDoc(attr.Name, new()
             {
@@ -69,11 +66,8 @@ public static class SwaggerGenOptionsExtensions
     public static void EasilySwaggerUIOptions(this SwaggerUIOptions op)
     {
         var controllers = AssemblyHelper.FindTypesByAttribute<ApiGroupAttribute>();
-        foreach (var ctrl in controllers)
+        foreach (var attr in controllers.Select(ctrl => ctrl.GetCustomAttribute<ApiGroupAttribute>()).OfType<ApiGroupAttribute>().Where(attr => !endPointDic.ContainsKey(attr.Name)))
         {
-            var attr = ctrl.GetCustomAttribute<ApiGroupAttribute>();
-            if (attr is null) continue;
-            if (endPointDic.ContainsKey(attr.Name)) continue;
             _ = endPointDic.TryAdd(attr.Name, attr.Description);
             op.SwaggerEndpoint($"/swagger/{attr.Name}/swagger.json", $"{attr.Title} {attr.Version}");
         }
