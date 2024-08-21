@@ -16,4 +16,7 @@
 		<Description>ExpressMapper对象映射</Description>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<None Include="THIRD-PARTY-NOTICES" Pack="true" PackagePath="THIRD-PARTY-NOTICES" />
+	</ItemGroup>
 </Project>
