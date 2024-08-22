@@ -1,4 +1,4 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.34804.81
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -65,10 +65,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebApi.Test.Unit", "sample\WebApi.Test.Unit\WebApi.Test.Unit.csproj", "{9B426136-DC85-603B-94FB-F3C0B2E72713}"
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebApi.SourceGenerator.Test", "sample\WebApi.SourceGenerator.Test\WebApi.SourceGenerator.Test.csproj", "{4A011ECD-3C24-4818-8C42-A9361BF4119A}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Core.SourceGenerator", "src\EasilyNET.Core.SourceGenerator\EasilyNET.Core.SourceGenerator.csproj", "{64D128C1-919B-4A60-A715-5910D5204251}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.ExpressMapper", "src\EasilyNET.ExpressMapper\EasilyNET.ExpressMapper.csproj", "{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5}"
 EndProject
@@ -149,14 +145,6 @@ Global
 		{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4A011ECD-3C24-4818-8C42-A9361BF4119A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4A011ECD-3C24-4818-8C42-A9361BF4119A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4A011ECD-3C24-4818-8C42-A9361BF4119A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4A011ECD-3C24-4818-8C42-A9361BF4119A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{64D128C1-919B-4A60-A715-5910D5204251}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{64D128C1-919B-4A60-A715-5910D5204251}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{64D128C1-919B-4A60-A715-5910D5204251}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{64D128C1-919B-4A60-A715-5910D5204251}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -186,8 +174,6 @@ Global
 		{7E493CA2-CB0C-77E0-B442-5ED204493F13} = {8D626EA8-CB54-BC41-363A-217881BEBA6E}
 		{8F9C18F9-A526-DCA0-597F-90D64AE5C6C2} = {8D626EA8-CB54-BC41-363A-217881BEBA6E}
 		{9B426136-DC85-603B-94FB-F3C0B2E72713} = {4F9DEAE5-078F-E77A-2E4A-FEB6FFE226FF}
-		{4A011ECD-3C24-4818-8C42-A9361BF4119A} = {4F9DEAE5-078F-E77A-2E4A-FEB6FFE226FF}
-		{64D128C1-919B-4A60-A715-5910D5204251} = {8D626EA8-CB54-BC41-363A-217881BEBA6E}
 		{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5} = {E0AD1809-C64F-3D39-45E0-E424261CE16D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
