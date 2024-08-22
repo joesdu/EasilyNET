@@ -18,11 +18,11 @@ git config core.ignorecase false
 
 - 目前包含的服务列表如下:
 
-| 服务名称        | 服务描述           | 端口映射   | 镜像名称                                                 |
-| --------------- | ------------------ | ---------- | -------------------------------------------------------- |
-| Garnet          | 超高性能分布式缓存 | 3278       | ghcr.io/joesdu/garnet:latest                             |
-| RabbitMQ        | 消息队列           | 15672      | ghcr.io/joesdu/rabbitmq-dlx:latest                       |
-| AspireDashboard | 可观测性           | 18888,4317 | mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest |
+| 服务名称        | 服务描述   | 端口映射   | 镜像名称                                                 |
+| --------------- | ---------- | ---------- | -------------------------------------------------------- |
+| Garnet          | 吊打 Redis | 3278       | ghcr.io/joesdu/garnet:latest                             |
+| RabbitMQ        | 消息队列   | 15672      | ghcr.io/joesdu/rabbitmq-dlx:latest                       |
+| AspireDashboard | 可观测性   | 18888,4317 | mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest |
 
 - 使用 docker-compose 启动 MongoDB 副本集集群,使用本项目中的 yml 文件启动 MongoDB 副本集集群
 
@@ -65,12 +65,11 @@ EasilyNET Packages
 
 #### Core
 
-| NuGet Package                        | Version      | Download     | Document                                               |
-| ------------------------------------ | ------------ | ------------ | ------------------------------------------------------ |
-| [EasilyNET.Core][8]                  | ![Nuget][9]  | ![Nuget][10] | [文档](./src/EasilyNET.Core/README.md)                 |
-| [EasilyNET.Core.SourceGenerator][11] | ![Nuget][12] | ![Nuget][13] | [文档](./src/EasilyNET.Core.SourceGenerator/README.md) |
-| [EasilyNET.WebCore][14]              | ![Nuget][15] | ![Nuget][16] | [文档](./src/EasilyNET.WebCore/README.md)              |
-| [EasilyNET.WebCore.Swagger][17]      | ![Nuget][18] | ![Nuget][19] | [文档](./src/EasilyNET.WebCore.Swagger/README.md)      |
+| NuGet Package                   | Version      | Download     | Document                                          |
+| ------------------------------- | ------------ | ------------ | ------------------------------------------------- |
+| [EasilyNET.Core][8]             | ![Nuget][9]  | ![Nuget][10] | [文档](./src/EasilyNET.Core/README.md)            |
+| [EasilyNET.WebCore][14]         | ![Nuget][15] | ![Nuget][16] | [文档](./src/EasilyNET.WebCore/README.md)         |
+| [EasilyNET.WebCore.Swagger][17] | ![Nuget][18] | ![Nuget][19] | [文档](./src/EasilyNET.WebCore.Swagger/README.md) |
 
 #### Framework
 
@@ -116,9 +115,6 @@ EasilyNET Packages
 [8]: https://www.nuget.org/packages/EasilyNET.Core
 [9]: https://img.shields.io/nuget/v/EasilyNET.Core
 [10]: https://img.shields.io/nuget/dt/EasilyNET.Core
-[11]: https://www.nuget.org/packages/EasilyNET.Core.SourceGenerator
-[12]: https://img.shields.io/nuget/v/EasilyNET.Core.SourceGenerator
-[13]: https://img.shields.io/nuget/dt/EasilyNET.Core.SourceGenerator
 [14]: https://www.nuget.org/packages/EasilyNET.WebCore
 [15]: https://img.shields.io/nuget/v/EasilyNET.WebCore
 [16]: https://img.shields.io/nuget/dt/EasilyNET.WebCore
