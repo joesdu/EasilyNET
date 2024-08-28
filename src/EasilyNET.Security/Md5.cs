@@ -19,13 +19,15 @@ internal static class Md5
     /// <returns></returns>
     internal static string To32MD5(this string value)
     {
-        var data = MD5.HashData(Encoding.UTF8.GetBytes(value));
-        var builder = new StringBuilder();
-        // 循环遍历哈希数据的每一个字节并格式化为十六进制字符串 
-        foreach (var t in data)
-        {
-            builder.Append(t.ToString("X2"));
-        }
-        return builder.ToString();
+        // 计算所需的最大字节数
+        var maxByteCount = Encoding.UTF8.GetMaxByteCount(value.Length);
+        var utf8Bytes = maxByteCount <= 256 ? stackalloc byte[maxByteCount] : new byte[maxByteCount];
+        Span<byte> hashBytes = stackalloc byte[MD5.HashSizeInBytes];
+        // 将字符串编码为 UTF-8 字节
+        var byteCount = Encoding.UTF8.GetBytes(value, utf8Bytes);
+        // 计算 MD5 哈希
+        MD5.HashData(utf8Bytes[..byteCount], hashBytes);
+        // 将哈希字节转换为十六进制字符串
+        return Convert.ToHexString(hashBytes);
     }
 }
