@@ -64,7 +64,7 @@ public static partial class StringExtension
     {
         var regex = ToTitleUpperCaseRegex();
         return regex.Replace(value,
-            delegate(Match m)
+            delegate (Match m)
             {
                 var str = m.ToString();
                 if (!char.IsLower(str[0])) return str;
@@ -163,12 +163,12 @@ public static partial class StringExtension
         return value.Length switch
         {
             >= 11 => MaskElevenRegex().Replace(value, $"$1{masks}$2"),
-            10    => MaskTenRegex().Replace(value, $"$1{masks}$2"),
-            9     => MaskNineRegex().Replace(value, $"$1{masks}$2"),
-            8     => MaskEightRegex().Replace(value, $"$1{masks}$2"),
-            7     => MaskSevenRegex().Replace(value, $"$1{masks}$2"),
-            6     => MaskSixRegex().Replace(value, $"$1{masks}$2"),
-            _     => MaskLessThanSixRegex().Replace(value, $"$1{masks}")
+            10 => MaskTenRegex().Replace(value, $"$1{masks}$2"),
+            9 => MaskNineRegex().Replace(value, $"$1{masks}$2"),
+            8 => MaskEightRegex().Replace(value, $"$1{masks}$2"),
+            7 => MaskSevenRegex().Replace(value, $"$1{masks}$2"),
+            6 => MaskSixRegex().Replace(value, $"$1{masks}$2"),
+            _ => MaskLessThanSixRegex().Replace(value, $"$1{masks}")
         };
     }
 
@@ -580,7 +580,7 @@ public static partial class StringExtension
     /// </summary>
     /// <param name="value">值(假定介于 0 和 15 之间)</param>
     /// <returns>十六进制字符</returns>
-    public static char ToHexChar(this int value) => (char)(value + (value < 10 ? '0' : 'a' - 10));
+    public static char ToHexChar(this int value) => Convert.ToChar(value < 10 ? value + 48 : value + 55);
 
     /// <summary>
     /// 获取16位长度的MD5大写字符串
@@ -596,33 +596,48 @@ public static partial class StringExtension
     /// <returns></returns>
     public static string To32MD5(this string value)
     {
-        var data = MD5.HashData(Encoding.UTF8.GetBytes(value));
-        var builder = new StringBuilder();
-        // 循环遍历哈希数据的每一个字节并格式化为十六进制字符串 
-        foreach (var t in data)
-        {
-            _ = builder.Append(t.ToString("X2"));
-        }
-        return builder.ToString();
+        // 计算所需的最大字节数
+        var maxByteCount = Encoding.UTF8.GetMaxByteCount(value.Length);
+        var utf8Bytes = maxByteCount <= 256 ? stackalloc byte[maxByteCount] : new byte[maxByteCount];
+        Span<byte> hashBytes = stackalloc byte[MD5.HashSizeInBytes];
+        // 将字符串编码为 UTF-8 字节
+        var byteCount = Encoding.UTF8.GetBytes(value, utf8Bytes);
+        // 计算 MD5 哈希
+        MD5.HashData(utf8Bytes[..byteCount], hashBytes);
+        // 将哈希字节转换为十六进制字符串
+        return Convert.ToHexString(hashBytes);
     }
 
     /// <summary>
     /// 将小驼峰命名转为大驼峰命名,如: FirstName
     /// </summary>
-    public static string ToUpperCamelCase(this string value) =>
-        // 将第一个字母大写并与其余字符串连接
-        string.IsNullOrEmpty(value) ? value : $"{char.ToUpperInvariant(value[0])}{value[1..]}";
+    public static string ToUpperCamelCase(this string value)
+    {
+        if (value.Length > 0 && char.IsLower(value[0]))
+        {
+            return string.Create(value.Length, value, static (newSpan, originString) =>
+            {
+                originString.CopyTo(newSpan);
+                newSpan[0] = char.ToUpperInvariant(originString[0]);
+            });
+        }
+        return value;
+    }
 
     /// <summary>
     /// 将大驼峰命名转为小驼峰命名,如: firstName
     /// </summary>
     public static string ToLowerCamelCase(this string value)
     {
-        var firstChar = value[0];
-        if (firstChar == char.ToLowerInvariant(firstChar)) return value;
-        var name = value.ToCharArray();
-        name[0] = char.ToLowerInvariant(firstChar);
-        return new(name);
+        if (value.Length > 0 && char.IsUpper(value[0]))
+        {
+            return string.Create(value.Length, value, static (newSpan, originString) =>
+            {
+                originString.CopyTo(newSpan);
+                newSpan[0] = char.ToLowerInvariant(originString[0]);
+            });
+        }
+        return value;
     }
 
     /// <summary>
@@ -664,24 +679,19 @@ public static partial class StringExtension
         if (string.IsNullOrEmpty(value)) return value;
         // 分割字符串，然后将每个单词(除了第一个)的首字母大写
         var words = value.Split('_');
-        int index;
+        var index = 0;
         if (toType is ECamelCase.LowerCamelCase)
         {
-            // 第一个单词首字母小写
-            words[0] = $"{char.ToLowerInvariant(words[0][0])}{words[0][1..]}";
+            words[0] = words[0].ToLowerCamelCase();
             index = 1;
-        }
-        else
-        {
-            index = 0;
         }
         for (; index < words.Length; index++)
         {
             if (words[index].Length > 0)
             {
-                words[index] = $"{char.ToUpperInvariant(words[index][0])}{words[index][1..]}";
+                words[index] = words[index].ToUpperCamelCase();
             }
         }
-        return string.Join("", words);
+        return string.Concat(words);
     }
 }
