@@ -11,6 +11,9 @@ namespace WebApi.Test.Unit.Controllers;
 [Route("api/[controller]/[action]"), ApiController, ApiGroup("MongoLock", "v1", "基于MongoDB实现的分布式锁测试")]
 public class MongoLockController(IMongoLockFactory lockFactory) : ControllerBase
 {
+    [HttpPost]
+    public async Task BusinessTest() { }
+
     /// <summary>
     /// AcquireLock
     /// </summary>

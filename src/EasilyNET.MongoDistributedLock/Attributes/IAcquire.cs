@@ -5,7 +5,7 @@ namespace EasilyNET.MongoDistributedLock.Attributes;
 /// <summary>
 /// IAcquire
 /// </summary>
-public interface IAcquire
+public interface IAcquire : IAsyncDisposable
 {
     /// <summary>
     /// true if lock successfully acquired; otherwise, false
