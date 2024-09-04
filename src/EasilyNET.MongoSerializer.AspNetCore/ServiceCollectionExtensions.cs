@@ -27,7 +27,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// 注册动态类型(<see langword="dynamic" /> | <see langword="object" /> )序列化支持
+    /// 注册动态类型 [<see langword="dynamic" /> | <see langword="object" />] 序列化支持
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
