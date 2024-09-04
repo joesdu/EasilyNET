@@ -9,8 +9,39 @@ namespace WebApi.Test.Unit.Controllers;
 /// MongoDB分布式锁测试
 /// </summary>
 [Route("api/[controller]/[action]"), ApiController, ApiGroup("MongoLock", "v1", "基于MongoDB实现的分布式锁测试")]
-public class MongoLockController(IMongoLockFactory lockFactory) : ControllerBase
+public class MongoLockController(IMongoLockFactory lockFactory, DbContext db) : ControllerBase
 {
+    /// <summary>
+    /// 测试锁
+    /// </summary>
+    /// <returns></returns>
+    [HttpPost]
+    public async Task BusinessTest()
+    {
+        const string lockId = "64d44afda4473b85a177084d"; // 这里使用一个随机的ID作为锁ID,相当于其他锁中的Key.用来区分不同的业务的锁
+        var mongoLock = lockFactory.GenerateNewLock(ObjectId.Parse(lockId));
+        var acq = await mongoLock.AcquireAsync(TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(0));
+        try
+        {
+            if (acq.Acquired)
+            {
+                await db.GetCollection<dynamic>("locks_test").InsertOneAsync(new
+                {
+                    AcquiredId = acq.AcquireId
+                });
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        finally
+        {
+            await mongoLock.ReleaseAsync(acq);
+        }
+    }
+
     /// <summary>
     /// AcquireLock
     /// </summary>

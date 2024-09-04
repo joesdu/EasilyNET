@@ -92,9 +92,12 @@ internal sealed class MongoModule : AppModule
                 //    }).Build());
                 //    b.AddSimpleConsole();
                 //}));
+                cs.MaxConnecting = int.MaxValue;
+                cs.MaxConnectionPoolSize = int.MaxValue;
             };
         });
         context.Services.RegisterSerializer(new DateOnlySerializerAsString());
         context.Services.RegisterSerializer(new TimeOnlySerializerAsString());
+        context.Services.RegisterDynamicSerializer();
     }
 }
