@@ -34,10 +34,10 @@ public sealed class DistributedLock : IDistributedLock
             var acquire = await _locks.Find(bf.Eq(c => c.Id, _lockId)).FirstOrDefaultAsync();
             if (acquire is not null && await WaitSignalAsync(acquire.AcquireId, timeout) == false)
             {
-                return await TryUpdateAsync(lifetime, acquireId) ? new Acquire(acquireId) : new();
+                return await TryUpdateAsync(lifetime, acquireId) ? new Acquire(acquireId, this) : new();
             }
         }
-        return new Acquire(acquireId);
+        return new Acquire(acquireId, this);
     }
 
     /// <inheritdoc />
