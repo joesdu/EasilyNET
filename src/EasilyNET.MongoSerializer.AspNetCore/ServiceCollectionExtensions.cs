@@ -31,7 +31,6 @@ public static class ServiceCollectionExtensions
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
-    //[Obsolete("MongoDB.Drive 2.18之前和2.21之后,又默认支持动态类型的序列化了(2.19-2.20之间的版本,仅允许反序列化被视为安全的类型).暂时标记为过时.以后应该会移除")]
     public static IServiceCollection RegisterDynamicSerializer(this IServiceCollection services)
     {
         var objectSerializer = new ObjectSerializer(type => ObjectSerializer.DefaultAllowedTypes(type) || (type.FullName is not null && type.FullName.StartsWith("<>f__AnonymousType")));
