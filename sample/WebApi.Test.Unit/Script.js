@@ -6,7 +6,7 @@ export const options = {
         { duration: "60s", target: 100 }, // Ramp-up to 100 users over 30s
         { duration: "60s", target: 200 }, // Ramp-up to 200 users over 1 minute
         { duration: "60s", target: 300 }, // Ramp-up to 300 users over 1 minute
-        { duration: "60s", target: 500 },   // Ramp-down to 0 users over 1 minute
+        { duration: "60s", target: 500 }, // Ramp-down to 0 users over 1 minute
     ],
 };
 
