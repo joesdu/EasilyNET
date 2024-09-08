@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-using System.Reflection;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using EasilyNET.RabbitBus.AspNetCore.Enums;
@@ -12,6 +10,8 @@ using Microsoft.Extensions.Logging;
 using Polly.Registry;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using System.Collections.Concurrent;
+using System.Reflection;
 
 namespace EasilyNET.RabbitBus.AspNetCore;
 
@@ -47,7 +47,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         await pipeline.ExecuteAsync(async ct =>
         {
             logger.LogTrace("发布: {EventId}", @event.EventId);
-            await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, properties, body, true, ct).ConfigureAwait(false);
+            await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
             await conn.ReturnChannel(channel).ConfigureAwait(false);
         }).ConfigureAwait(false);
     }
@@ -94,7 +94,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         await pipeline.ExecuteAsync(async ct =>
         {
             logger.LogTrace("发布: {EventId}", @event.EventId);
-            await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, properties, body, true, ct).ConfigureAwait(false);
+            await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
             await conn.ReturnChannel(channel).ConfigureAwait(false);
         }).ConfigureAwait(false);
     }
