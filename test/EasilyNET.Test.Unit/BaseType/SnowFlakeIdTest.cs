@@ -61,7 +61,7 @@ public class SnowFlakeIdTest
     {
         var set = new HashSet<long>();
         const int N = 2000000;
-        var lockObject = new object();
+        var lockObject = new Lock();
         const int numberOfThreads = 10;
         Parallel.For(0, numberOfThreads, _ =>
         {
