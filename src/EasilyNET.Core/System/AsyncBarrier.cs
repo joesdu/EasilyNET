@@ -44,6 +44,7 @@ public sealed class AsyncBarrier
 {
     private readonly int participantCount;
     private readonly Stack<Waiter> waiters;
+    private readonly Lock syncRoot = new();
 
     /// <summary>
     /// 使用指定数量的参与者初始化 <see cref="AsyncBarrier" /> 类的新实例
@@ -65,7 +66,7 @@ public sealed class AsyncBarrier
     /// <returns>表示异步操作的任务</returns>
     public ValueTask SignalAndWait(CancellationToken cancellationToken)
     {
-        lock (waiters)
+        lock (syncRoot)
         {
             if (waiters.Count + 1 == participantCount)
             {

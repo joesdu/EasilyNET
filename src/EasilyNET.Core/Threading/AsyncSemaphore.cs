@@ -7,6 +7,7 @@ internal sealed class AsyncSemaphore
 {
     private static readonly Task _completed = Task.FromResult(true);
     private readonly Queue<TaskCompletionSource<bool>> _waiters = new();
+    private readonly Lock _syncRoot = new();
     private int _currentCount;
 
     public AsyncSemaphore(int initialCount)
@@ -21,7 +22,7 @@ internal sealed class AsyncSemaphore
     /// <returns></returns>
     public Task WaitAsync()
     {
-        lock (_waiters)
+        lock (_syncRoot)
         {
             if (_currentCount > 0)
             {
@@ -40,7 +41,7 @@ internal sealed class AsyncSemaphore
     public void Release()
     {
         TaskCompletionSource<bool> taskCompletionSource = null!;
-        lock (_waiters)
+        lock (_syncRoot)
         {
             if (_waiters.Count > 0)
             {
