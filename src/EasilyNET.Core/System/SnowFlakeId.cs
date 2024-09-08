@@ -26,7 +26,7 @@ public class SnowFlakeId(long workerId, long sequence = 0L, int clockBackwardsIn
     //最大序列号
     private const long MaxSequence = -1L ^ (-1L << SequenceBits);
 
-    private readonly object __lock = new();
+    private readonly Lock __lock = new();
 
     //最后时间
     private long _lastTimestamp = -1L;

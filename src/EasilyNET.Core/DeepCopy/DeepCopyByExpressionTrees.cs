@@ -19,9 +19,9 @@ namespace EasilyNET.Core.DeepCopy;
 /// </summary>
 public static class DeepCopyByExpressionTrees
 {
-    private static readonly object IsStructTypeToDeepCopyDictionaryLocker = new();
+    private static readonly Lock IsStructTypeToDeepCopyDictionaryLocker = new();
     private static Dictionary<Type, bool> IsStructTypeToDeepCopyDictionary = [];
-    private static readonly object CompiledCopyFunctionsDictionaryLocker = new();
+    private static readonly Lock CompiledCopyFunctionsDictionaryLocker = new();
     private static Dictionary<Type, Func<object, Dictionary<object, object>, object>> CompiledCopyFunctionsDictionary = [];
     private static readonly Type ObjectType = typeof(object);
     private static readonly Type ObjectDictionaryType = typeof(Dictionary<object, object>);
