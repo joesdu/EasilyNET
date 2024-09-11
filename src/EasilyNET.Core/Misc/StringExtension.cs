@@ -613,15 +613,13 @@ public static partial class StringExtension
     /// </summary>
     public static string ToUpperCamelCase(this string value)
     {
-        if (value.Length > 0 && char.IsLower(value[0]))
-        {
-            return string.Create(value.Length, value, static (newSpan, originString) =>
-            {
-                originString.CopyTo(newSpan);
-                newSpan[0] = char.ToUpperInvariant(originString[0]);
-            });
-        }
-        return value;
+        return value.Length > 0 && char.IsLower(value[0])
+                   ? string.Create(value.Length, value, static (newSpan, originString) =>
+                   {
+                       originString.CopyTo(newSpan);
+                       newSpan[0] = char.ToUpperInvariant(originString[0]);
+                   })
+                   : value;
     }
 
     /// <summary>
@@ -629,15 +627,13 @@ public static partial class StringExtension
     /// </summary>
     public static string ToLowerCamelCase(this string value)
     {
-        if (value.Length > 0 && char.IsUpper(value[0]))
-        {
-            return string.Create(value.Length, value, static (newSpan, originString) =>
-            {
-                originString.CopyTo(newSpan);
-                newSpan[0] = char.ToLowerInvariant(originString[0]);
-            });
-        }
-        return value;
+        return value.Length > 0 && char.IsUpper(value[0])
+                   ? string.Create(value.Length, value, static (newSpan, originString) =>
+                   {
+                       originString.CopyTo(newSpan);
+                       newSpan[0] = char.ToLowerInvariant(originString[0]);
+                   })
+                   : value;
     }
 
     /// <summary>
