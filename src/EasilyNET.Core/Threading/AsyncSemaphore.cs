@@ -3,42 +3,47 @@ using System.Collections.Concurrent;
 namespace EasilyNET.Core.Threading;
 
 /// <summary>
-/// å¼‚æ­¥ä¿¡å·ã€‚
+/// Òì²½ĞÅºÅ¡£
 /// </summary>
 internal sealed class AsyncSemaphore
 {
     private static readonly Task _completed = Task.FromResult(true);
     private readonly ConcurrentQueue<TaskCompletionSource<bool>> _waiters = new();
-    private int _isTaken = 0;  
-    
+    private int _isTaken;
+
     /// <summary>
-    /// è·å–æ˜¯å¦è¢«å ç”¨
+    /// »ñÈ¡ÊÇ·ñ±»Õ¼ÓÃ
     /// </summary>
     /// <returns></returns>
     public int GetTaken() => _isTaken;
-    
+
+    /// <summary>
+    /// »ñÈ¡µÈ´ıµÄÈÎÎñÊıÁ¿
+    /// </summary>
+    /// <returns></returns>
     public int GetQueueCount() => _waiters.Count;
 
     /// <summary>
-    /// å¼‚æ­¥ç­‰å¾…
+    /// Òì²½µÈ´ı
     /// </summary>
     /// <returns></returns>
     public Task WaitAsync()
     {
+        // Èç¹û _isTaken µÄÖµÊÇ 0£¬Ôò½«ÆäÉèÖÃÎª 1£¬²¢·µ»ØÒ»¸öÒÑÍê³ÉµÄÈÎÎñ¡£
         if (Interlocked.CompareExchange(ref _isTaken, 1, 0) == 0)
         {
             return _completed;
         }
-        else
-        {
-            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            _waiters.Enqueue(tcs);
-            return tcs.Task;
-        }
+        // Èç¹û _isTaken µÄÖµ²»ÊÇ 0£¬´´½¨Ò»¸öĞÂµÄ TaskCompletionSource<bool>£¬²¢½«ÆäÉèÖÃÎªÒì²½ÔËĞĞ¡£
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // ½« TaskCompletionSource<bool> ÊµÀıÌí¼Óµ½µÈ´ı¶ÓÁĞÖĞ¡£
+        _waiters.Enqueue(tcs);
+        // ·µ»Ø TaskCompletionSource<bool> µÄÈÎÎñ¡£
+        return tcs.Task;
     }
 
     /// <summary>
-    /// é‡Šæ”¾
+    /// ÊÍ·Å
     /// </summary>
     public void Release()
     {

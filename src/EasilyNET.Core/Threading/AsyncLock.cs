@@ -3,34 +3,32 @@
 namespace EasilyNET.Core.Threading;
 
 /// <summary>
-/// 异步锁
+/// 异步锁,用于仅让一个线程访问共享资源.当需要实现限制并发访问的场景时,可以使用.NET自带的 <see cref="SemaphoreSlim" />
 /// </summary>
 public sealed class AsyncLock
 {
     private readonly Task<Release> _release;
 
-    private readonly AsyncSemaphore _semaphore;
-    
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
-    public int GetSemaphoreTaken() => _semaphore.GetTaken();
-    
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
-    public int GetQueueCount() => _semaphore.GetQueueCount();
+    private readonly AsyncSemaphore _semaphore = new();
 
     /// <summary>
     /// 构造函数
     /// </summary>
     public AsyncLock()
     {
-        _semaphore = new();
         _release = Task.FromResult(new Release(this));
     }
+
+    /// <summary>
+    /// </summary>
+    /// <returns></returns>
+    public int GetSemaphoreTaken() => _semaphore.GetTaken();
+
+    /// <summary>
+    /// 获取内部信号量的队列计数
+    /// </summary>
+    /// <returns></returns>
+    public int GetQueueCount() => _semaphore.GetQueueCount();
 
     /// <summary>
     /// 锁定，返回一个 <see cref="Release" /> 对象。
