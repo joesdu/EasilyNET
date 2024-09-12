@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace EasilyNET.Core.Threading;
 
 /// <summary>
@@ -6,15 +8,16 @@ namespace EasilyNET.Core.Threading;
 internal sealed class AsyncSemaphore
 {
     private static readonly Task _completed = Task.FromResult(true);
-    private readonly Queue<TaskCompletionSource<bool>> _waiters = new();
-    private readonly Lock _syncRoot = new();
-    private int _currentCount;
-
-    public AsyncSemaphore(int initialCount)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(initialCount);
-        _currentCount = initialCount;
-    }
+    private readonly ConcurrentQueue<TaskCompletionSource<bool>> _waiters = new();
+    private int _isTaken = 0;  
+    
+    /// <summary>
+    /// 获取是否被占用
+    /// </summary>
+    /// <returns></returns>
+    public int GetTaken() => _isTaken;
+    
+    public int GetQueueCount() => _waiters.Count;
 
     /// <summary>
     /// 异步等待
@@ -22,16 +25,15 @@ internal sealed class AsyncSemaphore
     /// <returns></returns>
     public Task WaitAsync()
     {
-        lock (_syncRoot)
+        if (Interlocked.CompareExchange(ref _isTaken, 1, 0) == 0)
         {
-            if (_currentCount > 0)
-            {
-                _currentCount--;
-                return _completed;
-            }
-            var taskCompletionSource = new TaskCompletionSource<bool>();
-            _waiters.Enqueue(taskCompletionSource);
-            return taskCompletionSource.Task;
+            return _completed;
+        }
+        else
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _waiters.Enqueue(tcs);
+            return tcs.Task;
         }
     }
 
@@ -40,18 +42,13 @@ internal sealed class AsyncSemaphore
     /// </summary>
     public void Release()
     {
-        TaskCompletionSource<bool> taskCompletionSource = null!;
-        lock (_syncRoot)
+        if (_waiters.TryDequeue(out var toRelease))
         {
-            if (_waiters.Count > 0)
-            {
-                taskCompletionSource = _waiters.Dequeue();
-            }
-            else
-            {
-                _currentCount++;
-            }
+            toRelease.SetResult(true);
         }
-        taskCompletionSource?.SetResult(true);
+        else
+        {
+            Interlocked.Exchange(ref _isTaken, 0);
+        }
     }
 }
