@@ -10,13 +10,25 @@ public sealed class AsyncLock
     private readonly Task<Release> _release;
 
     private readonly AsyncSemaphore _semaphore;
+    
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <returns></returns>
+    public int GetSemaphoreTaken() => _semaphore.GetTaken();
+    
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <returns></returns>
+    public int GetQueueCount() => _semaphore.GetQueueCount();
 
     /// <summary>
     /// 构造函数
     /// </summary>
     public AsyncLock()
     {
-        _semaphore = new(1);
+        _semaphore = new();
         _release = Task.FromResult(new Release(this));
     }
 
