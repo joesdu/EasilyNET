@@ -3,8 +3,12 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
-using EasilyNET.Core.Threading;
 
+namespace EasilyNET.Core.Benchmark;
+
+// ReSharper disable ClassNeverInstantiated.Global
+/// <summary>
+/// </summary>
 [Config(typeof(Config))]
 public class AsyncSemaphoreBenchmark
 {
@@ -27,7 +31,7 @@ public class AsyncSemaphoreBenchmark
     //     _semaphore.Release();
     //     await task;
     // }
-    
+
     private class Config : ManualConfig
     {
         public Config()
@@ -38,10 +42,14 @@ public class AsyncSemaphoreBenchmark
     }
 }
 
-public class Program
+/// <summary>
+/// </summary>
+public static class Program
 {
-    public static void Main(string[] args)
+    /// <summary>
+    /// </summary>
+    public static void Main()
     {
-        var summary = BenchmarkRunner.Run<AsyncSemaphoreBenchmark>();
+        _ = BenchmarkRunner.Run<AsyncSemaphoreBenchmark>();
     }
 }
