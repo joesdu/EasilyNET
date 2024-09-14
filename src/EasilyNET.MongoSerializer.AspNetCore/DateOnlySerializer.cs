@@ -31,7 +31,7 @@ public sealed class DateOnlySerializerAsString(string format = "yyyy-MM-dd") : S
     /// <inheritdoc />
     public override DateOnly Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
-        var str = context.Reader.ReadString();
+        var str = InnerSerializer.Deserialize(context, args);
         var success = DateOnly.TryParseExact(str, format, out var result);
         return success ? result : throw new("unsupported data formats.");
     }

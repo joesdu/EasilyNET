@@ -9,9 +9,9 @@ namespace EasilyNET.MongoSerializer.AspNetCore;
 /// <summary>
 /// JsonNode Support
 /// </summary>
-public sealed class JsonNodeSerializer : SerializerBase<JsonNode>
+public sealed class JsonNodeSerializer : SerializerBase<JsonNode?>
 {
-    private const string EmptyObject = "{}";
+    private readonly StringSerializer InnerSerializer = new();
 
     /// <summary>
     /// if null write {}
@@ -21,8 +21,7 @@ public sealed class JsonNodeSerializer : SerializerBase<JsonNode>
     /// <param name="value"></param>
     public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, JsonNode? value)
     {
-        var json = value?.ToString() ?? EmptyObject;
-        context.Writer.WriteString(json);
+        InnerSerializer.Serialize(context, args, string.IsNullOrWhiteSpace(value?.ToString()) ? null : value.ToString());
     }
 
     /// <summary>
@@ -31,10 +30,9 @@ public sealed class JsonNodeSerializer : SerializerBase<JsonNode>
     /// <param name="context"></param>
     /// <param name="args"></param>
     /// <returns></returns>
-    public override JsonNode Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
+    public override JsonNode? Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
-        var value = context.Reader.ReadString();
-        var json = string.IsNullOrWhiteSpace(value) ? EmptyObject : value;
-        return JsonNode.Parse(json)!;
+        var value = InnerSerializer.Deserialize(context, args);
+        return string.IsNullOrWhiteSpace(value) ? null : JsonNode.Parse(value);
     }
 }
