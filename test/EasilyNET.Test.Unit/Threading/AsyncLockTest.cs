@@ -7,7 +7,7 @@ namespace EasilyNET.Test.Unit.Threading;
 /// 测试异步锁
 /// </summary>
 [TestClass]
-public class AsyncLockTest
+public class AsyncLockTest(TestContext testContext)
 {
     // ReSharper disable once CollectionNeverQueried.Local
     private static readonly Dictionary<string, string> _dictionary = [];
@@ -21,10 +21,10 @@ public class AsyncLockTest
         var asyncLock = new AsyncLock();
         Parallel.For(0, 1000, Body);
         var c = _dictionary.Count;
-        Console.WriteLine($"Counter incremented to {c}");
+        testContext.WriteLine($"Counter incremented to {c}");
         await Task.Delay(1);
         var c2 = _dictionary.Count;
-        Console.WriteLine($"Counter2 incremented to {c2}");
+        testContext.WriteLine($"Counter2 incremented to {c2}");
         return;
 
         async void Body(int i)
