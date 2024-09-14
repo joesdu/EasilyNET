@@ -10,11 +10,15 @@ EasilyNET.Mongo.AspNetCore 扩展,用于支持一些非默认类型的序列化�
     2. 转换成 Ticks 的方式存储
     3. 若想转化成其他类型也可自行实现,如:转化成 ulong 类型
 - 添加动态类型支持[object 和 dynamic], 2.20 版后官方又加上了.
-- 添加.Net6 Date/Time Only 类型支持(TimeOnly 理论上应该是兼容原 TimeSpan 数据类型).
+        JsonArray.
+- 添加JsonNode类型支持.
 
 ---
 
 - 配合 EasilyNET.Mongo.AspNetCore 或单独使用
+
+- JsonNode类型因为反序列化时不支持Unicode字符，如果需要序列化插入至其他地方（例如Redis），在序列化时需要将JsonSerializerOptions的Encoder属性设置为System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping.
+
 
 ```csharp
 builder.Services.AddMongoContext<DbContext>(builder.Configuration)
@@ -24,4 +28,7 @@ builder.Services.RegisterSerializer(new TimeOnlySerializerAsString());
 // 或者将他们存储为long类型的Ticks,也可以自己组合使用.
 builder.Services.RegisterSerializer(new DateOnlySerializerAsTicks());
 builder.Services.RegisterSerializer(new TimeOnlySerializerAsTicks());
+
+// 添加JsonNode支持
+builder.Services.RegisterSerializer(new JsonNodeSerializer());
 ```
