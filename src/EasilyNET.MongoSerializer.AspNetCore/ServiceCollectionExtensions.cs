@@ -20,7 +20,7 @@ public static class ServiceCollectionExtensions
     /// <param name="services">IServiceCollection</param>
     /// <param name="serializer">自定义序列化类</param>
     /// <returns></returns>
-    public static IServiceCollection RegisterSerializer<T>(this IServiceCollection services, IBsonSerializer<T> serializer) where T : struct
+    public static IServiceCollection RegisterSerializer<T>(this IServiceCollection services, IBsonSerializer<T> serializer)
     {
         BsonSerializer.RegisterSerializer(serializer);
         return services;
