@@ -1,6 +1,8 @@
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
+using System.Security.Cryptography;
+
 #pragma warning disable IDE0060 // 删除未使用的参数
 #pragma warning disable IDE0048 // 为清楚起见，请添加括号
 
@@ -21,7 +23,16 @@ public static class RandomExtensions
     /// </param>
     /// <returns></returns>
     // ReSharper disable once UnusedParameter.Global
-    public static int StrictNext(this Random rand, int startIndex = 0, int maxValue = int.MaxValue) => new Random(BitConverter.ToInt32(Guid.NewGuid().ToByteArray(), startIndex)).Next(maxValue);
+    public static int StrictNext(this Random rand, int startIndex = 0, int maxValue = int.MaxValue)
+    {
+        var buffer = new byte[4];
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(buffer);
+        }
+        var randomValue = BitConverter.ToInt32(buffer, 0);
+        return new Random(randomValue).Next(startIndex, maxValue);
+    }
 
     /// <summary>
     /// 产生正态分布的随机数
