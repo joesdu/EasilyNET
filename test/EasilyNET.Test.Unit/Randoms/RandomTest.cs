@@ -21,6 +21,6 @@ public class RandomTest
     public void StrictNext2_ShouldThrowArgumentOutOfRangeException_WhenStartIndexIsGreaterThanOrEqualToMaxValue()
     {
         // Act
-        _random.StrictNext();
+        _random.StrictNext(10,5);
     }
 }
