@@ -3,6 +3,7 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
+using EasilyNET.Core.Misc;
 
 namespace EasilyNET.Core.Benchmark;
 
@@ -10,26 +11,27 @@ namespace EasilyNET.Core.Benchmark;
 /// <summary>
 /// </summary>
 [Config(typeof(Config))]
-public class AsyncSemaphoreBenchmark
+public class AsyncStrictNextBenchmark
 {
-    // private readonly AsyncSemaphore _semaphore = new(1);
-    //
-    // private readonly AsyncSemaphoreCas _semaphoreCas = new();
-    //
+    
+    private readonly Random _random = new Random();
+
     // [Benchmark]
-    // public async Task Asynchronously()
+    // public void TestStrictNext()
     // {
-    //     var task = _semaphore.WaitAsync();
-    //     _semaphore.Release();
-    //     await task;
+    //     for (int i = 0; i < 5000; i++)
+    //     {
+    //         _random.StrictNext();
+    //     }
     // }
     //
     // [Benchmark]
-    // public async Task AsynchronouslyCAS()
+    // public void TestStrictNext2()
     // {
-    //     var task = _semaphore.WaitAsync();
-    //     _semaphore.Release();
-    //     await task;
+    //     for (int i = 0; i < 5000; i++)
+    //     {
+    //         _random.StrictNext2();
+    //     }
     // }
 
     private class Config : ManualConfig
@@ -50,6 +52,6 @@ public static class Program
     /// </summary>
     public static void Main()
     {
-        _ = BenchmarkRunner.Run<AsyncSemaphoreBenchmark>();
+        _ = BenchmarkRunner.Run<AsyncStrictNextBenchmark>();
     }
 }

@@ -25,12 +25,15 @@ public static class RandomExtensions
     // ReSharper disable once UnusedParameter.Global
     public static int StrictNext(this Random rand, int startIndex = 0, int maxValue = int.MaxValue)
     {
-        var buffer = new byte[4];
-        using (var rng = RandomNumberGenerator.Create())
+        if (startIndex > maxValue)
         {
-            rng.GetBytes(buffer);
+            throw new ArgumentOutOfRangeException(nameof(startIndex), "startIndex must be less than maxValue.");
         }
-        var randomValue = BitConverter.ToInt32(buffer, 0);
+        
+        Span<byte> buffer = stackalloc byte[4];
+        RandomNumberGenerator.Fill(buffer);
+
+        int randomValue = BitConverter.ToInt32(buffer);
         return new Random(randomValue).Next(startIndex, maxValue);
     }
 
