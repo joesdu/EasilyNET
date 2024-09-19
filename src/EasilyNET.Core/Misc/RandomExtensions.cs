@@ -29,11 +29,9 @@ public static class RandomExtensions
         {
             throw new ArgumentOutOfRangeException(nameof(startIndex), "startIndex must be less than maxValue.");
         }
-        
         Span<byte> buffer = stackalloc byte[4];
         RandomNumberGenerator.Fill(buffer);
-
-        int randomValue = BitConverter.ToInt32(buffer);
+        var randomValue = BitConverter.ToInt32(buffer);
         return new Random(randomValue).Next(startIndex, maxValue);
     }
 
