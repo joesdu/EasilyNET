@@ -576,13 +576,6 @@ public static partial class StringExtension
     }
 
     /// <summary>
-    /// 将值转换为十六进制字符
-    /// </summary>
-    /// <param name="value">值(假定介于 0 和 15 之间)</param>
-    /// <returns>十六进制字符</returns>
-    public static char ToHexChar(this int value) => Convert.ToChar(value < 10 ? value + 48 : value + 55);
-
-    /// <summary>
     /// 获取16位长度的MD5大写字符串
     /// </summary>
     /// <param name="value"></param>

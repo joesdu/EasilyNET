@@ -284,6 +284,13 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
         c = (bytes[offset + 8] << 24) | (bytes[offset + 9] << 16) | (bytes[offset + 10] << 8) | bytes[offset + 11];
     }
 
+    /// <summary>
+    /// 将值转换为十六进制字符
+    /// </summary>
+    /// <param name="value">值(假定介于 0 和 15 之间)</param>
+    /// <returns>十六进制字符</returns>
+    private static char ToHexChar(int value) => Convert.ToChar(value < 10 ? value + 48 : value + 55);
+
     // public methods
     /// <summary>
     /// 将此 <see cref="SnowId" /> 与另一个 <see cref="SnowId" /> 进行比较
@@ -378,30 +385,30 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     public readonly override string ToString()
     {
         var c = new char[24];
-        c[0] = ((_a >> 28) & 0x0f).ToHexChar();
-        c[1] = ((_a >> 24) & 0x0f).ToHexChar();
-        c[2] = ((_a >> 20) & 0x0f).ToHexChar();
-        c[3] = ((_a >> 16) & 0x0f).ToHexChar();
-        c[4] = ((_a >> 12) & 0x0f).ToHexChar();
-        c[5] = ((_a >> 8) & 0x0f).ToHexChar();
-        c[6] = ((_a >> 4) & 0x0f).ToHexChar();
-        c[7] = (_a & 0x0f).ToHexChar();
-        c[8] = ((_b >> 28) & 0x0f).ToHexChar();
-        c[9] = ((_b >> 24) & 0x0f).ToHexChar();
-        c[10] = ((_b >> 20) & 0x0f).ToHexChar();
-        c[11] = ((_b >> 16) & 0x0f).ToHexChar();
-        c[12] = ((_b >> 12) & 0x0f).ToHexChar();
-        c[13] = ((_b >> 8) & 0x0f).ToHexChar();
-        c[14] = ((_b >> 4) & 0x0f).ToHexChar();
-        c[15] = (_b & 0x0f).ToHexChar();
-        c[16] = ((_c >> 28) & 0x0f).ToHexChar();
-        c[17] = ((_c >> 24) & 0x0f).ToHexChar();
-        c[18] = ((_c >> 20) & 0x0f).ToHexChar();
-        c[19] = ((_c >> 16) & 0x0f).ToHexChar();
-        c[20] = ((_c >> 12) & 0x0f).ToHexChar();
-        c[21] = ((_c >> 8) & 0x0f).ToHexChar();
-        c[22] = ((_c >> 4) & 0x0f).ToHexChar();
-        c[23] = (_c & 0x0f).ToHexChar();
+        c[0] = ToHexChar((_a >> 28) & 0x0f);
+        c[1] = ToHexChar((_a >> 24) & 0x0f);
+        c[2] = ToHexChar((_a >> 20) & 0x0f);
+        c[3] = ToHexChar((_a >> 16) & 0x0f);
+        c[4] = ToHexChar((_a >> 12) & 0x0f);
+        c[5] = ToHexChar((_a >> 8) & 0x0f);
+        c[6] = ToHexChar((_a >> 4) & 0x0f);
+        c[7] = ToHexChar(_a & 0x0f);
+        c[8] = ToHexChar((_b >> 28) & 0x0f);
+        c[9] = ToHexChar((_b >> 24) & 0x0f);
+        c[10] = ToHexChar((_b >> 20) & 0x0f);
+        c[11] = ToHexChar((_b >> 16) & 0x0f);
+        c[12] = ToHexChar((_b >> 12) & 0x0f);
+        c[13] = ToHexChar((_b >> 8) & 0x0f);
+        c[14] = ToHexChar((_b >> 4) & 0x0f);
+        c[15] = ToHexChar(_b & 0x0f);
+        c[16] = ToHexChar((_c >> 28) & 0x0f);
+        c[17] = ToHexChar((_c >> 24) & 0x0f);
+        c[18] = ToHexChar((_c >> 20) & 0x0f);
+        c[19] = ToHexChar((_c >> 16) & 0x0f);
+        c[20] = ToHexChar((_c >> 12) & 0x0f);
+        c[21] = ToHexChar((_c >> 8) & 0x0f);
+        c[22] = ToHexChar((_c >> 4) & 0x0f);
+        c[23] = ToHexChar(_c & 0x0f);
         return new(c);
     }
 
