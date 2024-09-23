@@ -1,10 +1,11 @@
-using System.Reflection;
 using EasilyNET.Core.Misc;
 using EasilyNET.WebCore.Swagger.Attributes;
 using EasilyNET.WebCore.Swagger.SwaggerFilters;
 using Microsoft.AspNetCore.Builder;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using System.Collections.Concurrent;
+using System.Reflection;
 
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
@@ -16,8 +17,8 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class SwaggerGenOptionsExtensions
 {
-    private static readonly Dictionary<string, string> docsDic = [];
-    private static readonly Dictionary<string, string> endPointDic = [];
+    private static readonly ConcurrentDictionary<string, string> docsDic = [];
+    private static readonly ConcurrentDictionary<string, string> endPointDic = [];
 
     /// <summary>
     /// 添加预定于的Swagger配置
@@ -41,12 +42,12 @@ public static class SwaggerGenOptionsExtensions
         {
             //反射拿到值
             var actionList = apiDescription.ActionDescriptor.EndpointMetadata.Where(x => x is ApiGroupAttribute).ToList();
-            if (actionList.Count != 0)
+            if (actionList.Count is not 0)
             {
                 return actionList.FirstOrDefault() is ApiGroupAttribute attr && attr.Name == docName;
             }
             var not = apiDescription.ActionDescriptor.EndpointMetadata.Where(x => x is not ApiGroupAttribute).ToList();
-            return not.Count != 0 && docName == defaultDocName;
+            return not.Count is not 0 && docName == defaultDocName;
             //判断是否包含这个分组
         });
         var files = Directory.GetFiles(AppContext.BaseDirectory, "*.xml");
@@ -54,8 +55,8 @@ public static class SwaggerGenOptionsExtensions
         {
             op.IncludeXmlComments(file, true);
         }
-        op.DocumentFilter<SwaggerHiddenApiFilter>();
-        op.OperationFilter<SwaggerAuthorizeFilter>();
+        op.DocumentAsyncFilter<SwaggerHiddenApiFilter>();
+        op.OperationAsyncFilter<SwaggerAuthorizeFilter>();
         op.SchemaFilter<SwaggerDefaultValueFilter>();
     }
 
