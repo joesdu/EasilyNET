@@ -11,39 +11,38 @@ namespace EasilyNET.WebCore.Swagger.SwaggerFilters;
 /// </summary>
 // ReSharper disable once UnusedMember.Global
 // ReSharper disable once ClassNeverInstantiated.Global
-public sealed class SwaggerAuthorizeFilter : IOperationFilter
+public sealed class SwaggerAuthorizeFilter : IOperationAsyncFilter
 {
-    /// <summary>
-    /// Apply
-    /// </summary>
-    /// <param name="operation"></param>
-    /// <param name="context"></param>
-    public void Apply(OpenApiOperation operation, OperationFilterContext context)
+    /// <inheritdoc />
+    public async Task ApplyAsync(OpenApiOperation operation, OperationFilterContext context, CancellationToken cancellationToken)
     {
-        var authAttributes = context.MethodInfo.DeclaringType?.GetCustomAttributes(true)
-                                    .Union(context.MethodInfo.GetCustomAttributes(true))
-                                    .OfType<AuthorizeAttribute>();
-        if (!authAttributes!.Any()) return;
-        operation.Security =
-        [
-            new()
-            {
+        await Task.Run(() =>
+        {
+            var authAttributes = context.MethodInfo.DeclaringType?.GetCustomAttributes(true)
+                                        .Union(context.MethodInfo.GetCustomAttributes(true))
+                                        .OfType<AuthorizeAttribute>();
+            if (!authAttributes!.Any()) return;
+            operation.Security =
+            [
+                new()
                 {
-                    new()
                     {
-                        Reference = new()
+                        new()
                         {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "Bearer"
+                            Reference = new()
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            },
+                            Scheme = "oauth2",
+                            Name = "Bearer",
+                            In = ParameterLocation.Header
                         },
-                        Scheme = "oauth2",
-                        Name = "Bearer",
-                        In = ParameterLocation.Header
-                    },
-                    new List<string>()
+                        new List<string>()
+                    }
                 }
-            }
-        ];
-        operation.Responses.Add("401", new() { Description = "Unauthorized" });
+            ];
+            operation.Responses.Add("401", new() { Description = "Unauthorized" });
+        }, cancellationToken);
     }
 }
