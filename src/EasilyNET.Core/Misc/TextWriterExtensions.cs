@@ -1,4 +1,5 @@
 ﻿using EasilyNET.Core.Threading;
+using System.Text;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
@@ -126,22 +127,57 @@ public static class TextWriterExtensions
     {
         if (progressPercentage < 0) progressPercentage = 0;
         if (progressPercentage > 100) progressPercentage = 100;
-        var progressText = $"{progressPercentage / 100.0:P1}";
-        var extraWidth = progressText.Length + message.Length + 5; // 计算额外字符的宽度，包括边界和百分比信息
+        var progressText = $"{progressPercentage / 100.0:P1}".PadLeft("100.0 %".Length, (char)32);
+
+        // 使用 UTF-8 编码计算消息的字节长度
+        var messageBytes = Encoding.UTF8.GetBytes(message);
+        var progressTextBytes = Encoding.UTF8.GetBytes(progressText);
+        var extraWidth = progressTextBytes.Length + messageBytes.Length + 5; // 计算额外字符的宽度，包括边界和百分比信息
         try
         {
             // 确保 totalWidth 不为负数
-            totalWidth = totalWidth == -1 ? Math.Max(0, Console.WindowWidth - extraWidth) : Math.Max(0, totalWidth - extraWidth);
+            if (totalWidth is -1)
+            {
+                totalWidth = Math.Max(0, Console.WindowWidth - extraWidth);
+                // 当 totalWidth 为 -1 并且最大宽度大于 100 时，将 totalWidth 设置为 100
+                if (totalWidth > 100)
+                {
+                    totalWidth >>= 1; // 使用位运算除以 2
+                }
+                if (totalWidth < 100)
+                {
+                    totalWidth = 100;
+                }
+            }
+            else
+            {
+                totalWidth = Math.Max(0, totalWidth - extraWidth);
+            }
         }
         catch (Exception)
         {
             // 如果 Console.WindowWidth 抛出异常说明当前环境不支持,则将 totalWidth 设置为 80
             totalWidth = Math.Max(0, 80 - extraWidth);
         }
-        var progressBarWidth = (int)progressPercentage * totalWidth / 100;
-        if (Math.Abs(progressPercentage - 100) < 0.000001) progressBarWidth = totalWidth; // 确保在100%时填满进度条
-        var progressBar = new string(completedChar, progressBarWidth).PadRight(totalWidth, incompleteChar);
-        var output = $"[{progressBar}] {progressText} {message}";
+        var progressBarWidth = (int)(progressPercentage * totalWidth) / 100;
+        if (Math.Abs(progressPercentage - 100) < 0.000001) progressBarWidth = totalWidth; // 确保在 100% 时填满进度条
+        var outputLength = totalWidth + extraWidth;
+        var outputBytes = outputLength <= 256 ? stackalloc byte[outputLength] : new byte[outputLength];
+        outputBytes[0] = 91; // ASCII for '['
+        for (var i = 1; i <= progressBarWidth; i++)
+        {
+            outputBytes[i] = (byte)completedChar;
+        }
+        for (var i = progressBarWidth + 1; i <= totalWidth; i++)
+        {
+            outputBytes[i] = (byte)incompleteChar;
+        }
+        outputBytes[totalWidth + 1] = 93; // ASCII for ']'
+        outputBytes[totalWidth + 2] = 32; // ASCII for ' '
+        progressTextBytes.CopyTo(outputBytes[(totalWidth + 3)..]);
+        outputBytes[totalWidth + 3 + progressTextBytes.Length] = 32; // ASCII for ' '
+        messageBytes.CopyTo(outputBytes[(totalWidth + 4 + progressTextBytes.Length)..]);
+        var output = Encoding.UTF8.GetString(outputBytes);
         await writer.SafeWriteOutput(output);
     }
 }
