@@ -82,7 +82,7 @@ public static class TextWriterExtensions
     ///   <![CDATA[
     /// for (var progress = 0d; progress <= 100.00; progress += 0.1)
     ///   {
-    ///      await Console.Out.ShowProgressBar(progress, "Processing...", Console.WindowWidth, '#', ' ');
+    ///      await Console.Out.ShowProgressBar(progress, "Processing...", Console.WindowWidth);
     ///      await Task.Delay(100);
     ///   }
     /// Output:
