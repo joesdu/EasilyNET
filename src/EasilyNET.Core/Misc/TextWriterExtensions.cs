@@ -59,6 +59,36 @@ public static class TextWriterExtensions
         }
     }
 
+    /// <summary>
+    /// 线程安全的清除上一行
+    /// <remarks>
+    ///     <para>
+    ///     使用方式:
+    ///     <code>
+    ///   <![CDATA[
+    ///  Console.Out.SafeClearPreviousLine();
+    /// ]]>
+    /// </code>
+    ///     </para>
+    /// </remarks>
+    /// </summary>
+    /// <returns></returns>
+    public static async Task SafeClearPreviousLine(this TextWriter _)
+    {
+        using (await _lock.LockAsync())
+        {
+            ClearPreviousLine();
+        }
+    }
+
+    private static void ClearPreviousLine()
+    {
+        if (Console.CursorTop <= 0) return;
+        Console.SetCursorPosition(0, Console.CursorTop - 1);
+        Console.Write(new string(' ', Console.WindowWidth));
+        Console.SetCursorPosition(0, Console.CursorTop - 1);
+    }
+
     private static void ClearCurrentLine()
     {
         Console.SetCursorPosition(0, Console.CursorTop);
