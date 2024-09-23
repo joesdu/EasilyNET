@@ -11,16 +11,17 @@ namespace EasilyNET.MongoSerializer.AspNetCore;
 ///     <para>
 ///     注意同一类型的序列化方案全局只允许注册一种.也就是说 <see cref="DateOnlySerializerAsString" /> 和 <see cref="DateOnlySerializerAsTicks" /> 会冲突.
 ///     </para>
-/// </remarks>
-/// </summary>
-/// <param name="format"></param>
-/// <example>
+///     <example>
+///     使用方法:
 ///     <code>
 ///  <![CDATA[
 ///  BsonSerializer.RegisterSerializer(new DateOnlySerializerAsString());
 ///   ]]>
 ///  </code>
-/// </example>
+///     </example>
+/// </remarks>
+/// </summary>
+/// <param name="format"></param>
 public sealed class DateOnlySerializerAsString(string format = "yyyy-MM-dd") : StructSerializerBase<DateOnly>
 {
     private readonly StringSerializer InnerSerializer = new();
@@ -39,19 +40,20 @@ public sealed class DateOnlySerializerAsString(string format = "yyyy-MM-dd") : S
 
 /// <summary>
 /// <see cref="DateOnly" /> 序列化方式,使用Ticks来记录日期
-/// </summary>
 /// <remarks>
 ///     <para>
 ///     注意同一类型的序列化方案全局只允许注册一种.也就是说 <see cref="DateOnlySerializerAsString" /> 和 <see cref="DateOnlySerializerAsTicks" /> 会冲突.
 ///     </para>
-/// </remarks>
-/// <example>
+///     <example>
+///     使用方法:
 ///     <code>
 ///  <![CDATA[
 ///  BsonSerializer.RegisterSerializer(new DateOnlySerializerAsTicks());
 ///   ]]>
 ///  </code>
-/// </example>
+///     </example>
+/// </remarks>
+/// </summary>
 public sealed class DateOnlySerializerAsTicks : StructSerializerBase<DateOnly>
 {
     private readonly Int64Serializer InnerSerializer = new();

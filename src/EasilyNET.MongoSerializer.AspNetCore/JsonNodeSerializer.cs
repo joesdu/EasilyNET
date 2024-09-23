@@ -12,15 +12,16 @@ namespace EasilyNET.MongoSerializer.AspNetCore;
 ///     <para>
 ///     This serializer handles the serialization and deserialization of <see cref="JsonNode" /> objects.
 ///     </para>
-/// </remarks>
-/// </summary>
-/// <example>
+///     <example>
+///     使用方法:
 ///     <code>
 ///  <![CDATA[
 ///  BsonSerializer.RegisterSerializer(new JsonNodeSerializer());
 ///   ]]>
 ///  </code>
-/// </example>
+///     </example>
+/// </remarks>
+/// </summary>
 public sealed class JsonNodeSerializer : SerializerBase<JsonNode?>
 {
     private readonly StringSerializer InnerSerializer = new();

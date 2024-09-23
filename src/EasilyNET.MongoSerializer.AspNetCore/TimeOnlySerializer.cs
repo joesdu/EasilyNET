@@ -7,20 +7,21 @@ namespace EasilyNET.MongoSerializer.AspNetCore;
 
 /// <summary>
 /// <see cref="TimeOnly" /> 序列化方式,仅存为字符串形式方便人类阅读
-/// </summary>
-/// <param name="format">格式化的格式</param>
 /// <remarks>
 ///     <para>
 ///     注意同一类型的序列化方案全局只允许注册一种.也就是说 <see cref="TimeOnlySerializerAsString" /> 和 <see cref="TimeOnlySerializerAsTicks" /> 会冲突.
 ///     </para>
-/// </remarks>
-/// <example>
+///     <example>
+///     使用方法:
 ///     <code>
 ///  <![CDATA[
-///  BsonSerializer.RegisterSerializer(new TimeOnlySerializerAsString());
+///    BsonSerializer.RegisterSerializer(new TimeOnlySerializerAsString());
 ///   ]]>
 ///  </code>
-/// </example>
+///     </example>
+/// </remarks>
+/// </summary>
+/// <param name="format">格式化的格式</param>
 public sealed class TimeOnlySerializerAsString(string format = "HH:mm:ss") : StructSerializerBase<TimeOnly>
 {
     private readonly StringSerializer InnerSerializer = new();
@@ -39,7 +40,6 @@ public sealed class TimeOnlySerializerAsString(string format = "HH:mm:ss") : Str
 
 /// <summary>
 /// <see cref="TimeOnly" /> 序列化方式,使用Ticks来记录时间
-/// </summary>
 /// <remarks>
 ///     <para>
 ///     注意同一类型的序列化方案全局只允许注册一种.也就是说 <see cref="TimeOnlySerializerAsString" /> 和 <see cref="TimeOnlySerializerAsTicks" /> 会冲突.
@@ -52,6 +52,7 @@ public sealed class TimeOnlySerializerAsString(string format = "HH:mm:ss") : Str
 ///   ]]>
 ///  </code>
 /// </example>
+/// </summary>
 public sealed class TimeOnlySerializerAsTicks : StructSerializerBase<TimeOnly>
 {
     private readonly Int64Serializer InnerSerializer = new();
