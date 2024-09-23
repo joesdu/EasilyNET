@@ -86,7 +86,7 @@ public static class TextWriterExtensions
     ///      await Task.Delay(100);
     ///   }
     /// Output:
-    /// [==========---------------------] 5.1% Processing... 
+    ///   [==========---------------------] 5.1% Processing... 
     /// ]]>
     /// </code>
     ///     </para>
