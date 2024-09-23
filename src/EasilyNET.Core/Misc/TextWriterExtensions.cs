@@ -60,7 +60,7 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 线程安全的清除上一行
+    /// 线程安全的清除上一行,并将光标移动到改行行首
     /// <remarks>
     ///     <para>
     ///     使用方式:
@@ -86,7 +86,7 @@ public static class TextWriterExtensions
         if (Console.CursorTop <= 0) return;
         Console.SetCursorPosition(0, Console.CursorTop - 1);
         Console.Write(new string(' ', Console.WindowWidth));
-        Console.SetCursorPosition(0, Console.CursorTop - 1);
+        Console.SetCursorPosition(0, Console.CursorTop);
     }
 
     private static void ClearCurrentLine()
