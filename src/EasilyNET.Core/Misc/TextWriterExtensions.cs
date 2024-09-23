@@ -1,4 +1,5 @@
 ﻿using EasilyNET.Core.Threading;
+using System.Text;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
@@ -126,12 +127,27 @@ public static class TextWriterExtensions
     {
         if (progressPercentage < 0) progressPercentage = 0;
         if (progressPercentage > 100) progressPercentage = 100;
-        var progressText = $"{progressPercentage / 100.0:P1}";
-        var extraWidth = progressText.Length + message.Length + 5; // 计算额外字符的宽度，包括边界和百分比信息
+        var progressText = $"{progressPercentage / 100.0:P1}".PadLeft("100.0 %".Length, ' ');
+        // 使用 UTF-8 编码计算消息的字节长度
+        var messageBytes = Encoding.UTF8.GetByteCount(message);
+        //var progressTextBytes = Encoding.UTF8.GetByteCount(progressText);
+        var extraWidth = progressText.Length + messageBytes + 5; // 计算额外字符的宽度，包括边界和百分比信息
         try
         {
             // 确保 totalWidth 不为负数
-            totalWidth = totalWidth == -1 ? Math.Max(0, Console.WindowWidth - extraWidth) : Math.Max(0, totalWidth - extraWidth);
+            if (totalWidth is -1)
+            {
+                totalWidth = Math.Max(0, Console.WindowWidth - extraWidth);
+                // 当totalWidth为-1并且最大宽度大于100时，将totalWidth设置为100
+                if (totalWidth > 100)
+                {
+                    totalWidth = 100;
+                }
+            }
+            else
+            {
+                totalWidth = Math.Max(0, totalWidth - extraWidth);
+            }
         }
         catch (Exception)
         {
