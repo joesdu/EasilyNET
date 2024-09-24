@@ -99,9 +99,30 @@ public static class TextWriterExtensions
         _clearLine = new(' ', _lastWindowWidth);
     }
 
+    private static bool IsConsoleCursorPositionSupported()
+    {
+        try
+        {
+            // 尝试设置光标位置
+            var current = Console.GetCursorPosition();
+            Console.SetCursorPosition(current.Left, current.Top);
+            return true;
+        }
+        catch (IOException)
+        {
+            // 捕获到 IOException，说明不支持
+            return false;
+        }
+        catch (PlatformNotSupportedException)
+        {
+            // 捕获到 PlatformNotSupportedException，说明不支持
+            return false;
+        }
+    }
+
     private static void ClearPreviousLine()
     {
-        if (Console.IsOutputRedirected)
+        if (!IsConsoleCursorPositionSupported())
         {
             Console.WriteLine();
             return;
@@ -122,7 +143,7 @@ public static class TextWriterExtensions
 
     private static void ClearCurrentLine()
     {
-        if (Console.IsOutputRedirected)
+        if (!IsConsoleCursorPositionSupported())
         {
             Console.WriteLine();
             return;
