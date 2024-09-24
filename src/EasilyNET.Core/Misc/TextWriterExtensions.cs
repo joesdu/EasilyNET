@@ -132,7 +132,7 @@ public static class TextWriterExtensions
             if (Console.CursorTop <= 0) return;
             Console.SetCursorPosition(0, Console.CursorTop - 1);
             Console.Write(_clearLine);
-            Console.SetCursorPosition(0, Console.CursorTop - 1);
+            Console.SetCursorPosition(0, Console.CursorTop);
         }
         catch (IOException ex)
         {
