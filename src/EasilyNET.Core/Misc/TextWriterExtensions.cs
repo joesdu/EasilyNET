@@ -1,5 +1,5 @@
-﻿using EasilyNET.Core.Threading;
-using System.Text;
+﻿using System.Text;
+using EasilyNET.Core.Threading;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
@@ -13,6 +13,9 @@ namespace EasilyNET.Core.Misc;
 public static class TextWriterExtensions
 {
     private static readonly AsyncLock _lock = new();
+    private static string _lastOutput = string.Empty;
+    private static string _clearLine = new(' ', Console.WindowWidth);
+    private static int _lastWindowWidth = Console.WindowWidth;
 
     /// <summary>
     /// 线程安全的控制台在同一行输出消息
@@ -33,8 +36,13 @@ public static class TextWriterExtensions
     {
         using (await _lock.LockAsync())
         {
-            ClearCurrentLine();
-            await writer.WriteAsync(msg);
+            UpdateClearLine();
+            if (_lastOutput != msg)
+            {
+                ClearCurrentLine();
+                await writer.WriteAsync(msg);
+                _lastOutput = msg;
+            }
         }
     }
 
@@ -56,6 +64,7 @@ public static class TextWriterExtensions
     {
         using (await _lock.LockAsync())
         {
+            UpdateClearLine();
             ClearCurrentLine();
         }
     }
@@ -78,23 +87,57 @@ public static class TextWriterExtensions
     {
         using (await _lock.LockAsync())
         {
+            UpdateClearLine();
             ClearPreviousLine();
         }
     }
 
+    private static void UpdateClearLine()
+    {
+        if (Console.WindowWidth == _lastWindowWidth) return;
+        _lastWindowWidth = Console.WindowWidth;
+        _clearLine = new(' ', _lastWindowWidth);
+    }
+
     private static void ClearPreviousLine()
     {
-        if (Console.CursorTop <= 0) return;
-        Console.SetCursorPosition(0, Console.CursorTop - 1);
-        Console.Write(new string(' ', Console.WindowWidth));
-        Console.SetCursorPosition(0, Console.CursorTop);
+        if (Console.IsOutputRedirected)
+        {
+            Console.WriteLine();
+            return;
+        }
+        try
+        {
+            if (Console.CursorTop <= 0) return;
+            Console.SetCursorPosition(0, Console.CursorTop - 1);
+            Console.Write(_clearLine);
+            Console.SetCursorPosition(0, Console.CursorTop - 1);
+        }
+        catch (IOException ex)
+        {
+            // Log the exception or handle it as needed
+            Console.WriteLine($"IOException: {ex.Message}");
+        }
     }
 
     private static void ClearCurrentLine()
     {
-        Console.SetCursorPosition(0, Console.CursorTop);
-        Console.Write(new string(' ', Console.WindowWidth));
-        Console.SetCursorPosition(0, Console.CursorTop);
+        if (Console.IsOutputRedirected)
+        {
+            Console.WriteLine();
+            return;
+        }
+        try
+        {
+            Console.SetCursorPosition(0, Console.CursorTop);
+            Console.Write(_clearLine);
+            Console.SetCursorPosition(0, Console.CursorTop);
+        }
+        catch (IOException ex)
+        {
+            // Log the exception or handle it as needed
+            Console.WriteLine($"IOException: {ex.Message}");
+        }
     }
 
     /// <summary>
