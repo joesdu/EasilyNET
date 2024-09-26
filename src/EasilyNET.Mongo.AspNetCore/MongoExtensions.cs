@@ -18,6 +18,11 @@ public static class MongoExtensions
     private static readonly ConcurrentDictionary<string, bool> CollectionCache = new();
 
     /// <summary>
+    /// 不要尝试创建名称为 system.profile 的时间序列集合或视图。如果您尝试这样做，MongoDB 6.3 及更高版本会返回 IllegalOperation 错误。早期 MongoDB 版本会因此崩溃。
+    /// </summary>
+    private const string IllegalName = "system.profile";
+
+    /// <summary>
     /// 对标记TimeSeriesCollectionAttribute创建MongoDB的时序集合
     /// </summary>
     /// <param name="app"></param>
@@ -39,6 +44,10 @@ public static class MongoExtensions
         {
             var attribute = type.GetCustomAttributes<TimeSeriesCollectionAttribute>(false).First();
             var collectionName = type.Name;
+
+            if (IllegalName.Equals(collectionName.ToLowerInvariant()))
+                continue;
+
             CollectionCache.TryGetValue(collectionName, out var value);
             // 如果缓存中存在且为true，跳过创建
             if (value) continue;
