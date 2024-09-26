@@ -40,10 +40,10 @@ public static class MongoExtensions
             var attribute = type.GetCustomAttributes<TimeSeriesCollectionAttribute>(false).First();
             var collectionName = type.Name;
             CollectionCache.TryGetValue(collectionName, out var value);
-            // 检查缓存，如果缓存中没有则添加
-            if (value) continue;
-            CollectionCache[collectionName] = collectionList.Contains(collectionName);
             // 如果缓存中存在且为true，跳过创建
+            if (value) continue;
+            // 如果缓存中没有则添加
+            CollectionCache[collectionName] = collectionList.Contains(collectionName);
             database.CreateCollection(collectionName, new()
             {
                 TimeSeriesOptions = attribute.TimeSeriesOptions,
