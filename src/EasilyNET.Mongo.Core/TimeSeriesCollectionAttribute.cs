@@ -1,5 +1,7 @@
 using MongoDB.Driver;
 
+// ReSharper disable ClassNeverInstantiated.Global
+
 namespace EasilyNET.Mongo.Core;
 
 /// <summary>
@@ -17,7 +19,7 @@ public sealed class TimeSeriesCollectionAttribute : Attribute
     /// <param name="granularity">表示MongoDB.Driver.TimeSeriesGranularity时间序列的粒度。如果使用bucketMaxSpanSeconds，则不设置</param>
     public TimeSeriesCollectionAttribute(string timeField, string metaField, TimeSeriesGranularity granularity = TimeSeriesGranularity.Seconds)
     {
-        TimeSeriesOptions = new TimeSeriesOptions(timeField, metaField, granularity, null, null);
+        TimeSeriesOptions = new(timeField, metaField, granularity, null, null);
     }
 
     /// <summary>
@@ -29,7 +31,7 @@ public sealed class TimeSeriesCollectionAttribute : Attribute
     /// <param name="bucketRoundingSeconds">打开新存储桶时用于四舍五入第一个时间戳的间隔。</param>
     public TimeSeriesCollectionAttribute(string timeField, string metaField, int bucketMaxSpanSeconds, int bucketRoundingSeconds)
     {
-        TimeSeriesOptions = new TimeSeriesOptions(timeField, metaField, null, bucketMaxSpanSeconds, bucketRoundingSeconds);
+        TimeSeriesOptions = new(timeField, metaField, null, bucketMaxSpanSeconds, bucketRoundingSeconds);
     }
 
     /// <summary>
