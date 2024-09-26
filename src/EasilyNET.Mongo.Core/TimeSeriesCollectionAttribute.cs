@@ -1,5 +1,7 @@
 using MongoDB.Driver;
 
+// ReSharper disable ClassNeverInstantiated.Global
+
 namespace EasilyNET.Mongo.Core;
 
 /// <summary>
@@ -18,9 +20,9 @@ public sealed class TimeSeriesCollectionAttribute : Attribute
     /// <param name="bucketRoundingSeconds">打开新存储桶时用于四舍五入第一个时间戳的间隔。</param>
     public TimeSeriesCollectionAttribute(string timeField, string? metaField = default, TimeSeriesGranularity? granularity = default, int? bucketMaxSpanSeconds = default, int? bucketRoundingSeconds = default)
     {
-        TimeSeriesOptions = new TimeSeriesOptions(timeField, metaField, granularity, bucketMaxSpanSeconds, bucketRoundingSeconds);
+        TimeSeriesOptions = new(timeField, metaField, granularity, bucketMaxSpanSeconds, bucketRoundingSeconds);
     }
-    
+
     /// <summary>
     /// 时间集合配置
     /// </summary>
