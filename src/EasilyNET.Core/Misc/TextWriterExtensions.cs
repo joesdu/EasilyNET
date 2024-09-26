@@ -104,8 +104,8 @@ public static class TextWriterExtensions
         try
         {
             // 尝试设置光标位置
-            var current = Console.GetCursorPosition();
-            Console.SetCursorPosition(current.Left, current.Top);
+            var (Left, Top) = Console.GetCursorPosition();
+            Console.SetCursorPosition(Left, Top);
             return true;
         }
         catch (IOException)

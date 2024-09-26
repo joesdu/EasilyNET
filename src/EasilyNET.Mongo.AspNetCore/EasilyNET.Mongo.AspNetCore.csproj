@@ -14,9 +14,12 @@
         <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.AspNetCore</PackageProjectUrl>
         <Description>MongoDB 驱动的服务包,默认驼峰,ID和Id映射,时间本地化和枚举字符串的自动处理.</Description>
     </PropertyGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     </ItemGroup>
