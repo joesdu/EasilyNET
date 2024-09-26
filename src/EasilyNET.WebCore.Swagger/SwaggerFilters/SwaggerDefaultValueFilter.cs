@@ -1,9 +1,9 @@
-using System.ComponentModel;
-using System.Reflection;
 using EasilyNET.Core.Misc;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using System.ComponentModel;
+using System.Reflection;
 
 // ReSharper disable UnusedType.Global
 
@@ -16,11 +16,7 @@ namespace EasilyNET.WebCore.Swagger.SwaggerFilters;
 // ReSharper disable once ClassNeverInstantiated.Global
 public sealed class SwaggerDefaultValueFilter : ISchemaFilter
 {
-    /// <summary>
-    /// Apply
-    /// </summary>
-    /// <param name="schema"></param>
-    /// <param name="context"></param>
+    /// <inheritdoc />
     public void Apply(OpenApiSchema schema, SchemaFilterContext context)
     {
         if (schema.Properties is null) return;

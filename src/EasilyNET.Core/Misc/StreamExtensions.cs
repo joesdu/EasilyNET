@@ -287,6 +287,7 @@ public static class StreamExtensions
     }
 
     /// <summary>
+    /// 变数组
     /// </summary>
     /// <param name="stream"></param>
     /// <param name="cancellationToken"></param>
