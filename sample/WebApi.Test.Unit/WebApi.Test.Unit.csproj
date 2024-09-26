@@ -38,7 +38,7 @@
 		<PackageReference Include="Serilog.Sinks.EventLog" Version="4.0.1-dev-00087" />
 		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
 		<PackageReference Include="Serilog.Sinks.Map" Version="2.0.0" />
-		<PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.1.1-dev-00351" />
+		<PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.1.1" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.8.0" />
 	</ItemGroup>
 
