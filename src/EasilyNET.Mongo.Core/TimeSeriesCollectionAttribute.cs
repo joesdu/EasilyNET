@@ -6,7 +6,7 @@ namespace EasilyNET.Mongo.Core;
 /// 标记为时序集合
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
-public class TimeSeriesCollectionAttribute : Attribute
+public sealed class TimeSeriesCollectionAttribute : Attribute
 {
     /// <summary>
     /// 标记为时序集合
@@ -24,7 +24,7 @@ public class TimeSeriesCollectionAttribute : Attribute
     /// <summary>
     /// 时间集合配置
     /// </summary>
-    public TimeSeriesOptions TimeSeriesOptions { get; set; }
+    public TimeSeriesOptions TimeSeriesOptions { get; private set; }
 
     /// <summary>
     /// 可选。通过指定文档过期后的秒数，启用自动删除时间序列集合中文档的功能。MongoDB 自动删除过期文档。请参阅设置自动删除时间序列集合 (TTL)，获取更多信息。
