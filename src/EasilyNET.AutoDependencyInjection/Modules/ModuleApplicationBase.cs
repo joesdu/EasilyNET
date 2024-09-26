@@ -92,8 +92,12 @@ internal class ModuleApplicationBase : IModuleApplication
     private static IEnumerable<IAppModule> GetAllEnabledModule(IServiceCollection services)
     {
         var types = AssemblyHelper.FindTypes(AppModule.IsAppModule);
-        var modules = types.Select(o => CreateModule(services, o)).ToList().Where(c => c is not null);
-        return modules!;
+        // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
+        foreach (var o in types)
+        {
+            var c = CreateModule(services, o);
+            if (c is not null) yield return c;
+        }
     }
 
     /// <summary>

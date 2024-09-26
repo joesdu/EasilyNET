@@ -148,20 +148,20 @@ public static class DateTimeStampExtension
                     break;
                 case 'm':
                     value = value[..^1];
-                    multiplier = 60 * 1000;
+                    multiplier = 60_000;
                     break;
                 case 'h':
                     value = value[..^1];
-                    multiplier = 60 * 60 * 1000;
+                    multiplier = 3_600_000;
                     break;
                 default:
-                {
-                    if (value.Contains(':'))
                     {
-                        return TimeSpan.TryParse(value, out result);
+                        if (value.Contains(':'))
+                        {
+                            return TimeSpan.TryParse(value, out result);
+                        }
+                        break;
                     }
-                    break;
-                }
             }
             const NumberStyles numberStyles = NumberStyles.None;
             if (double.TryParse(value, numberStyles, CultureInfo.InvariantCulture, out var multiplicand))

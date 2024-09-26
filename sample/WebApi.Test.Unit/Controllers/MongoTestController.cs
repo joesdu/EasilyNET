@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json.Nodes;
 using EasilyNET.Core.Enums;
 using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +17,28 @@ namespace WebApi.Test.Unit.Controllers;
 public class MongoTestController(DbContext db) : ControllerBase
 {
     private readonly FilterDefinitionBuilder<MongoTest> bf = Builders<MongoTest>.Filter;
+
+    /// <summary>
+    /// 测试JsonNode
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("JsonNodeTest")]
+    public async Task<JsonNodeTest> JsonNodeTest()
+    {
+        var coll = db.GetCollection<JsonNodeTest>("test.json.node");
+        var id = ObjectId.GenerateNewId();
+        var obj = new JsonNodeTest
+        {
+            Id = id.ToString(),
+            JsonNode = JsonNode.Parse("""
+                                      {
+                                        "name": "test"
+                                      }
+                                      """)!
+        };
+        await coll.InsertOneAsync(obj);
+        return await coll.Find(c => c.Id == obj.Id).FirstOrDefaultAsync();
+    }
 
     /// <summary>
     /// 添加一个动态数据,可便于快速测试一些代码.
@@ -141,5 +164,27 @@ file sealed class MultiEnum
     /// IEnumerable类型的枚举需要添加该特性,才能实现每一个元素都转成字符串,可以参考: https://github.com/joesdu/EasilyNET/issues/482
     /// </summary>
     [BsonRepresentation(BsonType.String)]
+    // ReSharper disable once UnusedMember.Local
     public EZodiac[] Zodiac { get; set; } = [EZodiac.兔, EZodiac.牛, EZodiac.狗];
+}
+
+/// <summary>
+/// 测试JsonNode的序列化
+/// </summary>
+public sealed class JsonNodeTest
+{
+    /// <summary>
+    /// ID
+    /// </summary>
+    public required string Id { get; set; }
+
+    /// <summary>
+    /// 常规的JsonNode
+    /// </summary>
+    public required JsonNode JsonNode { get; set; }
+
+    /// <summary>
+    /// 可空的JsonNode
+    /// </summary>
+    public JsonNode? JsonNodeNullAble { get; set; }
 }
