@@ -15,6 +15,11 @@ namespace EasilyNET.Mongo.AspNetCore;
 public static class MongoExtensions
 {
     /// <summary>
+    /// 不要尝试创建名称为 system.profile 的时间序列集合或视图。如果您尝试这样做，MongoDB 6.3 及更高版本会返回 IllegalOperation 错误。早期 MongoDB 版本会因此崩溃。
+    /// </summary>
+    const string IllegalName = "system.profile";
+
+    /// <summary>
     /// 对标记TimeSeriesCollectionAttribute创建MongoDB的时序集合
     /// </summary>
     /// <param name="app"></param>
@@ -35,6 +40,10 @@ public static class MongoExtensions
         {
             var attribute = (TimeSeriesCollectionAttribute)type.GetCustomAttributes(typeof(TimeSeriesCollectionAttribute), false).First();
             var collectionName = type.Name;
+            if (IllegalName.Equals(collectionName.ToLowerInvariant()))
+            {
+                continue;
+            }
             var collectionList = database.ListCollectionNames().ToList();
             if (!collectionList.Contains(collectionName))
             {
