@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Collections.Concurrent;
+using System.Reflection;
 using EasilyNET.Mongo.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,8 @@ namespace EasilyNET.Mongo.AspNetCore;
 /// </summary>
 public static class MongoExtensions
 {
+    private static readonly ConcurrentDictionary<string, bool> CollectionCache = new();
+
     /// <summary>
     /// 对标记TimeSeriesCollectionAttribute创建MongoDB的时序集合
     /// </summary>
@@ -30,21 +33,24 @@ public static class MongoExtensions
     {
         var assembly = Assembly.GetExecutingAssembly();
         var typesWithAttribute = assembly.GetTypes()
-                                         .Where(t => t.GetCustomAttributes(typeof(TimeSeriesCollectionAttribute), false).Length > 0);
+                                         .Where(t => t.GetCustomAttributes<TimeSeriesCollectionAttribute>(false).Any());
+        var collectionList = database.ListCollectionNames().ToList();
         foreach (var type in typesWithAttribute)
         {
-            var attribute = (TimeSeriesCollectionAttribute)type.GetCustomAttributes(typeof(TimeSeriesCollectionAttribute), false).First();
+            var attribute = type.GetCustomAttributes<TimeSeriesCollectionAttribute>(false).First();
             var collectionName = type.Name;
-            var collectionList = database.ListCollectionNames().ToList();
-            if (!collectionList.Contains(collectionName))
+            CollectionCache.TryGetValue(collectionName, out var value);
+            // 检查缓存，如果缓存中没有则添加
+            if (value) continue;
+            CollectionCache[collectionName] = collectionList.Contains(collectionName);
+            // 如果缓存中存在且为true，跳过创建
+            database.CreateCollection(collectionName, new()
             {
-                var options = new CreateCollectionOptions
-                {
-                    TimeSeriesOptions = attribute.TimeSeriesOptions,
-                    ExpireAfter = attribute.ExpireAfter
-                };
-                database.CreateCollection(collectionName, options);
-            }
+                TimeSeriesOptions = attribute.TimeSeriesOptions,
+                ExpireAfter = attribute.ExpireAfter
+            });
+            // 更新缓存
+            CollectionCache[collectionName] = true;
         }
     }
 }
