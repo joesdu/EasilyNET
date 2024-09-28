@@ -29,8 +29,12 @@ public static class MongoExtensions
     /// <returns></returns>
     public static IApplicationBuilder UseCreateMongoTimeSeriesCollection(this IApplicationBuilder app)
     {
-        var mongo = app.ApplicationServices.GetRequiredService<MongoContext>();
-        EnsureTimeSeriesCollections(mongo.Database);
+        var mongo = app.ApplicationServices.GetRequiredService<IMongoDatabase>();
+        if (mongo == null)
+        {
+            throw new ArgumentNullException(nameof(mongo));
+        }
+        EnsureTimeSeriesCollections(mongo);
         return app;
     }
 
