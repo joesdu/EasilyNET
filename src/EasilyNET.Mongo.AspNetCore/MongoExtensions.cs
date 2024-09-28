@@ -1,9 +1,9 @@
-﻿using System.Collections.Concurrent;
-using System.Reflection;
-using EasilyNET.Mongo.Core;
+﻿using EasilyNET.Mongo.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
+using System.Collections.Concurrent;
+using System.Reflection;
 
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
@@ -15,12 +15,12 @@ namespace EasilyNET.Mongo.AspNetCore;
 /// </summary>
 public static class MongoExtensions
 {
-    private static readonly ConcurrentDictionary<string, bool> CollectionCache = new();
-
     /// <summary>
     /// 不要尝试创建名称为 system.profile 的时间序列集合或视图。如果您尝试这样做，MongoDB 6.3 及更高版本会返回 IllegalOperation 错误。早期 MongoDB 版本会因此崩溃。
     /// </summary>
     private const string IllegalName = "system.profile";
+
+    private static readonly ConcurrentDictionary<string, bool> CollectionCache = new();
 
     /// <summary>
     /// 对标记TimeSeriesCollectionAttribute创建MongoDB的时序集合
@@ -30,10 +30,7 @@ public static class MongoExtensions
     public static IApplicationBuilder UseCreateMongoTimeSeriesCollection(this IApplicationBuilder app)
     {
         var mongo = app.ApplicationServices.GetRequiredService<IMongoDatabase>();
-        if (mongo == null)
-        {
-            throw new ArgumentNullException(nameof(mongo));
-        }
+        ArgumentNullException.ThrowIfNull(mongo, nameof(mongo));
         EnsureTimeSeriesCollections(mongo);
         return app;
     }
@@ -48,10 +45,8 @@ public static class MongoExtensions
         {
             var attribute = type.GetCustomAttributes<TimeSeriesCollectionAttribute>(false).First();
             var collectionName = type.Name;
-
             if (IllegalName.Equals(collectionName.ToLowerInvariant()))
                 continue;
-
             CollectionCache.TryGetValue(collectionName, out var value);
             // 如果缓存中存在且为true，跳过创建
             if (value) continue;
