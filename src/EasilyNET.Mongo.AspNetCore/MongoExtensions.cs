@@ -21,26 +21,21 @@ public static class MongoExtensions
     /// </summary>
     private const string IllegalName = "system.profile";
 
-    private static readonly ConcurrentDictionary<string, bool> CollectionCache = new();
+    private static readonly ConcurrentBag<string> CollectionCache = [];
 
     /// <summary>
     /// 对标记TimeSeriesCollectionAttribute创建MongoDB的时序集合
     /// </summary>
     /// <param name="app"></param>
-    /// <param name="assemblies"></param>
     /// <returns></returns>
-    public static IApplicationBuilder UseCreateMongoTimeSeriesCollection(this IApplicationBuilder app, IEnumerable<Assembly> assemblies)
+    public static IApplicationBuilder UseCreateMongoTimeSeriesCollection<T>(this IApplicationBuilder app) where T : MongoContext
     {
         ArgumentNullException.ThrowIfNull(app);
-        ArgumentNullException.ThrowIfNull(assemblies);
-        var db = app.ApplicationServices.GetRequiredService<IMongoDatabase>();
-        ArgumentNullException.ThrowIfNull(db, nameof(IMongoDatabase));
-        var collections = db.ListCollectionNames().ToList();
-        foreach (var item in collections)
-        {
-            CollectionCache.AddOrUpdate(item, true, (_, _) => true);
-        }
-        EnsureTimeSeriesCollections(db);
+        var db = app.ApplicationServices.GetService<T>();
+        ArgumentNullException.ThrowIfNull(db, nameof(T));
+        var collections = db.Database.ListCollectionNames().ToList();
+        CollectionCache.AddRange([.. collections]);
+        EnsureTimeSeriesCollections(db.Database);
         return app;
     }
 
@@ -52,18 +47,17 @@ public static class MongoExtensions
             var attribute = type.GetCustomAttributes<TimeSeriesCollectionAttribute>(false).First();
             var collectionName = attribute.CollectionName;
             if (IllegalName.Equals(collectionName, StringComparison.OrdinalIgnoreCase)) continue;
-            CollectionCache.TryGetValue(collectionName, out var value);
+            var hasCache = CollectionCache.Contains(collectionName);
             // 如果缓存中存在且为true，跳过创建
-            if (value) continue;
-            // 如果缓存中没有则添加
-            CollectionCache.TryAdd(collectionName, false);
+            if (hasCache) continue;
+            // 如果缓存中没有则创建集合
             db.CreateCollection(collectionName, new()
             {
                 TimeSeriesOptions = attribute.TimeSeriesOptions,
                 ExpireAfter = attribute.ExpireAfter
             });
             // 更新缓存
-            CollectionCache[collectionName] = true;
+            CollectionCache.Add(collectionName);
         }
     }
 }
