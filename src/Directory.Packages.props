@@ -23,10 +23,10 @@
     <PackageVersion Include="MongoDB.Driver.Core" Version="2.29.0" />
     <PackageVersion Include="MongoDB.Driver.GridFS" Version="2.29.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.0.0-rc.11" />
-    <PackageVersion Include="Serilog" Version="4.0.2-dev-02226" />
+    <PackageVersion Include="Serilog" Version="4.0.2" />
     <PackageVersion Include="Spectre.Console.Json" Version="0.49.2-preview.0.44" />
-    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.8.0" />
-    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.8.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.8.1" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.8.1" />
     <!--microsoft asp.net core -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0-rc.1.24431.7" />
     <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="9.0.0-rc.1.24431.7" />
