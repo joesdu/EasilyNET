@@ -3,7 +3,7 @@ using MongoDB.Bson.Serialization.Serializers;
 
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.MongoSerializer.AspNetCore;
+namespace EasilyNET.Mongo.AspNetCore.Serializers;
 
 /// <summary>
 /// <see cref="TimeOnly" /> 序列化方式,仅存为字符串形式方便人类阅读
