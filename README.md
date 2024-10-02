@@ -89,7 +89,6 @@ EasilyNET Packages
 | [EasilyNET.MongoDistributedLock][38]            | ![Nuget][39] | ![Nuget][40] | [文档](./src/EasilyNET.MongoDistributedLock/README.md)            |
 | [EasilyNET.MongoDistributedLock.AspNetCore][41] | ![Nuget][42] | ![Nuget][43] | [文档](./src/EasilyNET.MongoDistributedLock.AspNetCore/README.md) |
 | [EasilyNET.MongoGridFS.AspNetCore][44]          | ![Nuget][45] | ![Nuget][46] | [文档](./src/EasilyNET.MongoGridFS.AspNetCore/README.md)          |
-| [EasilyNET.MongoSerializer.AspNetCore][47]      | ![Nuget][48] | ![Nuget][49] | [文档](./src/EasilyNET.MongoSerializer.AspNetCore/README.md)      |
 
 #### 感谢 [JetBrains](https://www.jetbrains.com/shop/eform/opensource) 对本项目的支持!
 
@@ -148,6 +147,3 @@ EasilyNET Packages
 [44]: https://www.nuget.org/packages/EasilyNET.MongoGridFS.AspNetCore
 [45]: https://img.shields.io/nuget/v/EasilyNET.MongoGridFS.AspNetCore
 [46]: https://img.shields.io/nuget/dt/EasilyNET.MongoGridFS.AspNetCore
-[47]: https://www.nuget.org/packages/EasilyNET.MongoSerializer.AspNetCore
-[48]: https://img.shields.io/nuget/v/EasilyNET.MongoSerializer.AspNetCore
-[49]: https://img.shields.io/nuget/dt/EasilyNET.MongoSerializer.AspNetCore
