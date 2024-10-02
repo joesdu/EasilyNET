@@ -2,7 +2,7 @@
 
 - 一个 MongoDB 驱动的服务包,方便使用 MongoDB 数据库.
 - 数据库中字段名驼峰命名,ID,Id 自动转化成 ObjectId.
-- 可配置部分类的 Id 字段不存为 ObjectId,而存为 string 类型.
+- 可配置部分类的 Id 字段不存为 ObjectId,而存为 string 类型.支持子对象以及集合成员的 Id 字段转化.
 - 自动本地化 MongoDB 时间类型
 - 添加.Net6 Date/Time Only 类型支持
 - 添加 SkyWalking-APM 探针支持,未依赖 Agent,所以需要手动传入参数.
