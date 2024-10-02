@@ -1,10 +1,10 @@
+using System.Collections;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Bson.Serialization.Serializers;
-using System.Collections;
 
-namespace EasilyNET.Mongo.AspNetCore;
+namespace EasilyNET.Mongo.AspNetCore.Conventions;
 
 /// <summary>
 /// Id映射处理器

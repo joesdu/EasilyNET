@@ -3,7 +3,6 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
-using EasilyNET.Core.Misc;
 
 namespace EasilyNET.Core.Benchmark;
 
@@ -13,8 +12,16 @@ namespace EasilyNET.Core.Benchmark;
 [Config(typeof(Config))]
 public class AsyncStrictNextBenchmark
 {
-    
-    private readonly Random _random = new Random();
+    private readonly Random _random = new();
+
+    private class Config : ManualConfig
+    {
+        public Config()
+        {
+            AddJob(Job.Default);
+            AddDiagnoser(MemoryDiagnoser.Default);
+        }
+    }
 
     // [Benchmark]
     // public void TestStrictNext()
@@ -33,15 +40,6 @@ public class AsyncStrictNextBenchmark
     //         _random.StrictNext2();
     //     }
     // }
-
-    private class Config : ManualConfig
-    {
-        public Config()
-        {
-            AddJob(Job.Default);
-            AddDiagnoser(MemoryDiagnoser.Default);
-        }
-    }
 }
 
 /// <summary>

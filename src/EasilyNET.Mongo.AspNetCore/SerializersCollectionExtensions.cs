@@ -11,7 +11,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// <summary>
 /// 服务注册扩展类
 /// </summary>
-public static class SerializersServiceCollectionExtensions
+public static class SerializersCollectionExtensions
 {
     /// <summary>
     /// 添加自定义序列化规则

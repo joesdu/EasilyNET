@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Reflection;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using EasilyNET.RabbitBus.AspNetCore.Enums;
@@ -10,8 +12,6 @@ using Microsoft.Extensions.Logging;
 using Polly.Registry;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using System.Collections.Concurrent;
-using System.Reflection;
 
 namespace EasilyNET.RabbitBus.AspNetCore;
 
