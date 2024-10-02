@@ -18,7 +18,7 @@ docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=guest" -p 1433:1433 --name s
 - 启动RabbitMQ服务,该镜像包含 delayed_message_exchange 插件
 
 ```bash
-docker run --name rabbitmq -p 5672:5672 -p 15672:15672 -d --rm -it -e RABBITMQ_DEFAULT_USER=admin -e RABBITMQ_DEFAULT_PASS=a123456 dygood/rabbitmq-dlx:latest
+docker run --name rabbitmq -p 5672:5672 -p 15672:15672 -d --rm -it -e RABBITMQ_DEFAULT_USER=admin -e RABBITMQ_DEFAULT_PASS=a123456 ghcr.io/joesdu/rabbitmq-dlx:latest
 ```
 
 - 本地使用 docker 启动 Minio 服务
