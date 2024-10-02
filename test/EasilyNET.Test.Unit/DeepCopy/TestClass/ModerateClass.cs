@@ -6,13 +6,9 @@ public class ModerateClass(int propertyPrivate, bool propertyProtected, string f
 {
     private readonly string FieldPrivate = fieldPrivate + "_" + typeof(ModerateClass);
     public DeeperStruct DeeperStructField;
-
     public int FieldPublic2;
-
     public GenericClass<SimpleClass> GenericClassField;
-
     public SimpleClass ReadonlySimpleClassField;
-
     public Struct StructField;
 
     public string PropertyPublic2 { get; set; }
@@ -47,6 +43,5 @@ public class ModerateClass(int propertyPrivate, bool propertyProtected, string f
     }
 
     public int GetPrivateProperty2() => PropertyPrivate;
-
     public string GetPrivateField2() => FieldPrivate;
 }

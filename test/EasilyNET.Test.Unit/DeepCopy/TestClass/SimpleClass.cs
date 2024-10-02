@@ -6,7 +6,6 @@ public class SimpleClass : ISimpleClass
 {
     private readonly string FieldPrivate;
     public readonly string ReadOnlyField;
-
     public int FieldPublic;
 
     public SimpleClass(int propertyPrivate, bool propertyProtected, string fieldPrivate)
@@ -31,6 +30,5 @@ public class SimpleClass : ISimpleClass
         };
 
     public int GetPrivateProperty() => PropertyPrivate;
-
     public string GetPrivateField() => FieldPrivate;
 }

@@ -2,7 +2,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 
-namespace EasilyNET.Mongo.AspNetCore;
+namespace EasilyNET.Mongo.AspNetCore.Options;
 
 /// <summary>
 /// Mongodb配置选项

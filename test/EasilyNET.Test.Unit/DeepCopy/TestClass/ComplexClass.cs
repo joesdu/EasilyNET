@@ -7,15 +7,10 @@ public class ComplexClass : ModerateClass
     public delegate void DelegateType();
 
     public readonly Delegate ReadonlyDelegate;
-
     public ISimpleClass[,,] ISimpleMultiDimArray;
-
     public Delegate JustDelegate;
-
     public Dictionary<string, SimpleClass> SampleDictionary;
-
     public SimpleClass[][][] SimpleMultiDimArray;
-
     public Struct[] StructArray;
 
     public ComplexClass() : base(-1, true, "fieldPrivate_" + typeof(ComplexClass))

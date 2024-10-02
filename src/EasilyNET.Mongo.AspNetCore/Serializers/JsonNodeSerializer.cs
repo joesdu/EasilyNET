@@ -1,6 +1,6 @@
-﻿using MongoDB.Bson.Serialization;
+﻿using System.Text.Json.Nodes;
+using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
-using System.Text.Json.Nodes;
 
 // ReSharper disable UnusedType.Global
 

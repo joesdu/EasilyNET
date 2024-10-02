@@ -1,11 +1,11 @@
+using System.Collections.Concurrent;
+using System.Reflection;
 using EasilyNET.Core.Misc;
 using EasilyNET.WebCore.Swagger.Attributes;
 using EasilyNET.WebCore.Swagger.SwaggerFilters;
 using Microsoft.AspNetCore.Builder;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
-using System.Collections.Concurrent;
-using System.Reflection;
 
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global

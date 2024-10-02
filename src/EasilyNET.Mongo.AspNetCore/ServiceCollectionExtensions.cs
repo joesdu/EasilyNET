@@ -1,4 +1,6 @@
-using EasilyNET.Mongo.AspNetCore;
+using EasilyNET.Mongo.AspNetCore.Common;
+using EasilyNET.Mongo.AspNetCore.Conventions;
+using EasilyNET.Mongo.AspNetCore.Options;
 using EasilyNET.Mongo.Core;
 using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
@@ -31,7 +33,7 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// 是否是第一次注册BsonSerializer
     /// </summary>
-    private static bool first;
+    private static bool _first;
 
     /// <summary>
     /// 通过默认连接字符串名称配置添加 <see cref="MongoContext" />
@@ -114,9 +116,9 @@ public static class ServiceCollectionExtensions
         {
             new StringToObjectIdIdGeneratorConvention() //ObjectId → String mapping ObjectId
         }, x => !options.ObjectIdToStringTypes.Contains(x));
-        if (first) return;
+        if (_first) return;
         BsonSerializer.RegisterSerializer(new DateTimeSerializer(DateTimeKind.Local)); //to local time
         BsonSerializer.RegisterSerializer(new DecimalSerializer(BsonType.Decimal128)); //decimal to decimal default
-        first = !first;
+        _first = !_first;
     }
 }

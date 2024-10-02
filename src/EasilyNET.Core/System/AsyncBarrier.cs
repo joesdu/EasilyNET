@@ -43,8 +43,8 @@ namespace EasilyNET.Core.System;
 public sealed class AsyncBarrier
 {
     private readonly int participantCount;
-    private readonly Stack<Waiter> waiters;
     private readonly Lock syncRoot = new();
+    private readonly Stack<Waiter> waiters;
 
     /// <summary>
     /// 使用指定数量的参与者初始化 <see cref="AsyncBarrier" /> 类的新实例

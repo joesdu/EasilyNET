@@ -14,7 +14,7 @@ namespace EasilyNET.Mongo.AspNetCore;
 /// <summary>
 /// MongoExtensions
 /// </summary>
-public static class MongoExtensions
+public static class TimeSeriesCollectionExtensions
 {
     /// <summary>
     /// 不要尝试创建名称为 system.profile 的时间序列集合或视图。如果您尝试这样做，MongoDB 6.3 及更高版本会返回 IllegalOperation 错误。早期 MongoDB 版本会因此崩溃。
