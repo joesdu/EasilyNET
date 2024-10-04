@@ -1,5 +1,6 @@
 using MongoDB.Driver;
 
+// ReSharper disable UnusedMember.Global
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace EasilyNET.Mongo.Core;
