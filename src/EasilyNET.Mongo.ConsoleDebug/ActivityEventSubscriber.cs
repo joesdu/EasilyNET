@@ -150,7 +150,6 @@ public sealed class ActivityEventSubscriber : IEventSubscriber
         switch (_options.Enable)
         {
             case true when !CommandsWithCollectionNameAsValue.Contains(@event.CommandName):
-                return;
             case true when _options.ShouldStartCollection is not null && !_options.ShouldStartCollection(coll_name):
                 return;
             case true:

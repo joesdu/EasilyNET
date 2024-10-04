@@ -31,9 +31,17 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// 是否是第一次注册BsonSerializer
+    /// Lazy&lt;T&gt; 提供了线程安全的延迟初始化机制，确保全局序列化器的注册逻辑只执行一次。
+    /// 该变量用于在第一次访问时注册全局的 DateTime 和 Decimal 序列化器。
     /// </summary>
-    private static bool _first;
+    private static readonly Lazy<bool> _firstInitialization = new(() =>
+    {
+        // 注册全局 DateTime 序列化器，将 DateTime 序列化为本地时间
+        BsonSerializer.RegisterSerializer(new DateTimeSerializer(DateTimeKind.Local));
+        // 注册全局 Decimal 序列化器，将 decimal 序列化为 Decimal128
+        BsonSerializer.RegisterSerializer(new DecimalSerializer(BsonType.Decimal128));
+        return true;
+    });
 
     /// <summary>
     /// 通过默认连接字符串名称配置添加 <see cref="MongoContext" />
@@ -116,9 +124,7 @@ public static class ServiceCollectionExtensions
         {
             new StringToObjectIdIdGeneratorConvention() //ObjectId → String mapping ObjectId
         }, x => !options.ObjectIdToStringTypes.Contains(x));
-        if (_first) return;
-        BsonSerializer.RegisterSerializer(new DateTimeSerializer(DateTimeKind.Local)); //to local time
-        BsonSerializer.RegisterSerializer(new DecimalSerializer(BsonType.Decimal128)); //decimal to decimal default
-        _first = !_first;
+        // 确保全局序列化器只注册一次
+        _ = _firstInitialization.Value;
     }
 }
