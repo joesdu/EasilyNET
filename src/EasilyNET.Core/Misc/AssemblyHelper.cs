@@ -13,7 +13,7 @@ namespace EasilyNET.Core.Misc;
 // ReSharper disable once UnusedType.Global
 public static class AssemblyHelper
 {
-    private static readonly HashSet<string> Filters = ["dotnet-", "Microsoft.", "mscorlib", "netstandard", "System", "Windows"];
+    private static readonly HashSet<string> Filters = ["dotnet-", "Microsoft.", "mscorlib", "netstandard", "System", "Windows", "PresentationUI"];
 
     /// <summary>
     /// 需要排除的项目
