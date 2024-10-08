@@ -6,6 +6,7 @@
 
 using System.Linq.Expressions;
 using System.Reflection;
+using EasilyNET.Core.Threading;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable CommentTypo
@@ -19,9 +20,9 @@ namespace EasilyNET.Core.DeepCopy;
 /// </summary>
 public static class DeepCopyByExpressionTrees
 {
-    private static readonly Lock IsStructTypeToDeepCopyDictionaryLocker = new();
+    private static readonly SyncLock IsStructTypeToDeepCopyDictionaryLocker = new();
     private static Dictionary<Type, bool> IsStructTypeToDeepCopyDictionary = [];
-    private static readonly Lock CompiledCopyFunctionsDictionaryLocker = new();
+    private static readonly SyncLock CompiledCopyFunctionsDictionaryLocker = new();
     private static Dictionary<Type, Func<object, Dictionary<object, object>, object>> CompiledCopyFunctionsDictionary = [];
     private static readonly Type ObjectType = typeof(object);
     private static readonly Type ObjectDictionaryType = typeof(Dictionary<object, object>);
@@ -57,7 +58,7 @@ public static class DeepCopyByExpressionTrees
         // That is why we do not modify the old dictionary instance, but
         // we replace it with a new instance everytime.
         if (CompiledCopyFunctionsDictionary.TryGetValue(type, out var compiledCopyFunction)) return compiledCopyFunction;
-        lock (CompiledCopyFunctionsDictionaryLocker)
+        using (CompiledCopyFunctionsDictionaryLocker.Lock())
         {
             if (CompiledCopyFunctionsDictionary.TryGetValue(type, out compiledCopyFunction)) return compiledCopyFunction;
             var unCompiledCopyFunction = CreateCompiledLambdaCopyFunctionForType(type);
@@ -425,7 +426,7 @@ public static class DeepCopyByExpressionTrees
         // That is why we do not modify the old dictionary instance, but
         // we replace it with a new instance everytime.
         if (IsStructTypeToDeepCopyDictionary.TryGetValue(type, out var isStructTypeToDeepCopy)) return isStructTypeToDeepCopy;
-        lock (IsStructTypeToDeepCopyDictionaryLocker)
+        using (IsStructTypeToDeepCopyDictionaryLocker.Lock())
         {
             if (IsStructTypeToDeepCopyDictionary.TryGetValue(type, out isStructTypeToDeepCopy)) return isStructTypeToDeepCopy;
             isStructTypeToDeepCopy = IsStructWhichNeedsDeepCopy_NoDictionaryUsed(type);

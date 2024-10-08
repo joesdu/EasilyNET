@@ -1,3 +1,5 @@
+using EasilyNET.Core.Threading;
+
 namespace EasilyNET.Core.System;
 
 /// <remarks>
@@ -26,10 +28,11 @@ public class SnowFlakeId(long workerId, long sequence = 0L, int clockBackwardsIn
     //最大序列号
     private const long MaxSequence = -1L ^ (-1L << SequenceBits);
 
-    private readonly Lock __lock = new();
+    private readonly SyncLock __lock = new();
 
     //最后时间
     private long _lastTimestamp = -1L;
+    private long _sequence = sequence;
 
     /// <summary>
     /// 默认值
@@ -44,10 +47,9 @@ public class SnowFlakeId(long workerId, long sequence = 0L, int clockBackwardsIn
     /// <returns></returns>
     public long NextId()
     {
-        lock (__lock)
+        using (__lock.Lock())
         {
             var timestamp = TimeGen();
-
             //  时钟回拨检测：超过2分钟，则强制抛出异常
             if (TimeSpan.FromMilliseconds(_lastTimestamp - timestamp) >= TimeSpan.FromMinutes(clockBackwardsInMinutes))
             {
@@ -63,8 +65,8 @@ public class SnowFlakeId(long workerId, long sequence = 0L, int clockBackwardsIn
             if (_lastTimestamp == timestamp)
             {
                 //sequence自增，和sequenceMask相与一下，去掉高位
-                sequence = (sequence + 1) & MaxSequence;
-                if (sequence == 0)
+                _sequence = (_sequence + 1) & MaxSequence;
+                if (_sequence == 0)
                 {
                     //等待到下一毫秒
                     timestamp = TilNextMillis(_lastTimestamp);
@@ -72,12 +74,12 @@ public class SnowFlakeId(long workerId, long sequence = 0L, int clockBackwardsIn
             }
             else
             {
-                sequence = 0;
+                _sequence = 0;
             }
             _lastTimestamp = timestamp;
             return ((timestamp - TwEpoch) << TimestampLeftShift) |
                    (workerId << WorkerIdShift) |
-                   sequence;
+                   _sequence;
         }
     }
 
