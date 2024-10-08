@@ -120,7 +120,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
             {
                 await Task.Factory.StartNew(async () =>
                 {
-                    using var channel = await CreateConsumerChannel(exc, @event);
+                    await using var channel = await CreateConsumerChannel(exc, @event);
                     var handleKind = exc.WorkModel is EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
                     if (exc is not { WorkModel: EModel.None })
                     {
@@ -161,7 +161,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         }
         //创建队列
         await channel.QueueDeclareAsync(exc.Queue, true, false, false, queue_args);
-        channel.CallbackException += async (_, ea) =>
+        channel.CallbackExceptionAsync += async (_, ea) =>
         {
             logger.LogWarning(ea.Exception, "重新创建消费者通道");
             subsManager.ClearSubscriptions();
@@ -184,7 +184,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         }
         var consumer = new AsyncEventingBasicConsumer(channel);
         await channel.BasicConsumeAsync(exc.Queue, false, consumer);
-        consumer.Received += async (_, ea) =>
+        consumer.ReceivedAsync += async (_, ea) =>
         {
             try
             {
