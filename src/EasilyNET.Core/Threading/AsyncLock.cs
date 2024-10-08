@@ -8,7 +8,6 @@ namespace EasilyNET.Core.Threading;
 public sealed class AsyncLock
 {
     private readonly Task<Release> _release;
-
     private readonly AsyncSemaphore _semaphore = new();
 
     /// <summary>
@@ -20,6 +19,7 @@ public sealed class AsyncLock
     }
 
     /// <summary>
+    /// 获取内部信号量的占用状态
     /// </summary>
     /// <returns></returns>
     public int GetSemaphoreTaken() => _semaphore.GetTaken();
@@ -31,7 +31,7 @@ public sealed class AsyncLock
     public int GetQueueCount() => _semaphore.GetQueueCount();
 
     /// <summary>
-    /// 锁定，返回一个 <see cref="Release" /> 对象。
+    /// 锁定,返回一个 <see cref="Release" /> 对象
     /// </summary>
     /// <returns></returns>
     public Task<Release> LockAsync()
@@ -41,23 +41,43 @@ public sealed class AsyncLock
     }
 
     /// <summary>
-    /// 锁定任务的执行。
+    /// 锁定任务的执行,无返回值
     /// </summary>
-    /// <param name="task"></param>
+    /// <param name="taskFunc"></param>
     /// <returns></returns>
-    public async Task LockAsync(Task task)
+    public async Task LockAsync(Func<Task> taskFunc)
     {
-        using var r = LockAsync();
-        await task;
+        using (await LockAsync())
+        {
+            await taskFunc();
+        }
+    }
+
+    /// <summary>
+    /// 锁定任务的执行,可返回执行函数的结果
+    /// </summary>
+    /// <param name="taskFunc"></param>
+    /// <returns></returns>
+    // ReSharper disable once UnusedMethodReturnValue.Global
+    public async Task<T> LockAsync<T>(Func<Task<T>> taskFunc)
+    {
+        using (await LockAsync())
+        {
+            var t = await taskFunc();
+            return t;
+        }
     }
 
     /// <remarks>
-    /// 释放者
+    /// Release
     /// </remarks>
     /// <param name="asyncLock"></param>
     public readonly struct Release(AsyncLock asyncLock) : IDisposable
     {
         /// <inheritdoc />
-        public void Dispose() => asyncLock._semaphore.Release();
+        public void Dispose()
+        {
+            asyncLock._semaphore.Release();
+        }
     }
 }
