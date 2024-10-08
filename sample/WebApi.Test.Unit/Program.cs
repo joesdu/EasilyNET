@@ -1,4 +1,3 @@
-using EasilyNET.Core.Misc;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
@@ -10,7 +9,6 @@ using System.Runtime.InteropServices;
 #endif
 
 Console.Title = $"❤️ {Constant.InstanceName}";
-AssemblyHelper.AddExcludeLibs("Npgsql.");
 var builder = WebApplication.CreateBuilder(args);
 
 // 配置Kestrel支持HTTP1,2,3
