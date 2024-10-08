@@ -3,11 +3,8 @@ using FluentAssertions;
 
 namespace EasilyNET.Test.Unit.Threading;
 
-/// <summary>
-/// 测试异步锁
-/// </summary>
 [TestClass]
-public class AsyncLockTest(TestContext testContext)
+public class AsyncLockTests(TestContext testContext)
 {
     // ReSharper disable once CollectionNeverQueried.Local
     private static readonly Dictionary<string, string> _dictionary = [];
@@ -114,5 +111,84 @@ public class AsyncLockTest(TestContext testContext)
         var res2 = await taskSemaphore2;
         res2.Dispose(); //释放
         asyncLock.GetSemaphoreTaken().Should().Be(0);
+    }
+
+    /// <summary>
+    /// 测试基本锁定和释放功能，确保 _isTaken 状态正确。
+    /// </summary>
+    [TestMethod]
+    public async Task LockAsync_ShouldLockAndRelease()
+    {
+        var asyncLock = new AsyncLock();
+        Assert.AreEqual(0, asyncLock.GetSemaphoreTaken());
+        using (await asyncLock.LockAsync())
+        {
+            Assert.AreEqual(1, asyncLock.GetSemaphoreTaken());
+        }
+        Assert.AreEqual(0, asyncLock.GetSemaphoreTaken());
+    }
+
+    /// <summary>
+    /// 测试 LockAsync(Action action) 方法，确保传入的操作被执行。
+    /// </summary>
+    [TestMethod]
+    public async Task LockAsync_ShouldExecuteAction()
+    {
+        var asyncLock = new AsyncLock();
+        var executed = false;
+        await asyncLock.LockAsync(() => Task.Run(() => executed = true));
+        Assert.IsTrue(executed);
+    }
+
+    /// <summary>
+    /// 测试在锁定时，后续任务会排队等待，确保任务按顺序执行。
+    /// </summary>
+    [TestMethod]
+    public async Task LockAsync_ShouldQueueWhenLocked()
+    {
+        var asyncLock = new AsyncLock();
+        var task1Completed = false;
+        var task2Completed = false;
+        var task1 = Task.Run(async () =>
+        {
+            using (await asyncLock.LockAsync())
+            {
+                await Task.Delay(100);
+                task1Completed = true;
+            }
+        });
+        var task2 = Task.Run(async () =>
+        {
+            using (await asyncLock.LockAsync())
+            {
+                task2Completed = true;
+            }
+        });
+        await Task.WhenAll(task1, task2);
+        Assert.IsTrue(task1Completed);
+        Assert.IsTrue(task2Completed);
+    }
+
+    /// <summary>
+    /// 测试多线程环境下的锁定行为，确保计数器正确增加。
+    /// </summary>
+    [TestMethod]
+    public async Task LockAsync_ShouldHandleMultipleThreads()
+    {
+        var asyncLock = new AsyncLock();
+        var counter = 0;
+        var tasks = new Task[10];
+        for (var i = 0; i < tasks.Length; i++)
+        {
+            tasks[i] = Task.Run(async () =>
+            {
+                for (var j = 0; j < 100; j++)
+                {
+                    await asyncLock.LockAsync(async () => await Task.Run(() => counter++));
+                }
+            });
+        }
+        await Task.WhenAll(tasks);
+        Assert.AreEqual(1000, counter);
     }
 }
