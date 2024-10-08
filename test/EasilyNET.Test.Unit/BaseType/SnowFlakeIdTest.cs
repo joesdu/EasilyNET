@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using EasilyNET.Core.System;
+using EasilyNET.Core.Threading;
 using FluentAssertions;
 
 namespace EasilyNET.Test.Unit.BaseType;
@@ -61,14 +62,14 @@ public class SnowFlakeIdTest
     {
         var set = new HashSet<long>();
         const int N = 2000000;
-        var lockObject = new Lock();
+        var lockObject = new SyncLock();
         const int numberOfThreads = 10;
         Parallel.For(0, numberOfThreads, _ =>
         {
             for (var j = 0; j < N; j++)
             {
                 var id = SnowFlakeId.Default.NextId();
-                lock (lockObject)
+                using (lockObject.Lock())
                 {
                     if (!set.Add(id))
                     {
