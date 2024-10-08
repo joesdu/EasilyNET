@@ -42,9 +42,9 @@ internal sealed class PersistentConnection : IPersistentConnection
             {
                 try
                 {
-                    _connection.ConnectionShutdown -= OnConnectionShutdown;
-                    _connection.CallbackException -= OnCallbackException;
-                    _connection.ConnectionBlocked -= OnConnectionBlocked;
+                    _connection.ConnectionShutdownAsync -= OnConnectionShutdown;
+                    _connection.CallbackExceptionAsync -= OnCallbackException;
+                    _connection.ConnectionBlockedAsync -= OnConnectionBlocked;
                     _connection.Dispose();
                 }
                 catch (Exception ex)
@@ -99,15 +99,15 @@ internal sealed class PersistentConnection : IPersistentConnection
             // 先移除事件,以避免重复注册
             if (_connection is not null)
             {
-                _connection.ConnectionShutdown -= OnConnectionShutdown;
-                _connection.CallbackException -= OnCallbackException;
-                _connection.ConnectionBlocked -= OnConnectionBlocked;
+                _connection.ConnectionShutdownAsync -= OnConnectionShutdown;
+                _connection.CallbackExceptionAsync -= OnCallbackException;
+                _connection.ConnectionBlockedAsync -= OnConnectionBlocked;
             }
             if (IsConnected && _connection is not null)
             {
-                _connection.ConnectionShutdown += OnConnectionShutdown;
-                _connection.CallbackException += OnCallbackException;
-                _connection.ConnectionBlocked += OnConnectionBlocked;
+                _connection.ConnectionShutdownAsync += OnConnectionShutdown;
+                _connection.CallbackExceptionAsync += OnCallbackException;
+                _connection.ConnectionBlockedAsync += OnConnectionBlocked;
                 _logger.LogInformation("RabbitMQ客户端与 {HostName} 建立了连接", _connection.Endpoint.HostName);
                 _channelPool = new(_connection, _poolCount);
                 _logger.LogInformation("RabbitBus channel pool count: {Count}", _poolCount);
@@ -142,9 +142,9 @@ internal sealed class PersistentConnection : IPersistentConnection
         }
     }
 
-    private async void OnConnectionBlocked(object? sender, ConnectionBlockedEventArgs e) => await TryReconnect();
+    private Task OnConnectionBlocked(object? sender, ConnectionBlockedEventArgs e) => TryReconnect();
 
-    private async void OnCallbackException(object? sender, CallbackExceptionEventArgs e) => await TryReconnect();
+    private Task OnCallbackException(object? sender, CallbackExceptionEventArgs e) => TryReconnect();
 
-    private async void OnConnectionShutdown(object? sender, ShutdownEventArgs reason) => await TryReconnect();
+    private Task OnConnectionShutdown(object? sender, ShutdownEventArgs e) => TryReconnect();
 }
