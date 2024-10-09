@@ -140,14 +140,6 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         logger.LogTrace("创建消费者通道");
         var channel = await conn.GetChannel();
         var queue_args = @event.GetQueueArgAttributes();
-        //if (exc.BindDlx)
-        //{
-        //    //创建队列
-        //    await channel.QueueDeclareAsync(exc.DeadLetterQueueName(), true, false, false);
-        //    queue_args ??= new Dictionary<string, object?>();
-        //    queue_args.Add("x-dead-letter-exchange", exc.DeadLetterExchangeName());
-        //    queue_args.Add("x-dead-letter-routing-key", exc.DeadLetterQueueName());
-        //}
         if (exc is not { WorkModel: EModel.None })
         {
             var exchange_args = @event.GetExchangeArgAttributes();
@@ -224,10 +216,8 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
                         logger.LogError($"无法找到{nameof(@event)}事件处理器");
                         return; // 或者抛出异常
                     }
-                    // var delegateType = typeof(HandleAsyncDelegate<>).MakeGenericType(eventType);
                     var handler = scope?.ServiceProvider.GetService(handlerType);
                     if (handler is null) return;
-                    //var handleAsyncDelegate = Delegate.CreateDelegate(typeof(Func<object, Task>), handler, method) as Func<object, Task>;
                     var handleAsyncDelegate = CreateHandleAsyncDelegate(handler, method, eventType);
                     _handleAsyncDelegateCache[key] = handleAsyncDelegate;
                     cachedDelegate = handleAsyncDelegate;
@@ -240,14 +230,6 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
                         await ack.Invoke();
                     }).ConfigureAwait(false);
                 }
-                //if (cachedDelegate?.DynamicInvoke(@event) is Task handleTask)
-                //{
-                //    await pipeline.ExecuteAsync(async _ =>
-                //    {
-                //        await handleTask;
-                //        await ack.Invoke();
-                //    }).ConfigureAwait(false);
-                //}
             }
         }
         else
@@ -268,6 +250,4 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
             }
         };
     }
-
-    //private delegate Task HandleAsyncDelegate<in TEvent>(TEvent @event) where TEvent : IEvent;
 }
