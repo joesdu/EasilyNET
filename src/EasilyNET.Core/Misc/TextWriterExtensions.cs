@@ -191,7 +191,7 @@ public static class TextWriterExtensions
     {
         if (progressPercentage < 0) progressPercentage = 0;
         if (progressPercentage > 100) progressPercentage = 100;
-        var progressText = $"{progressPercentage / 100.0:P1}".PadLeft("100.0 %".Length, (char)32);
+        var progressText = $"{progressPercentage / 100.0:P1}".PadLeft(7, (char)32);
 
         // 使用 UTF-8 编码计算消息的字节长度
         var messageBytes = Encoding.UTF8.GetBytes(message);
