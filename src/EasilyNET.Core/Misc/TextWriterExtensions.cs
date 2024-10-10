@@ -243,5 +243,7 @@ public static class TextWriterExtensions
         messageBytes.CopyTo(outputBytes[(totalWidth + 4 + progressTextBytes.Length)..]);
         var output = Encoding.UTF8.GetString(outputBytes);
         await writer.SafeWriteOutput(output);
+        // 当进度为 100% 时，输出换行
+        if (Math.Abs(progressPercentage - 100) < 0.000001) Console.WriteLine();
     }
 }
