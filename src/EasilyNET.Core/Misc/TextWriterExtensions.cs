@@ -220,11 +220,12 @@ public static class TextWriterExtensions
         }
         catch (Exception)
         {
-            // 如果 Console.WindowWidth 抛出异常说明当前环境不支持,则将 totalWidth 设置为 80
-            totalWidth = Math.Max(0, 80 - extraWidth);
+            // 如果 Console.WindowWidth 抛出异常说明当前环境不支持,则将 totalWidth 设置为 100
+            totalWidth = Math.Max(0, 100 - extraWidth);
         }
         var progressBarWidth = (int)(progressPercentage * totalWidth) / 100;
-        if (Math.Abs(progressPercentage - 100) < 0.000001) progressBarWidth = totalWidth; // 确保在 100% 时填满进度条
+        var isCompleted = Math.Abs(progressPercentage - 100) <= 0.000001;
+        if (isCompleted) progressBarWidth = totalWidth; // 确保在 100% 时填满进度条
         var outputLength = totalWidth + extraWidth;
         var outputBytes = outputLength <= 256 ? stackalloc byte[outputLength] : new byte[outputLength];
         outputBytes[0] = 91; // ASCII for '['
@@ -244,6 +245,6 @@ public static class TextWriterExtensions
         var output = Encoding.UTF8.GetString(outputBytes);
         await writer.SafeWriteOutput(output);
         // 当进度为 100% 时，输出换行
-        if (Math.Abs(progressPercentage - 100) < 0.000001) Console.WriteLine();
+        if (isCompleted) Console.WriteLine();
     }
 }
