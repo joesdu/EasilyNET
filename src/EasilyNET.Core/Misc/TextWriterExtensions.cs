@@ -92,6 +92,41 @@ public static class TextWriterExtensions
         }
     }
 
+    /// <summary>
+    /// 在控制台输出可点击的路径,使用 [<see langword="Ctrl + 鼠标左键" />] 即可打开路径
+    /// <remarks>
+    ///     <para>
+    ///     使用方式:
+    ///     <code>
+    ///   <![CDATA[
+    /// var path = @"F:\tools\test\test\bin\Release\net9.0\win-x64\publish";
+    ///   Console.Out.WriteClickablePath(path, true, 5, true);
+    /// Output:
+    ///   bin\Release\net9.0\win-x64\publish
+    /// ]]>
+    /// </code>
+    ///     </para>
+    /// </remarks>
+    /// </summary>
+    /// <param name="_"></param>
+    /// <param name="path">需要处理的完整路径</param>
+    /// <param name="relative">是否输出相对路径,默认: <see langword="false" /></param>
+    /// <param name="deep">当为相对路径的时候配置目录深度,仅保留最后 N 层目录</param>
+    /// <param name="newLine">是否换行,默认: <see langword="false" />,行为同: Console.Write()</param>
+    public static void WriteClickablePath(this TextWriter _, string path, bool relative = false, int deep = 5, bool newLine = false)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return;
+        switch (newLine)
+        {
+            case true:
+                Console.WriteLine(relative ? path.GetClickableRelativePath(deep) : path.GetClickablePath());
+                break;
+            default:
+                Console.Write(relative ? path.GetClickableRelativePath(deep) : path.GetClickablePath());
+                break;
+        }
+    }
+
     private static void UpdateClearLine()
     {
         if (Console.WindowWidth == _lastWindowWidth) return;
