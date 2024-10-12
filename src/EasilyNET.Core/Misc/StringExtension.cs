@@ -64,7 +64,7 @@ public static partial class StringExtension
     {
         var regex = ToTitleUpperCaseRegex();
         return regex.Replace(value,
-            delegate(Match m)
+            delegate (Match m)
             {
                 var str = m.ToString();
                 if (!char.IsLower(str[0])) return str;
@@ -163,12 +163,12 @@ public static partial class StringExtension
         return value.Length switch
         {
             >= 11 => MaskElevenRegex().Replace(value, $"$1{masks}$2"),
-            10    => MaskTenRegex().Replace(value, $"$1{masks}$2"),
-            9     => MaskNineRegex().Replace(value, $"$1{masks}$2"),
-            8     => MaskEightRegex().Replace(value, $"$1{masks}$2"),
-            7     => MaskSevenRegex().Replace(value, $"$1{masks}$2"),
-            6     => MaskSixRegex().Replace(value, $"$1{masks}$2"),
-            _     => MaskLessThanSixRegex().Replace(value, $"$1{masks}")
+            10 => MaskTenRegex().Replace(value, $"$1{masks}$2"),
+            9 => MaskNineRegex().Replace(value, $"$1{masks}$2"),
+            8 => MaskEightRegex().Replace(value, $"$1{masks}$2"),
+            7 => MaskSevenRegex().Replace(value, $"$1{masks}$2"),
+            6 => MaskSixRegex().Replace(value, $"$1{masks}$2"),
+            _ => MaskLessThanSixRegex().Replace(value, $"$1{masks}")
         };
     }
 
@@ -682,5 +682,50 @@ public static partial class StringExtension
             }
         }
         return string.Concat(words);
+    }
+
+    /// <summary>
+    /// 获取一个能在控制台中点击的路径,使用 [<see langword="Ctrl + 鼠标左键" />] 点击打开对应目录
+    /// <remarks>
+    ///     <para>
+    ///     使用方式:
+    ///     <code>
+    ///   <![CDATA[
+    /// @"F:\tools\test\test\bin\Release\net9.0\win-x64\publish".GetClickablePath();
+    /// Output:
+    ///   F:\tools\test\test\bin\Release\net9.0\win-x64\publish 
+    /// ]]>
+    /// </code>
+    ///     </para>
+    /// </remarks>
+    /// </summary>
+    /// <param name="path">需要处理的路径</param>
+    /// <returns></returns>
+    public static string GetClickablePath(this string path) => $"\e]8;;file://\e\\{path}\e]8;;\e\\";
+
+    /// <summary>
+    /// 获取一个能在控制台中点击的相对路径,使用 [<see langword="Ctrl + 鼠标左键" />] 点击打开对应目录
+    /// <remarks>
+    ///     <para>
+    ///     使用方式:
+    ///     <code>
+    ///   <![CDATA[
+    /// @"F:\tools\test\test\bin\Release\net9.0\win-x64\publish".GetClickableRelativePath();
+    /// Output:
+    ///   bin\Release\net9.0\win-x64\publish
+    /// ]]>
+    /// </code>
+    ///     </para>
+    /// </remarks>
+    /// </summary>
+    /// <param name="path">需要处理的路径</param>
+    /// <param name="maxDeep">仅保留最后 N 层目录,默认5层,当超过最大层数后显示全路径</param>
+    /// <returns></returns>
+    public static string GetClickableRelativePath(this string path, int maxDeep = 5)
+    {
+        // 分割路径并仅保留最后 N 层目录
+        var pathParts = path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var displayPath = pathParts.Length > maxDeep ? string.Join(Path.DirectorySeparatorChar, pathParts[^maxDeep..]) : path;
+        return $"\e]8;;file://{path}\e\\{displayPath}\e]8;;\e\\";
     }
 }
