@@ -1,6 +1,6 @@
-#version: '3.4'
+#version '3.8'
 
-services:
+services:  
   garnet:
     image: ghcr.io/joesdu/garnet:latest
     environment:
@@ -19,6 +19,7 @@ services:
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=a123456
     ports:
+      - 5672:5672
       - 15672:15672
 
   aspire_dashboard:
@@ -26,27 +27,10 @@ services:
     environment:
       - TZ=Asia/Chongqing
       - DASHBOARD__OTLP__AUTHMODE=ApiKey
-      - DASHBOARD__OTLP__PRIMARYAPIKEY=${DASHBOARD_OTLP_PRIMARYAPIKEY}
+      - DASHBOARD__OTLP__PRIMARYAPIKEY=rVmuMdaqCEruWEbKANjmcIQMnKIhDiLUYSFHaZAVlMktmwDhMUAPIZyfizmoLuSwAePPVhhPigpJUIsAsPZcwfmaMnBxxRuxatrrHNSOKUxUVGFlYQtGtbqtOPasMvPd
       - DASHBOARD__TELEMETRYLIMITS__MAXLOGCOUNT=1000
       - DASHBOARD__TELEMETRYLIMITS__MAXTRACECOUNT=1000
       - DASHBOARD__TELEMETRYLIMITS__MAXMETRICSCOUNT=1000
     ports:
       - 18888:18888
       - 4317:18889
-
-  webapi.test.unit:
-    depends_on:
-      - rabbit
-      - garnet
-    environment:
-      - TZ=Asia/Chongqing
-      - ASPNETCORE_ENVIRONMENT=Development
-      - OTEL_SERVICE_NAME=EasilyNET
-      - OTEL_METRIC_EXPORT_INTERVAL=5000
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
-      - DASHBOARD_OTLP_PRIMARYAPIKEY=${DASHBOARD_OTLP_PRIMARYAPIKEY}
-      - CONNECTIONSTRINGS_MONGO=${CONNECTIONSTRINGS_MONGO}
-      - CONNECTIONSTRINGS_RABBIT=${CONNECTIONSTRINGS_RABBIT}
-      - CONNECTIONSTRINGS_GARNET=${CONNECTIONSTRINGS_GARNET}
-    ports:
-      - 8848:8080

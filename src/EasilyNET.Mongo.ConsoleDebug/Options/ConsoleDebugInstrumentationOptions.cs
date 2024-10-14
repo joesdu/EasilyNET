@@ -1,9 +1,9 @@
-namespace EasilyNET.Mongo.ConsoleDebug;
+namespace EasilyNET.Mongo.ConsoleDebug.Options;
 
 /// <summary>
 /// 选项
 /// </summary>
-public sealed class InstrumentationOptions
+public sealed class ConsoleDebugInstrumentationOptions
 {
     /// <summary>
     /// 是否启用, 默认值: <see langword="true" />

@@ -701,7 +701,11 @@ public static partial class StringExtension
     /// </summary>
     /// <param name="path">需要处理的路径</param>
     /// <returns></returns>
-    public static string GetClickablePath(this string path) => $"\e]8;;file://\e\\{path}\e]8;;\e\\";
+    public static string GetClickablePath(this string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        return $"\e]8;;file://\e\\{fullPath}\e]8;;\e\\";
+    }
 
     /// <summary>
     /// 获取一个能在控制台中点击的相对路径,使用 [<see langword="Ctrl + 鼠标左键" />] 点击打开对应目录
@@ -723,9 +727,10 @@ public static partial class StringExtension
     /// <returns></returns>
     public static string GetClickableRelativePath(this string path, int maxDeep = 5)
     {
+        var fullPath = Path.GetFullPath(path);
         // 分割路径并仅保留最后 N 层目录
-        var pathParts = path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var displayPath = pathParts.Length > maxDeep ? string.Join(Path.DirectorySeparatorChar, pathParts[^maxDeep..]) : path;
-        return $"\e]8;;file://{path}\e\\{displayPath}\e]8;;\e\\";
+        var pathParts = fullPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var displayPath = pathParts.Length > maxDeep ? string.Join(Path.DirectorySeparatorChar, pathParts[^maxDeep..]) : fullPath;
+        return $"\e]8;;file://{fullPath}\e\\{displayPath}\e]8;;\e\\";
     }
 }

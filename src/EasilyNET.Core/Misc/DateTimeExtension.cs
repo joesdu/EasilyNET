@@ -2,6 +2,7 @@
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedType.Global
 
+using System.Globalization;
 using EasilyNET.Core.Enums;
 
 namespace EasilyNET.Core.Misc;
@@ -130,13 +131,13 @@ public static class DateTimeExtension
     public static int DayNumber(this DayOfWeek day) =>
         day switch
         {
-            DayOfWeek.Friday    => 5,
-            DayOfWeek.Monday    => 1,
-            DayOfWeek.Saturday  => 6,
-            DayOfWeek.Thursday  => 4,
-            DayOfWeek.Tuesday   => 2,
+            DayOfWeek.Friday => 5,
+            DayOfWeek.Monday => 1,
+            DayOfWeek.Saturday => 6,
+            DayOfWeek.Thursday => 4,
+            DayOfWeek.Tuesday => 2,
             DayOfWeek.Wednesday => 3,
-            _                   => 7
+            _ => 7
         };
 
     /// <summary>
@@ -191,14 +192,14 @@ public static class DateTimeExtension
     {
         var name = day switch
         {
-            DayOfWeek.Monday    => "一",
-            DayOfWeek.Tuesday   => "二",
+            DayOfWeek.Monday => "一",
+            DayOfWeek.Tuesday => "二",
             DayOfWeek.Wednesday => "三",
-            DayOfWeek.Thursday  => "四",
-            DayOfWeek.Friday    => "五",
-            DayOfWeek.Saturday  => "六",
-            DayOfWeek.Sunday    => type == 1 ? "日" : "天",
-            _                   => "错误"
+            DayOfWeek.Thursday => "四",
+            DayOfWeek.Friday => "五",
+            DayOfWeek.Saturday => "六",
+            DayOfWeek.Sunday => type == 1 ? "日" : "天",
+            _ => "错误"
         };
         return $"{(type == 1 ? "周" : "星期")}{name}";
     }
@@ -215,10 +216,10 @@ public static class DateTimeExtension
         var (validateStart, validateEnd) = source;
         return (subStart < validateEnd && validateStart < subEnd) switch
         {
-            true when subStart >= validateStart && subEnd <= validateEnd                          => ETimeOverlap.完全重合,
+            true when subStart >= validateStart && subEnd <= validateEnd => ETimeOverlap.完全重合,
             true when subStart < validateStart && subEnd >= validateStart && subEnd < validateEnd => ETimeOverlap.后段重合,
-            true when subStart > validateStart && subStart < validateEnd && subEnd > validateEnd  => ETimeOverlap.前段重合,
-            _                                                                                     => ETimeOverlap.完全不重合
+            true when subStart > validateStart && subStart < validateEnd && subEnd > validateEnd => ETimeOverlap.前段重合,
+            _ => ETimeOverlap.完全不重合
         };
     }
 
@@ -263,4 +264,24 @@ public static class DateTimeExtension
         var bytes = BitConverter.GetBytes(ticks);
         return bytes;
     }
+
+    /// <summary>
+    /// 获取某日期所在周是当年的第几周
+    /// </summary>
+    /// <param name="date">日期</param>
+    /// <param name="cultureInfo">区域信息,默认:当前区域</param>
+    /// <returns></returns>
+    public static int GetWeekOfYear(this DateTime date, CultureInfo? cultureInfo = null)
+    {
+        var culture = cultureInfo ?? CultureInfo.CurrentCulture;
+        return culture.Calendar.GetWeekOfYear(date, culture.DateTimeFormat.CalendarWeekRule, culture.DateTimeFormat.FirstDayOfWeek);
+    }
+
+    /// <summary>
+    /// 获取某日期所在周是当年的第几周(当前所在区域)
+    /// </summary>
+    /// <param name="date"></param>
+    /// <param name="cultureInfo">区域信息,默认:当前区域</param>
+    /// <returns></returns>
+    public static int GetWeekOfYear(this DateOnly date, CultureInfo? cultureInfo = null) => GetWeekOfYear(date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local), cultureInfo);
 }
