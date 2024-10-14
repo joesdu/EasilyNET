@@ -1,6 +1,6 @@
 #version '3.8'
 
-services:  
+services:
   garnet:
     image: ghcr.io/joesdu/garnet:latest
     environment:

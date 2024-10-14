@@ -1,6 +1,6 @@
 #version '3.8'
 
-services:  
+services:
   mongodb_primary:
     image: bitnami/mongodb:latest
     environment:
@@ -14,7 +14,7 @@ services:
     ports:
       - 27017:27017
     volumes:
-      - 'mongodb_master_data:/bitnami/mongodb'
+      - "mongodb_master_data:/bitnami/mongodb"
 
   mongodb_secondary:
     image: bitnami/mongodb:latest
