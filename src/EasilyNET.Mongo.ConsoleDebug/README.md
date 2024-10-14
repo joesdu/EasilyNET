@@ -59,7 +59,7 @@
 
 ```csharp
 var clientSettings = MongoClientSettings.FromUrl(mongoUrl);
-clientSettings.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber());
+clientSettings.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventConsoleDebugSubscriber());
 var mongoClient = new MongoClient(clientSettings);
 ```
 
@@ -77,31 +77,25 @@ var options = new InstrumentationOptions()
     Enable = true,
     ShouldStartCollection = coll => CommandsWithCollectionName.Contains(coll)
 };
-clientSettings.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber(options));
+clientSettings.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventConsoleDebugSubscriber(options));
 var mongoClient = new MongoClient(clientSettings);
 ```
 
-- 该库参考 [SkyAPM-dotnet MongoDB](https://github.com/SkyAPM/SkyAPM-dotnet)
-- 同时参考 [Serilog.Sinks.Spectre](https://github.com/lucadecamillis/serilog-sinks-spectre)
-
-###### Seilog 配置例子
-
+- 添加 MongoDB 诊断信息输出到 OpenTelemetry
 ```csharp
-// 添加Serilog配置
-builder.Host.UseSerilog((hbc, lc) =>
+// 在上面的基础上,添加如下代码
+clientSettings.ClusterConfigurator = cb =>
 {
-    const LogEventLevel logLevel = LogEventLevel.Information;
-    lc.ReadFrom.Configuration(hbc.Configuration)
-          .MinimumLevel.Override("Microsoft", logLevel)
-          .MinimumLevel.Override("System", logLevel)
-          .Enrich.FromLogContext()
-          .WriteTo.Async(wt =>
-          {
-              wt.Debug();
-              // 输出到 Spectre.Console
-              wt.SpectreConsole();
-          });
-});
+    s.Subscribe(new ActivityEventConsoleDebugSubscriber(new()
+    {
+        Enable = true
+    }));
+    s.Subscribe(new ActivityEventDiagnosticsSubscriber(new()
+    {
+        CaptureCommandText = true
+    }));
+};}
+
 ```
 
 同时参考[MongoDB.Driver.Core.Extensions.DiagnosticSources](https://github.com/jbogard/MongoDB.Driver.Core.Extensions.DiagnosticSources)

@@ -14,21 +14,25 @@
 git config core.ignorecase false
 ```
 
-本项目使用 docker-compose 编排,用于展示项目的效果以及单独为项目启动一些服务.可通过 VS 将 docker-compose 项目设置为启动项一键启动.
-
-- 目前包含的服务列表如下:
-
-| 服务名称        | 服务描述   | 端口映射   | 镜像名称                                                 |
-| --------------- | ---------- | ---------- | -------------------------------------------------------- |
-| Garnet          | 吊打 Redis | 3278       | ghcr.io/joesdu/garnet:latest                             |
-| RabbitMQ        | 消息队列   | 15672      | ghcr.io/joesdu/rabbitmq-dlx:latest                       |
-| AspireDashboard | 可观测性   | 18888,4317 | mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest |
-
 - 使用 docker-compose 启动 MongoDB 副本集集群,使用本项目中的 yml 文件启动 MongoDB 副本集集群
 
 ```bash
 docker compose -f docker-compose.mongo.rs.yml up -d
 ```
+
+- 若要测试本项目,请启动如下服务,若想测试 MongoDB 则需启动上述 MongoDB 服务
+
+```bash
+docker compose -f docker-compose.basic.service.yml up -d
+```
+
+- 目前包含的服务列表如下:
+
+| 服务名称        | 服务描述   | 端口映射   | 镜像名称                                                 |
+| --------------- | ---------- | ---------- | -------------------------------------------------------- |
+| Garnet          | 替代 Redis | 3278       | ghcr.io/joesdu/garnet:latest                             |
+| RabbitMQ        | 消息队列   | 15672,5672 | ghcr.io/joesdu/rabbitmq-dlx:latest                       |
+| AspireDashboard | 可观测性   | 18888,4317 | mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest |
 
 EasilyNET Packages
 

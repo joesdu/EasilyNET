@@ -3,7 +3,9 @@ using EasilyNET.AutoDependencyInjection.Modules;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using WebApi.Test.Unit.Common;
 
 namespace WebApi.Test.Unit.ServiceModules;
 
@@ -15,17 +17,21 @@ internal sealed class OpenTelemetryModule : AppModule
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        var config = context.Services.GetConfiguration();
+        var otel = context.Services.GetConfiguration().GetSection("OpenTelemetry");
         var env = context.ServiceProvider?.GetRequiredService<IWebHostEnvironment>() ?? throw new("获取服务出错");
+        var resourceBuilder = ResourceBuilder.CreateDefault().AddService(Constant.InstanceName);
         context.Services.AddOpenTelemetry()
                .WithMetrics(c =>
                {
+                   c.SetResourceBuilder(resourceBuilder);
                    c.AddRuntimeInstrumentation();
+                   c.AddProcessInstrumentation();
                    c.AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel", "System.Net.Http", "WebApi.Test.Unit");
                    c.AddOtlpExporter();
                })
                .WithTracing(c =>
                {
+                   c.SetResourceBuilder(resourceBuilder);
                    if (env.IsDevelopment())
                    {
                        c.SetSampler<AlwaysOnSampler>();
@@ -33,13 +39,16 @@ internal sealed class OpenTelemetryModule : AppModule
                    c.AddAspNetCoreInstrumentation();
                    c.AddHttpClientInstrumentation();
                    c.AddGrpcClientInstrumentation();
+                   c.AddRedisInstrumentation();
+                   c.AddRabbitMQInstrumentation();
+                   c.AddMongoDBInstrumentation();
                    c.AddOtlpExporter();
                });
         context.Services.Configure<OtlpExporterOptions>(c =>
         {
-            if (!string.IsNullOrWhiteSpace(config["DASHBOARD_OTLP_PRIMARYAPIKEY"]))
+            if (!string.IsNullOrWhiteSpace(otel["DASHBOARD_OTLP_PRIMARYAPIKEY"]))
             {
-                c.Headers = $"x-otlp-api-key={config["DASHBOARD_OTLP_PRIMARYAPIKEY"]}";
+                c.Headers = $"x-otlp-api-key={otel["DASHBOARD_OTLP_PRIMARYAPIKEY"]}";
             }
         });
         context.Services.AddHealthChecks().AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
@@ -57,4 +66,9 @@ internal sealed class OpenTelemetryModule : AppModule
             Predicate = r => r.Tags.Contains("live")
         });
     }
+}
+
+static file class OpenTelemetryExtensions
+{
+    public static void AddMongoDBInstrumentation(this TracerProviderBuilder builder) => builder.AddSource("EasilyNET.Mongo.ConsoleDebug");
 }

@@ -10,10 +10,10 @@ internal sealed class GarnetCacheModule : AppModule
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        var config = context.Services.GetConfiguration();
+        var garnet = context.Services.GetConfiguration().GetConnectionString("Garnet");
         context.Services.AddStackExchangeRedisCache(c =>
         {
-            c.Configuration = config["CONNECTIONSTRINGS_GARNET"];
+            c.Configuration = garnet;
             c.InstanceName = Constant.InstanceName;
         });
         base.ConfigureServices(context);

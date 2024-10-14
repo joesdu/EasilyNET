@@ -1,7 +1,7 @@
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using EasilyNET.Mongo.AspNetCore.Serializers;
-using EasilyNET.Mongo.ConsoleDebug;
+using EasilyNET.Mongo.ConsoleDebug.Subscribers;
 using MongoDB.Driver.Linq;
 
 namespace WebApi.Test.Unit.ServiceModules;
@@ -73,10 +73,17 @@ internal sealed class MongoModule : AppModule
             c.DatabaseName = "easilynet";
             c.ClientSettings = cs =>
             {
-                cs.ClusterConfigurator = s => s.Subscribe(new ActivityEventSubscriber(new()
+                cs.ClusterConfigurator = s =>
                 {
-                    Enable = true
-                }));
+                    s.Subscribe(new ActivityEventConsoleDebugSubscriber(new()
+                    {
+                        Enable = true
+                    }));
+                    s.Subscribe(new ActivityEventDiagnosticsSubscriber(new()
+                    {
+                        CaptureCommandText = true
+                    }));
+                };
                 cs.LinqProvider = LinqProvider.V3;
                 // https://www.mongodb.com/docs/drivers/csharp/current/fundamentals/logging/#log-messages-by-category
                 //cs.LoggingSettings = new(LoggerFactory.Create(b =>

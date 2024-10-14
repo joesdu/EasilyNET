@@ -20,6 +20,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		Build.ps1 = Build.ps1
 		Directory.Build.props = Directory.Build.props
+		docker-compose.basic.service.yml = docker-compose.basic.service.yml
 		docker-compose.mongo.rs.yml = docker-compose.mongo.rs.yml
 		EasilyNET.snk = EasilyNET.snk
 		gitemoji.md = gitemoji.md
@@ -62,8 +63,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.WebCore", "src\EasilyNET.WebCore\EasilyNET.WebCore.csproj", "{8F9C18F9-A526-DCA0-597F-90D64AE5C6C2}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebApi.Test.Unit", "sample\WebApi.Test.Unit\WebApi.Test.Unit.csproj", "{9B426136-DC85-603B-94FB-F3C0B2E72713}"
-EndProject
-Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.ExpressMapper", "src\EasilyNET.ExpressMapper\EasilyNET.ExpressMapper.csproj", "{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5}"
 EndProject
@@ -139,9 +138,6 @@ Global
 		{9B426136-DC85-603B-94FB-F3C0B2E72713}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9B426136-DC85-603B-94FB-F3C0B2E72713}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9B426136-DC85-603B-94FB-F3C0B2E72713}.Release|Any CPU.Build.0 = Release|Any CPU
-		{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{771BAFD8-69AB-4F2E-9FBF-0280E83953BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5}.Release|Any CPU.ActiveCfg = Release|Any CPU

@@ -56,17 +56,18 @@ builder.Host.UseSerilog((hbc, lc) =>
           //        shared: true,
           //        rollingInterval: RollingInterval.Day)));
           wt.Console(theme: AnsiConsoleTheme.Code);
+          var otel = hbc.Configuration.GetSection("OpenTelemetry");
           wt.OpenTelemetry(c =>
           {
               c.Protocol = OtlpProtocol.Grpc;
-              c.Endpoint = hbc.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? "http://localhost:4317";
+              c.Endpoint = otel["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? "http://localhost:4317";
               c.Headers = new Dictionary<string, string>
               {
-                  ["x-otlp-api-key"] = hbc.Configuration["DASHBOARD_OTLP_PRIMARYAPIKEY"] ?? string.Empty
+                  ["x-otlp-api-key"] = otel["DASHBOARD_OTLP_PRIMARYAPIKEY"] ?? string.Empty
               };
               c.ResourceAttributes = new Dictionary<string, object>
               {
-                  ["service.name"] = hbc.Configuration["OTEL_SERVICE_NAME"] ?? Constant.InstanceName
+                  ["service.name"] = Constant.InstanceName
               };
           });
       });

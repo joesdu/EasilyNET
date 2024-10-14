@@ -1,4 +1,7 @@
-﻿namespace WebApiScalar;
+﻿// ReSharper disable UnusedMember.Global
+// ReSharper disable UnusedType.Global
+
+namespace WebApiScalar;
 
 /// <summary>
 /// Provides extension methods for mapping Scalar UI endpoints.

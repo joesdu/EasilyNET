@@ -4,6 +4,9 @@ using EasilyNET.Core.Enums;
 
 namespace MongoCRUD.Models;
 
+/// <summary>
+/// FamilyInfo
+/// </summary>
 public class FamilyInfo
 {
     /// <summary>
