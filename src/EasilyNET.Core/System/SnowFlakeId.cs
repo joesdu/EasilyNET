@@ -1,5 +1,3 @@
-using EasilyNET.Core.Threading;
-
 namespace EasilyNET.Core.System;
 
 /// <remarks>
@@ -28,7 +26,7 @@ public class SnowFlakeId(long workerId, long sequence = 0L, int clockBackwardsIn
     //最大序列号
     private const long MaxSequence = -1L ^ (-1L << SequenceBits);
 
-    private readonly SyncLock __lock = new();
+    private readonly Lock __lock = new();
 
     //最后时间
     private long _lastTimestamp = -1L;
@@ -47,7 +45,7 @@ public class SnowFlakeId(long workerId, long sequence = 0L, int clockBackwardsIn
     /// <returns></returns>
     public long NextId()
     {
-        using (__lock.Lock())
+        lock (__lock)
         {
             var timestamp = TimeGen();
             //  时钟回拨检测：超过2分钟，则强制抛出异常
