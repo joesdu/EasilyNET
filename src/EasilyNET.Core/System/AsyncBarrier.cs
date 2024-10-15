@@ -1,8 +1,6 @@
 ﻿// ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
-using EasilyNET.Core.Threading;
-
 namespace EasilyNET.Core.System;
 
 /// <summary>
@@ -45,7 +43,7 @@ namespace EasilyNET.Core.System;
 public sealed class AsyncBarrier
 {
     private readonly int participantCount;
-    private readonly SyncLock syncRoot = new();
+    private readonly Lock syncRoot = new();
     private readonly Stack<Waiter> waiters;
 
     /// <summary>
@@ -68,7 +66,7 @@ public sealed class AsyncBarrier
     /// <returns>表示异步操作的任务</returns>
     public ValueTask SignalAndWait(CancellationToken cancellationToken)
     {
-        using (syncRoot.Lock())
+        lock (syncRoot)
         {
             if (waiters.Count + 1 == participantCount)
             {
