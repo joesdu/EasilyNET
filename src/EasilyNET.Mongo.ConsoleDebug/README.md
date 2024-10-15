@@ -82,6 +82,7 @@ var mongoClient = new MongoClient(clientSettings);
 ```
 
 - 添加 MongoDB 诊断信息输出到 OpenTelemetry
+
 ```csharp
 // 在上面的基础上,添加如下代码
 clientSettings.ClusterConfigurator = cb =>

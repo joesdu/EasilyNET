@@ -19,11 +19,10 @@ internal sealed class OpenTelemetryModule : AppModule
     {
         var otel = context.Services.GetConfiguration().GetSection("OpenTelemetry");
         var env = context.ServiceProvider?.GetRequiredService<IWebHostEnvironment>() ?? throw new("获取服务出错");
-        var resourceBuilder = ResourceBuilder.CreateDefault().AddService(Constant.InstanceName);
         context.Services.AddOpenTelemetry()
+               .ConfigureResource(c => c.AddService(Constant.InstanceName))
                .WithMetrics(c =>
                {
-                   c.SetResourceBuilder(resourceBuilder);
                    c.AddRuntimeInstrumentation();
                    c.AddProcessInstrumentation();
                    c.AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel", "System.Net.Http", "WebApi.Test.Unit");
@@ -31,7 +30,6 @@ internal sealed class OpenTelemetryModule : AppModule
                })
                .WithTracing(c =>
                {
-                   c.SetResourceBuilder(resourceBuilder);
                    if (env.IsDevelopment())
                    {
                        c.SetSampler<AlwaysOnSampler>();
