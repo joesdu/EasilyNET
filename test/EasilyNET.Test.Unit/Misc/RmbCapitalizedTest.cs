@@ -12,7 +12,8 @@ public class RmbCapitalizedTest
     /// <summary>
     /// 较小值
     /// </summary>
-    [TestMethod, DataRow(1594.6589)]
+    [TestMethod]
+    [DataRow(1594.6589)]
     public void RmbCapitalizedMin(double value)
     {
         Console.WriteLine(value.ToRmb());
@@ -22,7 +23,8 @@ public class RmbCapitalizedTest
     /// <summary>
     /// 较大值
     /// </summary>
-    [TestMethod, DataRow("1594278327421378518276358712.6589")]
+    [TestMethod]
+    [DataRow("1594278327421378518276358712.6589")]
     public void RmbCapitalizedMax(string value)
     {
         Console.WriteLine(value.ToRmb());

@@ -11,7 +11,9 @@ public class CustomIntEnumeratorTest
     /// CustomIntEnumeratorExtension Test
     /// </summary>
     /// <param name="value"></param>
-    [TestMethod, DataRow(3), DataRow(5)]
+    [TestMethod]
+    [DataRow(3)]
+    [DataRow(5)]
     public void TestCustomIntEnumeratorExtension(int value)
     {
         foreach (var i in ..value)
@@ -24,7 +26,9 @@ public class CustomIntEnumeratorTest
     /// CustomIntEnumeratorExtension Test
     /// </summary>
     /// <param name="value"></param>
-    [TestMethod, DataRow(3), DataRow(5)]
+    [TestMethod]
+    [DataRow(3)]
+    [DataRow(5)]
     public void OneToValue(int value)
     {
         foreach (var i in 1..value)
@@ -37,7 +41,9 @@ public class CustomIntEnumeratorTest
     /// CustomIntEnumeratorExtension Test
     /// </summary>
     /// <param name="value"></param>
-    [TestMethod, DataRow(3), DataRow(5)]
+    [TestMethod]
+    [DataRow(3)]
+    [DataRow(5)]
     public void OnlyValue(int value)
     {
         foreach (var i in value)

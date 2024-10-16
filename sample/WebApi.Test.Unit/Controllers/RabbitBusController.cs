@@ -9,7 +9,9 @@ namespace WebApi.Test.Unit.Controllers;
 /// <summary>
 /// 消息总线测试控制器
 /// </summary>
-[ApiController, Route("api/[controller]/[action]"), ApiGroup("RabbitBus", "v1", "RabbitBus Test")]
+[ApiController]
+[Route("api/[controller]/[action]")]
+[ApiGroup("RabbitBus", "v1", "RabbitBus Test")]
 public class RabbitBusController(IBus ibus) : ControllerBase
 {
     /// <summary>

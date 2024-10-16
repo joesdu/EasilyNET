@@ -2,7 +2,6 @@ using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using EasilyNET.Mongo.AspNetCore.Serializers;
 using EasilyNET.Mongo.ConsoleDebug.Subscribers;
-using MongoDB.Driver.Linq;
 
 namespace WebApi.Test.Unit.ServiceModules;
 
@@ -26,8 +25,6 @@ internal sealed class MongoModule : AppModule
         //{
         //    Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
         //    Credential = MongoCredential.CreateCredential("admin", "guest", "guest"),
-        //    // 新版驱动使用V3版本,有可能会出现一些Linq表达式客户端函数无法执行,需要调整代码,但是工作量太大了,所以可以先使用V2兼容.
-        //    LinqProvider = LinqProvider.V3,
         //    // 对接 SkyAPM 的 MongoDB探针
         //    ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber())
         //}, c =>
@@ -64,7 +61,6 @@ internal sealed class MongoModule : AppModule
         //    };
         //    c.ClientSettings = cs =>
         //    {
-        //        cs.LinqProvider = LinqProvider.V2;
         //        cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber());
         //    };
         //});
@@ -84,14 +80,12 @@ internal sealed class MongoModule : AppModule
                         CaptureCommandText = true
                     }));
                 };
-                cs.LinqProvider = LinqProvider.V3;
                 // https://www.mongodb.com/docs/drivers/csharp/current/fundamentals/logging/#log-messages-by-category
                 //cs.LoggingSettings = new(LoggerFactory.Create(b =>
                 //{
                 //    b.AddConfiguration(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
                 //    {
                 //        //{ "LogLevel:Default", "Debug" },
-                //        //{ "LogLevel:MongoDB.SDAM", "Debug" },
                 //        { "LogLevel:MongoDB.COMMAND", "Debug" }
                 //        //{ "LogLevel:MongoDB.CONNECTION", "Debug" },
                 //        //{ "LogLevel:MongoDB.INTERNAL.*", "Debug" },

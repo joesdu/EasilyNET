@@ -9,7 +9,9 @@ namespace WebApi.Test.Unit.Controllers;
 /// <summary>
 /// KeyedServiceTest
 /// </summary>
-[Route("api/[controller]"), ApiController, ApiGroup("KeyedServiceTest", "v1", "KeyedServiceTestController")]
+[Route("api/[controller]")]
+[ApiController]
+[ApiGroup("KeyedServiceTest", "v1", "KeyedServiceTestController")]
 public class KeyedServiceTestController(IServiceProvider sp, IKeyedServiceTest kst2) : ControllerBase
 {
     /// <summary>

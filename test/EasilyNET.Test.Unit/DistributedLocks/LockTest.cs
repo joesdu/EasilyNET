@@ -2,14 +2,14 @@ using EasilyNET.MongoDistributedLock;
 using FluentAssertions;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using MongoDB.Driver.Linq;
 
 namespace EasilyNET.Test.Unit.DistributedLocks;
 
 /// <summary>
 /// 测试
 /// </summary>
-[TestClass, Ignore]
+[TestClass]
+[Ignore]
 public class LockTests
 {
     private readonly IMongoCollection<LockAcquire> _locks;
@@ -23,8 +23,7 @@ public class LockTests
         var setting = new MongoClientSettings
         {
             Servers = [new("127.0.0.1", 27018)],
-            Credential = MongoCredential.CreateCredential("admin", "guest", "guest"),
-            LinqProvider = LinqProvider.V3
+            Credential = MongoCredential.CreateCredential("admin", "guest", "guest")
         };
         var client = new MongoClient(setting);
         var db = client.GetDatabase("locks");
