@@ -10,7 +10,8 @@ namespace WebApi.Test.Unit.Controllers;
 /// <summary>
 /// 测试参数隐藏
 /// </summary>
-[Route("api/[controller]/[action]"), ApiController]
+[Route("api/[controller]/[action]")]
+[ApiController]
 public class PramsIgnoreController : ControllerBase
 {
     /// <summary>

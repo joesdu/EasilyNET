@@ -6,7 +6,9 @@ namespace WebApi.Test.Unit.Controllers;
 /// <summary>
 /// 测试HttpClient上传文件的问题复现
 /// </summary>
-[Route("api/[controller]"), ApiController, ApiGroup("GridFSTest", "v1", "HttpClientGridFSController")]
+[Route("api/[controller]")]
+[ApiController]
+[ApiGroup("GridFSTest", "v1", "HttpClientGridFSController")]
 public class HttpClientGridFSController : ControllerBase
 {
     /// <summary>

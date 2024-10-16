@@ -14,7 +14,9 @@ namespace WebApi.Test.Unit.Controllers;
 /// Mongo的数组对象操作
 /// </summary>
 /// <param name="db"></param>
-[Route("api/[controller]"), ApiController, ApiGroup("MongoTest", "v1", "MongoDB一些测试")]
+[Route("api/[controller]")]
+[ApiController]
+[ApiGroup("MongoTest", "v1", "MongoDB一些测试")]
 public class MongoArrayController(DbContext db) : ControllerBase
 {
     private readonly FilterDefinitionBuilder<FamilyInfo> _bf = Builders<FamilyInfo>.Filter;

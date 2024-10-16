@@ -13,7 +13,9 @@ namespace WebApi.Test.Unit.Controllers;
 /// <summary>
 /// 测试mongodb的一些功能
 /// </summary>
-[ApiController, Route("api/[controller]"), ApiGroup("MongoTest", "v1", "MongoDB一些测试")]
+[ApiController]
+[Route("api/[controller]")]
+[ApiGroup("MongoTest", "v1", "MongoDB一些测试")]
 public class MongoTestController(DbContext db) : ControllerBase
 {
     private readonly FilterDefinitionBuilder<MongoTest> bf = Builders<MongoTest>.Filter;
@@ -81,7 +83,8 @@ public class MongoTestController(DbContext db) : ControllerBase
     /// 测试从MongoDB中取出插入的数据,再返回到Swagger查看数据JSON转换是否正常
     /// </summary>
     /// <returns></returns>
-    [HttpGet("MongoGet"), OutputCache]
+    [HttpGet("MongoGet")]
+    [OutputCache]
     public async Task<IEnumerable<MongoTest>> MongoGet() => await db.Test.Find(bf.Empty).ToListAsync();
 
     /// <summary>

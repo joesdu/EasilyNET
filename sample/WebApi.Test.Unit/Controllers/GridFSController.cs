@@ -14,7 +14,9 @@ namespace WebApi.Test.Unit.Controllers;
 /// <summary>
 /// GridFS控制器,当引入Extension后,请使用Extension版本的API
 /// </summary>
-[ApiController, Route("api/[controller]"), ApiGroup("MongoFS", "v1", "MongoDB GridFS")]
+[ApiController]
+[Route("api/[controller]")]
+[ApiGroup("MongoFS", "v1", "MongoDB GridFS")]
 public class GridFSController(GridFSBucket bucket) : ControllerBase
 {
     /// <summary>

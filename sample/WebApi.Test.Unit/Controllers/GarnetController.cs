@@ -5,7 +5,9 @@ using StackExchange.Redis;
 namespace WebApi.Test.Unit.Controllers;
 
 /// <inheritdoc />
-[Route("api/[controller]"), ApiController, ApiGroup("GarnetTest", "v1", "Garnet的基本使用")]
+[Route("api/[controller]")]
+[ApiController]
+[ApiGroup("GarnetTest", "v1", "Garnet的基本使用")]
 public class GarnetController : ControllerBase
 {
     private readonly IDatabase _rdb;
