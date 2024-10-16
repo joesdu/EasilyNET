@@ -1,25 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    
-    <PropertyGroup>
-        <AssemblyTitle>$(PackagePrefix).Mongo.ConsoleDebug</AssemblyTitle>
-        <AssemblyName>$(PackagePrefix).Mongo.ConsoleDebug</AssemblyName>
-        <PackageId>$(PackagePrefix).Mongo.ConsoleDebug</PackageId>
-        <PackageTags>MongoDB;Diagnostics</PackageTags>
-        <PackageReleaseNotes>
-        </PackageReleaseNotes>
-        <RootNamespace>EasilyNET.Mongo.ConsoleDebug</RootNamespace>
-    </PropertyGroup>
-    
-    <PropertyGroup>
-        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug</PackageProjectUrl>
-        <Description>用来实现将命令语句输出到控制台的功能.添加Diagnostics输出到OETL</Description>
-    </PropertyGroup>
-    
-    <ItemGroup>
-        <PackageReference Include="MongoDB.Driver.Core" />
-        <PackageReference Include="Spectre.Console.Json" />
-        <PackageReference Include="System.Diagnostics.DiagnosticSource" />
-    </ItemGroup>
+
+	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).Mongo.ConsoleDebug</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).Mongo.ConsoleDebug</AssemblyName>
+		<PackageId>$(PackagePrefix).Mongo.ConsoleDebug</PackageId>
+		<PackageTags>MongoDB;Diagnostics</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.Mongo.ConsoleDebug</RootNamespace>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug</PackageProjectUrl>
+		<Description>用来实现将命令语句输出到控制台的功能.添加Diagnostics输出到OETL</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MongoDB.Driver.Core" />
+		<PackageReference Include="Spectre.Console.Json" />
+		<PackageReference Include="System.Diagnostics.DiagnosticSource" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<None Include="THIRD-PARTY-NOTICES" Pack="true" PackagePath="THIRD-PARTY-NOTICES" />

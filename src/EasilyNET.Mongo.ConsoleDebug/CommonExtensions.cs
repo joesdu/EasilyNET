@@ -30,5 +30,5 @@ internal static class CommonExtensions
     /// </summary>
     /// <typeparam name="T">类型.</typeparam>
     /// <returns>程序集版本.</returns>
-    internal static string GetVersion<T>() => typeof(T).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion.Split('+')[0];
+    internal static string GetVersion<T>() => typeof(T).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? string.Empty;
 }
