@@ -88,8 +88,6 @@ builder.Services.AddMongoContext<DbContext>(builder.Configuration, c =>
     // 通过ClientSettings来配置一些使用特殊的东西
     c.ClientSettings = cs =>
     {
-        // 新版的MongoDB驱动默认为V3,老项目会出现一些问题,可设置V2来兼容老项目
-        cs.LinqProvider = LinqProvider.V2;
         // 对接 SkyAPM 的 MongoDB探针或者别的事件订阅器
         cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber());
     };
@@ -144,8 +142,6 @@ public class EasilyNETMongoModule : AppModule
         //    // 通过ClientSettings来配置一些使用特殊的东西
         //    c.ClientSettings = cs =>
         //    {
-        //        // 新版的MongoDB驱动默认为V3,老项目会出现一些问题,可设置V2来兼容老项目
-        //        cs.LinqProvider = LinqProvider.V2;
         //        // 对接 SkyAPM 的 MongoDB探针或者别的事件订阅器
         //        cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber());
         //    };
@@ -158,8 +154,6 @@ public class EasilyNETMongoModule : AppModule
         {
             Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
             Credential = MongoCredential.CreateCredential("admin", "guest", "guest"),
-            // 新版驱动使用V3版本,有可能会出现一些Linq表达式客户端函数无法执行,需要调整代码,但是工作量太大了,所以可以先使用V2兼容.
-            LinqProvider = LinqProvider.V3,
             // 对接 SkyAPM 的 MongoDB探针
             ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber())
         }, c =>

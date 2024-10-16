@@ -78,7 +78,6 @@ public static class ServiceCollectionExtensions
         {
             c.BucketName = Constant.BucketName;
             c.ChunkSizeBytes = 1024;
-            c.DisableMD5 = true;
             c.ReadConcern = new();
             c.ReadPreference = ReadPreference.Primary;
             c.WriteConcern = WriteConcern.Unacknowledged;
