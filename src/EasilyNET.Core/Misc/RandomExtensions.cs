@@ -3,7 +3,6 @@
 
 using System.Security.Cryptography;
 
-#pragma warning disable IDE0060 // 删除未使用的参数
 #pragma warning disable IDE0048 // 为清楚起见，请添加括号
 
 namespace EasilyNET.Core.Misc;
@@ -16,14 +15,12 @@ public static class RandomExtensions
     /// <summary>
     /// 生成真正的随机数
     /// </summary>
-    /// <param name="rand"></param>
     /// <param name="startIndex">起始数,默认: 0</param>
     /// <param name="maxValue">
     ///     <see cref="int.MaxValue" />
     /// </param>
     /// <returns></returns>
-    // ReSharper disable once UnusedParameter.Global
-    public static int StrictNext(this Random rand, int startIndex = 0, int maxValue = int.MaxValue)
+    public static int StrictNext(int startIndex = 0, int maxValue = int.MaxValue)
     {
         if (startIndex > maxValue)
         {

@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.System;
+﻿using EasilyNET.Core.Threading;
 
 // ReSharper disable MethodSupportsCancellation
 

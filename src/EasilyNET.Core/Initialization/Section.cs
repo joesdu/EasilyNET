@@ -11,9 +11,9 @@ public sealed class Section
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// 节行号
+    /// 行号
     /// </summary>
-    public long Line { get; set; }
+    public int Line { get; set; }
 
     /// <summary>
     /// 键值对

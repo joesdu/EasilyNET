@@ -1,7 +1,6 @@
-// ReSharper disable UnusedType.Global
-// ReSharper disable UnusedMember.Global
-
 using System.Text.RegularExpressions;
+
+// ReSharper disable UnusedMember.Global
 
 namespace EasilyNET.Core.Misc;
 
@@ -47,9 +46,9 @@ public static partial class DoubleExtensions
     /// <returns>返回大写形式</returns>
     public static string ToRmb(this double number) => ((decimal)number).ToRmb();
 
-    [GeneratedRegex(@"((?<=-|^)[^1-9]*)|((?'z'0)[0A-E]*((?=[1-9])|(?'-z'(?=[F-L\.]|$))))|((?'b'[F-L])(?'z'0)[0A-L]*((?=[1-9])|(?'-z'(?=[\.]|$))))")]
+    [GeneratedRegex(@"((?<=-|^)[^1-9]*)|((?'z'0)[0A-E]*((?=[1-9])|(?'-z'(?=[F-L\.]|$))))|((?'b'[F-L])(?'z'0)[0A-L]*((?=[1-9])|(?'-z'(?=[\.]|$))))", RegexOptions.Compiled)]
     private static partial Regex AmountNumber();
 
-    [GeneratedRegex(".")]
+    [GeneratedRegex(".", RegexOptions.Compiled)]
     private static partial Regex ToCapitalized();
 }

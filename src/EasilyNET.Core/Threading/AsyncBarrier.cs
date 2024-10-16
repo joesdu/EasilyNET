@@ -1,11 +1,13 @@
-﻿// ReSharper disable UnusedType.Global
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+// ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
-namespace EasilyNET.Core.System;
+namespace EasilyNET.Core.Threading;
 
 /// <summary>
 /// 表示一个异步屏障,它会阻塞一组任务,直到所有任务都到达屏障,通常用于需要协调多个异步任务的场景,确保所有任务在某个同步点之前都已完成特定的工作,然后再继续执行
-/// </summary>
 /// <example>
 ///     <code>
 /// <![CDATA[
@@ -13,7 +15,7 @@ namespace EasilyNET.Core.System;
 /// var cts = new CancellationTokenSource();
 /// 
 /// // 启动三个任务，每个任务都会在屏障处等待
-/// var tasks = new List&lt;Task&gt;
+/// var tasks = new List<Task>
 /// {
 ///     Task.Run(async () =>
 ///     {
@@ -40,6 +42,7 @@ namespace EasilyNET.Core.System;
 ///   ]]>
 /// </code>
 /// </example>
+/// </summary>
 public sealed class AsyncBarrier
 {
     private readonly int participantCount;
@@ -95,4 +98,18 @@ public sealed class AsyncBarrier
 
         internal CancellationTokenRegistration CancellationRegistration => cancellationRegistration;
     }
+}
+
+/// <summary>
+/// 一个空结构体
+/// </summary>
+/// <remarks>
+/// 当泛型类型需要一个类型参数但完全不使用时,这可以节省 4 个字节,相对于 System.Object
+/// </remarks>
+internal readonly struct EmptyStruct
+{
+    /// <summary>
+    /// 获取空结构体的一个实例
+    /// </summary>
+    internal static EmptyStruct Instance => default;
 }

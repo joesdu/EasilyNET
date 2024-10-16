@@ -13,8 +13,6 @@
  * limitations under the License.
  */
 
-using System.Runtime.CompilerServices;
-using System.Security;
 using EasilyNET.Core.Misc;
 using EasilyNET.Core.Misc.Exceptions;
 
@@ -52,10 +50,6 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     {
         ArgumentNullException.ThrowIfNull(bytes, nameof(bytes));
         ArgumentExceptionExtensions.ThrowIf(() => bytes.Length != 12, "Byte array must be 12 bytes long", nameof(bytes));
-        //if (bytes.Length != 12)
-        //{
-        //    throw new ArgumentException("Byte array must be 12 bytes long", nameof(bytes));
-        //}
         FromByteArray(bytes, 0, out _a, out _b, out _c);
     }
 
@@ -185,10 +179,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     /// <returns>一个 <see cref="SnowId" /> 对象</returns>
     public static SnowId Parse(string s)
     {
-        if (string.IsNullOrWhiteSpace(s))
-        {
-            throw new ArgumentNullException(nameof(s));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(s, nameof(s));
         if (TryParse(s, out var snowId))
         {
             return snowId;
@@ -219,10 +210,8 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 
     private static long CalculateRandomValue()
     {
-        var seed = (int)DateTime.UtcNow.Ticks ^ GetMachineHash() ^ GetPid();
-        var random = new Random(seed);
-        var high = random.Next();
-        var low = random.Next();
+        var high = RandomExtensions.StrictNext();
+        var low = RandomExtensions.StrictNext();
         var combined = (long)(((ulong)(uint)high << 32) | (uint)low);
         return combined & 0xffffffffff; // low order 5 bytes
     }
@@ -240,34 +229,6 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
         var b = (int)(random >> 8);              // first 4 bytes of random
         var c = (int)(random << 24) | increment; // 5th byte of random and 3 byte increment
         return new(timestamp, b, c);
-    }
-
-    /// <summary>
-    /// 获取当前进程 ID.此方法之所以存在,是因为 CAS 在调用堆栈上的操作方式,在执行方法之前检查权限.
-    /// 因此,如果我们内联此调用,则调用方法将不会在引发异常之前执行,该异常要求在我们不一定控制更高级别进行try/catch
-    /// </summary>
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static int GetCurrentProcessId() => Environment.ProcessId;
-
-    private static int GetMachineHash()
-    {
-        // use instead of Dns.HostName so it will work offline
-        var machineName = GetMachineName();
-        return 0x00ffffff & machineName.GetHashCode(); // use first 3 bytes of hash
-    }
-
-    private static string GetMachineName() => Environment.MachineName;
-
-    private static short GetPid()
-    {
-        try
-        {
-            return (short)GetCurrentProcessId(); // use low order two bytes only
-        }
-        catch (SecurityException)
-        {
-            return 0;
-        }
     }
 
     private static int GetTimestampFromDateTime(DateTime timestamp)
@@ -289,7 +250,8 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     /// </summary>
     /// <param name="value">值(假定介于 0 和 15 之间)</param>
     /// <returns>十六进制字符</returns>
-    private static char ToHexChar(int value) => Convert.ToChar(value < 10 ? value + 48 : value + 55);
+    // private static char ToHexChar(int value) => Convert.ToChar(value < 10 ? value + 48 : value + 55); // 全大写字符
+    private static char ToHexChar(int value) => Convert.ToChar(value < 10 ? value + 48 : value + 87); // 全小写字符
 
     // public methods
     /// <summary>

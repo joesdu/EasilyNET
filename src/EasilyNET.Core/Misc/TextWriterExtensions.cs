@@ -34,13 +34,13 @@ public static class TextWriterExtensions
     /// <param name="msg"></param>
     public static async Task SafeWriteOutput(this TextWriter writer, string msg)
     {
-        using (await _lock.LockAsync())
+        using (await _lock.LockAsync().ConfigureAwait(false))
         {
             UpdateClearLine();
             if (_lastOutput != msg)
             {
                 ClearCurrentLine();
-                await writer.WriteAsync(msg);
+                await writer.WriteAsync(msg).ConfigureAwait(false);
                 _lastOutput = msg;
             }
         }
@@ -62,7 +62,7 @@ public static class TextWriterExtensions
     /// <returns></returns>
     public static async Task SafeClearCurrentLine(this TextWriter _)
     {
-        using (await _lock.LockAsync())
+        using (await _lock.LockAsync().ConfigureAwait(false))
         {
             UpdateClearLine();
             ClearCurrentLine();
@@ -85,7 +85,7 @@ public static class TextWriterExtensions
     /// <returns></returns>
     public static async Task SafeClearPreviousLine(this TextWriter _)
     {
-        using (await _lock.LockAsync())
+        using (await _lock.LockAsync().ConfigureAwait(false))
         {
             UpdateClearLine();
             ClearPreviousLine();
@@ -116,15 +116,9 @@ public static class TextWriterExtensions
     public static void WriteClickablePath(this TextWriter _, string path, bool relative = false, int deep = 5, bool newLine = false)
     {
         if (string.IsNullOrWhiteSpace(path)) return;
-        switch (newLine)
-        {
-            case true:
-                Console.WriteLine(relative ? path.GetClickableRelativePath(deep) : path.GetClickablePath());
-                break;
-            default:
-                Console.Write(relative ? path.GetClickableRelativePath(deep) : path.GetClickablePath());
-                break;
-        }
+        var outputPath = relative ? path.GetClickableRelativePath(deep) : path.GetClickablePath();
+        if (newLine) Console.WriteLine(outputPath);
+        else Console.Write(outputPath);
     }
 
     private static void UpdateClearLine()
