@@ -1,5 +1,3 @@
-using EasilyNET.Core.Language;
-
 namespace EasilyNET.Core.IdCard;
 
 /// <summary>
@@ -15,42 +13,53 @@ public static class IDCardValidation
     /// 验证身份证合理性
     /// </summary>
     /// <param name="no">身份证号码</param>
-    /// <returns></returns>
+    /// <returns>是否有效</returns>
     public static bool CheckIDCard(this string no) =>
         no.Length switch
         {
-            18 => CheckIDCard18(no.ToUpper()),
-            15 => CheckIDCard15(no.ToUpper()),
-            _  => false
+            18 => CheckIDCard18(no.AsSpan()),
+            15 => CheckIDCard15(no.AsSpan()),
+            _ => false
         };
 
     /// <summary>
-    /// <see langword="18" /> 位身份证号码验证
+    /// 18 位身份证号码验证
     /// </summary>
-    private static bool CheckIDCard18(string no)
+    private static bool CheckIDCard18(ReadOnlySpan<char> no)
     {
-        if (long.TryParse(no.Remove(17), out var n) == false || n < Math.Pow(10, 16) || long.TryParse(no.Replace('x', '0').Replace('X', '0'), out _) == false) return false; //数字验证
-        if (!address.Contains(no.Remove(2))) return false;                                                                                                                   //省份验证
-        var birth = no.Substring(6, 8).Insert(6, "-").Insert(4, "-");
-        if (!DateTime.TryParse(birth, out _)) return false; //生日验证
-        var Ai = no.Remove(17);
+        if (!IsValidNumber(no[..17], 1_0000_0000_0000_0000L)) return false;
+        if (!IsValidProvince(no[..2])) return false;
+        if (!DateTime.TryParse($"{no.Slice(6, 4)}-{no.Slice(10, 2)}-{no.Slice(12, 2)}", out _)) return false; // 生日验证
         var sum = 0;
-        foreach (var i in ..16)
+        for (var i = 0; i < 17; i++)
         {
-            sum += Wi[i] * int.Parse(Ai[i].ToString());
+            sum += Wi[i] * (no[i] - 48);
         }
-        _ = Math.DivRem(sum, 11, out var y);
+        var y = sum % 11;
         return verifyCode[y] == no[17];
     }
 
     /// <summary>
-    /// <see langword="15" /> 位身份证号码验证
+    /// 15 位身份证号码验证
     /// </summary>
-    private static bool CheckIDCard15(string no)
+    private static bool CheckIDCard15(ReadOnlySpan<char> no)
     {
-        if (long.TryParse(no, out var n) == false || n < Math.Pow(10, 14)) return false; //数字验证
-        if (!address.Contains(no.Remove(2))) return false;                               //省份验证
-        var birth = no.Substring(6, 6).Insert(4, "-").Insert(2, "-");
-        return DateTime.TryParse(birth, out _);
+        if (!IsValidNumber(no, 1_0000_0000_0000_00L)) return false;
+        return IsValidProvince(no[..2]) && DateTime.TryParse($"19{no.Slice(6, 2)}-{no.Slice(8, 2)}-{no.Slice(10, 2)}", out _); // 生日验证
     }
+
+    /// <summary>
+    /// 验证数字是否有效
+    /// </summary>
+    /// <param name="number">要验证的数字</param>
+    /// <param name="minValue">最小值</param>
+    /// <returns>是否有效</returns>
+    private static bool IsValidNumber(ReadOnlySpan<char> number, long minValue) => long.TryParse(number, out var n) && n >= minValue;
+
+    /// <summary>
+    /// 验证省份代码是否有效
+    /// </summary>
+    /// <param name="province">省份代码</param>
+    /// <returns>是否有效</returns>
+    private static bool IsValidProvince(ReadOnlySpan<char> province) => address.Contains(province.ToString());
 }

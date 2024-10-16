@@ -32,32 +32,33 @@ using EasilyNET.Core.Misc;
 namespace EasilyNET.Core.DeepCopy;
 
 /// <summary>
-/// 使用 Reflection 实现的DeepCopy,推荐用表达式树的版本
+/// 使用 Reflection 实现的深拷贝，推荐用表达式树的版本
 /// </summary>
 public static class DeepCopyByReflection
 {
     private static readonly MethodInfo? CloneMethod = typeof(object).GetMethod(nameof(MemberwiseClone), BindingFlags.NonPublic | BindingFlags.Instance);
+    private static readonly Dictionary<Type, FieldInfo[]> FieldInfoCache = [];
 
     /// <summary>
-    /// 这个函数接收一个Type类型的参数，然后检查这个类型是否为string类型，或者这个类型是否为值类型并且是原始类型。如果满足这些条件中的任何一个，那么这个函数就会返回true，否则返回false。
+    /// 检查类型是否为原始类型或字符串
     /// </summary>
-    /// <param name="type"></param>
-    /// <returns></returns>
-    private static bool IsPrimitive(this Type type) => type == typeof(string) || type.IsValueType & type.IsPrimitive;
+    /// <param name="type">要检查的类型</param>
+    /// <returns>如果是原始类型或字符串，返回 true；否则返回 false</returns>
+    private static bool IsPrimitive(this Type type) => type == typeof(string) || type is { IsValueType: true, IsPrimitive: true };
 
     /// <summary>
-    /// 使用 Reflection 实现的DeepCopy,推荐用表达式树的版本
+    /// 使用 Reflection 实现的深拷贝，推荐用表达式树的版本
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="original"></param>
-    /// <returns></returns>
+    /// <typeparam name="T">要拷贝的对象类型</typeparam>
+    /// <param name="original">要拷贝的对象</param>
+    /// <returns>拷贝后的对象</returns>
     public static T? Copy<T>(this T? original) => (T?)Copy((object?)original);
 
     /// <summary>
-    /// 使用 Reflection 实现的DeepCopy,推荐用表达式树的版本
+    /// 使用 Reflection 实现的深拷贝，推荐用表达式树的版本
     /// </summary>
-    /// <param name="originalObject"></param>
-    /// <returns></returns>
+    /// <param name="originalObject">要拷贝的对象</param>
+    /// <returns>拷贝后的对象</returns>
     public static object? Copy(this object? originalObject) => InternalCopy(originalObject, new Dictionary<object, object>(new ReferenceEqualityComparer()));
 
     private static object? InternalCopy(object? originalObject, IDictionary<object, object> visited)
@@ -69,21 +70,19 @@ public static class DeepCopyByReflection
         if (typeof(Delegate).IsAssignableFrom(typeToReflect)) return null;
         var cloneObject = CloneMethod?.Invoke(originalObject, null);
         if (cloneObject is null) return null;
+        visited.Add(originalObject, cloneObject);
         if (typeToReflect.IsArray)
         {
             var arrayType = typeToReflect.GetElementType();
-            if (arrayType is not null)
-            {
-                if (IsPrimitive(arrayType) == false)
-                {
-                    var clonedArray = (Array)cloneObject;
-                    clonedArray.ForEach((array, indices) => array.SetValue(InternalCopy(clonedArray.GetValue(indices), visited), indices));
-                }
-            }
+            if (arrayType is null || IsPrimitive(arrayType)) return cloneObject;
+            var clonedArray = (Array)cloneObject;
+            clonedArray.ForEach((array, indices) => array.SetValue(InternalCopy(clonedArray.GetValue(indices), visited), indices));
         }
-        visited.Add(originalObject, cloneObject);
-        CopyFields(originalObject, visited, cloneObject, typeToReflect);
-        RecursiveCopyBaseTypePrivateFields(originalObject, visited, cloneObject, typeToReflect);
+        else
+        {
+            CopyFields(originalObject, visited, cloneObject, typeToReflect);
+            RecursiveCopyBaseTypePrivateFields(originalObject, visited, cloneObject, typeToReflect);
+        }
         return cloneObject;
     }
 
@@ -101,10 +100,14 @@ public static class DeepCopyByReflection
         BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy,
         Func<FieldInfo, bool>? filter = null)
     {
-        foreach (var fieldInfo in typeToReflect.GetFields(bindingFlags))
+        if (!FieldInfoCache.TryGetValue(typeToReflect, out var fields))
         {
-            if (typeToReflect.Name == "Entry" && fieldInfo.Name == "value") { }
-            if (filter is not null && filter(fieldInfo) == false) continue;
+            fields = typeToReflect.GetFields(bindingFlags);
+            FieldInfoCache[typeToReflect] = fields;
+        }
+        foreach (var fieldInfo in fields)
+        {
+            if (filter is not null && !filter(fieldInfo)) continue;
             if (IsPrimitive(fieldInfo.FieldType)) continue;
             var originalFieldValue = fieldInfo.GetValue(originalObject);
             var clonedFieldValue = InternalCopy(originalFieldValue, visited);

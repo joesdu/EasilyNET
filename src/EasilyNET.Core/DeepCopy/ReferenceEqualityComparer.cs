@@ -1,8 +1,6 @@
 ﻿namespace EasilyNET.Core.DeepCopy;
 
-/// <summary>
-/// ReferenceEqualityComparer
-/// </summary>
+/// <inheritdoc />
 internal class ReferenceEqualityComparer : EqualityComparer<object?>
 {
     /// <inheritdoc />

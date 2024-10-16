@@ -1,15 +1,13 @@
 using EasilyNET.Core.Enums;
-using EasilyNET.Core.Misc;
 
+// ReSharper disable UnusedType.Global
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
-// ReSharper disable UnusedType.Global
 
 namespace EasilyNET.Core.IdCard;
 
 /// <summary>
 /// 身份证校验
-/// </summary>
 /// <example>
 ///     <code>
 /// <![CDATA[
@@ -18,6 +16,7 @@ namespace EasilyNET.Core.IdCard;
 ///  ]]>
 ///  </code>
 /// </example>
+/// </summary>
 public static class IDCardCalculate
 {
     /// <summary>
@@ -25,7 +24,7 @@ public static class IDCardCalculate
     /// </summary>
     /// <param name="no">身份证号码</param>
     /// <exception cref="ArgumentException">身份证号码不合法</exception>
-    private static void ValidateIDCard(this string no)
+    public static void ValidateIDCard(this string no)
     {
         if (no.CheckIDCard()) return;
         throw new ArgumentException($"身份证号不合法:{no}");
@@ -42,9 +41,9 @@ public static class IDCardCalculate
         no.ValidateIDCard();
         birthday = no.Length switch
         {
-            18 => $"{no.Substring(6, 4)}-{no.Substring(10, 2)}-{no.Substring(12, 2)}".ToDateTime(),
-            15 => $"19{no.Substring(6, 2)}-{no.Substring(8, 2)}-{no.Substring(10, 2)}".ToDateTime(),
-            _  => throw new("该身份证号无法正确计算出生日")
+            18 => ParseDateTime(no.AsSpan(6, 8)),
+            15 => ParseDateTime($"19{no.AsSpan(6, 6)}"),
+            _ => throw new ArgumentException("该身份证号无法正确计算出生日")
         };
     }
 
@@ -56,12 +55,12 @@ public static class IDCardCalculate
     public static EGender CalculateGender(this string no)
     {
         no.ValidateIDCard();
-        //性别代码为偶数是女性奇数为男性
+        // 性别代码为偶数是女性，奇数为男性
         return no.Length switch
         {
-            18 => int.Parse(no.Substring(14, 3)) % 2 == 0 ? EGender.女 : EGender.男,
-            15 => int.Parse(no.Substring(12, 3)) % 2 == 0 ? EGender.女 : EGender.男,
-            _  => EGender.女
+            18 => (no[16] - 48) % 2 == 0 ? EGender.女 : EGender.男,
+            15 => (no[14] - 48) % 2 == 0 ? EGender.女 : EGender.男,
+            _ => EGender.女
         };
     }
 
@@ -70,13 +69,12 @@ public static class IDCardCalculate
     /// </summary>
     /// <param name="birthday">生日(<see cref="DateOnly" />)</param>
     /// <returns>精确年龄</returns>
-    // ReSharper disable once MemberCanBePrivate.Global
     public static int CalculateAge(DateOnly birthday)
     {
         var now = DateTime.Now;
         var age = now.Year - birthday.Year;
-        //再考虑月、天的因素
-        if (now.Month < birthday.Month || now.Month != birthday.Month || now.Day >= birthday.Day) age--;
+        // 再考虑月、天的因素
+        if (now.Month < birthday.Month || (now.Month == birthday.Month && now.Day < birthday.Day)) age--;
         return age;
     }
 
@@ -96,5 +94,18 @@ public static class IDCardCalculate
     {
         no.CalculateBirthday(out DateTime date);
         birthday = DateOnly.FromDateTime(date);
+    }
+
+    /// <summary>
+    /// 解析日期字符串为 <see cref="DateTime" />
+    /// </summary>
+    /// <param name="dateSpan">日期字符串</param>
+    /// <returns>解析后的 <see cref="DateTime" /></returns>
+    private static DateTime ParseDateTime(ReadOnlySpan<char> dateSpan)
+    {
+        var year = int.Parse(dateSpan[..4]);
+        var month = int.Parse(dateSpan.Slice(4, 2));
+        var day = int.Parse(dateSpan.Slice(6, 2));
+        return new(year, month, day);
     }
 }
