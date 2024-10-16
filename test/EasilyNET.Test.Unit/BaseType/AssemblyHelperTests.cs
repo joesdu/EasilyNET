@@ -4,7 +4,7 @@ using EasilyNET.Core.Misc;
 
 // ReSharper disable UnusedMember.Local
 
-namespace EasilyNET.Test.Unit;
+namespace EasilyNET.Test.Unit.BaseType;
 
 /// <summary>
 /// AssemblyHelperTests
