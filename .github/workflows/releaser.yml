@@ -7,7 +7,7 @@ on:
 env:
   DOTNET_VERSION: "9.0.x"
   TZ: Asia/Shanghai
-  SOLUTION: EasilyNET.slnx
+  SOLUTION: EasilyNET.sln
   ARTIFACTS: ./artifacts
 jobs:
   build:

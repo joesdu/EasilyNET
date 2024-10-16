@@ -1,19 +1,25 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.34804.81
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{0C88DD14-F956-CE84-757C-A364CCF449FC}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Mongo", "Mongo", "{537BF619-5E2D-4799-D114-C1B6F4B470C9}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Framework", "Framework", "{E0AD1809-C64F-3D39-45E0-E424261CE16D}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{8D626EA8-CB54-BC41-363A-217881BEBA6E}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{1F4F8698-D875-4E8F-975A-337CB7F8D076}"
 	ProjectSection(SolutionItems) = preProject
-		src\Directory.Packages.props = src\Directory.Packages.props
+		.github\dependabot.yml = .github\dependabot.yml
+		.github\release-drafter.yml = .github\release-drafter.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ISSUE_TEMPLATE", "ISSUE_TEMPLATE", "{56627339-FF47-422E-BC6A-C612FFD84913}"
+	ProjectSection(SolutionItems) = preProject
+		.github\ISSUE_TEMPLATE\bug.yml = .github\ISSUE_TEMPLATE\bug.yml
+		.github\ISSUE_TEMPLATE\config.yml = .github\ISSUE_TEMPLATE\config.yml
+		.github\ISSUE_TEMPLATE\feature.yml = .github\ISSUE_TEMPLATE\feature.yml
+		.github\ISSUE_TEMPLATE\feedback.yml = .github\ISSUE_TEMPLATE\feedback.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{3F888370-CC1E-4CE6-82DE-B9D2233118D9}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\build_test.yml = .github\workflows\build_test.yml
+		.github\workflows\releaser.yml = .github\workflows\releaser.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{089100B1-113F-4E66-888A-E83F3999EAFD}"
@@ -30,9 +36,16 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		ToUTF8.ps1 = ToUTF8.ps1
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
+	ProjectSection(SolutionItems) = preProject
+		src\Directory.Packages.props = src\Directory.Packages.props
+	EndProjectSection
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sample", "sample", "{4F9DEAE5-078F-E77A-2E4A-FEB6FFE226FF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Test.Unit", "test\EasilyNET.Test.Unit\EasilyNET.Test.Unit.csproj", "{0946F8C0-D42D-D461-E119-5C393FC1F932}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Mongo", "Mongo", "{537BF619-5E2D-4799-D114-C1B6F4B470C9}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Mongo.AspNetCore", "src\EasilyNET.Mongo.AspNetCore\EasilyNET.Mongo.AspNetCore.csproj", "{F71CC94F-31EF-2277-8F41-D2191F2C6430}"
 EndProject
@@ -46,9 +59,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.MongoDistributedL
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.MongoGridFS.AspNetCore", "src\EasilyNET.MongoGridFS.AspNetCore\EasilyNET.MongoGridFS.AspNetCore.csproj", "{3A49CD9D-638E-DB9E-E081-02D6E570F55E}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Framework", "Framework", "{E0AD1809-C64F-3D39-45E0-E424261CE16D}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.AutoDependencyInjection.Core", "src\EasilyNET.AutoDependencyInjection.Core\EasilyNET.AutoDependencyInjection.Core.csproj", "{625558AF-C2F2-5E54-7C76-DC0C775AC1B5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.AutoDependencyInjection", "src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj", "{7903F7EA-4B8E-053B-5C04-24EBD8CC9F4B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.ExpressMapper", "src\EasilyNET.ExpressMapper\EasilyNET.ExpressMapper.csproj", "{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.RabbitBus.AspNetCore", "src\EasilyNET.RabbitBus.AspNetCore\EasilyNET.RabbitBus.AspNetCore.csproj", "{BA820B73-95D9-1ADF-EC95-473A11F617DF}"
 EndProject
@@ -56,37 +73,19 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.RabbitBus.Core", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Security", "src\EasilyNET.Security\EasilyNET.Security.csproj", "{953EDA65-19AC-5098-FBB0-8C096AC84562}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{8D626EA8-CB54-BC41-363A-217881BEBA6E}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.Core", "src\EasilyNET.Core\EasilyNET.Core.csproj", "{FDFFD034-8B7F-6314-9195-AF1A53113284}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.WebCore.Swagger", "src\EasilyNET.WebCore.Swagger\EasilyNET.WebCore.Swagger.csproj", "{7E493CA2-CB0C-77E0-B442-5ED204493F13}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasilyNET.WebCore", "src\EasilyNET.WebCore\EasilyNET.WebCore.csproj", "{8F9C18F9-A526-DCA0-597F-90D64AE5C6C2}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{0C88DD14-F956-CE84-757C-A364CCF449FC}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebApi.Test.Unit", "sample\WebApi.Test.Unit\WebApi.Test.Unit.csproj", "{9B426136-DC85-603B-94FB-F3C0B2E72713}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.ExpressMapper", "src\EasilyNET.ExpressMapper\EasilyNET.ExpressMapper.csproj", "{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.Core.Benchmark", "test\EasilyNET.Core.Benchmark\EasilyNET.Core.Benchmark.csproj", "{5BE6F704-9ADC-4CB1-B7B7-54ED18B35BE8}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{1F4F8698-D875-4E8F-975A-337CB7F8D076}"
-	ProjectSection(SolutionItems) = preProject
-		.github\dependabot.yml = .github\dependabot.yml
-		.github\release-drafter.yml = .github\release-drafter.yml
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{3F888370-CC1E-4CE6-82DE-B9D2233118D9}"
-	ProjectSection(SolutionItems) = preProject
-		.github\workflows\build_test.yml = .github\workflows\build_test.yml
-		.github\workflows\releaser.yml = .github\workflows\releaser.yml
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ISSUE_TEMPLATE", "ISSUE_TEMPLATE", "{56627339-FF47-422E-BC6A-C612FFD84913}"
-	ProjectSection(SolutionItems) = preProject
-		.github\ISSUE_TEMPLATE\bug.yml = .github\ISSUE_TEMPLATE\bug.yml
-		.github\ISSUE_TEMPLATE\config.yml = .github\ISSUE_TEMPLATE\config.yml
-		.github\ISSUE_TEMPLATE\feature.yml = .github\ISSUE_TEMPLATE\feature.yml
-		.github\ISSUE_TEMPLATE\feedback.yml = .github\ISSUE_TEMPLATE\feedback.yml
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -24,7 +24,7 @@ function Exec {
 # 尝试从环境变量中获取 SOLUTION，如果不存在则使用默认值
 $SOLUTION = $env:SOLUTION
 if (-not $SOLUTION) {
-  $SOLUTION = "EasilyNET.slnx"
+  $SOLUTION = "EasilyNET.sln"
 }
 $ARTIFACTS = $env:ARTIFACTS
 if (-not $ARTIFACTS) {
