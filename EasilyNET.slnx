@@ -26,6 +26,7 @@
     <File Path="LICENSE" />
     <File Path="Push.ps1" />
     <File Path="README.md" />
+    <File Path="Test.ps1" />
     <File Path="ToUTF8.ps1" />
   </Folder>
   <Folder Name="/src/">
