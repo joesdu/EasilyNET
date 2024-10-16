@@ -40,7 +40,11 @@
 		<VersionMinor>$([System.DateTime]::Now.ToString("yy"))</VersionMinor>
 		<VersionBuild>$([System.DateTime]::Now.ToString("MMdd"))</VersionBuild>
 		<VersionRevision>$([System.DateTime]::Now.ToString("HHmm").Substring(0, 3).TrimStart('0'))</VersionRevision>
-		<Version>$(VersionMajor).$(VersionMinor).$(VersionBuild).$(VersionRevision)</Version>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<!-- 从环境变量中获取版本号 -->
+		<Version>$([System.Environment]::GetEnvironmentVariable('EASILYNET_VERSION'))</Version>
 		<FileVersion>$(Version)</FileVersion>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
 		<AssemblyInformationalVersion>$(Version)</AssemblyInformationalVersion>

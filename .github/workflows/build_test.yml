@@ -1,4 +1,4 @@
-name: Build Test
+name: Build & Test
 
 on:
   #push:
@@ -19,6 +19,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Get the latest tag
+        id: get_tag
+        run: echo "EASILYNET_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Display the latest tag
+        run: echo $EASILYNET_VERSION
+
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:

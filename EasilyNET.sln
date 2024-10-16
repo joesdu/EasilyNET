@@ -68,6 +68,26 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.ExpressMapper", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.Core.Benchmark", "test\EasilyNET.Core.Benchmark\EasilyNET.Core.Benchmark.csproj", "{5BE6F704-9ADC-4CB1-B7B7-54ED18B35BE8}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{1F4F8698-D875-4E8F-975A-337CB7F8D076}"
+	ProjectSection(SolutionItems) = preProject
+		.github\dependabot.yml = .github\dependabot.yml
+		.github\release-drafter.yml = .github\release-drafter.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{3F888370-CC1E-4CE6-82DE-B9D2233118D9}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\build_test.yml = .github\workflows\build_test.yml
+		.github\workflows\releaser.yml = .github\workflows\releaser.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ISSUE_TEMPLATE", "ISSUE_TEMPLATE", "{56627339-FF47-422E-BC6A-C612FFD84913}"
+	ProjectSection(SolutionItems) = preProject
+		.github\ISSUE_TEMPLATE\bug.yml = .github\ISSUE_TEMPLATE\bug.yml
+		.github\ISSUE_TEMPLATE\config.yml = .github\ISSUE_TEMPLATE\config.yml
+		.github\ISSUE_TEMPLATE\feature.yml = .github\ISSUE_TEMPLATE\feature.yml
+		.github\ISSUE_TEMPLATE\feedback.yml = .github\ISSUE_TEMPLATE\feedback.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -172,6 +192,8 @@ Global
 		{9B426136-DC85-603B-94FB-F3C0B2E72713} = {4F9DEAE5-078F-E77A-2E4A-FEB6FFE226FF}
 		{E87E72BC-9A6D-4D78-86E4-6C65D79B0FC5} = {E0AD1809-C64F-3D39-45E0-E424261CE16D}
 		{5BE6F704-9ADC-4CB1-B7B7-54ED18B35BE8} = {0C88DD14-F956-CE84-757C-A364CCF449FC}
+		{3F888370-CC1E-4CE6-82DE-B9D2233118D9} = {1F4F8698-D875-4E8F-975A-337CB7F8D076}
+		{56627339-FF47-422E-BC6A-C612FFD84913} = {1F4F8698-D875-4E8F-975A-337CB7F8D076}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BF2C0069-ED43-44A1-A66C-2CC1B62E3EA3}
