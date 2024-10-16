@@ -21,7 +21,7 @@ function Exec {
   }
 }
 
-$solution = "EasilyNET.sln"
+$solution = "EasilyNET.slnx"
 $artifacts = ".\artifacts"
 
 if (Test-Path $artifacts) { Remove-Item $artifacts -Force -Recurse }

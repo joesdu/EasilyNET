@@ -39,9 +39,12 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
       - name: Restore dependencies
         run: dotnet restore ${{ env.SOLUTION }}
+
       - name: Build
         run: dotnet build ${{ env.SOLUTION }} --no-restore
+
       - name: Test
         run: dotnet test ${{ env.SOLUTION }} --no-build --verbosity normal

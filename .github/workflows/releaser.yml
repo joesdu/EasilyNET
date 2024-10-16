@@ -17,13 +17,31 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Get the latest tag for push events
+        if: github.event_name == 'push'
+        id: get_tag_push
+        run: echo "EASILYNET_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Get the latest tag for pull request events
+        if: github.event_name == 'pull_request'
+        id: get_tag_pr
+        run: |
+          TAG=$(git describe --tags --abbrev=0)
+          echo "EASILYNET_VERSION=$TAG" >> $GITHUB_ENV
+
+      - name: Display the latest tag
+        run: echo $EASILYNET_VERSION
+
       - name: Setup .Net SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
       - name: Build and Test
         run: ./Build.ps1
         shell: pwsh
+
       - name: Push to NuGet
         env:
           NUGET_URL: ${{ vars.NUGET_URL }}
