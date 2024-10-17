@@ -37,8 +37,8 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         if (headers is not null && headers.Count is not 0) properties.Headers = headers;
         if (exc is not { WorkModel: EModel.None })
         {
-            var exchange_args = @event.GetExchangeArgAttributes();
-            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, arguments: exchange_args);
+            var exchangeArgs = @event.GetExchangeArgAttributes();
+            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, arguments: exchangeArgs);
         }
         // 在发布事件前检查是否已经取消发布
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
@@ -76,17 +76,17 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         }
         else
         {
-            properties.Headers?.Add("x-delay", ttl);
+            properties.Headers = new Dictionary<string, object?> { { "x-delay", ttl } };
         }
         // x-delayed-type 必须加
-        var exc_args = @event.GetExchangeArgAttributes();
-        if (exc_args is not null)
+        var excArgs = @event.GetExchangeArgAttributes();
+        if (excArgs is not null)
         {
-            var xDelayedType = exc_args.TryGetValue("x-delayed-type", out var delayedType);
-            exc_args["x-delayed-type"] = !xDelayedType || delayedType is null ? "direct" : delayedType;
+            var xDelayedType = excArgs.TryGetValue("x-delayed-type", out var delayedType);
+            excArgs["x-delayed-type"] = !xDelayedType || delayedType is null ? "direct" : delayedType;
         }
         //创建延时交换机,type类型为x-delayed-message
-        await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, false, exc_args);
+        await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, false, excArgs);
         // 在发布事件前检查是否已经取消发布
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
         var body = serializer.Serialize(@event, @event.GetType());
@@ -139,20 +139,20 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
     {
         logger.LogTrace("创建消费者通道");
         var channel = await conn.GetChannel();
-        var queue_args = @event.GetQueueArgAttributes();
+        var queueArgs = @event.GetQueueArgAttributes();
         if (exc is not { WorkModel: EModel.None })
         {
-            var exchange_args = @event.GetExchangeArgAttributes();
-            if (exchange_args is not null)
+            var exchangeArgs = @event.GetExchangeArgAttributes();
+            if (exchangeArgs is not null)
             {
-                var success = exchange_args.TryGetValue("x-delayed-type", out _);
-                if (!success && exc is { WorkModel: EModel.Delayed }) exchange_args.Add("x-delayed-type", "direct"); //x-delayed-type必须加
+                var success = exchangeArgs.TryGetValue("x-delayed-type", out _);
+                if (!success && exc is { WorkModel: EModel.Delayed }) exchangeArgs.Add("x-delayed-type", "direct"); //x-delayed-type必须加
             }
             //创建交换机
-            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, false, exchange_args);
+            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, false, exchangeArgs);
         }
         //创建队列
-        await channel.QueueDeclareAsync(exc.Queue, true, false, false, queue_args);
+        await channel.QueueDeclareAsync(exc.Queue, true, false, false, queueArgs);
         channel.CallbackExceptionAsync += async (_, ea) =>
         {
             logger.LogWarning(ea.Exception, "重新创建消费者通道");

@@ -8,8 +8,8 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <inheritdoc />
 internal sealed class SubscriptionsManager : ISubscriptionsManager
 {
-    private readonly ConcurrentDictionary<string, IList<Type>> _delayedHandlers = [];
-    private readonly ConcurrentDictionary<string, IList<Type>> _normalHandlers = [];
+    private readonly ConcurrentDictionary<string, ConcurrentBag<Type>> _delayedHandlers = new();
+    private readonly ConcurrentDictionary<string, ConcurrentBag<Type>> _normalHandlers = new();
 
     public void AddSubscription(Type eventType, EKindOfHandler handleKind, IList<TypeInfo> handlerTypes)
     {
@@ -21,9 +21,9 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
     {
         return handleKind switch
         {
-            EKindOfHandler.Normal  => _normalHandlers.GetValueOrDefault(name, []),
+            EKindOfHandler.Normal => _normalHandlers.GetValueOrDefault(name, []),
             EKindOfHandler.Delayed => _delayedHandlers.GetValueOrDefault(name, []),
-            _                      => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
         };
     }
 
@@ -31,9 +31,9 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
     {
         return handleKind switch
         {
-            EKindOfHandler.Normal  => _normalHandlers.ContainsKey(name),
+            EKindOfHandler.Normal => _normalHandlers.ContainsKey(name),
             EKindOfHandler.Delayed => _delayedHandlers.ContainsKey(name),
-            _                      => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
         };
     }
 
@@ -47,20 +47,16 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
     {
         var handlersDict = handleKind switch
         {
-            EKindOfHandler.Normal  => _normalHandlers,
+            EKindOfHandler.Normal => _normalHandlers,
             EKindOfHandler.Delayed => _delayedHandlers,
-            _                      => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
         };
-        if (!handlersDict.ContainsKey(name))
-        {
-            handlersDict.TryAdd(name, []);
-        }
-        var handlers = handlersDict[name];
+        var handlers = handlersDict.GetOrAdd(name, _ => []);
         foreach (var handlerType in handlerTypes)
         {
             if (handlers.Contains(handlerType))
             {
-                throw new($"Handler type already registered for '{name}'");
+                throw new InvalidOperationException($"Handler type already registered for '{name}'");
             }
             handlers.Add(handlerType);
         }
