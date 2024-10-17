@@ -18,7 +18,7 @@ public static class Sm4Crypt
     /// <param name="hexString">密钥是否是十六进制</param>
     /// <param name="plainText">二进制格式加密的内容</param>
     /// <returns>返回二进制格式密文</returns>
-    public static byte[] EncryptECB(string secretKey, bool hexString, byte[] plainText)
+    public static byte[] EncryptECB(string secretKey, bool hexString, ReadOnlySpan<byte> plainText)
     {
         var ctx = new Sm4Context
         {
@@ -38,7 +38,7 @@ public static class Sm4Crypt
     /// <param name="hexString">密钥是否是十六进制</param>
     /// <param name="cipherBytes">二进制格式密文</param>
     /// <returns>二进制格式明文</returns>
-    public static byte[] DecryptECB(string secretKey, bool hexString, byte[] cipherBytes)
+    public static byte[] DecryptECB(string secretKey, bool hexString, ReadOnlySpan<byte> cipherBytes)
     {
         var ctx = new Sm4Context
         {
@@ -59,25 +59,15 @@ public static class Sm4Crypt
     /// <param name="iv"></param>
     /// <param name="plainText">二进制格式明文</param>
     /// <returns>返回二进制密文数组</returns>
-    public static byte[] EncryptCBC(string secretKey, bool hexString, string iv, byte[] plainText)
+    public static byte[] EncryptCBC(string secretKey, bool hexString, string iv, ReadOnlySpan<byte> plainText)
     {
         var ctx = new Sm4Context
         {
             IsPadding = true,
             Mode = ESm4Model.Encrypt
         };
-        byte[] keyBytes;
-        byte[] ivBytes;
-        if (hexString)
-        {
-            keyBytes = Hex.Decode(secretKey);
-            ivBytes = Hex.Decode(iv);
-        }
-        else
-        {
-            keyBytes = Encoding.UTF8.GetBytes(secretKey);
-            ivBytes = Encoding.UTF8.GetBytes(iv);
-        }
+        var keyBytes = hexString ? Hex.Decode(secretKey) : Encoding.UTF8.GetBytes(secretKey);
+        var ivBytes = hexString ? Hex.Decode(iv) : Encoding.UTF8.GetBytes(iv);
         var sm4 = new Sm4();
         sm4.SetKeyEnc(ctx, keyBytes);
         return sm4.CBC(ctx, ivBytes, plainText);
@@ -91,25 +81,15 @@ public static class Sm4Crypt
     /// <param name="iv"></param>
     /// <param name="cipherText">二进制格式密文</param>
     /// <returns>返回二进制格式明文</returns>
-    public static byte[] DecryptCBC(string secretKey, bool hexString, string iv, byte[] cipherText)
+    public static byte[] DecryptCBC(string secretKey, bool hexString, string iv, ReadOnlySpan<byte> cipherText)
     {
         var ctx = new Sm4Context
         {
             IsPadding = true,
             Mode = ESm4Model.Decrypt
         };
-        byte[] keyBytes;
-        byte[] ivBytes;
-        if (hexString)
-        {
-            keyBytes = Hex.Decode(secretKey);
-            ivBytes = Hex.Decode(iv);
-        }
-        else
-        {
-            keyBytes = Encoding.UTF8.GetBytes(secretKey);
-            ivBytes = Encoding.UTF8.GetBytes(iv);
-        }
+        var keyBytes = hexString ? Hex.Decode(secretKey) : Encoding.UTF8.GetBytes(secretKey);
+        var ivBytes = hexString ? Hex.Decode(iv) : Encoding.UTF8.GetBytes(iv);
         var sm4 = new Sm4();
         sm4.SetKeyDec(ctx, keyBytes);
         return sm4.CBC(ctx, ivBytes, cipherText);

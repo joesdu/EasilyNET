@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Attributes;
@@ -8,6 +9,10 @@ namespace EasilyNET.RabbitBus.AspNetCore.Extensions;
 
 internal static class EventExtension
 {
+    private static readonly ConcurrentDictionary<Type, IDictionary<string, object?>?> HeaderAttributesCache = new();
+    private static readonly ConcurrentDictionary<Type, IDictionary<string, object?>?> ExchangeArgAttributesCache = new();
+    private static readonly ConcurrentDictionary<Type, IDictionary<string, object?>?> QueueArgAttributesCache = new();
+
     /// <summary>
     /// 获取Header的属性
     /// </summary>
@@ -16,8 +21,7 @@ internal static class EventExtension
     internal static IDictionary<string, object?>? GetHeaderAttributes(this IEvent @event)
     {
         var type = @event.GetType();
-        var rabbitHeaderAttributes = type.GetCustomAttributes<HeaderAttribute>();
-        return RabbitDictionariesByDic(rabbitHeaderAttributes);
+        return HeaderAttributesCache.GetOrAdd(type, t => RabbitDictionariesByDic(t.GetCustomAttributes<HeaderAttribute>()));
     }
 
     /// <summary>
@@ -28,8 +32,7 @@ internal static class EventExtension
     internal static IDictionary<string, object?>? GetExchangeArgAttributes(this IEvent @event)
     {
         var type = @event.GetType();
-        var exchangeArgs = type.GetCustomAttributes<ExchangeArgAttribute>();
-        return RabbitDictionariesByDic(exchangeArgs);
+        return ExchangeArgAttributesCache.GetOrAdd(type, t => RabbitDictionariesByDic(t.GetCustomAttributes<ExchangeArgAttribute>()));
     }
 
     /// <summary>
@@ -39,8 +42,7 @@ internal static class EventExtension
     /// <returns></returns>
     internal static IDictionary<string, object?>? GetExchangeArgAttributes(this Type eventType)
     {
-        var exchangeArgs = eventType.GetCustomAttributes<ExchangeArgAttribute>();
-        return RabbitDictionariesByDic(exchangeArgs);
+        return ExchangeArgAttributesCache.GetOrAdd(eventType, t => RabbitDictionariesByDic(t.GetCustomAttributes<ExchangeArgAttribute>()));
     }
 
     /// <summary>
@@ -51,8 +53,7 @@ internal static class EventExtension
     internal static IDictionary<string, object?>? GetQueueArgAttributes(this IEvent @event)
     {
         var type = @event.GetType();
-        var queueArgs = type.GetCustomAttributes<QueueArgAttribute>();
-        return RabbitDictionariesByDic(queueArgs);
+        return QueueArgAttributesCache.GetOrAdd(type, t => RabbitDictionariesByDic(t.GetCustomAttributes<QueueArgAttribute>()));
     }
 
     /// <summary>
@@ -62,8 +63,7 @@ internal static class EventExtension
     /// <returns></returns>
     internal static IDictionary<string, object?>? GetQueueArgAttributes(this Type eventType)
     {
-        var queueArgs = eventType.GetCustomAttributes<QueueArgAttribute>();
-        return RabbitDictionariesByDic(queueArgs);
+        return QueueArgAttributesCache.GetOrAdd(eventType, t => RabbitDictionariesByDic(t.GetCustomAttributes<QueueArgAttribute>()));
     }
 
     /// <summary>

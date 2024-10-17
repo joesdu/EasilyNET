@@ -17,7 +17,7 @@ public static class Rc4Crypt
     /// <param name="data">待解密数据</param>
     /// <param name="key">密钥</param>
     /// <returns></returns>
-    public static byte[] Decrypt(IEnumerable<byte> data, byte[] key) => Encrypt(data, key);
+    public static byte[] Decrypt(ReadOnlySpan<byte> data, ReadOnlySpan<byte> key) => Encrypt(data, key);
 
     /// <summary>
     /// RC4加密
@@ -25,30 +25,35 @@ public static class Rc4Crypt
     /// <param name="data">待加密数据</param>
     /// <param name="key">密钥</param>
     /// <returns></returns>
-    public static byte[] Encrypt(IEnumerable<byte> data, byte[] key)
+    public static byte[] Encrypt(ReadOnlySpan<byte> data, ReadOnlySpan<byte> key)
     {
-        var s = EncryptInit(key);
+        Span<byte> s = stackalloc byte[256];
+        EncryptInit(key, s);
         var i = 0;
         var j = 0;
-        return data.Select(b =>
+        var result = new byte[data.Length];
+        for (var k = 0; k < data.Length; k++)
         {
             i = (i + 1) & 255;
             j = (j + s[i]) & 255;
             Swap(s, i, j);
-            return (byte)(b ^ s[(s[i] + s[j]) & 255]);
-        }).ToArray();
+            result[k] = (byte)(data[k] ^ s[(s[i] + s[j]) & 255]);
+        }
+        return result;
     }
 
-    private static byte[] EncryptInit(byte[] key)
+    private static void EncryptInit(ReadOnlySpan<byte> key, Span<byte> s)
     {
-        var s = Enumerable.Range(0, 256).Select(i => (byte)i).ToArray();
+        for (var i = 0; i < 256; i++)
+        {
+            s[i] = (byte)i;
+        }
         for (int i = 0, j = 0; i < 256; i++)
         {
             j = (j + key[i % key.Length] + s[i]) & 255;
             Swap(s, i, j);
         }
-        return s;
     }
 
-    private static void Swap(byte[] s, int i, int j) => (s[i], s[j]) = (s[j], s[i]);
+    private static void Swap(Span<byte> s, int i, int j) => (s[i], s[j]) = (s[j], s[i]);
 }

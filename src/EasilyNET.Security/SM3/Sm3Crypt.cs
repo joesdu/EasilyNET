@@ -30,12 +30,12 @@ public static class Sm3Crypt
     /// </summary>
     /// <param name="data"></param>
     /// <returns></returns>
-    public static byte[] Signature(byte[] data)
+    public static byte[] Signature(ReadOnlySpan<byte> data)
     {
-        var md = new byte[32];
+        Span<byte> md = stackalloc byte[32];
         var sm3 = new SM3Digest();
-        sm3.BlockUpdate(data, 0, data.Length);
-        sm3.DoFinal(md, 0);
-        return md;
+        sm3.BlockUpdate(data);
+        sm3.DoFinal(md);
+        return md.ToArray();
     }
 }

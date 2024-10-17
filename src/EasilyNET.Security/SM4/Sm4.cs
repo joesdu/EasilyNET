@@ -57,7 +57,7 @@ internal sealed class Sm4
     /// <param name="b"></param>
     /// <param name="i"></param>
     /// <returns></returns>
-    private static long GetULongByBe(byte[] b, int i) => ((long)(b[i] & 0xff) << 24) | (uint)((b[i + 1] & 0xff) << 16) | (uint)((b[i + 2] & 0xff) << 8) | (b[i + 3] & 0xff & 0xffffffffL);
+    private static long GetULongByBe(ReadOnlySpan<byte> b, int i) => ((long)(b[i] & 0xff) << 24) | (uint)((b[i + 1] & 0xff) << 16) | (uint)((b[i + 2] & 0xff) << 8) | (b[i + 3] & 0xff & 0xffffffffL);
 
     /// <summary>
     /// 解密 非线性τ函数B=τ(A)
@@ -65,7 +65,7 @@ internal sealed class Sm4
     /// <param name="n"></param>
     /// <param name="b"></param>
     /// <param name="i"></param>
-    private static void PutULongToBe(long n, byte[] b, int i)
+    private static void PutULongToBe(long n, Span<byte> b, int i)
     {
         b[i] = (byte)(int)(0xFF & (n >> 24));
         b[i + 1] = (byte)(int)(0xFF & (n >> 16));
@@ -104,8 +104,8 @@ internal sealed class Sm4
     /// <returns></returns>
     private long Lt(long ka)
     {
-        var a = new byte[4];
-        var b = new byte[4];
+        Span<byte> a = stackalloc byte[4];
+        Span<byte> b = stackalloc byte[4];
         PutULongToBe(ka, a, 0);
         b[0] = SBox(a[0]);
         b[1] = SBox(a[1]);
@@ -133,8 +133,8 @@ internal sealed class Sm4
     /// <returns></returns>
     private long CalcRK(long ka)
     {
-        var a = new byte[4];
-        var b = new byte[4];
+        Span<byte> a = stackalloc byte[4];
+        Span<byte> b = stackalloc byte[4];
         PutULongToBe(ka, a, 0);
         b[0] = SBox(a[0]);
         b[1] = SBox(a[1]);
@@ -149,10 +149,10 @@ internal sealed class Sm4
     /// </summary>
     /// <param name="SK"></param>
     /// <param name="key"></param>
-    private void SetKey(long[] SK, byte[] key)
+    private void SetKey(long[] SK, ReadOnlySpan<byte> key)
     {
-        var MK = new long[4];
-        var k = new long[36];
+        Span<long> MK = stackalloc long[4];
+        Span<long> k = stackalloc long[36];
         var i = 0;
         MK[0] = GetULongByBe(key, 0);
         MK[1] = GetULongByBe(key, 4);
@@ -175,10 +175,10 @@ internal sealed class Sm4
     /// <param name="sk">轮密钥</param>
     /// <param name="input">输入分组的密文</param>
     /// <param name="output">输出的对应的分组明文</param>
-    private void OneRound(long[] sk, byte[] input, byte[] output)
+    private void OneRound(long[] sk, ReadOnlySpan<byte> input, Span<byte> output)
     {
         var i = 0;
-        var ul_buf = new long[36];
+        Span<long> ul_buf = stackalloc long[36];
         ul_buf[0] = GetULongByBe(input, 0);
         ul_buf[1] = GetULongByBe(input, 4);
         ul_buf[2] = GetULongByBe(input, 8);
@@ -200,14 +200,14 @@ internal sealed class Sm4
     /// <param name="input"></param>
     /// <param name="mode">1表示加密，0表示解密</param>
     /// <returns></returns>
-    private static byte[] Padding(byte[] input, ESm4Model mode)
+    private static byte[] Padding(ReadOnlySpan<byte> input, ESm4Model mode)
     {
         byte[] ret;
         if (mode is ESm4Model.Encrypt)
         {
             var p = 16 - input.Length % 16;
             ret = new byte[input.Length + p];
-            Array.Copy(input, 0, ret, 0, input.Length);
+            input.CopyTo(ret);
             for (var i = 0; i < p; i++)
             {
                 ret[input.Length + i] = (byte)p;
@@ -217,7 +217,7 @@ internal sealed class Sm4
         {
             int p = input[^1];
             ret = new byte[input.Length - p];
-            Array.Copy(input, 0, ret, 0, input.Length - p);
+            input[..^p].CopyTo(ret);
         }
         return ret;
     }
@@ -227,7 +227,7 @@ internal sealed class Sm4
     /// </summary>
     /// <param name="ctx"></param>
     /// <param name="key"></param>
-    internal void SetKeyEnc(Sm4Context ctx, byte[] key)
+    internal void SetKeyEnc(Sm4Context ctx, ReadOnlySpan<byte> key)
     {
         ctx.Mode = ESm4Model.Encrypt;
         SetKey(ctx.Key, key);
@@ -238,7 +238,7 @@ internal sealed class Sm4
     /// </summary>
     /// <param name="ctx"></param>
     /// <param name="key"></param>
-    internal void SetKeyDec(Sm4Context ctx, byte[] key)
+    internal void SetKeyDec(Sm4Context ctx, ReadOnlySpan<byte> key)
     {
         ctx.Mode = ESm4Model.Decrypt;
         SetKey(ctx.Key, key);
@@ -248,7 +248,7 @@ internal sealed class Sm4
         }
     }
 
-    internal byte[] ECB(Sm4Context ctx, byte[] input)
+    internal byte[] ECB(Sm4Context ctx, ReadOnlySpan<byte> input)
     {
         if (ctx is { IsPadding: true, Mode: ESm4Model.Encrypt })
         {
@@ -256,15 +256,15 @@ internal sealed class Sm4
         }
         var length = input.Length;
         var bins = new byte[length];
-        Array.Copy(input, 0, bins, 0, length);
+        input.CopyTo(bins);
         var bous = new byte[length];
+        Span<byte> inBytes = stackalloc byte[16];
+        Span<byte> outBytes = stackalloc byte[16];
         for (var i = 0; length > 0; length -= 16, i++)
         {
-            var inBytes = new byte[16];
-            var outBytes = new byte[16];
-            Array.Copy(bins, i * 16, inBytes, 0, length > 16 ? 16 : length);
+            input.Slice(i * 16, length > 16 ? 16 : length).CopyTo(inBytes);
             OneRound(ctx.Key, inBytes, outBytes);
-            Array.Copy(outBytes, 0, bous, i * 16, length > 16 ? 16 : length);
+            outBytes.CopyTo(bous.AsSpan(i * 16));
         }
         if (ctx is { IsPadding: true, Mode: ESm4Model.Decrypt })
         {
@@ -273,28 +273,28 @@ internal sealed class Sm4
         return bous;
     }
 
-    internal byte[] CBC(Sm4Context ctx, byte[] iv, byte[] input)
+    internal byte[] CBC(Sm4Context ctx, ReadOnlySpan<byte> iv, ReadOnlySpan<byte> input)
     {
         if (ctx is { IsPadding: true, Mode: ESm4Model.Encrypt }) input = Padding(input, ESm4Model.Encrypt);
         var length = input.Length;
         var bins = new byte[length];
-        Array.Copy(input, 0, bins, 0, length);
+        input.CopyTo(bins);
         var bousList = new List<byte>();
+        Span<byte> inBytes = stackalloc byte[16];
+        Span<byte> outBytes = stackalloc byte[16];
+        Span<byte> out1 = stackalloc byte[16];
         int i;
         if (ctx.Mode is ESm4Model.Encrypt)
         {
             for (var j = 0; length > 0; length -= 16, j++)
             {
-                var inBytes = new byte[16];
-                var outBytes = new byte[16];
-                var out1 = new byte[16];
-                Array.Copy(bins, j * 16, inBytes, 0, length > 16 ? 16 : length);
+                input.Slice(j * 16, length > 16 ? 16 : length).CopyTo(inBytes);
                 for (i = 0; i < 16; i++)
                 {
                     outBytes[i] = (byte)(inBytes[i] ^ iv[i]);
                 }
                 OneRound(ctx.Key, outBytes, out1);
-                Array.Copy(out1, 0, iv, 0, 16);
+                out1.CopyTo(iv.ToArray());
                 for (var k = 0; k < 16; k++)
                 {
                     bousList.Add(out1[k]);
@@ -303,20 +303,17 @@ internal sealed class Sm4
         }
         else
         {
-            var temp = new byte[16];
+            Span<byte> temp = stackalloc byte[16];
             for (var j = 0; length > 0; length -= 16, j++)
             {
-                var inBytes = new byte[16];
-                var outBytes = new byte[16];
-                var out1 = new byte[16];
-                Array.Copy(bins, j * 16, inBytes, 0, length > 16 ? 16 : length);
-                Array.Copy(inBytes, 0, temp, 0, 16);
+                input.Slice(j * 16, length > 16 ? 16 : length).CopyTo(inBytes);
+                inBytes.CopyTo(temp);
                 OneRound(ctx.Key, inBytes, outBytes);
                 for (i = 0; i < 16; i++)
                 {
                     out1[i] = (byte)(outBytes[i] ^ iv[i]);
                 }
-                Array.Copy(temp, 0, iv, 0, 16);
+                temp.CopyTo(iv.ToArray());
                 for (var k = 0; k < 16; k++)
                 {
                     bousList.Add(out1[k]);
