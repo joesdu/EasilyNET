@@ -29,15 +29,20 @@ public sealed class DistributedLock : IDistributedLock
         if (lifetime < TimeSpan.Zero || lifetime > TimeSpan.MaxValue) throw new ArgumentOutOfRangeException(nameof(lifetime), "生存期的值(以毫秒为单位)为负数或大于最大值");
         if (timeout < TimeSpan.Zero || timeout > TimeSpan.MaxValue) throw new ArgumentOutOfRangeException(nameof(timeout), "超时值(以毫秒为单位)为负或大于最大值");
         var acquireId = ObjectId.GenerateNewId();
-        while (await TryUpdateAsync(lifetime, acquireId) == false)
+        var startTime = DateTime.UtcNow;
+        while (DateTime.UtcNow - startTime < timeout)
         {
+            if (await TryUpdateAsync(lifetime, acquireId))
+            {
+                return new Acquire(acquireId, this);
+            }
             var acquire = await _locks.Find(bf.Eq(c => c.Id, _lockId)).FirstOrDefaultAsync();
-            if (acquire is not null && await WaitSignalAsync(acquire.AcquireId, timeout) == false)
+            if (acquire is not null && await WaitSignalAsync(acquire.AcquireId, timeout - (DateTime.UtcNow - startTime)) == false)
             {
                 return await TryUpdateAsync(lifetime, acquireId) ? new Acquire(acquireId, this) : new();
             }
         }
-        return new Acquire(acquireId, this);
+        return new Acquire();
     }
 
     /// <inheritdoc />
@@ -80,7 +85,7 @@ public sealed class DistributedLock : IDistributedLock
                                                                .Set(c => c.ExpiresIn, DateTime.UtcNow + lifetime)
                                                                .Set(c => c.AcquireId, acquireId)
                                                                .SetOnInsert(c => c.Id, _lockId), new() { IsUpsert = true });
-            return result.IsAcknowledged;
+            return result.IsAcknowledged && result.ModifiedCount > 0;
         }
         catch (MongoWriteException ex) // E11000 
         {

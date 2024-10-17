@@ -126,14 +126,14 @@ public static class Sm2Crypt
     /// </summary>
     /// <param name="c1c2c3"></param>
     /// <returns></returns>
-    private static byte[] C123ToC132(byte[] c1c2c3)
+    private static byte[] C123ToC132(ReadOnlySpan<byte> c1c2c3)
     {
         var c1Len = (((x9.Curve.FieldSize + 7) >> 3) << 1) + 1; //sm2p256v1的这个固定65。可看GMNamedCurves、ECCurve代码。
         const int c3Len = 32;
         var result = new byte[c1c2c3.Length];
-        Array.Copy(c1c2c3, 0, result, 0, c1Len);                                         //c1
-        Array.Copy(c1c2c3, c1c2c3.Length - c3Len, result, c1Len, c3Len);                 //c3
-        Array.Copy(c1c2c3, c1Len, result, c1Len + c3Len, c1c2c3.Length - c1Len - c3Len); //c2
+        c1c2c3[..c1Len].CopyTo(result);
+        c1c2c3[^c3Len..].CopyTo(result.AsSpan(c1Len));
+        c1c2c3[c1Len..^c3Len].CopyTo(result.AsSpan(c1Len + c3Len));
         return result;
     }
 
@@ -142,14 +142,14 @@ public static class Sm2Crypt
     /// </summary>
     /// <param name="c1c3c2"></param>
     /// <returns></returns>
-    private static byte[] C132ToC123(byte[] c1c3c2)
+    private static byte[] C132ToC123(ReadOnlySpan<byte> c1c3c2)
     {
         var c1Len = (((x9.Curve.FieldSize + 7) >> 3) << 1) + 1;
         const int c3Len = 32;
         var result = new byte[c1c3c2.Length];
-        Array.Copy(c1c3c2, 0, result, 0, c1Len);                                         //c1: 0->65
-        Array.Copy(c1c3c2, c1Len + c3Len, result, c1Len, c1c3c2.Length - c1Len - c3Len); //c2
-        Array.Copy(c1c3c2, c1Len, result, c1c3c2.Length - c3Len, c3Len);                 //c3
+        c1c3c2[..c1Len].CopyTo(result);
+        c1c3c2[(c1Len + c3Len)..].CopyTo(result.AsSpan(c1Len));
+        c1c3c2[c1Len..(c1Len + c3Len)].CopyTo(result.AsSpan(^c3Len));
         return result;
     }
 }
