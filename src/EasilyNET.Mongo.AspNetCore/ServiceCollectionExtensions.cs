@@ -76,7 +76,7 @@ public static class ServiceCollectionExtensions
         var options = new ClientOptions();
         option?.Invoke(options);
         options.ClientSettings?.Invoke(settings);
-        var dbName = !string.IsNullOrWhiteSpace(mongoUrl.DatabaseName) ? mongoUrl.DatabaseName : options.DatabaseName ?? Constant.DbName;
+        var dbName = !string.IsNullOrWhiteSpace(mongoUrl.DatabaseName) ? mongoUrl.DatabaseName : options.DatabaseName ?? Constant.DefaultDbName;
         if (options.DatabaseName is not null) dbName = options.DatabaseName;
         services.AddMongoContext<T>(settings, c =>
         {
@@ -100,7 +100,7 @@ public static class ServiceCollectionExtensions
         option?.Invoke(options);
         RegistryConventionPack(options);
         settings.MinConnectionPoolSize = Environment.ProcessorCount;
-        var db = MongoContext.CreateInstance<T>(settings, options.DatabaseName ?? Constant.DbName);
+        var db = MongoContext.CreateInstance<T>(settings, options.DatabaseName ?? Constant.DefaultDbName);
         services.AddSingleton(db).AddSingleton(db.Database).AddSingleton(db.Client);
     }
 

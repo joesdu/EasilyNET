@@ -13,5 +13,15 @@ internal static class Constant
     /// <summary>
     /// 默认数据库名称
     /// </summary>
-    internal const string DbName = "easilynet";
+    internal const string DefaultDbName = "easilynet";
+
+    /// <summary>
+    /// 默认配置名称
+    /// </summary>
+    internal const string ConfigName = "EasilyNetGridfs";
+
+    /// <summary>
+    /// 默认桶名称
+    /// </summary>
+    internal const string BucketName = "easilyfs";
 }

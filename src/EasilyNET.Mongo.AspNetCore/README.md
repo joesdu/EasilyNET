@@ -4,7 +4,7 @@
 - 数据库中字段名驼峰命名,ID,Id 自动转化成 ObjectId.
 - 可配置部分类的 Id 字段不存为 ObjectId,而存为 string 类型.支持子对象以及集合成员的 Id 字段转化.
 - 自动本地化 MongoDB 时间类型
-- 添加.Net6 Date/Time Only 类型支持
+- 添加.Net6 Date/Time Only 类型支持(序列化到 String 或 long)
 - 添加 SkyWalking-APM 探针支持,未依赖 Agent,所以需要手动传入参数.
 
 ---
@@ -249,4 +249,27 @@ app.InitializeApplication();
 app.MapControllers();
 
 app.Run();
+```
+
+#### 使用 GridFS
+
+- 注册服务
+
+```csharp
+// 需要提前注册 IMongoDatabase, 或者使用其他重载来注册服务.
+builder.Services.AddMongoGridFS();
+```
+
+- 使用依赖注入获取 GridFSBucket 操作 GridFS
+
+```csharp
+public class YourClass(IGridFSBucket bucket)
+{
+    private readonly IGridFSBucket _bucket = bucket;
+
+    public void DoSomething()
+    {
+        _bucket.XXXXXX();
+    }
+}
 ```

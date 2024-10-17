@@ -64,7 +64,7 @@ public class MongoTestController(DbContext db) : ControllerBase
     /// </summary>
     /// <returns></returns>
     [HttpPost("MongoPost")]
-    public Task MongoPost()
+    public async Task MongoPost()
     {
         var o = new MongoTest
         {
@@ -75,8 +75,7 @@ public class MongoTestController(DbContext db) : ControllerBase
             NullableDateOnly = DateOnly.FromDateTime(DateTime.Now),
             NullableTimeOnly = null
         };
-        _ = db.Test.InsertOneAsync(o);
-        return Task.CompletedTask;
+        await db.Test.InsertOneAsync(o);
     }
 
     /// <summary>

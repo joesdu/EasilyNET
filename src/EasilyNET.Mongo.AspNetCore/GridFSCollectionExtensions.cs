@@ -1,20 +1,20 @@
-using EasilyNET.MongoGridFS.AspNetCore;
+﻿using EasilyNET.Mongo.AspNetCore.Common;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
 
+// ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMethodReturnValue.Global
 // ReSharper disable UnusedMember.Global
-// ReSharper disable UnusedType.Global
-// ReSharper disable MemberCanBePrivate.Global
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace EasilyNET.Mongo.AspNetCore;
 
 /// <summary>
-/// 服务扩展
+/// MongoGridFS扩展
 /// </summary>
-public static class ServiceCollectionExtensions
+public static class GridFSCollectionExtensions
 {
     /// <summary>
     /// 使用容器中的 <see cref="IMongoDatabase" /> 来配置MongoGridFS

@@ -1,3 +1,4 @@
+using System.Globalization;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 
@@ -33,7 +34,7 @@ public sealed class TimeOnlySerializerAsString(string format = "HH:mm:ss") : Str
     public override TimeOnly Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
         var time = InnerSerializer.Deserialize(context, args);
-        var success = TimeOnly.TryParseExact(time, format, out var result);
+        var success = TimeOnly.TryParseExact(time, format, null, DateTimeStyles.AssumeLocal, out var result);
         return success ? result : throw new("unsupported data formats.");
     }
 }
