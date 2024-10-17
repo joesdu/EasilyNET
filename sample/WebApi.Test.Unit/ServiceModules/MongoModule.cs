@@ -11,12 +11,6 @@ namespace WebApi.Test.Unit.ServiceModules;
 internal sealed class MongoModule : AppModule
 {
     /// <inheritdoc />
-    public MongoModule()
-    {
-        Enable = true;
-    }
-
-    /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var config = context.Services.GetConfiguration();
@@ -93,8 +87,6 @@ internal sealed class MongoModule : AppModule
                 //    }).Build());
                 //    b.AddSimpleConsole();
                 //}));
-                cs.MaxConnecting = int.MaxValue;
-                cs.MaxConnectionPoolSize = int.MaxValue;
             };
         });
         context.Services.RegisterSerializer(new DateOnlySerializerAsString());

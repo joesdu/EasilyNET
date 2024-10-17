@@ -1,8 +1,9 @@
+using EasilyNET.Mongo.AspNetCore.Common;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
 
-namespace EasilyNET.MongoGridFS.AspNetCore;
+namespace EasilyNET.Mongo.AspNetCore;
 
 /// <summary>
 /// GridFSBucketFactory

@@ -1,7 +1,7 @@
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
 
-namespace EasilyNET.MongoGridFS.AspNetCore;
+namespace EasilyNET.Mongo.AspNetCore;
 
 /// <summary>
 /// 工厂接口

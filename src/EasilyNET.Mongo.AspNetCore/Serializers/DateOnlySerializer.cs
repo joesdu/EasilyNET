@@ -1,3 +1,4 @@
+using System.Globalization;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 
@@ -33,7 +34,7 @@ public sealed class DateOnlySerializerAsString(string format = "yyyy-MM-dd") : S
     public override DateOnly Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
         var str = InnerSerializer.Deserialize(context, args);
-        var success = DateOnly.TryParseExact(str, format, out var result);
+        var success = DateOnly.TryParseExact(str, format, null, DateTimeStyles.AssumeLocal, out var result);
         return success ? result : throw new("unsupported data formats.");
     }
 }

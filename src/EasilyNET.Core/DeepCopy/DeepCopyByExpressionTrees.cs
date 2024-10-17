@@ -25,7 +25,7 @@ public static class DeepCopyByExpressionTrees
     private static readonly Type ObjectType = typeof(object);
     private static readonly Type ObjectDictionaryType = typeof(Dictionary<object, object>);
     private static readonly Type FieldInfoType = typeof(FieldInfo);
-    private static readonly MethodInfo SetValueMethod = FieldInfoType.GetMethod(nameof(Array.SetValue), new[] { ObjectType, ObjectType })!;
+    private static readonly MethodInfo SetValueMethod = FieldInfoType.GetMethod(nameof(Array.SetValue), [ObjectType, ObjectType])!;
     private static readonly MethodInfo DeepCopyByExpressionTreeObjMethod = typeof(DeepCopyByExpressionTrees).GetMethod(nameof(DeepCopyObj), BindingFlags.NonPublic | BindingFlags.Static)!;
 
     /// <summary>
@@ -178,11 +178,11 @@ public static class DeepCopyByExpressionTrees
     {
         var lengthVariable = Expression.Variable(typeof(int));
         var endLabelForThisLoop = Expression.Label();
-        var newLoop = Expression.Loop(Expression.Block(Array.Empty<ParameterExpression>(), Expression.IfThen(Expression.GreaterThanOrEqual(indexVariable, lengthVariable),
+        var newLoop = Expression.Loop(Expression.Block([], Expression.IfThen(Expression.GreaterThanOrEqual(indexVariable, lengthVariable),
             Expression.Break(endLabelForThisLoop)), loopToEncapsulate, Expression.PostIncrementAssign(indexVariable)), endLabelForThisLoop);
         var lengthAssignment = GetLengthForDimensionExpression(lengthVariable, inputParameter, dimension);
         var indexAssignment = Expression.Assign(indexVariable, Expression.Constant(0));
-        return Expression.Block(new[] { lengthVariable }, lengthAssignment, indexAssignment, newLoop);
+        return Expression.Block([lengthVariable], lengthAssignment, indexAssignment, newLoop);
     }
 
     private static BinaryExpression GetLengthForDimensionExpression(ParameterExpression lengthVariable, ParameterExpression inputParameter, int i)
@@ -242,7 +242,7 @@ public static class DeepCopyByExpressionTrees
                                          .Where(field => forceAllFields || IsTypeToDeepCopy(field.FieldType)));
             typeCache = typeCache.BaseType;
         }
-        return fieldsList.ToArray();
+        return [.. fieldsList];
     }
 
     private static FieldInfo[] GetAllFields(Type type) => GetAllRelevantFields(type, true);

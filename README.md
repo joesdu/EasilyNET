@@ -42,28 +42,41 @@ EasilyNET Packages
 - 对 MongoDB 驱动的一些封装,方便使用以及一些常用的默认配置
 - 雪花 ID,一些常用的数据类型,枚举,扩展方法等
 - 自动模块化注入服务,新增支持 WPF,WinForm 等项目,需使用 IHost 通用主机模式
-- MongoDB 添加 DateOnly 和 TimeOnly 的支持, dynamic 类型支持
+- MongoDB 添加 DateOnly 和 TimeOnly 的支持(序列化到 String 或 long), dynamic 类型支持
 - MongoDB GridFS 用法的简单支持(常用用法)和使用案例.
 - 在 WebAPI 中集成一些常见的过滤器和中间件
 - 对 Swagger 文档添加分组,隐藏 API 和添加部分数据类型默认值显示的支持,方便前端工程师查阅
-- 对 MongoDB 执行命令添加个性化输出.(EasilyNET.Mongo.ConsoleDebug)
+- 对 MongoDB 执行命令添加个性化输出,以及 Diagnostics 数据到 APM.(EasilyNET.Mongo.ConsoleDebug)
 - 部分库的[使用案例](./sample/WebApi.Test.Unit/README.md)
 
 <details> 
 <summary style="font-size: 14px">English</summary>
 
-- AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4 encryption, signature verification and other algorithms
-- Distributed locks based on MongoDB
-- Message bus implementation based on RabbitMQ
-- Some encapsulation of MongoDB driver for easy use and some common default configurations
+- AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4 encryption, signature verification and other algorithms.
+- Distributed locks based on MongoDB.
+- Message bus implementation based on RabbitMQ.
+- Some encapsulation of MongoDB driver for easy use and some common default configurations.
 - Snowflake ID, some common data types, enumerations, extension methods, etc.
-- Automatic modular injection services, adding support for WPF, WinForm and other projects, using IHost common host mode
-- Added support for DateOnly and TimeOnly in MongoDB, dynamic type support
+- Automatic modular injection services, adding support for WPF, WinForm and other projects, using IHost common host mode.
+- Added support for DateOnly and TimeOnly in MongoDB(serialized to String or long), dynamic type support.
 - Simple support for MongoDB GridFS usage (common usage) and usage examples.
-- Integration of some common filters and middleware in WebAPI
-- Added support for grouping, hiding APIs, and displaying default values for some data types in Swagger documents, making it easier for front-end engineers to refer to
-- Added personalized output for executing MongoDB commands (EasilyNET.Mongo.ConsoleDebug)
-- [Usage examples](./sample/WebApi.Test.Unit/README.md) of some libraries
+- Integration of some common filters and middleware in WebAPI.
+- Added support for grouping, hiding APIs, and displaying default values for some data types in Swagger documents, making it easier for front-end engineers to refer to.
+- Added personalized output for executing MongoDB commands, Diagnostics datas to APM (EasilyNET.Mongo.ConsoleDebug).
+- [Usage examples](./sample/WebApi.Test.Unit/README.md) of some libraries.
+
+</details>
+
+#### 近期更新内容(Recent Updates)
+
+- 同步更新 MongoDB 3.0.0 驱动程序,同步删除过时 API
+- 合并 EasilyNET.MongoGridFS.AspNetCore, EasilyNET.MongoSerializer.AspNetCore 到 EasilyNET.Mongo.AspNetCore
+
+<details> 
+<summary style="font-size: 14px">English</summary>
+
+- Synchronized update to MongoDB 3.0.0 driver, removed deprecated APIs
+- Merged EasilyNET.MongoGridFS.AspNetCore and EasilyNET.MongoSerializer.AspNetCore into EasilyNET.Mongo.AspNetCore
 
 </details>
 
@@ -92,7 +105,6 @@ EasilyNET Packages
 | [EasilyNET.Mongo.ConsoleDebug][35]              | ![Nuget][36] | ![Nuget][37] | [文档](./src/EasilyNET.Mongo.ConsoleDebug/README.md)              |
 | [EasilyNET.MongoDistributedLock][38]            | ![Nuget][39] | ![Nuget][40] | [文档](./src/EasilyNET.MongoDistributedLock/README.md)            |
 | [EasilyNET.MongoDistributedLock.AspNetCore][41] | ![Nuget][42] | ![Nuget][43] | [文档](./src/EasilyNET.MongoDistributedLock.AspNetCore/README.md) |
-| [EasilyNET.MongoGridFS.AspNetCore][44]          | ![Nuget][45] | ![Nuget][46] | [文档](./src/EasilyNET.MongoGridFS.AspNetCore/README.md)          |
 
 #### 感谢 [JetBrains](https://www.jetbrains.com/shop/eform/opensource) 对本项目的支持!
 
@@ -148,6 +160,3 @@ EasilyNET Packages
 [41]: https://www.nuget.org/packages/EasilyNET.MongoDistributedLock.AspNetCore
 [42]: https://img.shields.io/nuget/v/EasilyNET.MongoDistributedLock.AspNetCore
 [43]: https://img.shields.io/nuget/dt/EasilyNET.MongoDistributedLock.AspNetCore
-[44]: https://www.nuget.org/packages/EasilyNET.MongoGridFS.AspNetCore
-[45]: https://img.shields.io/nuget/v/EasilyNET.MongoGridFS.AspNetCore
-[46]: https://img.shields.io/nuget/dt/EasilyNET.MongoGridFS.AspNetCore
