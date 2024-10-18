@@ -18,10 +18,12 @@ public sealed class SwaggerAuthorizeFilter : IOperationAsyncFilter
     {
         await Task.Run(() =>
         {
-            var authAttributes = context.MethodInfo.DeclaringType?.GetCustomAttributes(true)
-                                        .Union(context.MethodInfo.GetCustomAttributes(true))
-                                        .OfType<AuthorizeAttribute>();
-            if (!authAttributes!.Any()) return;
+            var methodAttributes = context.MethodInfo.GetCustomAttributes(true);
+            var classAttributes = context.MethodInfo.DeclaringType?.GetCustomAttributes(true) ?? [];
+            var authAttributes = methodAttributes.Union(classAttributes).OfType<AuthorizeAttribute>();
+            var allowAnonymousAttributes = methodAttributes.Union(classAttributes).OfType<AllowAnonymousAttribute>();
+            if (allowAnonymousAttributes.Any()) return; // 如果存在AllowAnonymous特性，则不添加锁图标
+            if (!authAttributes.Any()) return;          // 如果不存在Authorize特性，也不添加锁图标
             operation.Security =
             [
                 new()
@@ -38,7 +40,7 @@ public sealed class SwaggerAuthorizeFilter : IOperationAsyncFilter
                             Name = "Bearer",
                             In = ParameterLocation.Header
                         },
-                        new List<string>()
+                        Array.Empty<string>()
                     }
                 }
             ];
