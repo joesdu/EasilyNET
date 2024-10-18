@@ -58,13 +58,14 @@ internal sealed class PersistentConnection : IPersistentConnection
 
     public bool IsConnected => _connection is not null && _connection.IsOpen;
 
-    public async Task<IChannel> GetChannel()
-    {
-        if (!IsConnected) throw new InvalidOperationException("RabbitMQ连接失败");
-        if (_connection is null) throw new InvalidOperationException("RabbitMQ连接未创建");
-        if (_channelPool is null) throw new InvalidOperationException("通道池为空");
-        return await _channelPool.GetChannel();
-    }
+    public async Task<IChannel> GetChannel() =>
+        !IsConnected
+            ? throw new InvalidOperationException("RabbitMQ连接失败")
+            : _connection is null
+                ? throw new InvalidOperationException("RabbitMQ连接未创建")
+                : _channelPool is null
+                    ? throw new InvalidOperationException("通道池为空")
+                    : await _channelPool.GetChannel();
 
     public async Task ReturnChannel(IChannel channel)
     {
@@ -80,12 +81,9 @@ internal sealed class PersistentConnection : IPersistentConnection
             try
             {
                 var pipeline = _pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
-                await pipeline.ExecuteAsync(async ct =>
-                {
-                    _connection = _config.AmqpTcpEndpoints is not null && _config.AmqpTcpEndpoints.Count > 0
-                                      ? await _connFactory.CreateConnectionAsync(_config.AmqpTcpEndpoints, ct)
-                                      : await _connFactory.CreateConnectionAsync(ct);
-                });
+                await pipeline.ExecuteAsync(async ct => _connection = _config.AmqpTcpEndpoints is not null && _config.AmqpTcpEndpoints.Count > 0
+                                                                          ? await _connFactory.CreateConnectionAsync(_config.AmqpTcpEndpoints, ct)
+                                                                          : await _connFactory.CreateConnectionAsync(ct));
                 if (_connection is not null)
                 {
                     _connection.ConnectionShutdownAsync -= OnConnectionShutdown;
