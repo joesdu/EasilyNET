@@ -37,7 +37,10 @@ public sealed class AsyncLock
     public Task<Release> LockAsync()
     {
         var task = _semaphore.WaitAsync();
-        return !task.IsCompleted ? task.ContinueWith((_, state) => new Release((AsyncLock)state!), this, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default) : _release;
+        return task.IsCompleted
+                   ? _release
+                   : task.ContinueWith((_, state) =>
+                       new Release((AsyncLock?)state), this, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Current);
     }
 
     /// <summary>
@@ -72,12 +75,12 @@ public sealed class AsyncLock
     /// Release
     /// </remarks>
     /// <param name="asyncLock"></param>
-    public readonly struct Release(AsyncLock asyncLock) : IDisposable
+    public readonly struct Release(AsyncLock? asyncLock) : IDisposable
     {
         /// <inheritdoc />
         public void Dispose()
         {
-            asyncLock._semaphore.Release();
+            asyncLock?._semaphore.Release();
         }
     }
 }

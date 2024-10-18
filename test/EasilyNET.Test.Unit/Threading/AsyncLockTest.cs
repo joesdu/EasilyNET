@@ -191,4 +191,30 @@ public class AsyncLockTests(TestContext testContext)
         await Task.WhenAll(tasks);
         Assert.AreEqual(1000, counter);
     }
+
+    ///// <summary>
+    ///// 测试锁的重入行为，确保锁不允许重入。
+    ///// </summary>
+    //[TestMethod]
+    ////[Ignore] // 异步锁线程都可以重入, 但是不建议这样做
+    //public async Task Lock_ShouldNotAllowReentrancy()
+    //{
+    //    var syncLock = new AsyncLock();
+    //    var reentrancyDetected = false;
+    //    try
+    //    {
+    //        using (await syncLock.LockAsync())
+    //        {
+    //            using (await syncLock.LockAsync())
+    //            {
+    //                await Task.Delay(100);
+    //            }
+    //        }
+    //    }
+    //    catch (InvalidOperationException)
+    //    {
+    //        reentrancyDetected = true;
+    //    }
+    //    Assert.IsTrue(reentrancyDetected);
+    //}
 }
