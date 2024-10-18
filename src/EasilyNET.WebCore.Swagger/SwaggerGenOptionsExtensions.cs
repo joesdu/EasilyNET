@@ -19,19 +19,27 @@ public static class SwaggerGenOptionsExtensions
 {
     private static readonly ConcurrentDictionary<string, string> docsDic = [];
     private static readonly ConcurrentDictionary<string, string> endPointDic = [];
+    private static readonly IEnumerable<ApiGroupAttribute> _attributes;
+
+    static SwaggerGenOptionsExtensions()
+    {
+        _attributes = AssemblyHelper.FindTypesByAttribute<ApiGroupAttribute>()
+                                    .Select(ctrl => ctrl.GetCustomAttribute<ApiGroupAttribute>())
+                                    .OfType<ApiGroupAttribute>()
+                                    .Where(attr => !docsDic.ContainsKey(attr.Title));
+    }
 
     /// <summary>
     /// 添加预定于的Swagger配置
     /// </summary>
     /// <param name="op"></param>
-    /// <param name="defaultDocName">默认文档名称</param>
-    public static void EasilySwaggerGenOptions(this SwaggerGenOptions op, string defaultDocName)
+    /// <param name="defaultName">默认文档名称</param>
+    public static void EasilySwaggerGenOptions(this SwaggerGenOptions op, string defaultName)
     {
-        var controllers = AssemblyHelper.FindTypesByAttribute<ApiGroupAttribute>();
-        foreach (var attr in controllers.Select(ctrl => ctrl.GetCustomAttribute<ApiGroupAttribute>()).OfType<ApiGroupAttribute>().Where(attr => !docsDic.ContainsKey(attr.Name)))
+        foreach (var attr in _attributes)
         {
-            _ = docsDic.TryAdd(attr.Name, attr.Description);
-            op.SwaggerDoc(attr.Name, new()
+            _ = docsDic.TryAdd(attr.Title, attr.Description);
+            op.SwaggerDoc(attr.Title, new()
             {
                 Title = attr.Title,
                 Version = attr.Version,
@@ -44,10 +52,10 @@ public static class SwaggerGenOptionsExtensions
             var actionList = apiDescription.ActionDescriptor.EndpointMetadata.Where(x => x is ApiGroupAttribute).ToList();
             if (actionList.Count is not 0)
             {
-                return actionList.FirstOrDefault() is ApiGroupAttribute attr && attr.Name == docName;
+                return actionList.FirstOrDefault() is ApiGroupAttribute attr && attr.Title == docName;
             }
             var not = apiDescription.ActionDescriptor.EndpointMetadata.Where(x => x is not ApiGroupAttribute).ToList();
-            return not.Count is not 0 && docName == defaultDocName;
+            return not.Count is not 0 && docName == defaultName;
             //判断是否包含这个分组
         });
         var files = Directory.GetFiles(AppContext.BaseDirectory, "*.xml");
@@ -66,11 +74,10 @@ public static class SwaggerGenOptionsExtensions
     /// <param name="op"></param>
     public static void EasilySwaggerUIOptions(this SwaggerUIOptions op)
     {
-        var controllers = AssemblyHelper.FindTypesByAttribute<ApiGroupAttribute>();
-        foreach (var attr in controllers.Select(ctrl => ctrl.GetCustomAttribute<ApiGroupAttribute>()).OfType<ApiGroupAttribute>().Where(attr => !endPointDic.ContainsKey(attr.Name)))
+        foreach (var attr in _attributes)
         {
-            _ = endPointDic.TryAdd(attr.Name, attr.Description);
-            op.SwaggerEndpoint($"/swagger/{attr.Name}/swagger.json", $"{attr.Title} {attr.Version}");
+            _ = endPointDic.TryAdd(attr.Title, attr.Description);
+            op.SwaggerEndpoint($"/swagger/{attr.Title}/swagger.json", $"{attr.Title}");
         }
     }
 }
