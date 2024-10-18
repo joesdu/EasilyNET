@@ -7,7 +7,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// <inheritdoc />
 [Route("api/[controller]")]
 [ApiController]
-[ApiGroup("GarnetTest", "v1", "Garnet的基本使用")]
+[ApiGroup("GarnetTest")]
 public class GarnetController : ControllerBase
 {
     private readonly IDatabase _rdb;

@@ -8,7 +8,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// </summary>
 [Route("api/[controller]")]
 [ApiController]
-[ApiGroup("GridFSTest", "v1", "HttpClientGridFSController")]
+[ApiGroup("GridFSTest", "HttpClientGridFSController")]
 public class HttpClientGridFSController : ControllerBase
 {
     /// <summary>

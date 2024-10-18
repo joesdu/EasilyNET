@@ -15,7 +15,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[ApiGroup("MongoTest", "v1", "MongoDB一些测试")]
+[ApiGroup("MongoTest", "v2")]
 public class MongoTestController(DbContext db) : ControllerBase
 {
     private readonly FilterDefinitionBuilder<MongoTest> bf = Builders<MongoTest>.Filter;

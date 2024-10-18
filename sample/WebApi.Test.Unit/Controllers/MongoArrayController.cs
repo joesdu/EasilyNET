@@ -16,7 +16,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// <param name="db"></param>
 [Route("api/[controller]")]
 [ApiController]
-[ApiGroup("MongoTest", "v1", "MongoDB一些测试")]
+[ApiGroup("MongoTest", "MongoDB一些测试")]
 public class MongoArrayController(DbContext db) : ControllerBase
 {
     private readonly FilterDefinitionBuilder<FamilyInfo> _bf = Builders<FamilyInfo>.Filter;
