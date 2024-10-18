@@ -16,7 +16,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[ApiGroup("MongoFS", "v1", "MongoDB GridFS")]
+[ApiGroup("MongoFS", "MongoDB GridFS")]
 public class GridFSController(GridFSBucket bucket) : ControllerBase
 {
     /// <summary>

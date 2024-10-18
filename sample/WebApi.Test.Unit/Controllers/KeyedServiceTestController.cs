@@ -1,5 +1,6 @@
 ﻿using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.WebCore.Swagger.Attributes;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 // ReSharper disable ClassNeverInstantiated.Global
@@ -11,7 +12,8 @@ namespace WebApi.Test.Unit.Controllers;
 /// </summary>
 [Route("api/[controller]")]
 [ApiController]
-[ApiGroup("KeyedServiceTest", "v1", "KeyedServiceTestController")]
+[ApiGroup("KeyedServiceTest", "KeyedServiceTestController")]
+[Authorize]
 public class KeyedServiceTestController(IServiceProvider sp, IKeyedServiceTest kst2) : ControllerBase
 {
     /// <summary>
@@ -30,6 +32,7 @@ public class KeyedServiceTestController(IServiceProvider sp, IKeyedServiceTest k
     /// </summary>
     /// <returns></returns>
     [HttpGet("HelloKeyedService2")]
+    [AllowAnonymous]
     public string ShowHello2() => kst2.ShowHello();
 
     /// <summary>

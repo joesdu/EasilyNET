@@ -10,7 +10,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// </summary>
 [Route("api/[controller]/[action]")]
 [ApiController]
-[ApiGroup("MongoLock", "v1", "基于MongoDB实现的分布式锁测试")]
+[ApiGroup("MongoLock", "基于MongoDB实现的分布式锁测试")]
 public class MongoLockController(IMongoLockFactory lockFactory, DbContext db) : ControllerBase
 {
     /// <summary>

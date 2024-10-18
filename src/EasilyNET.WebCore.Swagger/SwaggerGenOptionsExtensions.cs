@@ -1,11 +1,12 @@
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Reflection;
 using EasilyNET.Core.Misc;
 using EasilyNET.WebCore.Swagger.Attributes;
 using EasilyNET.WebCore.Swagger.SwaggerFilters;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
-using Swashbuckle.AspNetCore.SwaggerUI;
 
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
@@ -17,35 +18,40 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class SwaggerGenOptionsExtensions
 {
-    private static readonly ConcurrentDictionary<string, string> docsDic = [];
-    private static readonly ConcurrentDictionary<string, string> endPointDic = [];
-    private static readonly IEnumerable<ApiGroupAttribute> _attributes;
+    private static readonly FrozenDictionary<string, OpenApiInfo> attributesDic;
+    private static readonly string _defaultName;
 
     static SwaggerGenOptionsExtensions()
     {
-        _attributes = AssemblyHelper.FindTypesByAttribute<ApiGroupAttribute>()
-                                    .Select(ctrl => ctrl.GetCustomAttribute<ApiGroupAttribute>())
-                                    .OfType<ApiGroupAttribute>()
-                                    .Where(attr => !docsDic.ContainsKey(attr.Title));
+        var attributes = AssemblyHelper.FindTypesByAttribute<ApiGroupAttribute>()
+                                       .Select(ctrl => ctrl.GetCustomAttribute<ApiGroupAttribute>())
+                                       .OfType<ApiGroupAttribute>();
+        var dic = new ConcurrentDictionary<string, OpenApiInfo>();
+        foreach (var item in attributes)
+        {
+            var exist = dic.ContainsKey(item.Title);
+            if (exist) continue;
+            dic.TryAdd(item.Title, new()
+            {
+                Title = item.Title,
+                Description = item.Des
+            });
+        }
+        _defaultName = Assembly.GetEntryAssembly()?.GetName().Name ?? string.Empty;
+        dic.TryAdd(_defaultName, new(new()
+        {
+            Title = _defaultName,
+            Description = "Console.WriteLine(\"🐂🍺\")"
+        }));
+        attributesDic = GetSortedAttributesDic(dic);
     }
 
     /// <summary>
     /// 添加预定于的Swagger配置
     /// </summary>
     /// <param name="op"></param>
-    /// <param name="defaultName">默认文档名称</param>
-    public static void EasilySwaggerGenOptions(this SwaggerGenOptions op, string defaultName)
+    public static void EasilySwaggerGenOptions(this SwaggerGenOptions op)
     {
-        foreach (var attr in _attributes)
-        {
-            _ = docsDic.TryAdd(attr.Title, attr.Description);
-            op.SwaggerDoc(attr.Title, new()
-            {
-                Title = attr.Title,
-                Version = attr.Version,
-                Description = attr.Description
-            });
-        }
         op.DocInclusionPredicate((docName, apiDescription) =>
         {
             //反射拿到值
@@ -55,7 +61,7 @@ public static class SwaggerGenOptionsExtensions
                 return actionList.FirstOrDefault() is ApiGroupAttribute attr && attr.Title == docName;
             }
             var not = apiDescription.ActionDescriptor.EndpointMetadata.Where(x => x is not ApiGroupAttribute).ToList();
-            return not.Count is not 0 && docName == defaultName;
+            return not.Count is not 0 && docName == _defaultName;
             //判断是否包含这个分组
         });
         var files = Directory.GetFiles(AppContext.BaseDirectory, "*.xml");
@@ -66,18 +72,29 @@ public static class SwaggerGenOptionsExtensions
         op.DocumentAsyncFilter<SwaggerHiddenApiFilter>();
         op.OperationAsyncFilter<SwaggerAuthorizeFilter>();
         op.SchemaFilter<SwaggerDefaultValueFilter>();
+        foreach (var attr in attributesDic)
+        {
+            op.SwaggerDoc(attr.Key, attr.Value);
+        }
     }
 
     /// <summary>
-    /// 添加预定义的SwaggerUI配置
+    /// SwaggerUI配置
     /// </summary>
-    /// <param name="op"></param>
-    public static void EasilySwaggerUIOptions(this SwaggerUIOptions op)
+    /// <param name="app"></param>
+    public static void UseEasilySwaggerUI(this IApplicationBuilder app)
     {
-        foreach (var attr in _attributes)
+        app.UseSwagger().UseSwaggerUI(c =>
         {
-            _ = endPointDic.TryAdd(attr.Title, attr.Description);
-            op.SwaggerEndpoint($"/swagger/{attr.Title}/swagger.json", $"{attr.Title}");
-        }
+            foreach (var item in attributesDic)
+            {
+                c.SwaggerEndpoint($"/swagger/{item.Key}/swagger.json", item.Key);
+            }
+        });
+    }
+
+    private static FrozenDictionary<string, OpenApiInfo> GetSortedAttributesDic(IEnumerable<KeyValuePair<string, OpenApiInfo>> dic)
+    {
+        return dic.OrderBy(kvp => kvp.Key == _defaultName ? "" : kvp.Key).ToFrozenDictionary();
     }
 }

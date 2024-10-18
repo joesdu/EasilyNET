@@ -11,7 +11,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]/[action]")]
-[ApiGroup("RabbitBus", "v1", "RabbitBus Test")]
+[ApiGroup("RabbitBus", "RabbitBus Test")]
 public class RabbitBusController(IBus ibus) : ControllerBase
 {
     /// <summary>
