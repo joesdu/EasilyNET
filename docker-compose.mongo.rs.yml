@@ -30,8 +30,6 @@ services:
       - MONGODB_INITIAL_PRIMARY_ROOT_USER=joe
       - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=a123456
       - MONGODB_REPLICA_SET_KEY=HxplckY2jXSwfDRE
-    ports:
-      - 27018:27017
 
   mongodb_arbiter:
     image: bitnami/mongodb:latest
