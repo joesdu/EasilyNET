@@ -16,9 +16,4 @@
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0-2.final" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
-		<AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
-	</ItemGroup>
-
 </Project>

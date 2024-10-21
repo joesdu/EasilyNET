@@ -14,7 +14,7 @@ namespace EasilyNET.Analyzer;
 public class ApiGroupCodeFixProvider : CodeFixProvider
 {
     /// <inheritdoc />
-    public override sealed ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(ApiGroupAnalyzer.DiagnosticId);
+    public override sealed ImmutableArray<string> FixableDiagnosticIds => [ApiGroupAnalyzer.DiagnosticId];
 
     /// <inheritdoc />
     public override sealed FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
@@ -37,35 +37,33 @@ public class ApiGroupCodeFixProvider : CodeFixProvider
     {
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-        var allClasses = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
-        var allAttributes = allClasses.SelectMany(c => c.AttributeLists.SelectMany(al => al.Attributes))
+        var allClasses = root?.DescendantNodes().OfType<ClassDeclarationSyntax>();
+        var allAttributes = allClasses?.SelectMany(c => c.AttributeLists.SelectMany(al => al.Attributes))
                                       .Where(attr => attr.Name.ToString() == "ApiGroup")
                                       .ToList();
         var currentTitle = GetAttributeArgumentValue(classDecl.AttributeLists.SelectMany(al => al.Attributes).First(attr => attr.Name.ToString() == "ApiGroup"), 0);
-        var conflictingAttributes = allAttributes.Where(attr => GetAttributeArgumentValue(attr, 0) == currentTitle && GetAttributeArgumentValue(attr, "defaultDes") == "true").ToList();
+        var conflictingAttributes = allAttributes?.Where(attr => GetAttributeArgumentValue(attr, 0) == currentTitle && GetAttributeArgumentValue(attr, "defaultDes") == "true").ToList();
         var rootWithFixes = root;
         foreach (var attribute in conflictingAttributes)
         {
             var argumentList = attribute.ArgumentList;
-            var useDesArgument = argumentList.Arguments.FirstOrDefault(arg => arg.ToString().Contains("defaultDes"));
-            if (useDesArgument != null)
-            {
-                var newArgument = useDesArgument.WithExpression(SyntaxFactory.LiteralExpression(SyntaxKind.FalseLiteralExpression));
-                var newArgumentList = argumentList.ReplaceNode(useDesArgument, newArgument);
-                var newAttributeSyntax = attribute.WithArgumentList(newArgumentList);
-                rootWithFixes = rootWithFixes.ReplaceNode(attribute, newAttributeSyntax);
-            }
+            var useDesArgument = argumentList?.Arguments.FirstOrDefault(arg => arg.ToString().Contains("defaultDes"));
+            if (useDesArgument == null) continue;
+            var newArgument = useDesArgument.WithExpression(SyntaxFactory.LiteralExpression(SyntaxKind.FalseLiteralExpression));
+            var newArgumentList = argumentList?.ReplaceNode(useDesArgument, newArgument);
+            var newAttributeSyntax = attribute.WithArgumentList(newArgumentList);
+            rootWithFixes = rootWithFixes?.ReplaceNode(attribute, newAttributeSyntax);
         }
         var newDocument = document.WithSyntaxRoot(rootWithFixes);
         return newDocument.Project.Solution;
     }
 
-    private static string GetAttributeArgumentValue(AttributeSyntax attribute, int index) => attribute.ArgumentList?.Arguments.ElementAtOrDefault(index)?.Expression.ToString().Trim('"') ?? string.Empty;
+    private static string GetAttributeArgumentValue(AttributeSyntax attribute, int index) => attribute.ArgumentList?.Arguments.ElementAtOrDefault(index)?.Expression.ToString().Trim() ?? string.Empty;
 
     private static string GetAttributeArgumentValue(AttributeSyntax attribute, string name)
     {
         return attribute.ArgumentList?.Arguments
-                        .FirstOrDefault(arg => arg.NameEquals?.Name.Identifier.Text == name)?.Expression.ToString().Trim('"') ??
+                        .FirstOrDefault(arg => arg.NameEquals?.Name.Identifier.Text == name)?.Expression.ToString().Trim() ??
                string.Empty;
     }
 }
