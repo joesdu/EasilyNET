@@ -11,16 +11,16 @@ namespace EasilyNET.Analyzer;
 /// <inheritdoc />
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ApiGroupCodeFixProvider))]
 [Shared]
-public class ApiGroupCodeFixProvider : CodeFixProvider
+public sealed class ApiGroupCodeFixProvider : CodeFixProvider
 {
     /// <inheritdoc />
-    public override sealed ImmutableArray<string> FixableDiagnosticIds => [ApiGroupAnalyzer.DiagnosticId];
+    public override ImmutableArray<string> FixableDiagnosticIds => [ApiGroupAnalyzer.DiagnosticId];
 
     /// <inheritdoc />
-    public override sealed FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
+    public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
 
     /// <inheritdoc />
-    public override async sealed Task RegisterCodeFixesAsync(CodeFixContext context)
+    public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
         var diagnostic = context.Diagnostics.First();
@@ -33,16 +33,15 @@ public class ApiGroupCodeFixProvider : CodeFixProvider
             diagnostic);
     }
 
-    private static async Task<Solution> MakeDefaultDesFalseAsync(Document document, ClassDeclarationSyntax classDecl, CancellationToken cancellationToken)
+    private static async Task<Solution> MakeDefaultDesFalseAsync(Document document, ClassDeclarationSyntax? classDecl, CancellationToken cancellationToken)
     {
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
         var allClasses = root?.DescendantNodes().OfType<ClassDeclarationSyntax>();
         var allAttributes = allClasses?.SelectMany(c => c.AttributeLists.SelectMany(al => al.Attributes))
-                                      .Where(attr => attr.Name.ToString() == "ApiGroup")
+                                      .Where(attr => attr.Name.ToString().Contains("ApiGroup"))
                                       .ToList();
-        var currentTitle = GetAttributeArgumentValue(classDecl.AttributeLists.SelectMany(al => al.Attributes).First(attr => attr.Name.ToString() == "ApiGroup"), 0);
-        var conflictingAttributes = allAttributes?.Where(attr => GetAttributeArgumentValue(attr, 0) == currentTitle && GetAttributeArgumentValue(attr, "defaultDes") == "true").ToList();
+        var currentTitle = Tools.GetArgumentValue(classDecl.AttributeLists.SelectMany(al => al.Attributes).First(attr => attr.Name.ToString().Contains("ApiGroup")), 0);
+        var conflictingAttributes = allAttributes?.Where(attr => Tools.GetArgumentValue(attr, 0) == currentTitle && Tools.GetArgumentValue(attr, "defaultDes") == "true").ToList();
         var rootWithFixes = root;
         foreach (var attribute in conflictingAttributes)
         {
@@ -56,14 +55,5 @@ public class ApiGroupCodeFixProvider : CodeFixProvider
         }
         var newDocument = document.WithSyntaxRoot(rootWithFixes);
         return newDocument.Project.Solution;
-    }
-
-    private static string GetAttributeArgumentValue(AttributeSyntax attribute, int index) => attribute.ArgumentList?.Arguments.ElementAtOrDefault(index)?.Expression.ToString().Trim() ?? string.Empty;
-
-    private static string GetAttributeArgumentValue(AttributeSyntax attribute, string name)
-    {
-        return attribute.ArgumentList?.Arguments
-                        .FirstOrDefault(arg => arg.NameEquals?.Name.Identifier.Text == name)?.Expression.ToString().Trim() ??
-               string.Empty;
     }
 }

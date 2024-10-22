@@ -20,39 +20,41 @@ public static class SwaggerGenOptionsExtensions
 {
     private const string _defaultDescription = "Console.WriteLine(\"🐂🍺\")";
     private static readonly FrozenDictionary<string, OpenApiInfo> attributesDic;
-    private static readonly ConcurrentDictionary<string, string> _description = [];
     private static readonly string? _docName = Assembly.GetEntryAssembly()?.GetName().Name ?? string.Empty;
 
     static SwaggerGenOptionsExtensions()
     {
         var dic = new ConcurrentDictionary<string, OpenApiInfo>();
-        _description.TryAdd(_docName, _defaultDescription);
-        dic.TryAdd(_docName, new(new()
-        {
-            Title = _docName,
-            Description = _description[_docName]
-        }));
+        var _description = new ConcurrentDictionary<string, HashSet<string>>();
+        _description.TryAdd(_docName, [_defaultDescription]);
         var attributes = AssemblyHelper.FindTypesByAttribute<ApiGroupAttribute>()
                                        .Select(ctrl => ctrl.GetCustomAttribute<ApiGroupAttribute>())
-                                       .OfType<ApiGroupAttribute>().OrderBy(c => c.Title);
-        foreach (var item in attributes)
+                                       .OfType<ApiGroupAttribute>()
+                                       .OrderBy(c => c.Title)
+                                       .GroupBy(attr => attr.Title);
+        Parallel.ForEach(attributes, group =>
         {
-            if (!_description.ContainsKey(item.Title))
+            var title = group.Key;
+            if (!_description.ContainsKey(title))
             {
-                _description.TryAdd(item.Title, string.Empty);
+                _description.TryAdd(title, []);
             }
-            if (!string.IsNullOrWhiteSpace(item.Des) && item.DefaultDes)
+            foreach (var item in group)
             {
-                _description[item.Title] = item.Des;
+                if (!string.IsNullOrWhiteSpace(item.Des))
+                {
+                    _description[title].Add(item.Des);
+                }
             }
-            var exist = dic.ContainsKey(item.Title);
-            if (exist) continue;
-            dic.TryAdd(item.Title, new()
+        });
+        Parallel.ForEach(_description, item =>
+        {
+            dic.TryAdd(item.Key, new()
             {
-                Title = item.Title,
-                Description = _description[item.Title]
+                Title = item.Key,
+                Description = item.Value.Join()
             });
-        }
+        });
         attributesDic = GetSortedAttributesDic(dic);
     }
 

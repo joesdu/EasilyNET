@@ -14,11 +14,4 @@
     <ProjectReference Include="..\EasilyNET.Analyzer\EasilyNET.Analyzer.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="README.md">
-      <PackagePath></PackagePath>
-      <Pack>true</Pack>
-    </None>
-  </ItemGroup>
-
 </Project>

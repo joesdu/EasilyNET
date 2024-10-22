@@ -38,7 +38,7 @@
 		<PackageReference Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.9.0-beta.1" />
 		<PackageReference Include="RabbitMQ.Client.OpenTelemetry" Version="1.0.0-rc.1" />
 		<PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
-		<PackageReference Include="Serilog.Sinks.Async" Version="2.0.0" />
+		<PackageReference Include="Serilog.Sinks.Async" Version="2.1.0-dev-00096" />
 		<PackageReference Include="Serilog.Sinks.EventLog" Version="4.0.1-dev-00087" />
 		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
 		<PackageReference Include="Serilog.Sinks.Map" Version="2.0.0" />
@@ -47,7 +47,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\analyzer\EasilyNET.Analyzer.Package\EasilyNET.Analyzer.Package.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
 		<ProjectReference Include="..\..\src\EasilyNET.Mongo.ConsoleDebug\EasilyNET.Mongo.ConsoleDebug.csproj" />
 		<ProjectReference Include="..\..\src\EasilyNET.MongoDistributedLock.AspNetCore\EasilyNET.MongoDistributedLock.AspNetCore.csproj" />
