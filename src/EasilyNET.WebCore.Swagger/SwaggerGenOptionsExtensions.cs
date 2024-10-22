@@ -39,6 +39,8 @@ public static class SwaggerGenOptionsExtensions
             {
                 _description.TryAdd(title, []);
             }
+            //var des = group.Where(s => !string.IsNullOrWhiteSpace(s.Des)).Select(c => c.Des);
+            //_description[title].AddRange(des);
             foreach (var item in group)
             {
                 if (!string.IsNullOrWhiteSpace(item.Des))
