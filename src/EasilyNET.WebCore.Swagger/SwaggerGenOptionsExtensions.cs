@@ -18,31 +18,43 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class SwaggerGenOptionsExtensions
 {
+    private const string _defaultDescription = "Console.WriteLine(\"🐂🍺\")";
     private static readonly FrozenDictionary<string, OpenApiInfo> attributesDic;
-    private static readonly string _defaultName;
+    private static readonly string? _docName = Assembly.GetEntryAssembly()?.GetName().Name ?? string.Empty;
 
     static SwaggerGenOptionsExtensions()
     {
+        var dic = new ConcurrentDictionary<string, OpenApiInfo>();
+        var _description = new ConcurrentDictionary<string, HashSet<string>>();
+        _description.TryAdd(_docName, [_defaultDescription]);
         var attributes = AssemblyHelper.FindTypesByAttribute<ApiGroupAttribute>()
                                        .Select(ctrl => ctrl.GetCustomAttribute<ApiGroupAttribute>())
-                                       .OfType<ApiGroupAttribute>();
-        var dic = new ConcurrentDictionary<string, OpenApiInfo>();
-        foreach (var item in attributes)
+                                       .OfType<ApiGroupAttribute>()
+                                       .OrderBy(c => c.Title)
+                                       .GroupBy(attr => attr.Title);
+        Parallel.ForEach(attributes, group =>
         {
-            var exist = dic.ContainsKey(item.Title);
-            if (exist) continue;
-            dic.TryAdd(item.Title, new()
+            var title = group.Key;
+            if (!_description.ContainsKey(title))
             {
-                Title = item.Title,
-                Description = item.Des
-            });
-        }
-        _defaultName = Assembly.GetEntryAssembly()?.GetName().Name ?? string.Empty;
-        dic.TryAdd(_defaultName, new(new()
+                _description.TryAdd(title, []);
+            }
+            foreach (var item in group)
+            {
+                if (!string.IsNullOrWhiteSpace(item.Des))
+                {
+                    _description[title].Add(item.Des);
+                }
+            }
+        });
+        Parallel.ForEach(_description, item =>
         {
-            Title = _defaultName,
-            Description = "Console.WriteLine(\"🐂🍺\")"
-        }));
+            dic.TryAdd(item.Key, new()
+            {
+                Title = item.Key,
+                Description = item.Value.Join()
+            });
+        });
         attributesDic = GetSortedAttributesDic(dic);
     }
 
@@ -52,16 +64,16 @@ public static class SwaggerGenOptionsExtensions
     /// <param name="op"></param>
     public static void EasilySwaggerGenOptions(this SwaggerGenOptions op)
     {
-        op.DocInclusionPredicate((docName, apiDescription) =>
+        op.DocInclusionPredicate((doc_name, apiDescription) =>
         {
             //反射拿到值
             var actionList = apiDescription.ActionDescriptor.EndpointMetadata.Where(x => x is ApiGroupAttribute).ToList();
             if (actionList.Count is not 0)
             {
-                return actionList.FirstOrDefault() is ApiGroupAttribute attr && attr.Title == docName;
+                return actionList.FirstOrDefault() is ApiGroupAttribute attr && attr.Title == doc_name;
             }
             var not = apiDescription.ActionDescriptor.EndpointMetadata.Where(x => x is not ApiGroupAttribute).ToList();
-            return not.Count is not 0 && docName == _defaultName;
+            return not.Count is not 0 && doc_name == _docName;
             //判断是否包含这个分组
         });
         var files = Directory.GetFiles(AppContext.BaseDirectory, "*.xml");
@@ -95,6 +107,6 @@ public static class SwaggerGenOptionsExtensions
 
     private static FrozenDictionary<string, OpenApiInfo> GetSortedAttributesDic(IEnumerable<KeyValuePair<string, OpenApiInfo>> dic)
     {
-        return dic.OrderBy(kvp => kvp.Key == _defaultName ? "" : kvp.Key).ToFrozenDictionary();
+        return dic.OrderBy(kvp => kvp.Key == _docName ? "" : kvp.Key).ToFrozenDictionary();
     }
 }
