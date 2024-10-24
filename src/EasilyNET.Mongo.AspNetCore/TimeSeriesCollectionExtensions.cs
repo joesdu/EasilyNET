@@ -4,6 +4,7 @@ using EasilyNET.Core.Misc;
 using EasilyNET.Mongo.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 // ReSharper disable UnusedType.Global
@@ -56,6 +57,10 @@ public static class TimeSeriesCollectionExtensions
                 TimeSeriesOptions = attribute.TimeSeriesOptions,
                 ExpireAfter = attribute.ExpireAfter
             });
+            var collection = db.GetCollection<BsonDocument>(collectionName);
+            var indexKeys = Builders<BsonDocument>.IndexKeys.Ascending(attribute.TimeSeriesOptions.TimeField);
+            var indexOptions = new CreateIndexOptions { Background = true };
+            collection.Indexes.CreateOne(new CreateIndexModel<BsonDocument>(indexKeys, indexOptions));
             // 更新缓存
             CollectionCache.Add(collectionName);
         }
