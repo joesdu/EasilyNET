@@ -14,8 +14,6 @@ public static class TextWriterExtensions
 {
     private static readonly AsyncLock _lock = new();
     private static string _lastOutput = string.Empty;
-    private static string _clearLine = new(' ', Console.WindowWidth);
-    private static int _lastWindowWidth = Console.WindowWidth;
 
     /// <summary>
     /// 线程安全的控制台在同一行输出消息
@@ -36,10 +34,9 @@ public static class TextWriterExtensions
     {
         using (await _lock.LockAsync().ConfigureAwait(false))
         {
-            UpdateClearLine();
             if (_lastOutput != msg)
             {
-                ClearCurrentLine();
+                writer.ClearCurrentLine();
                 await writer.WriteAsync(msg).ConfigureAwait(false);
                 _lastOutput = msg;
             }
@@ -60,12 +57,11 @@ public static class TextWriterExtensions
     /// </remarks>
     /// </summary>
     /// <returns></returns>
-    public static async Task SafeClearCurrentLine(this TextWriter _)
+    public static async Task SafeClearCurrentLine(this TextWriter writer)
     {
         using (await _lock.LockAsync().ConfigureAwait(false))
         {
-            UpdateClearLine();
-            ClearCurrentLine();
+            writer.ClearCurrentLine();
         }
     }
 
@@ -83,12 +79,11 @@ public static class TextWriterExtensions
     /// </remarks>
     /// </summary>
     /// <returns></returns>
-    public static async Task SafeClearPreviousLine(this TextWriter _)
+    public static async Task SafeClearPreviousLine(this TextWriter writer)
     {
         using (await _lock.LockAsync().ConfigureAwait(false))
         {
-            UpdateClearLine();
-            ClearPreviousLine();
+            writer.ClearPreviousLine();
         }
     }
 
@@ -108,24 +103,56 @@ public static class TextWriterExtensions
     ///     </para>
     /// </remarks>
     /// </summary>
-    /// <param name="_"></param>
+    /// <param name="writer"></param>
     /// <param name="path">需要处理的完整路径</param>
     /// <param name="relative">是否输出相对路径,默认: <see langword="false" /></param>
     /// <param name="deep">当为相对路径的时候配置目录深度,仅保留最后 N 层目录</param>
     /// <param name="newLine">是否换行,默认: <see langword="false" />,行为同: Console.Write()</param>
-    public static void WriteClickablePath(this TextWriter _, string path, bool relative = false, int deep = 5, bool newLine = false)
+    public static void WriteClickablePath(this TextWriter writer, string path, bool relative = false, int deep = 5, bool newLine = false)
     {
         if (string.IsNullOrWhiteSpace(path)) return;
         var outputPath = relative ? path.GetClickableRelativePath(deep) : path.GetClickablePath();
-        if (newLine) Console.WriteLine(outputPath);
-        else Console.Write(outputPath);
+        if (newLine) writer.WriteLine(outputPath);
+        else writer.Write(outputPath);
     }
 
-    private static void UpdateClearLine()
+    private static void ClearPreviousLine(this TextWriter writer)
     {
-        if (Console.WindowWidth == _lastWindowWidth) return;
-        _lastWindowWidth = Console.WindowWidth;
-        _clearLine = new(' ', _lastWindowWidth);
+        if (!IsConsoleCursorPositionSupported())
+        {
+            writer.WriteLine();
+            return;
+        }
+        try
+        {
+            writer.Write("\e[1A"); // 光标上移一行
+            writer.Write("\e[2K"); // 清除整行
+            writer.Write("\e[1G"); // 光标移动至行首
+        }
+        catch (IOException ex)
+        {
+            // 记录异常或根据需要进行处理
+            writer.WriteLine($"IOException: {ex.Message}");
+        }
+    }
+
+    private static void ClearCurrentLine(this TextWriter writer)
+    {
+        if (!IsConsoleCursorPositionSupported())
+        {
+            writer.WriteLine();
+            return;
+        }
+        try
+        {
+            writer.Write("\e[2K"); // 清除整行
+            writer.Write("\e[1G"); // 光标移动至行首
+        }
+        catch (IOException ex)
+        {
+            // 记录异常或根据需要进行处理
+            writer.WriteLine($"IOException: {ex.Message}");
+        }
     }
 
     private static bool IsConsoleCursorPositionSupported()
@@ -146,47 +173,6 @@ public static class TextWriterExtensions
         {
             // 捕获到 PlatformNotSupportedException，说明不支持
             return false;
-        }
-    }
-
-    private static void ClearPreviousLine()
-    {
-        if (!IsConsoleCursorPositionSupported())
-        {
-            Console.WriteLine();
-            return;
-        }
-        try
-        {
-            if (Console.CursorTop <= 0) return;
-            Console.SetCursorPosition(0, Console.CursorTop - 1);
-            Console.Write(_clearLine);
-            Console.SetCursorPosition(0, Console.CursorTop);
-        }
-        catch (IOException ex)
-        {
-            // Log the exception or handle it as needed
-            Console.WriteLine($"IOException: {ex.Message}");
-        }
-    }
-
-    private static void ClearCurrentLine()
-    {
-        if (!IsConsoleCursorPositionSupported())
-        {
-            Console.WriteLine();
-            return;
-        }
-        try
-        {
-            Console.SetCursorPosition(0, Console.CursorTop);
-            Console.Write(_clearLine);
-            Console.SetCursorPosition(0, Console.CursorTop);
-        }
-        catch (IOException ex)
-        {
-            // Log the exception or handle it as needed
-            Console.WriteLine($"IOException: {ex.Message}");
         }
     }
 
@@ -274,6 +260,6 @@ public static class TextWriterExtensions
         var output = Encoding.UTF8.GetString(outputBytes);
         await writer.SafeWriteOutput(output);
         // 当进度为 100% 时，输出换行
-        if (isCompleted) Console.WriteLine();
+        if (isCompleted) await writer.WriteLineAsync();
     }
 }
