@@ -31,6 +31,7 @@ public class DelayedEventHandlers : IEventHandler<HelloWorldEvent>
 }
 
 /// <inheritdoc />
+[Qos(0, 20)]
 public class WorkQueuesEventOneHandlers : IEventHandler<WorkQueuesEvent>
 {
     /// <inheritdoc />

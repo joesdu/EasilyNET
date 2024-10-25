@@ -9,8 +9,8 @@ namespace EasilyNET.WebCore.Handlers;
 /// <summary>
 ///     <inheritdoc cref="IExceptionHandler" />
 /// </summary>
-/// <param name="environment"></param>
-public sealed class BusinessExceptionHandler(IHostEnvironment environment) : IExceptionHandler
+/// <param name="env"></param>
+public sealed class BusinessExceptionHandler(IHostEnvironment env) : IExceptionHandler
 {
     /// <inheritdoc cref="IExceptionHandler.TryHandleAsync" />
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
@@ -21,7 +21,7 @@ public sealed class BusinessExceptionHandler(IHostEnvironment environment) : IEx
             Status = (int?)business.Code,
             Title = business.Message
         };
-        if (environment.IsDevelopment())
+        if (env.IsDevelopment())
         {
             details.Detail = $"""
                               {business.Source}

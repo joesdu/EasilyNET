@@ -58,6 +58,7 @@ internal sealed class MongoModule : AppModule
         //        cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber());
         //    };
         //});
+        var env = context.ServiceProvider?.GetRequiredService<IWebHostEnvironment>() ?? throw new("获取服务出错");
         context.Services.AddMongoContext<DbContext>(config, c =>
         {
             c.DatabaseName = "easilynet";
@@ -65,10 +66,13 @@ internal sealed class MongoModule : AppModule
             {
                 cs.ClusterConfigurator = s =>
                 {
-                    s.Subscribe(new ActivityEventConsoleDebugSubscriber(new()
+                    if (env.IsDevelopment())
                     {
-                        Enable = true
-                    }));
+                        s.Subscribe(new ActivityEventConsoleDebugSubscriber(new()
+                        {
+                            Enable = true
+                        }));
+                    }
                     s.Subscribe(new ActivityEventDiagnosticsSubscriber(new()
                     {
                         CaptureCommandText = true

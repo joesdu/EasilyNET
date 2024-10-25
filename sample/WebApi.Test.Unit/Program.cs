@@ -42,7 +42,6 @@ builder.Host.UseSerilog((hbc, lc) =>
               wt.Debug();
           }
 #if Windows
-          Console.WriteLine("Is Windows");
           if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && SysHelper.IsCurrentUserAdmin())
           {
               // 当为Windows系统时,添加事件日志,需要管理员权限才能写入Windows事件查看器

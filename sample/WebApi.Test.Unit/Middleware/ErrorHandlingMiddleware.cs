@@ -17,7 +17,12 @@ namespace WebApi.Test.Unit.Middleware;
 /// <param name="logger"></param>
 internal sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger)
 {
-    private static readonly JsonSerializerOptions options = new() { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
+    private static readonly JsonSerializerOptions options = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true
+    };
 
     /// <summary>
     /// Invoke
@@ -42,7 +47,12 @@ internal sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<Erro
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
         options.Converters.Add(new JsonStringEnumConverter());
-        return context.Response.WriteAsync(JsonSerializer.Serialize(new ResultObject { StatusCode = HttpStatusCode.InternalServerError, Msg = ex.Message, Data = default }, options));
+        return context.Response.WriteAsync(JsonSerializer.Serialize(new ResultObject
+        {
+            StatusCode = HttpStatusCode.InternalServerError,
+            Msg = ex.Message,
+            Data = default
+        }, options));
     }
 }
 
