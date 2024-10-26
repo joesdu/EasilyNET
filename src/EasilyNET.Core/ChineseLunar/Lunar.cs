@@ -145,7 +145,7 @@ public static class Lunar
         var d = date.Day;
 #pragma warning disable IDE0048
         // 計算日期的索引值
-        var y = m * 100 + d;
+        var y = (m * 100) + d;
 #pragma warning restore IDE0048
         var index = Array.BinarySearch(dic, y);
         if (index < 0) index = ~index;
@@ -378,7 +378,7 @@ public static class Lunar
                 }
             }
         }
-        result[2] = dif - sum + bigOrLitterSort[i - 1] + 29 + 1; //计算日期
+        result[2] = (dif - sum) + bigOrLitterSort[i - 1] + 29 + 1; //计算日期
         return result;
     }
 

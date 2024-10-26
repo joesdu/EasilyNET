@@ -34,7 +34,6 @@
  * 修复了,中国范围的经纬度.
  */
 
-#pragma warning disable IDE0048
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
@@ -45,7 +44,7 @@ namespace EasilyNET.Core.Coordinate;
 /// </summary>
 public static class CoordinateConvert
 {
-    private const double x_Pi = 3.14159265358979324 * 3000.0 / 180.0;
+    private const double x_Pi = (3.14159265358979324 * 3000.0) / 180.0;
     private const double a = 6378245.0;
     private const double ee = 0.00669342162296594323;
     private const double Pi = 3.1415926535897932384626;
@@ -67,12 +66,12 @@ public static class CoordinateConvert
         }
         var dLat = TransformLat(wgsLon - 105.0, wgsLat - 35.0);
         var dLon = TransformLon(wgsLon - 105.0, wgsLat - 35.0);
-        var radLat = wgsLat / 180.0 * Pi;
+        var radLat = (wgsLat / 180.0) * Pi;
         var magic = Math.Sin(radLat);
-        magic = 1 - magic * ee * magic;
+        magic = 1 - (magic * ee * magic);
         var sqrtMagic = Math.Sqrt(magic);
-        dLat = dLat * 180.0 / (a * (1 - ee) / (magic * sqrtMagic) * Pi);
-        dLon = dLon * 180.0 / (a / sqrtMagic * Math.Cos(radLat) * Pi);
+        dLat = (dLat * 180.0) / (((a * (1 - ee)) / (magic * sqrtMagic)) * Pi);
+        dLon = (dLon * 180.0) / ((a / sqrtMagic) * Math.Cos(radLat) * Pi);
         gcjLat = wgsLat + dLat;
         gcjLon = wgsLon + dLon;
     }
@@ -94,12 +93,12 @@ public static class CoordinateConvert
         }
         var dLat = TransformLat(gcjLon - 105.0, gcjLat - 35.0);
         var dLon = TransformLon(gcjLon - 105.0, gcjLat - 35.0);
-        var radLat = gcjLat / 180.0 * Pi;
+        var radLat = (gcjLat / 180.0) * Pi;
         var magic = Math.Sin(radLat);
-        magic = 1 - magic * magic * ee;
+        magic = 1 - (magic * magic * ee);
         var sqrtMagic = Math.Sqrt(magic);
-        dLat = dLat * 180.0 / (a * (1 - ee) / (magic * sqrtMagic) * Pi);
-        dLon = dLon * 180.0 / (a / sqrtMagic * Math.Cos(radLat) * Pi);
+        dLat = (dLat * 180.0) / (((a * (1 - ee)) / (magic * sqrtMagic)) * Pi);
+        dLon = (dLon * 180.0) / ((a / sqrtMagic) * Math.Cos(radLat) * Pi);
         wgsLat = gcjLat - dLat;
         wgsLon = gcjLon - dLon;
     }
@@ -115,8 +114,8 @@ public static class CoordinateConvert
     {
         var x = bdLon - 0.0065;
         var y = bdLat - 0.006;
-        var z = Math.Sqrt(x * x + y * y) - 0.00002 * Math.Sin(y * x_Pi);
-        var theta = Math.Atan2(y, x) - 0.000003 * Math.Cos(x * x_Pi);
+        var z = Math.Sqrt((x * x) + (y * y)) - (0.00002 * Math.Sin(y * x_Pi));
+        var theta = Math.Atan2(y, x) - (0.000003 * Math.Cos(x * x_Pi));
         gcjLon = z * Math.Cos(theta);
         gcjLat = z * Math.Sin(theta);
     }
@@ -130,10 +129,10 @@ public static class CoordinateConvert
     /// <param name="bdLat"></param>
     public static void GCJ02ToBD09(double gcjLon, double gcjLat, out double bdLon, out double bdLat)
     {
-        var z = Math.Sqrt(gcjLon * gcjLon + gcjLat * gcjLat) + 0.00002 * Math.Sin(gcjLat * x_Pi);
-        var theta = Math.Atan2(gcjLat, gcjLon) + 0.000003 * Math.Cos(gcjLon * x_Pi);
-        bdLon = Math.Cos(theta) * z + 0.0065;
-        bdLat = Math.Sin(theta) * z + 0.006;
+        var z = Math.Sqrt((gcjLon * gcjLon) + (gcjLat * gcjLat)) + (0.00002 * Math.Sin(gcjLat * x_Pi));
+        var theta = Math.Atan2(gcjLat, gcjLon) + (0.000003 * Math.Cos(gcjLon * x_Pi));
+        bdLon = (Math.Cos(theta) * z) + 0.0065;
+        bdLat = (Math.Sin(theta) * z) + 0.006;
     }
 
     /// <summary>
@@ -142,10 +141,12 @@ public static class CoordinateConvert
     /// <param name="lon"></param>
     /// <param name="lat"></param>
     /// <returns></returns>
-    private static bool OutOfChina(double lon, double lat) =>
+    private static bool OutOfChina(double lon, double lat)
+    {
         // https://cn.bing.com/search?q=%E4%B8%AD%E5%9B%BD%E7%BB%8F%E7%BA%AC%E5%BA%A6%E8%8C%83%E5%9B%B4&qs=n&form=QBRE&sp=-1&pq=%E4%B8%AD%E5%9B%BD%E7%BB%8F%E7%BA%AC%E5%BA%A6%E8%8C%83%E5%9B%B4&sc=5-7&sk=&cvid=A687C2BEA56F4B08BE0913ADDA0C6674&ghsh=0&ghacc=0&ghpl=
         // 经度范围:73°33′E至135°05′E; 纬度范围:3°51′N至53°33′N
-        lon is < 73.33 or > 135.05 || lat is < 3.51 or > 53.33;
+        return lon is < 73.33 or > 135.05 || lat is < 3.51 or > 53.33;
+    }
 
     /// <summary>
     /// 转换纬度
@@ -155,10 +156,10 @@ public static class CoordinateConvert
     /// <returns></returns>
     private static double TransformLat(double lon, double lat)
     {
-        var ret = -100.0 + 2.0 * lon + 3.0 * lat + 0.2 * lat * lat + 0.1 * lon * lat + 0.2 * Math.Sqrt(Math.Abs(lon));
-        ret += 20.0 * Math.Sin(6.0 * lon * Pi) + 20.0 * Math.Sin(2.0 * lon * Pi) * 2.0 / 3.0;
-        ret += 20.0 * Math.Sin(lat * Pi) + 40.0 * Math.Sin(lat / 3.0 * Pi) * 2.0 / 3.0;
-        ret += (160.0 * Math.Sin(lat / 12.0 * Pi) + 320 * Math.Sin(lat * Pi / 30.0) * 2.0) / 3.0;
+        var ret = -100.0 + (2.0 * lon) + (3.0 * lat) + (0.2 * lat * lat) + (0.1 * lon * lat) + (0.2 * Math.Sqrt(Math.Abs(lon)));
+        ret += (20.0 * Math.Sin(6.0 * lon * Pi)) + ((20.0 * Math.Sin(2.0 * lon * Pi) * 2.0) / 3.0);
+        ret += (20.0 * Math.Sin(lat * Pi)) + ((40.0 * Math.Sin((lat / 3.0) * Pi) * 2.0) / 3.0);
+        ret += ((160.0 * Math.Sin((lat / 12.0) * Pi)) + (320 * Math.Sin((lat * Pi) / 30.0) * 2.0)) / 3.0;
         return ret;
     }
 
@@ -170,10 +171,10 @@ public static class CoordinateConvert
     /// <returns></returns>
     private static double TransformLon(double lon, double lat)
     {
-        var ret = 300.0 + lon + 2.0 * lat + 0.1 * lon * lon + 0.1 * lon * lat + 0.1 * Math.Sqrt(Math.Abs(lon));
-        ret += (20.0 * Math.Sin(6.0 * lon * Pi) + 20.0 * Math.Sin(2.0 * lon * Pi)) * 2.0 / 3.0;
-        ret += (20.0 * Math.Sin(lon * Pi) + 40.0 * Math.Sin(lon / 3.0 * Pi)) * 2.0 / 3.0;
-        ret += (150.0 * Math.Sin(lon / 12.0 * Pi) + 300.0 * Math.Sin(lon / 30.0 * Pi)) * 2.0 / 3.0;
+        var ret = 300.0 + lon + (2.0 * lat) + (0.1 * lon * lon) + (0.1 * lon * lat) + (0.1 * Math.Sqrt(Math.Abs(lon)));
+        ret += (((20.0 * Math.Sin(6.0 * lon * Pi)) + (20.0 * Math.Sin(2.0 * lon * Pi))) * 2.0) / 3.0;
+        ret += (((20.0 * Math.Sin(lon * Pi)) + (40.0 * Math.Sin((lon / 3.0) * Pi))) * 2.0) / 3.0;
+        ret += (((150.0 * Math.Sin((lon / 12.0) * Pi)) + (300.0 * Math.Sin((lon / 30.0) * Pi))) * 2.0) / 3.0;
         return ret;
     }
 }

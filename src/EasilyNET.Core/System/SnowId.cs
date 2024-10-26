@@ -294,9 +294,9 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     public readonly override int GetHashCode()
     {
         var hash = 17;
-        hash = 37 * hash + _a.GetHashCode();
-        hash = 37 * hash + _b.GetHashCode();
-        hash = 37 * hash + _c.GetHashCode();
+        hash = (37 * hash) + _a.GetHashCode();
+        hash = (37 * hash) + _b.GetHashCode();
+        hash = (37 * hash) + _c.GetHashCode();
         return hash;
     }
 
