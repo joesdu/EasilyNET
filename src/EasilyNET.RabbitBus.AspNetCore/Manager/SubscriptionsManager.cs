@@ -21,9 +21,9 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
     {
         return handleKind switch
         {
-            EKindOfHandler.Normal => _normalHandlers.GetValueOrDefault(name, []),
+            EKindOfHandler.Normal  => _normalHandlers.GetValueOrDefault(name, []),
             EKindOfHandler.Delayed => _delayedHandlers.GetValueOrDefault(name, []),
-            _ => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
+            _                      => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
         };
     }
 
@@ -31,9 +31,9 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
     {
         return handleKind switch
         {
-            EKindOfHandler.Normal => _normalHandlers.ContainsKey(name),
+            EKindOfHandler.Normal  => _normalHandlers.ContainsKey(name),
             EKindOfHandler.Delayed => _delayedHandlers.ContainsKey(name),
-            _ => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
+            _                      => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
         };
     }
 
@@ -47,9 +47,9 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
     {
         var handlersDict = handleKind switch
         {
-            EKindOfHandler.Normal => _normalHandlers,
+            EKindOfHandler.Normal  => _normalHandlers,
             EKindOfHandler.Delayed => _delayedHandlers,
-            _ => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
+            _                      => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
         };
         var handlers = handlersDict.GetOrAdd(name, _ => []);
         foreach (var handlerType in handlerTypes)

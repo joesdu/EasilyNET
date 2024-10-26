@@ -19,7 +19,7 @@ public static class IDCardValidation
         {
             18 => CheckIDCard18(no.AsSpan()),
             15 => CheckIDCard15(no.AsSpan()),
-            _ => false
+            _  => false
         };
 
     /// <summary>

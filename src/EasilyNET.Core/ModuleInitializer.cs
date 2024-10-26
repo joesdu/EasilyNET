@@ -23,9 +23,11 @@ internal static class ModuleInitializer
     private static bool _initialized;
     private static readonly Lock _lock = new();
 
+#pragma warning disable IDE0079
 #pragma warning disable CA2255
     [ModuleInitializer]
 #pragma warning restore CA2255
+#pragma warning restore IDE0079
     internal static void Initialize()
     {
         // 使用锁来确保线程安全

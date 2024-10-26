@@ -62,14 +62,14 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
         table.AddRow($"{request_id}", $"[#ffd700]{DateTime.Now:HH:mm:ss.fffff}[/]", success ? "[#00af00]Succeeded[/]" : "[#af0000]Failed[/]");
         var layout = new Layout("Root")
             .SplitColumns(new Layout(new Panel(new Text(CommandJson, new(Color.Purple)))
-            {
-                Height = 45,
-                Header = new("Command", Justify.Center)
-            }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand())
-            {
-                MinimumSize = 48,
-                Size = 72
-            },
+                {
+                    Height = 45,
+                    Header = new("Command", Justify.Center)
+                }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand())
+                {
+                    MinimumSize = 48,
+                    Size = 72
+                },
                 new Layout(new Rows(new Panel(new Calendar(DateTime.Now)
                 {
                     HeaderStyle = new(Color.Blue, decoration: Decoration.Bold),
@@ -133,9 +133,9 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
             case true when _options.ShouldStartCollection is not null && !_options.ShouldStartCollection(coll_name):
                 return;
             case true:
-                {
-                    // 使用字符串的方式替代序列化
-                    InfoJson = $$"""
+            {
+                // 使用字符串的方式替代序列化
+                InfoJson = $$"""
                              {
                                "RequestId": {{@event.RequestId}},
                                "Timestamp": "{{@event.Timestamp:yyyy-MM-dd HH:mm:ss}}",
@@ -148,9 +148,9 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
                                }
                              }
                              """;
-                    CommandJson = @event.Command.ToJson(new() { Indent = true });
-                    break;
-                }
+                CommandJson = @event.Command.ToJson(new() { Indent = true });
+                break;
+            }
         }
     }
 

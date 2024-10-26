@@ -1,7 +1,9 @@
 ﻿using System.Globalization;
 using System.Numerics;
 
+#pragma warning disable IDE0079
 #pragma warning disable IDE0048 // 为清楚起见，请添加括号
+#pragma warning restore IDE0079
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
@@ -34,6 +36,8 @@ public sealed class BigNumber
     /// 整数部分
     /// </summary>
     private BigInteger whole;
+
+#pragma warning disable IDE0079
 #pragma warning disable CA2211
     /// <summary>
     /// 数值1
@@ -50,6 +54,7 @@ public sealed class BigNumber
     /// </summary>
     public static BigNumber Zero = new(0);
 #pragma warning restore CA2211
+#pragma warning restore IDE0079
 
     #region Constructors
 
@@ -642,7 +647,7 @@ public sealed class BigNumber
         var new_denominator = a.denominator * b.denominator;
         a_numerator = aSign * BigInteger.Abs(a_numerator);
         b_numerator = bSign * BigInteger.Abs(b_numerator);
-        return FromBigInteger(aSign * BigInteger.Abs(a_numerator) + BigInteger.Abs(b_numerator) * bSign, new_denominator);
+        return FromBigInteger((aSign * BigInteger.Abs(a_numerator)) + (BigInteger.Abs(b_numerator) * bSign), new_denominator);
     }
 
     /// <summary>
@@ -800,8 +805,8 @@ public sealed class BigNumber
         //var d = a.denominator == b.denominator;
         //return w && n && d;
         // ab先通分成一样的分母后再比较分子大小即可,上面的方式会造成分子分母不一定一样,比如:1/2和2/4;
-        var a_temp = (a.whole * a.denominator + a.numerator) * b.denominator;
-        var b_temp = (b.whole * b.denominator + b.numerator) * a.denominator;
+        var a_temp = ((a.whole * a.denominator) + a.numerator) * b.denominator;
+        var b_temp = ((b.whole * b.denominator) + b.numerator) * a.denominator;
         return a_temp == b_temp;
     }
 
@@ -892,7 +897,7 @@ public sealed class BigNumber
     /// </summary>
     private void ToAssociative()
     {
-        numerator = whole * denominator + numerator;
+        numerator = (whole * denominator) + numerator;
         whole = 0;
     }
 
