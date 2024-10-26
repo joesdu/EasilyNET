@@ -34,7 +34,6 @@
  * 修复了,中国范围的经纬度.
  */
 
-#pragma warning disable IDE0048
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
@@ -142,10 +141,12 @@ public static class CoordinateConvert
     /// <param name="lon"></param>
     /// <param name="lat"></param>
     /// <returns></returns>
-    private static bool OutOfChina(double lon, double lat) =>
+    private static bool OutOfChina(double lon, double lat)
+    {
         // https://cn.bing.com/search?q=%E4%B8%AD%E5%9B%BD%E7%BB%8F%E7%BA%AC%E5%BA%A6%E8%8C%83%E5%9B%B4&qs=n&form=QBRE&sp=-1&pq=%E4%B8%AD%E5%9B%BD%E7%BB%8F%E7%BA%AC%E5%BA%A6%E8%8C%83%E5%9B%B4&sc=5-7&sk=&cvid=A687C2BEA56F4B08BE0913ADDA0C6674&ghsh=0&ghacc=0&ghpl=
         // 经度范围:73°33′E至135°05′E; 纬度范围:3°51′N至53°33′N
-        lon is < 73.33 or > 135.05 || lat is < 3.51 or > 53.33;
+        return lon is < 73.33 or > 135.05 || lat is < 3.51 or > 53.33;
+    }
 
     /// <summary>
     /// 转换纬度
