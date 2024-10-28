@@ -1,5 +1,6 @@
 using System.Collections.Specialized;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -38,7 +39,7 @@ public static partial class StringExtension
     public static StringCollection ToStringCollection(this string value, string separator)
     {
         var col = new StringCollection();
-        if (string.IsNullOrEmpty(separator) || string.IsNullOrEmpty(value) || string.IsNullOrEmpty(value.Trim()))
+        if (string.IsNullOrWhiteSpace(separator) || string.IsNullOrWhiteSpace(value) || string.IsNullOrWhiteSpace(value.Trim()))
         {
             return col;
         }
@@ -64,7 +65,7 @@ public static partial class StringExtension
     {
         var regex = ToTitleUpperCaseRegex();
         return regex.Replace(value,
-            delegate(Match m)
+            delegate (Match m)
             {
                 var str = m.ToString();
                 if (!char.IsLower(str[0])) return str;
@@ -163,12 +164,12 @@ public static partial class StringExtension
         return value.Length switch
         {
             >= 11 => MaskElevenRegex().Replace(value, $"$1{masks}$2"),
-            10    => MaskTenRegex().Replace(value, $"$1{masks}$2"),
-            9     => MaskNineRegex().Replace(value, $"$1{masks}$2"),
-            8     => MaskEightRegex().Replace(value, $"$1{masks}$2"),
-            7     => MaskSevenRegex().Replace(value, $"$1{masks}$2"),
-            6     => MaskSixRegex().Replace(value, $"$1{masks}$2"),
-            _     => MaskLessThanSixRegex().Replace(value, $"$1{masks}")
+            10 => MaskTenRegex().Replace(value, $"$1{masks}$2"),
+            9 => MaskNineRegex().Replace(value, $"$1{masks}$2"),
+            8 => MaskEightRegex().Replace(value, $"$1{masks}$2"),
+            7 => MaskSevenRegex().Replace(value, $"$1{masks}$2"),
+            6 => MaskSixRegex().Replace(value, $"$1{masks}$2"),
+            _ => MaskLessThanSixRegex().Replace(value, $"$1{masks}")
         };
     }
 
@@ -210,7 +211,7 @@ public static partial class StringExtension
     /// <param name="suffix">后缀,默认: ...</param>
     /// <returns></returns>
     public static string Truncate(this string value, int maxLength, string suffix = "...") =>
-        string.IsNullOrEmpty(value) || value.Length <= maxLength
+        string.IsNullOrWhiteSpace(value) || value.Length <= maxLength
             ? value
             : maxLength - suffix.Length <= 0
                 ? suffix[..maxLength]
@@ -223,14 +224,14 @@ public static partial class StringExtension
     /// <param name="separate">分隔符</param>
     /// <param name="removeEmpty">是否移除空白字符</param>
     /// <returns></returns>
-    public static string Join(this IEnumerable<string> strs, string separate = ", ", bool removeEmpty = false) => string.Join(separate, removeEmpty ? strs.Where(s => !string.IsNullOrEmpty(s)) : strs);
+    public static string Join(this IEnumerable<string> strs, char separate = ',', bool removeEmpty = false) => string.Join(separate, removeEmpty ? strs.Where(s => !string.IsNullOrWhiteSpace(s)) : strs);
 
     /// <summary>
     /// 转成非null
     /// </summary>
     /// <param name="s"></param>
     /// <returns></returns>
-    public static string AsNotNull(this string? s) => string.IsNullOrEmpty(s) ? "" : s;
+    public static string AsNotNull(this string? s) => string.IsNullOrWhiteSpace(s) ? string.Empty : s;
 
     /// <summary>
     /// 转成非null
@@ -238,7 +239,7 @@ public static partial class StringExtension
     /// <param name="s"></param>
     /// <param name="value">为空时的替换值</param>
     /// <returns></returns>
-    public static string IfNullOrEmpty(this string s, string value) => string.IsNullOrEmpty(s) ? value : s;
+    public static string IfNullOrEmpty(this string s, string value) => string.IsNullOrWhiteSpace(s) ? value : s;
 
     /// <summary>
     /// 转成非null
@@ -246,14 +247,14 @@ public static partial class StringExtension
     /// <param name="s"></param>
     /// <param name="valueFactory">为空时的替换值函数</param>
     /// <returns></returns>
-    public static string IfNullOrEmpty(this string s, Func<string> valueFactory) => string.IsNullOrEmpty(s) ? valueFactory() : s;
+    public static string IfNullOrEmpty(this string s, Func<string> valueFactory) => string.IsNullOrWhiteSpace(s) ? valueFactory() : s;
 
     /// <summary>
     /// 匹配手机号码
     /// </summary>
     /// <param name="s">源字符串</param>
     /// <returns>是否匹配成功</returns>
-    public static bool MatchPhoneNumber(this string s) => !string.IsNullOrEmpty(s) && s[0] == '1' && (s[1] > '2' || s[1] <= '9');
+    public static bool MatchPhoneNumber(this string s) => !string.IsNullOrWhiteSpace(s) && s[0] == '1' && (s[1] > '2' || s[1] <= '9');
 
     /// <summary>
     /// 转换人民币大小金额 .
@@ -281,7 +282,7 @@ public static partial class StringExtension
     public static DateTime ToDateTime(this string value, DateTime defaultValue)
     {
         var result = DateTime.MinValue;
-        return string.IsNullOrEmpty(value) || DateTime.TryParse(value, out result) ? result : defaultValue;
+        return string.IsNullOrWhiteSpace(value) || DateTime.TryParse(value, out result) ? result : defaultValue;
     }
 
     /// <summary>
@@ -436,7 +437,7 @@ public static partial class StringExtension
         {
             array = keys.ToArray();
         }
-        return array.Length != 0 && !string.IsNullOrEmpty(source) && (ignoreCase ? array.Any(item => source.Contains(item, StringComparison.InvariantCultureIgnoreCase)) : array.Any(source.Contains));
+        return array.Length != 0 && !string.IsNullOrWhiteSpace(source) && (ignoreCase ? array.Any(item => source.Contains(item, StringComparison.InvariantCultureIgnoreCase)) : array.Any(source.Contains));
     }
 
     /// <summary>
@@ -452,7 +453,7 @@ public static partial class StringExtension
         {
             array = keys.ToArray();
         }
-        if (array.Length == 0 || string.IsNullOrEmpty(source))
+        if (array.Length == 0 || string.IsNullOrWhiteSpace(source))
             return false;
         var flag = false;
         if (ignoreCase)
@@ -485,9 +486,9 @@ public static partial class StringExtension
         {
             array = keys.ToArray();
         }
-        if (array.Length == 0 || string.IsNullOrEmpty(source))
+        if (array.Length == 0 || string.IsNullOrWhiteSpace(source))
             return false;
-        var pattern = $"({array.Select(Regex.Escape).Join("|")})$";
+        var pattern = $"({array.Select(Regex.Escape).Join('|')})$";
         return ignoreCase ? Regex.IsMatch(source, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(source, pattern);
     }
 
@@ -504,9 +505,9 @@ public static partial class StringExtension
         {
             array = keys.ToArray();
         }
-        if (array.Length == 0 || string.IsNullOrEmpty(source))
+        if (array.Length == 0 || string.IsNullOrWhiteSpace(source))
             return false;
-        var pattern = $"^({array.Select(Regex.Escape).Join("|")})";
+        var pattern = $"^({array.Select(Regex.Escape).Join('|')})";
         return ignoreCase ? Regex.IsMatch(source, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(source, pattern);
     }
 
@@ -517,7 +518,7 @@ public static partial class StringExtension
     /// <param name="regex">关键词列表</param>
     /// <param name="ignoreCase">忽略大小写</param>
     /// <returns></returns>
-    public static bool RegexMatch(this string source, string regex, bool ignoreCase = true) => !string.IsNullOrEmpty(regex) && !string.IsNullOrEmpty(source) && (ignoreCase ? Regex.IsMatch(source, regex, RegexOptions.IgnoreCase) : Regex.IsMatch(source, regex));
+    public static bool RegexMatch(this string source, string regex, bool ignoreCase = true) => !string.IsNullOrWhiteSpace(regex) && !string.IsNullOrWhiteSpace(source) && (ignoreCase ? Regex.IsMatch(source, regex, RegexOptions.IgnoreCase) : Regex.IsMatch(source, regex));
 
     /// <summary>
     /// 检测字符串中是否包含列表中的关键词
@@ -525,7 +526,7 @@ public static partial class StringExtension
     /// <param name="source">源字符串</param>
     /// <param name="regex">关键词列表</param>
     /// <returns></returns>
-    public static bool RegexMatch(this string source, Regex regex) => !string.IsNullOrEmpty(source) && regex.IsMatch(source);
+    public static bool RegexMatch(this string source, Regex regex) => !string.IsNullOrWhiteSpace(source) && regex.IsMatch(source);
 
     /// <summary>
     /// 尝试将十六进制字符串解析为字节数组
@@ -665,7 +666,7 @@ public static partial class StringExtension
     /// <returns></returns>
     public static string SnakeCaseToCamelCase(this string value, ECamelCase toType = ECamelCase.LowerCamelCase)
     {
-        if (string.IsNullOrEmpty(value)) return value;
+        if (string.IsNullOrWhiteSpace(value)) return value;
         // 分割字符串，然后将每个单词(除了第一个)的首字母大写
         var words = value.Split('_');
         var index = 0;
@@ -703,6 +704,7 @@ public static partial class StringExtension
     /// <returns></returns>
     public static string GetClickablePath(this string path)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path, nameof(path));
         var fullPath = Path.GetFullPath(path);
         return $"\e]8;;file://\e\\{fullPath}\e]8;;\e\\";
     }
@@ -727,10 +729,56 @@ public static partial class StringExtension
     /// <returns></returns>
     public static string GetClickableRelativePath(this string path, int maxDeep = 5)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path, nameof(path));
         var fullPath = Path.GetFullPath(path);
         // 分割路径并仅保留最后 N 层目录
         var pathParts = fullPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var displayPath = pathParts.Length > maxDeep ? string.Join(Path.DirectorySeparatorChar, pathParts[^maxDeep..]) : fullPath;
         return $"\e]8;;file://{fullPath}\e\\{displayPath}\e]8;;\e\\";
     }
+
+    /// <summary>
+    /// 简化和优化String.Format方法.
+    /// <example>
+    ///     <code>
+    ///   <![CDATA[
+    /// var str = "{0} is {1} years old.";
+    ///   var result = str.Format(CultureInfo.InvariantCulture,"Alice", 30);
+    ///   Console.WriteLine(result);
+    /// Output:
+    ///   Alice is 30 years old.
+    /// ]]>
+    /// </code>
+    /// </example>
+    /// </summary>
+    /// <param name="format">格式字符串，包含零个或多个格式项。</param>
+    /// <param name="formatProvider">用于提供特定区域性格式信息的对象。</param>
+    /// <param name="args">一个对象数组，包含零个或多个要格式化的对象。</param>
+    /// <returns>格式化后的字符串。如果格式字符串为空或仅包含空白字符，则返回空字符串。</returns>
+    public static string Format(this string format, IFormatProvider? formatProvider = null, params object?[] args)
+    {
+        if (string.IsNullOrWhiteSpace(format))
+            return string.Empty;
+        var str = FormattableStringFactory.Create(format, args);
+        return str.ToString(formatProvider ?? CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// 简化和优化String.Format方法.
+    /// <example>
+    ///     <code>
+    ///   <![CDATA[
+    /// var str = "{0} is {1} years old.";
+    ///   var result = str.Format("Alice", 30);
+    ///   Console.WriteLine(result);
+    /// Output:
+    ///   Alice is 30 years old.
+    /// ]]>
+    /// </code>
+    /// </example>
+    /// </summary>
+    /// <param name="format">格式字符串，包含零个或多个格式项。</param>
+    /// <param name="args">一个对象数组，包含零个或多个要格式化的对象。</param>
+    /// <returns>格式化后的字符串。如果格式字符串为空或仅包含空白字符，则返回空字符串。</returns>
+    public static string Format(this string format, params object?[] args) => format.Format(CultureInfo.InvariantCulture, args);
 }
