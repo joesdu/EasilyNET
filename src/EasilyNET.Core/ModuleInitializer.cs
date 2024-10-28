@@ -8,16 +8,6 @@ internal static class ModuleInitializer
 {
     private const string url = "https://github.com/joesdu/EasilyNET";
 
-    private const string logo = """
-                                 ________                 _   __          ____  _____  ________  _________  
-                                |_   __  |               (_) [  |        |_   \|_   _||_   __  ||  _   _  | 
-                                  | |_ \_| ,--.   .--.   __   | |   _   __ |   \ | |    | |_ \_||_/ | | \_| 
-                                  |  _| _ `'_\ : ( (`\] [  |  | |  [ \ [  ]| |\ \| |    |  _| _     | |     
-                                 _| |__/ |// | |, `'.'.  | |  | |   \ '/ /_| |_\   |_  _| |__/ |   _| |_    
-                                |________|\'-;__/[\__) )[___][___][\_:  /|_____|\____||________|  |_____|   
-                                                                   \__.'                                    
-                                """;
-
     private const string welcomeMessage = "Welcome EasilyNET Project";
 
     private static bool _initialized;
@@ -36,13 +26,13 @@ internal static class ModuleInitializer
             if (_initialized) return;
             var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "未知版本";
             // 计算图形的宽度
-            var logoWidth = logo.Split('\n').Max(line => Encoding.ASCII.GetBytes(line).Length);
+            var logoWidth = AsciiArt.Logo.GetLogoWidth();
             // 计算欢迎消息前的空格数量
             var padding = ((logoWidth - Encoding.ASCII.GetBytes(welcomeMessage).Length) / 2) - 3;
             // 创建居中的欢迎消息
             var centeredWelcomeMessage = welcomeMessage.PadLeft(padding + welcomeMessage.Length);
             Console.WriteLine($"""
-                               {logo}
+                               {AsciiArt.Logo}
 
                                {centeredWelcomeMessage}
                                Ver: [32m{version}[0m
