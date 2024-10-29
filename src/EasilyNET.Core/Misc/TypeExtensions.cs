@@ -12,7 +12,7 @@ namespace EasilyNET.Core.Misc;
 /// <summary>
 /// Type扩展.
 /// </summary>
-public static partial class TypeExtension
+public static partial class TypeExtensions
 {
     /// <summary>
     /// 判断类型是否为Nullable类型

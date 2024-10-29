@@ -3,8 +3,6 @@
 
 using System.Security.Cryptography;
 
-#pragma warning disable IDE0048 // 为清楚起见，请添加括号
-
 namespace EasilyNET.Core.Misc;
 
 /// <summary>

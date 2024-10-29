@@ -2,6 +2,7 @@ using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using EasilyNET.Mongo.AspNetCore.Serializers;
 using EasilyNET.Mongo.ConsoleDebug.Subscribers;
+using WebApi.Test.Unit.Common;
 
 namespace WebApi.Test.Unit.ServiceModules;
 
@@ -78,6 +79,7 @@ internal sealed class MongoModule : AppModule
                         CaptureCommandText = true
                     }));
                 };
+                cs.ApplicationName = Constant.InstanceName;
                 // https://www.mongodb.com/docs/drivers/csharp/current/fundamentals/logging/#log-messages-by-category
                 //cs.LoggingSettings = new(LoggerFactory.Create(b =>
                 //{

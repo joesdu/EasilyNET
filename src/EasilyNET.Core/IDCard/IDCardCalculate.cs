@@ -1,4 +1,5 @@
 using EasilyNET.Core.Enums;
+using EasilyNET.Core.Misc;
 
 // ReSharper disable UnusedType.Global
 // ReSharper disable MemberCanBePrivate.Global
@@ -43,7 +44,7 @@ public static class IDCardCalculate
         {
             18 => ParseDateTime(no.AsSpan(6, 8)),
             15 => ParseDateTime($"19{no.AsSpan(6, 6)}"),
-            _  => throw new ArgumentException("该身份证号无法正确计算出生日")
+            _ => throw new ArgumentException("该身份证号无法正确计算出生日")
         };
     }
 
@@ -60,7 +61,7 @@ public static class IDCardCalculate
         {
             18 => (no[16] - 48) % 2 == 0 ? EGender.女 : EGender.男,
             15 => (no[14] - 48) % 2 == 0 ? EGender.女 : EGender.男,
-            _  => EGender.女
+            _ => EGender.女
         };
     }
 
@@ -83,7 +84,7 @@ public static class IDCardCalculate
     /// </summary>
     /// <param name="birthday">生日(<see cref="DateTime" />)</param>
     /// <returns>精确年龄</returns>
-    public static int CalculateAge(DateTime birthday) => CalculateAge(DateOnly.FromDateTime(birthday));
+    public static int CalculateAge(DateTime birthday) => CalculateAge(birthday.ToDateOnly());
 
     /// <summary>
     /// 根据身份证号码计算生日日期
@@ -93,7 +94,7 @@ public static class IDCardCalculate
     public static void CalculateBirthday(this string no, out DateOnly birthday)
     {
         no.CalculateBirthday(out DateTime date);
-        birthday = DateOnly.FromDateTime(date);
+        birthday = date.ToDateOnly();
     }
 
     /// <summary>

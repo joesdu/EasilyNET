@@ -1,4 +1,5 @@
 using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
@@ -17,8 +18,28 @@ namespace EasilyNET.Core.Misc;
 /// <summary>
 /// 字符串String扩展
 /// </summary>
-public static partial class StringExtension
+public static partial class StringExtensions
 {
+    /// <summary>
+    /// DateTime常见格式
+    /// </summary>
+    [SuppressMessage("ReSharper", "StringLiteralTypo")]
+    private static readonly string[] DateTimeFormats =
+    [
+        "yyyy/MM/dd",
+        "yyyy-MM-dd",
+        "yyyyMMdd",
+        "yyyy.MM.dd",
+        "yyyy/MM/dd HH:mm:ss",
+        "yyyy-MM-dd HH:mm:ss",
+        "yyyyMMddHHmmss",
+        "yyyy.MM.dd HH:mm:ss",
+        "yyyy/MM/dd HH:mm:ss.fff",
+        "yyyy-MM-dd HH:mm:ss.fff",
+        "yyyyMMddHHmmssfff",
+        "yyyy.MM.dd HH:mm:ss.fff"
+    ];
+
     /// <summary>
     /// 移除字符串中所有空白符
     /// </summary>
@@ -264,64 +285,19 @@ public static partial class StringExtension
     public static string ToRmb(this string numStr) => numStr.ConvertTo<decimal>().ToRmb();
 
     /// <summary>
-    /// 将格式化日期串转化为相应的日期
-    /// （比如2004/05/06，2004-05-06 12:00:03，12:23:33.333等）
+    /// 将字符串转化为DateTime，支持多种格式
     /// </summary>
-    /// <param name="value">日期格式化串</param>
-    /// <returns>转换后的日期，对于不能转化的返回DateTime.MinValue</returns>
-    public static DateTime ToDateTime(this string value) => value.ToDateTime(DateTime.MinValue);
-
-    /// <summary>
-    /// 将格式化日期串转化为相应的日期
-    /// （比如2004/05/06，2004-05-06 12:00:03，12:23:33.333等）
-    /// </summary>
-    /// <param name="value">日期格式化串</param>
-    /// <param name="defaultValue">当为空或错误时的返回日期</param>
-    /// <returns>转换后的日期</returns>
-    // ReSharper disable once MemberCanBePrivate.Global
-    public static DateTime ToDateTime(this string value, DateTime defaultValue)
-    {
-        var result = DateTime.MinValue;
-        return string.IsNullOrWhiteSpace(value) || DateTime.TryParse(value, out result) ? result : defaultValue;
-    }
-
-    /// <summary>
-    /// 从字符串获取DateTime?,支持的字符串格式:'2020/10/01,2020-10-01,20201001,2020.10.01'
-    /// </summary>
-    /// <param name="value"></param>
-    /// <param name="force">true:当无法转换成功时抛出异常.false:当无法转化成功时返回null</param>
-    public static DateTime? ToDateTime(this string value, bool force)
-    {
-        value = ToDateTimeRegex().Replace(value, "-");
-        if (value.Split('-').Length == 1 && value.Length == 8)
-        {
-            value = string.Join("-", value[..4], value.Substring(4, 2), value.Substring(6, 2));
-        }
-        return DateTime.TryParse(value, out var date)
-                   ? date
-                   : force
-                       ? throw new("string format is not correct,must like:2020/10/01,2020-10-01,20201001,2020.10.01")
-                       : null;
-    }
-
-    [GeneratedRegex("[^a-zA-Z0-9]")]
-    private static partial Regex ToDateTimeRegex();
-
-    /// <summary>
-    /// 将字符串转化为固定日期格式字符串,如:20180506 --> 2018-05-06
-    /// </summary>
-    /// <exception cref="FormatException"></exception>
-    public static string ToDateTimeFormat(this string value, bool force = true)
-    {
-        var sb = new StringBuilder(value);
-        sb.Replace("/", "-").Replace(".", "-").Replace("。", "-").Replace(",", "-").Replace(" ", "-").Replace("|", "-");
-        if (sb.ToString().Split('-').Length == 1 && sb.Length == 8) sb = sb.Insert(4, "-").Insert(7, "-");
-        return DateTime.TryParse(sb.ToString(), out _)
-                   ? sb.ToString()
-                   : force
-                       ? throw new ArgumentException("string format is not correct,must like:2020/10/01,2020-10-01,20201001,2020.10.01")
-                       : string.Empty;
-    }
+    /// <param name="value">日期字符串</param>
+    /// <param name="force">解析失败时是否抛出异常</param>
+    /// <returns>解析后的DateTime对象</returns>
+    public static DateTime? ToDateTime(this string value, bool force = false) =>
+        string.IsNullOrWhiteSpace(value)
+            ? force ? throw new ArgumentException("日期字符串不能为空") : null
+            : DateTime.TryParseExact(value, DateTimeFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result)
+                ? result
+                : force
+                    ? throw new FormatException("日期字符串格式不正确")
+                    : null;
 
     /// <summary>
     /// 将字符串转化为内存字节流
@@ -417,9 +393,11 @@ public static partial class StringExtension
             var pEnd = (pText + value.Length) - 1;
             while (pStart < pEnd)
             {
-                var temp = *pStart;
-                *pStart++ = *pEnd;
-                *pEnd-- = temp;
+                *pStart ^= *pEnd;
+                *pEnd ^= *pStart;
+                *pStart ^= *pEnd;
+                pStart++;
+                pEnd--;
             }
         }
     }

@@ -10,7 +10,7 @@ namespace EasilyNET.Core.Misc;
 /// <summary>
 /// Object扩展,适用于大多数类型的扩展.
 /// </summary>
-public static class ObjectExtension
+public static class ObjectExtensions
 {
     /// <summary>
     /// 使用了一个ConcurrentDictionary来缓存对象的属性信息.对于同一个对象和属性,只需要进行一次反射操作,之后的操作可以直接从缓存中获取属性信息,这在处理大量对象时可以提高性能

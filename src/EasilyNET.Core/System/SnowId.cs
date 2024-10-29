@@ -96,7 +96,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     /// <summary>
     /// 获取创建时间(从时间戳派生)
     /// </summary>
-    public readonly DateTime CreationTime => DateTimeStampExtension.UnixEpoch.AddSeconds((uint)Timestamp);
+    public readonly DateTime CreationTime => DateTimeStampExtensions.UnixEpoch.AddSeconds((uint)Timestamp);
 
     // public operators
     /// <summary>
@@ -233,7 +233,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 
     private static int GetTimestampFromDateTime(DateTime timestamp)
     {
-        var secondsSinceEpoch = (long)Math.Floor((timestamp.ToUniversalTime() - DateTimeStampExtension.UnixEpoch).TotalSeconds);
+        var secondsSinceEpoch = (long)Math.Floor((timestamp.ToUniversalTime() - DateTimeStampExtensions.UnixEpoch).TotalSeconds);
         return secondsSinceEpoch is < uint.MinValue or > uint.MaxValue ? throw new ArgumentOutOfRangeException(nameof(timestamp)) : (int)(uint)secondsSinceEpoch;
     }
 

@@ -10,7 +10,7 @@ namespace EasilyNET.Core.Misc;
 /// <summary>
 /// 时间戳相关扩展
 /// </summary>
-public static class DateTimeStampExtension
+public static class DateTimeStampExtensions
 {
     /// <summary>
     /// 获取 Unix 纪元日期时间(1970-01-01)(UTC时间)

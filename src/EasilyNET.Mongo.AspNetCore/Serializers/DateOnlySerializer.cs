@@ -1,4 +1,5 @@
 using System.Globalization;
+using EasilyNET.Core.Misc;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 
@@ -34,7 +35,7 @@ public sealed class DateOnlySerializerAsString(string format = "yyyy-MM-dd") : S
     public override DateOnly Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
         var str = InnerSerializer.Deserialize(context, args);
-        var success = DateOnly.TryParseExact(str, format, null, DateTimeStyles.AssumeLocal, out var result);
+        var success = DateOnly.TryParseExact(str, format, CultureInfo.CurrentCulture, DateTimeStyles.None, out var result);
         return success ? result : throw new("unsupported data formats.");
     }
 }
@@ -66,7 +67,6 @@ public sealed class DateOnlySerializerAsTicks : StructSerializerBase<DateOnly>
     public override DateOnly Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
         var ticks = InnerSerializer.Deserialize(context, args);
-        var dateTime = new DateTime(ticks, DateTimeKind.Local);
-        return DateOnly.FromDateTime(dateTime);
+        return ticks.ToDateOnly();
     }
 }
