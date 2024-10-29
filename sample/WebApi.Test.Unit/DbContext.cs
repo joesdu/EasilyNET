@@ -20,7 +20,7 @@ public sealed class DbContext : MongoContext
     public IMongoCollection<MongoTest2> Test2 => GetCollection<MongoTest2>("mongo.test2");
 
     /// <summary>
-    /// º“Õ•–≈œ¢
+    /// ÂÆ∂Â∫≠‰ø°ÊÅØ
     /// </summary>
     public IMongoCollection<FamilyInfo> FamilyInfo => Database.GetCollection<FamilyInfo>("family.info");
 }

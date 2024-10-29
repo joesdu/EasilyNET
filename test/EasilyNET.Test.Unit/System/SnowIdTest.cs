@@ -69,6 +69,6 @@ public class SnowIdTest(TestContext context)
         var snow1 = SnowId.GenerateNewId();
         var timestamp = snow1.Timestamp;
         var creationTime = snow1.CreationTime;
-        creationTime.Should().Be(DateTimeStampExtension.UnixEpoch.AddSeconds((uint)timestamp));
+        creationTime.Should().Be(DateTimeStampExtensions.UnixEpoch.AddSeconds((uint)timestamp));
     }
 }

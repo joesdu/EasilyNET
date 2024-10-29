@@ -1,4 +1,5 @@
 using System.Globalization;
+using EasilyNET.Core.Misc;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 
@@ -23,7 +24,7 @@ namespace EasilyNET.Mongo.AspNetCore.Serializers;
 /// </remarks>
 /// </summary>
 /// <param name="format">格式化的格式</param>
-public sealed class TimeOnlySerializerAsString(string format = "HH:mm:ss") : StructSerializerBase<TimeOnly>
+public sealed class TimeOnlySerializerAsString(string format = "HH:mm:ss.ffffff") : StructSerializerBase<TimeOnly>
 {
     private readonly StringSerializer InnerSerializer = new();
 
@@ -34,7 +35,7 @@ public sealed class TimeOnlySerializerAsString(string format = "HH:mm:ss") : Str
     public override TimeOnly Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
         var time = InnerSerializer.Deserialize(context, args);
-        var success = TimeOnly.TryParseExact(time, format, null, DateTimeStyles.AssumeLocal, out var result);
+        var success = TimeOnly.TryParseExact(time, format, CultureInfo.CurrentCulture, DateTimeStyles.None, out var result);
         return success ? result : throw new("unsupported data formats.");
     }
 }
@@ -65,7 +66,6 @@ public sealed class TimeOnlySerializerAsTicks : StructSerializerBase<TimeOnly>
     public override TimeOnly Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
         var ticks = InnerSerializer.Deserialize(context, args);
-        var timespan = TimeSpan.FromTicks(ticks);
-        return TimeOnly.FromTimeSpan(timespan);
+        return ticks.ToTimeOnly();
     }
 }

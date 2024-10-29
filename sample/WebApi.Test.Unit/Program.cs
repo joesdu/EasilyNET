@@ -11,23 +11,10 @@ using System.Runtime.InteropServices;
 Console.Title = $"❤️ {Constant.InstanceName}";
 var builder = WebApplication.CreateBuilder(args);
 
-// 配置Kestrel支持HTTP1,2,3
-//builder.WebHost.ConfigureKestrel((_, op) =>
-//{
-//    // 配置监听端口和IP
-//    op.ListenAnyIP(443, lo =>
-//    {
-//        lo.Protocols = HttpProtocols.Http1AndHttp2AndHttp3;
-//        lo.UseHttps();
-//    });
-//    op.ListenAnyIP(80, lo => lo.Protocols = HttpProtocols.Http1);
-//});
-
 // 添加Serilog配置
 builder.Host.UseSerilog((hbc, lc) =>
 {
-    var logLevel = LogEventLevel.Error;
-    if (hbc.HostingEnvironment.IsDevelopment()) logLevel = LogEventLevel.Information;
+    var logLevel = hbc.HostingEnvironment.IsDevelopment() ? LogEventLevel.Information : LogEventLevel.Error;
     lc.ReadFrom.Configuration(hbc.Configuration)
       .MinimumLevel.Override("Microsoft", logLevel)
       .MinimumLevel.Override("System", logLevel)
@@ -44,16 +31,17 @@ builder.Host.UseSerilog((hbc, lc) =>
 #if Windows
           if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && SysHelper.IsCurrentUserAdmin())
           {
-              // 当为Windows系统时,添加事件日志,需要管理员权限才能写入Windows事件查看器
-              // 避免日志信息过多,仅将错误日志写入系统事件查看器
-              wt.EventLog(Constant.InstanceName, manageEventSource: true);
+              // 当为Windows系统时,添加事件日志,需要管理员权限才能写入Windows事件查看器,避免日志信息过多,仅将错误日志写入系统事件查看器
+              wt.EventLog(Constant.InstanceName, manageEventSource: true, restrictedToMinimumLevel: LogEventLevel.Error);
           }
 #endif
-          // Write To File
-          //wt.Map(le => (le.Timestamp.DateTime, le.Level), (key, log) =>
-          //    log.Async(o => o.File($"logs{Path.DirectorySeparatorChar}{key.Level}{Path.DirectorySeparatorChar}.log",
-          //        shared: true,
-          //        rollingInterval: RollingInterval.Day)));
+          if (hbc.HostingEnvironment.IsProduction())
+          {
+              wt.Map(le => (le.Timestamp.DateTime, le.Level), (key, log) =>
+                  log.Async(o => o.File($"logs{Path.DirectorySeparatorChar}{key.Level}{Path.DirectorySeparatorChar}.log",
+                      shared: true,
+                      rollingInterval: RollingInterval.Day)));
+          }
           wt.Console(theme: AnsiConsoleTheme.Code);
           var otel = hbc.Configuration.GetSection("OpenTelemetry");
           wt.OpenTelemetry(c =>

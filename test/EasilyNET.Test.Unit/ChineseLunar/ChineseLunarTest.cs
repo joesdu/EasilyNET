@@ -3,7 +3,7 @@ using EasilyNET.Core.Enums;
 using EasilyNET.Core.Misc;
 using FluentAssertions;
 
-namespace EasilyNET.Test.Unit;
+namespace EasilyNET.Test.Unit.ChineseLunar;
 
 /// <summary>
 /// 中国农历测试
@@ -17,7 +17,7 @@ public class ChineseLunarTest
     [TestMethod]
     public void ChineseLunar()
     {
-        var date = "1994-11-15".ToDateTime();
+        var date = "1994-11-15".ToDateTime() ?? DateTime.MinValue;
         Lunar.Init(date);
         Lunar.Constellation.Should().Be(EConstellation.天蝎座);
         Lunar.Animal.Should().Be(EZodiac.狗);
