@@ -21,12 +21,12 @@ internal sealed class ResponseTimeMiddleware(RequestDelegate next)
     /// <returns></returns>
     public async Task Invoke(HttpContext context)
     {
-        var watch = new Stopwatch();
-        watch.Start();
+        var start = Stopwatch.GetTimestamp();
         context.Response.OnStarting(() =>
         {
-            watch.Stop();
-            context.Response.Headers["X-Response-Time"] = $"{watch.ElapsedMilliseconds} ms";
+            var end = Stopwatch.GetTimestamp();
+            var elapsedMilliseconds = Stopwatch.GetElapsedTime(start, end).TotalMilliseconds;
+            context.Response.Headers["X-Response-Time"] = $"{elapsedMilliseconds} ms";
             return Task.CompletedTask;
         });
         await next(context);
