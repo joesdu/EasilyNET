@@ -234,7 +234,6 @@ public static class TextWriterExtensions
         if (progressPercentage < 0) progressPercentage = 0;
         if (progressPercentage > 100) progressPercentage = 100;
         var progressText = $"{progressPercentage / 100.0:P1}".PadLeft(7, (char)32);
-
         // 使用 UTF-8 编码计算消息的字节长度
         var messageBytes = Encoding.UTF8.GetBytes(message);
         var progressTextBytes = Encoding.UTF8.GetBytes(progressText);
@@ -285,8 +284,8 @@ public static class TextWriterExtensions
         outputBytes[totalWidth + 3 + progressTextBytes.Length] = 32; // ASCII for ' '
         messageBytes.CopyTo(outputBytes[(totalWidth + 4 + progressTextBytes.Length)..]);
         var output = Encoding.UTF8.GetString(outputBytes);
-        await writer.SafeWriteLineOutput(output);
-        // 当进度为 100% 时,清除光标当前行,避免存在多余的字符
-        if (isCompleted) writer.ClearCurrentLine();
+        await writer.SafeWriteOutput(output);
+        // 当进度为 100% 时，输出换行
+        if (isCompleted) await writer.WriteLineAsync();
     }
 }

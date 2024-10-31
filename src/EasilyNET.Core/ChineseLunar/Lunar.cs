@@ -25,21 +25,6 @@ public static class Lunar
     private static readonly string[] dataTopInit = Init();
 
     /// <summary>
-    /// 农历年
-    /// </summary>
-    private static string _Year = "";
-
-    /// <summary>
-    /// 农历月
-    /// </summary>
-    private static string _Month = "";
-
-    /// <summary>
-    /// 农历天
-    /// </summary>
-    private static string _Day = "";
-
-    /// <summary>
     /// 农历日期
     /// </summary>
     private static string _ChineseLunar = "";
@@ -56,12 +41,12 @@ public static class Lunar
     {
         get
         {
-            if (!string.IsNullOrWhiteSpace(_Year.Trim())) return _Year;
+            if (!string.IsNullOrWhiteSpace(field.Trim())) return field;
             Init(DateTime.Now);
-            return _Year;
+            return field;
         }
-        private set => _Year = value;
-    }
+        private set;
+    } = "";
 
     /// <summary>
     /// 获取特定日期农历月份,若是未调用Init传入特定日期,则返回当前日期的农历月份
@@ -70,12 +55,12 @@ public static class Lunar
     {
         get
         {
-            if (!string.IsNullOrWhiteSpace(_Month.Trim())) return _Month;
+            if (!string.IsNullOrWhiteSpace(field.Trim())) return field;
             Init(DateTime.Now);
-            return _Month;
+            return field;
         }
-        private set => _Month = value;
-    }
+        private set;
+    } = "";
 
     /// <summary>
     /// 获取特定日期农历天,若是未调用Init传入特定日期,则返回当前日期的农历天
@@ -84,12 +69,12 @@ public static class Lunar
     {
         get
         {
-            if (!string.IsNullOrWhiteSpace(_Day.Trim())) return _Day;
+            if (!string.IsNullOrWhiteSpace(field.Trim())) return field;
             Init(DateTime.Now);
-            return _Day;
+            return field;
         }
-        private set => _Day = value;
-    }
+        private set;
+    } = "";
 
     /// <summary>
     /// 获取特定日期农历天,若是未调用Init传入特定日期,则返回当前日期的农历天
@@ -143,10 +128,8 @@ public static class Lunar
         //var dic = new[] { 120, 219, 321, 420, 521, 622, 723, 823, 923, 1023, 1122, 1222 };
         var m = date.Month;
         var d = date.Day;
-#pragma warning disable IDE0048
         // 計算日期的索引值
         var y = (m * 100) + d;
-#pragma warning restore IDE0048
         var index = Array.BinarySearch(dic, y);
         if (index < 0) index = ~index;
         if (index == 12) index = 0;
@@ -369,7 +352,7 @@ public static class Lunar
                     {
                         11 => 23,
                         12 => 24,
-                        _  => throw new("-闰年错误,请联系作者修正-")
+                        _ => throw new("-闰年错误,请联系作者修正-")
                     };
                 }
                 else
@@ -550,7 +533,7 @@ public static class Lunar
                 day switch
                 {
                     > 29 => false,
-                    _    => DateTime.IsLeapYear(year) || day <= 28
+                    _ => DateTime.IsLeapYear(year) || day <= 28
                 });
     }
 
