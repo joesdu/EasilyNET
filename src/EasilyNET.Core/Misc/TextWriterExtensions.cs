@@ -16,7 +16,7 @@ public static class TextWriterExtensions
     private static string _lastOutput = string.Empty;
 
     /// <summary>
-    /// 线程安全的控制台在同一行输出消息
+    /// 线程安全的在控制台同一行输出消息,并换行
     /// <remarks>
     ///     <para>
     ///     使用方式:
@@ -36,9 +36,36 @@ public static class TextWriterExtensions
         {
             if (_lastOutput != msg)
             {
-                writer.ClearCurrentLine();
-                await writer.SafeClearPreviousLine();
+                writer.ClearPreviousLine();
                 await writer.WriteLineAsync(msg).ConfigureAwait(false);
+                _lastOutput = msg;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 线程安全的在控制台同一行输出消息
+    /// <remarks>
+    ///     <para>
+    ///     使用方式:
+    ///     <code>
+    ///   <![CDATA[
+    ///  Console.Out.SafeWriteOutput("Hello World!");
+    /// ]]>
+    /// </code>
+    ///     </para>
+    /// </remarks>
+    /// </summary>
+    /// <param name="writer"></param>
+    /// <param name="msg"></param>
+    public static async Task SafeWriteOutput(this TextWriter writer, string msg)
+    {
+        using (await _lock.LockAsync().ConfigureAwait(false))
+        {
+            if (_lastOutput != msg)
+            {
+                writer.ClearCurrentLine();
+                await writer.WriteAsync(msg).ConfigureAwait(false);
                 _lastOutput = msg;
             }
         }
@@ -67,7 +94,7 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 线程安全的清除上一行,并将光标移动到改行行首
+    /// 线程安全的清除上一行,并将光标移动到该行行首
     /// <remarks>
     ///     <para>
     ///     使用方式:

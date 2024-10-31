@@ -87,6 +87,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebApi.Test.Unit", "sample\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasilyNET.Core.Benchmark", "test\EasilyNET.Core.Benchmark\EasilyNET.Core.Benchmark.csproj", "{5BE6F704-9ADC-4CB1-B7B7-54ED18B35BE8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp.ProgressTest", "test\ConsoleApp.ProgressTest\ConsoleApp.ProgressTest.csproj", "{8AB80A19-E580-4B3C-BA51-AD68C8B56279}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -161,6 +163,10 @@ Global
 		{5BE6F704-9ADC-4CB1-B7B7-54ED18B35BE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5BE6F704-9ADC-4CB1-B7B7-54ED18B35BE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5BE6F704-9ADC-4CB1-B7B7-54ED18B35BE8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8AB80A19-E580-4B3C-BA51-AD68C8B56279}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8AB80A19-E580-4B3C-BA51-AD68C8B56279}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8AB80A19-E580-4B3C-BA51-AD68C8B56279}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8AB80A19-E580-4B3C-BA51-AD68C8B56279}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -188,6 +194,7 @@ Global
 		{8F9C18F9-A526-DCA0-597F-90D64AE5C6C2} = {8D626EA8-CB54-BC41-363A-217881BEBA6E}
 		{9B426136-DC85-603B-94FB-F3C0B2E72713} = {4F9DEAE5-078F-E77A-2E4A-FEB6FFE226FF}
 		{5BE6F704-9ADC-4CB1-B7B7-54ED18B35BE8} = {0C88DD14-F956-CE84-757C-A364CCF449FC}
+		{8AB80A19-E580-4B3C-BA51-AD68C8B56279} = {0C88DD14-F956-CE84-757C-A364CCF449FC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BF2C0069-ED43-44A1-A66C-2CC1B62E3EA3}
