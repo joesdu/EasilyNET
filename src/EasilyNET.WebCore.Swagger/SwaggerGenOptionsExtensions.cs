@@ -49,14 +49,11 @@ public static class SwaggerGenOptionsExtensions
                 }
             }
         });
-        Parallel.ForEach(_description, item =>
+        Parallel.ForEach(_description, item => dic.TryAdd(item.Key, new()
         {
-            dic.TryAdd(item.Key, new()
-            {
-                Title = item.Key,
-                Description = item.Value.Join()
-            });
-        });
+            Title = item.Key,
+            Description = item.Value.Join()
+        }));
         attributesDic = GetSortedAttributesDic(dic);
     }
 
