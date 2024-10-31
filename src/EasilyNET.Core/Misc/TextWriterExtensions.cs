@@ -22,7 +22,7 @@ public static class TextWriterExtensions
     ///     使用方式:
     ///     <code>
     ///   <![CDATA[
-    ///  Console.Out.SafeWriteOutput("Hello World!");
+    ///  Console.Out.SafeWriteLineOutput("Hello World!");
     /// ]]>
     /// </code>
     ///     </para>
@@ -30,14 +30,15 @@ public static class TextWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="msg"></param>
-    public static async Task SafeWriteOutput(this TextWriter writer, string msg)
+    public static async Task SafeWriteLineOutput(this TextWriter writer, string msg)
     {
         using (await _lock.LockAsync().ConfigureAwait(false))
         {
             if (_lastOutput != msg)
             {
                 writer.ClearCurrentLine();
-                await writer.WriteAsync(msg).ConfigureAwait(false);
+                await writer.SafeClearPreviousLine();
+                await writer.WriteLineAsync(msg).ConfigureAwait(false);
                 _lastOutput = msg;
             }
         }
@@ -125,9 +126,8 @@ public static class TextWriterExtensions
         }
         try
         {
-            writer.Write("\e[1A"); // 光标上移一行
-            writer.Write("\e[2K"); // 清除整行
-            writer.Write("\e[1G"); // 光标移动至行首
+            // 合并多次 Write 调用为一次
+            writer.Write("\e[1A\e[2K\e[1G"); // 光标上移一行，清除整行，光标移动至行首
         }
         catch (IOException ex)
         {
@@ -145,8 +145,8 @@ public static class TextWriterExtensions
         }
         try
         {
-            writer.Write("\e[2K"); // 清除整行
-            writer.Write("\e[1G"); // 光标移动至行首
+            // 合并多次 Write 调用为一次
+            writer.Write("\e[2K\e[1G"); // 清除整行，光标移动至行首
         }
         catch (IOException ex)
         {
@@ -258,8 +258,8 @@ public static class TextWriterExtensions
         outputBytes[totalWidth + 3 + progressTextBytes.Length] = 32; // ASCII for ' '
         messageBytes.CopyTo(outputBytes[(totalWidth + 4 + progressTextBytes.Length)..]);
         var output = Encoding.UTF8.GetString(outputBytes);
-        await writer.SafeWriteOutput(output);
-        // 当进度为 100% 时，输出换行
-        if (isCompleted) await writer.WriteLineAsync();
+        await writer.SafeWriteLineOutput(output);
+        // 当进度为 100% 时,清除光标当前行,避免存在多余的字符
+        if (isCompleted) writer.ClearCurrentLine();
     }
 }
