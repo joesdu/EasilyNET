@@ -32,12 +32,11 @@ public static class TextWriterExtensions
     /// <param name="msg"></param>
     public static async Task SafeWriteLineOutput(this TextWriter writer, string msg)
     {
-        using (await _lock.LockAsync().ConfigureAwait(false))
+        using (await _lock.LockAsync())
         {
             if (_lastOutput != msg)
             {
-                writer.ClearPreviousLine();
-                await writer.WriteLineAsync(msg).ConfigureAwait(false);
+                await writer.WriteLineAsync($"\e[1A\e[2K\e[1G{msg}");
                 _lastOutput = msg;
             }
         }
@@ -60,12 +59,11 @@ public static class TextWriterExtensions
     /// <param name="msg"></param>
     public static async Task SafeWriteOutput(this TextWriter writer, string msg)
     {
-        using (await _lock.LockAsync().ConfigureAwait(false))
+        using (await _lock.LockAsync())
         {
             if (_lastOutput != msg)
             {
-                writer.ClearCurrentLine();
-                await writer.WriteAsync(msg).ConfigureAwait(false);
+                await writer.WriteAsync($"\e[2K\e[1G{msg}");
                 _lastOutput = msg;
             }
         }
