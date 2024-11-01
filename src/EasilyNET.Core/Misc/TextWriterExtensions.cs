@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.Runtime.InteropServices;
+using System.Text;
+using EasilyNET.Core.Commons;
 using EasilyNET.Core.Threading;
 
 // ReSharper disable UnusedMember.Global
@@ -13,7 +15,26 @@ namespace EasilyNET.Core.Misc;
 public static class TextWriterExtensions
 {
     private static readonly AsyncLock _lock = new();
+
+    /// <summary>
+    /// 用于记录上一次输出的字符串
+    /// </summary>
     private static string _lastOutput = string.Empty;
+
+    /// <summary>
+    /// 用于清除整行的字符串
+    /// </summary>
+    private static readonly string _clearStr = new(' ', Console.WindowWidth);
+
+    /// <summary>
+    /// 是否支持 ANSI 转义序列
+    /// </summary>
+    private static bool? _ansiSupported;
+
+    /// <summary>
+    /// 是否支持控制台光标移动
+    /// </summary>
+    private static bool? _cursorPosSupported;
 
     /// <summary>
     /// 线程安全的在控制台同一行输出消息,并换行
@@ -36,7 +57,22 @@ public static class TextWriterExtensions
         {
             if (_lastOutput != msg)
             {
-                await writer.WriteLineAsync($"\e[1A\e[2K\e[1G{msg}");
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    if (WinApis.IsAnsiSupported())
+                    {
+                        await writer.WriteLineAsync($"\e[1A\e[2K\e[1G{msg}");
+                    }
+                    else
+                    {
+                        writer.ClearPreviousLine();
+                        await writer.WriteLineAsync(msg);
+                    }
+                }
+                else
+                {
+                    await writer.WriteLineAsync($"\e[1A\e[2K\e[1G{msg}");
+                }
                 _lastOutput = msg;
             }
         }
@@ -63,7 +99,22 @@ public static class TextWriterExtensions
         {
             if (_lastOutput != msg)
             {
-                await writer.WriteAsync($"\e[2K\e[1G{msg}");
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    if (WinApis.IsAnsiSupported())
+                    {
+                        await writer.WriteAsync($"\e[2K\e[1G{msg}");
+                    }
+                    else
+                    {
+                        writer.ClearCurrentLine();
+                        await writer.WriteAsync(msg);
+                    }
+                }
+                else
+                {
+                    await writer.WriteAsync($"\e[2K\e[1G{msg}");
+                }
                 _lastOutput = msg;
             }
         }
@@ -144,15 +195,33 @@ public static class TextWriterExtensions
 
     private static void ClearPreviousLine(this TextWriter writer)
     {
-        if (!IsConsoleCursorPositionSupported())
+        if (!IsCursorPosSupported())
         {
             writer.WriteLine();
             return;
         }
         try
         {
-            // 合并多次 Write 调用为一次
-            writer.Write("\e[1A\e[2K\e[1G"); // 光标上移一行，清除整行，光标移动至行首
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                if (WinApis.IsAnsiSupported())
+                {
+                    // 合并多次 Write 调用为一次
+                    writer.Write("\e[1A\e[2K\e[1G"); // 光标上移一行，清除整行，光标移动至行首
+                }
+                else
+                {
+                    if (Console.CursorTop <= 0) return;
+                    Console.SetCursorPosition(0, Console.CursorTop - 1);
+                    Console.Write(_clearStr);
+                    Console.SetCursorPosition(0, Console.CursorTop);
+                }
+            }
+            else
+            {
+                // 合并多次 Write 调用为一次
+                writer.Write("\e[1A\e[2K\e[1G"); // 光标上移一行，清除整行，光标移动至行首
+            }
         }
         catch (IOException ex)
         {
@@ -163,15 +232,32 @@ public static class TextWriterExtensions
 
     private static void ClearCurrentLine(this TextWriter writer)
     {
-        if (!IsConsoleCursorPositionSupported())
+        if (!IsCursorPosSupported())
         {
             writer.WriteLine();
             return;
         }
         try
         {
-            // 合并多次 Write 调用为一次
-            writer.Write("\e[2K\e[1G"); // 清除整行，光标移动至行首
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                if (WinApis.IsAnsiSupported())
+                {
+                    // 合并多次 Write 调用为一次
+                    writer.Write("\e[2K\e[1G"); // 清除整行，光标移动至行首
+                }
+                else
+                {
+                    Console.SetCursorPosition(0, Console.CursorTop);
+                    Console.Write(_clearStr);
+                    Console.SetCursorPosition(0, Console.CursorTop);
+                }
+            }
+            else
+            {
+                // 合并多次 Write 调用为一次
+                writer.Write("\e[2K\e[1G"); // 清除整行，光标移动至行首
+            }
         }
         catch (IOException ex)
         {
@@ -180,25 +266,67 @@ public static class TextWriterExtensions
         }
     }
 
-    private static bool IsConsoleCursorPositionSupported()
+    /// <summary>
+    /// 判断当前环境终端是否支持 ANSI 转义序列
+    /// </summary>
+    /// <returns>是否支持</returns>
+    public static bool IsAnsiSupported()
     {
-        try
+        if (_ansiSupported.HasValue)
         {
-            // 尝试设置光标位置
-            var (Left, Top) = Console.GetCursorPosition();
-            Console.SetCursorPosition(Left, Top);
-            return true;
+            return _ansiSupported.Value;
         }
-        catch (IOException)
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            // 捕获到 IOException，说明不支持
-            return false;
+            _ansiSupported = WinApis.IsAnsiSupported();
         }
-        catch (PlatformNotSupportedException)
+        else
         {
-            // 捕获到 PlatformNotSupportedException，说明不支持
-            return false;
+            _ansiSupported = !Console.IsOutputRedirected;
         }
+        return _ansiSupported.Value;
+    }
+
+    /// <summary>
+    /// 判断当前环境终端是否支持控制台光标移动
+    /// </summary>
+    /// <returns>是否支持</returns>
+    public static bool IsCursorPosSupported()
+    {
+        if (_cursorPosSupported.HasValue)
+        {
+            return _cursorPosSupported.Value;
+        }
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            _cursorPosSupported = WinApis.IsConsoleCursorPositionSupported();
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            var term = Environment.GetEnvironmentVariable("TERM");
+            _cursorPosSupported = !string.IsNullOrWhiteSpace(term) && term != "dumb";
+        }
+        else
+        {
+            try
+            {
+                // 其他系统通过尝试设置光标位置,并捕获异常来判断是否支持光标移动
+                var (Left, Top) = Console.GetCursorPosition();
+                Console.SetCursorPosition(Left, Top);
+                _cursorPosSupported = true;
+            }
+            catch (IOException)
+            {
+                // 捕获到 IOException，说明不支持
+                _cursorPosSupported = false;
+            }
+            catch (PlatformNotSupportedException)
+            {
+                // 捕获到 PlatformNotSupportedException，说明不支持
+                _cursorPosSupported = false;
+            }
+        }
+        return _cursorPosSupported.Value;
     }
 
     /// <summary>
@@ -282,8 +410,43 @@ public static class TextWriterExtensions
         outputBytes[totalWidth + 3 + progressTextBytes.Length] = 32; // ASCII for ' '
         messageBytes.CopyTo(outputBytes[(totalWidth + 4 + progressTextBytes.Length)..]);
         var output = Encoding.UTF8.GetString(outputBytes);
-        await writer.SafeWriteOutput(output);
+        if (IsAnsiSupported())
+        {
+            await writer.SafeWriteOutput(output);
+        }
+        else
+        {
+            await writer.SafeWriteLineOutput(output);
+        }
         // 当进度为 100% 时，输出换行
         if (isCompleted) await writer.WriteLineAsync();
+    }
+
+    /// <summary>
+    /// 在当前行中将光标移动 X 个位置
+    /// </summary>
+    /// <param name="writer">TextWriter</param>
+    /// <param name="positions">要移动的光标位置数，可以为正数(右移)或负数(左移)</param>
+    public static void MoveCursorInCurrentLine(this TextWriter writer, int positions)
+    {
+        if (positions == 0) return;
+        if (IsAnsiSupported())
+        {
+            var direction = positions > 0 ? 'C' : 'D'; // 'C' 表示向右移动，'D' 表示向左移动
+            writer.Write($"\e[{Math.Abs(positions)}{direction}");
+        }
+        else
+        {
+            try
+            {
+                var newLeft = Math.Max(0, Console.CursorLeft + positions);
+                Console.SetCursorPosition(newLeft, Console.CursorTop);
+            }
+            catch (IOException ex)
+            {
+                // 记录异常或根据需要进行处理
+                writer.WriteLine($"IOException: {ex.Message}");
+            }
+        }
     }
 }
