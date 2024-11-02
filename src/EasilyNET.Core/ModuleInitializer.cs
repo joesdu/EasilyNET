@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using EasilyNET.Core.Misc;
 
 namespace EasilyNET.Core;
 
@@ -31,14 +32,33 @@ internal static class ModuleInitializer
             var padding = ((logoWidth - Encoding.ASCII.GetBytes(welcomeMessage).Length) / 2) - 3;
             // 创建居中的欢迎消息
             var centeredWelcomeMessage = welcomeMessage.PadLeft(padding + welcomeMessage.Length);
-            Console.WriteLine($"""
-                               {AsciiArt.Logo}
+            if (TextWriterExtensions.IsAnsiSupported())
+            {
+                Console.WriteLine($"""
+                                   {AsciiArt.Logo}
 
-                               {centeredWelcomeMessage}
-                               Ver: [32m{version}[0m
-                               Url: [34m{url}[0m
+                                   {centeredWelcomeMessage}
+                                   Ver: [32m{version}[0m
+                                   Url: [35m{url}[0m
 
-                               """);
+                                   """);
+            }
+            else
+            {
+                Console.WriteLine(AsciiArt.Logo);
+                Console.WriteLine();
+                Console.WriteLine(centeredWelcomeMessage);
+                Console.Write("Ver: ");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine(version);
+                Console.ResetColor();
+                Console.Write("Url: ");
+                Console.ForegroundColor = ConsoleColor.Magenta;
+                Console.WriteLine(url);
+                Console.ResetColor();
+                Console.WriteLine();
+            }
+
             // 标记为已初始化
             _initialized = true;
         }

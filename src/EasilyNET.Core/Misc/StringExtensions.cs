@@ -86,7 +86,7 @@ public static partial class StringExtensions
     {
         var regex = ToTitleUpperCaseRegex();
         return regex.Replace(value,
-            delegate (Match m)
+            delegate(Match m)
             {
                 var str = m.ToString();
                 if (!char.IsLower(str[0])) return str;
@@ -185,12 +185,12 @@ public static partial class StringExtensions
         return value.Length switch
         {
             >= 11 => MaskElevenRegex().Replace(value, $"$1{masks}$2"),
-            10 => MaskTenRegex().Replace(value, $"$1{masks}$2"),
-            9 => MaskNineRegex().Replace(value, $"$1{masks}$2"),
-            8 => MaskEightRegex().Replace(value, $"$1{masks}$2"),
-            7 => MaskSevenRegex().Replace(value, $"$1{masks}$2"),
-            6 => MaskSixRegex().Replace(value, $"$1{masks}$2"),
-            _ => MaskLessThanSixRegex().Replace(value, $"$1{masks}")
+            10    => MaskTenRegex().Replace(value, $"$1{masks}$2"),
+            9     => MaskNineRegex().Replace(value, $"$1{masks}$2"),
+            8     => MaskEightRegex().Replace(value, $"$1{masks}$2"),
+            7     => MaskSevenRegex().Replace(value, $"$1{masks}$2"),
+            6     => MaskSixRegex().Replace(value, $"$1{masks}$2"),
+            _     => MaskLessThanSixRegex().Replace(value, $"$1{masks}")
         };
     }
 
@@ -684,7 +684,7 @@ public static partial class StringExtensions
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path, nameof(path));
         var fullPath = Path.GetFullPath(path);
-        return $"\e]8;;file://\e\\{fullPath}\e]8;;\e\\";
+        return TextWriterExtensions.IsAnsiSupported() ? $"\e]8;;file://\e\\{fullPath}\e]8;;\e\\" : fullPath;
     }
 
     /// <summary>
@@ -704,7 +704,7 @@ public static partial class StringExtensions
     /// </summary>
     /// <param name="path">需要处理的路径</param>
     /// <param name="maxDeep">仅保留最后 N 层目录,默认5层,当超过最大层数后显示全路径</param>
-    /// <returns></returns>
+    /// <returns>返回可直接输出的内容.若是控制台不支持则显示全路径</returns>
     public static string GetClickableRelativePath(this string path, int maxDeep = 5)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path, nameof(path));
@@ -712,7 +712,7 @@ public static partial class StringExtensions
         // 分割路径并仅保留最后 N 层目录
         var pathParts = fullPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var displayPath = pathParts.Length > maxDeep ? string.Join(Path.DirectorySeparatorChar, pathParts[^maxDeep..]) : fullPath;
-        return $"\e]8;;file://{fullPath}\e\\{displayPath}\e]8;;\e\\";
+        return TextWriterExtensions.IsAnsiSupported() ? $"\e]8;;file://{fullPath}\e\\{displayPath}\e]8;;\e\\" : fullPath;
     }
 
     /// <summary>
