@@ -24,6 +24,8 @@ internal static class Program
 
     private static async Task MainAsync(string[] args, CancellationToken token)
     {
+        Console.WriteLine(Console.WindowWidth);
+        await Task.Delay(3000, token);
         foreach (var item in ..100)
         {
             await Task.Delay(100, token);
