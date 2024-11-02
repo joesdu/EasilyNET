@@ -639,25 +639,24 @@ public static class TextWriterExtensions
         // 使用 UTF-8 编码计算消息的字节长度
         var messageBytes = Encoding.UTF8.GetBytes(message);
         var progressTextBytes = Encoding.UTF8.GetBytes(progressText);
-        var extraWidth = progressTextBytes.Length + messageBytes.Length + 5; // 计算额外字符的宽度，包括边界和百分比信息
+        var extraWidth = progressTextBytes.Length + (messageBytes.Length * 1.1).ToInt32() + 5; // 计算额外字符的宽度，包括边界和百分比信息
         if (totalWidth is -1)
         {
             if (IsWindowSizeSupported())
             {
                 totalWidth = Math.Max(0, Console.WindowWidth - extraWidth);
-                // 当 totalWidth 为 -1 并且最大宽度大于 100 时，将 totalWidth 设置为 100
-                if (totalWidth > 100)
-                {
-                    totalWidth >>= 1; // 使用位运算除以 2
-                }
-                if (totalWidth < 100)
-                {
-                    totalWidth = Console.WindowWidth;
-                }
             }
             else
             {
-                totalWidth = Math.Max(0, 100 - extraWidth);
+                var width = 80 - extraWidth;
+                if (width > 4)
+                {
+                    totalWidth = Math.Max(0, width);
+                }
+                else
+                {
+                    totalWidth = 4 + extraWidth;
+                }
             }
         }
         else
