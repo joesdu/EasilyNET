@@ -27,7 +27,7 @@ internal static class Program
         foreach (var item in ..100)
         {
             await Task.Delay(100, token);
-            await Console.Out.ShowProgressBar(item, "正在处理中...");
+            await Console.Out.ShowProgressBarAsync(item, "正在处理中...");
         }
     }
 }

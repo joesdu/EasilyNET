@@ -14,27 +14,24 @@ namespace EasilyNET.Core.Misc;
 /// </summary>
 public static class TextWriterExtensions
 {
-    private static readonly AsyncLock _lock = new();
+    private static readonly AsyncLock _asyncLock = new();
+    private static readonly Lock _syncLock = new();
 
-    /// <summary>
-    /// 用于记录上一次输出的字符串
-    /// </summary>
     private static string _lastOutput = string.Empty;
-
-    /// <summary>
-    /// 用于清除整行的字符串
-    /// </summary>
-    private static readonly string _clearStr = new(' ', Console.WindowWidth);
-
-    /// <summary>
-    /// 是否支持 ANSI 转义序列
-    /// </summary>
     private static bool? _ansiSupported;
-
-    /// <summary>
-    /// 是否支持控制台光标移动
-    /// </summary>
     private static bool? _cursorPosSupported;
+    private static bool? _windowSizeSupported;
+
+    private static char[] _clearBuffer = new char[256];
+
+    private static void ClearBuffer(int length)
+    {
+        if (length > _clearBuffer.Length)
+        {
+            Array.Resize(ref _clearBuffer, length);
+        }
+        Array.Fill(_clearBuffer, ' ', 0, length);
+    }
 
     /// <summary>
     /// 线程安全的在控制台同一行输出消息,并换行
@@ -43,7 +40,7 @@ public static class TextWriterExtensions
     ///     使用方式:
     ///     <code>
     ///   <![CDATA[
-    ///  Console.Out.SafeWriteLineOutput("Hello World!");
+    ///  await Console.Out.SafeWriteLineAsync("Hello World!");
     /// ]]>
     /// </code>
     ///     </para>
@@ -51,27 +48,88 @@ public static class TextWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="msg"></param>
-    public static async Task SafeWriteLineOutput(this TextWriter writer, string msg)
+    public static async Task SafeWriteLineAsync(this TextWriter writer, string msg)
     {
-        using (await _lock.LockAsync())
+        using (await _asyncLock.LockAsync())
         {
             if (_lastOutput != msg)
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                if (IsAnsiSupported())
                 {
-                    if (WinApis.IsAnsiSupported())
-                    {
-                        await writer.WriteLineAsync($"\e[1A\e[2K\e[1G{msg}");
-                    }
-                    else
-                    {
-                        writer.ClearPreviousLine();
-                        await writer.WriteLineAsync(msg);
-                    }
+                    await writer.WriteLineAsync($"\e[1A\e[2K\e[1G{msg}");
                 }
                 else
                 {
-                    await writer.WriteLineAsync($"\e[1A\e[2K\e[1G{msg}");
+                    await writer.ClearPreviousLineAsync();
+                    await writer.WriteLineAsync(msg);
+                }
+                _lastOutput = msg;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 线程安全的在控制台同一行输出消息,并换行
+    /// <remarks>
+    ///     <para>
+    ///     使用方式:
+    ///     <code>
+    ///   <![CDATA[
+    ///  Console.Out.SafeWriteLine("Hello World!");
+    /// ]]>
+    /// </code>
+    ///     </para>
+    /// </remarks>
+    /// </summary>
+    /// <param name="writer"></param>
+    /// <param name="msg"></param>
+    public static void SafeWriteLine(this TextWriter writer, string msg)
+    {
+        lock (_syncLock)
+        {
+            if (_lastOutput == msg) return;
+            if (IsAnsiSupported())
+            {
+                writer.WriteLine($"\e[1A\e[2K\e[1G{msg}");
+            }
+            else
+            {
+                writer.ClearPreviousLine();
+                writer.WriteLine(msg);
+            }
+            _lastOutput = msg;
+        }
+    }
+
+    /// <summary>
+    /// 线程安全的在控制台同一行输出消息
+    /// <remarks>
+    ///     <para>
+    ///     使用方式:
+    ///     <code>
+    ///   <![CDATA[
+    ///  await Console.Out.SafeWriteAsync("Hello World!");
+    /// ]]>
+    /// </code>
+    ///     </para>
+    /// </remarks>
+    /// </summary>
+    /// <param name="writer"></param>
+    /// <param name="msg"></param>
+    public static async Task SafeWriteAsync(this TextWriter writer, string msg)
+    {
+        using (await _asyncLock.LockAsync())
+        {
+            if (_lastOutput != msg)
+            {
+                if (IsAnsiSupported())
+                {
+                    await writer.WriteAsync($"\e[2K\e[1G{msg}");
+                }
+                else
+                {
+                    await writer.ClearCurrentLineAsync();
+                    await writer.WriteAsync(msg);
                 }
                 _lastOutput = msg;
             }
@@ -85,7 +143,7 @@ public static class TextWriterExtensions
     ///     使用方式:
     ///     <code>
     ///   <![CDATA[
-    ///  Console.Out.SafeWriteOutput("Hello World!");
+    ///  Console.Out.SafeWrite("Hello World!");
     /// ]]>
     /// </code>
     ///     </para>
@@ -93,30 +151,43 @@ public static class TextWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="msg"></param>
-    public static async Task SafeWriteOutput(this TextWriter writer, string msg)
+    public static void SafeWrite(this TextWriter writer, string msg)
     {
-        using (await _lock.LockAsync())
+        lock (_syncLock)
         {
-            if (_lastOutput != msg)
+            if (_lastOutput == msg) return;
+            if (IsAnsiSupported())
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    if (WinApis.IsAnsiSupported())
-                    {
-                        await writer.WriteAsync($"\e[2K\e[1G{msg}");
-                    }
-                    else
-                    {
-                        writer.ClearCurrentLine();
-                        await writer.WriteAsync(msg);
-                    }
-                }
-                else
-                {
-                    await writer.WriteAsync($"\e[2K\e[1G{msg}");
-                }
-                _lastOutput = msg;
+                writer.Write($"\e[2K\e[1G{msg}");
             }
+            else
+            {
+                writer.ClearCurrentLine();
+                writer.Write(msg);
+            }
+            _lastOutput = msg;
+        }
+    }
+
+    /// <summary>
+    /// 线程安全的清除当前行
+    /// <remarks>
+    ///     <para>
+    ///     使用方式:
+    ///     <code>
+    ///   <![CDATA[
+    ///  await Console.Out.SafeClearCurrentLineAsync();
+    /// ]]>
+    /// </code>
+    ///     </para>
+    /// </remarks>
+    /// </summary>
+    /// <returns></returns>
+    public static async Task SafeClearCurrentLineAsync(this TextWriter writer)
+    {
+        using (await _asyncLock.LockAsync())
+        {
+            await writer.ClearCurrentLineAsync();
         }
     }
 
@@ -134,11 +205,33 @@ public static class TextWriterExtensions
     /// </remarks>
     /// </summary>
     /// <returns></returns>
-    public static async Task SafeClearCurrentLine(this TextWriter writer)
+    public static void SafeClearCurrentLine(this TextWriter writer)
     {
-        using (await _lock.LockAsync().ConfigureAwait(false))
+        lock (_syncLock)
         {
             writer.ClearCurrentLine();
+        }
+    }
+
+    /// <summary>
+    /// 线程安全的清除上一行,并将光标移动到该行行首
+    /// <remarks>
+    ///     <para>
+    ///     使用方式:
+    ///     <code>
+    ///   <![CDATA[
+    ///  await Console.Out.SafeClearPreviousLineAsync();
+    /// ]]>
+    /// </code>
+    ///     </para>
+    /// </remarks>
+    /// </summary>
+    /// <returns></returns>
+    public static async Task SafeClearPreviousLineAsync(this TextWriter writer)
+    {
+        using (await _asyncLock.LockAsync())
+        {
+            await writer.ClearPreviousLineAsync();
         }
     }
 
@@ -156,9 +249,9 @@ public static class TextWriterExtensions
     /// </remarks>
     /// </summary>
     /// <returns></returns>
-    public static async Task SafeClearPreviousLine(this TextWriter writer)
+    public static void SafeClearPreviousLine(this TextWriter writer)
     {
-        using (await _lock.LockAsync().ConfigureAwait(false))
+        lock (_syncLock)
         {
             writer.ClearPreviousLine();
         }
@@ -193,6 +286,106 @@ public static class TextWriterExtensions
         else writer.Write(outputPath);
     }
 
+    /// <summary>
+    /// 在当前行中将光标移动 X 个位置
+    /// </summary>
+    /// <param name="writer">TextWriter</param>
+    /// <param name="positions">要移动的光标位置数，可以为正数(右移)或负数(左移)</param>
+    public static void MoveCursorInCurrentLine(this TextWriter writer, int positions)
+    {
+        if (positions == 0) return;
+        if (IsAnsiSupported())
+        {
+            var direction = positions > 0 ? 'C' : 'D'; // 'C' 表示向右移动，'D' 表示向左移动
+            writer.Write($"\e[{Math.Abs(positions)}{direction}");
+        }
+        else
+        {
+            if (IsCursorPosSupported())
+            {
+                try
+                {
+                    var newLeft = Math.Max(0, Console.CursorLeft + positions);
+                    Console.SetCursorPosition(newLeft, Console.CursorTop);
+                }
+                catch (IOException ex)
+                {
+                    // 记录异常或根据需要进行处理
+                    writer.WriteLine($"IOException: {ex.Message}");
+                }
+            }
+            else
+            {
+                Console.WriteLine();
+            }
+        }
+    }
+
+    /// <summary>
+    /// 在当前行中将光标移动 X 个位置
+    /// </summary>
+    /// <param name="writer">TextWriter</param>
+    /// <param name="positions">要移动的光标位置数，可以为正数(右移)或负数(左移)</param>
+    public static async Task MoveCursorInCurrentLineAsync(this TextWriter writer, int positions)
+    {
+        if (positions == 0) return;
+        if (IsAnsiSupported())
+        {
+            var direction = positions > 0 ? 'C' : 'D'; // 'C' 表示向右移动，'D' 表示向左移动
+            await writer.WriteAsync($"\e[{Math.Abs(positions)}{direction}");
+        }
+        else
+        {
+            if (IsCursorPosSupported())
+            {
+                try
+                {
+                    var newLeft = Math.Max(0, Console.CursorLeft + positions);
+                    Console.SetCursorPosition(newLeft, Console.CursorTop);
+                }
+                catch (IOException ex)
+                {
+                    // 记录异常或根据需要进行处理
+                    await writer.WriteLineAsync($"IOException: {ex.Message}");
+                }
+            }
+            else
+            {
+                Console.WriteLine();
+            }
+        }
+    }
+
+    private static async Task ClearPreviousLineAsync(this TextWriter writer)
+    {
+        if (!IsCursorPosSupported())
+        {
+            await writer.WriteLineAsync();
+            return;
+        }
+        if (IsAnsiSupported())
+        {
+            // 合并多次 Write 调用为一次
+            await writer.WriteAsync("\e[1A\e[2K\e[1G"); // 光标上移一行，清除整行，光标移动至行首
+        }
+        else
+        {
+            try
+            {
+                if (Console.CursorTop <= 0) return;
+                Console.SetCursorPosition(0, Console.CursorTop - 1);
+                ClearBuffer(_lastOutput.Length);
+                Console.Write(_clearBuffer, 0, _lastOutput.Length);
+                Console.SetCursorPosition(0, Console.CursorTop);
+            }
+            catch (IOException ex)
+            {
+                // 记录异常或根据需要进行处理
+                await writer.WriteLineAsync($"IOException: {ex.Message}");
+            }
+        }
+    }
+
     private static void ClearPreviousLine(this TextWriter writer)
     {
         if (!IsCursorPosSupported())
@@ -200,33 +393,54 @@ public static class TextWriterExtensions
             writer.WriteLine();
             return;
         }
-        try
+        if (IsAnsiSupported())
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            // 合并多次 Write 调用为一次
+            writer.Write("\e[1A\e[2K\e[1G"); // 光标上移一行，清除整行，光标移动至行首
+        }
+        else
+        {
+            try
             {
-                if (WinApis.IsAnsiSupported())
-                {
-                    // 合并多次 Write 调用为一次
-                    writer.Write("\e[1A\e[2K\e[1G"); // 光标上移一行，清除整行，光标移动至行首
-                }
-                else
-                {
-                    if (Console.CursorTop <= 0) return;
-                    Console.SetCursorPosition(0, Console.CursorTop - 1);
-                    Console.Write(_clearStr);
-                    Console.SetCursorPosition(0, Console.CursorTop);
-                }
+                if (Console.CursorTop <= 0) return;
+                Console.SetCursorPosition(0, Console.CursorTop - 1);
+                ClearBuffer(_lastOutput.Length);
+                Console.Write(_clearBuffer, 0, _lastOutput.Length);
+                Console.SetCursorPosition(0, Console.CursorTop);
             }
-            else
+            catch (IOException ex)
             {
-                // 合并多次 Write 调用为一次
-                writer.Write("\e[1A\e[2K\e[1G"); // 光标上移一行，清除整行，光标移动至行首
+                // 记录异常或根据需要进行处理
+                writer.WriteLine($"IOException: {ex.Message}");
             }
         }
-        catch (IOException ex)
+    }
+
+    private static async Task ClearCurrentLineAsync(this TextWriter writer)
+    {
+        if (!IsCursorPosSupported())
         {
-            // 记录异常或根据需要进行处理
-            writer.WriteLine($"IOException: {ex.Message}");
+            await writer.WriteLineAsync();
+            return;
+        }
+        if (IsAnsiSupported())
+        {
+            await writer.WriteAsync("\e[2K\e[1G"); // 清除整行，光标移动至行首
+        }
+        else
+        {
+            try
+            {
+                Console.SetCursorPosition(0, Console.CursorTop);
+                ClearBuffer(_lastOutput.Length);
+                Console.Write(_clearBuffer, 0, _lastOutput.Length);
+                Console.SetCursorPosition(0, Console.CursorTop);
+            }
+            catch (IOException ex)
+            {
+                // 记录异常或根据需要进行处理
+                await writer.WriteLineAsync($"IOException: {ex.Message}");
+            }
         }
     }
 
@@ -237,32 +451,24 @@ public static class TextWriterExtensions
             writer.WriteLine();
             return;
         }
-        try
+        if (IsAnsiSupported())
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                if (WinApis.IsAnsiSupported())
-                {
-                    // 合并多次 Write 调用为一次
-                    writer.Write("\e[2K\e[1G"); // 清除整行，光标移动至行首
-                }
-                else
-                {
-                    Console.SetCursorPosition(0, Console.CursorTop);
-                    Console.Write(_clearStr);
-                    Console.SetCursorPosition(0, Console.CursorTop);
-                }
-            }
-            else
-            {
-                // 合并多次 Write 调用为一次
-                writer.Write("\e[2K\e[1G"); // 清除整行，光标移动至行首
-            }
+            writer.Write("\e[2K\e[1G"); // 清除整行，光标移动至行首
         }
-        catch (IOException ex)
+        else
         {
-            // 记录异常或根据需要进行处理
-            writer.WriteLine($"IOException: {ex.Message}");
+            try
+            {
+                Console.SetCursorPosition(0, Console.CursorTop);
+                ClearBuffer(_lastOutput.Length);
+                Console.Write(_clearBuffer, 0, _lastOutput.Length);
+                Console.SetCursorPosition(0, Console.CursorTop);
+            }
+            catch (IOException ex)
+            {
+                // 记录异常或根据需要进行处理
+                writer.WriteLine($"IOException: {ex.Message}");
+            }
         }
     }
 
@@ -330,6 +536,20 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
+    /// 判断当前环境终端是否支持获取控制台窗口大小
+    /// </summary>
+    /// <returns>是否支持</returns>
+    public static bool IsWindowSizeSupported()
+    {
+        if (_windowSizeSupported.HasValue)
+        {
+            return _windowSizeSupported.Value;
+        }
+        _windowSizeSupported = !(Console.IsOutputRedirected || Console.IsErrorRedirected);
+        return _windowSizeSupported.Value;
+    }
+
+    /// <summary>
     /// 在控制台输出进度条,用于某些时候需要显示进度的场景
     /// </summary>
     /// <param name="writer"><see cref="TextWriter" />Writer</param>
@@ -345,7 +565,7 @@ public static class TextWriterExtensions
     ///   <![CDATA[
     /// for (var progress = 0d; progress <= 100.00; progress += 0.1)
     ///   {
-    ///      await Console.Out.ShowProgressBar(progress, "Processing...", Console.WindowWidth);
+    ///      await Console.Out.ShowProgressBarAsync(progress, "Processing...", Console.WindowWidth);
     ///      await Task.Delay(100);
     ///   }
     /// Output:
@@ -355,7 +575,63 @@ public static class TextWriterExtensions
     ///     </para>
     /// </remarks>
     /// <returns></returns>
-    public static async Task ShowProgressBar(this TextWriter writer, double progressPercentage, string message = "", int totalWidth = -1, char completedChar = '=', char incompleteChar = '-')
+    public static async Task ShowProgressBarAsync(this TextWriter writer, double progressPercentage, string message = "", int totalWidth = -1, char completedChar = '=', char incompleteChar = '-')
+    {
+        var output = GenerateProgressBarOutput(progressPercentage, message, totalWidth, completedChar, incompleteChar);
+        if (IsAnsiSupported())
+        {
+            await writer.SafeWriteAsync(output);
+        }
+        else
+        {
+            await writer.SafeWriteLineAsync(output);
+        }
+        // 当进度为 100% 时，输出换行
+        if (Math.Abs(progressPercentage - 100) <= 0.000001) await writer.WriteLineAsync();
+    }
+
+    /// <summary>
+    /// 在控制台输出进度条,用于某些时候需要显示进度的场景
+    /// </summary>
+    /// <param name="writer"><see cref="TextWriter" />Writer</param>
+    /// <param name="progressPercentage">进度</param>
+    /// <param name="message">消息</param>
+    /// <param name="totalWidth">进度条整体宽度,包含消息部分</param>
+    /// <param name="completedChar">完成部分填充字符</param>
+    /// <param name="incompleteChar">未完成部分填充字符</param>
+    /// <remarks>
+    ///     <para>
+    ///     使用方式:
+    ///     <code>
+    ///   <![CDATA[
+    /// for (var progress = 0d; progress <= 100.00; progress += 0.1)
+    ///   {
+    ///      Console.Out.ShowProgressBar(progress, "Processing...", Console.WindowWidth);
+    ///      await Task.Delay(100);
+    ///   }
+    /// Output:
+    ///   [==========---------------------] 5.1% Processing... 
+    /// ]]>
+    /// </code>
+    ///     </para>
+    /// </remarks>
+    /// <returns></returns>
+    public static void ShowProgressBar(this TextWriter writer, double progressPercentage, string message = "", int totalWidth = -1, char completedChar = '=', char incompleteChar = '-')
+    {
+        var output = GenerateProgressBarOutput(progressPercentage, message, totalWidth, completedChar, incompleteChar);
+        if (IsAnsiSupported())
+        {
+            writer.SafeWrite(output);
+        }
+        else
+        {
+            writer.SafeWriteLine(output);
+        }
+        // 当进度为 100% 时，输出换行
+        if (Math.Abs(progressPercentage - 100) <= 0.000001) writer.WriteLine();
+    }
+
+    private static string GenerateProgressBarOutput(double progressPercentage, string message, int totalWidth, char completedChar, char incompleteChar)
     {
         if (progressPercentage < 0) progressPercentage = 0;
         if (progressPercentage > 100) progressPercentage = 100;
@@ -364,10 +640,9 @@ public static class TextWriterExtensions
         var messageBytes = Encoding.UTF8.GetBytes(message);
         var progressTextBytes = Encoding.UTF8.GetBytes(progressText);
         var extraWidth = progressTextBytes.Length + messageBytes.Length + 5; // 计算额外字符的宽度，包括边界和百分比信息
-        try
+        if (totalWidth is -1)
         {
-            // 确保 totalWidth 不为负数
-            if (totalWidth is -1)
+            if (IsWindowSizeSupported())
             {
                 totalWidth = Math.Max(0, Console.WindowWidth - extraWidth);
                 // 当 totalWidth 为 -1 并且最大宽度大于 100 时，将 totalWidth 设置为 100
@@ -377,18 +652,17 @@ public static class TextWriterExtensions
                 }
                 if (totalWidth < 100)
                 {
-                    totalWidth = 100;
+                    totalWidth = Console.WindowWidth;
                 }
             }
             else
             {
-                totalWidth = Math.Max(0, totalWidth - extraWidth);
+                totalWidth = Math.Max(0, 100 - extraWidth);
             }
         }
-        catch (Exception)
+        else
         {
-            // 如果 Console.WindowWidth 抛出异常说明当前环境不支持,则将 totalWidth 设置为 100
-            totalWidth = Math.Max(0, 100 - extraWidth);
+            totalWidth = Math.Max(0, totalWidth - extraWidth);
         }
         var progressBarWidth = (int)(progressPercentage * totalWidth) / 100;
         var isCompleted = Math.Abs(progressPercentage - 100) <= 0.000001;
@@ -409,44 +683,6 @@ public static class TextWriterExtensions
         progressTextBytes.CopyTo(outputBytes[(totalWidth + 3)..]);
         outputBytes[totalWidth + 3 + progressTextBytes.Length] = 32; // ASCII for ' '
         messageBytes.CopyTo(outputBytes[(totalWidth + 4 + progressTextBytes.Length)..]);
-        var output = Encoding.UTF8.GetString(outputBytes);
-        if (IsAnsiSupported())
-        {
-            await writer.SafeWriteOutput(output);
-        }
-        else
-        {
-            await writer.SafeWriteLineOutput(output);
-        }
-        // 当进度为 100% 时，输出换行
-        if (isCompleted) await writer.WriteLineAsync();
-    }
-
-    /// <summary>
-    /// 在当前行中将光标移动 X 个位置
-    /// </summary>
-    /// <param name="writer">TextWriter</param>
-    /// <param name="positions">要移动的光标位置数，可以为正数(右移)或负数(左移)</param>
-    public static void MoveCursorInCurrentLine(this TextWriter writer, int positions)
-    {
-        if (positions == 0) return;
-        if (IsAnsiSupported())
-        {
-            var direction = positions > 0 ? 'C' : 'D'; // 'C' 表示向右移动，'D' 表示向左移动
-            writer.Write($"\e[{Math.Abs(positions)}{direction}");
-        }
-        else
-        {
-            try
-            {
-                var newLeft = Math.Max(0, Console.CursorLeft + positions);
-                Console.SetCursorPosition(newLeft, Console.CursorTop);
-            }
-            catch (IOException ex)
-            {
-                // 记录异常或根据需要进行处理
-                writer.WriteLine($"IOException: {ex.Message}");
-            }
-        }
+        return Encoding.UTF8.GetString(outputBytes);
     }
 }
