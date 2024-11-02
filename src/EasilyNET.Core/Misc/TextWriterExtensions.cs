@@ -553,11 +553,12 @@ public static class TextWriterExtensions
     /// 在控制台输出进度条,用于某些时候需要显示进度的场景
     /// </summary>
     /// <param name="writer"><see cref="TextWriter" />Writer</param>
-    /// <param name="progressPercentage">进度</param>
+    /// <param name="percentage">进度</param>
     /// <param name="message">消息</param>
-    /// <param name="totalWidth">进度条整体宽度,包含消息部分</param>
+    /// <param name="width">进度条整体宽度,不包含消息部分</param>
     /// <param name="completedChar">完成部分填充字符</param>
     /// <param name="incompleteChar">未完成部分填充字符</param>
+    /// <param name="isFixedBarWidth"><see langword="true" />: 固定进度条宽度,<see langword="false" />: 固定整体宽度</param>
     /// <remarks>
     ///     <para>
     ///     使用方式:
@@ -575,9 +576,9 @@ public static class TextWriterExtensions
     ///     </para>
     /// </remarks>
     /// <returns></returns>
-    public static async Task ShowProgressBarAsync(this TextWriter writer, double progressPercentage, string message = "", int totalWidth = -1, char completedChar = '=', char incompleteChar = '-')
+    public static async Task ShowProgressBarAsync(this TextWriter writer, double percentage, string message = "", int width = -1, char completedChar = '=', char incompleteChar = '-', bool isFixedBarWidth = true)
     {
-        var output = GenerateProgressBarOutput(progressPercentage, message, totalWidth, completedChar, incompleteChar);
+        var output = GenerateProgressBarOutput(percentage, message, width, completedChar, incompleteChar, isFixedBarWidth);
         if (IsAnsiSupported())
         {
             await writer.SafeWriteAsync(output);
@@ -587,18 +588,19 @@ public static class TextWriterExtensions
             await writer.SafeWriteLineAsync(output);
         }
         // 当进度为 100% 时，输出换行
-        if (Math.Abs(progressPercentage - 100) <= 0.000001) await writer.WriteLineAsync();
+        if (Math.Abs(percentage - 100) <= 0.000001) await writer.WriteLineAsync();
     }
 
     /// <summary>
     /// 在控制台输出进度条,用于某些时候需要显示进度的场景
     /// </summary>
     /// <param name="writer"><see cref="TextWriter" />Writer</param>
-    /// <param name="progressPercentage">进度</param>
+    /// <param name="percentage">进度</param>
     /// <param name="message">消息</param>
-    /// <param name="totalWidth">进度条整体宽度,包含消息部分</param>
+    /// <param name="width">宽度</param>
     /// <param name="completedChar">完成部分填充字符</param>
     /// <param name="incompleteChar">未完成部分填充字符</param>
+    /// <param name="isFixedBarWidth"><see langword="true" />: 固定进度条宽度,<see langword="false" />: 固定整体宽度</param>
     /// <remarks>
     ///     <para>
     ///     使用方式:
@@ -616,9 +618,9 @@ public static class TextWriterExtensions
     ///     </para>
     /// </remarks>
     /// <returns></returns>
-    public static void ShowProgressBar(this TextWriter writer, double progressPercentage, string message = "", int totalWidth = -1, char completedChar = '=', char incompleteChar = '-')
+    public static void ShowProgressBar(this TextWriter writer, double percentage, string message = "", int width = -1, char completedChar = '=', char incompleteChar = '-', bool isFixedBarWidth = true)
     {
-        var output = GenerateProgressBarOutput(progressPercentage, message, totalWidth, completedChar, incompleteChar);
+        var output = GenerateProgressBarOutput(percentage, message, width, completedChar, incompleteChar, isFixedBarWidth);
         if (IsAnsiSupported())
         {
             writer.SafeWrite(output);
@@ -628,60 +630,56 @@ public static class TextWriterExtensions
             writer.SafeWriteLine(output);
         }
         // 当进度为 100% 时，输出换行
-        if (Math.Abs(progressPercentage - 100) <= 0.000001) writer.WriteLine();
+        if (Math.Abs(percentage - 100) <= 0.000001) writer.WriteLine();
     }
 
-    private static string GenerateProgressBarOutput(double progressPercentage, string message, int totalWidth, char completedChar, char incompleteChar)
+    private static string GenerateProgressBarOutput(double percentage, string message, int width, char completedChar, char incompleteChar, bool isFixedBarWidth = true)
     {
-        if (progressPercentage < 0) progressPercentage = 0;
-        if (progressPercentage > 100) progressPercentage = 100;
-        var progressText = $"{progressPercentage / 100.0:P1}".PadLeft(7, (char)32);
+        if (percentage < 0) percentage = 0;
+        if (percentage > 100) percentage = 100;
+        var progressText = $"{percentage / 100.0:P1}".PadLeft(7, (char)32);
         // 使用 UTF-8 编码计算消息的字节长度
         var messageBytes = Encoding.UTF8.GetBytes(message);
         var progressTextBytes = Encoding.UTF8.GetBytes(progressText);
-        var extraWidth = progressTextBytes.Length + (messageBytes.Length * 1.1).ToInt32() + 5; // 计算额外字符的宽度，包括边界和百分比信息
-        if (totalWidth is -1)
+        var extraWidth = progressTextBytes.Length + messageBytes.Length + 5; // 计算额外字符的宽度，包括边界和百分比信息
+        // 当width表示非固定Bar长度时，根据窗口宽度计算Bar长度
+        if (!isFixedBarWidth)
         {
-            if (IsWindowSizeSupported())
+            if (IsCursorPosSupported())
             {
-                totalWidth = Math.Max(0, Console.WindowWidth - extraWidth);
+                if (width is -1)
+                {
+                    width = Math.Max(0, Console.WindowWidth - extraWidth);
+                }
+                if (width >= Console.WindowWidth)
+                {
+                    width = Console.WindowWidth - extraWidth;
+                }
             }
             else
             {
-                var width = 80 - extraWidth;
-                if (width > 4)
-                {
-                    totalWidth = Math.Max(0, width);
-                }
-                else
-                {
-                    totalWidth = 4 + extraWidth;
-                }
+                // 当不支持检测的时候,则默认宽度设置为20
+                width = 20 - extraWidth;
             }
         }
-        else
-        {
-            totalWidth = Math.Max(0, totalWidth - extraWidth);
-        }
-        var progressBarWidth = (int)(progressPercentage * totalWidth) / 100;
-        var isCompleted = Math.Abs(progressPercentage - 100) <= 0.000001;
-        if (isCompleted) progressBarWidth = totalWidth; // 确保在 100% 时填满进度条
-        var outputLength = totalWidth + extraWidth;
+        var completedWidth = (int)(percentage * width) / 100;
+        if (Math.Abs(percentage - 100) <= 0.000001) completedWidth = width; // 确保在 100% 时填满进度条
+        var outputLength = width + extraWidth;
         var outputBytes = outputLength <= 256 ? stackalloc byte[outputLength] : new byte[outputLength];
         outputBytes[0] = 91; // ASCII for '['
-        for (var i = 1; i <= progressBarWidth; i++)
+        for (var i = 1; i <= completedWidth; i++)
         {
             outputBytes[i] = (byte)completedChar;
         }
-        for (var i = progressBarWidth + 1; i <= totalWidth; i++)
+        for (var i = completedWidth + 1; i <= width; i++)
         {
             outputBytes[i] = (byte)incompleteChar;
         }
-        outputBytes[totalWidth + 1] = 93; // ASCII for ']'
-        outputBytes[totalWidth + 2] = 32; // ASCII for ' '
-        progressTextBytes.CopyTo(outputBytes[(totalWidth + 3)..]);
-        outputBytes[totalWidth + 3 + progressTextBytes.Length] = 32; // ASCII for ' '
-        messageBytes.CopyTo(outputBytes[(totalWidth + 4 + progressTextBytes.Length)..]);
+        outputBytes[width + 1] = 93; // ASCII for ']'
+        outputBytes[width + 2] = 32; // ASCII for ' '
+        progressTextBytes.CopyTo(outputBytes[(width + 3)..]);
+        outputBytes[width + 3 + progressTextBytes.Length] = 32; // ASCII for ' '
+        messageBytes.CopyTo(outputBytes[(width + 4 + progressTextBytes.Length)..]);
         return Encoding.UTF8.GetString(outputBytes);
     }
 }
