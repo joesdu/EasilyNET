@@ -482,14 +482,7 @@ public static class TextWriterExtensions
         {
             return _ansiSupported.Value;
         }
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            _ansiSupported = WinApis.IsAnsiSupported();
-        }
-        else
-        {
-            _ansiSupported = !Console.IsOutputRedirected;
-        }
+        _ansiSupported = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? WinApis.IsAnsiSupported() : !Console.IsOutputRedirected;
         return _ansiSupported.Value;
     }
 
@@ -541,10 +534,7 @@ public static class TextWriterExtensions
     /// <returns>是否支持</returns>
     public static bool IsWindowSizeSupported()
     {
-        if (_windowSizeSupported.HasValue)
-        {
-            return _windowSizeSupported.Value;
-        }
+        if (_windowSizeSupported.HasValue) return _windowSizeSupported.Value;
         _windowSizeSupported = !(Console.IsOutputRedirected || Console.IsErrorRedirected);
         return _windowSizeSupported.Value;
     }
