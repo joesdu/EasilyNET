@@ -1,12 +1,10 @@
+using System.Runtime.InteropServices;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
 using Serilog.Sinks.SystemConsole.Themes;
 using WebApi.Test.Unit;
 using WebApi.Test.Unit.Common;
-#if Windows
-using System.Runtime.InteropServices;
-#endif
 
 Console.Title = $"❤️ {Constant.InstanceName}";
 var builder = WebApplication.CreateBuilder(args);
@@ -28,13 +26,11 @@ builder.Host.UseSerilog((hbc, lc) =>
               //wt.SpectreConsole();
               wt.Debug();
           }
-#if Windows
           if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && SysHelper.IsCurrentUserAdmin())
           {
               // 当为Windows系统时,添加事件日志,需要管理员权限才能写入Windows事件查看器,避免日志信息过多,仅将错误日志写入系统事件查看器
               wt.EventLog(Constant.InstanceName, manageEventSource: true, restrictedToMinimumLevel: LogEventLevel.Error);
           }
-#endif
           if (hbc.HostingEnvironment.IsProduction())
           {
               wt.Map(le => (le.Timestamp.DateTime, le.Level), (key, log) =>
