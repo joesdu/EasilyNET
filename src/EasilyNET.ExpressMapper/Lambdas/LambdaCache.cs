@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using EasilyNET.ExpressMapper.MapBuilder.MapExpression;
 
 namespace EasilyNET.ExpressMapper.Lambdas;

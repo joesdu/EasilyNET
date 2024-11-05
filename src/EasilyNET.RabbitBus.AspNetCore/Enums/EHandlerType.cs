@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.RabbitBus.AspNetCore.Enums;
+namespace EasilyNET.RabbitBus.AspNetCore.Enums;
 
 /// <summary>
 /// 消息处理器种类

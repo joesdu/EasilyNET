@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.ExpressMapper.Abstractions.Clause;
+namespace EasilyNET.ExpressMapper.Abstractions.Clause;
 
 /// <summary>
 /// Interface for a mapping clause.

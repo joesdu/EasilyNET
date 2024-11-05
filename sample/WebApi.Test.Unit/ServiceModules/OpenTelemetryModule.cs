@@ -1,4 +1,4 @@
-﻿using EasilyNET.AutoDependencyInjection.Contexts;
+using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Exporter;

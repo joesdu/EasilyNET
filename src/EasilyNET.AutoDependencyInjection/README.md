@@ -43,7 +43,8 @@ private static IHostBuilder CreateHostBuilder(string[] args)
 </ItemGroup>
 ```
 
-再在 WPF 项目中,使用依赖注入,需要在 AppServiceModules.cs 中添加如下代码: 该类的使用方法和 Web 项目中的 AppWebModule.cs 一样.
+再在 WPF 项目中,使用依赖注入,需要在 AppServiceModules.cs 中添加如下代码: 该类的使用方法和 Web 项目中的 AppWebModule.cs
+一样.
 
 ```csharp
 [DependsOn(typeof(DependencyAppModule))]
@@ -61,8 +62,10 @@ public partial class MainWindow : Window
 
 ##### 注意事项
 
-- 需要注意的是,在 WPF 项目中,请将 AddSelf 属性设置为 true,否则会出现服务无法找到的问题,因为默认会注册实现类的父类,导致使用 ```host.Services.GetRequiredService<MainWindow>()``` 的方式无法找到服务.WinForm 项目中,没有测试,但是理论上也是一样的.
+- 需要注意的是,在 WPF 项目中,请将 AddSelf 属性设置为 true,否则会出现服务无法找到的问题,因为默认会注册实现类的父类,导致使用
+  ```host.Services.GetRequiredService<MainWindow>()``` 的方式无法找到服务.WinForm 项目中,没有测试,但是理论上也是一样的.
 - 由于新增 WPF 项目支持,所以调整了 IApplicationBuilder 为 IHost,因此 WEB 项目中的使用方式有细微的变化.
+
 ```csharp
 // 之前的使用方式
 IApplicationBuilder app = context.GetApplicationBuilder();

@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 namespace EasilyNET.Core.Threading;
 
 /// <summary>
-/// Òì²½ĞÅºÅ¡£
+/// å¼‚æ­¥ä¿¡å·ã€‚
 /// </summary>
 internal sealed class AsyncSemaphore
 {
@@ -12,38 +12,38 @@ internal sealed class AsyncSemaphore
     private int _isTaken;
 
     /// <summary>
-    /// »ñÈ¡ÊÇ·ñ±»Õ¼ÓÃ
+    /// è·å–æ˜¯å¦è¢«å ç”¨
     /// </summary>
     /// <returns></returns>
     public int GetTaken() => _isTaken;
 
     /// <summary>
-    /// »ñÈ¡µÈ´ıµÄÈÎÎñÊıÁ¿
+    /// è·å–ç­‰å¾…çš„ä»»åŠ¡æ•°é‡
     /// </summary>
     /// <returns></returns>
     public int GetQueueCount() => _waiters.Count;
 
     /// <summary>
-    /// Òì²½µÈ´ı
+    /// å¼‚æ­¥ç­‰å¾…
     /// </summary>
     /// <returns></returns>
     public Task WaitAsync()
     {
-        // Èç¹û _isTaken µÄÖµÊÇ 0£¬Ôò½«ÆäÉèÖÃÎª 1£¬²¢·µ»ØÒ»¸öÒÑÍê³ÉµÄÈÎÎñ¡£
+        // å¦‚æœ _isTaken çš„å€¼æ˜¯ 0ï¼Œåˆ™å°†å…¶è®¾ç½®ä¸º 1ï¼Œå¹¶è¿”å›ä¸€ä¸ªå·²å®Œæˆçš„ä»»åŠ¡ã€‚
         if (Interlocked.CompareExchange(ref _isTaken, 1, 0) == 0)
         {
             return _completed;
         }
-        // Èç¹û _isTaken µÄÖµ²»ÊÇ 0£¬´´½¨Ò»¸öĞÂµÄ TaskCompletionSource<bool>£¬²¢½«ÆäÉèÖÃÎªÒì²½ÔËĞĞ¡£
+        // å¦‚æœ _isTaken çš„å€¼ä¸æ˜¯ 0ï¼Œåˆ›å»ºä¸€ä¸ªæ–°çš„ TaskCompletionSource<bool>ï¼Œå¹¶å°†å…¶è®¾ç½®ä¸ºå¼‚æ­¥è¿è¡Œã€‚
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        // ½« TaskCompletionSource<bool> ÊµÀıÌí¼Óµ½µÈ´ı¶ÓÁĞÖĞ¡£
+        // å°† TaskCompletionSource<bool> å®ä¾‹æ·»åŠ åˆ°ç­‰å¾…é˜Ÿåˆ—ä¸­ã€‚
         _waiters.Enqueue(tcs);
-        // ·µ»Ø TaskCompletionSource<bool> µÄÈÎÎñ¡£
+        // è¿”å› TaskCompletionSource<bool> çš„ä»»åŠ¡ã€‚
         return tcs.Task;
     }
 
     /// <summary>
-    /// ÊÍ·Å
+    /// é‡Šæ”¾
     /// </summary>
     public void Release()
     {

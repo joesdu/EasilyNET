@@ -1,15 +1,19 @@
-﻿# EasilyNET.ExpressMapper
+# EasilyNET.ExpressMapper
 
-本项目从 [RosTransNadzor/ExpressMapper](https://github.com/RosTransNadzor/ExpressMapper) 复刻,原项目好像没有 Nuget 包,所以自己复制代码到这里,并且发布到 Nuget 上.添加了注释以及修改了部分拼写错误的代码.
+本项目从 [RosTransNadzor/ExpressMapper](https://github.com/RosTransNadzor/ExpressMapper) 复刻,原项目好像没有 Nuget
+包,所以自己复制代码到这里,并且发布到 Nuget 上.添加了注释以及修改了部分拼写错误的代码.
 
 # ExpressMapper
 
-ExpressMapper 是一个轻量级且易于使用的对象到对象映射库,适用于 .NET,旨在简化在应用程序的各个层之间转换数据的过程.它提供了可自定义的映射配置、属性忽略、构造函数映射和复合配置,以轻松处理复杂的场景.
+ExpressMapper 是一个轻量级且易于使用的对象到对象映射库,适用于
+.NET,旨在简化在应用程序的各个层之间转换数据的过程.它提供了可自定义的映射配置、属性忽略、构造函数映射和复合配置,以轻松处理复杂的场景.
 
 <details> 
 <summary style="font-size: 14px">English</summary>
 
-ExpressMapper is a lightweight and easy-to-use object-to-object mapping library for .NET, designed to streamline the process of transforming data between various layers of your application. It offers customizable mapping configurations, property ignoring, constructor mapping, and composite configurations to handle complex scenarios with ease.
+ExpressMapper is a lightweight and easy-to-use object-to-object mapping library for .NET, designed to streamline the
+process of transforming data between various layers of your application. It offers customizable mapping configurations,
+property ignoring, constructor mapping, and composite configurations to handle complex scenarios with ease.
 
 </details>
 
@@ -23,8 +27,10 @@ ExpressMapper is a lightweight and easy-to-use object-to-object mapping library 
 <details> 
 <summary style="font-size: 14px">English</summary>
 
-- **Customizable Mapping Configurations**: Define mappings between source and destination properties with fine-grained control.
-- **Ignore Specific Properties**: Choose to ignore properties on either the source or destination side during the mapping.
+- **Customizable Mapping Configurations**: Define mappings between source and destination properties with fine-grained
+  control.
+- **Ignore Specific Properties**: Choose to ignore properties on either the source or destination side during the
+  mapping.
 - **Constructor Mapping**: Use specific constructors when instantiating destination objects, useful for complex objects.
 - **Composite Configurations**: Manage multiple mappings for different types within a single configuration class.
 
@@ -45,7 +51,8 @@ Install-Package EasilyNET.ExpressMapper
 <details> 
 <summary style="font-size: 14px">English</summary>
 
-To use ExpressMapper, start by defining your source and destination classes, and then configure the mappings using the provided configuration classes.
+To use ExpressMapper, start by defining your source and destination classes, and then configure the mappings using the
+provided configuration classes.
 
 </details>
 
@@ -182,12 +189,14 @@ This example demonstrates how to create a mapper with combined configurations an
 
 ## Conclusion | 结论
 
-ExpressMapper 为 .NET 应用程序中的对象到对象映射提供了一个灵活且强大的解决方案.无论是简单的 DTO 还是复杂的对象,都可以根据您的具体需求自定义映射.
+ExpressMapper 为 .NET 应用程序中的对象到对象映射提供了一个灵活且强大的解决方案.无论是简单的 DTO
+还是复杂的对象,都可以根据您的具体需求自定义映射.
 
 <details> 
 <summary style="font-size: 14px">English</summary>
 
-ExpressMapper provides a flexible and powerful solution for object-to-object mapping in .NET applications. Customize your mappings to fit your specific needs, whether it's for simple DTOs or complex objects.
+ExpressMapper provides a flexible and powerful solution for object-to-object mapping in .NET applications. Customize
+your mappings to fit your specific needs, whether it's for simple DTOs or complex objects.
 
 For more information, please refer to the official documentation or check out the source code examples.
 

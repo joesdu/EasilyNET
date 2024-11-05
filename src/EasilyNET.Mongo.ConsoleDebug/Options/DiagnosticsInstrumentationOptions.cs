@@ -1,4 +1,4 @@
-﻿using MongoDB.Driver.Core.Events;
+using MongoDB.Driver.Core.Events;
 
 namespace EasilyNET.Mongo.ConsoleDebug.Options;
 

@@ -16,14 +16,16 @@
     2. 转换成 Ticks 的方式存储
     3. 若想转化成其他类型也可自行实现,如:转化成 ulong 类型
 - 添加动态类型支持[object 和 dynamic], 2.20 版后官方又加上了.
-        JsonArray.
+  JsonArray.
 - 添加JsonNode类型支持.
 
 ---
 
 ##### 添加自定义序列化支持(可选)
 
-- JsonNode类型因为反序列化时不支持Unicode字符，如果需要序列化插入至其他地方（例如Redis），在序列化时需要将JsonSerializerOptions的Encoder属性设置为System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping.
+-
+
+JsonNode类型因为反序列化时不支持Unicode字符，如果需要序列化插入至其他地方（例如Redis），在序列化时需要将JsonSerializerOptions的Encoder属性设置为System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping.
 
 ```csharp
 builder.Services.AddMongoContext<DbContext>(builder.Configuration)
@@ -42,9 +44,11 @@ builder.Services.RegisterSerializer(new JsonNodeSerializer());
 
 - Nuget 安装 EasilyNET.Mongo.AspNetCore
 - 推荐同时安装 EasilyNET.MongoSerializer.AspNetCore 包,添加了对 .Net6+ 的 Date/Time Only 类型
-- 在系统环境变量或者 Docker 容器中设置环境变量名称为: CONNECTIONSTRINGS_MONGO = mongodb 链接字符串 或者在 appsettings.json 中添加,
+- 在系统环境变量或者 Docker 容器中设置环境变量名称为: CONNECTIONSTRINGS_MONGO = mongodb 链接字符串 或者在
+  appsettings.json 中添加,
 - 现在你也可以参考 example.api 项目查看直接传入相关数据.
-- 添加 APM 探针支持,根据 [SkyApm.Diagnostics.MongoDB](https://github.com/SkyAPM/SkyAPM-dotnet/tree/main/src/SkyApm.Diagnostics.MongoDB)
+- 添加 APM
+  探针支持,根据 [SkyApm.Diagnostics.MongoDB](https://github.com/SkyAPM/SkyAPM-dotnet/tree/main/src/SkyApm.Diagnostics.MongoDB)
 
 ```json
 {

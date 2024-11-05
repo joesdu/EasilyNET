@@ -1,4 +1,4 @@
-﻿// ReSharper disable once CommentTypo
+// ReSharper disable once CommentTypo
 // Made by Frantisek Konopecky, Prague, 2014 - 2016
 //
 // Code comes under MIT licence - Can be used without 

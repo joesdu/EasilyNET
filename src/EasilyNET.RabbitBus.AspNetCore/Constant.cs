@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.RabbitBus.AspNetCore;
+namespace EasilyNET.RabbitBus.AspNetCore;
 
 internal static class Constant
 {

@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.ExpressMapper.MapBuilder.MapExpression;
+namespace EasilyNET.ExpressMapper.MapBuilder.MapExpression;
 
 /// <summary>
 /// 映射 Lambda 接口。

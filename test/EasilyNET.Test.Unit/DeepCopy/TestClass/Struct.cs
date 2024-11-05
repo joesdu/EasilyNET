@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Test.Unit.DeepCopy.TestClass;
+namespace EasilyNET.Test.Unit.DeepCopy.TestClass;
 
 [Serializable]
 public struct Struct(int item1, SimpleClass item23, SimpleClass item4)

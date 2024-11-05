@@ -1,4 +1,4 @@
-﻿using EasilyNET.Mongo.AspNetCore.Common;
+using EasilyNET.Mongo.AspNetCore.Common;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;

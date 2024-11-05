@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using EasilyNET.ExpressMapper.Abstractions;
 
 namespace EasilyNET.ExpressMapper.Configuration;

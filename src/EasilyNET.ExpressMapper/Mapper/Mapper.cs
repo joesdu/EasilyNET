@@ -1,4 +1,4 @@
-﻿using EasilyNET.ExpressMapper.Abstractions;
+using EasilyNET.ExpressMapper.Abstractions;
 using EasilyNET.ExpressMapper.MapBuilder;
 
 // ReSharper disable UnusedMember.Global

@@ -1,4 +1,4 @@
-﻿using EasilyNET.ExpressMapper.Mapper;
+using EasilyNET.ExpressMapper.Mapper;
 using EasilyNET.Test.Unit.ExpressMapper.Entities;
 using FluentAssertions;
 
