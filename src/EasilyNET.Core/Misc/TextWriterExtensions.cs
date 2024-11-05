@@ -30,8 +30,10 @@ public static class TextWriterExtensions
         {
             // 启用 UTF-8 支持
             Console.OutputEncoding = Encoding.UTF8;
+            // ⣿
             _loadingFrames = ['⣾', '⣷', '⣯', '⣟', '⡿', '⢿', '⣻', '⣽'];
         }
+        // 当不支持 UTF-8 编码时,使用默认编码,并使用简单的字符
         else
         {
             Console.OutputEncoding = Encoding.Default;

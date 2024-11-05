@@ -28,11 +28,11 @@ docker compose -f docker-compose.basic.service.yml up -d
 
 - 目前包含的服务列表如下:
 
-| 服务名称        | 服务描述   | 端口映射   | 镜像名称                                                 |
-| --------------- | ---------- | ---------- | -------------------------------------------------------- |
-| Garnet          | 替代 Redis | 3278       | ghcr.io/joesdu/garnet:latest                             |
-| RabbitMQ        | 消息队列   | 15672,5672 | ghcr.io/joesdu/rabbitmq-dlx:latest                       |
-| AspireDashboard | 可观测性   | 18888,4317 | mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest |
+| 服务名称        | 服务描述 | 端口映射   | 镜像名称                                                 |
+| --------------- | -------- | ---------- | -------------------------------------------------------- |
+| Garnet          | 缓存     | 6379       | ghcr.io/microsoft/garnet:latest                          |
+| RabbitMQ        | 消息队列 | 15672,5672 | ghcr.io/joesdu/rabbitmq-dlx:latest                       |
+| AspireDashboard | 可观测性 | 18888,4317 | mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest |
 
 EasilyNET Packages
 

@@ -2,11 +2,11 @@
 
 services:
   garnet:
-    image: ghcr.io/joesdu/garnet:latest
+    image: ghcr.io/microsoft/garnet
     environment:
       - TZ=Asia/Chongqing
     ports:
-      - 3278:3278
+      - 6379:6379
     deploy:
       resources:
         limits:
