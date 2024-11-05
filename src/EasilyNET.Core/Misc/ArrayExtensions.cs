@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Core.Misc;
+namespace EasilyNET.Core.Misc;
 
 /// <summary>
 /// ArrayExtensions

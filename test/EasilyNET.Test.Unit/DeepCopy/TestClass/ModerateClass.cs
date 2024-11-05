@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Test.Unit.DeepCopy.TestClass;
+namespace EasilyNET.Test.Unit.DeepCopy.TestClass;
 
 #nullable disable
 [Serializable]

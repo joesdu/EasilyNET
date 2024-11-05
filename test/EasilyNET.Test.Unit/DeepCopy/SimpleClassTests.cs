@@ -1,4 +1,4 @@
-﻿using EasilyNET.Test.Unit.DeepCopy.TestClass;
+using EasilyNET.Test.Unit.DeepCopy.TestClass;
 
 namespace EasilyNET.Test.Unit.DeepCopy;
 

@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.RabbitBus.AspNetCore.Enums;
+namespace EasilyNET.RabbitBus.AspNetCore.Enums;
 
 /// <summary>
 /// 序列化方式

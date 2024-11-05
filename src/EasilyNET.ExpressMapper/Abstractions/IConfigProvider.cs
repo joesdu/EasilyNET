@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.ExpressMapper.Abstractions;
+namespace EasilyNET.ExpressMapper.Abstractions;
 
 /// <summary>
 /// Interface for configuration provider.

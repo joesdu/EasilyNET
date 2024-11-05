@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.ExpressMapper.Abstractions;
+namespace EasilyNET.ExpressMapper.Abstractions;
 
 /// <summary>
 /// 映射规则接口，用于定义映射规则。

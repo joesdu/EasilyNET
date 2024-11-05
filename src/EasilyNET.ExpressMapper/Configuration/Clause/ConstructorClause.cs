@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using EasilyNET.ExpressMapper.Abstractions.Clause;
 using EasilyNET.ExpressMapper.Expressions;
 

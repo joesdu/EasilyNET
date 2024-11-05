@@ -1,4 +1,4 @@
-﻿using EasilyNET.RabbitBus.AspNetCore.Abstraction;
+using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Enums;
 using EasilyNET.RabbitBus.AspNetCore.Serializer;

@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.RabbitBus.AspNetCore.Abstraction;
+namespace EasilyNET.RabbitBus.AspNetCore.Abstraction;
 
 /// <summary>
 /// 序列化器接口

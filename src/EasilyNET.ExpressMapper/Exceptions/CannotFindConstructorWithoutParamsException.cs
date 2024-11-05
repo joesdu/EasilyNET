@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.ExpressMapper.Exceptions;
+namespace EasilyNET.ExpressMapper.Exceptions;
 
 /// <summary>
 /// 无法找到无参数构造函数异常类。

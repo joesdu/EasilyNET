@@ -1,6 +1,6 @@
 using EasilyNET.Mongo.Core;
-using MongoCRUD.Models;
 using MongoDB.Driver;
+using WebApi.Test.Unit.Domain;
 
 // ReSharper disable ClassNeverInstantiated.Global
 

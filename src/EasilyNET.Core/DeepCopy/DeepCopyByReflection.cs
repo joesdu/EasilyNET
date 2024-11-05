@@ -1,4 +1,4 @@
-﻿//Copied from: https://github.com/Burtsev-Alexey/net-object-deep-copy
+//Copied from: https://github.com/Burtsev-Alexey/net-object-deep-copy
 
 //Source code is released under the MIT license.
 

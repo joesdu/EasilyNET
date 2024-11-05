@@ -1,26 +1,26 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
-	<PropertyGroup>
-		<AssemblyTitle>$(PackagePrefix).MongoDistributedLock.AspNetCore</AssemblyTitle>
-		<AssemblyName>$(PackagePrefix).MongoDistributedLock.AspNetCore</AssemblyName>
-		<PackageId>$(PackagePrefix).MongoDistributedLock.AspNetCore</PackageId>
-		<PackageTags>MongoDB;DistributedLock</PackageTags>
-		<PackageReleaseNotes>
-		</PackageReleaseNotes>
-		<RootNamespace>EasilyNET.MongoDistributedLock.AspNetCore</RootNamespace>
-	</PropertyGroup>
-
-	<PropertyGroup>
-		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.MongoDistributedLock.AspNetCore</PackageProjectUrl>
-		<Description>MongoDB分布式锁方案</Description>
-	</PropertyGroup>
-
-	<ItemGroup>
-		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="..\EasilyNET.MongoDistributedLock\EasilyNET.MongoDistributedLock.csproj" />
-	</ItemGroup>
+    
+    <PropertyGroup>
+        <AssemblyTitle>$(PackagePrefix).MongoDistributedLock.AspNetCore</AssemblyTitle>
+        <AssemblyName>$(PackagePrefix).MongoDistributedLock.AspNetCore</AssemblyName>
+        <PackageId>$(PackagePrefix).MongoDistributedLock.AspNetCore</PackageId>
+        <PackageTags>MongoDB;DistributedLock</PackageTags>
+        <PackageReleaseNotes>
+        </PackageReleaseNotes>
+        <RootNamespace>EasilyNET.MongoDistributedLock.AspNetCore</RootNamespace>
+    </PropertyGroup>
+    
+    <PropertyGroup>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.MongoDistributedLock.AspNetCore</PackageProjectUrl>
+        <Description>MongoDB分布式锁方案</Description>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <ProjectReference Include="..\EasilyNET.MongoDistributedLock\EasilyNET.MongoDistributedLock.csproj" />
+    </ItemGroup>
 
 </Project>
