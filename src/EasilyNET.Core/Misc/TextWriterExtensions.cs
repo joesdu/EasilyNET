@@ -16,13 +16,28 @@ public static class TextWriterExtensions
 {
     private static readonly AsyncLock _asyncLock = new();
     private static readonly Lock _syncLock = new();
-
     private static string _lastOutput = string.Empty;
     private static bool? _ansiSupported;
     private static bool? _cursorPosSupported;
     private static bool? _windowSizeSupported;
-
     private static char[] _clearBuffer = new char[256];
+    private static readonly char[] _loadingFrames;
+
+    static TextWriterExtensions()
+    {
+        // 检查平台是否支持 UTF-8 编码
+        if (IsUtf8Supported())
+        {
+            // 启用 UTF-8 支持
+            Console.OutputEncoding = Encoding.UTF8;
+            _loadingFrames = ['⣾', '⣷', '⣯', '⣟', '⡿', '⢿', '⣻', '⣽'];
+        }
+        else
+        {
+            Console.OutputEncoding = Encoding.Default;
+            _loadingFrames = ['-', '\\', '|', '/'];
+        }
+    }
 
     private static void ClearBuffer(int length)
     {
@@ -473,6 +488,28 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
+    /// 是否支持 UTF-8 编码
+    /// </summary>
+    /// <returns></returns>
+    public static bool IsUtf8Supported()
+    {
+        // 检查当前平台是否支持 UTF-8 编码
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            var osVersion = Environment.OSVersion.Version;
+            // Windows 10 (10.0) 和 Windows Server 2016 (10.0) 及以上版本支持 UTF-8
+            return osVersion.Major >= 10;
+        }
+        // ReSharper disable once InvertIf
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            var term = Environment.GetEnvironmentVariable("TERM");
+            return !string.IsNullOrWhiteSpace(term) && term != "dumb";
+        }
+        return false;
+    }
+
+    /// <summary>
     /// 判断当前环境终端是否支持 ANSI 转义序列
     /// </summary>
     /// <returns>是否支持</returns>
@@ -671,5 +708,184 @@ public static class TextWriterExtensions
         outputBytes[width + 3 + progressTextBytes.Length] = 32; // ASCII for ' '
         messageBytes.CopyTo(outputBytes[(width + 4 + progressTextBytes.Length)..]);
         return Encoding.UTF8.GetString(outputBytes);
+    }
+
+    /// <summary>
+    /// 控制控制台光标可见性,若平台不受支持则无效果
+    /// </summary>
+    /// <param name="writer"></param>
+    /// <param name="visible"><see langword="true" />: 显示光标, <see langword="false" />: 隐藏光标</param>
+    /// <returns></returns>
+    public static async Task SetCursorVisibilityAsync(this TextWriter writer, bool visible)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            try
+            {
+                Console.CursorVisible = visible;
+            }
+            catch (Exception)
+            {
+                // Ignore
+            }
+        }
+        else if (IsAnsiSupported())
+        {
+            await writer.WriteAsync(visible ? "\e[?25h" : "\e[?25l");
+        }
+    }
+
+    /// <summary>
+    /// 控制控制台光标可见性,若平台不受支持则无效果
+    /// </summary>
+    /// <param name="writer"></param>
+    /// <param name="visible"><see langword="true" />: 显示光标, <see langword="false" />: 隐藏光标</param>
+    public static void SetCursorVisibility(this TextWriter writer, bool visible)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            try
+            {
+                Console.CursorVisible = visible;
+            }
+            catch (Exception)
+            {
+                // Ignore
+            }
+        }
+        else if (IsAnsiSupported())
+        {
+            writer.Write(visible ? "\e[?25h" : "\e[?25l");
+        }
+    }
+
+    /// <summary>
+    /// 在控制台输出加载动画
+    /// </summary>
+    /// <param name="writer"></param>
+    /// <param name="cancellationToken"></param>
+    /// <param name="delay">刷新间隔</param>
+    /// <param name="color">字符颜色</param>
+    /// <remarks>
+    ///     <para>
+    ///     使用方式:
+    ///     <code>
+    ///   <![CDATA[
+    /// var cts = new CancellationTokenSource();
+    ///   // 启动加载动画
+    ///   var loading = Console.Out.ShowLoadingAsync(cts.Token);
+    ///   await Task.Run(async () =>
+    ///   {
+    ///       await Task.Delay(3000, token);
+    ///       await cts.CancelAsync();
+    ///   }, token);
+    ///   await loading;
+    /// ]]>
+    /// </code>
+    ///     </para>
+    /// </remarks>
+    /// <returns></returns>
+    public static async Task ShowLoadingAsync(this TextWriter writer, CancellationToken cancellationToken, int delay = 100, ConsoleColor color = ConsoleColor.Green)
+    {
+        var frameIndex = 0;
+        // 隐藏光标
+        await writer.SetCursorVisibilityAsync(false);
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                Console.ForegroundColor = color;
+                await writer.WriteAsync(_loadingFrames[frameIndex]);
+                Console.ResetColor();
+                await writer.FlushAsync(cancellationToken);
+                frameIndex = (frameIndex + 1) % _loadingFrames.Length;
+                await Task.Delay(delay, cancellationToken);
+                await writer.WriteAsync('\b');
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // 清除已经输出的字符
+            if (IsAnsiSupported())
+            {
+                await writer.WriteAsync("\b \b"); // 使用 ANSI 转义序列清除字符
+            }
+            else
+            {
+                await writer.WriteAsync(' '); // 使用空格覆盖字符
+                await writer.FlushAsync(cancellationToken);
+            }
+            // 恢复光标可见性
+            await writer.SetCursorVisibilityAsync(true);
+            Console.ResetColor();
+        }
+        finally
+        {
+            // 恢复光标可见性
+            await writer.SetCursorVisibilityAsync(true);
+            Console.ResetColor();
+        }
+    }
+
+    /// <summary>
+    /// 在控制台输出加载动画
+    /// </summary>
+    /// <param name="writer"></param>
+    /// <param name="cancellationToken"></param>
+    /// <param name="delay">刷新间隔</param>
+    /// <param name="color">字符颜色</param>
+    /// <remarks>
+    ///     <para>
+    ///     使用方式:
+    ///     <code>
+    ///   <![CDATA[
+    /// var cts = new CancellationTokenSource();
+    ///   // 启动加载动画
+    ///   var task = Task.Factory.StartNew(() => Console.Out.ShowLoading(cts.Token), token);
+    ///   // 模拟3秒后取消加载动画
+    ///   Task.Delay(3000, token).ContinueWith(_ => cts.Cancel(), token);
+    ///   // 等待加载动画任务完成
+    ///   task.Wait(token);
+    /// ]]>
+    /// </code>
+    ///     </para>
+    /// </remarks>
+    public static void ShowLoading(this TextWriter writer, CancellationToken cancellationToken, int delay = 100, ConsoleColor color = ConsoleColor.Green)
+    {
+        var frameIndex = 0;
+        writer.SetCursorVisibility(false);
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                Console.ForegroundColor = color;
+                writer.Write(_loadingFrames[frameIndex]);
+                Console.ResetColor();
+                writer.Flush();
+                frameIndex = (frameIndex + 1) % _loadingFrames.Length;
+                Task.Delay(delay, cancellationToken).Wait(cancellationToken); // 使用 Task.Delay 替代 Thread.Sleep
+                writer.Write('\b');
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // 清除已经输出的字符
+            if (IsAnsiSupported())
+            {
+                writer.Write("\b \b"); // 使用 ANSI 转义序列清除字符
+            }
+            else
+            {
+                writer.Write(' '); // 使用空格覆盖字符
+                writer.Flush();
+            }
+            writer.SetCursorVisibility(true);
+            Console.ResetColor();
+        }
+        finally
+        {
+            writer.SetCursorVisibility(true);
+            Console.ResetColor();
+        }
     }
 }
