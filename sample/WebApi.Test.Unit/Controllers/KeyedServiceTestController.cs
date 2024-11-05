@@ -1,4 +1,4 @@
-﻿using EasilyNET.AutoDependencyInjection.Core.Attributes;
+using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

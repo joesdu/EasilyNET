@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Reflection;
 using EasilyNET.Core.Misc;
 using EasilyNET.Mongo.Core;

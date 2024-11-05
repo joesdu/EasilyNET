@@ -1,4 +1,4 @@
-﻿// ReSharper disable UnassignedReadonlyField
+// ReSharper disable UnassignedReadonlyField
 // ReSharper disable UnassignedGetOnlyAutoProperty
 
 namespace EasilyNET.Test.Unit.ExpressMapper.Entities;

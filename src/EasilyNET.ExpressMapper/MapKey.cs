@@ -1,4 +1,4 @@
-﻿// ReSharper disable UnusedType.Global
+// ReSharper disable UnusedType.Global
 
 namespace EasilyNET.ExpressMapper;
 

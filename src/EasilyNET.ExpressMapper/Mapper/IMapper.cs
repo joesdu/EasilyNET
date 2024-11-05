@@ -1,4 +1,4 @@
-﻿using EasilyNET.ExpressMapper.Abstractions;
+using EasilyNET.ExpressMapper.Abstractions;
 
 // ReSharper disable UnusedTypeParameter
 

@@ -367,7 +367,7 @@ public static class Lunar
                     {
                         11 => 23,
                         12 => 24,
-                        _ => throw new("-闰年错误,请联系作者修正-")
+                        _  => throw new("-闰年错误,请联系作者修正-")
                     };
                 }
                 else
@@ -548,7 +548,7 @@ public static class Lunar
                 day switch
                 {
                     > 29 => false,
-                    _ => DateTime.IsLeapYear(year) || day <= 28
+                    _    => DateTime.IsLeapYear(year) || day <= 28
                 });
     }
 

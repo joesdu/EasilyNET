@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using EasilyNET.Core.Commons;
 using EasilyNET.Core.Threading;

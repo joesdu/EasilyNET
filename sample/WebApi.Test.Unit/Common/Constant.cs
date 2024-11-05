@@ -1,4 +1,4 @@
-﻿namespace WebApi.Test.Unit.Common;
+namespace WebApi.Test.Unit.Common;
 
 internal static class Constant
 {

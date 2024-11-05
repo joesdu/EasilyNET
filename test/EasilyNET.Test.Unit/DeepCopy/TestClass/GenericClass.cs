@@ -1,4 +1,4 @@
-﻿namespace EasilyNET.Test.Unit.DeepCopy.TestClass;
+namespace EasilyNET.Test.Unit.DeepCopy.TestClass;
 
 [Serializable]
 public class GenericClass<T>(T item1, T item2)

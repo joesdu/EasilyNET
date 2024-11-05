@@ -1,12 +1,12 @@
-﻿using EasilyNET.Core.Enums;
+using EasilyNET.Core.Enums;
 using EasilyNET.Core.Misc;
 using EasilyNET.Mongo.Core;
 using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
-using MongoCRUD.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
+using WebApi.Test.Unit.Domain;
 
 namespace WebApi.Test.Unit.Controllers;
 

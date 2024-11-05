@@ -28,9 +28,9 @@ docker compose -f docker-compose.basic.service.yml up -d
 
 - 目前包含的服务列表如下:
 
-| 服务名称        | 服务描述 | 端口映射   | 镜像名称                                                 |
-| --------------- | -------- | ---------- | -------------------------------------------------------- |
-| Garnet          | 缓存     | 6379       | ghcr.io/microsoft/garnet:latest                          |
+| 服务名称            | 服务描述 | 端口映射       | 镜像名称                                                     |
+|-----------------|------|------------|----------------------------------------------------------|
+| Garnet          | 缓存   | 6379       | ghcr.io/microsoft/garnet:latest                          |
 | RabbitMQ        | 消息队列 | 15672,5672 | ghcr.io/joesdu/rabbitmq-dlx:latest                       |
 | AspireDashboard | 可观测性 | 18888,4317 | mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest |
 
@@ -57,11 +57,13 @@ EasilyNET Packages
 - Message bus implementation based on RabbitMQ.
 - Some encapsulation of MongoDB driver for easy use and some common default configurations.
 - Snowflake ID, some common data types, enumerations, extension methods, etc.
-- Automatic modular injection services, adding support for WPF, WinForm and other projects, using IHost common host mode.
+- Automatic modular injection services, adding support for WPF, WinForm and other projects, using IHost common host
+  mode.
 - Added support for DateOnly and TimeOnly in MongoDB(serialized to String or long), dynamic type support.
 - Simple support for MongoDB GridFS usage (common usage) and usage examples.
 - Integration of some common filters and middleware in WebAPI.
-- Added support for grouping, hiding APIs, and displaying default values for some data types in Swagger documents, making it easier for front-end engineers to refer to.
+- Added support for grouping, hiding APIs, and displaying default values for some data types in Swagger documents,
+  making it easier for front-end engineers to refer to.
 - Added personalized output for executing MongoDB commands, Diagnostics datas to APM (EasilyNET.Mongo.ConsoleDebug).
 - [Usage examples](./sample/WebApi.Test.Unit/README.md) of some libraries.
 
@@ -82,16 +84,16 @@ EasilyNET Packages
 
 #### Core
 
-| NuGet Package                   | Version      | Download     | Document                                          |
-| ------------------------------- | ------------ | ------------ | ------------------------------------------------- |
+| NuGet Package                   | Version      | Download     | Document                                        |
+|---------------------------------|--------------|--------------|-------------------------------------------------|
 | [EasilyNET.Core][8]             | ![Nuget][9]  | ![Nuget][10] | [文档](./src/EasilyNET.Core/README.md)            |
 | [EasilyNET.WebCore][14]         | ![Nuget][15] | ![Nuget][16] | [文档](./src/EasilyNET.WebCore/README.md)         |
 | [EasilyNET.WebCore.Swagger][17] | ![Nuget][18] | ![Nuget][19] | [文档](./src/EasilyNET.WebCore.Swagger/README.md) |
 
 #### Framework
 
-| NuGet Package                           | Version      | Download     | Document                                                  |
-| --------------------------------------- | ------------ | ------------ | --------------------------------------------------------- |
+| NuGet Package                           | Version      | Download     | Document                                                |
+|-----------------------------------------|--------------|--------------|---------------------------------------------------------|
 | [EasilyNET.AutoDependencyInjection][20] | ![Nuget][21] | ![Nuget][22] | [文档](./src/EasilyNET.AutoDependencyInjection/README.md) |
 | [EasilyNET.ExpressMapper][23]           | ![Nuget][24] | ![Nuget][25] | [文档](./src/EasilyNET.ExpressMapper/README.md)           |
 | [EasilyNET.RabbitBus.AspNetCore][26]    | ![Nuget][27] | ![Nuget][28] | [文档](./src/EasilyNET.RabbitBus.AspNetCore/README.md)    |
@@ -99,8 +101,8 @@ EasilyNET Packages
 
 #### Mongo
 
-| NuGet Package                                   | Version      | Download     | Document                                                          |
-| ----------------------------------------------- | ------------ | ------------ | ----------------------------------------------------------------- |
+| NuGet Package                                   | Version      | Download     | Document                                                        |
+|-------------------------------------------------|--------------|--------------|-----------------------------------------------------------------|
 | [EasilyNET.Mongo.AspNetCore][32]                | ![Nuget][33] | ![Nuget][34] | [文档](./src/EasilyNET.Mongo.AspNetCore/README.md)                |
 | [EasilyNET.Mongo.ConsoleDebug][35]              | ![Nuget][36] | ![Nuget][37] | [文档](./src/EasilyNET.Mongo.ConsoleDebug/README.md)              |
 | [EasilyNET.MongoDistributedLock][38]            | ![Nuget][39] | ![Nuget][40] | [文档](./src/EasilyNET.MongoDistributedLock/README.md)            |
@@ -121,42 +123,81 @@ EasilyNET Packages
 <!--文档中的各项链接-->
 
 [1]: https://img.shields.io/badge/License-MIT-brightgreen.svg
+
 [2]: LICENSE
+
 [3]: https://img.shields.io/github/issues/EasilyNET/EasilyNET
+
 [4]: https://img.shields.io/github/forks/EasilyNET/EasilyNET
+
 [5]: https://img.shields.io/github/stars/EasilyNET/EasilyNET
+
 [6]: https://img.shields.io/github/commit-activity/y/EasilyNET/EasilyNET
+
 [7]: https://img.shields.io/github/last-commit/EasilyNET/EasilyNET
+
 [8]: https://www.nuget.org/packages/EasilyNET.Core
+
 [9]: https://img.shields.io/nuget/v/EasilyNET.Core
+
 [10]: https://img.shields.io/nuget/dt/EasilyNET.Core
+
 [14]: https://www.nuget.org/packages/EasilyNET.WebCore
+
 [15]: https://img.shields.io/nuget/v/EasilyNET.WebCore
+
 [16]: https://img.shields.io/nuget/dt/EasilyNET.WebCore
+
 [17]: https://www.nuget.org/packages/EasilyNET.WebCore.Swagger
+
 [18]: https://img.shields.io/nuget/v/EasilyNET.WebCore.Swagger
+
 [19]: https://img.shields.io/nuget/dt/EasilyNET.WebCore.Swagger
+
 [20]: https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection
+
 [21]: https://img.shields.io/nuget/v/EasilyNET.AutoDependencyInjection
+
 [22]: https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection
+
 [23]: https://www.nuget.org/packages/EasilyNET.ExpressMapper
+
 [24]: https://img.shields.io/nuget/v/EasilyNET.ExpressMapper
+
 [25]: https://img.shields.io/nuget/dt/EasilyNET.ExpressMapper
+
 [26]: https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore
+
 [27]: https://img.shields.io/nuget/v/EasilyNET.RabbitBus.AspNetCore
+
 [28]: https://img.shields.io/nuget/dt/EasilyNET.RabbitBus.AspNetCore
+
 [29]: https://www.nuget.org/packages/EasilyNET.Security
+
 [30]: https://img.shields.io/nuget/v/EasilyNET.Security
+
 [31]: https://img.shields.io/nuget/dt/EasilyNET.Security
+
 [32]: https://www.nuget.org/packages/EasilyNET.Mongo.AspNetCore
+
 [33]: https://img.shields.io/nuget/v/EasilyNET.Mongo.AspNetCore
+
 [34]: https://img.shields.io/nuget/dt/EasilyNET.Mongo.AspNetCore
+
 [35]: https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug
+
 [36]: https://img.shields.io/nuget/v/EasilyNET.Mongo.ConsoleDebug
+
 [37]: https://img.shields.io/nuget/dt/EasilyNET.Mongo.ConsoleDebug
+
 [38]: https://www.nuget.org/packages/EasilyNET.MongoDistributedLock
+
 [39]: https://img.shields.io/nuget/v/EasilyNET.MongoDistributedLock
+
 [40]: https://img.shields.io/nuget/dt/EasilyNET.MongoDistributedLock
+
 [41]: https://www.nuget.org/packages/EasilyNET.MongoDistributedLock.AspNetCore
+
 [42]: https://img.shields.io/nuget/v/EasilyNET.MongoDistributedLock.AspNetCore
+
 [43]: https://img.shields.io/nuget/dt/EasilyNET.MongoDistributedLock.AspNetCore

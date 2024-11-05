@@ -10,9 +10,7 @@ namespace WebApi.Test.Unit.ServiceModules;
 /// </summary>
 internal sealed class SwaggerModule : AppModule
 {
-    /**
-     * https://github.com/domaindrivendev/Swashbuckle.AspNetCore
-     */
+    /// https://github.com/domaindrivendev/Swashbuckle.AspNetCore
     /// <inheritdoc />
     public SwaggerModule()
     {

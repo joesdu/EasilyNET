@@ -1,8 +1,8 @@
-﻿// ReSharper disable ClassNeverInstantiated.Global
+// ReSharper disable ClassNeverInstantiated.Global
 
 using EasilyNET.Core.Enums;
 
-namespace MongoCRUD.Models;
+namespace WebApi.Test.Unit.Domain;
 
 /// <summary>
 /// FamilyInfo

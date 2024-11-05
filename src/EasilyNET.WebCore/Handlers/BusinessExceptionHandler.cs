@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.System;
+using EasilyNET.Core.System;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

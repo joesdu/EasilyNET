@@ -1,4 +1,4 @@
-﻿using EasilyNET.ExpressMapper.Abstractions;
+using EasilyNET.ExpressMapper.Abstractions;
 using EasilyNET.ExpressMapper.Lambdas;
 using EasilyNET.ExpressMapper.MapBuilder.MapExpression;
 

@@ -1,4 +1,4 @@
-﻿// ReSharper disable UnusedMember.Global
+// ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 
 using System.Collections.Concurrent;

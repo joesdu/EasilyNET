@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.Enums;
+using EasilyNET.Core.Enums;
 using EasilyNET.Core.IdCard;
 
 namespace EasilyNET.Test.Unit.IDCard;
