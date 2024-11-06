@@ -12,6 +12,7 @@ internal sealed class GarnetModule : AppModule
         var configurationOptions = ConfigurationOptions.Parse(garnet);
         configurationOptions.ClientName = "Garnet";
         var client = ConnectionMultiplexer.ConnectAsync(configurationOptions);
-        context.Services.AddSingleton<IConnectionMultiplexer>(client.Result);
+        // Garnet 只有 0 数据库,所以这里直接注册 IDatabase
+        context.Services.AddSingleton(_ => client.Result.GetDatabase(0));
     }
 }
