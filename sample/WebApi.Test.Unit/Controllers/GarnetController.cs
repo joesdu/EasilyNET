@@ -8,17 +8,8 @@ namespace WebApi.Test.Unit.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [ApiGroup("GarnetTest")]
-public class GarnetController : ControllerBase
+public class GarnetController(IDatabase garnet) : ControllerBase
 {
-    private readonly IDatabase _rdb;
-
-    /// <inheritdoc />
-    public GarnetController(IConnectionMultiplexer redis)
-    {
-        var db = redis.GetDatabase(0);
-        _rdb = db;
-    }
-
     /// <summary>
     /// 设置数据到Garnet
     /// </summary>
@@ -26,7 +17,7 @@ public class GarnetController : ControllerBase
     [HttpPost("SetSomething")]
     public async Task SetSomething()
     {
-        await _rdb.StringSetAsync("test", "Hello Garnet");
+        await garnet.StringSetAsync("test", "Hello Garnet");
     }
 
     /// <summary>
@@ -34,5 +25,5 @@ public class GarnetController : ControllerBase
     /// </summary>
     /// <returns></returns>
     [HttpGet("GetSomething")]
-    public async Task<string?> GetSomething() => await _rdb.StringGetAsync("test");
+    public async Task<string?> GetSomething() => await garnet.StringGetAsync("test");
 }
