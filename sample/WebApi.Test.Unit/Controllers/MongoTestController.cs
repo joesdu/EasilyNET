@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json.Nodes;
+using EasilyNET.Core.Attributes;
 using EasilyNET.Core.Enums;
-using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using MongoDB.Bson;

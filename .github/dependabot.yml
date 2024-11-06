@@ -17,3 +17,4 @@ updates:
     target-branch: "main"
     schedule:
       interval: "daily"
+      timezone: "Asia/Shanghai"

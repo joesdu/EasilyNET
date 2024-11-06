@@ -1,5 +1,6 @@
+using System.Collections.Concurrent;
 using EasilyNET.Core;
-using EasilyNET.WebCore.Swagger.Attributes;
+using EasilyNET.Core.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -82,9 +83,9 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
     {
         if (fs.File is null || fs.File.Count == 0) throw new("no files find");
         if (fs.DeleteIds.Count > 0) _ = Delete(cancellationToken, [.. fs.DeleteIds]);
-        var rsList = new List<GridFSItem>();
-        var infos = new List<GridFSItemInfo>();
-        foreach (var item in fs.File)
+        var rsList = new ConcurrentBag<GridFSItem>();
+        var infos = new ConcurrentBag<GridFSItemInfo>();
+        await Parallel.ForEachAsync(fs.File, cancellationToken, async (item, token) =>
         {
             if (item.ContentType is null) throw new("ContentType in File is null");
             var metadata = new Dictionary<string, object>
@@ -94,7 +95,7 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
             if (!string.IsNullOrWhiteSpace(fs.BusinessType)) metadata.Add("business", fs.BusinessType);
             if (!string.IsNullOrWhiteSpace(fs.CategoryId)) metadata.Add("category", fs.CategoryId!);
             var upo = new GridFSUploadOptions { BatchSize = fs.File.Count, Metadata = new(metadata) };
-            var oid = await Bucket.UploadFromStreamAsync(item.FileName, item.OpenReadStream(), upo, cancellationToken);
+            var oid = await Bucket.UploadFromStreamAsync(item.FileName, item.OpenReadStream(), upo, token);
             rsList.Add(new() { FileId = oid.ToString() ?? string.Empty, FileName = item.FileName, Length = item.Length, ContentType = item.ContentType });
             infos.Add(new()
             {
@@ -109,7 +110,7 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
                 CategoryId = fs.CategoryId,
                 CreateTime = DateTime.Now
             });
-        }
+        });
         _ = Coll.InsertManyAsync(infos, cancellationToken: cancellationToken);
         return rsList;
     }

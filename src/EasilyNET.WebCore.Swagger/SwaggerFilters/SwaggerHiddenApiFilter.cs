@@ -1,5 +1,5 @@
 using System.Reflection;
-using EasilyNET.WebCore.Swagger.Attributes;
+using EasilyNET.Core.Attributes;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
