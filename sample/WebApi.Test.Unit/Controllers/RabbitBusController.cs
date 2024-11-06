@@ -1,6 +1,6 @@
+using EasilyNET.Core.Attributes;
 using EasilyNET.Core.Language;
 using EasilyNET.RabbitBus.Core.Abstraction;
-using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Test.Unit.Events;
 

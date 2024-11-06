@@ -21,7 +21,7 @@
     </ItemGroup>
     
     <ItemGroup>
-        <ProjectReference Include="..\EasilyNET.WebCore\EasilyNET.WebCore.csproj" />
+        <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
     </ItemGroup>
 
 </Project>

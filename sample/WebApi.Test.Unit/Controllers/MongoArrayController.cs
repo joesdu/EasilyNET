@@ -1,7 +1,7 @@
+using EasilyNET.Core.Attributes;
 using EasilyNET.Core.Enums;
 using EasilyNET.Core.Misc;
 using EasilyNET.Mongo.Core;
-using EasilyNET.WebCore.Swagger.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
