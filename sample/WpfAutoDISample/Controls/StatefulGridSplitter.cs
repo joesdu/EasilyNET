@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
@@ -23,6 +23,7 @@ public sealed class StatefulGridSplitter : GridSplitter, IDisposable
     private readonly ILiteDatabase db;
     private bool _disposed;
 
+    /// <inheritdoc />
     public StatefulGridSplitter()
     {
         // 设置默认背景色
@@ -40,6 +41,7 @@ public sealed class StatefulGridSplitter : GridSplitter, IDisposable
     /// </summary>
     public required double MinRatio { get; set; } = 0.1;
 
+    /// <inheritdoc />
     public void Dispose()
     {
         Dispose(true);
@@ -86,6 +88,7 @@ public sealed class StatefulGridSplitter : GridSplitter, IDisposable
         _disposed = true;
     }
 
+    /// <inheritdoc />
     ~StatefulGridSplitter()
     {
         Dispose(false);

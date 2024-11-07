@@ -39,13 +39,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0-preview1" />
 		<PackageReference Include="LiteDB" Version="5.0.21" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0-rc.2.24473.5" />
-		<PackageReference Include="Serilog" Version="4.1.0-dev-02238" />
+		<PackageReference Include="Serilog" Version="4.1.1-dev-02318" />
 		<PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
 		<PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4" />
-		<PackageReference Include="Serilog.Sinks.Async" Version="2.0.0" />
+		<PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
 		<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
 		<PackageReference Include="Serilog.Sinks.EventLog" Version="4.0.1-dev-00087" />
 		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />

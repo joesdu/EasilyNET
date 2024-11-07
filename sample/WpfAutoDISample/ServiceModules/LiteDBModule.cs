@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using LiteDB;

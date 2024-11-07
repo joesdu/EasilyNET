@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Threading;
@@ -14,6 +14,9 @@ using WpfAutoDISample.Views;
 
 namespace WpfAutoDISample;
 
+/// <summary>
+/// Program
+/// </summary>
 public static class Program
 {
     /// <summary>

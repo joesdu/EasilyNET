@@ -17,16 +17,16 @@ public static class TextWriterExtensions
     private static readonly AsyncLock _asyncLock = new();
     private static readonly Lock _syncLock = new();
     private static string _lastOutput = string.Empty;
+    private static readonly char[] _loadingFrames;
     private static bool? _ansiSupported;
     private static bool? _cursorPosSupported;
     private static bool? _windowSizeSupported;
     private static char[] _clearBuffer = new char[256];
-    private static readonly char[] _loadingFrames;
 
     static TextWriterExtensions()
     {
         // 检查平台是否支持 UTF-8 编码
-        if (IsUtf8Supported())
+        if (!Console.IsOutputRedirected && IsUtf8Supported())
         {
             // 启用 UTF-8 支持
             Console.OutputEncoding = Encoding.UTF8;
@@ -36,18 +36,9 @@ public static class TextWriterExtensions
         // 当不支持 UTF-8 编码时,使用默认编码,并使用简单的字符
         else
         {
-            Console.OutputEncoding = Encoding.Default;
+            //Console.OutputEncoding = Encoding.Default;
             _loadingFrames = ['-', '\\', '|', '/'];
         }
-    }
-
-    private static void ClearBuffer(int length)
-    {
-        if (length > _clearBuffer.Length)
-        {
-            Array.Resize(ref _clearBuffer, length);
-        }
-        Array.Fill(_clearBuffer, ' ', 0, length);
     }
 
     /// <summary>
@@ -373,122 +364,6 @@ public static class TextWriterExtensions
         }
     }
 
-    private static async Task ClearPreviousLineAsync(this TextWriter writer)
-    {
-        if (!IsCursorPosSupported())
-        {
-            await writer.WriteLineAsync();
-            return;
-        }
-        if (IsAnsiSupported())
-        {
-            // 合并多次 Write 调用为一次
-            await writer.WriteAsync("\e[1A\e[2K\e[1G"); // 光标上移一行，清除整行，光标移动至行首
-        }
-        else
-        {
-            try
-            {
-                if (Console.CursorTop <= 0) return;
-                Console.SetCursorPosition(0, Console.CursorTop - 1);
-                ClearBuffer(_lastOutput.Length);
-                Console.Write(_clearBuffer, 0, _lastOutput.Length);
-                Console.SetCursorPosition(0, Console.CursorTop);
-            }
-            catch (IOException ex)
-            {
-                // 记录异常或根据需要进行处理
-                await writer.WriteLineAsync($"IOException: {ex.Message}");
-            }
-        }
-    }
-
-    private static void ClearPreviousLine(this TextWriter writer)
-    {
-        if (!IsCursorPosSupported())
-        {
-            writer.WriteLine();
-            return;
-        }
-        if (IsAnsiSupported())
-        {
-            // 合并多次 Write 调用为一次
-            writer.Write("\e[1A\e[2K\e[1G"); // 光标上移一行，清除整行，光标移动至行首
-        }
-        else
-        {
-            try
-            {
-                if (Console.CursorTop <= 0) return;
-                Console.SetCursorPosition(0, Console.CursorTop - 1);
-                ClearBuffer(_lastOutput.Length);
-                Console.Write(_clearBuffer, 0, _lastOutput.Length);
-                Console.SetCursorPosition(0, Console.CursorTop);
-            }
-            catch (IOException ex)
-            {
-                // 记录异常或根据需要进行处理
-                writer.WriteLine($"IOException: {ex.Message}");
-            }
-        }
-    }
-
-    private static async Task ClearCurrentLineAsync(this TextWriter writer)
-    {
-        if (!IsCursorPosSupported())
-        {
-            await writer.WriteLineAsync();
-            return;
-        }
-        if (IsAnsiSupported())
-        {
-            await writer.WriteAsync("\e[2K\e[1G"); // 清除整行，光标移动至行首
-        }
-        else
-        {
-            try
-            {
-                Console.SetCursorPosition(0, Console.CursorTop);
-                ClearBuffer(_lastOutput.Length);
-                Console.Write(_clearBuffer, 0, _lastOutput.Length);
-                Console.SetCursorPosition(0, Console.CursorTop);
-            }
-            catch (IOException ex)
-            {
-                // 记录异常或根据需要进行处理
-                await writer.WriteLineAsync($"IOException: {ex.Message}");
-            }
-        }
-    }
-
-    private static void ClearCurrentLine(this TextWriter writer)
-    {
-        if (!IsCursorPosSupported())
-        {
-            writer.WriteLine();
-            return;
-        }
-        if (IsAnsiSupported())
-        {
-            writer.Write("\e[2K\e[1G"); // 清除整行，光标移动至行首
-        }
-        else
-        {
-            try
-            {
-                Console.SetCursorPosition(0, Console.CursorTop);
-                ClearBuffer(_lastOutput.Length);
-                Console.Write(_clearBuffer, 0, _lastOutput.Length);
-                Console.SetCursorPosition(0, Console.CursorTop);
-            }
-            catch (IOException ex)
-            {
-                // 记录异常或根据需要进行处理
-                writer.WriteLine($"IOException: {ex.Message}");
-            }
-        }
-    }
-
     /// <summary>
     /// 是否支持 UTF-8 编码
     /// </summary>
@@ -660,56 +535,6 @@ public static class TextWriterExtensions
         }
         // 当进度为 100% 时，输出换行
         if (Math.Abs(percentage - 100) <= 0.000001) writer.WriteLine();
-    }
-
-    private static string GenerateProgressBarOutput(double percentage, string message, int width, char completedChar, char incompleteChar, bool isFixedBarWidth = true)
-    {
-        if (percentage < 0) percentage = 0;
-        if (percentage > 100) percentage = 100;
-        var progressText = $"{percentage / 100.0:P1}".PadLeft(7, (char)32);
-        // 使用 UTF-8 编码计算消息的字节长度
-        var messageBytes = Encoding.UTF8.GetBytes(message);
-        var progressTextBytes = Encoding.UTF8.GetBytes(progressText);
-        var extraWidth = progressTextBytes.Length + messageBytes.Length + 5; // 计算额外字符的宽度，包括边界和百分比信息
-        // 当width表示非固定Bar长度时，根据窗口宽度计算Bar长度
-        if (!isFixedBarWidth)
-        {
-            if (IsCursorPosSupported())
-            {
-                if (width is -1)
-                {
-                    width = Math.Max(0, Console.WindowWidth - extraWidth);
-                }
-                if (width >= Console.WindowWidth)
-                {
-                    width = Console.WindowWidth - extraWidth;
-                }
-            }
-            else
-            {
-                // 当不支持检测的时候,则默认宽度设置为20
-                width = 20 - extraWidth;
-            }
-        }
-        var completedWidth = (int)(percentage * width) / 100;
-        if (Math.Abs(percentage - 100) <= 0.000001) completedWidth = width; // 确保在 100% 时填满进度条
-        var outputLength = width + extraWidth;
-        var outputBytes = outputLength <= 256 ? stackalloc byte[outputLength] : new byte[outputLength];
-        outputBytes[0] = 91; // ASCII for '['
-        for (var i = 1; i <= completedWidth; i++)
-        {
-            outputBytes[i] = (byte)completedChar;
-        }
-        for (var i = completedWidth + 1; i <= width; i++)
-        {
-            outputBytes[i] = (byte)incompleteChar;
-        }
-        outputBytes[width + 1] = 93; // ASCII for ']'
-        outputBytes[width + 2] = 32; // ASCII for ' '
-        progressTextBytes.CopyTo(outputBytes[(width + 3)..]);
-        outputBytes[width + 3 + progressTextBytes.Length] = 32; // ASCII for ' '
-        messageBytes.CopyTo(outputBytes[(width + 4 + progressTextBytes.Length)..]);
-        return Encoding.UTF8.GetString(outputBytes);
     }
 
     /// <summary>
@@ -889,5 +714,181 @@ public static class TextWriterExtensions
             writer.SetCursorVisibility(true);
             Console.ResetColor();
         }
+    }
+
+    private static void ClearBuffer(int length)
+    {
+        if (length > _clearBuffer.Length)
+        {
+            Array.Resize(ref _clearBuffer, length);
+        }
+        Array.Fill(_clearBuffer, ' ', 0, length);
+    }
+
+    private static async Task ClearPreviousLineAsync(this TextWriter writer)
+    {
+        if (!IsCursorPosSupported())
+        {
+            await writer.WriteLineAsync();
+            return;
+        }
+        if (IsAnsiSupported())
+        {
+            // 合并多次 Write 调用为一次
+            await writer.WriteAsync("\e[1A\e[2K\e[1G"); // 光标上移一行，清除整行，光标移动至行首
+        }
+        else
+        {
+            try
+            {
+                if (Console.CursorTop <= 0) return;
+                Console.SetCursorPosition(0, Console.CursorTop - 1);
+                ClearBuffer(_lastOutput.Length);
+                Console.Write(_clearBuffer, 0, _lastOutput.Length);
+                Console.SetCursorPosition(0, Console.CursorTop);
+            }
+            catch (IOException ex)
+            {
+                // 记录异常或根据需要进行处理
+                await writer.WriteLineAsync($"IOException: {ex.Message}");
+            }
+        }
+    }
+
+    private static void ClearPreviousLine(this TextWriter writer)
+    {
+        if (!IsCursorPosSupported())
+        {
+            writer.WriteLine();
+            return;
+        }
+        if (IsAnsiSupported())
+        {
+            // 合并多次 Write 调用为一次
+            writer.Write("\e[1A\e[2K\e[1G"); // 光标上移一行，清除整行，光标移动至行首
+        }
+        else
+        {
+            try
+            {
+                if (Console.CursorTop <= 0) return;
+                Console.SetCursorPosition(0, Console.CursorTop - 1);
+                ClearBuffer(_lastOutput.Length);
+                Console.Write(_clearBuffer, 0, _lastOutput.Length);
+                Console.SetCursorPosition(0, Console.CursorTop);
+            }
+            catch (IOException ex)
+            {
+                // 记录异常或根据需要进行处理
+                writer.WriteLine($"IOException: {ex.Message}");
+            }
+        }
+    }
+
+    private static async Task ClearCurrentLineAsync(this TextWriter writer)
+    {
+        if (!IsCursorPosSupported())
+        {
+            await writer.WriteLineAsync();
+            return;
+        }
+        if (IsAnsiSupported())
+        {
+            await writer.WriteAsync("\e[2K\e[1G"); // 清除整行，光标移动至行首
+        }
+        else
+        {
+            try
+            {
+                Console.SetCursorPosition(0, Console.CursorTop);
+                ClearBuffer(_lastOutput.Length);
+                Console.Write(_clearBuffer, 0, _lastOutput.Length);
+                Console.SetCursorPosition(0, Console.CursorTop);
+            }
+            catch (IOException ex)
+            {
+                // 记录异常或根据需要进行处理
+                await writer.WriteLineAsync($"IOException: {ex.Message}");
+            }
+        }
+    }
+
+    private static void ClearCurrentLine(this TextWriter writer)
+    {
+        if (!IsCursorPosSupported())
+        {
+            writer.WriteLine();
+            return;
+        }
+        if (IsAnsiSupported())
+        {
+            writer.Write("\e[2K\e[1G"); // 清除整行，光标移动至行首
+        }
+        else
+        {
+            try
+            {
+                Console.SetCursorPosition(0, Console.CursorTop);
+                ClearBuffer(_lastOutput.Length);
+                Console.Write(_clearBuffer, 0, _lastOutput.Length);
+                Console.SetCursorPosition(0, Console.CursorTop);
+            }
+            catch (IOException ex)
+            {
+                // 记录异常或根据需要进行处理
+                writer.WriteLine($"IOException: {ex.Message}");
+            }
+        }
+    }
+
+    private static string GenerateProgressBarOutput(double percentage, string message, int width, char completedChar, char incompleteChar, bool isFixedBarWidth = true)
+    {
+        if (percentage < 0) percentage = 0;
+        if (percentage > 100) percentage = 100;
+        var progressText = $"{percentage / 100.0:P1}".PadLeft(7, (char)32);
+        // 使用 UTF-8 编码计算消息的字节长度
+        var messageBytes = Encoding.UTF8.GetBytes(message);
+        var progressTextBytes = Encoding.UTF8.GetBytes(progressText);
+        var extraWidth = progressTextBytes.Length + messageBytes.Length + 5; // 计算额外字符的宽度，包括边界和百分比信息
+        // 当width表示非固定Bar长度时，根据窗口宽度计算Bar长度
+        if (!isFixedBarWidth)
+        {
+            if (IsCursorPosSupported())
+            {
+                if (width is -1)
+                {
+                    width = Math.Max(0, Console.WindowWidth - extraWidth);
+                }
+                if (width >= Console.WindowWidth)
+                {
+                    width = Console.WindowWidth - extraWidth;
+                }
+            }
+            else
+            {
+                // 当不支持检测的时候,则默认宽度设置为20
+                width = 20 - extraWidth;
+            }
+        }
+        var completedWidth = (int)(percentage * width) / 100;
+        if (Math.Abs(percentage - 100) <= 0.000001) completedWidth = width; // 确保在 100% 时填满进度条
+        var outputLength = width + extraWidth;
+        var outputBytes = outputLength <= 256 ? stackalloc byte[outputLength] : new byte[outputLength];
+        outputBytes[0] = 91; // ASCII for '['
+        for (var i = 1; i <= completedWidth; i++)
+        {
+            outputBytes[i] = (byte)completedChar;
+        }
+        for (var i = completedWidth + 1; i <= width; i++)
+        {
+            outputBytes[i] = (byte)incompleteChar;
+        }
+        // ReSharper disable once GrammarMistakeInComment
+        outputBytes[width + 1] = 93; // ASCII for ']'
+        outputBytes[width + 2] = 32; // ASCII for ' '
+        progressTextBytes.CopyTo(outputBytes[(width + 3)..]);
+        outputBytes[width + 3 + progressTextBytes.Length] = 32; // ASCII for ' '
+        messageBytes.CopyTo(outputBytes[(width + 4 + progressTextBytes.Length)..]);
+        return Encoding.UTF8.GetString(outputBytes);
     }
 }

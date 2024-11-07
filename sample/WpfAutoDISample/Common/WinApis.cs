@@ -1,6 +1,7 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using EasilyNET.Core.Commons;
 
 namespace WpfAutoDISample.Common;
 
@@ -17,7 +18,7 @@ internal static partial class WinApis
     /// </summary>
     /// <param name="hWnd">窗口句柄。</param>
     /// <returns>如果窗口被成功设置为前台窗口，则返回true；否则返回false。</returns>
-    [LibraryImport("user32.dll", EntryPoint = "SetForegroundWindow")]
+    [LibraryImport(WinLibName.User32, EntryPoint = "SetForegroundWindow")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool SetForegroundWindow(IntPtr hWnd);
 
@@ -27,7 +28,7 @@ internal static partial class WinApis
     /// <param name="hWnd">窗口句柄。</param>
     /// <param name="nCmdShow">指定窗口的显示状态的标志。可以是SW_RESTORE等值。</param>
     /// <returns>如果窗口显示状态被成功设置，则返回true；否则返回false。</returns>
-    [LibraryImport("user32.dll", EntryPoint = "ShowWindowAsync")]
+    [LibraryImport(WinLibName.User32, EntryPoint = "ShowWindowAsync")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
 
@@ -36,7 +37,7 @@ internal static partial class WinApis
     /// </summary>
     /// <param name="hWnd">窗口句柄。</param>
     /// <returns>如果窗口最小化，则返回true；否则返回false。</returns>
-    [LibraryImport("user32.dll", EntryPoint = "IsIconic")]
+    [LibraryImport(WinLibName.User32, EntryPoint = "IsIconic")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool IsIconic(IntPtr hWnd);
 
