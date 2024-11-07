@@ -25,12 +25,21 @@ jobs:
         id: get_tag_push
         run: echo "EASILYNET_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
+      # Ubuntu
+      # - name: Get the latest tag for pull request events
+      #   if: github.event_name == 'pull_request'
+      #   id: get_tag_pr
+      #   run: |
+      #     TAG=$(git describe --tags --abbrev=0)
+      #     echo "EASILYNET_VERSION=$TAG" >> $GITHUB_ENV
+
+      # Windows
       - name: Get the latest tag for pull request events
         if: github.event_name == 'pull_request'
         id: get_tag_pr
         run: |
-          TAG=$(git describe --tags --abbrev=0)
-          echo "EASILYNET_VERSION=$TAG" >> $GITHUB_ENV
+          $TAG = git describe --tags --abbrev=0
+          echo "EASILYNET_VERSION=$TAG" >> $env:GITHUB_ENV
 
       - name: Display the latest tag
         run: echo $EASILYNET_VERSION
