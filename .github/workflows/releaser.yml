@@ -22,6 +22,11 @@ jobs:
     environment:
       name: NUGET_ENV
     steps:
+      # Windows Only
+      - name: Set Timezone
+        run: |
+          tzutil /s "$env:TZ"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
