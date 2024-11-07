@@ -1,9 +1,8 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 
 // ReSharper disable PartialTypeWithSinglePart
-
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace WpfAutoDISample.ViewModels;
@@ -16,5 +15,5 @@ public partial class MainWindowModel : ObservableObject
     /// Message
     /// </summary>
     [ObservableProperty]
-    private string message = "Hello WPF!";
+    private string _message = "Hello WPF!";
 }

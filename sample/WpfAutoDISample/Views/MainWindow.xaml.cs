@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Windows;
 using CommunityToolkit.Mvvm.Messaging;
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
@@ -51,6 +51,9 @@ public partial class MainWindow
         }
     }
 
+    /// <summary>
+    /// 释放资源
+    /// </summary>
     public void Dispose()
     {
         _db.Dispose();

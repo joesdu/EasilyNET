@@ -1,4 +1,4 @@
-﻿using EasilyNET.AutoDependencyInjection.Attributes;
+using EasilyNET.AutoDependencyInjection.Attributes;
 using EasilyNET.AutoDependencyInjection.Modules;
 using WpfAutoDISample.ServiceModules;
 

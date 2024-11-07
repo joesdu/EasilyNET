@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -15,6 +15,7 @@ public partial class App
 {
     private readonly ILogger<App> _logger;
 
+    /// <inheritdoc />
     public App(ref IHost host)
     {
         InitializeComponent();
@@ -37,6 +38,7 @@ public partial class App
     /// </summary>
     private static IHost CurrentAppHost => (Current as App)?.Host ?? throw new InvalidOperationException("无法获取AppHost，当前Application实例不是App类型。");
 
+    /// <inheritdoc />
     protected override async void OnExit(ExitEventArgs e)
     {
         AppDomain.CurrentDomain.UnhandledException -= CurrentDomainUnhandledException;
@@ -50,6 +52,7 @@ public partial class App
         base.OnExit(e);
     }
 
+    /// <inheritdoc />
     protected override async void OnStartup(StartupEventArgs e)
     {
         AppDomain.CurrentDomain.UnhandledException += CurrentDomainUnhandledException;
