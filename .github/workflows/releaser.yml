@@ -12,6 +12,13 @@ env:
 jobs:
   build:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    # runs-on: ubuntu-latest
+    # defaults:
+    #   run:
+    #     shell: bash
     environment:
       name: NUGET_ENV
     steps:
