@@ -11,7 +11,7 @@ env:
   ARTIFACTS: ./artifacts
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     environment:
       name: NUGET_ENV
     steps:
