@@ -64,7 +64,7 @@ jobs:
 
       # Windows
       - name: Display the latest tag
-        run: Write-Host "$EASILYNET_VERSION"
+        run: Write-Host $EASILYNET_VERSION
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
