@@ -15,6 +15,13 @@ env:
 jobs:
   build:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    # runs-on: ubuntu-latest
+    # defaults:
+    #   run:
+    #     shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,8 +49,13 @@ jobs:
           $TAG = (git describe --tags --abbrev=0)
           echo "EASILYNET_VERSION=$TAG" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
+      # Linux
+      # - name: Display the latest tag
+      #   run: echo $EASILYNET_VERSION
+
+      # Windows
       - name: Display the latest tag
-        run: echo $EASILYNET_VERSION
+        run: Write-Host $EASILYNET_VERSION
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
