@@ -38,11 +38,16 @@ jobs:
         if: github.event_name == 'pull_request'
         id: get_tag_pr
         run: |
-          $TAG = git describe --tags --abbrev=0
-          echo "EASILYNET_VERSION=$TAG" >> $env:GITHUB_ENV
+          $TAG = (git describe --tags --abbrev=0)
+          echo "EASILYNET_VERSION=$TAG" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
+      # Linux
+      # - name: Display the latest tag
+      #   run: echo $EASILYNET_VERSION
+
+      # Windows
       - name: Display the latest tag
-        run: echo $EASILYNET_VERSION
+        run: Write-Host "$EASILYNET_VERSION"
 
       - name: Setup .Net SDK
         uses: actions/setup-dotnet@v4
