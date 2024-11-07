@@ -6,7 +6,10 @@ on:
       - "*.*.*"
 env:
   DOTNET_VERSION: "9.0.x"
-  TZ: Asia/Shanghai
+  # Linux
+  #TZ: Asia/Shanghai
+  # Windows
+  TZ: "China Standard Time"
   SOLUTION: EasilyNET.sln
   ARTIFACTS: ./artifacts
 jobs:
@@ -22,6 +25,11 @@ jobs:
     environment:
       name: NUGET_ENV
     steps:
+      # Windows Only
+      - name: Set Timezone
+        run: |
+          tzutil /s "$env:TZ"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -47,6 +55,7 @@ jobs:
         run: |
           $TAG = (git describe --tags --abbrev=0)
           echo "EASILYNET_VERSION=$TAG" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $EASILYNET_VERSION = $TAG
 
       # Linux
       # - name: Display the latest tag
