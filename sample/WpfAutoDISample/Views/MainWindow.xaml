@@ -1,4 +1,16 @@
-<Window x:Class="WpfAutoDISample.Views.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:viewModels="clr-namespace:WpfAutoDISample.ViewModels" xmlns:uc="clr-namespace:WpfAutoDISample.Controls" d:DataContext="{d:DesignInstance viewModels:MainWindowModel}" mc:Ignorable="d" Title="MainWindow" Height="600" Width="800" Uid="66976bc7527624f51dbd3088" WindowStartupLocation="CenterScreen">
+<Window x:Class="WpfAutoDISample.Views.MainWindow" 
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+        xmlns:viewModels="clr-namespace:WpfAutoDISample.ViewModels" 
+        xmlns:uc="clr-namespace:WpfAutoDISample.Controls" 
+        d:DataContext="{d:DesignInstance viewModels:MainWindowModel}" 
+        mc:Ignorable="d" 
+        Title="MainWindow" 
+        Height="600" Width="800" 
+        Uid="66976bc7527624f51dbd3088" 
+        WindowStartupLocation="CenterScreen">
     <Grid Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
@@ -13,7 +25,13 @@
 
             <!-- 左侧的Panel -->
             <Border Grid.Column="0">
-                <ListView BorderThickness="0" SelectedIndex="0" TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling" RenderOptions.ClearTypeHint="Enabled">
+                <ListView BorderThickness="0" 
+                          SelectedIndex="0" 
+                          TextOptions.TextFormattingMode="Display" 
+                          TextOptions.TextRenderingMode="ClearType" 
+                          VirtualizingStackPanel.IsVirtualizing="True" 
+                          VirtualizingStackPanel.VirtualizationMode="Recycling" 
+                          RenderOptions.ClearTypeHint="Enabled">
                     <ListViewItem>1</ListViewItem>
                     <ListViewItem>2</ListViewItem>
                     <ListViewItem>3</ListViewItem>
