@@ -1,4 +1,4 @@
-﻿namespace WinFormAutoDISample.Views;
+namespace WinFormAutoDISample.Views;
 
 partial class LoadingForm
 {

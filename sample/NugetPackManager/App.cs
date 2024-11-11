@@ -1,4 +1,4 @@
-﻿using EasilyNET.Core.Misc;
+using EasilyNET.Core.Misc;
 using Microsoft.Extensions.Hosting;
 using WinFormAutoDISample.Common;
 using WinFormAutoDISample.Properties;

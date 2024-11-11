@@ -1,3 +1,3 @@
-﻿### WinFormAutoDISample
+### WinFormAutoDISample
 
 WinFormAutoDISample

@@ -1,4 +1,4 @@
-﻿namespace WinFormAutoDISample.Messenger;
+namespace WinFormAutoDISample.Messenger;
 
 /// <summary>
 /// 消息传递器

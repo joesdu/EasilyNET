@@ -42,7 +42,11 @@ public partial class MainForm : Form
     {
         try
         {
-            Invoke(() => { tsslRam.Text = $@"{e.Item1} {e.Item2}"; });
+            Invoke(() =>
+            {
+                if (IsDisposed) return;
+                tsslRam.Text = $@"{e.Item1} {e.Item2}";
+            });
         }
         catch (TaskCanceledException)
         {
@@ -54,7 +58,11 @@ public partial class MainForm : Form
     {
         try
         {
-            Invoke(() => { tsslCpu.Text = $@"{e.Item1} {e.Item2}"; });
+            Invoke(() =>
+            {
+                if (IsDisposed) return;
+                tsslCpu.Text = $@"{e.Item1} {e.Item2}";
+            });
         }
         catch (TaskCanceledException)
         {
@@ -66,6 +74,10 @@ public partial class MainForm : Form
     {
         // 获取当前运行时的版本信息
         var version = Environment.Version;
-        Invoke(() => { label1.Text = AppResource.MainForm_Hello_Click.Format(version); });
+        Invoke(() =>
+        {
+            if (IsDisposed) return;
+            label1.Text = AppResource.MainForm_Hello_Click.Format(version);
+        });
     }
 }

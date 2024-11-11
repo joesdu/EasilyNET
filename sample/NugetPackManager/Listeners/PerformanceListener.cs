@@ -1,4 +1,4 @@
-﻿// ***********************************************************************
+// ***********************************************************************
 // Copyright (c) luxy. All rights reserved.
 // ***********************************************************************
 
@@ -43,16 +43,16 @@ public sealed class PerformanceListener(ILogger<PerformanceListener> logger) : E
             switch (metrics["Name"])
             {
                 case "cpu-usage":
-                    {
-                        logger.LogInformation("CPU USAGE:{CPU}", Math.Round((double)metrics["Mean"], 2));
-                        CpuUsageUpdated?.Invoke(this, new(Math.Round((double)metrics["Mean"], 2), metrics["DisplayUnits"].ToString()));
-                        break;
-                    }
+                {
+                    logger.LogInformation("CPU USAGE:{CPU}", Math.Round((double)metrics["Mean"], 2));
+                    CpuUsageUpdated?.Invoke(this, new(Math.Round((double)metrics["Mean"], 2), metrics["DisplayUnits"].ToString()));
+                    break;
+                }
                 case "working-set":
-                    {
-                        MemoryUsageUpdated?.Invoke(this, new(Math.Round((double)metrics["Mean"], 2), metrics["DisplayUnits"].ToString()));
-                        break;
-                    }
+                {
+                    MemoryUsageUpdated?.Invoke(this, new(Math.Round((double)metrics["Mean"], 2), metrics["DisplayUnits"].ToString()));
+                    break;
+                }
             }
         }
     }
