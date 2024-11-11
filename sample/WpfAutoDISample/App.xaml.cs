@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging;
 using WpfAutoDISample.Common;
 using WpfAutoDISample.Views;
 
+// ReSharper disable AsyncVoidMethod
+
 namespace WpfAutoDISample;
 
 /// <summary>
