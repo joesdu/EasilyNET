@@ -1,4 +1,4 @@
-﻿namespace WinFormAutoDISample;
+namespace WinFormAutoDISample;
 
 partial class MainForm
 {

@@ -1,4 +1,4 @@
-﻿namespace WinFormAutoDISample.Views;
+namespace WinFormAutoDISample.Views;
 
 /// <summary>
 /// 加载窗体
