@@ -51,4 +51,26 @@ public static partial class NumberExtensions
     /// <param name="number">金额</param>
     /// <returns>返回大写形式</returns>
     public static string ToRmb(this double number) => ((decimal)number).ToRmb();
+
+    /// <summary>
+    /// 比较两个浮点数是否相等.使用相对误差.
+    /// <remarks>
+    ///     <para>
+    ///     使用方式:
+    ///     <code>
+    ///     <![CDATA[
+    /// double num1 = 0.123456;
+    ///     double num2 = 0.1234567;
+    ///     bool result = AreAlmostEqual(num1, num2);
+    ///     Console.WriteLine(result); // Output: True
+    ///   ]]>
+    ///   </code>
+    ///     </para>
+    /// </remarks>
+    /// </summary>
+    /// <param name="a"></param>
+    /// <param name="b"></param>
+    /// <param name="epsilon">精度默认: 0.000001</param>
+    /// <returns></returns>
+    public static bool AreAlmostEqual(double a, double b, double epsilon = 1e-6) => Math.Abs(a - b) < epsilon * Math.Max(Math.Abs(a), Math.Abs(b));
 }
