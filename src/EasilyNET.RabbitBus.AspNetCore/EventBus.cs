@@ -99,6 +99,12 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         }).ConfigureAwait(false);
     }
 
+    public async Task Publish<T>(T @event, TimeSpan ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
+    {
+        var real_ttl = ttl.TotalMilliseconds.ConvertTo<uint>();
+        await Publish(@event, real_ttl, routingKey, priority, cancellationToken);
+    }
+
     internal async Task Subscribe()
     {
         if (!conn.IsConnected) await conn.TryConnect();
