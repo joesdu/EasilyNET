@@ -61,16 +61,39 @@ public static partial class NumberExtensions
     ///     <![CDATA[
     /// double num1 = 0.123456;
     ///     double num2 = 0.1234567;
-    ///     bool result = AreAlmostEqual(num1, num2);
+    ///     bool result = AreAlmostEqual<double>(num1, num2);
     ///     Console.WriteLine(result); // Output: True
     ///   ]]>
     ///   </code>
     ///     </para>
     /// </remarks>
     /// </summary>
+    /// <typeparam name="T">浮点数类型: <see langword="float" />, <see langword="double" /> 和 <see langword="decimal" /></typeparam>
     /// <param name="a"></param>
     /// <param name="b"></param>
     /// <param name="epsilon">精度默认: 0.000001</param>
     /// <returns></returns>
-    public static bool AreAlmostEqual(double a, double b, double epsilon = 1e-6) => Math.Abs(a - b) < epsilon * Math.Max(Math.Abs(a), Math.Abs(b));
+    public static bool AreAlmostEqual<T>(T a, T b, double epsilon = 1E-6) where T : struct, IComparable, IConvertible, IFormattable
+    {
+        if (typeof(T) == typeof(float))
+        {
+            var floatA = a.ConvertTo<float>();
+            var floatB = b.ConvertTo<float>();
+            return Math.Abs(floatA - floatB) < epsilon * Math.Max(Math.Abs(floatA), Math.Abs(floatB));
+        }
+        if (typeof(T) == typeof(double))
+        {
+            var doubleA = a.ConvertTo<double>();
+            var doubleB = b.ConvertTo<double>();
+            return Math.Abs(doubleA - doubleB) < epsilon * Math.Max(Math.Abs(doubleA), Math.Abs(doubleB));
+        }
+        // ReSharper disable once InvertIf
+        if (typeof(T) == typeof(decimal))
+        {
+            var decimalA = a.ConvertTo<decimal>();
+            var decimalB = b.ConvertTo<decimal>();
+            return Math.Abs(decimalA - decimalB) < epsilon.ConvertTo<decimal>() * Math.Max(Math.Abs(decimalA), Math.Abs(decimalB));
+        }
+        throw new NotSupportedException("不支持的类型,仅支持如下类型:float,double和decimal");
+    }
 }
