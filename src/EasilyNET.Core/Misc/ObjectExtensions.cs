@@ -101,36 +101,6 @@ public static class ObjectExtensions
     public static bool HasAttribute<T>(this MemberInfo memberInfo, bool inherit = true) where T : Attribute => memberInfo.IsDefined(typeof(T), inherit);
 
     /// <summary>
-    /// 类型转换
-    /// </summary>
-    /// <param name="value">要转换的值</param>
-    /// <param name="type">类型</param>
-    /// <returns></returns>
-    public static object? ChangeType(this object? value, Type type)
-    {
-        if (value is null or DBNull)
-        {
-            return null;
-        }
-        //如果是Nullable类型
-        if (type.IsNullable())
-        {
-            type = type.GetUnNullableType();
-        }
-        if (type != typeof(Guid)) return Convert.ChangeType(value, type);
-        var success = Guid.TryParse(value.ToString(), out var newGuid);
-        return success ? newGuid : Convert.ChangeType(value, type);
-    }
-
-    /// <summary>
-    /// 转换类型
-    /// </summary>
-    /// <param name="value">值</param>
-    /// <typeparam name="T">要转成的类型</typeparam>
-    /// <returns></returns>
-    public static T? ChangeType<T>(this object? value) => (T?)ChangeType(value, typeof(T));
-
-    /// <summary>
     /// 当需要在运行时动态地设置对象的属性值时,这个方法在多线程环境中也是安全的,在编写需要根据不同输入动态设置对象属性的通用数据映射函数时非常有用
     /// </summary>
     /// <typeparam name="TObject">动态对象</typeparam>
