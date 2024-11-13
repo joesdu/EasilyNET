@@ -1,5 +1,6 @@
 using EasilyNET.Core.Enums;
 using EasilyNET.Core.IdCard;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace EasilyNET.Test.Unit.IDCard;
 

@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using EasilyNET.ExpressMapper.Expressions;
 using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace EasilyNET.Test.Unit.ExpressMapper;
 

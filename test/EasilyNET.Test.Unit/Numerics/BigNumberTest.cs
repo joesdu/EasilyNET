@@ -1,6 +1,7 @@
 using System.Numerics;
 using EasilyNET.Core.Numerics;
 using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace EasilyNET.Test.Unit.Numerics;
 
