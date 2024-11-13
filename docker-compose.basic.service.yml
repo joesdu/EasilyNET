@@ -6,7 +6,7 @@ services:
     environment:
       - TZ=Asia/Chongqing
     ports:
-      - 6379:6379
+      - "6379:6379"
     deploy:
       resources:
         limits:
@@ -19,8 +19,8 @@ services:
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=a123456
     ports:
-      - 5672:5672
-      - 15672:15672
+      - "5672:5672"
+      - "15672:15672"
 
   aspire_dashboard:
     image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest
@@ -32,5 +32,5 @@ services:
       - DASHBOARD__TELEMETRYLIMITS__MAXTRACECOUNT=1000
       - DASHBOARD__TELEMETRYLIMITS__MAXMETRICSCOUNT=1000
     ports:
-      - 18888:18888
-      - 4317:18889
+      - "18888:18888"
+      - "4317:18889"
