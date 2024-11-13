@@ -25,7 +25,7 @@ export default function () {
     };
 
     const res = http.post(url, params);
-    check(res, {"status was 200": (r) => r.status == 200});
+    check(res, {"status was 200": (r) => r.status === 200});
 
     // Optional: Add a small sleep to simulate real user behavior
     sleep(1);
