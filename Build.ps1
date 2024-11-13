@@ -21,7 +21,7 @@ function Exec {
   }
 }
 
-# ³¢ÊÔ´Ó»·¾³±äÁ¿ÖĞ»ñÈ¡ SOLUTION£¬Èç¹û²»´æÔÚÔòÊ¹ÓÃÄ¬ÈÏÖµ
+# å°è¯•ä»ç¯å¢ƒå˜é‡ä¸­è·å– SOLUTIONï¼Œå¦‚æœä¸å­˜åœ¨åˆ™ä½¿ç”¨é»˜è®¤å€¼
 $SOLUTION = $env:SOLUTION
 if (-not $SOLUTION) {
   $SOLUTION = "EasilyNET.sln"
@@ -55,5 +55,5 @@ exec { & dotnet pack .\src\EasilyNET.Security\EasilyNET.Security.csproj -c Relea
 exec { & dotnet pack .\src\EasilyNET.Mongo.AspNetCore\EasilyNET.Mongo.AspNetCore.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.Mongo.ConsoleDebug\EasilyNET.Mongo.ConsoleDebug.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.Mongo.Core\EasilyNET.Mongo.Core.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
-exec { & dotnet pack .\src\EasilyNET.MongoDistributedLock\EasilyNET.MongoDistributedLock.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
-exec { & dotnet pack .\src\EasilyNET.MongoDistributedLock.AspNetCore\EasilyNET.MongoDistributedLock.AspNetCore.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
+# exec { & dotnet pack .\src\EasilyNET.MongoDistributedLock\EasilyNET.MongoDistributedLock.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
+# exec { & dotnet pack .\src\EasilyNET.MongoDistributedLock.AspNetCore\EasilyNET.MongoDistributedLock.AspNetCore.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }

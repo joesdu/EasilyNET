@@ -17,11 +17,9 @@ namespace WebApi.Test.Unit;
     typeof(CorsModule),
     typeof(ControllersModule),
     typeof(OutPutCachingModule),
-    typeof(GarnetCacheModule),
+    typeof(GarnetDistributedCacheModule),
     typeof(MongoModule),
     typeof(MongoFSModule),
-    typeof(DistributedLockModule),
-    typeof(GarnetModule),
     typeof(RabbitModule),
     typeof(SwaggerModule),
     typeof(OpenTelemetryModule))]

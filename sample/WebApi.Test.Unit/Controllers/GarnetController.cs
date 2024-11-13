@@ -1,6 +1,6 @@
 using EasilyNET.Core.Attributes;
 using Microsoft.AspNetCore.Mvc;
-using StackExchange.Redis;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace WebApi.Test.Unit.Controllers;
 
@@ -8,7 +8,7 @@ namespace WebApi.Test.Unit.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [ApiGroup("GarnetTest")]
-public class GarnetController(IDatabase garnet) : ControllerBase
+public class GarnetController(IDistributedCache garnet) : ControllerBase
 {
     /// <summary>
     /// 设置数据到Garnet
@@ -17,7 +17,7 @@ public class GarnetController(IDatabase garnet) : ControllerBase
     [HttpPost("SetSomething")]
     public async Task SetSomething()
     {
-        await garnet.StringSetAsync("test", "Hello Garnet");
+        await garnet.SetStringAsync("test", "Hello Garnet");
     }
 
     /// <summary>
@@ -25,5 +25,5 @@ public class GarnetController(IDatabase garnet) : ControllerBase
     /// </summary>
     /// <returns></returns>
     [HttpGet("GetSomething")]
-    public async Task<string?> GetSomething() => await garnet.StringGetAsync("test");
+    public async Task<string?> GetSomething() => await garnet.GetStringAsync("test");
 }

@@ -2,9 +2,9 @@
 
 [![License][1]][2] ![ISSUES][3] ![FORKS][4] ![STARS][5] ![Commit Activity][6] ![Last Commit][7]
 
-<p align="center">
-    <img src="https://repobeats.axiom.co/api/embed/cd2c97db26ee6fe230353beefd5d532448054f0a.svg" />
-</p>
+<div style="text-align: center;">
+    <img alt="Welcome EasilyNET" src="https://repobeats.axiom.co/api/embed/cd2c97db26ee6fe230353beefd5d532448054f0a.svg" />
+</div>
 
 **注意:** 由于本项目一般会试用和支持最新版本的.NET SDK,所以为了保证你能正常编译,请确保运行之前安装当前最新版本的 SDK
 
@@ -37,7 +37,6 @@ docker compose -f docker-compose.basic.service.yml up -d
 EasilyNET Packages
 
 - AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4 加密,验签等算法
-- 基于 MongoDB 的分布式锁
 - 基于 RabbitMQ 的消息总线实现
 - 对 MongoDB 驱动的一些封装,方便使用以及一些常用的默认配置
 - 雪花 ID,一些常用的数据类型,枚举,扩展方法等
@@ -53,7 +52,6 @@ EasilyNET Packages
 <summary style="font-size: 14px">English</summary>
 
 - AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4 encryption, signature verification and other algorithms.
-- Distributed locks based on MongoDB.
 - Message bus implementation based on RabbitMQ.
 - Some encapsulation of MongoDB driver for easy use and some common default configurations.
 - Snowflake ID, some common data types, enumerations, extension methods, etc.
@@ -105,12 +103,10 @@ EasilyNET Packages
 |-------------------------------------------------|--------------|--------------|-----------------------------------------------------------------|
 | [EasilyNET.Mongo.AspNetCore][32]                | ![Nuget][33] | ![Nuget][34] | [文档](./src/EasilyNET.Mongo.AspNetCore/README.md)                |
 | [EasilyNET.Mongo.ConsoleDebug][35]              | ![Nuget][36] | ![Nuget][37] | [文档](./src/EasilyNET.Mongo.ConsoleDebug/README.md)              |
-| [EasilyNET.MongoDistributedLock][38]            | ![Nuget][39] | ![Nuget][40] | [文档](./src/EasilyNET.MongoDistributedLock/README.md)            |
-| [EasilyNET.MongoDistributedLock.AspNetCore][41] | ![Nuget][42] | ![Nuget][43] | [文档](./src/EasilyNET.MongoDistributedLock.AspNetCore/README.md) |
 
 #### 感谢 [JetBrains](https://www.jetbrains.com/shop/eform/opensource) 对本项目的支持!
 
-<img src="https://www.jetbrains.com/shop/static/images/jetbrains-logo-inv.svg" height="100">
+<img alt="Thanks JetBrains" src="https://www.jetbrains.com/shop/static/images/jetbrains-logo-inv.svg" height="100">
 
 ## 如何为本项目做出贡献
 
@@ -189,15 +185,3 @@ EasilyNET Packages
 [36]: https://img.shields.io/nuget/v/EasilyNET.Mongo.ConsoleDebug
 
 [37]: https://img.shields.io/nuget/dt/EasilyNET.Mongo.ConsoleDebug
-
-[38]: https://www.nuget.org/packages/EasilyNET.MongoDistributedLock
-
-[39]: https://img.shields.io/nuget/v/EasilyNET.MongoDistributedLock
-
-[40]: https://img.shields.io/nuget/dt/EasilyNET.MongoDistributedLock
-
-[41]: https://www.nuget.org/packages/EasilyNET.MongoDistributedLock.AspNetCore
-
-[42]: https://img.shields.io/nuget/v/EasilyNET.MongoDistributedLock.AspNetCore
-
-[43]: https://img.shields.io/nuget/dt/EasilyNET.MongoDistributedLock.AspNetCore
