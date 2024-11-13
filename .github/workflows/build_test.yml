@@ -10,26 +10,26 @@ on:
 env:
   DOTNET_VERSION: "9.0.x"
   # Linux
-  #TZ: Asia/Shanghai
+  TZ: Asia/Chongqing
   # Windows
-  TZ: "China Standard Time"
+  #TZ: "China Standard Time"
   SOLUTION: EasilyNET.sln
   ARTIFACTS: ./artifacts
 jobs:
   build:
-    runs-on: windows-latest
+    #runs-on: windows-latest
+    #defaults:
+    #  run:
+    #    shell: pwsh
+    runs-on: ubuntu-latest
     defaults:
       run:
-        shell: pwsh
-    # runs-on: ubuntu-latest
-    # defaults:
-    #   run:
-    #     shell: bash
+        shell: bash
     steps:
       # Windows Only
-      - name: Set Timezone
-        run: |
-          tzutil /s "$env:TZ"
+      #- name: Set Timezone
+      #  run: |
+      #    tzutil /s "$env:TZ"
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,29 +42,29 @@ jobs:
         run: echo "EASILYNET_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       # Ubuntu
-      # - name: Get the latest tag for pull request events
-      #   if: github.event_name == 'pull_request'
-      #   id: get_tag_pr
-      #   run: |
-      #     TAG=$(git describe --tags --abbrev=0)
-      #     echo "EASILYNET_VERSION=$TAG" >> $GITHUB_ENV
-
-      # Windows
       - name: Get the latest tag for pull request events
         if: github.event_name == 'pull_request'
         id: get_tag_pr
         run: |
-          $TAG = (git describe --tags --abbrev=0)
-          echo "EASILYNET_VERSION=$TAG" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          $EASILYNET_VERSION = $TAG
-
-      # Linux
-      # - name: Display the latest tag
-      #   run: echo $EASILYNET_VERSION
+          TAG=$(git describe --tags --abbrev=0)
+          echo "EASILYNET_VERSION=$TAG" >> $GITHUB_ENV
 
       # Windows
+      #- name: Get the latest tag for pull request events
+      #  if: github.event_name == 'pull_request'
+      #  id: get_tag_pr
+      #  run: |
+      #    $TAG = (git describe --tags --abbrev=0)
+      #    echo "EASILYNET_VERSION=$TAG" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      #    $EASILYNET_VERSION = $TAG
+
+      # Linux
       - name: Display the latest tag
-        run: Write-Host $EASILYNET_VERSION
+        run: echo $EASILYNET_VERSION
+
+      # Windows
+      #- name: Display the latest tag
+      #  run: Write-Host $EASILYNET_VERSION
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
