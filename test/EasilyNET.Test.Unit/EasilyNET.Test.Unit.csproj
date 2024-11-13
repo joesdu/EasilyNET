@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
     
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
@@ -21,7 +21,6 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\EasilyNET.Core\EasilyNET.Core.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.ExpressMapper\EasilyNET.ExpressMapper.csproj" />
-        <ProjectReference Include="..\..\src\EasilyNET.MongoDistributedLock\EasilyNET.MongoDistributedLock.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.Security\EasilyNET.Security.csproj" />
     </ItemGroup>
 

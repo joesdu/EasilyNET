@@ -1,4 +1,6 @@
+using EasilyNET.Core;
 using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace EasilyNET.Tests.Unit;
 

@@ -2,6 +2,7 @@ using EasilyNET.Core.ChineseLunar;
 using EasilyNET.Core.Enums;
 using EasilyNET.Core.Misc;
 using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace EasilyNET.Test.Unit.ChineseLunar;
 

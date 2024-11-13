@@ -1,4 +1,5 @@
 using EasilyNET.Core.Misc;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace EasilyNET.Test.Unit.Randoms;
 

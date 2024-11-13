@@ -1,4 +1,5 @@
 using EasilyNET.Core.Language;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace EasilyNET.Test.Unit;
 

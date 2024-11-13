@@ -4,6 +4,7 @@ using EasilyNET.ExpressMapper.Exceptions;
 using EasilyNET.ExpressMapper.Mapper;
 using EasilyNET.Test.Unit.ExpressMapper.Entities;
 using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace EasilyNET.Test.Unit.ExpressMapper;
 

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using EasilyNET.Core.System;
 using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace EasilyNET.Test.Unit.System;
 
