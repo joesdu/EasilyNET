@@ -21,7 +21,7 @@ function Exec {
   }
 }
 
-# ³¢ÊÔ´Ó»·¾³±äÁ¿ÖÐ»ñÈ¡ SOLUTION£¬Èç¹û²»´æÔÚÔòÊ¹ÓÃÄ¬ÈÏÖµ
+# å°è¯•ä»ŽçŽ¯å¢ƒå˜é‡ä¸­èŽ·å– SOLUTIONï¼Œå¦‚æžœä¸å­˜åœ¨åˆ™ä½¿ç”¨é»˜è®¤å€¼
 $SOLUTION = $env:SOLUTION
 if (-not $SOLUTION) {
   $SOLUTION = "EasilyNET.sln"
