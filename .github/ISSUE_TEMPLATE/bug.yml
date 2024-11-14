@@ -27,10 +27,7 @@ body:
       options:
         - Any(Default)
         - Arm64
-        #        - Arm32
         - x64
-        #        - x86
-        - macOS Rosetta 2
         - LoongArch
     validations:
       required: true
@@ -42,30 +39,9 @@ body:
       multiple: true
       description: What version of our software are you running?
       options:
+          - .NET10(LTS)
         - .NET9(STS) (Default)
         - .NET8(LTS)
-    #        - .NET7(STS)
-    #        - .NET6(LTS)
-    #        - .NET5
-    #        - .NET Core 3.1(LTS)
-    #        - .NET Core 3.0
-    #        - .NET Core 2.2
-    #        - .NET Core 2.1
-    #        - .NET Core 2.0
-    #        - .NET Core 1.x
-    #        - .NET Framework 4.8.1
-    #        - .NET Framework 4.8.0
-    #        - .NET Framework 4.7.2
-    #        - .NET Framework 4.7.1
-    #        - .NET Framework 4.7.0
-    #        - .NET Framework 4.6.2
-    #        - .NET Framework 4.6.1
-    #        - .NET Framework 4.6.0
-    #        - .NET Framework 4.5.2
-    #        - .NET Framework 4.5.1
-    #        - .NET Framework 4.5.0
-    #        - .NET Framework 4.0
-    #        - .NET Framework 3.5 SP1
     validations:
       required: true
 
