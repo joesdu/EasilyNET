@@ -48,7 +48,7 @@ EasilyNET Packages
 - 对 MongoDB 执行命令添加个性化输出,以及 Diagnostics 数据到 APM.(EasilyNET.Mongo.ConsoleDebug)
 - 部分库的[使用案例](./sample/WebApi.Test.Unit/README.md)
 
-<details> 
+<details>
 <summary style="font-size: 14px">English</summary>
 
 - AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4 encryption, signature verification and other algorithms.
@@ -72,7 +72,7 @@ EasilyNET Packages
 - 同步更新 MongoDB 3.0.0 驱动程序,同步删除过时 API
 - 合并 EasilyNET.MongoGridFS.AspNetCore, EasilyNET.MongoSerializer.AspNetCore 到 EasilyNET.Mongo.AspNetCore
 
-<details> 
+<details>
 <summary style="font-size: 14px">English</summary>
 
 - Synchronized update to MongoDB 3.0.0 driver, removed deprecated APIs
@@ -99,10 +99,10 @@ EasilyNET Packages
 
 #### Mongo
 
-| NuGet Package                                   | Version      | Download     | Document                                                        |
-|-------------------------------------------------|--------------|--------------|-----------------------------------------------------------------|
-| [EasilyNET.Mongo.AspNetCore][32]                | ![Nuget][33] | ![Nuget][34] | [文档](./src/EasilyNET.Mongo.AspNetCore/README.md)                |
-| [EasilyNET.Mongo.ConsoleDebug][35]              | ![Nuget][36] | ![Nuget][37] | [文档](./src/EasilyNET.Mongo.ConsoleDebug/README.md)              |
+| NuGet Package                      | Version      | Download     | Document                                           |
+|------------------------------------|--------------|--------------|----------------------------------------------------|
+| [EasilyNET.Mongo.AspNetCore][32]   | ![Nuget][33] | ![Nuget][34] | [文档](./src/EasilyNET.Mongo.AspNetCore/README.md)   |
+| [EasilyNET.Mongo.ConsoleDebug][35] | ![Nuget][36] | ![Nuget][37] | [文档](./src/EasilyNET.Mongo.ConsoleDebug/README.md) |
 
 #### 感谢 [JetBrains](https://www.jetbrains.com/shop/eform/opensource) 对本项目的支持!
 

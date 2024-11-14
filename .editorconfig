@@ -9,3 +9,7 @@ charset = utf-8
 indent_style = space
 insert_final_newline = false
 trim_trailing_whitespace = true
+
+[{*.yml,*.json,*props,*csproj,*ps1}]
+tab_width = 2
+indent_size = 2

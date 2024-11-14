@@ -39,7 +39,7 @@ body:
       multiple: true
       description: What version of our software are you running?
       options:
-          - .NET10(LTS)
+        - .NET10(LTS)
         - .NET9(STS) (Default)
         - .NET8(LTS)
     validations:
