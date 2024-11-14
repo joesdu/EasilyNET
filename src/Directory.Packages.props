@@ -1,63 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <Project>
-    <PropertyGroup>
-        <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-        <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    </PropertyGroup>
-    <ItemGroup>
-        <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
-    </ItemGroup>
-    <PropertyGroup>
-        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
-        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    </PropertyGroup>
-    <PropertyGroup>
-        <NoWarn>$(NoWarn);IDE0130;</NoWarn>
-    </PropertyGroup>
-    <ItemGroup>
-        <PackageVersion Include="Backport.System.Threading.Lock" Version="2.0.7" />
-        <PackageVersion Include="BouncyCastle.Cryptography" Version="2.5.0-beta.105" />
-        <PackageVersion Include="MessagePack" Version="3.0.238-rc.1" />
-        <PackageVersion Include="MongoDB.Driver" Version="3.0.0" />
-        <PackageVersion Include="RabbitMQ.Client" Version="7.0.0" />
-        <PackageVersion Include="Serilog" Version="4.1.0-dev-02238" />
-        <PackageVersion Include="Spectre.Console.Json" Version="0.49.2-preview.0.50" />
-        <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="7.0.0" />
-        <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.0.0" />
-        <!--microsoft asp.net core -->
-        <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
-        <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="9.0.0" />
-        <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
-        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
-        <PackageVersion Include="Microsoft.Extensions.Resilience" Version="9.0.0" />
-        <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="9.0.0" />
-    </ItemGroup>
-
-    <!-- 自定义任务来检查 TargetFramework -->
-    <PropertyGroup>
-        <IsVisualStudioMSBuild Condition="'$(MSBuildRuntimeType)' == 'Full'">true</IsVisualStudioMSBuild>
-    </PropertyGroup>
-
-    <UsingTask TaskName="CheckTargetFrameworkTask" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" Condition="'$(IsVisualStudioMSBuild)' == 'true' and '$(UseWPF)' != 'true' and '$(UseWindowsForms)' != 'true'">
-        <ParameterGroup>
-            <ProjectFile ParameterType="System.String" Required="true" />
-        </ParameterGroup>
-        <Task>
-            <Using Namespace="System.IO" />
-            <Code Type="Fragment" Language="cs">
-                <![CDATA[
+  <PropertyGroup>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
+  </ItemGroup>
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);IDE0130;</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Backport.System.Threading.Lock" Version="2.0.7" />
+    <PackageVersion Include="BouncyCastle.Cryptography" Version="2.5.0-beta.105" />
+    <PackageVersion Include="MessagePack" Version="3.0.238-rc.1" />
+    <PackageVersion Include="MongoDB.Driver" Version="3.0.0" />
+    <PackageVersion Include="RabbitMQ.Client" Version="7.0.0" />
+    <PackageVersion Include="Serilog" Version="4.1.0-dev-02238" />
+    <PackageVersion Include="Spectre.Console.Json" Version="0.49.2-preview.0.50" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="7.0.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.0.0" />
+    <!--microsoft asp.net core -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Resilience" Version="9.0.0" />
+    <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="9.0.0" />
+  </ItemGroup>
+  <!-- 自定义任务来检查 TargetFramework -->
+  <PropertyGroup>
+    <IsVisualStudioMSBuild Condition="'$(MSBuildRuntimeType)' == 'Full'">true</IsVisualStudioMSBuild>
+  </PropertyGroup>
+  <UsingTask TaskName="CheckTargetFrameworkTask" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" Condition="'$(IsVisualStudioMSBuild)' == 'true' and '$(UseWPF)' != 'true' and '$(UseWindowsForms)' != 'true'">
+    <ParameterGroup>
+      <ProjectFile ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
                 var content = File.ReadAllText(ProjectFile);
                 if (content.Contains("<TargetFramework>"))
                 {
                     Log.LogError("在启用按文件夹自定义生成的情况下,已指定目标框架,项目文件中不应显式定义 TargetFramework 属性,请删除. 文件:" + ProjectFile, ProjectFile);
                 }
-                ]]>
-            </Code>
-        </Task>
-    </UsingTask>
-
-    <Target Name="CheckTargetFramework" BeforeTargets="BeforeBuild" Condition="'$(IsVisualStudioMSBuild)' == 'true' and '$(UseWPF)' != 'true'">
-        <CheckTargetFrameworkTask ProjectFile="$(MSBuildProjectFullPath)" />
-    </Target>
+                ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="CheckTargetFramework" BeforeTargets="BeforeBuild" Condition="'$(IsVisualStudioMSBuild)' == 'true' and '$(UseWPF)' != 'true'">
+    <CheckTargetFrameworkTask ProjectFile="$(MSBuildProjectFullPath)" />
+  </Target>
 </Project>

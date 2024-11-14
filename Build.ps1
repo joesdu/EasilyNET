@@ -9,29 +9,36 @@
 .EXAMPLE
   exec { svn info $repository_trunk } "Error executing SVN. Please verify SVN command-line client is installed"
 #>
-function Exec {
+function Exec
+{
   [CmdletBinding()]
   param(
     [Parameter(Position = 0, Mandatory = 1)][scriptblock]$cmd,
     [Parameter(Position = 1, Mandatory = 0)][string]$errorMessage = ($msgs.error_bad_command -f $cmd)
   )
   & $cmd
-  if ($lastexitcode -ne 0) {
+  if ($lastexitcode -ne 0)
+  {
     throw ("Exec: " + $errorMessage)
   }
 }
 
 # 尝试从环境变量中获取 SOLUTION，如果不存在则使用默认值
 $SOLUTION = $env:SOLUTION
-if (-not $SOLUTION) {
+if (-not $SOLUTION)
+{
   $SOLUTION = "EasilyNET.sln"
 }
 $ARTIFACTS = $env:ARTIFACTS
-if (-not $ARTIFACTS) {
+if (-not $ARTIFACTS)
+{
   $ARTIFACTS = ".\artifacts"
 }
 
-if (Test-Path $ARTIFACTS) { Remove-Item $ARTIFACTS -Force -Recurse }
+if (Test-Path $ARTIFACTS)
+{
+  Remove-Item $ARTIFACTS -Force -Recurse
+}
 
 exec { & dotnet clean $SOLUTION -c Release }
 exec { & dotnet build $SOLUTION -c Release }

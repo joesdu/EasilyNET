@@ -1,22 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    
-    <PropertyGroup>
-        <AssemblyTitle>$(PackagePrefix).ExpressMapper</AssemblyTitle>
-        <AssemblyName>$(PackagePrefix).ExpressMapper</AssemblyName>
-        <PackageId>$(PackagePrefix).ExpressMapper</PackageId>
-        <PackageTags>ExpressMapper</PackageTags>
-        <PackageReleaseNotes>
-        
-        </PackageReleaseNotes>
-        <RootNamespace>EasilyNET.ExpressMapper</RootNamespace>
-    </PropertyGroup>
-    
-    <PropertyGroup>
-        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.ExpressMapper</PackageProjectUrl>
-        <Description>ExpressMapper对象映射</Description>
-    </PropertyGroup>
-    
-    <ItemGroup>
-        <None Include="THIRD-PARTY-NOTICES" Pack="true" PackagePath="THIRD-PARTY-NOTICES" />
-    </ItemGroup>
+
+  <PropertyGroup>
+    <AssemblyTitle>$(PackagePrefix).ExpressMapper</AssemblyTitle>
+    <AssemblyName>$(PackagePrefix).ExpressMapper</AssemblyName>
+    <PackageId>$(PackagePrefix).ExpressMapper</PackageId>
+    <PackageTags>ExpressMapper</PackageTags>
+    <PackageReleaseNotes>
+
+    </PackageReleaseNotes>
+    <RootNamespace>EasilyNET.ExpressMapper</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.ExpressMapper</PackageProjectUrl>
+    <Description>ExpressMapper对象映射</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="THIRD-PARTY-NOTICES" Pack="true" PackagePath="THIRD-PARTY-NOTICES" />
+  </ItemGroup>
 </Project>
