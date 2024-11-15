@@ -34,18 +34,33 @@ public static class Lunar
     private static DateTime _date;
 
     /// <summary>
+    /// 农历年
+    /// </summary>
+    private static string _Year = "";
+
+    /// <summary>
+    /// 农历月
+    /// </summary>
+    private static string _Month = "";
+
+    /// <summary>
+    /// 农历天
+    /// </summary>
+    private static string _Day = "";
+
+    /// <summary>
     /// 获取特定日期农历年份,若是未调用Init传入特定日期,则返回当前日期的农历年份
     /// </summary>
     public static string LunarYear
     {
         get
         {
-            if (!string.IsNullOrWhiteSpace(field.Trim())) return field;
+            if (!string.IsNullOrWhiteSpace(_Year.Trim())) return _Year;
             Init(DateTime.Now);
-            return field;
+            return _Year;
         }
-        private set;
-    } = "";
+        private set => _Year = value;
+    }
 
     /// <summary>
     /// 获取特定日期农历月份,若是未调用Init传入特定日期,则返回当前日期的农历月份
@@ -54,12 +69,12 @@ public static class Lunar
     {
         get
         {
-            if (!string.IsNullOrWhiteSpace(field.Trim())) return field;
+            if (!string.IsNullOrWhiteSpace(_Month.Trim())) return _Month;
             Init(DateTime.Now);
-            return field;
+            return _Month;
         }
-        private set;
-    } = "";
+        private set => _Month = value;
+    }
 
     /// <summary>
     /// 获取特定日期农历天,若是未调用Init传入特定日期,则返回当前日期的农历天
@@ -68,12 +83,12 @@ public static class Lunar
     {
         get
         {
-            if (!string.IsNullOrWhiteSpace(field.Trim())) return field;
+            if (!string.IsNullOrWhiteSpace(_Day.Trim())) return _Day;
             Init(DateTime.Now);
-            return field;
+            return _Day;
         }
-        private set;
-    } = "";
+        private set => _Day = value;
+    }
 
     /// <summary>
     /// 获取特定日期农历天,若是未调用Init传入特定日期,则返回当前日期的农历天
