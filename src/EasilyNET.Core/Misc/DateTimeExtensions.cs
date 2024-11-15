@@ -244,12 +244,7 @@ public static class DateTimeExtensions
     /// </summary>
     /// <param name="dateTime"></param>
     /// <returns></returns>
-    public static byte[] ToByteArray(this DateTime dateTime)
-    {
-        var ticks = dateTime.Ticks;
-        var bytes = BitConverter.GetBytes(ticks);
-        return bytes;
-    }
+    public static byte[] ToByteArray(this DateTime dateTime) => BitConverter.GetBytes(dateTime.Ticks);
 
     /// <summary>
     /// 获取某日期所在周是当年的第几周

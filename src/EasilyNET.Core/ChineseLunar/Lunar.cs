@@ -6,7 +6,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using EasilyNET.Core.Enums;
-using EasilyNET.Core.Misc;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
@@ -25,21 +24,6 @@ public static class Lunar
     private static readonly string[] dataTopInit = Init();
 
     /// <summary>
-    /// 农历年
-    /// </summary>
-    private static string _Year = "";
-
-    /// <summary>
-    /// 农历月
-    /// </summary>
-    private static string _Month = "";
-
-    /// <summary>
-    /// 农历天
-    /// </summary>
-    private static string _Day = "";
-
-    /// <summary>
     /// 农历日期
     /// </summary>
     private static string _ChineseLunar = "";
@@ -56,12 +40,12 @@ public static class Lunar
     {
         get
         {
-            if (!string.IsNullOrWhiteSpace(_Year.Trim())) return _Year;
+            if (!string.IsNullOrWhiteSpace(field.Trim())) return field;
             Init(DateTime.Now);
-            return _Year;
+            return field;
         }
-        private set => _Year = value;
-    }
+        private set;
+    } = "";
 
     /// <summary>
     /// 获取特定日期农历月份,若是未调用Init传入特定日期,则返回当前日期的农历月份
@@ -70,12 +54,12 @@ public static class Lunar
     {
         get
         {
-            if (!string.IsNullOrWhiteSpace(_Month.Trim())) return _Month;
+            if (!string.IsNullOrWhiteSpace(field.Trim())) return field;
             Init(DateTime.Now);
-            return _Month;
+            return field;
         }
-        private set => _Month = value;
-    }
+        private set;
+    } = "";
 
     /// <summary>
     /// 获取特定日期农历天,若是未调用Init传入特定日期,则返回当前日期的农历天
@@ -84,12 +68,12 @@ public static class Lunar
     {
         get
         {
-            if (!string.IsNullOrWhiteSpace(_Day.Trim())) return _Day;
+            if (!string.IsNullOrWhiteSpace(field.Trim())) return field;
             Init(DateTime.Now);
-            return _Day;
+            return field;
         }
-        private set => _Day = value;
-    }
+        private set;
+    } = "";
 
     /// <summary>
     /// 获取特定日期农历天,若是未调用Init传入特定日期,则返回当前日期的农历天
@@ -255,9 +239,9 @@ public static class Lunar
             _ = sb.Append("零一二三四五六七八九".AsSpan(year2 % 10, 1));
             year2 /= 10;
         }
-        var r = sb.ToString();
-        r.Reverse();
-        return r;
+        var r = sb.ToString().ToCharArray();
+        Array.Reverse(r);
+        return new(r);
     }
 
     /// <summary>

@@ -1,10 +1,10 @@
 using System.Collections.Specialized;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using EasilyNET.Core.Commons;
 using EasilyNET.Core.Enums;
 
 #pragma warning disable IDE0079
@@ -20,26 +20,6 @@ namespace EasilyNET.Core.Misc;
 /// </summary>
 public static partial class StringExtensions
 {
-    /// <summary>
-    /// DateTime常见格式
-    /// </summary>
-    [SuppressMessage("ReSharper", "StringLiteralTypo")]
-    private static readonly string[] DateTimeFormats =
-    [
-        "yyyy/MM/dd",
-        "yyyy-MM-dd",
-        "yyyyMMdd",
-        "yyyy.MM.dd",
-        "yyyy/MM/dd HH:mm:ss",
-        "yyyy-MM-dd HH:mm:ss",
-        "yyyyMMddHHmmss",
-        "yyyy.MM.dd HH:mm:ss",
-        "yyyy/MM/dd HH:mm:ss.fff",
-        "yyyy-MM-dd HH:mm:ss.fff",
-        "yyyyMMddHHmmssfff",
-        "yyyy.MM.dd HH:mm:ss.fff"
-    ];
-
     /// <summary>
     /// 移除字符串中所有空白符
     /// </summary>
@@ -293,7 +273,7 @@ public static partial class StringExtensions
     public static DateTime? ToDateTime(this string value, bool force = false) =>
         string.IsNullOrWhiteSpace(value)
             ? force ? throw new ArgumentException("日期字符串不能为空") : null
-            : DateTime.TryParseExact(value, DateTimeFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result)
+            : DateTime.TryParseExact(value, ModuleConstants.DateTimeFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result)
                 ? result
                 : force
                     ? throw new FormatException("日期字符串格式不正确")
@@ -382,7 +362,7 @@ public static partial class StringExtensions
     }
 
     /// <summary>
-    /// 使用指针的方式反转字符串,该函数会修改原字符串.
+    /// 使用指针的方式反转字符串,该函数会修改原字符串.该函数不安全,由于.NET会缓存相同字符串,反转后会使所有使用地方的字符串都被反转,所以该函数可能会对程序造成未知的影响.
     /// </summary>
     /// <param name="value">待反转字符串</param>
     public static unsafe void Reverse(this string value)
@@ -431,8 +411,7 @@ public static partial class StringExtensions
         {
             array = keys.ToArray();
         }
-        if (array.Length == 0 || string.IsNullOrWhiteSpace(source))
-            return false;
+        if (array.Length == 0 || string.IsNullOrWhiteSpace(source)) return false;
         var flag = false;
         if (ignoreCase)
         {
@@ -464,8 +443,7 @@ public static partial class StringExtensions
         {
             array = keys.ToArray();
         }
-        if (array.Length == 0 || string.IsNullOrWhiteSpace(source))
-            return false;
+        if (array.Length == 0 || string.IsNullOrWhiteSpace(source)) return false;
         var pattern = $"({array.Select(Regex.Escape).Join('|')})$";
         return ignoreCase ? Regex.IsMatch(source, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(source, pattern);
     }
@@ -483,8 +461,7 @@ public static partial class StringExtensions
         {
             array = keys.ToArray();
         }
-        if (array.Length == 0 || string.IsNullOrWhiteSpace(source))
-            return false;
+        if (array.Length == 0 || string.IsNullOrWhiteSpace(source)) return false;
         var pattern = $"^({array.Select(Regex.Escape).Join('|')})";
         return ignoreCase ? Regex.IsMatch(source, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(source, pattern);
     }
@@ -672,7 +649,7 @@ public static partial class StringExtensions
     ///   <![CDATA[
     /// @"F:\tools\test\test\bin\Release\net9.0\win-x64\publish".GetClickablePath();
     /// Output:
-    ///   F:\tools\test\test\bin\Release\net9.0\win-x64\publish 
+    ///   F:\tools\test\test\bin\Release\net9.0\win-x64\publish
     /// ]]>
     /// </code>
     ///     </para>

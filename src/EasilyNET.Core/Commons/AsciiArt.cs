@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace EasilyNET.Core;
+namespace EasilyNET.Core.Commons;
 
 /// <summary>
 /// 一些有趣的 ASCII 艺术图案
@@ -18,7 +18,7 @@ public static class AsciiArt
                                | |___| (_| \__ \ | | |_| | |\  | |____   | |
                                |______\__,_|___/_|_|\__, |_| \_|______|  |_|
                                                      __/ |
-                                                    |___/ 
+                                                    |___/
                                """;
 
     /// <summary>

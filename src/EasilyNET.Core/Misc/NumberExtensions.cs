@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using EasilyNET.Core.Commons;
 
 // ReSharper disable UnusedMember.Global
 
@@ -69,11 +70,11 @@ public static partial class NumberExtensions
     /// </remarks>
     /// </summary>
     /// <typeparam name="T">浮点数类型: <see langword="float" />, <see langword="double" /> 和 <see langword="decimal" /></typeparam>
-    /// <param name="a"></param>
-    /// <param name="b"></param>
+    /// <param name="a">浮点数1</param>
+    /// <param name="b">浮点数2</param>
     /// <param name="epsilon">精度默认: 0.000001</param>
     /// <returns></returns>
-    public static bool AreAlmostEqual<T>(T a, T b, double epsilon = 1E-6) where T : struct, IComparable, IConvertible, IFormattable
+    public static bool AreAlmostEqual<T>(this T a, T b, double epsilon = ModuleConstants.Epsilon) where T : struct, IComparable, IConvertible, IFormattable
     {
         if (typeof(T) == typeof(float))
         {

@@ -474,7 +474,7 @@ public static class TextWriterExtensions
     ///      await Task.Delay(100);
     ///   }
     /// Output:
-    ///   [==========---------------------] 5.1% Processing... 
+    ///   [==========---------------------] 5.1% Processing...
     /// ]]>
     /// </code>
     ///     </para>
@@ -516,7 +516,7 @@ public static class TextWriterExtensions
     ///      await Task.Delay(100);
     ///   }
     /// Output:
-    ///   [==========---------------------] 5.1% Processing... 
+    ///   [==========---------------------] 5.1% Processing...
     /// ]]>
     /// </code>
     ///     </para>
@@ -871,7 +871,7 @@ public static class TextWriterExtensions
             }
         }
         var completedWidth = (int)(percentage * width) / 100;
-        if (Math.Abs(percentage - 100) <= 0.000001) completedWidth = width; // 确保在 100% 时填满进度条
+        if (percentage.AreAlmostEqual(100d)) completedWidth = width; // 确保在 100% 时填满进度条
         var outputLength = width + extraWidth;
         var outputBytes = outputLength <= 256 ? stackalloc byte[outputLength] : new byte[outputLength];
         outputBytes[0] = 91; // ASCII for '['
