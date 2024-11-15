@@ -64,6 +64,10 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
         _disposed = true;
     }
 
+    /// <summary>
+    ///     <para xml:lang="en">Finalizes an instance of the <see cref="SimpleEventAggregator" /> class.</para>
+    ///     <para xml:lang="zh">释放 <see cref="SimpleEventAggregator" /> 类的实例。</para>
+    /// </summary>
     ~SimpleEventAggregator()
     {
         Dispose(false);
