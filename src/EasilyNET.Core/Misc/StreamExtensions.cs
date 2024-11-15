@@ -49,7 +49,7 @@ public static class StreamExtensions
     }
 
     /// <summary>
-    /// 流洗码，在流的末端随即增加几个空字节，重要数据请谨慎使用，可能造成流损坏
+    /// 流洗码，在流的末端随机增加几个空字节，重要数据请谨慎使用，可能造成流损坏
     /// </summary>
     /// <param name="stream">输入流</param>
     public static void ShuffleCode(this Stream stream)
@@ -57,8 +57,7 @@ public static class StreamExtensions
         if (stream is not { CanWrite: true, CanSeek: true }) return;
         var position = stream.Position;
         stream.Position = stream.Length;
-        var random = new Random();
-        var buffer = new byte[random.Next(1, 20)];
+        var buffer = new byte[RandomExtensions.StrictNext(1, 20)];
         stream.Write(buffer, 0, buffer.Length);
         stream.Flush();
         stream.Position = position;

@@ -1,3 +1,5 @@
+using EasilyNET.Core.Misc;
+
 namespace EasilyNET.Core.IdCard;
 
 /// <summary>
@@ -27,7 +29,7 @@ public static class IDCardValidation
     /// </summary>
     private static bool CheckIDCard18(ReadOnlySpan<char> no)
     {
-        if (!IsValidNumber(no[..17], 1_0000_0000_0000_0000L)) return false;
+        if (!no[..17].ToString().IsNumber()) return false;
         if (!IsValidProvince(no[..2])) return false;
         if (!DateTime.TryParse($"{no.Slice(6, 4)}-{no.Slice(10, 2)}-{no.Slice(12, 2)}", out _)) return false; // 生日验证
         var sum = 0;
@@ -44,17 +46,9 @@ public static class IDCardValidation
     /// </summary>
     private static bool CheckIDCard15(ReadOnlySpan<char> no)
     {
-        if (!IsValidNumber(no, 1_0000_0000_0000_00L)) return false;
+        if (!no.ToString().IsNumber()) return false;
         return IsValidProvince(no[..2]) && DateTime.TryParse($"19{no.Slice(6, 2)}-{no.Slice(8, 2)}-{no.Slice(10, 2)}", out _); // 生日验证
     }
-
-    /// <summary>
-    /// 验证数字是否有效
-    /// </summary>
-    /// <param name="number">要验证的数字</param>
-    /// <param name="minValue">最小值</param>
-    /// <returns>是否有效</returns>
-    private static bool IsValidNumber(ReadOnlySpan<char> number, long minValue) => long.TryParse(number, out var n) && n >= minValue;
 
     /// <summary>
     /// 验证省份代码是否有效

@@ -199,14 +199,14 @@ public static partial class TypeExtensions
         typeNameBytes.CopyTo(buffer[offset..]);
         offset += typeNameBytes.Length;
         // 添加 '<'
-        buffer[offset++] = (byte)'<';
+        buffer[offset++] = 0x3C; // '<'
         // 复制泛型参数
         for (var i = 0; i < genericArguments.Length; i++)
         {
             if (i > 0)
             {
-                buffer[offset++] = (byte)',';
-                buffer[offset++] = (byte)' ';
+                buffer[offset++] = 0x2C; // ','
+                buffer[offset++] = 0x20; // ' '
             }
             var argName = genericArguments[i].GetFriendlyTypeName();
             var argNameBytes = Encoding.UTF8.GetBytes(argName);
@@ -215,7 +215,7 @@ public static partial class TypeExtensions
         }
         // 添加 '>'
         // ReSharper disable once RedundantAssignment
-        buffer[offset++] = (byte)'>'; // 这行代码中[offset++]是必要的
+        buffer[offset++] = 0x3E; // 这行代码中[offset++]是必要的
         // 返回结果
         return Encoding.UTF8.GetString(buffer);
     }
