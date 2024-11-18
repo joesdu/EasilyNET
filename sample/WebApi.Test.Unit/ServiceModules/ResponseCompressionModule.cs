@@ -10,6 +10,10 @@ namespace WebApi.Test.Unit.ServiceModules;
 /// </summary>
 internal sealed class ResponseCompressionModule : AppModule
 {
+    public ResponseCompressionModule()
+    {
+        Enable = false;
+    }
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {

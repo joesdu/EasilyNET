@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Contexts;
@@ -12,6 +13,8 @@ namespace EasilyNET.AutoDependencyInjection.Modules;
 /// <inheritdoc />
 internal class ModuleApplicationBase : IModuleApplication
 {
+    private static ConcurrentBag<IAppModule> CachedSource { get; set; } = [];
+
     /// <summary>
     /// 构造函数
     /// </summary>
@@ -24,7 +27,8 @@ internal class ModuleApplicationBase : IModuleApplication
         Services = services;
         services.AddSingleton<IModuleApplication>(this);
         services.TryAddObjectAccessor<IServiceProvider>();
-        Source = GetAllEnabledModule(services);
+        GetAllEnabledModule(services);
+        Source = CachedSource;
         Modules = LoadModules;
     }
 
@@ -36,6 +40,10 @@ internal class ModuleApplicationBase : IModuleApplication
     {
         get
         {
+            if (LoadedModules != null)
+            {
+                return LoadedModules;
+            }
             List<IAppModule> modules = [];
             var module = Source.FirstOrDefault(o => o.GetType() == StartupModuleType) ?? throw new($"类型为“{StartupModuleType.FullName}”的模块实例无法找到");
             modules.Add(module);
@@ -48,9 +56,11 @@ internal class ModuleApplicationBase : IModuleApplication
                     modules.Add(dependModule);
                 }
             }
-            return modules;
+            LoadedModules = modules;
+            return LoadedModules;
         }
     }
+    private IReadOnlyList<IAppModule>? LoadedModules { get; set; }
 
     /// <summary>
     /// 启动模块类型
@@ -89,14 +99,19 @@ internal class ModuleApplicationBase : IModuleApplication
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
-    private static IEnumerable<IAppModule> GetAllEnabledModule(IServiceCollection services)
+    private static void GetAllEnabledModule(IServiceCollection services)
     {
-        var types = AssemblyHelper.FindTypes(AppModule.IsAppModule);
-        // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
-        foreach (var o in types)
+        if (CachedSource.IsEmpty)
         {
-            var c = CreateModule(services, o);
-            if (c is not null) yield return c;
+            var types = AssemblyHelper.FindTypes(AppModule.IsAppModule);
+            foreach (var o in types)
+            {
+                var c = CreateModule(services, o);
+                if (c is not null)
+                {
+                    CachedSource.Add(c);
+                }
+            }
         }
     }
 
