@@ -44,6 +44,17 @@ public static class AsciiArt
                               """;
 
     /// <summary>
+    /// 与猫咪一起玩耍
+    /// </summary>
+    public const string PlayWithCat = """
+                                      𐃆 ˒˒
+                                      ͏            ╱|、
+                                                (˚ˎ 。7
+                                                |、˜ 〵
+                                                じしˍ,)ノ
+                                      """;
+
+    /// <summary>
     /// </summary>
     /// <param name="logo"></param>
     /// <returns></returns>

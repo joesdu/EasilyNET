@@ -12,7 +12,7 @@
 
   <PropertyGroup>
     <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection</PackageProjectUrl>
-    <Description>类似于ABP框架的自动模块注入,独立出来单独维护.</Description>
+    <Description>服务模块化注入.让服务注入拥有清晰的逻辑和结构</Description>
   </PropertyGroup>
 
   <ItemGroup>

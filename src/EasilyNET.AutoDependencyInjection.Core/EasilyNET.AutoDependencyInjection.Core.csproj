@@ -12,7 +12,7 @@
 
   <PropertyGroup>
     <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection.Core</PackageProjectUrl>
-    <Description>自动注入以及模块化核心库</Description>
+    <Description>服务模块化注入.让服务注入拥有清晰的逻辑和结构</Description>
   </PropertyGroup>
 
   <ItemGroup>
