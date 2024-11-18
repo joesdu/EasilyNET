@@ -41,7 +41,7 @@ public class ExpressionBuilder : IExpressionBuilder
         var source = FormParameter<TSource>();
         var destination = FormVariable<TDest>();
         var assignProperties = AssignProperties(destination, source, rulesArray);
-        var body = Expression.Block(new[] { destination }, assignProperties);
+        var body = Expression.Block([destination], assignProperties);
         return Expression.Lambda<Func<TSource, TDest>>(body, source);
     }
 
