@@ -60,7 +60,7 @@ public static partial class NumberExtensions
     ///     使用方式:
     ///     <code>
     ///     <![CDATA[
-    /// double num1 = 0.123456;
+    ///     double num1 = 0.123456;
     ///     double num2 = 0.1234567;
     ///     bool result = AreAlmostEqual<double>(num1, num2);
     ///     Console.WriteLine(result); // Output: True
@@ -95,6 +95,50 @@ public static partial class NumberExtensions
             var decimalB = b.ConvertTo<decimal>();
             return Math.Abs(decimalA - decimalB) < epsilon.ConvertTo<decimal>() * Math.Max(Math.Abs(decimalA), Math.Abs(decimalB));
         }
-        throw new NotSupportedException("不支持的类型,仅支持如下类型:float,double和decimal");
+        throw new NotSupportedException("Unsupported types, only the following types are supported: float, double, and decimal.");
+    }
+
+    /// <summary>
+    /// 判断浮点数 a 是否大于浮点数 b.
+    /// <remarks>
+    ///     <para>
+    ///     使用方式:
+    ///     <code>
+    ///     <![CDATA[
+    ///     double num1 = 0.123456;
+    ///     double num2 = 0.1234567;
+    ///     bool result = IsGreaterThan<double>(num1, num2);
+    ///     Console.WriteLine(result); // Output: True
+    ///   ]]>
+    ///   </code>
+    ///     </para>
+    /// </remarks>
+    /// </summary>
+    /// <param name="a">浮点数 a</param>
+    /// <param name="b">浮点数 b</param>
+    /// <param name="epsilon">精度默认: 0.000001</param>
+    /// <returns>如果 a 大于 b，返回 true；否则返回 false</returns>
+    public static bool IsGreaterThan<T>(this T a, T b, double epsilon = ModuleConstants.Epsilon) where T : struct, IComparable, IConvertible, IFormattable
+    {
+        if (typeof(T) == typeof(float))
+        {
+            var floatA = a.ConvertTo<float>();
+            var floatB = b.ConvertTo<float>();
+            return floatA > floatB && !AreAlmostEqual(floatA, floatB, epsilon);
+        }
+        if (typeof(T) == typeof(double))
+        {
+            var doubleA = a.ConvertTo<double>();
+            var doubleB = b.ConvertTo<double>();
+            return doubleA > doubleB && !AreAlmostEqual(doubleA, doubleB, epsilon);
+        }
+        // ReSharper disable once InvertIf
+        if (typeof(T) == typeof(decimal))
+        {
+            var decimalA = a.ConvertTo<decimal>();
+            var decimalB = b.ConvertTo<decimal>();
+            return decimalA > decimalB && !AreAlmostEqual(decimalA, decimalB, epsilon);
+        }
+        throw new NotSupportedException("Unsupported types, only the following types are supported: float, double, and decimal.");
     }
 }
