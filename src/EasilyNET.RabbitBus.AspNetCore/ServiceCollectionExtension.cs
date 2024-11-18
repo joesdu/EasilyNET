@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore;
@@ -64,7 +63,6 @@ public static class ServiceCollectionExtension
         foreach (var handler in handlers) services.AddSingleton(handler);
     }
 
-    [SuppressMessage("Style", "IDE0046:转换为条件表达式", Justification = "<挂起>")]
     private static IServiceCollection RabbitPersistentConnection(this IServiceCollection services, Action<RabbitConfig> options)
     {
         services.Configure(Constant.OptionName, options);

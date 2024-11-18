@@ -7,19 +7,30 @@ namespace EasilyNET.AutoDependencyInjection.Modules;
 /// <inheritdoc cref="IStartupModuleRunner" />
 internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModuleRunner
 {
-    /// <inheritdoc />
-    internal StartupModuleRunner(Type startupModuleType, IServiceCollection services) : base(startupModuleType, services)
+    private static readonly Lazy<StartupModuleRunner> _instance = new(() => new(_startupModuleType, _services));
+
+    private static Type? _startupModuleType;
+    private static IServiceCollection? _services;
+
+    public static StartupModuleRunner Instance(Type startupModuleType, IServiceCollection services)
     {
-        services.AddSingleton<IStartupModuleRunner>(this);
+        if (_instance.IsValueCreated)
+        {
+            return _instance.Value;
+        }
+        Interlocked.CompareExchange(ref _startupModuleType, startupModuleType ?? throw new ArgumentNullException(nameof(startupModuleType)), null);
+        Interlocked.CompareExchange(ref _services, services ?? throw new ArgumentNullException(nameof(services)), null);
+        return _instance.Value;
+    }
+
+    private StartupModuleRunner(Type? startupModuleType, IServiceCollection? services) : base(startupModuleType, services)
+    {
+        Services.AddSingleton<IStartupModuleRunner>(this);
         ConfigureServices();
     }
 
-    /// <inheritdoc />
     public void Initialize() => InitializeModules();
 
-    /// <summary>
-    /// 配置服务
-    /// </summary>
     private void ConfigureServices()
     {
         if (ServiceProvider is null) SetServiceProvider(Services.BuildServiceProvider());

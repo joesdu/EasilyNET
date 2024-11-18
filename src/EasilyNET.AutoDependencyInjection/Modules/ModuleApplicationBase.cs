@@ -13,15 +13,17 @@ namespace EasilyNET.AutoDependencyInjection.Modules;
 /// <inheritdoc />
 internal class ModuleApplicationBase : IModuleApplication
 {
-    private static ConcurrentBag<IAppModule> CachedSource { get; set; } = [];
+    private static ConcurrentBag<IAppModule> CachedSource { get; } = [];
 
     /// <summary>
     /// 构造函数
     /// </summary>
     /// <param name="startupModuleType"></param>
     /// <param name="services"></param>
-    protected ModuleApplicationBase(Type startupModuleType, IServiceCollection services)
+    protected ModuleApplicationBase(Type? startupModuleType, IServiceCollection? services)
     {
+        ArgumentNullException.ThrowIfNull(startupModuleType, nameof(startupModuleType));
+        ArgumentNullException.ThrowIfNull(services, nameof(services));
         ServiceProvider = null;
         StartupModuleType = startupModuleType;
         Services = services;
@@ -101,16 +103,14 @@ internal class ModuleApplicationBase : IModuleApplication
     /// <returns></returns>
     private static void GetAllEnabledModule(IServiceCollection services)
     {
-        if (CachedSource.IsEmpty)
+        if (!CachedSource.IsEmpty) return;
+        var types = AssemblyHelper.FindTypes(AppModule.IsAppModule);
+        foreach (var o in types)
         {
-            var types = AssemblyHelper.FindTypes(AppModule.IsAppModule);
-            foreach (var o in types)
+            var c = CreateModule(services, o);
+            if (c is not null)
             {
-                var c = CreateModule(services, o);
-                if (c is not null)
-                {
-                    CachedSource.Add(c);
-                }
+                CachedSource.Add(c);
             }
         }
     }

@@ -17,5 +17,5 @@ public static class ApplicationFactory
     /// <typeparam name="TStartupModule"></typeparam>
     /// <param name="services"></param>
     /// <returns></returns>
-    public static IStartupModuleRunner Create<TStartupModule>(IServiceCollection services) where TStartupModule : AppModule => new StartupModuleRunner(typeof(TStartupModule), services);
+    public static IStartupModuleRunner Create<TStartupModule>(IServiceCollection services) where TStartupModule : AppModule => StartupModuleRunner.Instance(typeof(TStartupModule), services);
 }
