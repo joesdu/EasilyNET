@@ -14,6 +14,7 @@ internal sealed class ResponseCompressionModule : AppModule
     {
         Enable = false;
     }
+
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {

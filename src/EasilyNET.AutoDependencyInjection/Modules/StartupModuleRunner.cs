@@ -12,6 +12,14 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
     private static Type? _startupModuleType;
     private static IServiceCollection? _services;
 
+    private StartupModuleRunner(Type? startupModuleType, IServiceCollection? services) : base(startupModuleType, services)
+    {
+        Services.AddSingleton<IStartupModuleRunner>(this);
+        ConfigureServices();
+    }
+
+    public void Initialize() => InitializeModules();
+
     public static StartupModuleRunner Instance(Type startupModuleType, IServiceCollection services)
     {
         if (_instance.IsValueCreated)
@@ -22,14 +30,6 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
         Interlocked.CompareExchange(ref _services, services ?? throw new ArgumentNullException(nameof(services)), null);
         return _instance.Value;
     }
-
-    private StartupModuleRunner(Type? startupModuleType, IServiceCollection? services) : base(startupModuleType, services)
-    {
-        Services.AddSingleton<IStartupModuleRunner>(this);
-        ConfigureServices();
-    }
-
-    public void Initialize() => InitializeModules();
 
     private void ConfigureServices()
     {
