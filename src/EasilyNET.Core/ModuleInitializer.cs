@@ -18,8 +18,9 @@ internal static class ModuleInitializer
                                                      |___/
                                 """;
 
-    private static readonly string url;
     private const string welcomeMessage = "Welcome EasilyNET Project";
+
+    private static readonly string url;
     private static readonly string version;
     private static readonly string centeredWelcomeMessage;
 
@@ -28,7 +29,8 @@ internal static class ModuleInitializer
         version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "未知版本";
         url = Assembly.GetExecutingAssembly()
                       .GetCustomAttributes<AssemblyMetadataAttribute>()
-                      .FirstOrDefault(attr => attr.Key == "RepositoryUrl")?.Value ?? "未知URL";
+                      .FirstOrDefault(attr => attr.Key == "RepositoryUrl")?.Value ??
+              "未知URL";
         // 计算图形的宽度
         var logoWidth = logo.Split('\n').Max(line => Encoding.ASCII.GetBytes(line).Length);
         // 计算欢迎消息前的空格数量
@@ -47,13 +49,13 @@ internal static class ModuleInitializer
         if (TextWriterExtensions.IsAnsiSupported())
         {
             Console.WriteLine($"""
-                                   {logo}
+                               {logo}
 
-                                   {centeredWelcomeMessage}
-                                   Ver: [32m{version}[0m
-                                   Url: [35m{url}[0m
+                               {centeredWelcomeMessage}
+                               Ver: [32m{version}[0m
+                               Url: [35m{url}[0m
 
-                                   """);
+                               """);
         }
         else
         {

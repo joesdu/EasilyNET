@@ -13,8 +13,6 @@ namespace EasilyNET.AutoDependencyInjection.Modules;
 /// <inheritdoc />
 internal class ModuleApplicationBase : IModuleApplication
 {
-    private static ConcurrentBag<IAppModule> CachedSource { get; } = [];
-
     /// <summary>
     /// 构造函数
     /// </summary>
@@ -33,6 +31,8 @@ internal class ModuleApplicationBase : IModuleApplication
         Source = CachedSource;
         Modules = LoadModules;
     }
+
+    private static ConcurrentBag<IAppModule> CachedSource { get; } = [];
 
     /// <summary>
     /// 获取所有需要加载的模块
@@ -62,6 +62,7 @@ internal class ModuleApplicationBase : IModuleApplication
             return LoadedModules;
         }
     }
+
     private IReadOnlyList<IAppModule>? LoadedModules { get; set; }
 
     /// <summary>
