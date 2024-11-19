@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Contexts;
-using EasilyNET.Core;
 using EasilyNET.Core.Misc;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -25,7 +24,7 @@ internal class ModuleApplicationBase : IModuleApplication
         ServiceProvider = null;
         StartupModuleType = startupModuleType;
         Services = services;
-        PerformanceMonitor.MeasureExecutionTime(GetAllEnabledModule, "GetAllEnabledModule", Console.WriteLine);
+        GetAllEnabledModule();
         LoadModules();
     }
 

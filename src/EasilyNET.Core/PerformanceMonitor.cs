@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace EasilyNET.Core;
 
 /// <summary>
-/// 性能监控
+/// 简单的监控一个函数的执行时间.用于调试的时候快速的测试一个函数的执行时间
 /// </summary>
 public static class PerformanceMonitor
 {
