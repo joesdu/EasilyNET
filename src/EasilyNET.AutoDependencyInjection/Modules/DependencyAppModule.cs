@@ -31,12 +31,12 @@ public sealed class DependencyAppModule : AppModule
     /// <param name="services"></param>
     private static void AddAutoInjection(IServiceCollection services)
     {
-        var types = AssemblyHelper.FindTypes(type => type.GetCustomAttribute<DependencyInjectionAttribute>() is not null);
-        foreach (var implementedType in types)
+        var types = AssemblyHelper.FindTypesByAttribute<DependencyInjectionAttribute>();
+        Parallel.ForEach(types, implementedType =>
         {
             var attr = implementedType.GetCustomAttribute<DependencyInjectionAttribute>();
             var lifetime = GetServiceLifetime(implementedType);
-            if (lifetime is null) continue;
+            if (lifetime is null) return;
             var serviceTypes = GetServiceTypes(implementedType);
             if (serviceTypes.Count is 0 || attr?.AddSelf is true)
             {
@@ -48,17 +48,17 @@ public sealed class DependencyAppModule : AppModule
                 {
                     services.Add(new(implementedType, implementedType, lifetime.Value));
                 }
-                if (attr?.SelfOnly is true || serviceTypes.Count is 0) continue;
+                if (attr?.SelfOnly is true || serviceTypes.Count is 0) return;
             }
-            foreach (var serviceType in serviceTypes.Where(o => !o.HasAttribute<IgnoreDependencyAttribute>()))
+            Parallel.ForEach(serviceTypes, serviceType =>
             {
                 if (!string.IsNullOrWhiteSpace(attr?.ServiceKey))
                 {
                     services.Add(new(serviceType, attr.ServiceKey, implementedType, lifetime.Value));
                 }
                 services.Add(new(serviceType, implementedType, lifetime.Value));
-            }
-        }
+            });
+        });
     }
 
     private static FrozenSet<Type> GetServiceTypes(Type implementation)

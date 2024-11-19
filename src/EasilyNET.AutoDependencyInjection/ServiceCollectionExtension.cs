@@ -12,7 +12,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// <summary>
 /// <see cref="IServiceCollection" /> 扩展
 /// </summary>
-public static partial class ServiceCollectionExtension
+public static class ServiceCollectionExtension
 {
     /// <summary>
     /// 获取应用程序构建器
