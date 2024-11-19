@@ -20,17 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- ServiceCollectionExtension.cs 已经被 .NET SDK 默认包含 -->
-    <!-- 只需要为 ServiceCollectionExtension.p.cs 指定嵌套关系 -->
-    <Compile Update="ServiceCollectionExtension.i.cs">
-      <DependentUpon>ServiceCollectionExtension.cs</DependentUpon>
-    </Compile>
-    <Compile Update="ServiceCollectionExtension.p.cs">
-      <DependentUpon>ServiceCollectionExtension.cs</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\EasilyNET.AutoDependencyInjection.Core\EasilyNET.AutoDependencyInjection.Core.csproj" />
     <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
   </ItemGroup>

@@ -20,7 +20,7 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
 
     public void Initialize() => InitializeModules();
 
-    public static StartupModuleRunner Instance(Type startupModuleType, IServiceCollection services)
+    internal static StartupModuleRunner Instance(Type startupModuleType, IServiceCollection services)
     {
         if (_instance.IsValueCreated)
         {
@@ -36,10 +36,10 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
         if (ServiceProvider is null) SetServiceProvider(Services.BuildServiceProvider());
         var context = new ConfigureServicesContext(Services, ServiceProvider);
         Services.AddSingleton(context);
-        foreach (var config in Modules)
+        foreach (var module in Modules)
         {
-            Services.AddSingleton(config);
-            config.ConfigureServices(context);
+            Services.AddSingleton(module);
+            module.ConfigureServices(context);
         }
     }
 }

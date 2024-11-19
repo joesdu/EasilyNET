@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
 
 // ReSharper disable UnusedMemberInSuper.Global
@@ -25,10 +26,10 @@ public interface IModuleApplication : IDisposable
     /// <summary>
     /// Modules
     /// </summary>
-    IReadOnlyList<IAppModule> Modules { get; }
+    IList<IAppModule> Modules { get; }
 
     /// <summary>
     /// Source
     /// </summary>
-    IEnumerable<IAppModule> Source { get; }
+    ConcurrentBag<IAppModule> Source { get; }
 }
