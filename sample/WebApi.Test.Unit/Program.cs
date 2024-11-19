@@ -56,12 +56,12 @@ builder.Host.UseSerilog((hbc, lc) =>
       });
 });
 
-// 自动注入服务模块
+// Automatically inject service modules
 builder.Services.AddApplicationModules<AppWebModule>();
 var app = builder.Build();
 if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
 
-// 添加自动化注入的一些中间件.
+// Add middleware for automatic injection
 app.InitializeApplication();
 app.MapControllers();
 app.Run();
