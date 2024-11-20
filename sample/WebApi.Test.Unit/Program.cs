@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Serilog;
 using Serilog.Events;
@@ -6,6 +7,8 @@ using Serilog.Sinks.SystemConsole.Themes;
 using WebApi.Test.Unit;
 using WebApi.Test.Unit.Common;
 
+// App init start time
+var AppInitial = Stopwatch.GetTimestamp();
 Console.Title = $"❤️ {Constant.InstanceName}";
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,4 +67,12 @@ if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
 // Add middleware for automatic injection
 app.InitializeApplication();
 app.MapControllers();
+
+// Log application startup time
+_ = Task.Run(() =>
+{
+    // App init complete time
+    var AppComplete = Stopwatch.GetTimestamp();
+    Log.Information("Application started in {Elapsed} ms", Stopwatch.GetElapsedTime(AppInitial, AppComplete).TotalMilliseconds);
+});
 app.Run();

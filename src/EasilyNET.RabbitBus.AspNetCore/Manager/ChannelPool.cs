@@ -7,14 +7,14 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 internal sealed class ChannelPool(IConnection connection, uint poolCount) : IChannelPool
 {
     private readonly ConcurrentBag<IChannel> _channels = [];
-    private int _currentCount; // Ê¹ÓÃÔ­×Ó¼ÆÊıÆ÷À´¸ú×Ù³ØÖĞµÄÍ¨µÀÊıÁ¿
+    private int _currentCount; // ä½¿ç”¨åŸå­è®¡æ•°å™¨æ¥è·Ÿè¸ªæ± ä¸­çš„é€šé“æ•°é‡
     private bool _disposed;    // To detect redundant calls
 
     /// <inheritdoc />
     public async Task<IChannel> GetChannel()
     {
         if (!_channels.TryTake(out var channel)) return await connection.CreateChannelAsync();
-        Interlocked.Decrement(ref _currentCount); // °²È«µØ¼õÉÙ¼ÆÊı
+        Interlocked.Decrement(ref _currentCount); // å®‰å…¨åœ°å‡å°‘è®¡æ•°
         return channel;
     }
 
@@ -23,7 +23,7 @@ internal sealed class ChannelPool(IConnection connection, uint poolCount) : ICha
     {
         if (Interlocked.Increment(ref _currentCount) > poolCount)
         {
-            Interlocked.Decrement(ref _currentCount); // °²È«µØ¼õÉÙ¼ÆÊı
+            Interlocked.Decrement(ref _currentCount); // å®‰å…¨åœ°å‡å°‘è®¡æ•°
             await channel.CloseAsync();
             channel.Dispose();
         }

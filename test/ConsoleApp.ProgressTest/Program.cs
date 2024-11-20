@@ -22,7 +22,7 @@ internal static class Program
         await MainAsync(args, _cts.Token);
     }
 
-    private static async Task MainAsync(string[] args, CancellationToken token)
+    private static async Task MainAsync(string[] _, CancellationToken token)
     {
         Console.WriteLine(Console.WindowWidth);
         await Task.Delay(3000, token);
