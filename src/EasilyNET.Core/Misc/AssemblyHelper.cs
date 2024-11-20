@@ -1,9 +1,7 @@
 using System.Collections.Concurrent;
-using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.Loader;
-using Microsoft.Extensions.DependencyModel;
 
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
@@ -23,7 +21,7 @@ public static class AssemblyHelper
     static AssemblyHelper()
     {
         AllAssemblies = LoadAssemblies();
-        AllTypes = AllAssemblies.SelectMany(c => c.GetTypes());
+        AllTypes = AllAssemblies.SelectMany(c => c.DefinedTypes);
     }
 
     /// <summary>
@@ -39,11 +37,22 @@ public static class AssemblyHelper
     /// <summary>
     /// 根据程序集名字得到程序集
     /// </summary>
-    /// <param name="assemblyNames"></param>
+    /// <param name="assemblyNames">Assembly FullName</param>
     /// <returns></returns>
     public static IEnumerable<Assembly> GetAssembliesByName(params string[] assemblyNames)
     {
-        return assemblyNames.Select(name => AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(AppContext.BaseDirectory, $"{name}.dll")));
+        return assemblyNames.Select(name =>
+        {
+            // ReSharper disable once InvertIf
+            if (AssemblyCache.TryGetValue(name, out var assembly))
+            {
+                if (assembly is not null)
+                {
+                    return assembly;
+                }
+            }
+            return AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(AppContext.BaseDirectory, $"{name}.dll"));
+        });
     }
 
     /// <summary>
@@ -72,37 +81,17 @@ public static class AssemblyHelper
 
     private static IEnumerable<Assembly> LoadAssemblies()
     {
-        var assemblyNames = DependencyContext.Default?.GetDefaultAssemblyNames().Where(c => c.Name is not null).ToFrozenSet();
-        if (assemblyNames is null) yield break;
-        var batchSize = (int)Math.Ceiling((double)assemblyNames.Count / Environment.ProcessorCount); // 计算每组的大小
+        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+        if (assemblies.Length is 0) yield break;
         var loadedAssemblies = new ConcurrentBag<Assembly>();
-        if (assemblyNames.Count >= Environment.ProcessorCount)
-        {
-            var batches = assemblyNames.Select((name, index) => new { name, index })
-                                       .GroupBy(x => x.index / batchSize)
-                                       .Select(g => g.Select(x => x.name));
-            Parallel.ForEach(batches, batch =>
-            {
-                foreach (var assemblyName in batch)
-                {
-                    LoadAssembly(assemblyName, loadedAssemblies);
-                }
-            });
-        }
-        else
-        {
-            foreach (var assemblyName in assemblyNames)
-            {
-                LoadAssembly(assemblyName, loadedAssemblies);
-            }
-        }
+        Parallel.ForEach(assemblies, assembly => LoadAssembly(assembly.GetName(), ref loadedAssemblies));
         foreach (var assembly in loadedAssemblies)
         {
             yield return assembly;
         }
     }
 
-    private static void LoadAssembly(AssemblyName assemblyName, ConcurrentBag<Assembly> loadedAssemblies)
+    private static void LoadAssembly(AssemblyName assemblyName, ref ConcurrentBag<Assembly> loadedAssemblies)
     {
         if (AssemblyCache.TryGetValue(assemblyName.FullName, out var cachedAssembly))
         {
@@ -116,19 +105,23 @@ public static class AssemblyHelper
         {
             var assembly = Assembly.Load(assemblyName);
             AssemblyCache[assemblyName.FullName] = assembly;
-            // 预检查程序集中的类型，确保可以加载
-            _ = assembly.GetTypes();
+            _ = assembly.GetTypes(); // Pre-check types to ensure they can be loaded
             loadedAssemblies.Add(assembly);
+        }
+        catch (NotSupportedException)
+        {
+            AssemblyCache[assemblyName.FullName] = null;
+            Debug.WriteLine($"Unable to load assembly: {assemblyName.Name}, skipping.");
         }
         catch (ReflectionTypeLoadException)
         {
             AssemblyCache[assemblyName.FullName] = null;
-            Debug.WriteLine($"无法加载程序集中的某些类型: {assemblyName.Name}, 将跳过.");
+            Debug.WriteLine($"Unable to load some types in assembly: {assemblyName.Name}, skipping.");
         }
         catch (Exception ex)
         {
             AssemblyCache[assemblyName.FullName] = null;
-            Debug.WriteLine($"加载程序集失败: {assemblyName.Name}, 错误: {ex.Message}");
+            Debug.WriteLine($"Failed to load assembly: {assemblyName.Name}, error: {ex.Message}");
         }
     }
 }

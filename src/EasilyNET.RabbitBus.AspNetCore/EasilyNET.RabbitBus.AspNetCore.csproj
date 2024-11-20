@@ -19,7 +19,6 @@
     <PackageReference Include="MessagePack" />
     <PackageReference Include="Microsoft.Extensions.Resilience" />
     <PackageReference Include="RabbitMQ.Client" />
-    <PackageReference Include="Microsoft.Extensions.DependencyModel" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>

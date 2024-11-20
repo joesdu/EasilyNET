@@ -26,7 +26,6 @@
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.0.0" />
     <!--microsoft asp.net core -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Resilience" Version="9.0.0" />
