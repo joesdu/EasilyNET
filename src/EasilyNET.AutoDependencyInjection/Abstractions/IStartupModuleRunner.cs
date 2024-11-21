@@ -1,7 +1,7 @@
 namespace EasilyNET.AutoDependencyInjection.Abstractions;
 
 /// <inheritdoc />
-public interface IStartupModuleRunner : IModuleApplication
+internal interface IStartupModuleRunner : IModuleApplication
 {
     /// <summary>
     /// 初始化

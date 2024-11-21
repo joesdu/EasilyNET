@@ -12,9 +12,9 @@ namespace WebApi.Test.Unit.ServiceModules;
 internal sealed class MongoModule : AppModule
 {
     /// <inheritdoc />
-    public override void ConfigureServices(ConfigureServicesContext context)
+    public override async Task ConfigureServices(ConfigureServicesContext context)
     {
-        var config = context.Services.GetConfiguration();
+        var config = context.ServiceProvider.GetConfiguration();
         // MongoDB服务初始化完整例子
         //context.Services.AddMongoContext<DbContext>(new MongoClientSettings
         //{
@@ -32,7 +32,7 @@ internal sealed class MongoModule : AppModule
         //        typeof(MongoTest2)
         //    };
         //    // 是否使用HoyoMongo的一些默认转换配置.包含如下内容:
-        //    // 1.小驼峰字段名称 如: pageSize ,linkPhone 
+        //    // 1.小驼峰字段名称 如: pageSize ,linkPhone
         //    // 2.忽略代码中未定义的字段
         //    // 3.将ObjectID字段 _id 映射到实体中的ID或者Id字段,反之亦然.在存入数据的时候将Id或者ID映射为 _id
         //    // 4.将枚举类型存储为字符串, 如: Gender.男 存储到数据中为 男,而不是 int 类型
@@ -99,5 +99,6 @@ internal sealed class MongoModule : AppModule
         context.Services.RegisterSerializer(new TimeOnlySerializerAsString());
         context.Services.RegisterSerializer(new JsonNodeSerializer());
         context.Services.RegisterDynamicSerializer();
+        await Task.CompletedTask;
     }
 }

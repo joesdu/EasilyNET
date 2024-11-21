@@ -26,20 +26,19 @@ namespace WebApi.Test.Unit;
 internal sealed class AppWebModule : AppModule
 {
     /// <inheritdoc />
-    public override void ConfigureServices(ConfigureServicesContext context)
+    public override async Task ConfigureServices(ConfigureServicesContext context)
     {
-        base.ConfigureServices(context);
         // 添加 ProblemDetails 服务
         context.Services.AddProblemDetails();
         context.Services.AddExceptionHandler<BusinessExceptionHandler>();
         // 添加HttpContextAccessor
         context.Services.AddHttpContextAccessor();
+        await base.ConfigureServices(context);
     }
 
     /// <inheritdoc />
-    public override void ApplicationInitialization(ApplicationContext context)
+    public override async Task ApplicationInitialization(ApplicationContext context)
     {
-        base.ApplicationInitialization(context);
         var app = context.GetApplicationHost() as IApplicationBuilder;
         // 全局异常处理中间件
         app?.UseExceptionHandler();
@@ -48,5 +47,6 @@ internal sealed class AppWebModule : AppModule
         app?.UseAuthentication();
         // 再授权
         app?.UseAuthorization();
+        await base.ApplicationInitialization(context);
     }
 }

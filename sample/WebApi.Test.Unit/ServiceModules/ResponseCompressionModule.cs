@@ -10,13 +10,8 @@ namespace WebApi.Test.Unit.ServiceModules;
 /// </summary>
 internal sealed class ResponseCompressionModule : AppModule
 {
-    public ResponseCompressionModule()
-    {
-        Enable = false;
-    }
-
     /// <inheritdoc />
-    public override void ConfigureServices(ConfigureServicesContext context)
+    public override async Task ConfigureServices(ConfigureServicesContext context)
     {
         context.Services.AddResponseCompression(c =>
         {
@@ -37,10 +32,11 @@ internal sealed class ResponseCompressionModule : AppModule
         });
         context.Services.Configure<BrotliCompressionProviderOptions>(c => c.Level = CompressionLevel.SmallestSize);
         context.Services.Configure<GzipCompressionProviderOptions>(c => c.Level = CompressionLevel.SmallestSize);
+        await base.ConfigureServices(context);
     }
 
     /// <inheritdoc />
-    public override void ApplicationInitialization(ApplicationContext context)
+    public override async Task ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationHost() as IApplicationBuilder;
         app?.UseResponseCompression();
@@ -49,5 +45,6 @@ internal sealed class ResponseCompressionModule : AppModule
             c.Response.Headers.Add(new("Vary", "Accept-Encoding"));
             await next();
         });
+        await Task.CompletedTask;
     }
 }

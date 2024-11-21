@@ -8,14 +8,14 @@ namespace WebApi.Test.Unit.ServiceModules;
 internal sealed class GarnetDistributedCacheModule : AppModule
 {
     /// <inheritdoc />
-    public override void ConfigureServices(ConfigureServicesContext context)
+    public override async Task ConfigureServices(ConfigureServicesContext context)
     {
-        var garnet = context.Services.GetConfiguration().GetConnectionString("Garnet");
+        var garnet = context.ServiceProvider.GetConfiguration().GetConnectionString("Garnet");
         context.Services.AddStackExchangeRedisCache(c =>
         {
             c.Configuration = garnet;
             c.InstanceName = Constant.InstanceName;
         });
-        base.ConfigureServices(context);
+        await base.ConfigureServices(context);
     }
 }

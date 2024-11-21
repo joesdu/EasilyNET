@@ -19,7 +19,7 @@ public static class ServiceCollectionExtension
     /// </summary>
     /// <param name="context"></param>
     /// <returns></returns>
-    public static IHost GetApplicationHost(this ApplicationContext context) => context.ServiceProvider.GetRequiredService<IObjectAccessor<IHost>>().Value!;
+    public static IHost GetApplicationHost(this ApplicationContext context) => context.ServiceProvider.GetRequiredService<IObjectAccessor<IHost>>().Value ?? throw new ArgumentNullException(nameof(context));
 
     /// <summary>
     /// 注入服务
@@ -46,17 +46,6 @@ public static class ServiceCollectionExtension
         var runner = host.Services.GetRequiredService<IStartupModuleRunner>();
         runner.Initialize();
         return host;
-    }
-
-    /// <summary>
-    /// 获取 <see cref="IConfiguration" /> 服务
-    /// </summary>
-    /// <param name="services"></param>
-    /// <returns></returns>
-    public static IConfiguration GetConfiguration(this IServiceCollection services)
-    {
-        var provider = services.BuildServiceProvider();
-        return provider.GetRequiredService<IConfiguration>();
     }
 
     /// <summary>

@@ -1,17 +1,24 @@
 #### EasilyNET.AutoDependencyInjection
 
-- 新增KeyedService支持,可在 DependencyInjectionAttribute 中看到对应的 ServiceKey 属性,用于标识服务的 Key 值.
+- 新增 KeyedService 支持,可在 `DependencyInjectionAttribute` 中看到对应的 `ServiceKey` 属性,用于标识服务的 Key 值.
 - 新增 WPF, WinForms, WinUI3 项目支持.(仅限于 .NET 的项目,不支持 .NET Framework)
 - 经测试是支持 WinUI 3 类型的项目的,但是需要注意的是,WinUI 3 项目的启动方式和 WPF 项目不一样,需要自行调整.
 - [WPF例子](https://github.com/joesdu/WpfAutoDISample) 已同步到最新代码.
 - [WinForms例子](https://github.com/joesdu/WinFormAutoDISample) 已同步到最新代码.
 - [WinUI3例子](https://github.com/joesdu/WinUIAutoDISample) 暂时没同步到最新版本,可以自己更新一下,目前暂时没有WinUI环境所以没更新.
 
-##### 中断性变更
+##### 新增特性
 
-- 移除使用 IScopedDependency, ISingletonDependency, ITransientDependency 接口的方式,仅使用特性注入的方式.保持设计简洁性.
+- 新增 `GetEnable` 函数,该函数未重写的情况下默认返回 `true`,可通过重写该函数,实现从配置文件中读取是否启用服务.<br/>比如
+  `SwaggerUI` 服务,我们可能仅希望在预发布模式中启用,为前端工程师提供 `SwaggerUI`,当部署到生产环境后,通过直接修改配置文件,即可关闭
+  `SwaggerUI`.
+- 移除掉原有 `Enable` 属性,改为 `GetEnable` 函数,用于更灵活的配置服务.
 
-##### 变化
+#### 中断性变更
+
+- 调整 `ConfigureServices` 和 `ApplicationInitialization` 为异步方式,便于在某些时候初始化服务的时候使用异步版本.
+
+##### WPF中的使用
 
 由于新增了 WPF 项目支持,所以在使用时需要注意以下几点:
 WPF 项目中,使用依赖注入,需要在 App.xaml.cs 中添加如下代码:
@@ -37,7 +44,7 @@ private static IHostBuilder CreateHostBuilder(string[] args)
 }
 ```
 
-同时还需要调整 .csproj 文件,添加如下代码:
+同时还需要调整 `.csproj` 文件,添加如下代码:
 
 ```xml
 <ItemGroup>
@@ -46,7 +53,8 @@ private static IHostBuilder CreateHostBuilder(string[] args)
 </ItemGroup>
 ```
 
-再在 WPF 项目中,使用依赖注入,需要在 AppServiceModules.cs 中添加如下代码: 该类的使用方法和 Web 项目中的 AppWebModule.cs
+再在 WPF 项目中,使用依赖注入,需要在 `AppServiceModules.cs` 中添加如下代码: 该类的使用方法和 Web 项目中的
+`AppWebModule.cs`
 一样.
 
 ```csharp
@@ -54,7 +62,7 @@ private static IHostBuilder CreateHostBuilder(string[] args)
 internal sealed class AppServiceModules : AppModule { }
 ```
 
-在 WPF 项目中,使用依赖注入,需要在 MainWindow.xaml.cs 中继承接口或者添加 DependencyInjection 特性如下代码:
+在 WPF 项目中,使用依赖注入,需要在 `MainWindow.xaml.cs` 中继承接口或者添加 `DependencyInjection` 特性如下代码:
 
 ```csharp
 // 使用特性配置注入信息
@@ -105,24 +113,33 @@ public class XXXService : IXXXService
 /// </summary>
 public class CorsModule : AppModule
 {
+    // 新增函数,用于可从配置文件读取是否启用服务
+    public override bool GetEnable(ConfigureServicesContext context)
+    {
+        var config = context.ServiceProvider.GetConfiguration();
+        return config.GetSection("ServicesEnable").GetValue<bool>("Cors");
+    }
+
     /// <summary>
     /// 注册和配置服务
     /// </summary>
     /// <param name="context"></param>
-    public override void ConfigureServices(ConfigureServicesContext context)
+    public override async Task ConfigureServices(ConfigureServicesContext context)
     {
-        var config = context.Services.GetConfiguration();
+        var config = context.ServiceProvider.GetConfiguration();
         var allow = config["AllowedHosts"] ?? "*";
         _ = context.Services.AddCors(c => c.AddPolicy("AllowedHosts", s => s.WithOrigins(allow.Split(",")).AllowAnyMethod().AllowAnyHeader()));
+        await Task.CompletedTask;
     }
     /// <summary>
     /// 注册中间件
     /// </summary>
     /// <param name="context"></param>
-    public override void ApplicationInitialization(ApplicationContext context)
+    public override async Task ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationBuilder() as IApplicationBuilder;
         _ = app.UseCors("AllowedHosts");
+        await Task.CompletedTask;
     }
 }
 ```
@@ -143,21 +160,21 @@ public class AppWebModule : AppModule
     /// 注册和配置服务
     /// </summary>
     /// <param name="context"></param>
-    public override void ConfigureServices(ConfigureServicesContext context)
+    public override async Task ConfigureServices(ConfigureServicesContext context)
     {
-        base.ConfigureServices(context);
         _ = context.Services.AddHttpContextAccessor();
+        await base.ConfigureServices(context);
     }
     /// <summary>
     /// 注册中间件
     /// </summary>
     /// <param name="context"></param>
-    public override void ApplicationInitialization(ApplicationContext context)
+    public override async Task ApplicationInitialization(ApplicationContext context)
     {
-        base.ApplicationInitialization(context);
         var app = context.GetApplicationBuilder() as IApplicationBuilder;
         _ = app.UseAuthorization();
         // 这里可添加自己的中间件
+        await base.ApplicationInitialization(context);
     }
 }
 ```

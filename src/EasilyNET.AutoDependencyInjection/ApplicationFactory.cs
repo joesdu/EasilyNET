@@ -9,7 +9,7 @@ namespace EasilyNET.AutoDependencyInjection;
 /// <summary>
 /// 应用工厂
 /// </summary>
-public static class ApplicationFactory
+internal static class ApplicationFactory
 {
     /// <summary>
     /// 创建
