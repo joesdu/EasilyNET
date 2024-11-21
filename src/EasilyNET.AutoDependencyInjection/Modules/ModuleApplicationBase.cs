@@ -13,25 +13,19 @@ namespace EasilyNET.AutoDependencyInjection.Modules;
 internal class ModuleApplicationBase : IModuleApplication
 {
     /// <summary>
-    /// 构造函数
-    /// </summary>
-    /// <param name="startupModuleType"></param>
-    /// <param name="services"></param>
-    protected ModuleApplicationBase(Type? startupModuleType, IServiceCollection? services)
-    {
-        ArgumentNullException.ThrowIfNull(startupModuleType, nameof(startupModuleType));
-        ArgumentNullException.ThrowIfNull(services, nameof(services));
-        ServiceProvider = null;
-        StartupModuleType = startupModuleType;
-        Services = services;
-        GetAllEnabledModule();
-        LoadModules();
-    }
-
-    /// <summary>
     /// 启动模块类型
     /// </summary>
-    public Type StartupModuleType { get; }
+    private readonly Type _startModuleType;
+
+    protected ModuleApplicationBase(Type? startModuleType, IServiceCollection? services)
+    {
+        ArgumentNullException.ThrowIfNull(startModuleType, nameof(startModuleType));
+        ArgumentNullException.ThrowIfNull(services, nameof(services));
+        _startModuleType = startModuleType;
+        Services = services;
+        ServiceProvider = services.BuildServiceProvider();
+        GetModules();
+    }
 
     /// <summary>
     /// IServiceCollection
@@ -41,17 +35,12 @@ internal class ModuleApplicationBase : IModuleApplication
     /// <summary>
     /// IServiceProvider?
     /// </summary>
-    public IServiceProvider? ServiceProvider { get; private set; }
+    public IServiceProvider ServiceProvider { get; }
 
     /// <summary>
-    /// 模块接口容器
+    /// 模块接口
     /// </summary>
     public IList<IAppModule> Modules { get; } = [];
-
-    /// <summary>
-    /// Source
-    /// </summary>
-    public ConcurrentBag<IAppModule> Source { get; } = [];
 
     /// <inheritdoc />
     public virtual void Dispose()
@@ -64,14 +53,15 @@ internal class ModuleApplicationBase : IModuleApplication
     /// 获取所有需要加载的模块
     /// </summary>
     /// <returns></returns>
-    private void LoadModules()
+    private void GetModules()
     {
-        var module = Source.FirstOrDefault(o => o.GetType() == StartupModuleType) ?? throw new($"类型为“{StartupModuleType.FullName}”的模块实例无法找到");
+        var sources = GetAllEnabledModule();
+        var module = sources.FirstOrDefault(o => o.GetType() == _startModuleType) ?? throw new($"类型为“{_startModuleType.FullName}”的模块实例无法找到");
         Modules.Add(module);
         var depends = module.GetDependedTypes();
         foreach (var dependType in depends)
         {
-            var dependModule = Source.FirstOrDefault(m => m.GetType() == dependType);
+            var dependModule = sources.FirstOrDefault(m => m.GetType() == dependType);
             if (dependModule is not null && !Modules.Contains(dependModule))
             {
                 Modules.Add(dependModule);
@@ -83,24 +73,20 @@ internal class ModuleApplicationBase : IModuleApplication
     /// 获取所有启用的模块
     /// </summary>
     /// <returns></returns>
-    private void GetAllEnabledModule()
+    private ConcurrentBag<IAppModule> GetAllEnabledModule()
     {
         var types = AssemblyHelper.AllTypes.Where(AppModule.IsAppModule);
+        var source = new ConcurrentBag<IAppModule>();
         Parallel.ForEach(types, type =>
         {
             var module = CreateModule(type);
             if (module is not null)
             {
-                Source.Add(module);
+                source.Add(module);
             }
         });
+        return source;
     }
-
-    /// <summary>
-    /// 设置 <see cref="ServiceProvider" />
-    /// </summary>
-    /// <param name="serviceProvider"></param>
-    protected void SetServiceProvider(IServiceProvider serviceProvider) => ServiceProvider = serviceProvider;
 
     /// <summary>
     /// 创建模块
@@ -108,11 +94,11 @@ internal class ModuleApplicationBase : IModuleApplication
     /// <param name="moduleType"></param>
     /// <exception cref="ArgumentNullException"></exception>
     /// <returns></returns>
-    private static IAppModule? CreateModule(Type moduleType)
+    private IAppModule? CreateModule(Type moduleType)
     {
         var module = Expression.Lambda(Expression.New(moduleType)).Compile().DynamicInvoke() as IAppModule;
         ArgumentNullException.ThrowIfNull(module, nameof(moduleType));
-        if (module.Enable) return module;
+        if (module.GetEnable(new(Services, ServiceProvider))) return module;
 #if DEBUG
         Console.Error.WriteLine($"{moduleType.Name} is disabled");
 #endif
@@ -122,8 +108,7 @@ internal class ModuleApplicationBase : IModuleApplication
     protected void InitializeModules()
     {
         ArgumentNullException.ThrowIfNull(ServiceProvider, nameof(ServiceProvider));
-        using var scope = ServiceProvider.CreateScope();
-        var ctx = new ApplicationContext(scope.ServiceProvider);
+        var ctx = new ApplicationContext(ServiceProvider);
         foreach (var cfg in Modules) cfg.ApplicationInitialization(ctx);
     }
 }

@@ -12,13 +12,7 @@ namespace WebApi.Test.Unit.ServiceModules;
 internal sealed class MongoFSModule : AppModule
 {
     /// <inheritdoc />
-    public MongoFSModule()
-    {
-        Enable = true;
-    }
-
-    /// <inheritdoc />
-    public override void ConfigureServices(ConfigureServicesContext context)
+    public override async Task ConfigureServices(ConfigureServicesContext context)
     {
         context.Services.Configure<FormOptions>(c =>
                {
@@ -29,5 +23,6 @@ internal sealed class MongoFSModule : AppModule
                .Configure<KestrelServerOptions>(c => c.Limits.MaxRequestBodySize = null)
                .Configure<IISServerOptions>(c => c.MaxRequestBodySize = null);
         context.Services.AddMongoGridFS();
+        await Task.CompletedTask;
     }
 }

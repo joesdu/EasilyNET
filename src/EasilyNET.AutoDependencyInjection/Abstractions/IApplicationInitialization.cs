@@ -11,5 +11,5 @@ public interface IApplicationInitialization
     /// 应用初始化
     /// </summary>
     /// <param name="context"></param>
-    void ApplicationInitialization(ApplicationContext context);
+    Task ApplicationInitialization(ApplicationContext context);
 }

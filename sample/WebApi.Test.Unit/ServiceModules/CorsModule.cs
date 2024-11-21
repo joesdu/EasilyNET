@@ -9,17 +9,19 @@ namespace WebApi.Test.Unit.ServiceModules;
 internal sealed class CorsModule : AppModule
 {
     /// <inheritdoc />
-    public override void ConfigureServices(ConfigureServicesContext context)
+    public override async Task ConfigureServices(ConfigureServicesContext context)
     {
-        var config = context.Services.GetConfiguration();
+        var config = context.ServiceProvider.GetConfiguration();
         var allow = config["AllowedHosts"] ?? "*";
         context.Services.AddCors(c => c.AddPolicy("AllowedHosts", s => s.WithOrigins(allow.Split(",")).AllowAnyMethod().AllowAnyHeader()));
+        await Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    public override void ApplicationInitialization(ApplicationContext context)
+    public override Task ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationHost() as IApplicationBuilder;
         app?.UseCors("AllowedHosts");
+        return Task.CompletedTask;
     }
 }

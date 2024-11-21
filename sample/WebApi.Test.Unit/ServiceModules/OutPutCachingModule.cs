@@ -10,20 +10,22 @@ namespace WebApi.Test.Unit.ServiceModules;
 internal sealed class OutPutCachingModule : AppModule
 {
     /// <inheritdoc />
-    public override void ConfigureServices(ConfigureServicesContext context)
+    public override async Task ConfigureServices(ConfigureServicesContext context)
     {
-        var garnet = context.Services.GetConfiguration().GetConnectionString("Garnet");
+        var garnet = context.ServiceProvider.GetConfiguration().GetConnectionString("Garnet");
         context.Services.AddStackExchangeRedisOutputCache(c =>
         {
             c.Configuration = garnet;
             c.InstanceName = Constant.InstanceName;
         });
+        await base.ConfigureServices(context);
     }
 
     /// <inheritdoc />
-    public override void ApplicationInitialization(ApplicationContext context)
+    public override async Task ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationHost() as IApplicationBuilder;
         app?.UseOutputCache();
+        await base.ApplicationInitialization(context);
     }
 }

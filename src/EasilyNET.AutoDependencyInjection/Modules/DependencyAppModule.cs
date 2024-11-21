@@ -9,20 +9,16 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace EasilyNET.AutoDependencyInjection.Modules;
 
-/// <summary>
-/// 自动注入模块，继承与AppModuleBase类进行实现
-/// </summary>
+/// <inheritdoc />
 // ReSharper disable once UnusedMember.Global
 public sealed class DependencyAppModule : AppModule
 {
-    /// <summary>
-    /// 注册服务
-    /// </summary>
-    /// <param name="context"></param>
-    public override void ConfigureServices(ConfigureServicesContext context)
+    /// <inheritdoc />
+    public override async Task ConfigureServices(ConfigureServicesContext context)
     {
         var services = context.Services;
         AddAutoInjection(services);
+        await Task.CompletedTask;
     }
 
     /// <summary>
@@ -78,14 +74,5 @@ public sealed class DependencyAppModule : AppModule
     {
         var attr = type.GetCustomAttribute<DependencyInjectionAttribute>();
         return attr?.Lifetime;
-    }
-
-    /// <summary>
-    /// 应用初始化,通常用来注册中间件.
-    /// </summary>
-    /// <param name="context"></param>
-    public override void ApplicationInitialization(ApplicationContext context)
-    {
-        context.GetApplicationHost();
     }
 }

@@ -2,20 +2,16 @@ using EasilyNET.AutoDependencyInjection.Contexts;
 
 namespace EasilyNET.AutoDependencyInjection.Abstractions;
 
-/// <inheritdoc />
+/// <summary>
+/// App模块接口
+/// </summary>
 public interface IAppModule : IApplicationInitialization
 {
-    /// <summary>
-    /// 是否启用
-    /// </summary>
-    // ReSharper disable once UnusedMember.Global
-    bool Enable { get; set; }
-
     /// <summary>
     /// 配置服务
     /// </summary>
     /// <param name="context"></param>
-    void ConfigureServices(ConfigureServicesContext context);
+    Task ConfigureServices(ConfigureServicesContext context);
 
     /// <summary>
     /// 服务依赖集合
@@ -23,4 +19,10 @@ public interface IAppModule : IApplicationInitialization
     /// <param name="moduleType"></param>
     /// <returns></returns>
     IEnumerable<Type> GetDependedTypes(Type? moduleType = null);
+
+    /// <summary>
+    /// 获取是否启用,从配置中获取
+    /// </summary>
+    /// <returns></returns>
+    bool GetEnable(ConfigureServicesContext context);
 }

@@ -1,9 +1,7 @@
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-#if DEBUG
 using Microsoft.OpenApi.Models;
-#endif
 
 namespace WebApi.Test.Unit.ServiceModules;
 
@@ -14,15 +12,15 @@ internal sealed class SwaggerModule : AppModule
 {
     /// https://github.com/domaindrivendev/Swashbuckle.AspNetCore
     /// <inheritdoc />
-    public SwaggerModule()
+    public override bool GetEnable(ConfigureServicesContext context)
     {
-        Enable = true;
+        var config = context.ServiceProvider.GetConfiguration();
+        return config.GetSection("ServicesEnable").GetValue<bool>("Swagger");
     }
 
     /// <inheritdoc />
-    public override void ConfigureServices(ConfigureServicesContext context)
+    public override async Task ConfigureServices(ConfigureServicesContext context)
     {
-#if DEBUG
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         context.Services.AddSwaggerGen(c =>
         {
@@ -38,15 +36,14 @@ internal sealed class SwaggerModule : AppModule
                 Scheme = JwtBearerDefaults.AuthenticationScheme
             });
         });
-#endif
+        await Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    public override void ApplicationInitialization(ApplicationContext context)
+    public override async Task ApplicationInitialization(ApplicationContext context)
     {
-#if DEBUG
         var app = context.GetApplicationHost() as IApplicationBuilder;
         app?.UseEasilySwaggerUI();
-#endif
+        await base.ApplicationInitialization(context);
     }
 }

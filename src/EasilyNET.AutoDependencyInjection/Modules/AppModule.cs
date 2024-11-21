@@ -7,22 +7,14 @@ namespace EasilyNET.AutoDependencyInjection.Modules;
 /// <inheritdoc />
 public class AppModule : IAppModule
 {
-    /// <summary>
-    /// 是否启用,默认为 <see langword="true" />
-    /// </summary>
-    public bool Enable { get; set; } = true;
+    /// <inheritdoc />
+    public virtual Task ConfigureServices(ConfigureServicesContext context) => Task.CompletedTask;
 
-    /// <summary>
-    /// 配置服务
-    /// </summary>
-    /// <param name="context"></param>
-    public virtual void ConfigureServices(ConfigureServicesContext context) { }
+    /// <inheritdoc />
+    public virtual Task ApplicationInitialization(ApplicationContext context) => Task.CompletedTask;
 
-    /// <summary>
-    /// 应用程序初始化
-    /// </summary>
-    /// <param name="context"></param>
-    public virtual void ApplicationInitialization(ApplicationContext context) { }
+    /// <inheritdoc />
+    public virtual bool GetEnable(ConfigureServicesContext context) => true;
 
     /// <summary>
     /// 获取模块程序集

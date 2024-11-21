@@ -10,20 +10,15 @@ namespace WebApi.Test.Unit.ServiceModules;
 internal sealed class RabbitModule : AppModule
 {
     /// <inheritdoc />
-    public RabbitModule()
+    public override async Task ConfigureServices(ConfigureServicesContext context)
     {
-        Enable = true;
-    }
-
-    /// <inheritdoc />
-    public override void ConfigureServices(ConfigureServicesContext context)
-    {
-        var config = context.Services.GetConfiguration();
+        var config = context.ServiceProvider.GetConfiguration();
         context.Services.AddRabbitBus(config, c =>
         {
             c.PoolCount = (uint)Environment.ProcessorCount;
             c.RetryCount = 5;
             c.Serializer = ESerializer.TextJson;
         });
+        await Task.CompletedTask;
     }
 }
