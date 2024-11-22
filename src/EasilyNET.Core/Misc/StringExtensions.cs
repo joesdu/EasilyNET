@@ -362,24 +362,16 @@ public static partial class StringExtensions
     }
 
     /// <summary>
-    /// 使用指针的方式反转字符串,该函数会修改原字符串.该函数不安全,由于.NET会缓存相同字符串,反转后会使所有使用地方的字符串都被反转,所以该函数可能会对程序造成未知的影响.
+    /// 使用安全的方式反转字符串,该函数不会修改原字符串.
     /// </summary>
     /// <param name="value">待反转字符串</param>
-    public static unsafe void Reverse(this string value)
+    /// <returns>反转后的字符串</returns>
+    public static string Reverse(this string value)
     {
-        fixed (char* pText = value)
-        {
-            var pStart = pText;
-            var pEnd = (pText + value.Length) - 1;
-            while (pStart < pEnd)
-            {
-                *pStart ^= *pEnd;
-                *pEnd ^= *pStart;
-                *pStart ^= *pEnd;
-                pStart++;
-                pEnd--;
-            }
-        }
+        if (string.IsNullOrEmpty(value)) return value;
+        var charArray = value.ToCharArray();
+        Array.Reverse(charArray);
+        return new(charArray);
     }
 
     /// <summary>
