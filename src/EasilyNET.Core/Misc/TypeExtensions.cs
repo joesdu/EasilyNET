@@ -19,7 +19,7 @@ public static partial class TypeExtensions
     /// </summary>
     /// <param name="type">要处理的类型</param>
     /// <returns>是返回True，不是返回False</returns>
-    public static bool IsNullable(this Type type) => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
+    public static bool IsNullable(this Type type) => Nullable.GetUnderlyingType(type) != null;
 
     /// <summary>
     /// 判断当前类型是否可由指定类型派生
@@ -62,21 +62,9 @@ public static partial class TypeExtensions
     {
         type.NotNull(nameof(type));
         generic.NotNull(nameof(generic));
-        // 测试接口。
-        var isTheRawGenericType = type.GetInterfaces().Any(IsTheRawGenericType);
-        if (isTheRawGenericType) return true;
-        // 测试类型。
-        while (type != typeof(object))
-        {
-            isTheRawGenericType = IsTheRawGenericType(type);
-            if (isTheRawGenericType) return true;
-            type = type.BaseType!;
-        }
-        // 没有找到任何匹配的接口或类型。
-        return false;
-
-        // 测试某个类型是否是指定的原始接口。
-        bool IsTheRawGenericType(Type test) => generic == (test.IsGenericType ? test.GetGenericTypeDefinition() : test);
+        return type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == generic) ||
+               (type.IsGenericType && type.GetGenericTypeDefinition() == generic) ||
+               (type.BaseType != null && type.BaseType.HasImplementedRawGeneric(generic));
     }
 
     /// <summary>
@@ -84,12 +72,7 @@ public static partial class TypeExtensions
     /// </summary>
     /// <param name="type"> 要处理的类型对象 </param>
     /// <returns> 基础类型 </returns>
-    public static Type GetUnNullableType(this Type type)
-    {
-        if (!type.IsNullable()) return type;
-        NullableConverter nullableConverter = new(type);
-        return nullableConverter.UnderlyingType;
-    }
+    public static Type GetUnNullableType(this Type type) => Nullable.GetUnderlyingType(type) ?? type;
 
     /// <summary>
     /// 是否是 ValueTuple
@@ -111,7 +94,7 @@ public static partial class TypeExtensions
     /// </summary>
     /// <param name="type">type</param>
     /// <returns>当前类型实现的接口的集合。</returns>
-    public static IEnumerable<Type> GetImplementedInterfaces(this Type type) => type.GetTypeInfo().ImplementedInterfaces;
+    public static IEnumerable<Type> GetImplementedInterfaces(this Type type) => type.GetInterfaces();
 
     /// <summary>
     /// 获取类型的描述信息
@@ -140,7 +123,6 @@ public static partial class TypeExtensions
     {
         var desc = member.GetCustomAttribute<DescriptionAttribute>();
         if (desc is not null) return desc.Description;
-        //显示名
         var display = member.GetCustomAttribute<DisplayNameAttribute>();
         return display is not null ? display.DisplayName : member.Name;
     }

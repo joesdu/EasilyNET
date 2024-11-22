@@ -19,14 +19,6 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <ItemGroup>
-    <!-- ServiceCollectionExtension.cs 已经被 .NET SDK 默认包含 -->
-    <!-- 只需要为 ServiceCollectionExtension.p.cs 指定嵌套关系 -->
-    <Compile Update="TextWriterExtensions.p.cs">
-      <DependentUpon>TextWriterExtensions.cs</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <PackageReference Include="Backport.System.Threading.Lock" />
   </ItemGroup>

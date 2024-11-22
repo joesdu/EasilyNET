@@ -38,7 +38,7 @@ EasilyNET Packages
 
 - AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4 加密,验签等算法
 - 基于 RabbitMQ 的消息总线实现
-- 对 MongoDB 驱动的一些封装,方便使用以及一些常用的默认配置
+- 对 MongoDB 驱动的一些封装,方便使用以及一些常用默认配置
 - 雪花 ID,一些常用的数据类型,枚举,扩展方法等
 - 自动模块化注入服务,新增支持 WPF,WinForm 等项目,需使用 IHost 通用主机模式
 - MongoDB 添加 DateOnly 和 TimeOnly 的支持(序列化到 String 或 long), dynamic 类型支持
@@ -62,7 +62,7 @@ EasilyNET Packages
 - Integration of some common filters and middleware in WebAPI.
 - Added support for grouping, hiding APIs, and displaying default values for some data types in Swagger documents,
   making it easier for front-end engineers to refer to.
-- Added personalized output for executing MongoDB commands, Diagnostics datas to APM (EasilyNET.Mongo.ConsoleDebug).
+- Added personalized output for executing MongoDB commands, Diagnostics data to APM (EasilyNET.Mongo.ConsoleDebug).
 - [Usage examples](./sample/WebApi.Test.Unit/README.md) of some libraries.
 
 </details>
