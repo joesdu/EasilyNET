@@ -74,7 +74,7 @@ internal sealed class StringToObjectIdIdGeneratorConvention : ConventionBase, IP
 /// <summary>
 /// 自定义的 StringObjectIdGenerator，用于在插入数据时自动生成 ObjectId
 /// </summary>
-internal class CustomStringObjectIdGenerator : IIdGenerator
+file class CustomStringObjectIdGenerator : IIdGenerator
 {
     /// <summary>
     /// 生成新的Id

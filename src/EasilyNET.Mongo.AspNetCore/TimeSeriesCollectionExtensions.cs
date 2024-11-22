@@ -13,7 +13,7 @@ using MongoDB.Driver;
 namespace EasilyNET.Mongo.AspNetCore;
 
 /// <summary>
-/// MongoExtensions
+/// 时间序列集合扩展类
 /// </summary>
 public static class TimeSeriesCollectionExtensions
 {
@@ -25,7 +25,7 @@ public static class TimeSeriesCollectionExtensions
     private static readonly ConcurrentBag<string> CollectionCache = [];
 
     /// <summary>
-    /// 对标记TimeSeriesCollectionAttribute创建MongoDB的时序集合
+    /// 对标记 <see cref="TimeSeriesCollectionAttribute"/> 的实体对象,自动创建 MongoDB 时序集合
     /// </summary>
     /// <param name="app"></param>
     /// <returns></returns>
@@ -42,7 +42,7 @@ public static class TimeSeriesCollectionExtensions
 
     private static void EnsureTimeSeriesCollections(IMongoDatabase db)
     {
-        var types = AssemblyHelper.FindTypes(o => o is { IsClass: true, IsAbstract: false } && o.HasAttribute<TimeSeriesCollectionAttribute>());
+        var types = AssemblyHelper.FindTypesByAttribute<TimeSeriesCollectionAttribute>(o => o is { IsClass: true, IsAbstract: false });
         foreach (var type in types)
         {
             var attribute = type.GetCustomAttributes<TimeSeriesCollectionAttribute>(false).First();

@@ -9,9 +9,7 @@ using RabbitMQ.Client.Events;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 
-/// <summary>
-/// RabbitMQ持久链接
-/// </summary>
+/// <inheritdoc />
 internal sealed class PersistentConnection : IPersistentConnection
 {
     private readonly RabbitConfig _config;
