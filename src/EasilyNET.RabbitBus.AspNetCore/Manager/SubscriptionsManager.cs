@@ -8,8 +8,8 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <inheritdoc />
 internal sealed class SubscriptionsManager : ISubscriptionsManager
 {
-    private readonly ConcurrentDictionary<string, ConcurrentBag<Type>> _delayedHandlers = new();
-    private readonly ConcurrentDictionary<string, ConcurrentBag<Type>> _normalHandlers = new();
+    private readonly ConcurrentDictionary<string, HashSet<Type>> _delayedHandlers = new();
+    private readonly ConcurrentDictionary<string, HashSet<Type>> _normalHandlers = new();
 
     public void AddSubscription(Type eventType, EKindOfHandler handleKind, IList<TypeInfo> handlerTypes)
     {
@@ -21,8 +21,8 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
     {
         return handleKind switch
         {
-            EKindOfHandler.Normal  => _normalHandlers.GetValueOrDefault(name, []),
-            EKindOfHandler.Delayed => _delayedHandlers.GetValueOrDefault(name, []),
+            EKindOfHandler.Normal  => _normalHandlers.TryGetValue(name, out var normalHandlers) ? normalHandlers : Enumerable.Empty<Type>(),
+            EKindOfHandler.Delayed => _delayedHandlers.TryGetValue(name, out var delayedHandlers) ? delayedHandlers : Enumerable.Empty<Type>(),
             _                      => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
         };
     }
@@ -51,14 +51,14 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
             EKindOfHandler.Delayed => _delayedHandlers,
             _                      => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
         };
-        var handlers = handlersDict.GetOrAdd(name, _ => []);
-        foreach (var handlerType in handlerTypes)
+
+        handlersDict.AddOrUpdate(name, _ => [..handlerTypes], (_, existingHandlers) =>
         {
-            if (handlers.Contains(handlerType))
+            if (handlerTypes.Any(handlerType => !existingHandlers.Add(handlerType)))
             {
                 throw new InvalidOperationException($"Handler type already registered for '{name}'");
             }
-            handlers.Add(handlerType);
-        }
+            return existingHandlers;
+        });
     }
 }

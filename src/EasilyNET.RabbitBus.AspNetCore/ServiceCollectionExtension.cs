@@ -19,7 +19,7 @@ using RabbitMQ.Client.Exceptions;
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
-/// ServiceCollection扩展
+/// RabbitMQ ServiceCollection
 /// </summary>
 public static class ServiceCollectionExtension
 {
@@ -31,17 +31,18 @@ public static class ServiceCollectionExtension
     public static void AddRabbitBus(this IServiceCollection services, Action<RabbitConfig>? action = null) => services.RabbitPersistentConnection(config => action?.Invoke(config)).AddEventBus();
 
     /// <summary>
-    /// 添加消息总线RabbitMQ服务(单节点模式)
+    /// 添加消息总线RabbitMQ服务
     /// </summary>
     /// <param name="services"></param>
-    /// <param name="configuration">IConfiguration,从json配置ConnectionString.Rabbit中获取链接若是不存在则从系统环境变量中获取CONNECTIONSTRINGS_RABBIT</param>
+    /// <param name="configuration"></param>
     /// <param name="action"></param>
+    /// <exception cref="InvalidOperationException"></exception>
     public static void AddRabbitBus(this IServiceCollection services, IConfiguration configuration, Action<RabbitConfig>? action = null)
     {
         var connStr = configuration.GetConnectionString("Rabbit") ?? Environment.GetEnvironmentVariable("CONNECTIONSTRINGS_RABBIT");
         if (string.IsNullOrWhiteSpace(connStr))
         {
-            throw new("💔: appsettings.json中无ConnectionStrings.Rabbit配置或环境变量中不存在CONNECTIONSTRINGS_RABBIT");
+            throw new InvalidOperationException("Configuration error: Missing 'ConnectionStrings.Rabbit' in appsettings.json or 'CONNECTIONSTRINGS_RABBIT' environment variable.");
         }
         services.RabbitPersistentConnection(options =>
         {
@@ -68,36 +69,8 @@ public static class ServiceCollectionExtension
         services.Configure(Constant.OptionName, options);
         services.AddSingleton<IConnectionFactory, ConnectionFactory>(sp =>
         {
-            var conf = sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>();
-            var config = conf.Get(Constant.OptionName);
-            if (config.ConnectionString is not null && !string.IsNullOrWhiteSpace(config.ConnectionString))
-            {
-                return new()
-                {
-                    Uri = new(config.ConnectionString)
-                };
-            }
-            if (config.AmqpTcpEndpoints is not null && config.AmqpTcpEndpoints.Count is not 0)
-            {
-                return new()
-                {
-                    UserName = config.UserName,
-                    Password = config.PassWord,
-                    VirtualHost = config.VirtualHost
-                };
-            }
-            if (config.Host is not null && !string.IsNullOrWhiteSpace(config.Host))
-            {
-                return new()
-                {
-                    HostName = config.Host,
-                    UserName = config.UserName,
-                    Password = config.PassWord,
-                    Port = config.Port,
-                    VirtualHost = config.VirtualHost
-                };
-            }
-            throw new("无法从配置中创建链接");
+            var config = sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>().Get(Constant.OptionName);
+            return CreateConnectionFactory(config);
         });
         services.AddResiliencePipeline(Constant.ResiliencePipelineName, (builder, context) =>
         {
@@ -115,7 +88,7 @@ public static class ServiceCollectionExtension
                 OnRetry = args =>
                 {
                     var ex = args.Outcome.Exception!;
-                    logger.LogWarning(ex, "RabbitMQ客户端在 {TimeOut}s 超时后失败,({ExceptionMessage})", $"{args.Duration:n1}", ex.Message);
+                    logger.LogWarning(ex, "RabbitMQ client failed after a timeout of {TimeOut} seconds. Exception message: {ExceptionMessage}", args.Duration.TotalSeconds, ex.Message);
                     return ValueTask.CompletedTask;
                 }
             });
@@ -125,15 +98,28 @@ public static class ServiceCollectionExtension
         return services;
     }
 
+    private static ConnectionFactory CreateConnectionFactory(RabbitConfig config)
+    {
+        if (!string.IsNullOrWhiteSpace(config.ConnectionString))
+        {
+            return new() { Uri = new(config.ConnectionString) };
+        }
+        if (config.AmqpTcpEndpoints?.Count > 0)
+        {
+            return new() { UserName = config.UserName, Password = config.PassWord, VirtualHost = config.VirtualHost };
+        }
+        if (!string.IsNullOrWhiteSpace(config.Host))
+        {
+            return new() { HostName = config.Host, UserName = config.UserName, Password = config.PassWord, Port = config.Port, VirtualHost = config.VirtualHost };
+        }
+        throw new InvalidOperationException("Configuration error: Unable to create a connection from the provided configuration.");
+    }
+
     private static void AddEventBus(this IServiceCollection services)
     {
         services.InjectHandler();
         services.AddSingleton<IBusSerializerFactory, BusSerializerFactory>();
-        services.AddSingleton(sp =>
-        {
-            var factory = sp.GetRequiredService<IBusSerializerFactory>();
-            return factory.CreateSerializer();
-        });
+        services.AddSingleton(sp => sp.GetRequiredService<IBusSerializerFactory>().CreateSerializer());
         services.AddSingleton<ISubscriptionsManager, SubscriptionsManager>();
         services.AddSingleton<IBus, EventBus>();
         services.AddHostedService<SubscribeService>();

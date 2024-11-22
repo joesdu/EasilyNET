@@ -7,10 +7,14 @@ using Microsoft.Extensions.Options;
 namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 
 /// <summary>
-/// SerializerFactory工厂
+/// Factory for creating bus serializers based on configuration.
 /// </summary>
 internal sealed class BusSerializerFactory(IOptionsMonitor<RabbitConfig> options) : IBusSerializerFactory
 {
+    /// <summary>
+    /// Creates a bus serializer based on the current configuration.
+    /// </summary>
+    /// <returns>An instance of <see cref="IBusSerializer"/>.</returns>
     public IBusSerializer CreateSerializer()
     {
         var config = options.Get(Constant.OptionName);

@@ -7,14 +7,18 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 internal sealed class ChannelPool(IConnection connection, uint poolCount) : IChannelPool
 {
     private readonly ConcurrentBag<IChannel> _channels = [];
-    private int _currentCount; // 使用原子计数器来跟踪池中的通道数量
+    private readonly IConnection _connection = connection ?? throw new ArgumentNullException(nameof(connection));
+    private int _currentCount; // Use atomic counter to track the number of channels in the pool
     private bool _disposed;    // To detect redundant calls
 
     /// <inheritdoc />
     public async Task<IChannel> GetChannel()
     {
-        if (!_channels.TryTake(out var channel)) return await connection.CreateChannelAsync();
-        Interlocked.Decrement(ref _currentCount); // 安全地减少计数
+        if (!_channels.TryTake(out var channel))
+        {
+            return await _connection.CreateChannelAsync();
+        }
+        Interlocked.Decrement(ref _currentCount); // Safely decrement the count
         return channel;
     }
 
@@ -23,7 +27,7 @@ internal sealed class ChannelPool(IConnection connection, uint poolCount) : ICha
     {
         if (Interlocked.Increment(ref _currentCount) > poolCount)
         {
-            Interlocked.Decrement(ref _currentCount); // 安全地减少计数
+            Interlocked.Decrement(ref _currentCount); // Safely decrement the count
             await channel.CloseAsync();
             channel.Dispose();
         }

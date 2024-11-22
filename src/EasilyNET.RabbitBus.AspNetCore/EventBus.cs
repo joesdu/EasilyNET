@@ -24,7 +24,8 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
     {
         if (!conn.IsConnected) await conn.TryConnect();
         var type = @event.GetType();
-        var exc = type.GetCustomAttribute<ExchangeAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(ExchangeAttribute)}>,无法创建消息");
+        var exc = type.GetCustomAttribute<ExchangeAttribute>() ??
+                  throw new InvalidOperationException($"The event '{@event.GetType().Name}' is missing the required ExchangeAttribute. Unable to create the message.");
         if (!exc.Enable) return;
         var channel = await conn.GetChannel();
         var properties = new BasicProperties
@@ -46,7 +47,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         var pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
         await pipeline.ExecuteAsync(async ct =>
         {
-            logger.LogTrace("发布: {EventId}", @event.EventId);
+            logger.LogTrace("Publishing event: {EventName} with ID: {EventId}", @event.GetType().Name, @event.EventId);
             await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
             await conn.ReturnChannel(channel).ConfigureAwait(false);
         }).ConfigureAwait(false);
@@ -56,9 +57,11 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
     {
         if (!conn.IsConnected) await conn.TryConnect();
         var type = @event.GetType();
-        var exc = type.GetCustomAttribute<ExchangeAttribute>() ?? throw new($"{nameof(@event)}未设置<{nameof(ExchangeAttribute)}>,无法创建消息");
+        var exc = type.GetCustomAttribute<ExchangeAttribute>() ??
+                  throw new InvalidOperationException($"The event '{@event.GetType().Name}' is missing the required ExchangeAttribute. Unable to create the message.");
         if (!exc.Enable) return;
-        if (exc is not { WorkModel: EModel.Delayed }) throw new($"延时队列的交换机类型必须为{nameof(EModel.Delayed)}");
+        if (exc is not { WorkModel: EModel.Delayed })
+            throw new InvalidOperationException($"The exchange type for the delayed queue must be '{nameof(EModel.Delayed)}'. Event: '{@event.GetType().Name}'");
         var channel = await conn.GetChannel();
         var properties = new BasicProperties
         {
@@ -93,7 +96,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         var pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
         await pipeline.ExecuteAsync(async ct =>
         {
-            logger.LogTrace("发布: {EventId}", @event.EventId);
+            logger.LogTrace("Publishing event: {EventName} with ID: {EventId}", @event.GetType().Name, @event.EventId);
             await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
             await conn.ReturnChannel(channel).ConfigureAwait(false);
         }).ConfigureAwait(false);
@@ -143,25 +146,14 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
 
     private async Task<IChannel> CreateConsumerChannel(ExchangeAttribute exc, Type @event)
     {
-        logger.LogTrace("创建消费者通道");
+        logger.LogTrace("Creating consumer channel");
         var channel = await conn.GetChannel();
         var queueArgs = @event.GetQueueArgAttributes();
-        if (exc is not { WorkModel: EModel.None })
-        {
-            var exchangeArgs = @event.GetExchangeArgAttributes();
-            if (exchangeArgs is not null)
-            {
-                var success = exchangeArgs.TryGetValue("x-delayed-type", out _);
-                if (!success && exc is { WorkModel: EModel.Delayed }) exchangeArgs.Add("x-delayed-type", "direct"); //x-delayed-type必须加
-            }
-            //创建交换机
-            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, false, exchangeArgs);
-        }
-        //创建队列
+        await DeclareExchangeIfNeeded(exc, @event, channel);
         await channel.QueueDeclareAsync(exc.Queue, true, false, false, queueArgs);
         channel.CallbackExceptionAsync += async (_, ea) =>
         {
-            logger.LogWarning(ea.Exception, "重新创建消费者通道");
+            logger.LogWarning(ea.Exception, "Recreating consumer channel");
             subsManager.ClearSubscriptions();
             _handleAsyncDelegateCache.Clear();
             await Subscribe();
@@ -169,79 +161,121 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         return channel;
     }
 
+    private static async Task DeclareExchangeIfNeeded(ExchangeAttribute exc, Type @event, IChannel channel)
+    {
+        if (exc is not { WorkModel: EModel.None })
+        {
+            var exchangeArgs = @event.GetExchangeArgAttributes();
+            AddDelayedTypeIfNeeded(exc, exchangeArgs);
+            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, false, exchangeArgs);
+        }
+    }
+
+    private static void AddDelayedTypeIfNeeded(ExchangeAttribute exc, IDictionary<string, object?>? exchangeArgs)
+    {
+        if (exchangeArgs is not null && exc.WorkModel == EModel.Delayed)
+        {
+            exchangeArgs.TryAdd("x-delayed-type", "direct");
+        }
+    }
+
     private async Task StartBasicConsume(Type eventType, ExchangeAttribute exc, IChannel channel)
     {
-        var handleKind = exc.WorkModel is EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
+        var handleKind = GetHandleKind(exc);
         if (subsManager.HasSubscriptionsForEvent(eventType.Name, handleKind))
         {
-            // Qos的配置通常和消费者的能力有关,所以这里从消费者的Handler中获取Qos特性
-            // 一个程序通常对同一个事件只有一个Handler,所以这里只取第一个消费者的Qos
-            var handlerType = subsManager.GetHandlersForEvent(eventType.Name, handleKind).FirstOrDefault(c => c.HasAttribute<QosAttribute>());
-            var qos = handlerType?.GetCustomAttribute<QosAttribute>();
-            if (qos is not null) await channel.BasicQosAsync(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
+            await ConfigureQosIfNeeded(eventType, handleKind, channel);
         }
         var consumer = new AsyncEventingBasicConsumer(channel);
         await channel.BasicConsumeAsync(exc.Queue, false, consumer);
-        consumer.ReceivedAsync += async (_, ea) =>
+        consumer.ReceivedAsync += async (_, ea) => await HandleReceivedEvent(eventType, ea, handleKind, channel);
+        await MonitorChannel(channel);
+    }
+
+    private static EKindOfHandler GetHandleKind(ExchangeAttribute exc)
+    {
+        return exc.WorkModel == EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
+    }
+
+    private async Task ConfigureQosIfNeeded(Type eventType, EKindOfHandler handleKind, IChannel channel)
+    {
+        var handlerType = subsManager.GetHandlersForEvent(eventType.Name, handleKind).FirstOrDefault(c => c.HasAttribute<QosAttribute>());
+        var qos = handlerType?.GetCustomAttribute<QosAttribute>();
+        if (qos is not null)
         {
-            try
-            {
-                await ProcessEvent(eventType, ea.Body.Span.ToArray(), handleKind, async () => await channel.BasicAckAsync(ea.DeliveryTag, false).ConfigureAwait(false));
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "消息处理发生错误,DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
-                // 先注释掉,若是消费者没写对,造成大量消息重新入队,容易拖垮MQ,这里的处理办法是长时间不确认,所有消息由Unacked重新变为Ready
-                //channel.BasicNack(ea.DeliveryTag, false, true);
-            }
-        };
-        while (true)
+            await channel.BasicQosAsync(qos.PrefetchSize, qos.PrefetchCount, qos.Global);
+        }
+    }
+
+    private async Task HandleReceivedEvent(Type eventType, BasicDeliverEventArgs ea, EKindOfHandler handleKind, IChannel channel)
+    {
+        try
         {
-            if (channel.IsClosed) break;
+            await ProcessEvent(eventType, ea.Body.Span.ToArray(), handleKind, async () => await channel.BasicAckAsync(ea.DeliveryTag, false).ConfigureAwait(false));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing message, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
+        }
+    }
+
+    private static async Task MonitorChannel(IChannel channel)
+    {
+        while (!channel.IsClosed)
+        {
             await Task.Delay(100000);
         }
     }
 
     private async Task ProcessEvent(Type eventType, byte[] message, EKindOfHandler handleKind, Func<ValueTask> ack)
     {
-        logger.LogTrace("处理事件: {EventName}", eventType.Name);
-        if (subsManager.HasSubscriptionsForEvent(eventType.Name, handleKind))
+        logger.LogTrace("Processing event: {EventName}", eventType.Name);
+        if (!subsManager.HasSubscriptionsForEvent(eventType.Name, handleKind))
         {
-            var @event = serializer.Deserialize(message, eventType);
-            var handlerTypes = subsManager.GetHandlersForEvent(eventType.Name, handleKind);
-            using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
-            var pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
-            foreach (var handlerType in handlerTypes)
+            logger.LogError("No subscriptions for event: {EventName}", eventType.Name);
+            return;
+        }
+        var @event = serializer.Deserialize(message, eventType);
+        if (@event is null)
+        {
+            logger.LogError("Failed to deserialize event: {EventName}", eventType.Name);
+            return;
+        }
+        var handlerTypes = subsManager.GetHandlersForEvent(eventType.Name, handleKind);
+        using var scope = sp.GetService<IServiceScopeFactory>()?.CreateScope();
+        var pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
+        foreach (var handlerType in handlerTypes)
+        {
+            var cachedDelegate = GetOrCreateHandlerDelegate(handlerType, eventType, scope);
+            if (cachedDelegate is not null)
             {
-                var key = (handlerType, eventType);
-                if (!_handleAsyncDelegateCache.TryGetValue(key, out var cachedDelegate))
+                await pipeline.ExecuteAsync(async _ =>
                 {
-                    var method = handlerType.GetMethod(HandleName, [eventType]);
-                    if (method is null)
-                    {
-                        logger.LogError($"无法找到{nameof(@event)}事件处理器");
-                        return; // 或者抛出异常
-                    }
-                    var handler = scope?.ServiceProvider.GetService(handlerType);
-                    if (handler is null) return;
-                    var handleAsyncDelegate = CreateHandleAsyncDelegate(handler, method, eventType);
-                    _handleAsyncDelegateCache[key] = handleAsyncDelegate;
-                    cachedDelegate = handleAsyncDelegate;
-                }
-                if (cachedDelegate is not null && @event is not null)
-                {
-                    await pipeline.ExecuteAsync(async _ =>
-                    {
-                        await cachedDelegate(@event);
-                        await ack.Invoke();
-                    }).ConfigureAwait(false);
-                }
+                    await cachedDelegate(@event);
+                    await ack.Invoke();
+                }).ConfigureAwait(false);
             }
         }
-        else
+    }
+
+    private Func<object, Task>? GetOrCreateHandlerDelegate(Type handlerType, Type eventType, IServiceScope? scope)
+    {
+        var key = (handlerType, eventType);
+        // ReSharper disable once InvertIf
+        if (!_handleAsyncDelegateCache.TryGetValue(key, out var cachedDelegate))
         {
-            logger.LogError("没有订阅事件:{EventName}", eventType.Name);
+            var method = handlerType.GetMethod(HandleName, [eventType]);
+            if (method is null)
+            {
+                logger.LogError("Handler method not found for event: {EventName}", eventType.Name);
+                return null;
+            }
+            var handler = scope?.ServiceProvider.GetService(handlerType);
+            if (handler is null) return null;
+            cachedDelegate = CreateHandleAsyncDelegate(handler, method, eventType);
+            _handleAsyncDelegateCache[key] = cachedDelegate;
         }
+        return cachedDelegate;
     }
 
     private static Func<object, Task> CreateHandleAsyncDelegate(object handler, MethodInfo method, Type eventType)

@@ -4,36 +4,36 @@ using EasilyNET.RabbitBus.AspNetCore.Enums;
 namespace EasilyNET.RabbitBus.AspNetCore.Abstraction;
 
 /// <summary>
-/// 订阅管理
+/// Interface for managing subscriptions.
 /// </summary>
 internal interface ISubscriptionsManager
 {
     /// <summary>
-    /// 清除所有订阅对应关系
+    /// Clears all subscription mappings.
     /// </summary>
     void ClearSubscriptions();
 
     /// <summary>
-    /// 添加订阅
+    /// Adds a subscription.
     /// </summary>
-    /// <param name="eventType">事件类型</param>
-    /// <param name="handleKind">事件处理器种类</param>
-    /// <param name="handlerTypes">事件处理器类型信息</param>
+    /// <param name="eventType">The type of the event.</param>
+    /// <param name="handleKind">The kind of event handler.</param>
+    /// <param name="handlerTypes">The type information of the event handlers.</param>
     void AddSubscription(Type eventType, EKindOfHandler handleKind, IList<TypeInfo> handlerTypes);
 
     /// <summary>
-    /// 获取消息处理程序
+    /// Gets the handlers for a specific event.
     /// </summary>
-    /// <param name="name"></param>
-    /// <param name="handleKind">事件处理器种类</param>
-    /// <returns></returns>
+    /// <param name="name">The name of the event.</param>
+    /// <param name="handleKind">The kind of event handler.</param>
+    /// <returns>An enumerable of handler types.</returns>
     IEnumerable<Type> GetHandlersForEvent(string name, EKindOfHandler handleKind);
 
     /// <summary>
-    /// 判断订阅者是否存在
+    /// Checks if there are subscriptions for a specific event.
     /// </summary>
-    /// <param name="name"></param>
-    /// <param name="handleKind">事件处理器种类</param>
-    /// <returns></returns>
+    /// <param name="name">The name of the event.</param>
+    /// <param name="handleKind">The kind of event handler.</param>
+    /// <returns>True if there are subscriptions, otherwise false.</returns>
     bool HasSubscriptionsForEvent(string name, EKindOfHandler handleKind);
 }

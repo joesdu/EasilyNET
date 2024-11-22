@@ -7,72 +7,81 @@ using EasilyNET.RabbitBus.Core.Attributes;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Extensions;
 
+/// <summary>
+/// Provides extension methods for retrieving custom attributes from event types.
+/// </summary>
 internal static class EventExtension
 {
-    private static readonly ConcurrentDictionary<Type, IDictionary<string, object?>?> HeaderAttributesCache = new();
-    private static readonly ConcurrentDictionary<Type, IDictionary<string, object?>?> ExchangeArgAttributesCache = new();
-    private static readonly ConcurrentDictionary<Type, IDictionary<string, object?>?> QueueArgAttributesCache = new();
+    // Caches for storing attribute dictionaries to improve performance
+    private static readonly ConcurrentDictionary<Type, Lazy<IDictionary<string, object?>?>> HeaderAttributesCache = new();
+    private static readonly ConcurrentDictionary<Type, Lazy<IDictionary<string, object?>?>> ExchangeArgAttributesCache = new();
+    private static readonly ConcurrentDictionary<Type, Lazy<IDictionary<string, object?>?>> QueueArgAttributesCache = new();
 
     /// <summary>
-    /// 获取Header的属性
+    /// Gets the header attributes for the specified event.
     /// </summary>
-    /// <param name="event"></param>
-    /// <returns></returns>
+    /// <param name="event">The event instance.</param>
+    /// <returns>A dictionary of header attributes, or null if none are found.</returns>
     internal static IDictionary<string, object?>? GetHeaderAttributes(this IEvent @event)
     {
         var type = @event.GetType();
-        return HeaderAttributesCache.GetOrAdd(type, t => RabbitDictionariesByDic(t.GetCustomAttributes<HeaderAttribute>()));
+        return HeaderAttributesCache.GetOrAdd(type, t =>
+            new(() => RabbitDictionariesByDic(t.GetCustomAttributes<HeaderAttribute>()))).Value;
     }
 
     /// <summary>
-    /// 获取交换机的Arguments
+    /// Gets the exchange argument attributes for the specified event.
     /// </summary>
-    /// <param name="event"></param>
-    /// <returns></returns>
+    /// <param name="event">The event instance.</param>
+    /// <returns>A dictionary of exchange argument attributes, or null if none are found.</returns>
     internal static IDictionary<string, object?>? GetExchangeArgAttributes(this IEvent @event)
     {
         var type = @event.GetType();
-        return ExchangeArgAttributesCache.GetOrAdd(type, t => RabbitDictionariesByDic(t.GetCustomAttributes<ExchangeArgAttribute>()));
+        return ExchangeArgAttributesCache.GetOrAdd(type, t =>
+            new(() => RabbitDictionariesByDic(t.GetCustomAttributes<ExchangeArgAttribute>()))).Value;
     }
 
     /// <summary>
-    /// 获取交换机的Arguments
+    /// Gets the exchange argument attributes for the specified event type.
     /// </summary>
-    /// <param name="eventType"></param>
-    /// <returns></returns>
+    /// <param name="eventType">The event type.</param>
+    /// <returns>A dictionary of exchange argument attributes, or null if none are found.</returns>
     internal static IDictionary<string, object?>? GetExchangeArgAttributes(this Type eventType)
     {
-        return ExchangeArgAttributesCache.GetOrAdd(eventType, t => RabbitDictionariesByDic(t.GetCustomAttributes<ExchangeArgAttribute>()));
+        return ExchangeArgAttributesCache.GetOrAdd(eventType, t =>
+            new(() => RabbitDictionariesByDic(t.GetCustomAttributes<ExchangeArgAttribute>()))).Value;
     }
 
     /// <summary>
-    /// 获取交换机的Arguments
+    /// Gets the queue argument attributes for the specified event.
     /// </summary>
-    /// <param name="event"></param>
-    /// <returns></returns>
+    /// <param name="event">The event instance.</param>
+    /// <returns>A dictionary of queue argument attributes, or null if none are found.</returns>
     internal static IDictionary<string, object?>? GetQueueArgAttributes(this IEvent @event)
     {
         var type = @event.GetType();
-        return QueueArgAttributesCache.GetOrAdd(type, t => RabbitDictionariesByDic(t.GetCustomAttributes<QueueArgAttribute>()));
+        return QueueArgAttributesCache.GetOrAdd(type, t =>
+            new(() => RabbitDictionariesByDic(t.GetCustomAttributes<QueueArgAttribute>()))).Value;
     }
 
     /// <summary>
-    /// 获取交换机的Arguments
+    /// Gets the queue argument attributes for the specified event type.
     /// </summary>
-    /// <param name="eventType"></param>
-    /// <returns></returns>
+    /// <param name="eventType">The event type.</param>
+    /// <returns>A dictionary of queue argument attributes, or null if none are found.</returns>
     internal static IDictionary<string, object?>? GetQueueArgAttributes(this Type eventType)
     {
-        return QueueArgAttributesCache.GetOrAdd(eventType, t => RabbitDictionariesByDic(t.GetCustomAttributes<QueueArgAttribute>()));
+        return QueueArgAttributesCache.GetOrAdd(eventType, t =>
+            new(() => RabbitDictionariesByDic(t.GetCustomAttributes<QueueArgAttribute>()))).Value;
     }
 
     /// <summary>
-    /// 将特性内容转换成字典
+    /// Converts a collection of RabbitDictionaryAttribute instances to a dictionary.
     /// </summary>
-    /// <param name="rda_s"></param>
-    /// <returns></returns>
-    private static Dictionary<string, object?>? RabbitDictionariesByDic(this IEnumerable<RabbitDictionaryAttribute>? rda_s)
+    /// <param name="rda_s">The collection of RabbitDictionaryAttribute instances.</param>
+    /// <returns>A dictionary with the attribute keys and values.</returns>
+    private static Dictionary<string, object?> RabbitDictionariesByDic(IEnumerable<RabbitDictionaryAttribute> rda_s)
     {
-        return rda_s?.ToDictionary(k => k.Key, v => v.Value);
+        return rda_s.ToDictionary(k => k.Key, v => v.Value);
     }
 }
