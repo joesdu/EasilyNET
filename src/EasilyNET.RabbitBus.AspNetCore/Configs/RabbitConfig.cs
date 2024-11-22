@@ -6,57 +6,57 @@ using RabbitMQ.Client;
 namespace EasilyNET.RabbitBus.AspNetCore.Configs;
 
 /// <summary>
-/// RabbitMQ链接配置
+/// Configuration settings for RabbitMQ connection.
 /// </summary>
 public sealed class RabbitConfig
 {
     /// <summary>
-    /// 连接字符串
+    /// The connection string.
     /// </summary>
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// 配置多端点,若是存在则忽略 <see cref="RabbitConfig.Host" /> 配置
+    /// Configuration for multiple endpoints. If set, the <see cref="Host" /> configuration is ignored.
     /// </summary>
     public List<AmqpTcpEndpoint>? AmqpTcpEndpoints { get; set; } = null;
 
     /// <summary>
-    /// 主机名(IP地址)
+    /// The hostname or IP address.
     /// </summary>
     public string? Host { get; set; } = null;
 
     /// <summary>
-    /// 密码
+    /// The password.
     /// </summary>
     public string PassWord { get; set; } = "guest";
 
     /// <summary>
-    /// 用户名
+    /// The username.
     /// </summary>
     public string UserName { get; set; } = "guest";
 
     /// <summary>
-    /// 虚拟主机
+    /// The virtual host.
     /// </summary>
     public string VirtualHost { get; set; } = "/";
 
     /// <summary>
-    /// 端口,默认: <see langword="5672" />
+    /// The port number. Default is 5672.
     /// </summary>
     public int Port { get; set; } = 5672;
 
     /// <summary>
-    /// Channel池数量,默认为: 计算机上逻辑处理器的数量
+    /// The number of channels in the pool. Default is the number of logical processors on the machine.
     /// </summary>
     public uint PoolCount { get; set; } = 0;
 
     /// <summary>
-    /// 尝试重连次数,默认值:<see langword="5" />
+    /// The number of retry attempts. Default is 5.
     /// </summary>
     public int RetryCount { get; set; } = 5;
 
     /// <summary>
-    /// 序列化器类型,默认: <seealso cref="ESerializer.TextJson" />
+    /// The type of serializer. Default is <see cref="ESerializer.TextJson" />.
     /// </summary>
     public ESerializer Serializer { get; set; } = ESerializer.TextJson;
 }

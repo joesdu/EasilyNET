@@ -1,12 +1,17 @@
 namespace EasilyNET.RabbitBus.AspNetCore.Enums;
 
 /// <summary>
-/// 消息处理器种类
+/// Types of message handlers.
 /// </summary>
 internal enum EKindOfHandler
 {
+    /// <summary>
+    /// Normal message handler.
+    /// </summary>
     Normal,
 
+    /// <summary>
+    /// Delayed message handler.
+    /// </summary>
     Delayed
-    //DeadLetter
 }

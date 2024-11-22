@@ -1,13 +1,13 @@
 namespace EasilyNET.RabbitBus.AspNetCore.Abstraction;
 
 /// <summary>
-/// SerializerFactory工厂
+/// Factory interface for creating bus serializers.
 /// </summary>
 internal interface IBusSerializerFactory
 {
     /// <summary>
-    /// 创建序列化器
+    /// Creates a new instance of a bus serializer.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>An instance of <see cref="IBusSerializer"/>.</returns>
     IBusSerializer CreateSerializer();
 }

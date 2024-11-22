@@ -3,29 +3,31 @@ using RabbitMQ.Client;
 namespace EasilyNET.RabbitBus.AspNetCore.Abstraction;
 
 /// <summary>
-/// RabbitMQ链接
+/// Interface for a persistent RabbitMQ connection.
 /// </summary>
 internal interface IPersistentConnection : IDisposable
 {
     /// <summary>
-    /// 是否链接
+    /// Gets a value indicating whether the connection is established.
     /// </summary>
     bool IsConnected { get; }
 
     /// <summary>
-    /// 尝试链接
+    /// Attempts to establish a connection.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     Task TryConnect();
 
     /// <summary>
-    /// 从池中获取Channel
+    /// Retrieves a channel from the pool.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the retrieved channel.</returns>
     Task<IChannel> GetChannel();
 
     /// <summary>
-    /// 归还连接池通道
+    /// Returns a channel to the pool or releases it.
     /// </summary>
+    /// <param name="channel">The channel to return or release.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     Task ReturnChannel(IChannel channel);
 }

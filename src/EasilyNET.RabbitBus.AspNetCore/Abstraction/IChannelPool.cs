@@ -4,17 +4,21 @@ using RabbitMQ.Client;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Abstraction;
 
+/// <summary>
+/// Interface for a pool of channels.
+/// </summary>
 internal interface IChannelPool : IDisposable
 {
     /// <summary>
-    /// 从池中获取Channel
+    /// Retrieves a channel from the pool.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the retrieved channel.</returns>
     Task<IChannel> GetChannel();
 
     /// <summary>
-    /// 归还Channel到池或者释放
+    /// Returns a channel to the pool or releases it.
     /// </summary>
-    /// <param name="channel"></param>
+    /// <param name="channel">The channel to return or release.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     Task ReturnChannel(IChannel channel);
 }
