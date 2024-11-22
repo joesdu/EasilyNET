@@ -72,6 +72,13 @@ public static class AssemblyHelper
     /// <summary>
     /// 查找所有指定特性标记的类型
     /// </summary>
+    /// <typeparam name="TAttribute"></typeparam>
+    /// <returns></returns>
+    public static IEnumerable<Type> FindTypesByAttribute<TAttribute>(Func<Type, bool> predicate) where TAttribute : Attribute => FindTypesByAttribute<TAttribute>().Where(predicate);
+
+    /// <summary>
+    /// 查找所有指定特性标记的类型
+    /// </summary>
     /// <param name="type"></param>
     /// <returns></returns>
     public static IEnumerable<Type> FindTypesByAttribute(Type type) => AllTypes.Where(a => a.IsDefined(type, true)).Distinct();

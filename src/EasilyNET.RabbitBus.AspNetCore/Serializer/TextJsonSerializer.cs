@@ -1,4 +1,6 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 
@@ -13,7 +15,12 @@ internal sealed class TextJsonSerializer : IBusSerializer
     {
         WriteIndented = false,
         PropertyNameCaseInsensitive = true,
-        TypeInfoResolver = new DefaultJsonTypeInfoResolver()
+        PropertyNamingPolicy = null,
+        DictionaryKeyPolicy = null,
+        IncludeFields = true,
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
+        NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
     /// <inheritdoc />

@@ -1,4 +1,5 @@
 using EasilyNET.Mongo.AspNetCore.Common;
+using EasilyNET.Mongo.AspNetCore.Factory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -66,7 +67,7 @@ public static class GridFSCollectionExtensions
     }
 
     /// <summary>
-    /// 使用已有的 IMongoDatabase
+    /// 使用已有的 <see cref="IMongoDatabase"/> 配置MongoGridFS
     /// </summary>
     /// <param name="services"></param>
     /// <param name="db"></param>
