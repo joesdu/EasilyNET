@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -108,6 +109,7 @@ public static class ObjectExtensions
     /// <param name="obj">要设置对象</param>
     /// <param name="propertySelector">属性条件</param>
     /// <param name="valueFactory">在需要的时候才计算属性的值,处理计算成本较高或依赖于其他因素的属性值时非常有用</param>
+    [RequiresUnreferencedCode("This method uses reflection and may not be compatible with AOT.")]
     public static bool TrySetProperty<TObject, TValue>(this TObject obj, Expression<Func<TObject, TValue>> propertySelector, Func<TValue> valueFactory)
     {
         return TrySetProperty(obj, propertySelector, _ => valueFactory());
@@ -121,6 +123,7 @@ public static class ObjectExtensions
     /// <param name="obj">要设置对象</param>
     /// <param name="propertySelector">属性条件</param>
     /// <param name="valueFactory">在需要的时候才计算属性的值,处理计算成本较高或依赖于其他因素的属性值时非常有用</param>
+    [RequiresUnreferencedCode("This method uses reflection and may not be compatible with AOT.")]
     public static bool TrySetProperty<TObject, TValue>(this TObject obj, Expression<Func<TObject, TValue>> propertySelector, Func<TObject, TValue> valueFactory)
     {
         var cacheKey = $"{obj?.GetType().FullName}_{propertySelector}";

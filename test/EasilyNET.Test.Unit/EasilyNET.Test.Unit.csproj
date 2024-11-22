@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
+  
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <NoWarn>$(NoWarn);NU5104;CS1591</NoWarn>
   </PropertyGroup>
-
+  
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="7.0.0-alpha.5" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
@@ -17,7 +17,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
-
+  
   <ItemGroup>
     <ProjectReference Include="..\..\src\EasilyNET.Core\EasilyNET.Core.csproj" />
     <ProjectReference Include="..\..\src\EasilyNET.Security\EasilyNET.Security.csproj" />

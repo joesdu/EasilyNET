@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Loader;
 
@@ -39,6 +40,7 @@ public static class AssemblyHelper
     /// </summary>
     /// <param name="assemblyNames">Assembly FullName</param>
     /// <returns></returns>
+    [RequiresUnreferencedCode("This method uses reflection and may not be compatible with AOT.")]
     public static IEnumerable<Assembly> GetAssembliesByName(params string[] assemblyNames)
     {
         return assemblyNames.Select(name =>
@@ -91,6 +93,7 @@ public static class AssemblyHelper
         }
     }
 
+    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Assembly))]
     private static void LoadAssembly(AssemblyName assemblyName, ref ConcurrentBag<Assembly> loadedAssemblies)
     {
         if (AssemblyCache.TryGetValue(assemblyName.FullName, out var cachedAssembly))
