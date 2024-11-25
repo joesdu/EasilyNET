@@ -67,7 +67,7 @@ public static class GridFSCollectionExtensions
     }
 
     /// <summary>
-    /// 使用已有的 <see cref="IMongoDatabase"/> 配置MongoGridFS
+    /// 使用已有的 <see cref="IMongoDatabase" /> 配置MongoGridFS
     /// </summary>
     /// <param name="services"></param>
     /// <param name="db"></param>

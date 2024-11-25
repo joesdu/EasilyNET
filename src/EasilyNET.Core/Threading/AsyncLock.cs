@@ -66,8 +66,7 @@ public sealed class AsyncLock
     {
         using (await LockAsync())
         {
-            var t = await taskFunc();
-            return t;
+            return await taskFunc();
         }
     }
 

@@ -1,6 +1,8 @@
 using System.Net;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using WebApi.Test.Unit.Common;
 
 // ReSharper disable UnusedType.Global
@@ -21,7 +23,14 @@ internal sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<Erro
     {
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true
+        WriteIndented = true,
+        IncludeFields = false,                                               // 不包含字段，只序列化属性
+        DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,                    // 字典键命名策略为驼峰命名
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver(),                // 使用默认的类型信息解析器
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,        // 忽略值为null的属性
+        NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals, // 允许命名的浮点数文字
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,               // 使用不安全的放松JSON转义
+        Converters = { new JsonStringEnumConverter() }                       // 添加枚举转换器，枚举值序列化为原始名称字符串
     };
 
     /// <summary>

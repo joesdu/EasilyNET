@@ -37,7 +37,6 @@ internal sealed class PersistentConnection : IPersistentConnection
     {
         if (_disposed) return;
         _disposed = true;
-
         if (_connection is not null)
         {
             try
@@ -52,7 +51,6 @@ internal sealed class PersistentConnection : IPersistentConnection
                 _logger.LogCritical("Error disposing RabbitMQ connection: {Message}", ex.Message);
             }
         }
-
         _channelPool?.Dispose();
     }
 

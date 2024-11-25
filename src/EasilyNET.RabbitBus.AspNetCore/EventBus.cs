@@ -192,10 +192,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         await MonitorChannel(channel);
     }
 
-    private static EKindOfHandler GetHandleKind(ExchangeAttribute exc)
-    {
-        return exc.WorkModel == EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
-    }
+    private static EKindOfHandler GetHandleKind(ExchangeAttribute exc) => exc.WorkModel == EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
 
     private async Task ConfigureQosIfNeeded(Type eventType, EKindOfHandler handleKind, IChannel channel)
     {
