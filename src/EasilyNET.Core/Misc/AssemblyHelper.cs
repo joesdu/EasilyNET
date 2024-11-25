@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Loader;
+using Microsoft.Extensions.DependencyModel;
 
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
@@ -15,6 +16,19 @@ namespace EasilyNET.Core.Misc;
 public static class AssemblyHelper
 {
     private static readonly ConcurrentDictionary<string, Assembly?> AssemblyCache = [];
+
+    private static readonly HashSet<string> Except =
+    [
+        "BouncyCastle", "DnsClient", "Google", "Grpc", "MessagePack", "MongoDB",
+        "OpenTelemetry", "Pipelines", "Polly", "RabbitMQ", "Serilog", "SharpCompress",
+        "Snappier", "Spectre", "StackExchange", "Swashbuckle", "ZstdSharp",
+        "Microsoft", "mscorlib", "netstandard", "System", "Windows"
+    ];
+
+    /// <summary>
+    /// 需要排除的项目
+    /// </summary>
+    private static readonly HashSet<string> ExceptLibs = [];
 
     /// <summary>
     /// 构造函数
@@ -34,6 +48,12 @@ public static class AssemblyHelper
     /// 获取所有扫描到符合条件的程序集中的类型
     /// </summary>
     public static IEnumerable<Type> AllTypes { get; }
+
+    /// <summary>
+    /// 添加排除项目,用于忽略掉一些非必要的程序集反射,加快性能
+    /// </summary>
+    /// <param name="names"></param>
+    public static void AddExceptLibs(params IEnumerable<string> names) => ExceptLibs.AddRangeIfNotContains([..names]);
 
     /// <summary>
     /// 根据程序集名字得到程序集
@@ -90,13 +110,20 @@ public static class AssemblyHelper
 
     private static IEnumerable<Assembly> LoadAssemblies()
     {
-        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-        if (assemblies.Length is 0) yield break;
+        var domainAssemblies = AppDomain.CurrentDomain.GetAssemblies()
+                                        .Select(c => c.GetName())
+                                        .Distinct().ToHashSet();
+        var assemblies = DependencyContext.Default?.GetDefaultAssemblyNames()
+                                          .Where(c => domainAssemblies.Contains(c) is not true)
+                                          .SkipWhile(c => c.Name is null && Except.Any(c.FullName.StartsWith) && ExceptLibs.Any(c.FullName.StartsWith))
+                                          .Distinct().ToHashSet() ??
+                         [];
+        var source = domainAssemblies.Concat(assemblies);
         var loadedAssemblies = new ConcurrentBag<Assembly>();
-        Parallel.ForEach(assemblies, assembly => LoadAssembly(assembly.GetName(), ref loadedAssemblies));
-        foreach (var assembly in loadedAssemblies)
+        Parallel.ForEach(source, assembly => LoadAssembly(assembly, ref loadedAssemblies));
+        foreach (var item in loadedAssemblies)
         {
-            yield return assembly;
+            yield return item;
         }
     }
 
