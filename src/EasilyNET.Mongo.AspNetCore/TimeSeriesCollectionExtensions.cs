@@ -25,7 +25,7 @@ public static class TimeSeriesCollectionExtensions
     private static readonly ConcurrentBag<string> CollectionCache = [];
 
     /// <summary>
-    /// 对标记 <see cref="TimeSeriesCollectionAttribute"/> 的实体对象,自动创建 MongoDB 时序集合
+    /// 对标记 <see cref="TimeSeriesCollectionAttribute" /> 的实体对象,自动创建 MongoDB 时序集合
     /// </summary>
     /// <param name="app"></param>
     /// <returns></returns>

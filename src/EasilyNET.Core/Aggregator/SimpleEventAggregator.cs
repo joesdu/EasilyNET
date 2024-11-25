@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 
+// ReSharper disable UnusedType.Global
+
 namespace EasilyNET.Core.Aggregator;
 
 /// <summary>

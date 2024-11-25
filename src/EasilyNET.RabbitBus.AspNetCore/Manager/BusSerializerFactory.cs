@@ -14,7 +14,7 @@ internal sealed class BusSerializerFactory(IOptionsMonitor<RabbitConfig> options
     /// <summary>
     /// Creates a bus serializer based on the current configuration.
     /// </summary>
-    /// <returns>An instance of <see cref="IBusSerializer"/>.</returns>
+    /// <returns>An instance of <see cref="IBusSerializer" />.</returns>
     public IBusSerializer CreateSerializer()
     {
         var config = options.Get(Constant.OptionName);

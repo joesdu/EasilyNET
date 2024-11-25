@@ -51,7 +51,6 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
             EKindOfHandler.Delayed => _delayedHandlers,
             _                      => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
         };
-
         handlersDict.AddOrUpdate(name, _ => [..handlerTypes], (_, existingHandlers) =>
         {
             if (handlerTypes.Any(handlerType => !existingHandlers.Add(handlerType)))

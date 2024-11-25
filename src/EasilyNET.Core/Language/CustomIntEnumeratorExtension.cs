@@ -71,7 +71,7 @@ public static class CustomIntEnumeratorExtension
         /// <summary>
         /// 当前索引。
         /// </summary>
-        public int Current { get; set; }
+        public int Current { get; private set; }
 
         /// <summary>
         /// 移动到下一个元素。
