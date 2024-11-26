@@ -23,7 +23,7 @@
     <PackageVersion Include="Serilog" Version="4.1.0-dev-02238" />
     <PackageVersion Include="Spectre.Console.Json" Version="0.49.2-preview.0.67" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="7.0.0" />
-    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.0.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.1.0" />
     <!--microsoft asp.net core -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="9.0.0" />
