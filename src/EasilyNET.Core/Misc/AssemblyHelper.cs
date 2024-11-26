@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Loader;
-using EasilyNET.Core.Commons;
 using Microsoft.Extensions.DependencyModel;
 
 // ReSharper disable MemberCanBePrivate.Global
@@ -19,17 +18,12 @@ public static class AssemblyHelper
     private static readonly ConcurrentDictionary<string, Assembly?> AssemblyCache = [];
 
     /// <summary>
-    /// 需要排除的项目
-    /// </summary>
-    private static readonly HashSet<string> ExceptLibs = [];
-
-    /// <summary>
     /// 构造函数
     /// </summary>
     static AssemblyHelper()
     {
         AllAssemblies = LoadAssemblies();
-        AllTypes = AllAssemblies.SelectMany(c => c.DefinedTypes);
+        AllTypes = LoadTypes(AllAssemblies);
     }
 
     /// <summary>
@@ -41,12 +35,6 @@ public static class AssemblyHelper
     /// 获取所有扫描到符合条件的程序集中的类型
     /// </summary>
     public static IEnumerable<Type> AllTypes { get; }
-
-    /// <summary>
-    /// 添加排除项目,用于忽略掉一些非必要的程序集反射,加快性能
-    /// </summary>
-    /// <param name="names"></param>
-    public static void AddExceptLibs(params IEnumerable<string> names) => ExceptLibs.AddRangeIfNotContains([..names]);
 
     /// <summary>
     /// 根据程序集名字得到程序集
@@ -101,25 +89,24 @@ public static class AssemblyHelper
     /// </summary>
     public static IEnumerable<Assembly> FindAllItems(Func<Assembly, bool> predicate) => AllAssemblies.Where(predicate);
 
+    private static IEnumerable<Type> LoadTypes(IEnumerable<Assembly> assemblies)
+    {
+        var types = new ConcurrentBag<Type>();
+        Parallel.ForEach(assemblies, assembly => types.AddRange(assembly.GetTypes()));
+        foreach (var item in types)
+        {
+            yield return item;
+        }
+    }
+
     private static IEnumerable<Assembly> LoadAssemblies()
     {
         var start = Stopwatch.GetTimestamp();
-        var domainAssemblies = AppDomain.CurrentDomain.GetAssemblies()
-                                        .Select(c => c.GetName())
-                                        .Distinct().ToHashSet();
-        var assemblies = DependencyContext.Default?.GetDefaultAssemblyNames()
-                                          .SkipWhile(c =>
-                                              c.Name is null ||
-                                              domainAssemblies.Contains(c) ||
-                                              AssembliesExcept.Except.Any(s => c.FullName.StartsWith(s, StringComparison.OrdinalIgnoreCase)) ||
-                                              ExceptLibs.Any(s => c.FullName.StartsWith(s, StringComparison.OrdinalIgnoreCase)))
-                                          .Distinct().ToHashSet() ??
-                         [];
-        var source = domainAssemblies.Concat(assemblies);
+        var assemblies = DependencyContext.Default?.GetDefaultAssemblyNames().ToHashSet() ?? [];
         var loadedAssemblies = new ConcurrentBag<Assembly>();
-        Parallel.ForEach(source, assembly => LoadAssembly(assembly, ref loadedAssemblies));
+        Parallel.ForEach(assemblies, assembly => LoadAssembly(assembly, ref loadedAssemblies));
         // 该函数对整体性能影响较大,输出执行时间,便于性能分享
-        Debug.WriteLine($"Load assemblies elapsed time: {Stopwatch.GetElapsedTime(start, Stopwatch.GetTimestamp()).TotalMilliseconds}ms");
+        Console.WriteLine($"Load assemblies elapsed time: {Stopwatch.GetElapsedTime(start, Stopwatch.GetTimestamp()).TotalMilliseconds}ms");
         foreach (var item in loadedAssemblies)
         {
             yield return item;
@@ -140,19 +127,10 @@ public static class AssemblyHelper
         try
         {
             var assembly = Assembly.Load(assemblyName);
+            if (loadedAssemblies.Contains(assembly)) return;
             AssemblyCache[assemblyName.FullName] = assembly;
             _ = assembly.GetTypes(); // Pre-check types to ensure they can be loaded
             loadedAssemblies.Add(assembly);
-        }
-        catch (NotSupportedException)
-        {
-            AssemblyCache[assemblyName.FullName] = null;
-            Debug.WriteLine($"Unable to load assembly: {assemblyName.Name}, skipping.");
-        }
-        catch (ReflectionTypeLoadException)
-        {
-            AssemblyCache[assemblyName.FullName] = null;
-            Debug.WriteLine($"Unable to load some types in assembly: {assemblyName.Name}, skipping.");
         }
         catch (Exception ex)
         {
