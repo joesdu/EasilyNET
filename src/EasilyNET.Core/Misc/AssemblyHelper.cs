@@ -6,38 +6,30 @@ using System.Runtime.Loader;
 using Microsoft.Extensions.DependencyModel;
 
 // ReSharper disable MemberCanBePrivate.Global
-// ReSharper disable UnusedMember.Global
 
 namespace EasilyNET.Core.Misc;
 
 /// <summary>
-/// 程序集帮助类
+/// Assembly helper class
 /// </summary>
 public static class AssemblyHelper
 {
-    private static readonly ConcurrentDictionary<string, Assembly?> AssemblyCache = [];
+    private static readonly ConcurrentDictionary<string, Assembly?> AssemblyCache = new();
+    private static readonly Lazy<IEnumerable<Assembly>> LazyAllAssemblies = new(LoadAssemblies);
+    private static readonly Lazy<IEnumerable<Type>> LazyAllTypes = new(() => LoadTypes(LazyAllAssemblies.Value));
 
     /// <summary>
-    /// 构造函数
+    /// Gets all assemblies that match the criteria
     /// </summary>
-    static AssemblyHelper()
-    {
-        AllAssemblies = LoadAssemblies();
-        AllTypes = LoadTypes(AllAssemblies);
-    }
+    public static IEnumerable<Assembly> AllAssemblies => LazyAllAssemblies.Value;
 
     /// <summary>
-    /// 获取所有扫描到符合条件的程序集
+    /// Gets all types from the assemblies that match the criteria
     /// </summary>
-    public static IEnumerable<Assembly> AllAssemblies { get; }
+    public static IEnumerable<Type> AllTypes => LazyAllTypes.Value;
 
     /// <summary>
-    /// 获取所有扫描到符合条件的程序集中的类型
-    /// </summary>
-    public static IEnumerable<Type> AllTypes { get; }
-
-    /// <summary>
-    /// 根据程序集名字得到程序集
+    /// Gets assemblies by their names
     /// </summary>
     /// <param name="assemblyNames">Assembly FullName</param>
     /// <returns></returns>
@@ -59,33 +51,33 @@ public static class AssemblyHelper
     }
 
     /// <summary>
-    /// 查找指定条件的类型
+    /// Finds types that match the specified predicate
     /// </summary>
     public static IEnumerable<Type> FindTypes(Func<Type, bool> predicate) => AllTypes.Where(predicate);
 
     /// <summary>
-    /// 查找所有指定特性标记的类型
+    /// Finds all types marked with the specified attribute
     /// </summary>
     /// <typeparam name="TAttribute"></typeparam>
     /// <returns></returns>
     public static IEnumerable<Type> FindTypesByAttribute<TAttribute>() where TAttribute : Attribute => FindTypesByAttribute(typeof(TAttribute));
 
     /// <summary>
-    /// 查找所有指定特性标记的类型
+    /// Finds all types marked with the specified attribute
     /// </summary>
     /// <typeparam name="TAttribute"></typeparam>
     /// <returns></returns>
     public static IEnumerable<Type> FindTypesByAttribute<TAttribute>(Func<Type, bool> predicate) where TAttribute : Attribute => FindTypesByAttribute<TAttribute>().Where(predicate);
 
     /// <summary>
-    /// 查找所有指定特性标记的类型
+    /// Finds all types marked with the specified attribute
     /// </summary>
     /// <param name="type"></param>
     /// <returns></returns>
     public static IEnumerable<Type> FindTypesByAttribute(Type type) => AllTypes.Where(a => a.IsDefined(type, true)).Distinct();
 
     /// <summary>
-    /// 查找指定条件的类型
+    /// Finds assemblies that match the specified predicate
     /// </summary>
     public static IEnumerable<Assembly> FindAllItems(Func<Assembly, bool> predicate) => AllAssemblies.Where(predicate);
 
@@ -94,11 +86,14 @@ public static class AssemblyHelper
         var types = new ConcurrentBag<Type>();
         Parallel.ForEach(assemblies, assembly =>
         {
-            var temps = assembly.GetTypes();
-            foreach (var item in temps)
+            try
             {
-                if (types.Contains(item)) continue;
-                types.Add(item);
+                var typesInAssembly = assembly.GetTypes();
+                types.AddRange(typesInAssembly);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to load types from assembly: {assembly.FullName}, error: {ex.Message}");
             }
         });
         foreach (var item in types)
@@ -109,12 +104,9 @@ public static class AssemblyHelper
 
     private static IEnumerable<Assembly> LoadAssemblies()
     {
-        var start = Stopwatch.GetTimestamp();
-        var assemblies = DependencyContext.Default?.GetDefaultAssemblyNames().ToHashSet() ?? [];
+        var assemblies = DependencyContext.Default?.GetDefaultAssemblyNames() ?? [];
         var loadedAssemblies = new ConcurrentBag<Assembly>();
         Parallel.ForEach(assemblies, assembly => LoadAssembly(assembly, ref loadedAssemblies));
-        // 该函数对整体性能影响较大,输出执行时间,便于性能分享
-        Console.WriteLine($"Load assemblies elapsed time: {Stopwatch.GetElapsedTime(start, Stopwatch.GetTimestamp()).TotalMilliseconds}ms");
         foreach (var item in loadedAssemblies)
         {
             yield return item;
@@ -137,7 +129,6 @@ public static class AssemblyHelper
             var assembly = Assembly.Load(assemblyName);
             if (loadedAssemblies.Contains(assembly)) return;
             AssemblyCache[assemblyName.FullName] = assembly;
-            _ = assembly.GetTypes(); // Pre-check types to ensure they can be loaded
             loadedAssemblies.Add(assembly);
         }
         catch (Exception ex)
