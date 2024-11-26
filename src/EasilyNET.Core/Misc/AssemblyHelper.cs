@@ -92,7 +92,15 @@ public static class AssemblyHelper
     private static IEnumerable<Type> LoadTypes(IEnumerable<Assembly> assemblies)
     {
         var types = new ConcurrentBag<Type>();
-        Parallel.ForEach(assemblies, assembly => types.AddRange(assembly.GetTypes()));
+        Parallel.ForEach(assemblies, assembly =>
+        {
+            var temps = assembly.GetTypes();
+            foreach (var item in temps)
+            {
+                if (types.Contains(item)) continue;
+                types.Add(item);
+            }
+        });
         foreach (var item in types)
         {
             yield return item;

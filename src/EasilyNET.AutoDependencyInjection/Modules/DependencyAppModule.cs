@@ -27,12 +27,21 @@ public sealed class DependencyAppModule : AppModule
     /// <param name="services"></param>
     private static void AddAutoInjection(IServiceCollection services)
     {
-        var types = AssemblyHelper.FindTypesByAttribute<DependencyInjectionAttribute>();
-        Parallel.ForEach(types, implementedType =>
+        var types = AssemblyHelper.FindTypesByAttribute<DependencyInjectionAttribute>().ToHashSet();
+        foreach (var implementedType in types)
         {
             var attr = implementedType.GetCustomAttribute<DependencyInjectionAttribute>();
-            var lifetime = GetServiceLifetime(implementedType);
-            if (lifetime is null) return;
+            var lifetime = attr?.Lifetime;
+            if (lifetime is null) continue;
+            if (attr?.AsType is not null)
+            {
+                // 若实现类,不是注册类型的派生类,则跳过
+                if (implementedType.IsBaseOn(attr.AsType))
+                {
+                    services.Add(new(attr.AsType, implementedType, lifetime.Value));
+                }
+                continue;
+            }
             var serviceTypes = GetServiceTypes(implementedType);
             if (serviceTypes.Count is 0 || attr?.AddSelf is true)
             {
@@ -44,17 +53,20 @@ public sealed class DependencyAppModule : AppModule
                 {
                     services.Add(new(implementedType, implementedType, lifetime.Value));
                 }
-                if (attr?.SelfOnly is true || serviceTypes.Count is 0) return;
+                if (attr?.SelfOnly is true || serviceTypes.Count is 0) continue;
             }
-            Parallel.ForEach(serviceTypes, serviceType =>
+            foreach (var serviceType in serviceTypes)
             {
                 if (!string.IsNullOrWhiteSpace(attr?.ServiceKey))
                 {
                     services.Add(new(serviceType, attr.ServiceKey, implementedType, lifetime.Value));
                 }
-                services.Add(new(serviceType, implementedType, lifetime.Value));
-            });
-        });
+                else
+                {
+                    services.Add(new(serviceType, implementedType, lifetime.Value));
+                }
+            }
+        }
     }
 
     private static FrozenSet<Type> GetServiceTypes(Type implementation)
@@ -63,16 +75,5 @@ public sealed class DependencyAppModule : AppModule
         return typeInfo.ImplementedInterfaces
                        .Where(x => x.HasMatchingGenericArity(typeInfo) && !x.HasAttribute<IgnoreDependencyAttribute>() && x != typeof(IDisposable))
                        .Select(t => t.GetRegistrationType(typeInfo)).ToFrozenSet();
-    }
-
-    /// <summary>
-    /// 获取服务生命周期
-    /// </summary>
-    /// <param name="type"></param>
-    /// <returns></returns>
-    private static ServiceLifetime? GetServiceLifetime(Type type)
-    {
-        var attr = type.GetCustomAttribute<DependencyInjectionAttribute>();
-        return attr?.Lifetime;
     }
 }

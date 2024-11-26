@@ -31,4 +31,9 @@ public sealed class DependencyInjectionAttribute(ServiceLifetime lifetime) : Att
     /// 设置服务的键,适配KeyedService
     /// </summary>
     public string ServiceKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 注册为什么类型,明确该值会减少反射提升性能,若实现类,不是注册类型的派生类,则会跳过注册
+    /// </summary>
+    public Type? AsType { get; set; }
 }
