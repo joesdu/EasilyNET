@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Loader;
+using EasilyNET.Core.Commons;
 using Microsoft.Extensions.DependencyModel;
 
 // ReSharper disable MemberCanBePrivate.Global
@@ -16,14 +17,6 @@ namespace EasilyNET.Core.Misc;
 public static class AssemblyHelper
 {
     private static readonly ConcurrentDictionary<string, Assembly?> AssemblyCache = [];
-
-    private static readonly HashSet<string> Except =
-    [
-        "BouncyCastle", "DnsClient", "Google", "Grpc", "MessagePack", "MongoDB",
-        "OpenTelemetry", "Pipelines", "Polly", "RabbitMQ", "Serilog", "SharpCompress",
-        "Snappier", "Spectre", "StackExchange", "Swashbuckle", "ZstdSharp",
-        "Microsoft", "mscorlib", "netstandard", "System", "Windows"
-    ];
 
     /// <summary>
     /// 需要排除的项目
@@ -110,17 +103,23 @@ public static class AssemblyHelper
 
     private static IEnumerable<Assembly> LoadAssemblies()
     {
+        var start = Stopwatch.GetTimestamp();
         var domainAssemblies = AppDomain.CurrentDomain.GetAssemblies()
                                         .Select(c => c.GetName())
                                         .Distinct().ToHashSet();
         var assemblies = DependencyContext.Default?.GetDefaultAssemblyNames()
-                                          .Where(c => domainAssemblies.Contains(c) is not true)
-                                          .SkipWhile(c => c.Name is null && Except.Any(c.FullName.StartsWith) && ExceptLibs.Any(c.FullName.StartsWith))
+                                          .SkipWhile(c =>
+                                              c.Name is null ||
+                                              domainAssemblies.Contains(c) ||
+                                              AssembliesExcept.Except.Any(s => c.FullName.StartsWith(s, StringComparison.OrdinalIgnoreCase)) ||
+                                              ExceptLibs.Any(s => c.FullName.StartsWith(s, StringComparison.OrdinalIgnoreCase)))
                                           .Distinct().ToHashSet() ??
                          [];
         var source = domainAssemblies.Concat(assemblies);
         var loadedAssemblies = new ConcurrentBag<Assembly>();
         Parallel.ForEach(source, assembly => LoadAssembly(assembly, ref loadedAssemblies));
+        // 该函数对整体性能影响较大,输出执行时间,便于性能分享
+        Debug.WriteLine($"Load assemblies elapsed time: {Stopwatch.GetElapsedTime(start, Stopwatch.GetTimestamp()).TotalMilliseconds}ms");
         foreach (var item in loadedAssemblies)
         {
             yield return item;
