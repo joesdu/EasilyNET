@@ -24,7 +24,7 @@ internal class ModuleApplicationBase : IModuleApplication
         _startModuleType = startModuleType;
         Services = services;
         ServiceProvider = services.BuildServiceProvider();
-        GetModules();
+        GetModules().GetAwaiter().GetResult();
     }
 
     /// <summary>
@@ -53,9 +53,9 @@ internal class ModuleApplicationBase : IModuleApplication
     /// 获取所有需要加载的模块
     /// </summary>
     /// <returns></returns>
-    private void GetModules()
+    private async Task GetModules()
     {
-        var sources = GetAllEnabledModule();
+        var sources = await GetAllEnabledModule();
         var module = sources.FirstOrDefault(o => o.GetType() == _startModuleType) ?? throw new($"类型为“{_startModuleType.FullName}”的模块实例无法找到");
         Modules.Add(module);
         var depends = module.GetDependedTypes();
@@ -73,13 +73,13 @@ internal class ModuleApplicationBase : IModuleApplication
     /// 获取所有启用的模块
     /// </summary>
     /// <returns></returns>
-    private ConcurrentBag<IAppModule> GetAllEnabledModule()
+    private async Task<ConcurrentBag<IAppModule>> GetAllEnabledModule()
     {
         var types = AssemblyHelper.AllTypes.Where(AppModule.IsAppModule);
         var source = new ConcurrentBag<IAppModule>();
-        Parallel.ForEach(types, type =>
+        await Parallel.ForEachAsync(types, async (type, _) =>
         {
-            var module = CreateModule(type);
+            var module = await CreateModule(type);
             if (module is not null)
             {
                 source.Add(module);
@@ -94,15 +94,18 @@ internal class ModuleApplicationBase : IModuleApplication
     /// <param name="moduleType"></param>
     /// <exception cref="ArgumentNullException"></exception>
     /// <returns></returns>
-    private IAppModule? CreateModule(Type moduleType)
+    private async Task<IAppModule?> CreateModule(Type moduleType)
     {
-        var module = Expression.Lambda(Expression.New(moduleType)).Compile().DynamicInvoke() as IAppModule;
-        ArgumentNullException.ThrowIfNull(module, nameof(moduleType));
-        if (module.GetEnable(new(Services, ServiceProvider))) return module;
+        return await Task.Run(() =>
+        {
+            var module = Expression.Lambda(Expression.New(moduleType)).Compile().DynamicInvoke() as IAppModule;
+            ArgumentNullException.ThrowIfNull(module, nameof(moduleType));
+            if (module.GetEnable(new(Services, ServiceProvider))) return module;
 #if DEBUG
-        Console.Error.WriteLine($"{moduleType.Name} is disabled");
+            Console.Error.WriteLine($"Module: {moduleType.Name} is disabled");
 #endif
-        return null;
+            return null;
+        });
     }
 
     protected void InitializeModules()
