@@ -42,7 +42,6 @@ builder.Services.RegisterSerializer(new JsonNodeSerializer());
 #### 使用
 
 - Nuget 安装 EasilyNET.Mongo.AspNetCore
-- 推荐同时安装 EasilyNET.MongoSerializer.AspNetCore 包,添加了对 .Net6+ 的 Date/Time Only 类型
 - 在系统环境变量或者 Docker 容器中设置环境变量名称为: CONNECTIONSTRINGS_MONGO = mongodb 链接字符串 或者在
   appsettings.json 中添加,
 - 现在你也可以参考 example.api 项目查看直接传入相关数据.
