@@ -1,6 +1,7 @@
 using EasilyNET.AutoDependencyInjection;
 using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Contexts;
+using EasilyNET.AutoDependencyInjection.Factories;
 using EasilyNET.AutoDependencyInjection.Modules;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
