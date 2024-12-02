@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
 
-namespace EasilyNET.Mongo.AspNetCore.Factory;
+namespace EasilyNET.Mongo.AspNetCore.Factories;
 
 /// <summary>
 /// GridFSBucketFactory
