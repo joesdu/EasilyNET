@@ -38,7 +38,14 @@ public sealed class DependencyAppModule : AppModule
                 // 若实现类,不是注册类型的派生类,则跳过
                 if (implementedType.IsBaseOn(attr.AsType))
                 {
-                    services.Add(new(attr.AsType, implementedType, lifetime.Value));
+                    if (!string.IsNullOrWhiteSpace(attr.ServiceKey))
+                    {
+                        services.Add(new(implementedType, attr.ServiceKey, implementedType, lifetime.Value));
+                    }
+                    else
+                    {
+                        services.Add(new(attr.AsType, implementedType, lifetime.Value));
+                    }
                 }
                 continue;
             }

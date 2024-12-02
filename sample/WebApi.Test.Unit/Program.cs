@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Management;
 using System.Runtime.InteropServices;
 using Serilog;
 using Serilog.Events;
@@ -70,104 +69,6 @@ _ = Task.Run(() =>
     var AppComplete = Stopwatch.GetTimestamp();
     Log.Information("Application started in {Elapsed} ms", Stopwatch.GetElapsedTime(AppInitial, AppComplete).TotalMilliseconds);
     var osDescription = RuntimeInformation.OSDescription;
-    var osVersion = GetOSVersion();
-    var cpuModel = GetCpuModel();
-    var memorySize = GetTotalPhysicalMemory();
-    Log.Information("Operating System: {OS} {Version}", osDescription, osVersion);
-    Log.Information("CPU Model: {CPU}", cpuModel);
-    Log.Information("Total Physical Memory: {Memory} GB", Math.Round(memorySize / (1024 * 1024 * 1024d), 2, MidpointRounding.AwayFromZero));
-    var cpuSerialNumber = GetCpuSerialNumber();
-    var memorySerialNumber = GetMemorySerialNumber();
-    Log.Information($"CPU Serial Number: {cpuSerialNumber}");
-    Log.Information($"Memory Serial Number: {memorySerialNumber}");
+    Log.Information("Operating System: {OS}", osDescription);
 });
 app.Run();
-return;
-
-string GetOSVersion()
-{
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-    {
-        using var searcher = new ManagementObjectSearcher("SELECT Version FROM Win32_OperatingSystem");
-        foreach (var os in searcher.Get())
-        {
-            return os["Version"]?.ToString() ?? "Unknown";
-        }
-    }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-    {
-        return File.ReadAllText("/proc/version");
-    }
-    return "Unknown";
-}
-
-string GetCpuModel()
-{
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-    {
-        using var searcher = new ManagementObjectSearcher("SELECT Name FROM Win32_Processor");
-        foreach (var cpu in searcher.Get())
-        {
-            return cpu["Name"]?.ToString() ?? "Unknown CPU Model";
-        }
-    }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-    {
-        return File.ReadAllText("/proc/cpuinfo").Split('\n').FirstOrDefault(line => line.StartsWith("model name"))?.Split(':')[1].Trim() ?? "Unknown CPU Model";
-    }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-    {
-        return File.ReadAllText("/proc/cpuinfo").Split('\n').FirstOrDefault(line => line.StartsWith("machdep.cpu.brand_string"))?.Split(':')[1].Trim() ?? "Unknown CPU Model";
-    }
-    return "Unknown CPU Model";
-}
-
-long GetTotalPhysicalMemory()
-{
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-    {
-        using var searcher = new ManagementObjectSearcher("SELECT TotalVisibleMemorySize FROM Win32_OperatingSystem");
-        foreach (var os in searcher.Get())
-        {
-            return long.Parse(os["TotalVisibleMemorySize"]?.ToString() ?? "0") * 1024;
-        }
-    }
-    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-    {
-        var info = new ProcessStartInfo("sh", "-c \"grep MemTotal /proc/meminfo\"")
-        {
-            RedirectStandardOutput = true
-        };
-        using var process = Process.Start(info);
-        using var reader = process!.StandardOutput;
-        var result = reader.ReadToEnd();
-        return long.Parse(result.Split(':')[1].Trim().Split(' ')[0]) * 1024;
-    }
-    return 0;
-}
-
-string GetCpuSerialNumber()
-{
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-    {
-        using var searcher = new ManagementObjectSearcher("SELECT ProcessorId FROM Win32_Processor");
-        foreach (var cpu in searcher.Get())
-        {
-            return cpu["ProcessorId"]?.ToString() ?? "Unknown CPU Serial Number";
-        }
-    }
-    return "Unknown CPU Serial Number";
-}
-
-string GetMemorySerialNumber()
-{
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-    {
-        using var searcher = new ManagementObjectSearcher("SELECT SerialNumber FROM Win32_PhysicalMemory");
-        foreach (var memory in searcher.Get())
-        {
-            return memory["SerialNumber"]?.ToString() ?? "Unknown Memory Serial Number";
-        }
-    }
-    return "Unknown Memory Serial Number";
-}

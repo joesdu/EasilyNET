@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 // ReSharper disable UnusedMethodReturnValue.Global
 
-namespace EasilyNET.AutoDependencyInjection;
+namespace EasilyNET.AutoDependencyInjection.Factories;
 
 /// <summary>
 /// 应用工厂
