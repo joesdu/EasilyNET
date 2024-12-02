@@ -67,8 +67,7 @@ app.MapControllers();
 _ = Task.Run(() =>
 {
     var AppComplete = Stopwatch.GetTimestamp();
+    Log.Information("Operating System: {OS}", RuntimeInformation.OSDescription);
     Log.Information("Application started in {Elapsed} ms", Stopwatch.GetElapsedTime(AppInitial, AppComplete).TotalMilliseconds);
-    var osDescription = RuntimeInformation.OSDescription;
-    Log.Information("Operating System: {OS}", osDescription);
 });
 app.Run();

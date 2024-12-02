@@ -3,14 +3,13 @@ using System.Reflection;
 using EasilyNET.Core.Misc;
 using EasilyNET.Mongo.Core;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
-namespace EasilyNET.Mongo.AspNetCore;
+namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// 时间序列集合扩展类

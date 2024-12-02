@@ -1,7 +1,7 @@
+using EasilyNET.Mongo.AspNetCore;
 using EasilyNET.Mongo.AspNetCore.Common;
-using EasilyNET.Mongo.AspNetCore.Factory;
+using EasilyNET.Mongo.AspNetCore.Factories;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
@@ -10,7 +10,7 @@ using MongoDB.Driver.GridFS;
 // ReSharper disable UnusedMethodReturnValue.Global
 // ReSharper disable UnusedMember.Global
 
-namespace EasilyNET.Mongo.AspNetCore;
+namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// MongoGridFS扩展
