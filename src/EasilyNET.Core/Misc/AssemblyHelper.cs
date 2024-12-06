@@ -104,7 +104,7 @@ public static class AssemblyHelper
 
     private static IEnumerable<Assembly> LoadAssemblies()
     {
-        var assemblies = DependencyContext.Default?.GetDefaultAssemblyNames() ?? [];
+        var assemblies = DependencyContext.Default?.GetRuntimeAssemblyNames(AppContext.BaseDirectory) ?? [];
         var loadedAssemblies = new ConcurrentBag<Assembly>();
         Parallel.ForEach(assemblies, assembly => LoadAssembly(assembly, ref loadedAssemblies));
         foreach (var item in loadedAssemblies)
