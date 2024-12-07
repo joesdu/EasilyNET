@@ -40,13 +40,16 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     [HttpPost]
     public async Task WorkQueues()
     {
-        foreach (var i in ..10_0000)
+        await Task.Factory.StartNew(async () =>
         {
-            await ibus.Publish(new WorkQueuesEvent
+            foreach (var i in ..10_0000)
             {
-                Summary = $"WorkQueuesEvent:{i}"
-            });
-        }
+                await ibus.Publish(new WorkQueuesEvent
+                {
+                    Summary = $"WorkQueuesEvent:{i}"
+                });
+            }
+        });
     }
 
     /// <summary>
