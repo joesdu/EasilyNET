@@ -17,7 +17,7 @@
   <ItemGroup>
     <PackageVersion Include="Backport.System.Threading.Lock" Version="3.0.3" />
     <PackageVersion Include="BouncyCastle.Cryptography" Version="2.5.0" />
-    <PackageVersion Include="MessagePack" Version="3.0.238-rc.1" />
+    <PackageVersion Include="MessagePack" Version="3.0.300" />
     <PackageVersion Include="MongoDB.Driver" Version="3.1.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.0.0" />
     <PackageVersion Include="Serilog" Version="4.1.0-dev-02238" />
