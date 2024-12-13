@@ -34,7 +34,7 @@ public class MongoTestController(DbContext db) : ControllerBase
             Id = id.ToString(),
             JsonNode = JsonNode.Parse("""
                                       {
-                                        "name": "test"
+                                          "name": "test"
                                       }
                                       """)!
         };
