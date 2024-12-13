@@ -120,7 +120,8 @@ public class IDCardCalculateTests
         }
     }
 
-    [TestMethod, Ignore("由于年龄的计算随时间变化,所以当前时间的年龄和创建测试的时候已经不一致.")]
+    [TestMethod]
+    [Ignore("由于年龄的计算随时间变化,所以当前时间的年龄和创建测试的时候已经不一致.")]
     public void CalculateAge_ValidBirthdays_ShouldReturnCorrectAge()
     {
         var birthdays = new[]
@@ -145,7 +146,8 @@ public class IDCardCalculateTests
         }
     }
 
-    [TestMethod, Ignore("由于年龄的计算随时间变化,所以当前时间的年龄和创建测试的时候已经不一致.")]
+    [TestMethod]
+    [Ignore("由于年龄的计算随时间变化,所以当前时间的年龄和创建测试的时候已经不一致.")]
     public void CalculateAge_ValidBirthdayDateTimes_ShouldReturnCorrectAge()
     {
         var birthdays = new[]
