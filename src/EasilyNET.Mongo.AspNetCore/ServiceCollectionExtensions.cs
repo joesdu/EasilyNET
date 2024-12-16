@@ -100,8 +100,10 @@ public static class ServiceCollectionExtensions
         option?.Invoke(options);
         RegistryConventionPack(options);
         settings.MinConnectionPoolSize = Environment.ProcessorCount;
-        var db = MongoContext.CreateInstance<T>(settings, options.DatabaseName ?? Constant.DefaultDbName);
-        services.AddSingleton(db).AddSingleton(db.Database).AddSingleton(db.Client);
+        var context = MongoContext.CreateInstance<T>(settings, options.DatabaseName ?? Constant.DefaultDbName);
+        services.AddSingleton(context.Client);
+        services.AddSingleton(context.Database);
+        services.AddSingleton(context);
     }
 
     private static void RegistryConventionPack(BasicClientOptions options)
