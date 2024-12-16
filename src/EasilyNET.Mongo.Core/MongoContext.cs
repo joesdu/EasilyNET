@@ -1,9 +1,10 @@
 using MongoDB.Driver;
 
 // ReSharper disable UnusedMember.Global
-// ReSharper disable MemberCanBeProtected.Global
 
 namespace EasilyNET.Mongo.Core;
+
+#nullable disable // Disable nullable check for a response from the community
 
 /// <summary>
 /// MongoDB基础DbContext
@@ -13,12 +14,12 @@ public class MongoContext : IDisposable
     /// <summary>
     /// MongoClient
     /// </summary>
-    public IMongoClient Client { get; private set; } = default!;
+    public IMongoClient Client { get; private set; }
 
     /// <summary>
     /// 获取链接字符串或者HoyoMongoSettings中配置的特定名称数据库或默认数据库
     /// </summary>
-    public IMongoDatabase Database { get; private set; } = default!;
+    public IMongoDatabase Database { get; private set; }
 
     /// <summary>
     /// Dispose
@@ -38,21 +39,8 @@ public class MongoContext : IDisposable
     /// </returns>
     public IMongoCollection<TDocument> GetCollection<TDocument>(string name)
     {
-        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
         return Database.GetCollection<TDocument>(name);
-    }
-
-    /// <summary>
-    /// 获取自定义数据库
-    /// </summary>
-    /// <param name="name">集合名称</param>
-    /// <returns>
-    ///     <see cref="IMongoDatabase" />
-    /// </returns>
-    public IMongoDatabase GetDatabase(string name)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
-        return Client.GetDatabase(name);
     }
 
     /// <summary>
