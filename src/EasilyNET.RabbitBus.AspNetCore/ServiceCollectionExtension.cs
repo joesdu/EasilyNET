@@ -74,8 +74,7 @@ public static class ServiceCollectionExtension
         });
         services.AddResiliencePipeline(Constant.ResiliencePipelineName, (builder, context) =>
         {
-            var conf = context.ServiceProvider.GetRequiredService<IOptionsMonitor<RabbitConfig>>();
-            var config = conf.Get(Constant.OptionName);
+            var config = context.ServiceProvider.GetRequiredService<IOptionsMonitor<RabbitConfig>>().Get(Constant.OptionName);
             var logger = context.ServiceProvider.GetRequiredService<ILogger<IPersistentConnection>>();
             builder.AddRetry(new()
             {
@@ -118,8 +117,11 @@ public static class ServiceCollectionExtension
     private static void AddEventBus(this IServiceCollection services)
     {
         services.InjectHandler();
-        services.AddSingleton<IBusSerializerFactory, BusSerializerFactory>();
-        services.AddSingleton(sp => sp.GetRequiredService<IBusSerializerFactory>().CreateSerializer());
+        services.AddSingleton(sp =>
+        {
+            var config = sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>().Get(Constant.OptionName);
+            return config.BusSerializer;
+        });
         services.AddSingleton<ISubscriptionsManager, SubscriptionsManager>();
         services.AddSingleton<IBus, EventBus>();
         services.AddHostedService<SubscribeService>();

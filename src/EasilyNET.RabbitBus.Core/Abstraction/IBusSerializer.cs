@@ -1,9 +1,9 @@
-namespace EasilyNET.RabbitBus.AspNetCore.Abstraction;
+namespace EasilyNET.RabbitBus.Core.Abstraction;
 
 /// <summary>
 /// Interface for a serializer used in the bus.
 /// </summary>
-internal interface IBusSerializer
+public interface IBusSerializer
 {
     /// <summary>
     /// Serializes an object to a byte array.

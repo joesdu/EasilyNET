@@ -1,13 +1,10 @@
 #### EasilyNET.RabbitBus.AspNetCore
 
--
-
 支持延时队列,服务端需要启用 [rabbitmq-delayed-message-exchange](https://github.com/rabbitmq/rabbitmq-delayed-message-exchange)
 插件
 
 - 支持同一个消息被多个 Handler 消费
 - 若是就是想写多个 Handler 但是又希望某些 Handler 不执行,可以在不需要的 Handler 上标记 [IgnoreHandler] 特性
-- 添加 MessagePack 序列化选项,可通过 ESerializer.MessagePack 或 ESerializer.TextJson 进行切换.
 
 ##### 如何使用
 
@@ -25,7 +22,6 @@ builder.Services.AddRabbitBus(c =>
     c.PassWord = "password";
     c.PoolCount = (uint)Environment.ProcessorCount;
     c.RetryCount = 5;
-    c.Serializer = ESerializer.MessagePack;
     ...
 });
 ```
@@ -103,4 +99,62 @@ public async Task TTLTest()
     await _ibus.Publish(ttlobj, (uint)ttl);
     await _ibus.Publish(ttlobj);
 }
+```
+
+#### 使用自定义序列化器
+
+- 默认序列化器是 System.Text.Json,若是需要使用其他序列化器,可以实现 IBusSerializer 接口,然后在配置中指定序列化器.
+- 若是单独开启一个项目用于该实现,推荐使用基础 Nuget 包 EasilyNET.RabbitBus.Core 然后实现 IBusSerializer 接口即可.这里以 MessagePack 为例.
+
+```csharp
+/// <summary>
+/// MessagePackSerializer
+/// </summary>
+public sealed class MsgPackSerializer : IBusSerializer
+{
+    private static readonly MessagePackSerializerOptions standardOptions =
+        MessagePackSerializerOptions.Standard
+                                    .WithResolver(CompositeResolver.Create(NativeDateTimeResolver.Instance, // 使用本地日期时间解析器
+                                        ContractlessStandardResolver.Instance))                             // 使用无合约标准解析器
+                                    .WithSecurity(MessagePackSecurity.UntrustedData);                       // 设置安全选项以处理不受信任的数据
+
+    /// <summary>
+    /// 使用 LZ4 算法对整个数组进行压缩.这种方式适用于需要对大量数据进行压缩的场景,压缩效率较高
+    /// </summary>
+    private static readonly MessagePackSerializerOptions lz4BlockArrayOptions =
+        standardOptions.WithCompression(MessagePackCompression.Lz4BlockArray);
+
+    /// <summary>
+    /// 使用 LZ4 算法对每个数据块进行压缩.这种方式适用于需要对单个数据块进行压缩的场景,压缩速度较快
+    /// </summary>
+    private static readonly MessagePackSerializerOptions lz4BlockOptions =
+        standardOptions.WithCompression(MessagePackCompression.Lz4Block);
+
+    /// <inheritdoc />
+    public byte[] Serialize(object? obj, Type type)
+    {
+        var data = MessagePackSerializer.Serialize(type, obj, standardOptions);
+        var options = data.Length > 8192 ? lz4BlockArrayOptions : lz4BlockOptions;
+        return MessagePackSerializer.Serialize(type, obj, options);
+    }
+
+    /// <inheritdoc />
+    public object? Deserialize(byte[] data, Type type)
+    {
+        var options = data.Length > 8192 ? lz4BlockArrayOptions : lz4BlockOptions;
+        return MessagePackSerializer.Deserialize(type, data, options);
+    }
+}
+```
+
+- 然后调整服务注册代码添加如下内容
+
+```csharp
+// 配置服务(亦可使用集群模式或者使用配置文件,或者环境变量.)
+builder.Services.AddRabbitBus(c =>
+{
+    ...
+    c.BusSerializer = new MsgPackSerializer();
+    ...
+});
 ```
