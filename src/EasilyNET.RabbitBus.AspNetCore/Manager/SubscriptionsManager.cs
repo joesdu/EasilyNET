@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using EasilyNET.RabbitBus.AspNetCore.Enums;
@@ -21,9 +22,9 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
     {
         return handleKind switch
         {
-            EKindOfHandler.Normal  => _normalHandlers.TryGetValue(name, out var normalHandlers) ? normalHandlers : Enumerable.Empty<Type>(),
+            EKindOfHandler.Normal => _normalHandlers.TryGetValue(name, out var normalHandlers) ? normalHandlers : Enumerable.Empty<Type>(),
             EKindOfHandler.Delayed => _delayedHandlers.TryGetValue(name, out var delayedHandlers) ? delayedHandlers : Enumerable.Empty<Type>(),
-            _                      => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
         };
     }
 
@@ -31,9 +32,9 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
     {
         return handleKind switch
         {
-            EKindOfHandler.Normal  => _normalHandlers.ContainsKey(name),
+            EKindOfHandler.Normal => _normalHandlers.ContainsKey(name),
             EKindOfHandler.Delayed => _delayedHandlers.ContainsKey(name),
-            _                      => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
         };
     }
 
@@ -43,15 +44,16 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
         _delayedHandlers.Clear();
     }
 
+    [SuppressMessage("Style", "IDE0046:转换为条件表达式", Justification = "<挂起>")]
     private void DoAddSubscription(string name, EKindOfHandler handleKind, IList<Type> handlerTypes)
     {
         var handlersDict = handleKind switch
         {
-            EKindOfHandler.Normal  => _normalHandlers,
+            EKindOfHandler.Normal => _normalHandlers,
             EKindOfHandler.Delayed => _delayedHandlers,
-            _                      => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
         };
-        handlersDict.AddOrUpdate(name, _ => [..handlerTypes], (_, existingHandlers) =>
+        handlersDict.AddOrUpdate(name, _ => [.. handlerTypes], (_, existingHandlers) =>
         {
             if (handlerTypes.Any(handlerType => !existingHandlers.Add(handlerType)))
             {

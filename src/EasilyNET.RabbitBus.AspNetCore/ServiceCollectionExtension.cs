@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore;
@@ -97,6 +98,7 @@ public static class ServiceCollectionExtension
         return services;
     }
 
+    [SuppressMessage("Style", "IDE0046:转换为条件表达式", Justification = "<挂起>")]
     private static ConnectionFactory CreateConnectionFactory(RabbitConfig config)
     {
         if (!string.IsNullOrWhiteSpace(config.ConnectionString))
@@ -109,7 +111,14 @@ public static class ServiceCollectionExtension
         }
         if (!string.IsNullOrWhiteSpace(config.Host))
         {
-            return new() { HostName = config.Host, UserName = config.UserName, Password = config.PassWord, Port = config.Port, VirtualHost = config.VirtualHost };
+            return new()
+            {
+                HostName = config.Host,
+                UserName = config.UserName,
+                Password = config.PassWord,
+                Port = config.Port,
+                VirtualHost = config.VirtualHost
+            };
         }
         throw new InvalidOperationException("Configuration error: Unable to create a connection from the provided configuration.");
     }
