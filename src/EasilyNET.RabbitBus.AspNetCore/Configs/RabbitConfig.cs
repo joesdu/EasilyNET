@@ -1,6 +1,8 @@
-using EasilyNET.RabbitBus.AspNetCore.Enums;
+using EasilyNET.RabbitBus.AspNetCore.Serializer;
+using EasilyNET.RabbitBus.Core.Abstraction;
 using RabbitMQ.Client;
 
+// ReSharper disable UnusedMember.Global
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 
 namespace EasilyNET.RabbitBus.AspNetCore.Configs;
@@ -56,7 +58,7 @@ public sealed class RabbitConfig
     public int RetryCount { get; set; } = 5;
 
     /// <summary>
-    /// The type of serializer. Default is <see cref="ESerializer.TextJson" />.
+    /// custom serializer
     /// </summary>
-    public ESerializer Serializer { get; set; } = ESerializer.TextJson;
+    public IBusSerializer BusSerializer { get; set; } = new TextJsonSerializer();
 }

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore;
@@ -74,8 +75,7 @@ public static class ServiceCollectionExtension
         });
         services.AddResiliencePipeline(Constant.ResiliencePipelineName, (builder, context) =>
         {
-            var conf = context.ServiceProvider.GetRequiredService<IOptionsMonitor<RabbitConfig>>();
-            var config = conf.Get(Constant.OptionName);
+            var config = context.ServiceProvider.GetRequiredService<IOptionsMonitor<RabbitConfig>>().Get(Constant.OptionName);
             var logger = context.ServiceProvider.GetRequiredService<ILogger<IPersistentConnection>>();
             builder.AddRetry(new()
             {
@@ -98,6 +98,7 @@ public static class ServiceCollectionExtension
         return services;
     }
 
+    [SuppressMessage("Style", "IDE0046:转换为条件表达式", Justification = "<挂起>")]
     private static ConnectionFactory CreateConnectionFactory(RabbitConfig config)
     {
         if (!string.IsNullOrWhiteSpace(config.ConnectionString))
@@ -110,7 +111,14 @@ public static class ServiceCollectionExtension
         }
         if (!string.IsNullOrWhiteSpace(config.Host))
         {
-            return new() { HostName = config.Host, UserName = config.UserName, Password = config.PassWord, Port = config.Port, VirtualHost = config.VirtualHost };
+            return new()
+            {
+                HostName = config.Host,
+                UserName = config.UserName,
+                Password = config.PassWord,
+                Port = config.Port,
+                VirtualHost = config.VirtualHost
+            };
         }
         throw new InvalidOperationException("Configuration error: Unable to create a connection from the provided configuration.");
     }
@@ -118,8 +126,11 @@ public static class ServiceCollectionExtension
     private static void AddEventBus(this IServiceCollection services)
     {
         services.InjectHandler();
-        services.AddSingleton<IBusSerializerFactory, BusSerializerFactory>();
-        services.AddSingleton(sp => sp.GetRequiredService<IBusSerializerFactory>().CreateSerializer());
+        services.AddSingleton(sp =>
+        {
+            var config = sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>().Get(Constant.OptionName);
+            return config.BusSerializer;
+        });
         services.AddSingleton<ISubscriptionsManager, SubscriptionsManager>();
         services.AddSingleton<IBus, EventBus>();
         services.AddHostedService<SubscribeService>();
