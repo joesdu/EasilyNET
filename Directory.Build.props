@@ -38,7 +38,7 @@
   <PropertyGroup>
     <VersionMajor>3</VersionMajor>
     <VersionMinor>$([System.DateTime]::Now.ToString("yy"))</VersionMinor>
-    <VersionBuild>$([System.DateTime]::Now.ToString("MMdd"))</VersionBuild>
+    <VersionBuild>$([System.DateTime]::Now.ToString("MMdd").TrimStart('0'))</VersionBuild>
     <VersionRevision>$([System.DateTime]::Now.ToString("HHmm").Substring(0, 3).TrimStart('0'))</VersionRevision>
     <VersionRevision Condition="'$(VersionRevision)' == ''">0</VersionRevision>
     <DefaultVersion>$(VersionMajor).$(VersionMinor).$(VersionBuild).$(VersionRevision)</DefaultVersion>
