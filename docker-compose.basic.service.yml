@@ -52,8 +52,8 @@ services:
       # - "55679:55679" # zpages扩展
       # - "8888:8888"   # Collector公开的Prometheus指标
       # - "8889:8889"   # Prometheus导出器指标
-      - "4317:4317"   # OTLP gRPC接收器
-      - "4318:4318"   # OTLP http接收器
+      - "4317:4317" # OTLP gRPC接收器
+      - "4318:4318" # OTLP http接收器
 
   openobserve:
     image: public.ecr.aws/zinclabs/openobserve:latest
