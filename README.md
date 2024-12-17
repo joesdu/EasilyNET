@@ -69,14 +69,13 @@ EasilyNET Packages
 
 #### 近期更新内容(Recent Updates)
 
-- 同步更新 MongoDB 3.0.0 驱动程序,同步删除过时 API
-- 合并 EasilyNET.MongoGridFS.AspNetCore, EasilyNET.MongoSerializer.AspNetCore 到 EasilyNET.Mongo.AspNetCore
+- RabbitMQ 消息序列化默认采用 Text.Json, 可通过实现 IBusSerializer 接口自定义序列化方式支持
 
 <details>
 <summary style="font-size: 14px">English</summary>
 
-- Synchronized update to MongoDB 3.0.0 driver, removed deprecated APIs
-- Merged EasilyNET.MongoGridFS.AspNetCore and EasilyNET.MongoSerializer.AspNetCore into EasilyNET.Mongo.AspNetCore
+- RabbitMQ message serialization defaults to Text.Json, custom serialization methods can be supported by implementing
+  the IBusSerializer interface
 
 </details>
 
