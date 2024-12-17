@@ -63,7 +63,7 @@ services:
     environment:
       - TZ=Asia/Chongqing
       - ZO_DATA_DIR=/data
-      - ZO_ROOT_USER_EMAIL=dygood@outlook.com
+      - ZO_ROOT_USER_EMAIL=root@example.com
       - ZO_ROOT_USER_PASSWORD=Complexpass#123
     ports:
       - "5080:5080"
