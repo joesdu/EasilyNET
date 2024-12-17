@@ -364,3 +364,5 @@ FodyWeavers.xsd
 
 # JetBrains
 .idea/
+
+/obdata

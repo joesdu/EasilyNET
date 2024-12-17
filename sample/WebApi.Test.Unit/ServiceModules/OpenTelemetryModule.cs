@@ -2,6 +2,7 @@ using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Exporter;
+using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -28,6 +29,7 @@ internal sealed class OpenTelemetryModule : AppModule
                    c.AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel", "System.Net.Http", "WebApi.Test.Unit");
                    c.AddOtlpExporter();
                })
+               .WithLogging(c => c.AddOtlpExporter())
                .WithTracing(c =>
                {
                    if (env.IsDevelopment())
@@ -44,10 +46,8 @@ internal sealed class OpenTelemetryModule : AppModule
                });
         context.Services.Configure<OtlpExporterOptions>(c =>
         {
-            if (!string.IsNullOrWhiteSpace(otel["DASHBOARD_OTLP_PRIMARYAPIKEY"]))
-            {
-                c.Headers = $"x-otlp-api-key={otel["DASHBOARD_OTLP_PRIMARYAPIKEY"]}";
-            }
+            c.Endpoint = new(otel["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? "http://localhost:4317");
+            c.Protocol = OtlpExportProtocol.Grpc;
         });
         context.Services.AddHealthChecks().AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
         context.Services.ConfigureHttpClientDefaults(c => c.AddStandardResilienceHandler());

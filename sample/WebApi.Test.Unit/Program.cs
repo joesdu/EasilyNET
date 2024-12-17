@@ -40,12 +40,8 @@ builder.Host.UseSerilog((hbc, lc) =>
           var otel = hbc.Configuration.GetSection("OpenTelemetry");
           wt.OpenTelemetry(c =>
           {
+              c.Endpoint = new(otel["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? "http://localhost:4317");
               c.Protocol = OtlpProtocol.Grpc;
-              c.Endpoint = otel["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? "http://localhost:4317";
-              c.Headers = new Dictionary<string, string>
-              {
-                  ["x-otlp-api-key"] = otel["DASHBOARD_OTLP_PRIMARYAPIKEY"] ?? string.Empty
-              };
               c.ResourceAttributes = new Dictionary<string, object>
               {
                   ["service.name"] = Constant.InstanceName
