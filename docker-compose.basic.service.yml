@@ -3,6 +3,7 @@
 services:
   garnet:
     image: ghcr.io/microsoft/garnet
+    container_name: garnet
     environment:
       - TZ=Asia/Chongqing
     ports:
@@ -14,6 +15,7 @@ services:
 
   rabbit:
     image: ghcr.io/joesdu/rabbitmq-dlx:latest
+    container_name: rabbit
     environment:
       - TZ=Asia/Chongqing
       - RABBITMQ_DEFAULT_USER=admin
@@ -24,6 +26,7 @@ services:
 
   aspire_dashboard:
     image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest
+    container_name: aspire_dashboard
     environment:
       - TZ=Asia/Chongqing
       - DASHBOARD__OTLP__AUTHMODE=ApiKey
@@ -33,4 +36,42 @@ services:
       - DASHBOARD__TELEMETRYLIMITS__MAXMETRICSCOUNT=1000
     ports:
       - "18888:18888"
-      - "4317:18889"
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib
+    container_name: otel-collector
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    environment:
+      - TZ=Asia/Chongqing
+      # 由于 OpenObserve 服务端的这个Token老是不固定,所以每次都需要更改一下才行
+      - OBAUTHORIZATION=Basic ZHlnb29kQG91dGxvb2suY29tOnY5UWtJYmp1R2N6U1hUYzA=
+    ports:
+      # - "1888:1888"   # pprof扩展
+      # - "13133:13133" # health_check扩展
+      # - "55679:55679" # zpages扩展
+      # - "8888:8888"   # Collector公开的Prometheus指标
+      # - "8889:8889"   # Prometheus导出器指标
+      - "4317:4317"   # OTLP gRPC接收器
+      - "4318:4318"   # OTLP http接收器
+
+  openobserve:
+    image: public.ecr.aws/zinclabs/openobserve:latest
+    container_name: openobserve
+    volumes:
+      - obdata:/data
+    environment:
+      - TZ=Asia/Chongqing
+      - ZO_DATA_DIR=/data
+      - ZO_ROOT_USER_EMAIL=dygood@outlook.com
+      - ZO_ROOT_USER_PASSWORD=Complexpass#123
+    ports:
+      - "5080:5080"
+
+volumes:
+  obdata:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./obdata

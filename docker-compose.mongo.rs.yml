@@ -3,6 +3,7 @@
 services:
   mongo_primary:
     image: bitnami/mongodb:latest
+    container_name: mongo_primary
     environment:
       - TZ=Asia/Chongqing
       - MONGODB_ADVERTISED_HOSTNAME=host.docker.internal
@@ -18,6 +19,7 @@ services:
 
   mongo_secondary:
     image: bitnami/mongodb:latest
+    container_name: mongo_secondary
     depends_on:
       - mongo_primary
     environment:
@@ -35,6 +37,7 @@ services:
 
   mongo_arbiter:
     image: bitnami/mongodb:latest
+    container_name: mongo_arbiter
     depends_on:
       - mongo_primary
     environment:
