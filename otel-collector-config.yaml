@@ -20,7 +20,8 @@ exporters:
     otlp/openobserve:
         endpoint: openobserve:5081
         headers:
-            Authorization: "${OBAUTHORIZATION}"
+            # 由于 OpenObserve 服务端的这个Token老是不固定,所以每次都需要更改一下才行
+            Authorization: "Basic ZHlnb29kQG91dGxvb2suY29tOnY5UWtJYmp1R2N6U1hUYzA="
             organization: default
             stream-name: default
         tls:

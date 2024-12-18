@@ -44,8 +44,6 @@ services:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
     environment:
       - TZ=Asia/Chongqing
-      # 由于 OpenObserve 服务端的这个Token老是不固定,所以每次都需要更改一下才行
-      - OBAUTHORIZATION=Basic ZHlnb29kQG91dGxvb2suY29tOnY5UWtJYmp1R2N6U1hUYzA=
     ports:
       # - "1888:1888"   # pprof扩展
       # - "13133:13133" # health_check扩展
