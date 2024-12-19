@@ -61,8 +61,8 @@ services:
     environment:
       - TZ=Asia/Chongqing
       - ZO_DATA_DIR=/data
-      - ZO_ROOT_USER_EMAIL=root@example.com
-      - ZO_ROOT_USER_PASSWORD=Complexpass#123
+      - ZO_ROOT_USER_EMAIL=root@exp.com
+      - ZO_ROOT_USER_PASSWORD=a123456
     ports:
       - "5080:5080"
 
