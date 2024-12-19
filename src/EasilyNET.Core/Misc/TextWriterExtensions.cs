@@ -666,14 +666,14 @@ public static class TextWriterExtensions
     ///     使用方式:
     ///     <code>
     ///   <![CDATA[
-    /// var cts = new CancellationTokenSource();
+    ///   var cts = new CancellationTokenSource();
     ///   // 启动加载动画
     ///   var task = Task.Factory.StartNew(() => Console.Out.ShowLoading(cts.Token), token);
     ///   // 模拟3秒后取消加载动画
     ///   Task.Delay(3000, token).ContinueWith(_ => cts.Cancel(), token);
     ///   // 等待加载动画任务完成
     ///   task.Wait(token);
-    /// ]]>
+    ///   ]]>
     /// </code>
     ///     </para>
     /// </remarks>
