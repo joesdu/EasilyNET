@@ -6,15 +6,23 @@ using System.IO.Compression;
 namespace EasilyNET.Core.IO;
 
 /// <summary>
-/// 压缩/解压 字节数组
+///     <para xml:lang="en">Compress/Decompress byte arrays</para>
+///     <para xml:lang="zh">压缩/解压 字节数组</para>
 /// </summary>
 public static class CompressionHelper
 {
     /// <summary>
-    /// 压缩
+    ///     <para xml:lang="en">Compress</para>
+    ///     <para xml:lang="zh">压缩</para>
     /// </summary>
-    /// <param name="data">要压缩的字节数组</param>
-    /// <returns>压缩后的字节数组</returns>
+    /// <param name="data">
+    ///     <para xml:lang="en">Byte array to compress</para>
+    ///     <para xml:lang="zh">要压缩的字节数组</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Compressed byte array</para>
+    ///     <para xml:lang="zh">压缩后的字节数组</para>
+    /// </returns>
     public static byte[] Compress(byte[] data)
     {
         using var memoryStream = new MemoryStream();
@@ -26,10 +34,17 @@ public static class CompressionHelper
     }
 
     /// <summary>
-    /// 解压
+    ///     <para xml:lang="en">Decompress</para>
+    ///     <para xml:lang="zh">解压</para>
     /// </summary>
-    /// <param name="compressedData">压缩的字节数组</param>
-    /// <returns>解压后的字节数组</returns>
+    /// <param name="compressedData">
+    ///     <para xml:lang="en">Compressed byte array</para>
+    ///     <para xml:lang="zh">压缩的字节数组</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Decompressed byte array</para>
+    ///     <para xml:lang="zh">解压后的字节数组</para>
+    /// </returns>
     public static byte[] Decompress(byte[] compressedData)
     {
         using var memoryStream = new MemoryStream(compressedData);

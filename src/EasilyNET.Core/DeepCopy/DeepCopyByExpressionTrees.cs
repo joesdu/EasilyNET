@@ -16,7 +16,8 @@ using System.Reflection;
 namespace EasilyNET.Core.DeepCopy;
 
 /// <summary>
-/// 使用表达式树实现的超快速深拷贝类。
+///     <para xml:lang="en">Ultra-fast deep copy class implemented using expression trees.</para>
+///     <para xml:lang="zh">使用表达式树实现的超快速深拷贝类。</para>
 /// </summary>
 public static class DeepCopyByExpressionTrees
 {
@@ -29,12 +30,25 @@ public static class DeepCopyByExpressionTrees
     private static readonly MethodInfo DeepCopyByExpressionTreeObjMethod = typeof(DeepCopyByExpressionTrees).GetMethod(nameof(DeepCopyObj), BindingFlags.NonPublic | BindingFlags.Static)!;
 
     /// <summary>
-    /// 创建对象的深拷贝。
+    ///     <para xml:lang="en">Creates a deep copy of an object.</para>
+    ///     <para xml:lang="zh">创建对象的深拷贝。</para>
     /// </summary>
-    /// <typeparam name="T">对象类型。</typeparam>
-    /// <param name="original">要拷贝的对象。</param>
-    /// <param name="copiedReferencesDict">已拷贝对象的字典（键：原始对象，值：它们的拷贝）。</param>
-    /// <returns>拷贝后的对象。</returns>
+    /// <typeparam name="T">
+    ///     <para xml:lang="en">The type of the object.</para>
+    ///     <para xml:lang="zh">对象类型。</para>
+    /// </typeparam>
+    /// <param name="original">
+    ///     <para xml:lang="en">The object to copy.</para>
+    ///     <para xml:lang="zh">要拷贝的对象。</para>
+    /// </param>
+    /// <param name="copiedReferencesDict">
+    ///     <para xml:lang="en">A dictionary of already copied objects (key: original object, value: their copies).</para>
+    ///     <para xml:lang="zh">已拷贝对象的字典（键：原始对象，值：它们的拷贝）。</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The copied object.</para>
+    ///     <para xml:lang="zh">拷贝后的对象。</para>
+    /// </returns>
     public static T? DeepCopy<T>(this T original, Dictionary<object, object>? copiedReferencesDict = null) => (T?)DeepCopyObj(original, false, copiedReferencesDict ?? new Dictionary<object, object>(new ReferenceEqualityComparer()));
 
     private static object? DeepCopyObj(object? original, bool forceDeepCopy, Dictionary<object, object> copiedReferencesDict)

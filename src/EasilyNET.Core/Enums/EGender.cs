@@ -3,18 +3,21 @@ using System.ComponentModel;
 namespace EasilyNET.Core.Enums;
 
 /// <summary>
-/// 性别枚举
+///     <para xml:lang="en">Gender enum</para>
+///     <para xml:lang="zh">性别枚举</para>
 /// </summary>
 public enum EGender
 {
     /// <summary>
-    /// Female: ♀
+    ///     <para xml:lang="en">Female: ♀</para>
+    ///     <para xml:lang="zh">女: ♀</para>
     /// </summary>
     [Description("Female")]
     女 = 0,
 
     /// <summary>
-    /// Male: ♂
+    ///     <para xml:lang="en">Male: ♂</para>
+    ///     <para xml:lang="zh">男: ♂</para>
     /// </summary>
     [Description("Male")]
     男 = 1

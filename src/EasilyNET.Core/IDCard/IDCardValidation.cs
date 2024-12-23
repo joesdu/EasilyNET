@@ -3,7 +3,8 @@ using EasilyNET.Core.Misc;
 namespace EasilyNET.Core.IdCard;
 
 /// <summary>
-/// 身份证合理性验证
+///     <para xml:lang="en">ID card validity verification</para>
+///     <para xml:lang="zh">身份证合理性验证</para>
 /// </summary>
 public static class IDCardValidation
 {
@@ -12,20 +13,28 @@ public static class IDCardValidation
     private static readonly int[] Wi = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
 
     /// <summary>
-    /// 验证身份证合理性
+    ///     <para xml:lang="en">Verify the validity of the ID card</para>
+    ///     <para xml:lang="zh">验证身份证合理性</para>
     /// </summary>
-    /// <param name="no">身份证号码</param>
-    /// <returns>是否有效</returns>
+    /// <param name="no">
+    ///     <para xml:lang="en">ID card number</para>
+    ///     <para xml:lang="zh">身份证号码</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Whether it is valid</para>
+    ///     <para xml:lang="zh">是否有效</para>
+    /// </returns>
     public static bool CheckIDCard(this string no) =>
         no.Length switch
         {
             18 => CheckIDCard18(no.AsSpan()),
             15 => CheckIDCard15(no.AsSpan()),
-            _  => false
+            _ => false
         };
 
     /// <summary>
-    /// 18 位身份证号码验证
+    ///     <para xml:lang="en">18-digit ID card number verification</para>
+    ///     <para xml:lang="zh">18 位身份证号码验证</para>
     /// </summary>
     private static bool CheckIDCard18(ReadOnlySpan<char> no)
     {
@@ -42,7 +51,8 @@ public static class IDCardValidation
     }
 
     /// <summary>
-    /// 15 位身份证号码验证
+    ///     <para xml:lang="en">15-digit ID card number verification</para>
+    ///     <para xml:lang="zh">15 位身份证号码验证</para>
     /// </summary>
     private static bool CheckIDCard15(ReadOnlySpan<char> no)
     {
@@ -51,9 +61,16 @@ public static class IDCardValidation
     }
 
     /// <summary>
-    /// 验证省份代码是否有效
+    ///     <para xml:lang="en">Verify whether the province code is valid</para>
+    ///     <para xml:lang="zh">验证省份代码是否有效</para>
     /// </summary>
-    /// <param name="province">省份代码</param>
-    /// <returns>是否有效</returns>
+    /// <param name="province">
+    ///     <para xml:lang="en">Province code</para>
+    ///     <para xml:lang="zh">省份代码</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Whether it is valid</para>
+    ///     <para xml:lang="zh">是否有效</para>
+    /// </returns>
     private static bool IsValidProvince(ReadOnlySpan<char> province) => address.Contains(province.ToString());
 }

@@ -32,7 +32,8 @@ using EasilyNET.Core.Misc;
 namespace EasilyNET.Core.DeepCopy;
 
 /// <summary>
-/// 使用 Reflection 实现的深拷贝，推荐用表达式树的版本
+///     <para xml:lang="en">Deep copy implemented using Reflection. It is recommended to use the version with expression trees.</para>
+///     <para xml:lang="zh">使用 Reflection 实现的深拷贝，推荐用表达式树的版本。</para>
 /// </summary>
 public static class DeepCopyByReflection
 {
@@ -40,25 +41,49 @@ public static class DeepCopyByReflection
     private static readonly Dictionary<Type, FieldInfo[]> FieldInfoCache = [];
 
     /// <summary>
-    /// 检查类型是否为原始类型或字符串
+    ///     <para xml:lang="en">Checks if the type is a primitive type or a string.</para>
+    ///     <para xml:lang="zh">检查类型是否为原始类型或字符串。</para>
     /// </summary>
-    /// <param name="type">要检查的类型</param>
-    /// <returns>如果是原始类型或字符串，返回 true；否则返回 false</returns>
+    /// <param name="type">
+    ///     <para xml:lang="en">The type to check.</para>
+    ///     <para xml:lang="zh">要检查的类型。</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">True if it is a primitive type or a string; otherwise, false.</para>
+    ///     <para xml:lang="zh">如果是原始类型或字符串，返回 true；否则返回 false。</para>
+    /// </returns>
     private static bool IsPrimitive(this Type type) => type == typeof(string) || type is { IsValueType: true, IsPrimitive: true };
 
     /// <summary>
-    /// 使用 Reflection 实现的深拷贝，推荐用表达式树的版本
+    ///     <para xml:lang="en">Deep copy implemented using Reflection. It is recommended to use the version with expression trees.</para>
+    ///     <para xml:lang="zh">使用 Reflection 实现的深拷贝，推荐用表达式树的版本。</para>
     /// </summary>
-    /// <typeparam name="T">要拷贝的对象类型</typeparam>
-    /// <param name="original">要拷贝的对象</param>
-    /// <returns>拷贝后的对象</returns>
+    /// <typeparam name="T">
+    ///     <para xml:lang="en">The type of the object to copy.</para>
+    ///     <para xml:lang="zh">要拷贝的对象类型。</para>
+    /// </typeparam>
+    /// <param name="original">
+    ///     <para xml:lang="en">The object to copy.</para>
+    ///     <para xml:lang="zh">要拷贝的对象。</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The copied object.</para>
+    ///     <para xml:lang="zh">拷贝后的对象。</para>
+    /// </returns>
     public static T? Copy<T>(this T? original) => (T?)Copy((object?)original);
 
     /// <summary>
-    /// 使用 Reflection 实现的深拷贝，推荐用表达式树的版本
+    ///     <para xml:lang="en">Deep copy implemented using Reflection. It is recommended to use the version with expression trees.</para>
+    ///     <para xml:lang="zh">使用 Reflection 实现的深拷贝，推荐用表达式树的版本。</para>
     /// </summary>
-    /// <param name="originalObject">要拷贝的对象</param>
-    /// <returns>拷贝后的对象</returns>
+    /// <param name="originalObject">
+    ///     <para xml:lang="en">The object to copy.</para>
+    ///     <para xml:lang="zh">要拷贝的对象。</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The copied object.</para>
+    ///     <para xml:lang="zh">拷贝后的对象。</para>
+    /// </returns>
     public static object? Copy(this object? originalObject) => InternalCopy(originalObject, new Dictionary<object, object>(new ReferenceEqualityComparer()));
 
     private static object? InternalCopy(object? originalObject, IDictionary<object, object> visited)

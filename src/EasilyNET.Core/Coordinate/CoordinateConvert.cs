@@ -40,7 +40,8 @@
 namespace EasilyNET.Core.Coordinate;
 
 /// <summary>
-/// UMD魔法代码,地图坐标转换偏移代码
+///     <para xml:lang="en">UMD magic code, map coordinate conversion offset code</para>
+///     <para xml:lang="zh">UMD魔法代码,地图坐标转换偏移代码</para>
 /// </summary>
 public static class CoordinateConvert
 {
@@ -50,12 +51,25 @@ public static class CoordinateConvert
     private const double Pi = 3.1415926535897932384626;
 
     /// <summary>
-    /// WGS84转GCJ02
+    ///     <para xml:lang="en">Convert WGS84 to GCJ02</para>
+    ///     <para xml:lang="zh">WGS84转GCJ02</para>
     /// </summary>
-    /// <param name="wgsLon"></param>
-    /// <param name="wgsLat"></param>
-    /// <param name="gcjLon"></param>
-    /// <param name="gcjLat"></param>
+    /// <param name="wgsLon">
+    ///     <para xml:lang="en">Longitude in WGS84</para>
+    ///     <para xml:lang="zh">WGS84经度</para>
+    /// </param>
+    /// <param name="wgsLat">
+    ///     <para xml:lang="en">Latitude in WGS84</para>
+    ///     <para xml:lang="zh">WGS84纬度</para>
+    /// </param>
+    /// <param name="gcjLon">
+    ///     <para xml:lang="en">Longitude in GCJ02</para>
+    ///     <para xml:lang="zh">GCJ02经度</para>
+    /// </param>
+    /// <param name="gcjLat">
+    ///     <para xml:lang="en">Latitude in GCJ02</para>
+    ///     <para xml:lang="zh">GCJ02纬度</para>
+    /// </param>
     public static void WGS84ToGCJ02(double wgsLon, double wgsLat, out double gcjLon, out double gcjLat)
     {
         if (OutOfChina(wgsLon, wgsLat))
@@ -77,12 +91,25 @@ public static class CoordinateConvert
     }
 
     /// <summary>
-    /// GCJ02 转换为 WGS84
+    ///     <para xml:lang="en">Convert GCJ02 to WGS84</para>
+    ///     <para xml:lang="zh">GCJ02 转换为 WGS84</para>
     /// </summary>
-    /// <param name="gcjLon"></param>
-    /// <param name="gcjLat"></param>
-    /// <param name="wgsLon"></param>
-    /// <param name="wgsLat"></param>
+    /// <param name="gcjLon">
+    ///     <para xml:lang="en">Longitude in GCJ02</para>
+    ///     <para xml:lang="zh">GCJ02经度</para>
+    /// </param>
+    /// <param name="gcjLat">
+    ///     <para xml:lang="en">Latitude in GCJ02</para>
+    ///     <para xml:lang="zh">GCJ02纬度</para>
+    /// </param>
+    /// <param name="wgsLon">
+    ///     <para xml:lang="en">Longitude in WGS84</para>
+    ///     <para xml:lang="zh">WGS84经度</para>
+    /// </param>
+    /// <param name="wgsLat">
+    ///     <para xml:lang="en">Latitude in WGS84</para>
+    ///     <para xml:lang="zh">WGS84纬度</para>
+    /// </param>
     public static void GCJ02ToWGS84(double gcjLon, double gcjLat, out double wgsLon, out double wgsLat)
     {
         if (OutOfChina(gcjLon, gcjLat))
@@ -104,12 +131,25 @@ public static class CoordinateConvert
     }
 
     /// <summary>
-    /// 百度坐标系(BD-09) 与 火星坐标系(GCJ-02)的转换,即 百度 转 谷歌、高德
+    ///     <para xml:lang="en">Convert BD09 to GCJ02</para>
+    ///     <para xml:lang="zh">百度坐标系(BD-09) 与 火星坐标系(GCJ-02)的转换,即 百度 转 谷歌、高德</para>
     /// </summary>
-    /// <param name="bdLon"></param>
-    /// <param name="bdLat"></param>
-    /// <param name="gcjLon"></param>
-    /// <param name="gcjLat"></param>
+    /// <param name="bdLon">
+    ///     <para xml:lang="en">Longitude in BD09</para>
+    ///     <para xml:lang="zh">BD09经度</para>
+    /// </param>
+    /// <param name="bdLat">
+    ///     <para xml:lang="en">Latitude in BD09</para>
+    ///     <para xml:lang="zh">BD09纬度</para>
+    /// </param>
+    /// <param name="gcjLon">
+    ///     <para xml:lang="en">Longitude in GCJ02</para>
+    ///     <para xml:lang="zh">GCJ02经度</para>
+    /// </param>
+    /// <param name="gcjLat">
+    ///     <para xml:lang="en">Latitude in GCJ02</para>
+    ///     <para xml:lang="zh">GCJ02纬度</para>
+    /// </param>
     public static void BD09ToGCJ02(double bdLon, double bdLat, out double gcjLon, out double gcjLat)
     {
         var x = bdLon - 0.0065;
@@ -121,12 +161,25 @@ public static class CoordinateConvert
     }
 
     /// <summary>
-    /// 火星坐标系(GCJ-02) 与百度坐标系(BD-09) 的转换,即谷歌、高德 转 百度
+    ///     <para xml:lang="en">Convert GCJ02 to BD09</para>
+    ///     <para xml:lang="zh">火星坐标系(GCJ-02) 与百度坐标系(BD-09) 的转换,即谷歌、高德 转 百度</para>
     /// </summary>
-    /// <param name="gcjLon"></param>
-    /// <param name="gcjLat"></param>
-    /// <param name="bdLon"></param>
-    /// <param name="bdLat"></param>
+    /// <param name="gcjLon">
+    ///     <para xml:lang="en">Longitude in GCJ02</para>
+    ///     <para xml:lang="zh">GCJ02经度</para>
+    /// </param>
+    /// <param name="gcjLat">
+    ///     <para xml:lang="en">Latitude in GCJ02</para>
+    ///     <para xml:lang="zh">GCJ02纬度</para>
+    /// </param>
+    /// <param name="bdLon">
+    ///     <para xml:lang="en">Longitude in BD09</para>
+    ///     <para xml:lang="zh">BD09经度</para>
+    /// </param>
+    /// <param name="bdLat">
+    ///     <para xml:lang="en">Latitude in BD09</para>
+    ///     <para xml:lang="zh">BD09纬度</para>
+    /// </param>
     public static void GCJ02ToBD09(double gcjLon, double gcjLat, out double bdLon, out double bdLat)
     {
         var z = Math.Sqrt((gcjLon * gcjLon) + (gcjLat * gcjLat)) + (0.00002 * Math.Sin(gcjLat * x_Pi));
@@ -136,22 +189,42 @@ public static class CoordinateConvert
     }
 
     /// <summary>
-    /// 判断是否在国内,不在国内则不做偏移
+    ///     <para xml:lang="en">Determines whether the coordinates are outside China. If they are outside China, no offset is applied.</para>
+    ///     <para xml:lang="zh">判断是否在国内,不在国内则不做偏移</para>
     /// </summary>
-    /// <param name="lon"></param>
-    /// <param name="lat"></param>
-    /// <returns></returns>
+    /// <param name="lon">
+    ///     <para xml:lang="en">Longitude</para>
+    ///     <para xml:lang="zh">经度</para>
+    /// </param>
+    /// <param name="lat">
+    ///     <para xml:lang="en">Latitude</para>
+    ///     <para xml:lang="zh">纬度</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Whether the coordinates are outside China</para>
+    ///     <para xml:lang="zh">是否在国内</para>
+    /// </returns>
     private static bool OutOfChina(double lon, double lat) =>
         // https://cn.bing.com/search?q=%E4%B8%AD%E5%9B%BD%E7%BB%8F%E7%BA%AC%E5%BA%A6%E8%8C%83%E5%9B%B4&qs=n&form=QBRE&sp=-1&pq=%E4%B8%AD%E5%9B%BD%E7%BB%8F%E7%BA%AC%E5%BA%A6%E8%8C%83%E5%9B%B4&sc=5-7&sk=&cvid=A687C2BEA56F4B08BE0913ADDA0C6674&ghsh=0&ghacc=0&ghpl=
         // 经度范围:73°33′E至135°05′E; 纬度范围:3°51′N至53°33′N
         lon is < 73.33 or > 135.05 || lat is < 3.51 or > 53.33;
 
     /// <summary>
-    /// 转换纬度
+    ///     <para xml:lang="en">Transforms the latitude</para>
+    ///     <para xml:lang="zh">转换纬度</para>
     /// </summary>
-    /// <param name="lon">经度</param>
-    /// <param name="lat">纬度</param>
-    /// <returns></returns>
+    /// <param name="lon">
+    ///     <para xml:lang="en">Longitude</para>
+    ///     <para xml:lang="zh">经度</para>
+    /// </param>
+    /// <param name="lat">
+    ///     <para xml:lang="en">Latitude</para>
+    ///     <para xml:lang="zh">纬度</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Transformed latitude</para>
+    ///     <para xml:lang="zh">转换后的纬度</para>
+    /// </returns>
     private static double TransformLat(double lon, double lat)
     {
         var ret = -100.0 + (2.0 * lon) + (3.0 * lat) + (0.2 * lat * lat) + (0.1 * lon * lat) + (0.2 * Math.Sqrt(Math.Abs(lon)));
@@ -162,11 +235,21 @@ public static class CoordinateConvert
     }
 
     /// <summary>
-    /// 转换经度
+    ///     <para xml:lang="en">Transforms the longitude</para>
+    ///     <para xml:lang="zh">转换经度</para>
     /// </summary>
-    /// <param name="lon">经度</param>
-    /// <param name="lat">纬度</param>
-    /// <returns></returns>
+    /// <param name="lon">
+    ///     <para xml:lang="en">Longitude</para>
+    ///     <para xml:lang="zh">经度</para>
+    /// </param>
+    /// <param name="lat">
+    ///     <para xml:lang="en">Latitude</para>
+    ///     <para xml:lang="zh">纬度</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Transformed longitude</para>
+    ///     <para xml:lang="zh">转换后的经度</para>
+    /// </returns>
     private static double TransformLon(double lon, double lat)
     {
         var ret = 300.0 + lon + (2.0 * lat) + (0.1 * lon * lon) + (0.1 * lon * lat) + (0.1 * Math.Sqrt(Math.Abs(lon)));
