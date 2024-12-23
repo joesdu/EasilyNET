@@ -3,17 +3,20 @@ using System.Diagnostics.CodeAnalysis;
 namespace EasilyNET.Core.Commons;
 
 /// <summary>
-/// 一些程序集内部使用的常量
+///     <para xml:lang="en">Some constants used internally by the assembly</para>
+///     <para xml:lang="zh">一些程序集内部使用的常量</para>
 /// </summary>
 internal static class ModuleConstants
 {
     /// <summary>
-    /// 本库默认浮点数精度, 1E-6
+    ///     <para xml:lang="en">Default floating-point precision for this library, 1E-6</para>
+    ///     <para xml:lang="zh">本库默认浮点数精度, 1E-6</para>
     /// </summary>
     internal const double Epsilon = 1E-6;
 
     /// <summary>
-    /// DateTime常见格式
+    ///     <para xml:lang="en">Common DateTime formats</para>
+    ///     <para xml:lang="zh">DateTime常见格式</para>
     /// </summary>
     [SuppressMessage("ReSharper", "StringLiteralTypo")]
     internal static readonly string[] DateTimeFormats =

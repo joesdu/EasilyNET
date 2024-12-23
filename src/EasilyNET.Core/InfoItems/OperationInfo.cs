@@ -4,21 +4,30 @@
 namespace EasilyNET.Core;
 
 /// <summary>
-/// 操作信息
+///     <para xml:lang="en">Operation information</para>
+///     <para xml:lang="zh">操作信息</para>
 /// </summary>
 // ReSharper disable once UnusedType.Global
 public class OperationInfo
 {
     /// <summary>
-    /// 构造函数
+    ///     <para xml:lang="en">Constructor</para>
+    ///     <para xml:lang="zh">构造函数</para>
     /// </summary>
     public OperationInfo() { }
 
     /// <summary>
-    /// 构造函数
+    ///     <para xml:lang="en">Constructor</para>
+    ///     <para xml:lang="zh">构造函数</para>
     /// </summary>
-    /// <param name="done">是否完成</param>
-    /// <param name="time">操作时间</param>
+    /// <param name="done">
+    ///     <para xml:lang="en">Whether the operation is completed</para>
+    ///     <para xml:lang="zh">是否完成</para>
+    /// </param>
+    /// <param name="time">
+    ///     <para xml:lang="en">Operation time</para>
+    ///     <para xml:lang="zh">操作时间</para>
+    /// </param>
     public OperationInfo(bool done, DateTime? time)
     {
         Done = done;
@@ -26,12 +35,14 @@ public class OperationInfo
     }
 
     /// <summary>
-    /// 时间
+    ///     <para xml:lang="en">Time</para>
+    ///     <para xml:lang="zh">时间</para>
     /// </summary>
     public DateTime? Time { get; set; } = DateTime.Now;
 
     /// <summary>
-    /// 是否完成
+    ///     <para xml:lang="en">Whether the operation is completed</para>
+    ///     <para xml:lang="zh">是否完成</para>
     /// </summary>
     public bool Done { get; set; }
 }

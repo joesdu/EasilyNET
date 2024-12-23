@@ -6,15 +6,23 @@ using System.IO.Compression;
 namespace EasilyNET.Core.IO;
 
 /// <summary>
-/// Zip工具
+///     <para xml:lang="en">Zip utility</para>
+///     <para xml:lang="zh">Zip工具</para>
 /// </summary>
 public static class ZipHelper
 {
     /// <summary>
-    /// 将文件夹压缩为Zip
+    ///     <para xml:lang="en">Compress a directory into a Zip file</para>
+    ///     <para xml:lang="zh">将文件夹压缩为Zip</para>
     /// </summary>
-    /// <param name="sourceDirectory"></param>
-    /// <param name="destinationFile"></param>
+    /// <param name="sourceDirectory">
+    ///     <para xml:lang="en">Source directory</para>
+    ///     <para xml:lang="zh">源文件夹</para>
+    /// </param>
+    /// <param name="destinationFile">
+    ///     <para xml:lang="en">Destination Zip file</para>
+    ///     <para xml:lang="zh">目标Zip文件</para>
+    /// </param>
     /// <exception cref="DirectoryNotFoundException"></exception>
     public static void ZipDirectory(string sourceDirectory, string destinationFile)
     {
@@ -33,10 +41,17 @@ public static class ZipHelper
     }
 
     /// <summary>
-    /// 解压缩文件到指定目录
+    ///     <para xml:lang="en">Extract a Zip file to a specified directory</para>
+    ///     <para xml:lang="zh">解压缩文件到指定目录</para>
     /// </summary>
-    /// <param name="zipFile"></param>
-    /// <param name="destinationDirectory"></param>
+    /// <param name="zipFile">
+    ///     <para xml:lang="en">Zip file</para>
+    ///     <para xml:lang="zh">Zip文件</para>
+    /// </param>
+    /// <param name="destinationDirectory">
+    ///     <para xml:lang="en">Destination directory</para>
+    ///     <para xml:lang="zh">目标目录</para>
+    /// </param>
     /// <exception cref="FileNotFoundException"></exception>
     public static void UnZipFile(string zipFile, string destinationDirectory)
     {
@@ -56,10 +71,17 @@ public static class ZipHelper
     }
 
     /// <summary>
-    /// 将指定文件压缩为Zip
+    ///     <para xml:lang="en">Compress a specified file into a Zip file</para>
+    ///     <para xml:lang="zh">将指定文件压缩为Zip</para>
     /// </summary>
-    /// <param name="sourceFile"></param>
-    /// <param name="destinationZipFile"></param>
+    /// <param name="sourceFile">
+    ///     <para xml:lang="en">Source file</para>
+    ///     <para xml:lang="zh">源文件</para>
+    /// </param>
+    /// <param name="destinationZipFile">
+    ///     <para xml:lang="en">Destination Zip file</para>
+    ///     <para xml:lang="zh">目标Zip文件</para>
+    /// </param>
     public static void ZipFromFile(string sourceFile, string destinationZipFile)
     {
         if (!File.Exists(sourceFile))
