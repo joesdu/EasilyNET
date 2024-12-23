@@ -12,22 +12,32 @@ using MongoDB.Driver;
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
-/// 时间序列集合扩展类
+///     <para xml:lang="en">Time series collection extension class</para>
+///     <para xml:lang="zh">时间序列集合扩展类</para>
 /// </summary>
 public static class TimeSeriesCollectionExtensions
 {
     /// <summary>
-    /// 不要尝试创建名称为 system.profile 的时间序列集合或视图。如果您尝试这样做，MongoDB 6.3 及更高版本会返回 IllegalOperation 错误。早期 MongoDB 版本会因此崩溃。
+    ///     <para xml:lang="en">
+    ///     Do not attempt to create a time series collection or view named system.profile. If you attempt to do so, MongoDB 6.3 and
+    ///     later will return an IllegalOperation error. Earlier MongoDB versions will crash as a result.
+    ///     </para>
+    ///     <para xml:lang="zh">不要尝试创建名称为 system.profile 的时间序列集合或视图。如果您尝试这样做，MongoDB 6.3 及更高版本会返回 IllegalOperation 错误。早期 MongoDB 版本会因此崩溃。</para>
     /// </summary>
     private const string IllegalName = "system.profile";
 
     private static readonly ConcurrentBag<string> CollectionCache = [];
 
     /// <summary>
-    /// 对标记 <see cref="TimeSeriesCollectionAttribute" /> 的实体对象,自动创建 MongoDB 时序集合
+    ///     <para xml:lang="en">
+    ///     Automatically create MongoDB time series collections for entity objects marked with
+    ///     <see cref="TimeSeriesCollectionAttribute" />
+    ///     </para>
+    ///     <para xml:lang="zh">对标记 <see cref="TimeSeriesCollectionAttribute" /> 的实体对象,自动创建 MongoDB 时序集合</para>
     /// </summary>
-    /// <param name="app"></param>
-    /// <returns></returns>
+    /// <param name="app">
+    ///     <see cref="IApplicationBuilder" />
+    /// </param>
     public static IApplicationBuilder UseCreateMongoTimeSeriesCollection<T>(this IApplicationBuilder app) where T : MongoContext
     {
         ArgumentNullException.ThrowIfNull(app);

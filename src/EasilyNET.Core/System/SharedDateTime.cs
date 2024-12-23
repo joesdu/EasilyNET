@@ -4,7 +4,8 @@
 namespace EasilyNET.Core.System;
 
 /// <summary>
-/// 共享的DateTime,用于在跨异步上下文中保持Now的值一致
+///     <para xml:lang="en">Shared DateTime, used to keep the value of Now consistent across asynchronous contexts</para>
+///     <para xml:lang="zh">共享的 DateTime，用于在跨异步上下文中保持 Now 的值一致</para>
 /// </summary>
 public static class SharedDateTime
 {
@@ -17,12 +18,14 @@ public static class SharedDateTime
     }
 
     /// <summary>
-    /// SharedNow
+    ///     <para xml:lang="en">Gets the shared DateTime.Now value</para>
+    ///     <para xml:lang="zh">获取共享的 DateTime.Now 值</para>
     /// </summary>
     public static DateTime SharedNow => _asyncLocalSharedNow.Value;
 
     /// <summary>
-    /// 刷新共享 DateTime.Now 值
+    ///     <para xml:lang="en">Refreshes the shared DateTime.Now value</para>
+    ///     <para xml:lang="zh">刷新共享的 DateTime.Now 值</para>
     /// </summary>
     public static void Refresh() => _asyncLocalSharedNow.Value = DateTime.Now;
 }

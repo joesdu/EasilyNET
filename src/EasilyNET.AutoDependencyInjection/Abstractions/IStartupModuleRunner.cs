@@ -4,7 +4,8 @@ namespace EasilyNET.AutoDependencyInjection.Abstractions;
 internal interface IStartupModuleRunner : IModuleApplication
 {
     /// <summary>
-    /// 初始化
+    ///     <para xml:lang="en">Initialize</para>
+    ///     <para xml:lang="zh">初始化</para>
     /// </summary>
     void Initialize();
 }

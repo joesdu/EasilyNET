@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -7,27 +8,20 @@ using System.Text.Json.Serialization;
 namespace EasilyNET.WebCore.JsonConverters;
 
 /// <summary>
-/// 可空DateTime类型Json转换(用于将字符串类型的DateTime转化成后端可识别的时间类型)
+///     <para xml:lang="en">
+///     JSON converter for nullable DateTime type (used to convert string types of DateTime to backend-recognizable date and time
+///     types)
+///     </para>
+///     <para xml:lang="zh">可空 DateTime 类型的 JSON 转换器（用于将字符串类型的 DateTime 转换为后端可识别的时间类型）</para>
 /// </summary>
 public sealed class DateTimeNullConverter : JsonConverter<DateTime?>
 {
-    /// <summary>
-    /// Read
-    /// </summary>
-    /// <param name="reader"></param>
-    /// <param name="typeToConvert"></param>
-    /// <param name="options"></param>
-    /// <returns></returns>
+    /// <inheritdoc />
     public override DateTime? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
         string.IsNullOrEmpty(reader.GetString())
             ? null
-            : Convert.ToDateTime(reader.GetString());
+            : Convert.ToDateTime(reader.GetString(), CultureInfo.CurrentCulture);
 
-    /// <summary>
-    /// Write
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="value"></param>
-    /// <param name="options"></param>
-    public override void Write(Utf8JsonWriter writer, DateTime? value, JsonSerializerOptions options) => writer.WriteStringValue(value?.ToString(Constant.DateTimeFormat));
+    /// <inheritdoc />
+    public override void Write(Utf8JsonWriter writer, DateTime? value, JsonSerializerOptions options) => writer.WriteStringValue(value?.ToString(Constant.DateTimeFormat, CultureInfo.CurrentCulture));
 }

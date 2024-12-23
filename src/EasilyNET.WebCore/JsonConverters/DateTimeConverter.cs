@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -7,7 +8,11 @@ using System.Text.Json.Serialization;
 namespace EasilyNET.WebCore.JsonConverters;
 
 /// <summary>
-/// <see cref="DateTime" /> 类型Json转换(用于将字符串类型的 <see cref="DateTime" /> 转化成后端可识别的时间类型)
+///     <para xml:lang="en">
+///     JSON converter for <see cref="DateTime" /> type (used to convert string types of <see cref="DateTime" /> to
+///     backend-recognizable date and time types)
+///     </para>
+///     <para xml:lang="zh"><see cref="DateTime" /> 类型的 JSON 转换器（用于将字符串类型的 <see cref="DateTime" /> 转换为后端可识别的时间类型）</para>
 /// </summary>
 /// <example>
 ///     <code>
@@ -18,20 +23,9 @@ namespace EasilyNET.WebCore.JsonConverters;
 /// </example>
 public sealed class DateTimeConverter : JsonConverter<DateTime>
 {
-    /// <summary>
-    /// Read
-    /// </summary>
-    /// <param name="reader"></param>
-    /// <param name="typeToConvert"></param>
-    /// <param name="options"></param>
-    /// <returns></returns>
-    public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => Convert.ToDateTime(reader.GetString());
+    /// <inheritdoc />
+    public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => Convert.ToDateTime(reader.GetString(), CultureInfo.CurrentCulture);
 
-    /// <summary>
-    /// Write
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="value"></param>
-    /// <param name="options"></param>
-    public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options) => writer.WriteStringValue(value.ToString(Constant.DateTimeFormat));
+    /// <inheritdoc />
+    public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options) => writer.WriteStringValue(value.ToString(Constant.DateTimeFormat, CultureInfo.CurrentCulture));
 }

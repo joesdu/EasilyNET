@@ -10,15 +10,26 @@ using Org.BouncyCastle.X509;
 namespace EasilyNET.Security;
 
 /// <summary>
-/// RSAKey转化扩展类,用于将XML格式和Base64这种互转.如C#和Java的编码就不一样.
+///     <para xml:lang="en">
+///     RSA key conversion extension class, used to convert between XML format and Base64. For example, the encoding of C# and Java
+///     is different
+///     </para>
+///     <para xml:lang="zh">RSAKey转化扩展类,用于将XML格式和Base64这种互转.如C#和Java的编码就不一样</para>
 /// </summary>
 public static class RsaKeyConverter
 {
     /// <summary>
-    /// XML私钥 👉 Base64私钥
+    ///     <para xml:lang="en">XML private key 👉 Base64 private key</para>
+    ///     <para xml:lang="zh">XML私钥 👉 Base64私钥</para>
     /// </summary>
-    /// <param name="xmlPrivate">XML私钥</param>
-    /// <returns>Base64私钥</returns>
+    /// <param name="xmlPrivate">
+    ///     <para xml:lang="en">XML private key</para>
+    ///     <para xml:lang="zh">XML私钥</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Base64 private key</para>
+    ///     <para xml:lang="zh">Base64私钥</para>
+    /// </returns>
     public static string ToBase64PrivateKey(string xmlPrivate)
     {
         using var rsa = new RSACryptoServiceProvider();
@@ -33,10 +44,17 @@ public static class RsaKeyConverter
     }
 
     /// <summary>
-    /// XML公钥 👉 Base64公钥
+    ///     <para xml:lang="en">XML public key 👉 Base64 public key</para>
+    ///     <para xml:lang="zh">XML公钥 👉 Base64公钥</para>
     /// </summary>
-    /// <param name="xmlPublic">XML公钥</param>
-    /// <returns>Base64公钥</returns>
+    /// <param name="xmlPublic">
+    ///     <para xml:lang="en">XML public key</para>
+    ///     <para xml:lang="zh">XML公钥</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Base64 public key</para>
+    ///     <para xml:lang="zh">Base64公钥</para>
+    /// </returns>
     public static string ToBase64PublicKey(string xmlPublic)
     {
         using var rsa = new RSACryptoServiceProvider();
@@ -48,10 +66,17 @@ public static class RsaKeyConverter
     }
 
     /// <summary>
-    /// Base64私钥 👉 XML私钥
+    ///     <para xml:lang="en">Base64 private key 👉 XML private key</para>
+    ///     <para xml:lang="zh">Base64私钥 👉 XML私钥</para>
     /// </summary>
-    /// <param name="base64Private">Base64私钥</param>
-    /// <returns>XML私钥</returns>
+    /// <param name="base64Private">
+    ///     <para xml:lang="en">Base64 private key</para>
+    ///     <para xml:lang="zh">Base64私钥</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">XML private key</para>
+    ///     <para xml:lang="zh">XML私钥</para>
+    /// </returns>
     public static string ToXmlPrivateKey(string base64Private)
     {
         var privateKeyParams = (RsaPrivateCrtKeyParameters)PrivateKeyFactory.CreateKey(Convert.FromBase64String(base64Private));
@@ -72,10 +97,17 @@ public static class RsaKeyConverter
     }
 
     /// <summary>
-    /// Base64公钥 👉 XML公钥
+    ///     <para xml:lang="en">Base64 public key 👉 XML public key</para>
+    ///     <para xml:lang="zh">Base64公钥 👉 XML公钥</para>
     /// </summary>
-    /// <param name="base64Public">Base64公钥</param>
-    /// <returns>XML公钥</returns>
+    /// <param name="base64Public">
+    ///     <para xml:lang="en">Base64 public key</para>
+    ///     <para xml:lang="zh">Base64公钥</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">XML public key</para>
+    ///     <para xml:lang="zh">XML公钥</para>
+    /// </returns>
     public static string ToXmlPublicKey(string base64Public)
     {
         var p = (RsaKeyParameters)PublicKeyFactory.CreateKey(Convert.FromBase64String(base64Public));

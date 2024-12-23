@@ -7,17 +7,25 @@ using System.ComponentModel;
 namespace EasilyNET.Core.Misc;
 
 /// <summary>
-/// 扩展枚举
+///     <para xml:lang="en">Enum extensions</para>
+///     <para xml:lang="zh">扩展枚举</para>
 /// </summary>
 public static class EnumExtensions
 {
     private static readonly ConcurrentDictionary<Enum, string> DescriptionCache = [];
 
     /// <summary>
-    /// 转成显示名字
+    ///     <para xml:lang="en">Converts an enum value to its description</para>
+    ///     <para xml:lang="zh">将枚举值转换为其描述</para>
     /// </summary>
-    /// <param name="value">枚举值</param>
-    /// <returns>枚举值的描述</returns>
+    /// <param name="value">
+    ///     <para xml:lang="en">The enum value</para>
+    ///     <para xml:lang="zh">枚举值</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The description of the enum value</para>
+    ///     <para xml:lang="zh">枚举值的描述</para>
+    /// </returns>
     public static string ToDescription(this Enum value)
     {
         return DescriptionCache.GetOrAdd(value, enumValue =>
@@ -29,11 +37,21 @@ public static class EnumExtensions
     }
 
     /// <summary>
-    /// 获取枚举所有值，排除指定的值
+    ///     <para xml:lang="en">Gets all enum values, excluding the specified values</para>
+    ///     <para xml:lang="zh">获取枚举的所有值，排除指定的值</para>
     /// </summary>
-    /// <typeparam name="T">枚举类型</typeparam>
-    /// <param name="exclude">要排除的枚举值</param>
-    /// <returns>排除指定值后的枚举值集合</returns>
+    /// <typeparam name="T">
+    ///     <para xml:lang="en">The enum type</para>
+    ///     <para xml:lang="zh">枚举类型</para>
+    /// </typeparam>
+    /// <param name="exclude">
+    ///     <para xml:lang="en">The enum values to exclude</para>
+    ///     <para xml:lang="zh">要排除的枚举值</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The collection of enum values excluding the specified values</para>
+    ///     <para xml:lang="zh">排除指定值后的枚举值集合</para>
+    /// </returns>
     public static IEnumerable<T> GetValues<T>(params T[] exclude) where T : Enum
     {
         var allValues = Enum.GetValues(typeof(T)).Cast<T>();

@@ -14,7 +14,8 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
-/// Swagger扩展
+///     <para xml:lang="en">Swagger extensions</para>
+///     <para xml:lang="zh">Swagger扩展</para>
 /// </summary>
 public static class SwaggerGenOptionsExtensions
 {
@@ -58,14 +59,15 @@ public static class SwaggerGenOptionsExtensions
     }
 
     /// <summary>
-    /// 添加预定于的Swagger配置
+    ///     <para xml:lang="en">Add predefined Swagger configuration</para>
+    ///     <para xml:lang="zh">添加预定于的Swagger配置</para>
     /// </summary>
     /// <param name="op"></param>
     public static void EasilySwaggerGenOptions(this SwaggerGenOptions op)
     {
         op.DocInclusionPredicate((doc_name, apiDescription) =>
         {
-            //反射拿到值
+            // 反射拿到值
             var actionList = apiDescription.ActionDescriptor.EndpointMetadata.Where(x => x is ApiGroupAttribute).ToList();
             if (actionList.Count is not 0)
             {
@@ -73,7 +75,7 @@ public static class SwaggerGenOptionsExtensions
             }
             var not = apiDescription.ActionDescriptor.EndpointMetadata.Where(x => x is not ApiGroupAttribute).ToList();
             return not.Count is not 0 && doc_name == _docName;
-            //判断是否包含这个分组
+            // 判断是否包含这个分组
         });
         var files = Directory.GetFiles(AppContext.BaseDirectory, "*.xml");
         foreach (var file in files)
@@ -90,7 +92,8 @@ public static class SwaggerGenOptionsExtensions
     }
 
     /// <summary>
-    /// SwaggerUI配置
+    ///     <para xml:lang="en">SwaggerUI configuration</para>
+    ///     <para xml:lang="zh">SwaggerUI配置</para>
     /// </summary>
     /// <param name="app"></param>
     public static void UseEasilySwaggerUI(this IApplicationBuilder app)

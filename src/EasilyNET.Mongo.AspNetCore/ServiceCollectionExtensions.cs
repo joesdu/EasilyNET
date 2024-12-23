@@ -16,23 +16,26 @@ using MongoDB.Driver;
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
-/// 服务扩展类
-/// <list type="number">
-///     <item>
-///     Create a DbContext use connectionString with [ConnectionStrings.Mongo in appsettings.json] or with [CONNECTIONSTRINGS_MONGO] setting value
-///     in environment variable
-///     </item>
-///     <item>Inject <see cref="MongoContext" /> use services.AddSingleton(db)</item>
-///     <item>Inject <see cref="IMongoDatabase" /> use services.AddSingleton(db.Database)</item>
-///     <item>Inject <see cref="IMongoClient" /> use services.AddSingleton(db.Client)</item>
-///     <item>添加SkyAPM的诊断支持.在添加服务的时候填入 ClusterConfigurator,为减少依赖,所以需手动填入</item>
-/// </list>
+///     <para xml:lang="en">Service extension class</para>
+///     <para xml:lang="zh">服务扩展类</para>
+///     <description>
+///         <para xml:lang="en">
+///         Create a DbContext use connectionString with [ConnectionStrings.Mongo in appsettings.json] or with [CONNECTIONSTRINGS_MONGO] setting
+///         value in environment variable
+///         </para>
+///         <para xml:lang="zh">
+///         使用 appsettings.json 中的 [ConnectionStrings.Mongo] 或环境变量中的 [CONNECTIONSTRINGS_MONGO] 设置值创建 DbContext
+///         </para>
+///     </description>
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Lazy&lt;T&gt; 提供了线程安全的延迟初始化机制，确保全局序列化器的注册逻辑只执行一次。
-    /// 该变量用于在第一次访问时注册全局的 DateTime 和 Decimal 序列化器。
+    ///     <para xml:lang="en">
+    ///     Lazy&lt;T&gt; provides a thread-safe lazy initialization mechanism to ensure that the global serializer registration logic is
+    ///     executed only once. This variable is used to register global DateTime and Decimal serializers on first access.
+    ///     </para>
+    ///     <para xml:lang="zh">Lazy&lt;T&gt; 提供了线程安全的延迟初始化机制，确保全局序列化器的注册逻辑只执行一次。该变量用于在第一次访问时注册全局的 DateTime 和 Decimal 序列化器。</para>
     /// </summary>
     private static readonly Lazy<bool> _firstInitialization = new(() =>
     {
@@ -44,12 +47,21 @@ public static class ServiceCollectionExtensions
     });
 
     /// <summary>
-    /// 通过默认连接字符串名称配置添加 <see cref="MongoContext" />
+    ///     <para xml:lang="en">Add <see cref="MongoContext" /> through the default connection string name</para>
+    ///     <para xml:lang="zh">通过默认连接字符串名称配置添加 <see cref="MongoContext" /></para>
     /// </summary>
-    /// <typeparam name="T"><see cref="MongoContext" />子类</typeparam>
-    /// <param name="services"><see cref="IServiceCollection" /> Services</param>
-    /// <param name="configuration"><see cref="IConfiguration" /> 配置</param>
-    /// <param name="option"><see cref="BasicClientOptions" /> 其他一些配置</param>
+    /// <typeparam name="T">
+    ///     <see cref="MongoContext" />
+    /// </typeparam>
+    /// <param name="services">
+    ///     <see cref="IServiceCollection" />
+    /// </param>
+    /// <param name="configuration">
+    ///     <see cref="IConfiguration" />
+    /// </param>
+    /// <param name="option">
+    ///     <see cref="BasicClientOptions" />
+    /// </param>
     public static void AddMongoContext<T>(this IServiceCollection services, IConfiguration configuration, Action<ClientOptions>? option = null) where T : MongoContext
     {
         var connStr = configuration.GetConnectionString("Mongo") ?? Environment.GetEnvironmentVariable("CONNECTIONSTRINGS_MONGO");
@@ -61,12 +73,22 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// 通过连接字符串配置添加 <see cref="MongoContext" />
+    ///     <para xml:lang="en">Add <see cref="MongoContext" /> through the connection string</para>
+    ///     <para xml:lang="zh">通过连接字符串配置添加 <see cref="MongoContext" /></para>
     /// </summary>
-    /// <typeparam name="T"><see cref="MongoContext" />子类</typeparam>
-    /// <param name="services"><see cref="IServiceCollection" /> Services</param>
-    /// <param name="connStr"><see langword="string" /> MongoDB链接字符串</param>
-    /// <param name="option"><see cref="BasicClientOptions" /> 其他一些配置</param>
+    /// <typeparam name="T">
+    ///     <see cref="MongoContext" />
+    /// </typeparam>
+    /// <param name="services">
+    ///     <see cref="IServiceCollection" />
+    /// </param>
+    /// <param name="connStr">
+    ///     <para xml:lang="en"><see langword="string" /> MongoDB connection string</para>
+    ///     <para xml:lang="zh"><see langword="string" /> MongoDB链接字符串</para>
+    /// </param>
+    /// <param name="option">
+    ///     <see cref="BasicClientOptions" />
+    /// </param>
     public static void AddMongoContext<T>(this IServiceCollection services, string connStr, Action<ClientOptions>? option = null) where T : MongoContext
     {
         // 从字符串解析Url
@@ -88,12 +110,22 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// 使用 <see cref="MongoClientSettings" /> 配置添加 <see cref="MongoContext" />
+    ///     <para xml:lang="en">Add <see cref="MongoContext" /> using <see cref="MongoClientSettings" /> configuration</para>
+    ///     <para xml:lang="zh">使用 <see cref="MongoClientSettings" /> 配置添加 <see cref="MongoContext" /></para>
     /// </summary>
-    /// <typeparam name="T"><see cref="MongoContext" />子类</typeparam>
-    /// <param name="services"><see cref="IServiceCollection" /> Services</param>
-    /// <param name="settings"><see cref="MongoClientSettings" /> MongoDB客户端配置</param>
-    /// <param name="option"><see cref="BasicClientOptions" /> 其他一些配置</param>
+    /// <typeparam name="T">
+    ///     <see cref="MongoContext" />
+    /// </typeparam>
+    /// <param name="services">
+    ///     <see cref="IServiceCollection" />
+    /// </param>
+    /// <param name="settings">
+    ///     <para xml:lang="en"><see cref="MongoClientSettings" /> MongoDB client settings</para>
+    ///     <para xml:lang="zh"><see cref="MongoClientSettings" /> MongoDB客户端配置</para>
+    /// </param>
+    /// <param name="option">
+    ///     <see cref="BasicClientOptions" />
+    /// </param>
     public static void AddMongoContext<T>(this IServiceCollection services, MongoClientSettings settings, Action<BasicClientOptions>? option = null) where T : MongoContext
     {
         var options = new BasicClientOptions();

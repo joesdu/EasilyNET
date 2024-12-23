@@ -21,10 +21,6 @@ public sealed class DependencyAppModule : AppModule
         await Task.CompletedTask;
     }
 
-    /// <summary>
-    /// 添加自动注入
-    /// </summary>
-    /// <param name="services"></param>
     private static void AddAutoInjection(IServiceCollection services)
     {
         var types = AssemblyHelper.FindTypesByAttribute<DependencyInjectionAttribute>().ToHashSet();

@@ -7,15 +7,23 @@ using System.Security.Cryptography;
 namespace EasilyNET.Security;
 
 /// <summary>
-/// RSA算法
+///     <para xml:lang="en">RSA algorithm</para>
+///     <para xml:lang="zh">RSA算法</para>
 /// </summary>
 public static class RsaCrypt
 {
     /// <summary>
-    /// 创建RSA密钥对
+    ///     <para xml:lang="en">Create RSA key pair</para>
+    ///     <para xml:lang="zh">创建RSA密钥对</para>
     /// </summary>
-    /// <param name="keySize">密钥的大小,必须384位到16384位,增量为8</param>
-    /// <returns></returns>
+    /// <param name="keySize">
+    ///     <para xml:lang="en">Key size, must be between 384 and 16384 bits, in increments of 8</para>
+    ///     <para xml:lang="zh">密钥的大小,必须384位到16384位,增量为8</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">RSA secret key</para>
+    ///     <para xml:lang="zh">RSA密钥</para>
+    /// </returns>
     public static RsaSecretKey GenerateKey(int keySize)
     {
         if (keySize is > 16384 or < 384 && keySize % 8 is not 0)
@@ -33,18 +41,35 @@ public static class RsaCrypt
     }
 
     /// <summary>
-    /// 创建RSA密钥对
+    ///     <para xml:lang="en">Create RSA key pair</para>
+    ///     <para xml:lang="zh">创建RSA密钥对</para>
     /// </summary>
-    /// <param name="keySize">密钥的大小,提供常用长度枚举</param>
-    /// <returns></returns>
+    /// <param name="keySize">
+    ///     <para xml:lang="en">Key size, providing common length enumeration</para>
+    ///     <para xml:lang="zh">密钥的大小,提供常用长度枚举</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">RSA secret key</para>
+    ///     <para xml:lang="zh">RSA密钥</para>
+    /// </returns>
     public static RsaSecretKey GenerateKey(ERsaKeyLength keySize) => GenerateKey((int)keySize);
 
     /// <summary>
-    /// 使用RSA的加密byte[](该方法存在长度限制)
+    ///     <para xml:lang="en">Encrypt using RSA (this method has length limitations)</para>
+    ///     <para xml:lang="zh">使用RSA的加密byte[](该方法存在长度限制)</para>
     /// </summary>
-    /// <param name="xmlPublicKey">当前RSA对象的密匙XML字符串(不包括专用参数)--公钥</param>
-    /// <param name="content">需要进行加密的字节数组</param>
-    /// <returns>加密后的数据</returns>
+    /// <param name="xmlPublicKey">
+    ///     <para xml:lang="en">XML string of the RSA public key</para>
+    ///     <para xml:lang="zh">当前RSA对象的密匙XML字符串(不包括专用参数)--公钥</para>
+    /// </param>
+    /// <param name="content">
+    ///     <para xml:lang="en">Byte array to be encrypted</para>
+    ///     <para xml:lang="zh">需要进行加密的字节数组</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Encrypted data</para>
+    ///     <para xml:lang="zh">加密后的数据</para>
+    /// </returns>
     public static byte[] Encrypt(string xmlPublicKey, ReadOnlySpan<byte> content)
     {
         using var rsa = new RSACryptoServiceProvider();
@@ -53,11 +78,21 @@ public static class RsaCrypt
     }
 
     /// <summary>
-    /// RSA解密byte[](该方法存在长度限制)
+    ///     <para xml:lang="en">Decrypt using RSA (this method has length limitations)</para>
+    ///     <para xml:lang="zh">RSA解密byte[](该方法存在长度限制)</para>
     /// </summary>
-    /// <param name="xmlPrivateKey">当前RSA对象的密匙XML字符串(包括专用参数)--私钥</param>
-    /// <param name="secret">需要进行解密的字节数组</param>
-    /// <returns>解密后的字符串</returns>
+    /// <param name="xmlPrivateKey">
+    ///     <para xml:lang="en">XML string of the RSA private key</para>
+    ///     <para xml:lang="zh">当前RSA对象的密匙XML字符串(包括专用参数)--私钥</para>
+    /// </param>
+    /// <param name="secret">
+    ///     <para xml:lang="en">Byte array to be decrypted</para>
+    ///     <para xml:lang="zh">需要进行解密的字节数组</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Decrypted data</para>
+    ///     <para xml:lang="zh">解密后的字符串</para>
+    /// </returns>
     public static byte[] Decrypt(string xmlPrivateKey, ReadOnlySpan<byte> secret)
     {
         using var rsa = new RSACryptoServiceProvider();
@@ -66,11 +101,21 @@ public static class RsaCrypt
     }
 
     /// <summary>
-    /// RSA加密 不限长度的加密版本
+    ///     <para xml:lang="en">RSA encryption without length limitation</para>
+    ///     <para xml:lang="zh">RSA加密 不限长度的加密版本</para>
     /// </summary>
-    /// <param name="xmlPublicKey">公匙</param>
-    /// <param name="content">需要进行加密的数据</param>
-    /// <param name="secret">加密后的数据</param>
+    /// <param name="xmlPublicKey">
+    ///     <para xml:lang="en">Public key</para>
+    ///     <para xml:lang="zh">公匙</para>
+    /// </param>
+    /// <param name="content">
+    ///     <para xml:lang="en">Data to be encrypted</para>
+    ///     <para xml:lang="zh">需要进行加密的数据</para>
+    /// </param>
+    /// <param name="secret">
+    ///     <para xml:lang="en">Encrypted data</para>
+    ///     <para xml:lang="zh">加密后的数据</para>
+    /// </param>
     public static void Encrypt(string xmlPublicKey, ReadOnlySpan<byte> content, out byte[] secret)
     {
         if (content.Length is 0) throw new("加密字符串不能为空.");
@@ -93,11 +138,21 @@ public static class RsaCrypt
     }
 
     /// <summary>
-    /// RSA解密 不限长度的解密版本
+    ///     <para xml:lang="en">RSA decryption without length limitation</para>
+    ///     <para xml:lang="zh">RSA解密 不限长度的解密版本</para>
     /// </summary>
-    /// <param name="xmlPrivateKey">私匙</param>
-    /// <param name="secret">需要进行解密的数据</param>
-    /// <param name="context">解密后的数据</param>
+    /// <param name="xmlPrivateKey">
+    ///     <para xml:lang="en">Private key</para>
+    ///     <para xml:lang="zh">私匙</para>
+    /// </param>
+    /// <param name="secret">
+    ///     <para xml:lang="en">Data to be decrypted</para>
+    ///     <para xml:lang="zh">需要进行解密的数据</para>
+    /// </param>
+    /// <param name="context">
+    ///     <para xml:lang="en">Decrypted data</para>
+    ///     <para xml:lang="zh">解密后的数据</para>
+    /// </param>
     public static void Decrypt(string xmlPrivateKey, ReadOnlySpan<byte> secret, out byte[] context)
     {
         if (secret.Length is 0) throw new("解密字符串不能为空.");
@@ -119,10 +174,17 @@ public static class RsaCrypt
     }
 
     /// <summary>
-    /// 从文件中取得SHA256描述信息
+    ///     <para xml:lang="en">Get SHA256 hash from file</para>
+    ///     <para xml:lang="zh">从文件中取得SHA256描述信息</para>
     /// </summary>
-    /// <param name="objFile"></param>
-    /// <returns></returns>
+    /// <param name="objFile">
+    ///     <para xml:lang="en">File stream</para>
+    ///     <para xml:lang="zh">文件流</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">SHA256 hash string</para>
+    ///     <para xml:lang="zh">SHA256哈希字符串</para>
+    /// </returns>
     public static string GetFileSHA256(FileStream objFile)
     {
         ArgumentNullException.ThrowIfNull(objFile, nameof(objFile));
@@ -137,11 +199,21 @@ public static class RsaCrypt
     #region RSA签名与签名验证
 
     /// <summary>
-    /// RSA签名
+    ///     <para xml:lang="en">RSA signature</para>
+    ///     <para xml:lang="zh">RSA签名</para>
     /// </summary>
-    /// <param name="xmlPrivateKey">当前RSA对象的密匙XML字符串(包括专用参数)--私钥</param>
-    /// <param name="context">需要签名的数据</param>
-    /// <returns>签名数据</returns>
+    /// <param name="xmlPrivateKey">
+    ///     <para xml:lang="en">XML string of the RSA private key</para>
+    ///     <para xml:lang="zh">当前RSA对象的密匙XML字符串(包括专用参数)--私钥</para>
+    /// </param>
+    /// <param name="context">
+    ///     <para xml:lang="en">Data to be signed</para>
+    ///     <para xml:lang="zh">需要签名的数据</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Signature data</para>
+    ///     <para xml:lang="zh">签名数据</para>
+    /// </returns>
     public static byte[] Signature(string xmlPrivateKey, ReadOnlySpan<byte> context)
     {
         using var rsa = new RSACryptoServiceProvider();
@@ -154,12 +226,25 @@ public static class RsaCrypt
     }
 
     /// <summary>
-    /// RSA 签名验证
+    ///     <para xml:lang="en">RSA signature verification</para>
+    ///     <para xml:lang="zh">RSA 签名验证</para>
     /// </summary>
-    /// <param name="xmlPublicKey">当前RSA对象的密匙XML字符串(不包括专用参数)--公钥</param>
-    /// <param name="secret">用RSA签名的数据[俗称:Hash描述字符串,即:MD5或者SHA256这种.本库使用SHA256]</param>
-    /// <param name="signature">要为该数据验证的已签名数据</param>
-    /// <returns>如果 Verification 与使用指定的哈希算法和密钥在 signature 上计算出的签名匹配,则为 <see langword="true" />;否则为 <see langword="false" />.</returns>
+    /// <param name="xmlPublicKey">
+    ///     <para xml:lang="en">XML string of the RSA public key</para>
+    ///     <para xml:lang="zh">当前RSA对象的密匙XML字符串(不包括专用参数)--公钥</para>
+    /// </param>
+    /// <param name="secret">
+    ///     <para xml:lang="en">Data signed with RSA (hash string, e.g., MD5 or SHA256, this library uses SHA256)</para>
+    ///     <para xml:lang="zh">用RSA签名的数据[俗称:Hash描述字符串,即:MD5或者SHA256这种.本库使用SHA256]</para>
+    /// </param>
+    /// <param name="signature">
+    ///     <para xml:lang="en">Signature to be verified</para>
+    ///     <para xml:lang="zh">要为该数据验证的已签名数据</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">True if the signature is valid, otherwise false</para>
+    ///     <para xml:lang="zh">如果 Verification 与使用指定的哈希算法和密钥在 signature 上计算出的签名匹配,则为 <see langword="true" />;否则为 <see langword="false" />.</para>
+    /// </returns>
     public static bool Verification(string xmlPublicKey, ReadOnlySpan<byte> secret, ReadOnlySpan<byte> signature)
     {
         using var rsa = new RSACryptoServiceProvider();

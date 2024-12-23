@@ -11,23 +11,41 @@ using Microsoft.Extensions.Hosting;
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
-/// <see cref="IServiceCollection" /> 扩展
+///     <para xml:lang="en"><see cref="IServiceCollection" /> extensions</para>
+///     <para xml:lang="zh"><see cref="IServiceCollection" /> 扩展</para>
 /// </summary>
 public static class ServiceCollectionExtension
 {
     /// <summary>
-    /// 获取应用程序构建器
+    ///     <para xml:lang="en">Get the application host</para>
+    ///     <para xml:lang="zh">获取应用程序构建器</para>
     /// </summary>
-    /// <param name="context"></param>
-    /// <returns></returns>
+    /// <param name="context">
+    ///     <para xml:lang="en">Application context</para>
+    ///     <para xml:lang="zh">应用上下文</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The application host</para>
+    ///     <para xml:lang="zh">应用程序构建器</para>
+    /// </returns>
     public static IHost GetApplicationHost(this ApplicationContext context) => context.ServiceProvider.GetRequiredService<IObjectAccessor<IHost>>().Value ?? throw new ArgumentNullException(nameof(context));
 
     /// <summary>
-    /// 注入服务
+    ///     <para xml:lang="en">Inject services</para>
+    ///     <para xml:lang="zh">注入服务</para>
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="services"></param>
-    /// <returns></returns>
+    /// <typeparam name="T">
+    ///     <para xml:lang="en">Type of the application module</para>
+    ///     <para xml:lang="zh">应用模块的类型</para>
+    /// </typeparam>
+    /// <param name="services">
+    ///     <para xml:lang="en"><see cref="IServiceCollection" /> to configure services</para>
+    ///     <para xml:lang="zh">用于配置服务的 <see cref="IServiceCollection" /></para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The service collection</para>
+    ///     <para xml:lang="zh">服务集合</para>
+    /// </returns>
     public static IServiceCollection AddApplicationModules<T>(this IServiceCollection services) where T : AppModule
     {
         ArgumentNullException.ThrowIfNull(services, nameof(services));
@@ -37,10 +55,17 @@ public static class ServiceCollectionExtension
     }
 
     /// <summary>
-    /// 初始化应用,配置中间件
+    ///     <para xml:lang="en">Initialize the application and configure middleware</para>
+    ///     <para xml:lang="zh">初始化应用，配置中间件</para>
     /// </summary>
-    /// <param name="host"></param>
-    /// <returns></returns>
+    /// <param name="host">
+    ///     <para xml:lang="en">The application host</para>
+    ///     <para xml:lang="zh">应用程序构建器</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The initialized application host</para>
+    ///     <para xml:lang="zh">已初始化的应用程序构建器</para>
+    /// </returns>
     public static IHost InitializeApplication(this IHost host)
     {
         host.Services.GetRequiredService<IObjectAccessor<IHost>>().Value = host;
@@ -50,9 +75,16 @@ public static class ServiceCollectionExtension
     }
 
     /// <summary>
-    /// 获取 <see cref="IConfiguration" /> 服务
+    ///     <para xml:lang="en">Get the <see cref="IConfiguration" /> service</para>
+    ///     <para xml:lang="zh">获取 <see cref="IConfiguration" /> 服务</para>
     /// </summary>
-    /// <param name="provider"></param>
-    /// <returns></returns>
+    /// <param name="provider">
+    ///     <para xml:lang="en">Service provider</para>
+    ///     <para xml:lang="zh">服务提供者</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The configuration service</para>
+    ///     <para xml:lang="zh">配置服务</para>
+    /// </returns>
     public static IConfiguration GetConfiguration(this IServiceProvider provider) => provider.GetRequiredService<IConfiguration>();
 }

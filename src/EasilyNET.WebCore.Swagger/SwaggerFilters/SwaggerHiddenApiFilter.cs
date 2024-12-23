@@ -8,7 +8,8 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 namespace EasilyNET.WebCore.Swagger.SwaggerFilters;
 
 /// <summary>
-/// 在Swagger文档中隐藏接口
+///     <para xml:lang="en">Hide APIs in Swagger documentation</para>
+///     <para xml:lang="zh">在Swagger文档中隐藏接口</para>
 /// </summary>
 // ReSharper disable once UnusedMember.Global
 // ReSharper disable once ClassNeverInstantiated.Global

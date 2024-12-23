@@ -7,26 +7,39 @@ using System.Text;
 namespace EasilyNET.Security;
 
 /// <summary>
-/// DES加密解密(由于本库对密钥进行了hash算法处理.使用本库加密仅能用本库解密)
+///     <para xml:lang="en">
+///     DES encryption and decryption (Due to the hash algorithm processing of the key in this library, encryption using this library
+///     can only be decrypted by this library)
+///     </para>
+///     <para xml:lang="zh">DES加密解密(由于本库对密钥进行了hash算法处理.使用本库加密仅能用本库解密)</para>
 /// </summary>
 // ReSharper disable once UnusedType.Global
 public static class DesCrypt
 {
     /// <summary>
-    /// 盐
+    ///     <para xml:lang="en">Salt</para>
+    ///     <para xml:lang="zh">盐</para>
     /// </summary>
     private const string slat = "Fo~@Ymf3w-!K+hYYoI^emXJeNt79pv@Sy,rpl0vXyIa-^jI{fU";
 
     /// <summary>
-    /// 缓存密钥和IV
+    ///     <para xml:lang="en">Cache for keys and IVs</para>
+    ///     <para xml:lang="zh">缓存密钥和IV</para>
     /// </summary>
     private static readonly ConcurrentDictionary<string, (byte[] Key, byte[] IV)> KeyCache = new();
 
     /// <summary>
-    /// 处理key
+    ///     <para xml:lang="en">Processes the key</para>
+    ///     <para xml:lang="zh">处理key</para>
     /// </summary>
-    /// <param name="pwd">输入的密码</param>
-    /// <returns></returns>
+    /// <param name="pwd">
+    ///     <para xml:lang="en">The input password</para>
+    ///     <para xml:lang="zh">输入的密码</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">A tuple containing the key and IV</para>
+    ///     <para xml:lang="zh">包含密钥和IV的元组</para>
+    /// </returns>
     private static (byte[] Key, byte[] IV) GetEesKey(string pwd)
     {
         if (KeyCache.TryGetValue(pwd, out var cachedKey))
@@ -47,13 +60,29 @@ public static class DesCrypt
     }
 
     /// <summary>
-    /// DES加密
+    ///     <para xml:lang="en">DES encryption</para>
+    ///     <para xml:lang="zh">DES加密</para>
     /// </summary>
-    /// <param name="content">待加密数据</param>
-    /// <param name="pwd">密钥</param>
-    /// <param name="mode">加密模式</param>
-    /// <param name="padding">填充模式</param>
-    /// <returns>加密后的数据</returns>
+    /// <param name="content">
+    ///     <para xml:lang="en">Data to be encrypted</para>
+    ///     <para xml:lang="zh">待加密数据</para>
+    /// </param>
+    /// <param name="pwd">
+    ///     <para xml:lang="en">Key</para>
+    ///     <para xml:lang="zh">密钥</para>
+    /// </param>
+    /// <param name="mode">
+    ///     <para xml:lang="en">Encryption mode</para>
+    ///     <para xml:lang="zh">加密模式</para>
+    /// </param>
+    /// <param name="padding">
+    ///     <para xml:lang="en">Padding mode</para>
+    ///     <para xml:lang="zh">填充模式</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Encrypted data</para>
+    ///     <para xml:lang="zh">加密后的数据</para>
+    /// </returns>
     public static byte[] Encrypt(ReadOnlySpan<byte> content, string pwd, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7)
     {
         var (Key, IV) = GetEesKey(pwd);
@@ -70,13 +99,29 @@ public static class DesCrypt
     }
 
     /// <summary>
-    /// DES解密字符串
+    ///     <para xml:lang="en">DES decryption</para>
+    ///     <para xml:lang="zh">DES解密字符串</para>
     /// </summary>
-    /// <param name="secret">待解密数据</param>
-    /// <param name="pwd">密钥</param>
-    /// <param name="mode">加密模式</param>
-    /// <param name="padding">填充模式</param>
-    /// <returns>解密后的字符串</returns>
+    /// <param name="secret">
+    ///     <para xml:lang="en">Data to be decrypted</para>
+    ///     <para xml:lang="zh">待解密数据</para>
+    /// </param>
+    /// <param name="pwd">
+    ///     <para xml:lang="en">Key</para>
+    ///     <para xml:lang="zh">密钥</para>
+    /// </param>
+    /// <param name="mode">
+    ///     <para xml:lang="en">Encryption mode</para>
+    ///     <para xml:lang="zh">加密模式</para>
+    /// </param>
+    /// <param name="padding">
+    ///     <para xml:lang="en">Padding mode</para>
+    ///     <para xml:lang="zh">填充模式</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Decrypted data</para>
+    ///     <para xml:lang="zh">解密后的字符串</para>
+    /// </returns>
     public static byte[] Decrypt(ReadOnlySpan<byte> secret, string pwd, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7)
     {
         var (Key, IV) = GetEesKey(pwd);

@@ -9,7 +9,8 @@ using System.Runtime.CompilerServices;
 namespace EasilyNET.Core.System;
 
 /// <summary>
-/// 池化内存流
+///     <para xml:lang="en">Pooled memory stream</para>
+///     <para xml:lang="zh">池化内存流</para>
 /// </summary>
 public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
 {
@@ -21,25 +22,40 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     private int _length;
 
     /// <summary>
-    /// 构造函数
+    ///     <para xml:lang="en">Constructor</para>
+    ///     <para xml:lang="zh">构造函数</para>
     /// </summary>
     public PooledMemoryStream() : this(ArrayPool<byte>.Shared) { }
 
     /// <summary>
-    /// 构造函数
+    ///     <para xml:lang="en">Constructor</para>
+    ///     <para xml:lang="zh">构造函数</para>
     /// </summary>
-    /// <param name="buffer"></param>
+    /// <param name="buffer">
+    ///     <para xml:lang="en">The buffer</para>
+    ///     <para xml:lang="zh">缓冲区</para>
+    /// </param>
     public PooledMemoryStream(byte[] buffer) : this(ArrayPool<byte>.Shared, buffer.Length)
     {
         Buffer.BlockCopy(buffer, 0, _data, 0, buffer.Length);
     }
 
     /// <summary>
-    /// 构造函数
+    ///     <para xml:lang="en">Constructor</para>
+    ///     <para xml:lang="zh">构造函数</para>
     /// </summary>
-    /// <param name="arrayPool"></param>
-    /// <param name="capacity"></param>
-    /// <exception cref="ArgumentNullException"></exception>
+    /// <param name="arrayPool">
+    ///     <para xml:lang="en">The array pool</para>
+    ///     <para xml:lang="zh">数组池</para>
+    /// </param>
+    /// <param name="capacity">
+    ///     <para xml:lang="en">The capacity</para>
+    ///     <para xml:lang="zh">容量</para>
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     <para xml:lang="en">Thrown when the array pool is null</para>
+    ///     <para xml:lang="zh">当数组池为空时抛出</para>
+    /// </exception>
     public PooledMemoryStream(ArrayPool<byte> arrayPool, int capacity = 0)
     {
         _pool = arrayPool ?? throw new ArgumentNullException(nameof(arrayPool));
@@ -50,43 +66,59 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     }
 
     /// <summary>
-    /// 可读
+    ///     <para xml:lang="en">Gets whether the stream can be read</para>
+    ///     <para xml:lang="zh">是否可读</para>
     /// </summary>
     public override bool CanRead => true;
 
     /// <summary>
-    /// 可查找
+    ///     <para xml:lang="en">Gets whether the stream supports seeking</para>
+    ///     <para xml:lang="zh">是否可查找</para>
     /// </summary>
     public override bool CanSeek => true;
 
     /// <summary>
-    /// 可写
+    ///     <para xml:lang="en">Gets whether the stream can be written to</para>
+    ///     <para xml:lang="zh">是否可写</para>
     /// </summary>
     public override bool CanWrite => true;
 
     /// <summary>
-    /// 长度
+    ///     <para xml:lang="en">Gets the length of the stream</para>
+    ///     <para xml:lang="zh">长度</para>
     /// </summary>
     public override long Length => _length;
 
     /// <summary>
-    /// 位置
+    ///     <para xml:lang="en">Gets or sets the position within the stream</para>
+    ///     <para xml:lang="zh">位置</para>
     /// </summary>
     public override long Position { get; set; }
 
     /// <summary>
-    /// 总量
+    ///     <para xml:lang="en">Gets the total capacity of the stream</para>
+    ///     <para xml:lang="zh">总量</para>
     /// </summary>
     public long Capacity => _data.Length;
 
-    /// <summary>Returns an enumerator that iterates through a collection.</summary>
-    /// <returns>An <see cref="T:System.Collections.IEnumerator"></see> object that can be used to iterate through the collection.</returns>
+    /// <summary>
+    ///     <para xml:lang="en">Returns an enumerator that iterates through the collection</para>
+    ///     <para xml:lang="zh">返回一个枚举器，用于遍历集合</para>
+    /// </summary>
+    /// <returns>
+    ///     <para xml:lang="en">An enumerator that can be used to iterate through the collection</para>
+    ///     <para xml:lang="zh">一个枚举器，可用于遍历集合</para>
+    /// </returns>
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <summary>
-    /// 获取枚举器
+    ///     <para xml:lang="en">Gets an enumerator</para>
+    ///     <para xml:lang="zh">获取枚举器</para>
     /// </summary>
-    /// <returns></returns>
+    /// <returns>
+    ///     <para xml:lang="en">An enumerator that can be used to iterate through the collection</para>
+    ///     <para xml:lang="zh">一个枚举器，可用于遍历集合</para>
+    /// </returns>
     public IEnumerator<byte> GetEnumerator()
     {
         for (var i = 0; i < Length; i++)
@@ -96,7 +128,8 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     }
 
     /// <summary>
-    /// 终结器(析构函数)
+    ///     <para xml:lang="en">Finalizer (destructor)</para>
+    ///     <para xml:lang="zh">终结器（析构函数）</para>
     /// </summary>
     ~PooledMemoryStream()
     {
@@ -104,13 +137,18 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     }
 
     /// <summary>
-    /// 转化为ArraySegment
+    ///     <para xml:lang="en">Converts to an ArraySegment</para>
+    ///     <para xml:lang="zh">转换为 ArraySegment</para>
     /// </summary>
-    /// <returns></returns>
+    /// <returns>
+    ///     <para xml:lang="en">An ArraySegment of bytes</para>
+    ///     <para xml:lang="zh">字节的 ArraySegment</para>
+    /// </returns>
     public ArraySegment<byte> ToArraySegment() => new(_data, 0, (int)Length);
 
     /// <summary>
-    /// 刷数据
+    ///     <para xml:lang="en">Flushes the stream</para>
+    ///     <para xml:lang="zh">刷新数据</para>
     /// </summary>
     public override void Flush()
     {
@@ -118,12 +156,25 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     }
 
     /// <summary>
-    /// 读取到字节数组
+    ///     <para xml:lang="en">Reads bytes into a buffer</para>
+    ///     <para xml:lang="zh">读取到字节数组</para>
     /// </summary>
-    /// <param name="buffer"></param>
-    /// <param name="offset"></param>
-    /// <param name="count"></param>
-    /// <returns></returns>
+    /// <param name="buffer">
+    ///     <para xml:lang="en">The buffer to read into</para>
+    ///     <para xml:lang="zh">要读取的缓冲区</para>
+    /// </param>
+    /// <param name="offset">
+    ///     <para xml:lang="en">The zero-based byte offset in the buffer at which to begin storing the data read from the stream</para>
+    ///     <para xml:lang="zh">缓冲区中开始存储从流中读取的数据的零字节偏移量</para>
+    /// </param>
+    /// <param name="count">
+    ///     <para xml:lang="en">The maximum number of bytes to read</para>
+    ///     <para xml:lang="zh">要读取的最大字节数</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The total number of bytes read into the buffer</para>
+    ///     <para xml:lang="zh">读取到缓冲区的字节总数</para>
+    /// </returns>
     public override int Read(byte[] buffer, int offset, int count)
     {
         AssertNotDisposed();
@@ -138,12 +189,25 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     }
 
     /// <summary>
-    /// 改变游标位置
+    ///     <para xml:lang="en">Changes the position within the stream</para>
+    ///     <para xml:lang="zh">改变游标位置</para>
     /// </summary>
-    /// <param name="offset"></param>
-    /// <param name="origin"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    /// <param name="offset">
+    ///     <para xml:lang="en">A byte offset relative to the origin parameter</para>
+    ///     <para xml:lang="zh">相对于 origin 参数的字节偏移量</para>
+    /// </param>
+    /// <param name="origin">
+    ///     <para xml:lang="en">A value of type SeekOrigin indicating the reference point used to obtain the new position</para>
+    ///     <para xml:lang="zh">SeekOrigin 类型的值，指示用于获取新位置的参考点</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The new position within the stream</para>
+    ///     <para xml:lang="zh">流中的新位置</para>
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     <para xml:lang="en">Thrown when the offset is out of range</para>
+    ///     <para xml:lang="zh">当偏移量超出范围时抛出</para>
+    /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override long Seek(long offset, SeekOrigin origin)
     {
@@ -184,10 +248,17 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     }
 
     /// <summary>
-    /// 设置内容长度
+    ///     <para xml:lang="en">Sets the length of the stream</para>
+    ///     <para xml:lang="zh">设置内容长度</para>
     /// </summary>
-    /// <param name="value"></param>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    /// <param name="value">
+    ///     <para xml:lang="en">The desired length of the stream in bytes</para>
+    ///     <para xml:lang="zh">流的所需长度（以字节为单位）</para>
+    /// </param>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     <para xml:lang="en">Thrown when the value is negative</para>
+    ///     <para xml:lang="zh">当值为负数时抛出</para>
+    /// </exception>
     public override void SetLength(long value)
     {
         AssertNotDisposed();
@@ -204,11 +275,21 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     }
 
     /// <summary>
-    /// 写入到字节数组
+    ///     <para xml:lang="en">Writes bytes to the stream</para>
+    ///     <para xml:lang="zh">写入到字节数组</para>
     /// </summary>
-    /// <param name="buffer"></param>
-    /// <param name="offset"></param>
-    /// <param name="count"></param>
+    /// <param name="buffer">
+    ///     <para xml:lang="en">The buffer to write from</para>
+    ///     <para xml:lang="zh">要写入的缓冲区</para>
+    /// </param>
+    /// <param name="offset">
+    ///     <para xml:lang="en">The zero-based byte offset in the buffer at which to begin writing bytes to the stream</para>
+    ///     <para xml:lang="zh">缓冲区中开始将字节写入流的零字节偏移量</para>
+    /// </param>
+    /// <param name="count">
+    ///     <para xml:lang="en">The number of bytes to write to the stream</para>
+    ///     <para xml:lang="zh">要写入流的字节数</para>
+    /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override void Write(byte[] buffer, int offset, int count)
     {
@@ -227,10 +308,17 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     }
 
     /// <summary>
-    /// 写入到另一个流
+    ///     <para xml:lang="en">Writes the stream to another stream</para>
+    ///     <para xml:lang="zh">写入到另一个流</para>
     /// </summary>
-    /// <param name="stream"></param>
-    /// <exception cref="ArgumentNullException"></exception>
+    /// <param name="stream">
+    ///     <para xml:lang="en">The stream to write to</para>
+    ///     <para xml:lang="zh">要写入的流</para>
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     <para xml:lang="en">Thrown when the stream is null</para>
+    ///     <para xml:lang="zh">当流为空时抛出</para>
+    /// </exception>
     public void WriteTo(Stream stream)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -239,9 +327,13 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     }
 
     /// <summary>
-    /// 获取流的字节数组
+    ///     <para xml:lang="en">Gets the byte array of the stream</para>
+    ///     <para xml:lang="zh">获取流的字节数组</para>
     /// </summary>
-    /// <returns></returns>
+    /// <returns>
+    ///     <para xml:lang="en">The byte array of the stream</para>
+    ///     <para xml:lang="zh">流的字节数组</para>
+    /// </returns>
     public byte[] GetBuffer()
     {
         AssertNotDisposed();
@@ -255,14 +347,23 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     }
 
     /// <summary>
-    /// 获取流的字节数组
+    ///     <para xml:lang="en">Gets the byte array of the stream</para>
+    ///     <para xml:lang="zh">获取流的字节数组</para>
     /// </summary>
-    /// <returns></returns>
+    /// <returns>
+    ///     <para xml:lang="en">The byte array of the stream</para>
+    ///     <para xml:lang="zh">流的字节数组</para>
+    /// </returns>
     public byte[] ToArray() => GetBuffer();
 
     /// <summary>
+    ///     <para xml:lang="en">Disposes the stream</para>
+    ///     <para xml:lang="zh">释放流</para>
     /// </summary>
-    /// <param name="disposing"></param>
+    /// <param name="disposing">
+    ///     <para xml:lang="en">Whether to dispose managed resources</para>
+    ///     <para xml:lang="zh">是否释放托管资源</para>
+    /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected override void Dispose(bool disposing)
     {
@@ -289,14 +390,22 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     private void AssertNotDisposed() => ObjectDisposedException.ThrowIf(_isDisposed, typeof(PooledMemoryStream));
 
     /// <summary>
-    /// 获取Span
+    ///     <para xml:lang="en">Gets a span of bytes</para>
+    ///     <para xml:lang="zh">获取 Span</para>
     /// </summary>
-    /// <returns></returns>
+    /// <returns>
+    ///     <para xml:lang="en">A span of bytes</para>
+    ///     <para xml:lang="zh">字节的 Span</para>
+    /// </returns>
     public Span<byte> GetSpan() => _data.AsSpan(0, _length);
 
     /// <summary>
-    /// 获取 Memory&lt;<see cref="byte" />&gt;
+    ///     <para xml:lang="en">Gets a memory of bytes</para>
+    ///     <para xml:lang="zh">获取 Memory&lt;<see cref="byte" />&gt;</para>
     /// </summary>
-    /// <returns></returns>
+    /// <returns>
+    ///     <para xml:lang="en">A memory of bytes</para>
+    ///     <para xml:lang="zh">字节的 Memory</para>
+    /// </returns>
     public Memory<byte> GetMemory() => _data.AsMemory(0, _length);
 }

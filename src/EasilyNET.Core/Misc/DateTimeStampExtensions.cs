@@ -6,40 +6,57 @@ using System.Globalization;
 namespace EasilyNET.Core.Misc;
 
 /// <summary>
-/// 时间戳相关扩展
+///     <para xml:lang="en">Extensions related to timestamps</para>
+///     <para xml:lang="zh">时间戳相关扩展</para>
 /// </summary>
 public static class DateTimeStampExtensions
 {
     /// <summary>
-    /// 获取 Unix 纪元日期时间(1970-01-01)(UTC时间)
+    ///     <para xml:lang="en">Gets the Unix epoch date and time (1970-01-01) (UTC time)</para>
+    ///     <para xml:lang="zh">获取 Unix 纪元日期时间(1970-01-01)(UTC时间)</para>
     /// </summary>
     public static readonly DateTime UnixEpoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     /// <summary>
-    /// 获取自 DateTime.MaxValue 的 Unix 纪元以来的毫秒数(UTC+0).
+    ///     <para xml:lang="en">Gets the number of milliseconds since the Unix epoch from DateTime.MaxValue (UTC+0)</para>
+    ///     <para xml:lang="zh">获取自 DateTime.MaxValue 的 Unix 纪元以来的毫秒数(UTC+0)</para>
     /// </summary>
     public static long DateTimeMaxValueMillisecondsSinceEpoch => (DateTime.MaxValue - UnixEpoch).Ticks / TimeSpan.TicksPerMillisecond;
 
     /// <summary>
-    /// 获取自 DateTime.MinValue 的 Unix 纪元以来的毫秒数(UTC+0).
+    ///     <para xml:lang="en">Gets the number of milliseconds since the Unix epoch from DateTime.MinValue (UTC+0)</para>
+    ///     <para xml:lang="zh">获取自 DateTime.MinValue 的 Unix 纪元以来的毫秒数(UTC+0)</para>
     /// </summary>
     public static long DateTimeMinValueMillisecondsSinceEpoch => (DateTime.MinValue - UnixEpoch).Ticks / TimeSpan.TicksPerMillisecond;
 
     /// <summary>
-    /// 获取自 DateTime.MaxValue 的 Unix 纪元以来的秒数(UTC+0).
+    ///     <para xml:lang="en">Gets the number of seconds since the Unix epoch from DateTime.MaxValue (UTC+0)</para>
+    ///     <para xml:lang="zh">获取自 DateTime.MaxValue 的 Unix 纪元以来的秒数(UTC+0)</para>
     /// </summary>
     public static long DateTimeMaxValueSecondsSinceEpoch => (DateTime.MaxValue - UnixEpoch).Ticks / TimeSpan.TicksPerSecond;
 
     /// <summary>
-    /// 获取自 DateTime.MinValue 的 Unix 纪元以来的秒数(UTC+0).
+    ///     <para xml:lang="en">Gets the number of seconds since the Unix epoch from DateTime.MinValue (UTC+0)</para>
+    ///     <para xml:lang="zh">获取自 DateTime.MinValue 的 Unix 纪元以来的秒数(UTC+0)</para>
     /// </summary>
     public static long DateTimeMinValueSecondsSinceEpoch => (DateTime.MinValue - UnixEpoch).Ticks / TimeSpan.TicksPerSecond;
 
     /// <summary>
-    /// 从自 Unix 纪元以来的毫秒数转换为日期时间(UTC+0).
+    ///     <para xml:lang="en">Converts milliseconds since the Unix epoch to a DateTime (UTC+0)</para>
+    ///     <para xml:lang="zh">从自 Unix 纪元以来的毫秒数转换为日期时间(UTC+0)</para>
     /// </summary>
-    /// <param name="millisecondsSinceEpoch">自 Unix 纪元以来的毫秒数.</param>
-    /// <returns>A DateTime.</returns>
+    /// <param name="millisecondsSinceEpoch">
+    ///     <para xml:lang="en">The number of milliseconds since the Unix epoch</para>
+    ///     <para xml:lang="zh">自 Unix 纪元以来的毫秒数</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">A DateTime</para>
+    ///     <para xml:lang="zh">一个 DateTime</para>
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     <para xml:lang="en">Thrown when the value is outside the range that can be converted to a .NET DateTime</para>
+    ///     <para xml:lang="zh">当值超出可以转换为 .NET DateTime 的范围时抛出</para>
+    /// </exception>
     public static DateTime ToDateTimeFromMillisecondsSinceEpoch(this long millisecondsSinceEpoch)
     {
         if (millisecondsSinceEpoch >= DateTimeMinValueMillisecondsSinceEpoch && millisecondsSinceEpoch <= DateTimeMaxValueMillisecondsSinceEpoch)
@@ -51,10 +68,21 @@ public static class DateTimeStampExtensions
     }
 
     /// <summary>
-    /// 从自 Unix 纪元以来的秒数转换为日期时间(UTC+0).
+    ///     <para xml:lang="en">Converts seconds since the Unix epoch to a DateTime (UTC+0)</para>
+    ///     <para xml:lang="zh">从自 Unix 纪元以来的秒数转换为日期时间(UTC+0)</para>
     /// </summary>
-    /// <param name="secondsSinceEpoch">自 Unix 纪元以来的秒数.</param>
-    /// <returns>A DateTime.</returns>
+    /// <param name="secondsSinceEpoch">
+    ///     <para xml:lang="en">The number of seconds since the Unix epoch</para>
+    ///     <para xml:lang="zh">自 Unix 纪元以来的秒数</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">A DateTime</para>
+    ///     <para xml:lang="zh">一个 DateTime</para>
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     <para xml:lang="en">Thrown when the value is outside the range that can be converted to a .NET DateTime</para>
+    ///     <para xml:lang="zh">当值超出可以转换为 .NET DateTime 的范围时抛出</para>
+    /// </exception>
     public static DateTime ToDateTimeFromSecondsSinceEpoch(this long secondsSinceEpoch)
     {
         if (secondsSinceEpoch >= DateTimeMinValueSecondsSinceEpoch && secondsSinceEpoch <= DateTimeMaxValueSecondsSinceEpoch)
@@ -66,10 +94,17 @@ public static class DateTimeStampExtensions
     }
 
     /// <summary>
-    /// 将日期时间转换为自 Unix 纪元以来的毫秒数.
+    ///     <para xml:lang="en">Converts a DateTime to the number of milliseconds since the Unix epoch</para>
+    ///     <para xml:lang="zh">将日期时间转换为自 Unix 纪元以来的毫秒数</para>
     /// </summary>
-    /// <param name="dateTime">A DateTime.</param>
-    /// <returns>自 Unix 纪元以来的毫秒数(UTC+0).</returns>
+    /// <param name="dateTime">
+    ///     <para xml:lang="en">A DateTime</para>
+    ///     <para xml:lang="zh">一个 DateTime</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The number of milliseconds since the Unix epoch (UTC+0)</para>
+    ///     <para xml:lang="zh">自 Unix 纪元以来的毫秒数(UTC+0)</para>
+    /// </returns>
     public static long ToMillisecondsSinceEpoch(this DateTime dateTime)
     {
         var utcDateTime = dateTime.ToUniversalTime();
@@ -77,10 +112,17 @@ public static class DateTimeStampExtensions
     }
 
     /// <summary>
-    /// 将日期时间转换为自 Unix 纪元以来的秒数.
+    ///     <para xml:lang="en">Converts a DateTime to the number of seconds since the Unix epoch</para>
+    ///     <para xml:lang="zh">将日期时间转换为自 Unix 纪元以来的秒数</para>
     /// </summary>
-    /// <param name="dateTime">A DateTime.</param>
-    /// <returns>Number of seconds since Unix epoch.</returns>
+    /// <param name="dateTime">
+    ///     <para xml:lang="en">A DateTime</para>
+    ///     <para xml:lang="zh">一个 DateTime</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The number of seconds since the Unix epoch</para>
+    ///     <para xml:lang="zh">自 Unix 纪元以来的秒数</para>
+    /// </returns>
     public static long ToSecondsSinceEpoch(this DateTime dateTime)
     {
         var utcDateTime = dateTime.ToUniversalTime();
@@ -88,10 +130,14 @@ public static class DateTimeStampExtensions
     }
 
     /// <summary>
-    /// 将TimeSpan转化成字符串
+    ///     <para xml:lang="en">Converts a TimeSpan to a string</para>
+    ///     <para xml:lang="zh">将 TimeSpan 转换为字符串</para>
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">
+    ///     <para xml:lang="en">The TimeSpan to convert</para>
+    ///     <para xml:lang="zh">要转换的 TimeSpan</para>
+    /// </param>
+    /// <returns />
     public static string ToString(TimeSpan value)
     {
         const int msInOneSecond = 1000;
@@ -114,19 +160,39 @@ public static class DateTimeStampExtensions
     }
 
     /// <summary>
-    /// 将字符串转化成TimeSpan
+    ///     <para xml:lang="en">Converts a string to a TimeSpan</para>
+    ///     <para xml:lang="zh">将字符串转换为 TimeSpan</para>
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    /// <exception cref="FormatException"></exception>
+    /// <param name="value">
+    ///     <para xml:lang="en">The string to convert</para>
+    ///     <para xml:lang="zh">要转换的字符串</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The corresponding TimeSpan</para>
+    ///     <para xml:lang="zh">对应的 TimeSpan</para>
+    /// </returns>
+    /// <exception cref="FormatException">
+    ///     <para xml:lang="en">Thrown when the string is not a valid TimeSpan</para>
+    ///     <para xml:lang="zh">当字符串不是有效的 TimeSpan 时抛出</para>
+    /// </exception>
     public static TimeSpan Parse(string value) => !TryParse(value, out var result) ? throw new FormatException($"Invalid TimeSpan value: \"{value}\".") : result;
 
     /// <summary>
-    /// 尝试将字符串转化成TimeSpan
+    ///     <para xml:lang="en">Tries to convert a string to a TimeSpan</para>
+    ///     <para xml:lang="zh">尝试将字符串转换为 TimeSpan</para>
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="result"></param>
-    /// <returns></returns>
+    /// <param name="value">
+    ///     <para xml:lang="en">The string to convert</para>
+    ///     <para xml:lang="zh">要转换的字符串</para>
+    /// </param>
+    /// <param name="result">
+    ///     <para xml:lang="en">The resulting TimeSpan</para>
+    ///     <para xml:lang="zh">转换结果 TimeSpan</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">True if the conversion was successful, otherwise false</para>
+    ///     <para xml:lang="zh">如果转换成功则为 true，否则为 false</para>
+    /// </returns>
     public static bool TryParse(string value, out TimeSpan result)
     {
         if (!string.IsNullOrEmpty(value))
@@ -153,13 +219,13 @@ public static class DateTimeStampExtensions
                     multiplier = 3_600_000;
                     break;
                 default:
-                {
-                    if (value.Contains(':'))
                     {
-                        return TimeSpan.TryParse(value, out result);
+                        if (value.Contains(':'))
+                        {
+                            return TimeSpan.TryParse(value, out result);
+                        }
+                        break;
                     }
-                    break;
-                }
             }
             const NumberStyles numberStyles = NumberStyles.None;
             if (double.TryParse(value, numberStyles, CultureInfo.InvariantCulture, out var multiplicand))
@@ -168,7 +234,7 @@ public static class DateTimeStampExtensions
                 return true;
             }
         }
-        result = default;
+        result = TimeSpan.Zero;
         return false;
     }
 }

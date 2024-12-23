@@ -3,7 +3,11 @@
 namespace EasilyNET.Core.Threading;
 
 /// <summary>
-/// 异步锁,用于仅让一个线程访问共享资源.当需要实现限制并发访问的场景时,可以使用.NET自带的 <see cref="SemaphoreSlim" />
+///     <para xml:lang="en">
+///     Asynchronous lock, used to allow only one thread to access shared resources. When you need to implement scenarios that limit
+///     concurrent access, you can use .NET's built-in <see cref="SemaphoreSlim" />.
+///     </para>
+///     <para xml:lang="zh">异步锁，用于仅让一个线程访问共享资源。当需要实现限制并发访问的场景时，可以使用 .NET 自带的 <see cref="SemaphoreSlim" />。</para>
 /// </summary>
 public sealed class AsyncLock
 {
@@ -11,7 +15,8 @@ public sealed class AsyncLock
     private readonly AsyncSemaphore _semaphore = new();
 
     /// <summary>
-    /// 构造函数
+    ///     <para xml:lang="en">Constructor</para>
+    ///     <para xml:lang="zh">构造函数</para>
     /// </summary>
     public AsyncLock()
     {
@@ -19,21 +24,33 @@ public sealed class AsyncLock
     }
 
     /// <summary>
-    /// 获取内部信号量的占用状态
+    ///     <para xml:lang="en">Gets the occupancy status of the internal semaphore</para>
+    ///     <para xml:lang="zh">获取内部信号量的占用状态</para>
     /// </summary>
-    /// <returns></returns>
+    /// <returns>
+    ///     <para xml:lang="en">The occupancy status of the internal semaphore</para>
+    ///     <para xml:lang="zh">内部信号量的占用状态</para>
+    /// </returns>
     public int GetSemaphoreTaken() => _semaphore.GetTaken();
 
     /// <summary>
-    /// 获取内部信号量的队列计数
+    ///     <para xml:lang="en">Gets the queue count of the internal semaphore</para>
+    ///     <para xml:lang="zh">获取内部信号量的队列计数</para>
     /// </summary>
-    /// <returns></returns>
+    /// <returns>
+    ///     <para xml:lang="en">The queue count of the internal semaphore</para>
+    ///     <para xml:lang="zh">内部信号量的队列计数</para>
+    /// </returns>
     public int GetQueueCount() => _semaphore.GetQueueCount();
 
     /// <summary>
-    /// 锁定,返回一个 <see cref="Release" /> 对象
+    ///     <para xml:lang="en">Locks and returns a <see cref="Release" /> object</para>
+    ///     <para xml:lang="zh">锁定，返回一个 <see cref="Release" /> 对象</para>
     /// </summary>
-    /// <returns></returns>
+    /// <returns>
+    ///     <para xml:lang="en">A task that represents the asynchronous operation</para>
+    ///     <para xml:lang="zh">表示异步操作的任务</para>
+    /// </returns>
     public Task<Release> LockAsync()
     {
         var task = _semaphore.WaitAsync();
@@ -44,10 +61,17 @@ public sealed class AsyncLock
     }
 
     /// <summary>
-    /// 锁定任务的执行,无返回值
+    ///     <para xml:lang="en">Locks the execution of a task, without returning a value</para>
+    ///     <para xml:lang="zh">锁定任务的执行，无返回值</para>
     /// </summary>
-    /// <param name="taskFunc"></param>
-    /// <returns></returns>
+    /// <param name="taskFunc">
+    ///     <para xml:lang="en">The task function to execute</para>
+    ///     <para xml:lang="zh">要执行的任务函数</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">A task that represents the asynchronous operation</para>
+    ///     <para xml:lang="zh">表示异步操作的任务</para>
+    /// </returns>
     public async Task LockAsync(Func<Task> taskFunc)
     {
         using (await LockAsync())
@@ -57,11 +81,17 @@ public sealed class AsyncLock
     }
 
     /// <summary>
-    /// 锁定任务的执行,可返回执行函数的结果
+    ///     <para xml:lang="en">Locks the execution of a task and returns the result of the executed function</para>
+    ///     <para xml:lang="zh">锁定任务的执行，并返回执行函数的结果</para>
     /// </summary>
-    /// <param name="taskFunc"></param>
-    /// <returns></returns>
-    // ReSharper disable once UnusedMethodReturnValue.Global
+    /// <param name="taskFunc">
+    ///     <para xml:lang="en">The task function to execute</para>
+    ///     <para xml:lang="zh">要执行的任务函数</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">A task that represents the asynchronous operation and returns the result</para>
+    ///     <para xml:lang="zh">表示异步操作的任务，并返回结果</para>
+    /// </returns>
     public async Task<T> LockAsync<T>(Func<Task<T>> taskFunc)
     {
         using (await LockAsync())
@@ -70,10 +100,14 @@ public sealed class AsyncLock
         }
     }
 
-    /// <remarks>
-    /// Release
-    /// </remarks>
-    /// <param name="asyncLock"></param>
+    /// <summary>
+    ///     <para xml:lang="en">Release</para>
+    ///     <para xml:lang="zh">释放</para>
+    /// </summary>
+    /// <param name="asyncLock">
+    ///     <para xml:lang="en">The async lock</para>
+    ///     <para xml:lang="zh">异步锁</para>
+    /// </param>
     public readonly struct Release(AsyncLock? asyncLock) : IDisposable
     {
         /// <inheritdoc />

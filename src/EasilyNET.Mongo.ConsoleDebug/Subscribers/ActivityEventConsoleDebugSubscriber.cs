@@ -15,7 +15,8 @@ using Spectre.Console.Rendering;
 namespace EasilyNET.Mongo.ConsoleDebug.Subscribers;
 
 /// <summary>
-/// 利用 <see cref="IEventSubscriber" /> 实现 MongoDB 语句输出到控制台,推荐在测试环境中使用.
+///     <para xml:lang="en">Use <see cref="IEventSubscriber" /> to output MongoDB statements to the console, recommended for use in test environments.</para>
+///     <para xml:lang="zh">利用 <see cref="IEventSubscriber" /> 实现 MongoDB 语句输出到控制台,推荐在测试环境中使用。</para>
 /// </summary>
 public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
 {
@@ -24,14 +25,19 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
     private readonly ReflectionEventSubscriber _subscriber;
 
     /// <summary>
-    /// 初始化 <see cref="ActivityEventConsoleDebugSubscriber" /> 类的新实例.
+    ///     <para xml:lang="en">Initialize a new instance of the <see cref="ActivityEventConsoleDebugSubscriber" /> class.</para>
+    ///     <para xml:lang="zh">初始化 <see cref="ActivityEventConsoleDebugSubscriber" /> 类的新实例。</para>
     /// </summary>
     public ActivityEventConsoleDebugSubscriber() : this(new()) { }
 
     /// <summary>
-    /// 使用指定的选项初始化 <see cref="ActivityEventConsoleDebugSubscriber" /> 类的新实例.
+    ///     <para xml:lang="en">Initialize a new instance of the <see cref="ActivityEventConsoleDebugSubscriber" /> class with the specified options.</para>
+    ///     <para xml:lang="zh">使用指定的选项初始化 <see cref="ActivityEventConsoleDebugSubscriber" /> 类的新实例。</para>
     /// </summary>
-    /// <param name="options">控制台调试仪器选项.</param>
+    /// <param name="options">
+    ///     <para xml:lang="en">Console debug instrumentation options.</para>
+    ///     <para xml:lang="zh">控制台调试仪器选项。</para>
+    /// </param>
     public ActivityEventConsoleDebugSubscriber(ConsoleDebugInstrumentationOptions options)
     {
         _options = options;
@@ -43,11 +49,21 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
     private string CommandJson { get; set; } = string.Empty;
 
     /// <summary>
-    /// 尝试获取事件处理程序.
+    ///     <para xml:lang="en">Try to get the event handler.</para>
+    ///     <para xml:lang="zh">尝试获取事件处理程序。</para>
     /// </summary>
-    /// <typeparam name="TEvent">事件类型.</typeparam>
-    /// <param name="handler">事件处理程序.</param>
-    /// <returns>如果找到事件处理程序,则为 <c>true</c>；否则为 <c>false</c>.</returns>
+    /// <typeparam name="TEvent">
+    ///     <para xml:lang="en">Event type.</para>
+    ///     <para xml:lang="zh">事件类型。</para>
+    /// </typeparam>
+    /// <param name="handler">
+    ///     <para xml:lang="en">Event handler.</para>
+    ///     <para xml:lang="zh">事件处理程序。</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">True if the event handler is found; otherwise, false.</para>
+    ///     <para xml:lang="zh">如果找到事件处理程序,则为 <c>true</c>；否则为 <c>false</c>。</para>
+    /// </returns>
     public bool TryGetEventHandler<TEvent>(out Action<TEvent> handler) => _subscriber.TryGetEventHandler(out handler);
 
     private void WritStatus(int request_id, bool success)
@@ -62,14 +78,14 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
         table.AddRow($"{request_id}", $"[#ffd700]{DateTime.Now:HH:mm:ss.fffff}[/]", success ? "[#00af00]Succeeded[/]" : "[#af0000]Failed[/]");
         var layout = new Layout("Root")
             .SplitColumns(new Layout(new Panel(new Text(CommandJson, new(Color.Purple)))
-                {
-                    Height = 45,
-                    Header = new("Command", Justify.Center)
-                }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand())
-                {
-                    MinimumSize = 48,
-                    Size = 72
-                },
+            {
+                Height = 45,
+                Header = new("Command", Justify.Center)
+            }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand())
+            {
+                MinimumSize = 48,
+                Size = 72
+            },
                 new Layout(new Rows(new Panel(new Calendar(DateTime.Now)
                 {
                     HeaderStyle = new(Color.Blue, decoration: Decoration.Bold),
@@ -133,9 +149,9 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
             case true when _options.ShouldStartCollection is not null && !_options.ShouldStartCollection(coll_name):
                 return;
             case true:
-            {
-                // 使用字符串的方式替代序列化
-                InfoJson = $$"""
+                {
+                    // 使用字符串的方式替代序列化
+                    InfoJson = $$"""
                              {
                                "RequestId": {{@event.RequestId}},
                                "Timestamp": "{{@event.Timestamp:yyyy-MM-dd HH:mm:ss}}",
@@ -148,9 +164,9 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
                                }
                              }
                              """;
-                CommandJson = @event.Command.ToJson(new() { Indent = true });
-                break;
-            }
+                    CommandJson = @event.Command.ToJson(new() { Indent = true });
+                    break;
+                }
         }
     }
 

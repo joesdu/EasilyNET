@@ -12,7 +12,8 @@ using MongoDB.Driver.Core.Events;
 namespace EasilyNET.Mongo.ConsoleDebug.Subscribers;
 
 /// <summary>
-/// 订阅MongoDB驱动程序的诊断事件,并将其转换为OpenTelemetry活动
+///     <para xml:lang="en">Subscribe to MongoDB driver diagnostic events and convert them to OpenTelemetry activities</para>
+///     <para xml:lang="zh">订阅MongoDB驱动程序的诊断事件,并将其转换为OpenTelemetry活动</para>
 /// </summary>
 public sealed class ActivityEventDiagnosticsSubscriber : IEventSubscriber
 {
@@ -28,14 +29,19 @@ public sealed class ActivityEventDiagnosticsSubscriber : IEventSubscriber
     private readonly ReflectionEventSubscriber _subscriber;
 
     /// <summary>
-    /// 初始化 <see cref="ActivityEventDiagnosticsSubscriber" /> 类的新实例.
+    ///     <para xml:lang="en">Initialize a new instance of the <see cref="ActivityEventDiagnosticsSubscriber" /> class.</para>
+    ///     <para xml:lang="zh">初始化 <see cref="ActivityEventDiagnosticsSubscriber" /> 类的新实例。</para>
     /// </summary>
     public ActivityEventDiagnosticsSubscriber() : this(new()) { }
 
     /// <summary>
-    /// 使用指定的选项初始化 <see cref="ActivityEventDiagnosticsSubscriber" /> 类的新实例.
+    ///     <para xml:lang="en">Initialize a new instance of the <see cref="ActivityEventDiagnosticsSubscriber" /> class with the specified options.</para>
+    ///     <para xml:lang="zh">使用指定的选项初始化 <see cref="ActivityEventDiagnosticsSubscriber" /> 类的新实例。</para>
     /// </summary>
-    /// <param name="options">诊断仪器选项.</param>
+    /// <param name="options">
+    ///     <para xml:lang="en">Diagnostics instrumentation options.</para>
+    ///     <para xml:lang="zh">诊断仪器选项。</para>
+    /// </param>
     public ActivityEventDiagnosticsSubscriber(DiagnosticsInstrumentationOptions options)
     {
         _options = options;
@@ -43,11 +49,21 @@ public sealed class ActivityEventDiagnosticsSubscriber : IEventSubscriber
     }
 
     /// <summary>
-    /// 尝试获取事件处理程序.
+    ///     <para xml:lang="en">Try to get the event handler.</para>
+    ///     <para xml:lang="zh">尝试获取事件处理程序。</para>
     /// </summary>
-    /// <typeparam name="TEvent">事件类型.</typeparam>
-    /// <param name="handler">事件处理程序.</param>
-    /// <returns>如果找到事件处理程序，则为 <c>true</c>；否则为 <c>false</c>.</returns>
+    /// <typeparam name="TEvent">
+    ///     <para xml:lang="en">Event type.</para>
+    ///     <para xml:lang="zh">事件类型。</para>
+    /// </typeparam>
+    /// <param name="handler">
+    ///     <para xml:lang="en">Event handler.</para>
+    ///     <para xml:lang="zh">事件处理程序。</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">True if the event handler is found; otherwise, false.</para>
+    ///     <para xml:lang="zh">如果找到事件处理程序，则为 <c>true</c>；否则为 <c>false</c>。</para>
+    /// </returns>
     public bool TryGetEventHandler<TEvent>(out Action<TEvent> handler) => _subscriber.TryGetEventHandler(out handler);
 
     [SuppressMessage("CodeQuality", "IDE0051:删除未使用的私有成员", Justification = "<挂起>")]

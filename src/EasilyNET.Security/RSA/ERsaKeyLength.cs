@@ -3,7 +3,8 @@
 namespace EasilyNET.Security;
 
 /// <summary>
-/// 密钥长度
+///     <para xml:lang="en">Key length</para>
+///     <para xml:lang="zh">密钥长度</para>
 /// </summary>
 public enum ERsaKeyLength
 {

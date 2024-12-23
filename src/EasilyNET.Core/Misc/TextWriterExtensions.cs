@@ -10,7 +10,8 @@ using EasilyNET.Core.Threading;
 namespace EasilyNET.Core.Misc;
 
 /// <summary>
-/// <see cref="Console.Out" /> 扩展方法
+///     <para xml:lang="en">TextWriter Extensions</para>
+///     <para xml:lang="zh"><see cref="Console.Out" /> 扩展方法</para>
 /// </summary>
 public static class TextWriterExtensions
 {
@@ -42,20 +43,24 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 线程安全的在控制台同一行输出消息,并换行
+    ///     <para xml:lang="en">Thread-safe output message on the same line in the console, and wrap</para>
+    ///     <para xml:lang="zh">线程安全的在控制台同一行输出消息,并换行</para>
+    /// </summary>
     /// <remarks>
-    ///     <para>
-    ///     使用方式:
+    ///     <para>Usage:</para>
     ///     <code>
     ///   <![CDATA[
     ///  await Console.Out.SafeWriteLineAsync("Hello World!");
     /// ]]>
     /// </code>
-    ///     </para>
     /// </remarks>
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="msg"></param>
+    /// <param name="writer">
+    /// <see cref="TextWriter" />>
+    /// </param>
+    /// <param name="msg">
+    ///     <para xml:lang="en">Message</para>
+    ///     <para xml:lang="zh">消息</para>
+    /// </param>
     public static async Task SafeWriteLineAsync(this TextWriter writer, string msg)
     {
         using (await _asyncLock.LockAsync())
@@ -77,20 +82,24 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 线程安全的在控制台同一行输出消息,并换行
+    ///     <para xml:lang="en">Thread-safe output message on the same line in the console, and wrap</para>
+    ///     <para xml:lang="zh">线程安全的在控制台同一行输出消息,并换行</para>
+    /// </summary>
     /// <remarks>
-    ///     <para>
-    ///     使用方式:
+    ///     <para>Usage:</para>
     ///     <code>
     ///   <![CDATA[
     ///  Console.Out.SafeWriteLine("Hello World!");
     /// ]]>
     /// </code>
-    ///     </para>
     /// </remarks>
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="msg"></param>
+    /// <param name="writer">
+    /// <see cref="TextWriter" />>
+    /// </param>
+    /// <param name="msg">
+    ///     <para xml:lang="en">Message</para>
+    ///     <para xml:lang="zh">消息</para>
+    /// </param>
     public static void SafeWriteLine(this TextWriter writer, string msg)
     {
         lock (_syncLock)
@@ -110,20 +119,24 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 线程安全的在控制台同一行输出消息
+    ///     <para xml:lang="en">Thread-safe output message on the same line in the console</para>
+    ///     <para xml:lang="zh">线程安全的在控制台同一行输出消息</para>
+    /// </summary>
     /// <remarks>
-    ///     <para>
-    ///     使用方式:
+    ///     <para>Usage:</para>
     ///     <code>
     ///   <![CDATA[
     ///  await Console.Out.SafeWriteAsync("Hello World!");
     /// ]]>
     /// </code>
-    ///     </para>
     /// </remarks>
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="msg"></param>
+    /// <param name="writer">
+    /// <see cref="TextWriter" />>
+    /// </param>
+    /// <param name="msg">
+    ///     <para xml:lang="en">Message</para>
+    ///     <para xml:lang="zh">消息</para>
+    /// </param>
     public static async Task SafeWriteAsync(this TextWriter writer, string msg)
     {
         using (await _asyncLock.LockAsync())
@@ -145,20 +158,24 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 线程安全的在控制台同一行输出消息
+    ///     <para xml:lang="en">Thread-safe output message on the same line in the console</para>
+    ///     <para xml:lang="zh">线程安全的在控制台同一行输出消息</para>
+    /// </summary>
     /// <remarks>
-    ///     <para>
-    ///     使用方式:
+    ///     <para>Usage:</para>
     ///     <code>
     ///   <![CDATA[
     ///  Console.Out.SafeWrite("Hello World!");
     /// ]]>
     /// </code>
-    ///     </para>
     /// </remarks>
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="msg"></param>
+    /// <param name="writer">
+    /// <see cref="TextWriter" />>
+    /// </param>
+    /// <param name="msg">
+    ///     <para xml:lang="en">Message</para>
+    ///     <para xml:lang="zh">消息</para>
+    /// </param>
     public static void SafeWrite(this TextWriter writer, string msg)
     {
         lock (_syncLock)
@@ -178,19 +195,20 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 线程安全的清除当前行
+    ///     <para xml:lang="en">Thread-safe clear current line</para>
+    ///     <para xml:lang="zh">线程安全的清除当前行</para>
+    /// </summary>
     /// <remarks>
-    ///     <para>
-    ///     使用方式:
+    ///     <para>Usage:</para>
     ///     <code>
     ///   <![CDATA[
     ///  await Console.Out.SafeClearCurrentLineAsync();
     /// ]]>
     /// </code>
-    ///     </para>
     /// </remarks>
-    /// </summary>
-    /// <returns></returns>
+    /// <param name="writer">
+    /// <see cref="TextWriter" />>
+    /// </param>
     public static async Task SafeClearCurrentLineAsync(this TextWriter writer)
     {
         using (await _asyncLock.LockAsync())
@@ -200,19 +218,20 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 线程安全的清除当前行
+    ///     <para xml:lang="en">Thread-safe clear current line</para>
+    ///     <para xml:lang="zh">线程安全的清除当前行</para>
+    /// </summary>
     /// <remarks>
-    ///     <para>
-    ///     使用方式:
+    ///     <para>Usage:</para>
     ///     <code>
     ///   <![CDATA[
     ///  Console.Out.SafeClearCurrentLine();
     /// ]]>
     /// </code>
-    ///     </para>
     /// </remarks>
-    /// </summary>
-    /// <returns></returns>
+    /// <param name="writer">
+    /// <see cref="TextWriter" />>
+    /// </param>
     public static void SafeClearCurrentLine(this TextWriter writer)
     {
         lock (_syncLock)
@@ -222,19 +241,20 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 线程安全的清除上一行,并将光标移动到该行行首
+    ///     <para xml:lang="en">Thread-safe clear previous line and move cursor to the beginning of the line</para>
+    ///     <para xml:lang="zh">线程安全的清除上一行,并将光标移动到该行行首</para>
+    /// </summary>
     /// <remarks>
-    ///     <para>
-    ///     使用方式:
+    ///     <para>Usage:</para>
     ///     <code>
     ///   <![CDATA[
     ///  await Console.Out.SafeClearPreviousLineAsync();
     /// ]]>
     /// </code>
-    ///     </para>
     /// </remarks>
-    /// </summary>
-    /// <returns></returns>
+    /// <param name="writer">
+    /// <see cref="TextWriter" />>
+    /// </param>
     public static async Task SafeClearPreviousLineAsync(this TextWriter writer)
     {
         using (await _asyncLock.LockAsync())
@@ -244,19 +264,20 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 线程安全的清除上一行,并将光标移动到该行行首
+    ///     <para xml:lang="en">Thread-safe clear previous line and move cursor to the beginning of the line</para>
+    ///     <para xml:lang="zh">线程安全的清除上一行,并将光标移动到该行行首</para>
+    /// </summary>
     /// <remarks>
-    ///     <para>
-    ///     使用方式:
+    ///     <para>Usage:</para>
     ///     <code>
     ///   <![CDATA[
     ///  Console.Out.SafeClearPreviousLine();
     /// ]]>
     /// </code>
-    ///     </para>
     /// </remarks>
-    /// </summary>
-    /// <returns></returns>
+    /// <param name="writer">
+    /// <see cref="TextWriter" />>
+    /// </param>
     public static void SafeClearPreviousLine(this TextWriter writer)
     {
         lock (_syncLock)
@@ -266,10 +287,11 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 在控制台输出可点击的路径,使用 [<see langword="Ctrl + 鼠标左键" />] 即可打开路径
+    ///     <para xml:lang="en">Output clickable path in the console, use [<see langword="Ctrl + Left Click" />] to open the path</para>
+    ///     <para xml:lang="zh">在控制台输出可点击的路径,使用 [<see langword="Ctrl + 鼠标左键" />] 即可打开路径</para>
+    /// </summary>
     /// <remarks>
-    ///     <para>
-    ///     使用方式:
+    ///     <para>Usage:</para>
     ///     <code>
     ///   <![CDATA[
     /// var path = @"F:\tools\test\test\bin\Release\net9.0\win-x64\publish";
@@ -278,14 +300,26 @@ public static class TextWriterExtensions
     ///   bin\Release\net9.0\win-x64\publish
     /// ]]>
     /// </code>
-    ///     </para>
     /// </remarks>
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="path">需要处理的完整路径</param>
-    /// <param name="relative">是否输出相对路径,默认: <see langword="false" /></param>
-    /// <param name="deep">当为相对路径的时候配置目录深度,仅保留最后 N 层目录</param>
-    /// <param name="newLine">是否换行,默认: <see langword="false" />,行为同: Console.Write()</param>
+    /// <param name="writer">
+    /// <see cref="TextWriter" />>
+    /// </param>
+    /// <param name="path">
+    ///     <para xml:lang="en">Full path to process</para>
+    ///     <para xml:lang="zh">需要处理的完整路径</para>
+    /// </param>
+    /// <param name="relative">
+    ///     <para xml:lang="en">Whether to output relative path, default: <see langword="false" /></para>
+    ///     <para xml:lang="zh">是否输出相对路径,默认: <see langword="false" /></para>
+    /// </param>
+    /// <param name="deep">
+    ///     <para xml:lang="en">When it is a relative path, configure the directory depth, only keep the last N levels of directories</para>
+    ///     <para xml:lang="zh">当为相对路径的时候配置目录深度,仅保留最后 N 层目录</para>
+    /// </param>
+    /// <param name="newLine">
+    ///     <para xml:lang="en">Whether to wrap, default: <see langword="false" />, behavior is the same as Console.Write()</para>
+    ///     <para xml:lang="zh">是否换行,默认: <see langword="false" />,行为同: Console.Write()</para>
+    /// </param>
     public static void WriteClickablePath(this TextWriter writer, string path, bool relative = false, int deep = 5, bool newLine = false)
     {
         if (string.IsNullOrWhiteSpace(path)) return;
@@ -295,10 +329,16 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 在当前行中将光标移动 X 个位置
+    ///     <para xml:lang="en">Move the cursor X positions in the current line</para>
+    ///     <para xml:lang="zh">在当前行中将光标移动 X 个位置</para>
     /// </summary>
-    /// <param name="writer">TextWriter</param>
-    /// <param name="positions">要移动的光标位置数，可以为正数(右移)或负数(左移)</param>
+    /// <param name="writer">
+    /// <see cref="TextWriter" />>
+    /// </param>
+    /// <param name="positions">
+    ///     <para xml:lang="en">The number of cursor positions to move, can be positive (right) or negative (left)</para>
+    ///     <para xml:lang="zh">要移动的光标位置数，可以为正数(右移)或负数(左移)</para>
+    /// </param>
     public static void MoveCursorInCurrentLine(this TextWriter writer, int positions)
     {
         if (positions == 0) return;
@@ -330,10 +370,16 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 在当前行中将光标移动 X 个位置
+    ///     <para xml:lang="en">Move the cursor X positions in the current line</para>
+    ///     <para xml:lang="zh">在当前行中将光标移动 X 个位置</para>
     /// </summary>
-    /// <param name="writer">TextWriter</param>
-    /// <param name="positions">要移动的光标位置数，可以为正数(右移)或负数(左移)</param>
+    /// <param name="writer">
+    /// <see cref="TextWriter" />>
+    /// </param>
+    /// <param name="positions">
+    ///     <para xml:lang="en">The number of cursor positions to move, can be positive (right) or negative (left)</para>
+    ///     <para xml:lang="zh">要移动的光标位置数，可以为正数(右移)或负数(左移)</para>
+    /// </param>
     public static async Task MoveCursorInCurrentLineAsync(this TextWriter writer, int positions)
     {
         if (positions == 0) return;
@@ -364,10 +410,10 @@ public static class TextWriterExtensions
         }
     }
 
-    /// <summary>
-    /// 是否支持 UTF-8 编码
-    /// </summary>
-    /// <returns></returns>
+    /// <returns>
+    ///     <para xml:lang="en">Whether UTF-8 encoding is supported</para>
+    ///     <para xml:lang="zh">是否支持 UTF-8 编码</para>
+    /// </returns>
     public static bool IsUtf8Supported()
     {
         // 检查当前平台是否支持 UTF-8 编码
@@ -387,9 +433,13 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 判断当前环境终端是否支持 ANSI 转义序列
+    ///     <para xml:lang="en">Determine whether the current terminal environment supports ANSI escape sequences</para>
+    ///     <para xml:lang="zh">判断当前环境终端是否支持 ANSI 转义序列</para>
     /// </summary>
-    /// <returns>是否支持</returns>
+    /// <returns>
+    ///     <para xml:lang="en">Whether supported</para>
+    ///     <para xml:lang="zh">是否支持</para>
+    /// </returns>
     public static bool IsAnsiSupported()
     {
         if (_ansiSupported.HasValue)
@@ -401,9 +451,13 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 判断当前环境终端是否支持控制台光标移动
+    ///     <para xml:lang="en">Determine whether the current terminal environment supports console cursor movement</para>
+    ///     <para xml:lang="zh">判断当前环境终端是否支持控制台光标移动</para>
     /// </summary>
-    /// <returns>是否支持</returns>
+    /// <returns>
+    ///     <para xml:lang="en">Whether supported</para>
+    ///     <para xml:lang="zh">是否支持</para>
+    /// </returns>
     public static bool IsCursorPosSupported()
     {
         if (_cursorPosSupported.HasValue)
@@ -443,9 +497,13 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 判断当前环境终端是否支持获取控制台窗口大小
+    ///     <para xml:lang="en">Determine whether the current terminal environment supports getting console window size</para>
+    ///     <para xml:lang="zh">判断当前环境终端是否支持获取控制台窗口大小</para>
     /// </summary>
-    /// <returns>是否支持</returns>
+    /// <returns>
+    ///     <para xml:lang="en">Whether supported</para>
+    ///     <para xml:lang="zh">是否支持</para>
+    /// </returns>
     public static bool IsWindowSizeSupported()
     {
         if (_windowSizeSupported.HasValue) return _windowSizeSupported.Value;
@@ -454,18 +512,38 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 在控制台输出进度条,用于某些时候需要显示进度的场景
+    ///     <para xml:lang="en">Output progress bar in the console, used in scenarios where progress needs to be displayed</para>
+    ///     <para xml:lang="zh">在控制台输出进度条,用于某些时候需要显示进度的场景</para>
     /// </summary>
-    /// <param name="writer"><see cref="TextWriter" />Writer</param>
-    /// <param name="percentage">进度</param>
-    /// <param name="message">消息</param>
-    /// <param name="width">进度条整体宽度,不包含消息部分</param>
-    /// <param name="completedChar">完成部分填充字符</param>
-    /// <param name="incompleteChar">未完成部分填充字符</param>
-    /// <param name="isFixedBarWidth"><see langword="true" />: 固定进度条宽度,<see langword="false" />: 固定整体宽度</param>
+    /// <param name="writer">
+    /// <see cref="TextWriter" />Writer
+    /// </param>
+    /// <param name="percentage">
+    ///     <para xml:lang="en">Progress</para>
+    ///     <para xml:lang="zh">进度</para>
+    /// </param>
+    /// <param name="message">
+    ///     <para xml:lang="en">Message</para>
+    ///     <para xml:lang="zh">消息</para>
+    /// </param>
+    /// <param name="width">
+    ///     <para xml:lang="en">Overall width of the progress bar, excluding the message part</para>
+    ///     <para xml:lang="zh">进度条整体宽度,不包含消息部分</para>
+    /// </param>
+    /// <param name="completedChar">
+    ///     <para xml:lang="en">Character to fill the completed part</para>
+    ///     <para xml:lang="zh">完成部分填充字符</para>
+    /// </param>
+    /// <param name="incompleteChar">
+    ///     <para xml:lang="en">Character to fill the incomplete part</para>
+    ///     <para xml:lang="zh">未完成部分填充字符</para>
+    /// </param>
+    /// <param name="isFixedBarWidth">
+    ///     <para xml:lang="en"><see langword="true" />: Fixed progress bar width, <see langword="false" />: Fixed overall width</para>
+    ///     <para xml:lang="zh"><see langword="true" />: 固定进度条宽度,<see langword="false" />: 固定整体宽度</para>
+    /// </param>
     /// <remarks>
-    ///     <para>
-    ///     使用方式:
+    ///     <para>Usage:</para>
     ///     <code>
     ///   <![CDATA[
     /// for (var progress = 0d; progress <= 100.00; progress += 0.1)
@@ -477,7 +555,6 @@ public static class TextWriterExtensions
     ///   [==========---------------------] 5.1% Processing...
     /// ]]>
     /// </code>
-    ///     </para>
     /// </remarks>
     /// <returns></returns>
     public static async Task ShowProgressBarAsync(this TextWriter writer, double percentage, string message = "", int width = -1, char completedChar = '=', char incompleteChar = '-', bool isFixedBarWidth = true)
@@ -496,18 +573,38 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 在控制台输出进度条,用于某些时候需要显示进度的场景
+    ///     <para xml:lang="en">Output progress bar in the console, used in scenarios where progress needs to be displayed</para>
+    ///     <para xml:lang="zh">在控制台输出进度条,用于某些时候需要显示进度的场景</para>
     /// </summary>
-    /// <param name="writer"><see cref="TextWriter" />Writer</param>
-    /// <param name="percentage">进度</param>
-    /// <param name="message">消息</param>
-    /// <param name="width">宽度</param>
-    /// <param name="completedChar">完成部分填充字符</param>
-    /// <param name="incompleteChar">未完成部分填充字符</param>
-    /// <param name="isFixedBarWidth"><see langword="true" />: 固定进度条宽度,<see langword="false" />: 固定整体宽度</param>
+    /// <param name="writer">
+    /// <see cref="TextWriter" />Writer
+    /// </param>
+    /// <param name="percentage">
+    ///     <para xml:lang="en">Progress</para>
+    ///     <para xml:lang="zh">进度</para>
+    /// </param>
+    /// <param name="message">
+    ///     <para xml:lang="en">Message</para>
+    ///     <para xml:lang="zh">消息</para>
+    /// </param>
+    /// <param name="width">
+    ///     <para xml:lang="en">Width</para>
+    ///     <para xml:lang="zh">宽度</para>
+    /// </param>
+    /// <param name="completedChar">
+    ///     <para xml:lang="en">Character to fill the completed part</para>
+    ///     <para xml:lang="zh">完成部分填充字符</para>
+    /// </param>
+    /// <param name="incompleteChar">
+    ///     <para xml:lang="en">Character to fill the incomplete part</para>
+    ///     <para xml:lang="zh">未完成部分填充字符</para>
+    /// </param>
+    /// <param name="isFixedBarWidth">
+    ///     <para xml:lang="en"><see langword="true" />: Fixed progress bar width, <see langword="false" />: Fixed overall width</para>
+    ///     <para xml:lang="zh"><see langword="true" />: 固定进度条宽度,<see langword="false" />: 固定整体宽度</para>
+    /// </param>
     /// <remarks>
-    ///     <para>
-    ///     使用方式:
+    ///     <para>Usage:</para>
     ///     <code>
     ///   <![CDATA[
     /// for (var progress = 0d; progress <= 100.00; progress += 0.1)
@@ -519,7 +616,6 @@ public static class TextWriterExtensions
     ///   [==========---------------------] 5.1% Processing...
     /// ]]>
     /// </code>
-    ///     </para>
     /// </remarks>
     /// <returns></returns>
     public static void ShowProgressBar(this TextWriter writer, double percentage, string message = "", int width = -1, char completedChar = '=', char incompleteChar = '-', bool isFixedBarWidth = true)
@@ -538,10 +634,16 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 控制控制台光标可见性,若平台不受支持则无效果
+    ///     <para xml:lang="en">Control the visibility of the console cursor, no effect if the platform is not supported</para>
+    ///     <para xml:lang="zh">控制控制台光标可见性,若平台不受支持则无效果</para>
     /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="visible"><see langword="true" />: 显示光标, <see langword="false" />: 隐藏光标</param>
+    /// <param name="writer">
+    ///     <see cref="TextWriter" />
+    /// </param>
+    /// <param name="visible">
+    ///     <para xml:lang="en"><see langword="true" />: Show cursor, <see langword="false" />: Hide cursor</para>
+    ///     <para xml:lang="zh"><see langword="true" />: 显示光标, <see langword="false" />: 隐藏光标</para>
+    /// </param>
     /// <returns></returns>
     public static async Task SetCursorVisibilityAsync(this TextWriter writer, bool visible)
     {
@@ -563,10 +665,16 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 控制控制台光标可见性,若平台不受支持则无效果
+    ///     <para xml:lang="en">Control the visibility of the console cursor, no effect if the platform is not supported</para>
+    ///     <para xml:lang="zh">控制控制台光标可见性,若平台不受支持则无效果</para>
     /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="visible"><see langword="true" />: 显示光标, <see langword="false" />: 隐藏光标</param>
+    /// <param name="writer">
+    ///     <see cref="TextWriter" />
+    /// </param>
+    /// <param name="visible">
+    ///     <para xml:lang="en"><see langword="true" />: Show cursor, <see langword="false" />: Hide cursor</para>
+    ///     <para xml:lang="zh"><see langword="true" />: 显示光标, <see langword="false" />: 隐藏光标</para>
+    /// </param>
     public static void SetCursorVisibility(this TextWriter writer, bool visible)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -587,15 +695,26 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 在控制台输出加载动画
+    ///     <para xml:lang="en">Output loading animation in the console</para>
+    ///     <para xml:lang="zh">在控制台输出加载动画</para>
     /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="cancellationToken"></param>
-    /// <param name="delay">刷新间隔</param>
-    /// <param name="color">字符颜色</param>
+    /// <param name="writer">
+    ///     <see cref="TextWriter" />
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     <para xml:lang="en">Cancellation token</para>
+    ///     <para xml:lang="zh">取消令牌</para>
+    /// </param>
+    /// <param name="delay">
+    ///     <para xml:lang="en">Refresh interval</para>
+    ///     <para xml:lang="zh">刷新间隔</para>
+    /// </param>
+    /// <param name="color">
+    ///     <para xml:lang="en">Character color</para>
+    ///     <para xml:lang="zh">字符颜色</para>
+    /// </param>
     /// <remarks>
-    ///     <para>
-    ///     使用方式:
+    ///     <para>Usage:</para>
     ///     <code>
     ///   <![CDATA[
     /// var cts = new CancellationTokenSource();
@@ -609,7 +728,6 @@ public static class TextWriterExtensions
     ///   await loading;
     /// ]]>
     /// </code>
-    ///     </para>
     /// </remarks>
     /// <returns></returns>
     public static async Task ShowLoadingAsync(this TextWriter writer, CancellationToken cancellationToken, int delay = 100, ConsoleColor color = ConsoleColor.Green)
@@ -655,15 +773,26 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    /// 在控制台输出加载动画
+    ///     <para xml:lang="en">Output loading animation in the console</para>
+    ///     <para xml:lang="zh">在控制台输出加载动画</para>
     /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="cancellationToken"></param>
-    /// <param name="delay">刷新间隔</param>
-    /// <param name="color">字符颜色</param>
+    /// <param name="writer">
+    ///     <see cref="TextWriter" />
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     <para xml:lang="en">Cancellation token</para>
+    ///     <para xml:lang="zh">取消令牌</para>
+    /// </param>
+    /// <param name="delay">
+    ///     <para xml:lang="en">Refresh interval</para>
+    ///     <para xml:lang="zh">刷新间隔</para>
+    /// </param>
+    /// <param name="color">
+    ///     <para xml:lang="en">Character color</para>
+    ///     <para xml:lang="zh">字符颜色</para>
+    /// </param>
     /// <remarks>
-    ///     <para>
-    ///     使用方式:
+    ///     <para>Usage:</para>
     ///     <code>
     ///   <![CDATA[
     ///   var cts = new CancellationTokenSource();
@@ -675,7 +804,6 @@ public static class TextWriterExtensions
     ///   task.Wait(token);
     ///   ]]>
     /// </code>
-    ///     </para>
     /// </remarks>
     public static void ShowLoading(this TextWriter writer, CancellationToken cancellationToken, int delay = 100, ConsoleColor color = ConsoleColor.Green)
     {

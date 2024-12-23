@@ -3,26 +3,39 @@
 namespace EasilyNET.Security;
 
 /// <summary>
-/// RSA密钥
+///     <para xml:lang="en">RSA secret key</para>
+///     <para xml:lang="zh">RSA密钥</para>
 /// </summary>
-/// <param name="privateKey"></param>
-/// <param name="publicKey"></param>
+/// <param name="privateKey">
+///     <para xml:lang="en">Private key</para>
+///     <para xml:lang="zh">私钥</para>
+/// </param>
+/// <param name="publicKey">
+///     <para xml:lang="en">Public key</para>
+///     <para xml:lang="zh">公钥</para>
+/// </param>
 public struct RsaSecretKey(string privateKey, string publicKey)
 {
     /// <summary>
-    /// 公钥
+    ///     <para xml:lang="en">Public key</para>
+    ///     <para xml:lang="zh">公钥</para>
     /// </summary>
     public string PublicKey { get; set; } = publicKey;
 
     /// <summary>
-    /// 私钥
+    ///     <para xml:lang="en">Private key</para>
+    ///     <para xml:lang="zh">私钥</para>
     /// </summary>
     public string PrivateKey { get; set; } = privateKey;
 
     /// <summary>
-    /// 得到XML格式的私钥和公钥
+    ///     <para xml:lang="en">Gets the private and public keys in XML format</para>
+    ///     <para xml:lang="zh">得到XML格式的私钥和公钥</para>
     /// </summary>
-    /// <returns></returns>
+    /// <returns>
+    ///     <para xml:lang="en">The private and public keys in XML format</para>
+    ///     <para xml:lang="zh">XML格式的私钥和公钥</para>
+    /// </returns>
     public readonly string ToXmlString() =>
         $"""
          -----BEGIN RSA XML PRIVATE KEY-----
@@ -35,9 +48,13 @@ public struct RsaSecretKey(string privateKey, string publicKey)
          """;
 
     /// <summary>
-    /// 得到Base64格式的私钥和公钥
+    ///     <para xml:lang="en">Gets the private and public keys in Base64 format</para>
+    ///     <para xml:lang="zh">得到Base64格式的私钥和公钥</para>
     /// </summary>
-    /// <returns></returns>
+    /// <returns>
+    ///     <para xml:lang="en">The private and public keys in Base64 format</para>
+    ///     <para xml:lang="zh">Base64格式的私钥和公钥</para>
+    /// </returns>
     public readonly string ToBase64String() =>
         $"""
          -----BEGIN RSA BASE64 PRIVATE KEY-----

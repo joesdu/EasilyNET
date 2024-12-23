@@ -7,7 +7,14 @@ using System.Text.Json.Serialization;
 namespace EasilyNET.WebCore.JsonConverters;
 
 /// <summary>
-/// <see cref="bool" /> 类型Json转换(用于将字符串类型的 <see langword="true" /> 或 <see langword="false" /> 转化成后端可识别的 <see cref="bool" /> 类型)
+///     <para xml:lang="en">
+///     JSON converter for <see cref="bool" /> type (used to convert string types <see langword="true" /> or <see langword="false" />
+///     to backend-recognizable <see cref="bool" /> type)
+///     </para>
+///     <para xml:lang="zh">
+///     <see cref="bool" /> 类型的 JSON 转换器（用于将字符串类型的 <see langword="true" /> 或 <see langword="false" /> 转换为后端可识别的 <see cref="bool" />
+///     类型）
+///     </para>
 /// </summary>
 /// <example>
 ///     <code>
@@ -18,28 +25,16 @@ namespace EasilyNET.WebCore.JsonConverters;
 /// </example>
 public sealed class BoolConverter : JsonConverter<bool>
 {
-    /// <summary>
-    /// Read
-    /// </summary>
-    /// <param name="reader"></param>
-    /// <param name="typeToConvert"></param>
-    /// <param name="options"></param>
-    /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
+    /// <inheritdoc />
     public override bool Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
         reader.TokenType switch
         {
             JsonTokenType.True or JsonTokenType.False => reader.GetBoolean(),
-            JsonTokenType.String                      => bool.Parse(reader.GetString()!),
-            JsonTokenType.Number                      => reader.GetDouble() > 0,
-            _                                         => throw new NotImplementedException($"un processed token type {reader.TokenType}")
+            JsonTokenType.String => bool.Parse(reader.GetString()!),
+            JsonTokenType.Number => reader.GetDouble() > 0,
+            _ => throw new NotImplementedException($"un processed token type {reader.TokenType}")
         };
 
-    /// <summary>
-    /// Write
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="value"></param>
-    /// <param name="options"></param>
+    /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, bool value, JsonSerializerOptions options) => writer.WriteBooleanValue(value);
 }

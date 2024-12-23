@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -7,30 +8,23 @@ using System.Text.Json.Serialization;
 namespace EasilyNET.WebCore.JsonConverters;
 
 /// <summary>
-/// 可空Int数据类型Json转换(用于将字符串类型的数字转化成后端可识别的int类型)
+///     <para xml:lang="en">JSON converter for nullable int data type (used to convert string types of numbers to backend-recognizable int type)</para>
+///     <para xml:lang="zh">可空 Int 数据类型的 JSON 转换器（用于将字符串类型的数字转换为后端可识别的 int 类型）</para>
 /// </summary>
 public sealed class IntNullConverter : JsonConverter<int?>
 {
-    /// <summary>
-    /// Read
-    /// </summary>
-    /// <param name="reader"></param>
-    /// <param name="typeToConvert"></param>
-    /// <param name="options"></param>
-    /// <returns></returns>
-    public override int? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-        reader.TokenType == JsonTokenType.Number
-            ? reader.GetInt32()
-            : string.IsNullOrEmpty(reader.GetString())
-                ? default(int?)
-                : int.Parse(reader.GetString()!);
+    /// <inheritdoc />
+    public override int? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Number)
+        {
+            return reader.GetInt32();
+        }
+        var str = reader.GetString();
+        return string.IsNullOrEmpty(str) ? null : int.Parse(str, CultureInfo.CurrentCulture);
+    }
 
-    /// <summary>
-    /// Write
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="value"></param>
-    /// <param name="options"></param>
+    /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, int? value, JsonSerializerOptions options)
     {
         if (value is not null) writer.WriteNumberValue(value.Value);

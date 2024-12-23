@@ -20,24 +20,45 @@ using RabbitMQ.Client.Exceptions;
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
-/// RabbitMQ ServiceCollection
+///     <para xml:lang="en">RabbitMQ ServiceCollection</para>
+///     <para xml:lang="zh">RabbitMQ 服务集合</para>
 /// </summary>
 public static class ServiceCollectionExtension
 {
     /// <summary>
-    /// 添加消息总线RabbitMQ服务
+    ///     <para xml:lang="en">Adds RabbitMQ message bus service</para>
+    ///     <para xml:lang="zh">添加消息总线RabbitMQ服务</para>
     /// </summary>
-    /// <param name="services"></param>
-    /// <param name="action"></param>
+    /// <param name="services">
+    ///     <para xml:lang="en">The service collection</para>
+    ///     <para xml:lang="zh">服务集合</para>
+    /// </param>
+    /// <param name="action">
+    ///     <para xml:lang="en">The configuration action</para>
+    ///     <para xml:lang="zh">配置操作</para>
+    /// </param>
     public static void AddRabbitBus(this IServiceCollection services, Action<RabbitConfig>? action = null) => services.RabbitPersistentConnection(config => action?.Invoke(config)).AddEventBus();
 
     /// <summary>
-    /// 添加消息总线RabbitMQ服务
+    ///     <para xml:lang="en">Adds RabbitMQ message bus service</para>
+    ///     <para xml:lang="zh">添加消息总线RabbitMQ服务</para>
     /// </summary>
-    /// <param name="services"></param>
-    /// <param name="configuration"></param>
-    /// <param name="action"></param>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <param name="services">
+    ///     <para xml:lang="en">The service collection</para>
+    ///     <para xml:lang="zh">服务集合</para>
+    /// </param>
+    /// <param name="configuration">
+    ///     <para xml:lang="en">The configuration</para>
+    ///     <para xml:lang="zh">配置</para>
+    /// </param>
+    /// <param name="action">
+    ///     <para xml:lang="en">The configuration action</para>
+    ///     <para xml:lang="zh">配置操作</para>
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    ///     <para xml:lang="en">Thrown when the connection string is missing</para>
+    ///     <para xml:lang="zh">当连接字符串缺失时抛出</para>
+    /// </exception>
     public static void AddRabbitBus(this IServiceCollection services, IConfiguration configuration, Action<RabbitConfig>? action = null)
     {
         var connStr = configuration.GetConnectionString("Rabbit") ?? Environment.GetEnvironmentVariable("CONNECTIONSTRINGS_RABBIT");
