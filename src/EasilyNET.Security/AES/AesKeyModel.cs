@@ -1,7 +1,8 @@
 namespace EasilyNET.Security;
 
 /// <summary>
-/// AES加密的密钥算法模式
+///     <para xml:lang="en">Key algorithm mode for AES encryption</para>
+///     <para xml:lang="zh">AES加密的密钥算法模式</para>
 /// </summary>
 public enum AesKeyModel
 {

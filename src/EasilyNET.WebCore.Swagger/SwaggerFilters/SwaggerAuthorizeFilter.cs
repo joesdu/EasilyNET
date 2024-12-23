@@ -7,7 +7,8 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 namespace EasilyNET.WebCore.Swagger.SwaggerFilters;
 
 /// <summary>
-/// 在Swagger文档中给需要Authorize的接口添加🔒
+///     <para xml:lang="en">Add 🔒 to interfaces that require Authorize in Swagger documentation</para>
+///     <para xml:lang="zh">在Swagger文档中给需要Authorize的接口添加🔒</para>
 /// </summary>
 // ReSharper disable once UnusedMember.Global
 // ReSharper disable once ClassNeverInstantiated.Global

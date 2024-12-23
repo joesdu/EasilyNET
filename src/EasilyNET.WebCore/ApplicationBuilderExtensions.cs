@@ -7,14 +7,14 @@ using EasilyNET.WebCore.Middleware;
 namespace Microsoft.AspNetCore.Builder;
 
 /// <summary>
-/// 中间件扩展,用于统一处理中间件调用扩展
+///     <para xml:lang="en">Middleware extensions for unified handling of middleware invocation extensions</para>
+///     <para xml:lang="zh">中间件扩展，用于统一处理中间件调用扩展</para>
 /// </summary>
 public static class ApplicationBuilderExtensions
 {
     /// <summary>
-    /// 使用全局API耗时监控中间件
+    ///     <para xml:lang="en">Uses the global API response time monitoring middleware</para>
+    ///     <para xml:lang="zh">使用全局 API 耗时监控中间件</para>
     /// </summary>
-    /// <param name="builder"></param>
-    /// <returns></returns>
     public static IApplicationBuilder UseResponseTime(this IApplicationBuilder builder) => builder.UseMiddleware<ResponseTimeMiddleware>();
 }

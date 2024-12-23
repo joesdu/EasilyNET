@@ -8,17 +8,28 @@ namespace EasilyNET.AutoDependencyInjection.Abstractions;
 internal interface IModuleApplication : IDisposable
 {
     /// <summary>
-    /// IServiceCollection
+    ///     <para xml:lang="en">
+    ///         <see cref="IServiceCollection" />
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///         <see cref="IServiceCollection" />
+    ///     </para>
     /// </summary>
     IServiceCollection Services { get; }
 
     /// <summary>
-    /// IServiceProvider
+    ///     <para xml:lang="en">
+    ///         <see cref="IServiceProvider" />
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///         <see cref="IServiceProvider" />
+    ///     </para>
     /// </summary>
     IServiceProvider? ServiceProvider { get; }
 
     /// <summary>
-    /// Modules
+    ///     <para xml:lang="en">Modules</para>
+    ///     <para xml:lang="zh">模块</para>
     /// </summary>
     IList<IAppModule> Modules { get; }
 }

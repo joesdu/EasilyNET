@@ -5,26 +5,47 @@
 
 namespace EasilyNET.Security;
 
-/// 参考: https://www.cnblogs.com/billyme/p/14772881.html
 /// <summary>
-/// RC4 加密解密
+///     <para xml:lang="en">RC4 encryption and decryption</para>
+///     <para xml:lang="zh">RC4 加密解密</para>
+///     <a href="https://www.rabbitmq.com/getstarted.html"></a>
 /// </summary>
 public static class Rc4Crypt
 {
     /// <summary>
-    /// RC4解密
+    ///     <para xml:lang="en">RC4 decryption</para>
+    ///     <para xml:lang="zh">RC4解密</para>
     /// </summary>
-    /// <param name="data">待解密数据</param>
-    /// <param name="key">密钥</param>
-    /// <returns></returns>
+    /// <param name="data">
+    ///     <para xml:lang="en">Data to be decrypted</para>
+    ///     <para xml:lang="zh">待解密数据</para>
+    /// </param>
+    /// <param name="key">
+    ///     <para xml:lang="en">Key</para>
+    ///     <para xml:lang="zh">密钥</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Decrypted data</para>
+    ///     <para xml:lang="zh">解密后的数据</para>
+    /// </returns>
     public static byte[] Decrypt(ReadOnlySpan<byte> data, ReadOnlySpan<byte> key) => Encrypt(data, key);
 
     /// <summary>
-    /// RC4加密
+    ///     <para xml:lang="en">RC4 encryption</para>
+    ///     <para xml:lang="zh">RC4加密</para>
     /// </summary>
-    /// <param name="data">待加密数据</param>
-    /// <param name="key">密钥</param>
-    /// <returns></returns>
+    /// <param name="data">
+    ///     <para xml:lang="en">Data to be encrypted</para>
+    ///     <para xml:lang="zh">待加密数据</para>
+    /// </param>
+    /// <param name="key">
+    ///     <para xml:lang="en">Key</para>
+    ///     <para xml:lang="zh">密钥</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Encrypted data</para>
+    ///     <para xml:lang="zh">加密后的数据</para>
+    /// </returns>
     public static byte[] Encrypt(ReadOnlySpan<byte> data, ReadOnlySpan<byte> key)
     {
         Span<byte> s = stackalloc byte[256];

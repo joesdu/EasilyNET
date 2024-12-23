@@ -10,33 +10,67 @@ using EasilyNET.Core.Attributes;
 namespace EasilyNET.Core.Misc;
 
 /// <summary>
-/// Type扩展.
+///     <para xml:lang="en">Type extensions</para>
+///     <para xml:lang="zh">Type 扩展</para>
 /// </summary>
 public static partial class TypeExtensions
 {
     /// <summary>
-    /// 判断类型是否为Nullable类型
+    ///     <para xml:lang="en">Checks if the type is a Nullable type</para>
+    ///     <para xml:lang="zh">判断类型是否为 Nullable 类型</para>
     /// </summary>
-    /// <param name="type">要处理的类型</param>
-    /// <returns>是返回True，不是返回False</returns>
+    /// <param name="type">
+    ///     <para xml:lang="en">The type to check</para>
+    ///     <para xml:lang="zh">要检查的类型</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">True if the type is Nullable, otherwise false</para>
+    ///     <para xml:lang="zh">如果是 Nullable 类型则返回 True，否则返回 False</para>
+    /// </returns>
     public static bool IsNullable(this Type type) => Nullable.GetUnderlyingType(type) != null;
 
     /// <summary>
-    /// 判断当前类型是否可由指定类型派生
+    ///     <para xml:lang="en">Checks if the current type can be derived from the specified base type</para>
+    ///     <para xml:lang="zh">判断当前类型是否可由指定基类型派生</para>
     /// </summary>
-    /// <typeparam name="TBaseType">基类型</typeparam>
-    /// <param name="type">当前类型</param>
-    /// <param name="canAbstract">是否允许抽象类</param>
-    /// <returns>如果是派生类则返回True，否则返回False</returns>
+    /// <typeparam name="TBaseType">
+    ///     <para xml:lang="en">The base type</para>
+    ///     <para xml:lang="zh">基类型</para>
+    /// </typeparam>
+    /// <param name="type">
+    ///     <para xml:lang="en">The current type</para>
+    ///     <para xml:lang="zh">当前类型</para>
+    /// </param>
+    /// <param name="canAbstract">
+    ///     <para xml:lang="en">Whether abstract classes are allowed</para>
+    ///     <para xml:lang="zh">是否允许抽象类</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">True if the type can be derived from the base type, otherwise false</para>
+    ///     <para xml:lang="zh">如果是派生类则返回 True，否则返回 False</para>
+    /// </returns>
     public static bool IsDeriveClassFrom<TBaseType>(this Type type, bool canAbstract = false) => type.IsDeriveClassFrom(typeof(TBaseType), canAbstract);
 
     /// <summary>
-    /// 判断当前类型是否可由指定类型派生
+    ///     <para xml:lang="en">Checks if the current type can be derived from the specified base type</para>
+    ///     <para xml:lang="zh">判断当前类型是否可由指定基类型派生</para>
     /// </summary>
-    /// <param name="type">当前类型</param>
-    /// <param name="baseType">基类型</param>
-    /// <param name="canAbstract">是否允许抽象类</param>
-    /// <returns>如果是派生类则返回True，否则返回False</returns>
+    /// <param name="type">
+    ///     <para xml:lang="en">The current type</para>
+    ///     <para xml:lang="zh">当前类型</para>
+    /// </param>
+    /// <param name="baseType">
+    ///     <para xml:lang="en">The base type</para>
+    ///     <para xml:lang="zh">基类型</para>
+    /// </param>
+    /// <param name="canAbstract">
+    ///     <para xml:lang="en">Whether abstract classes are allowed</para>
+    ///     <para xml:lang="zh">是否允许抽象类</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">True if the type can be derived from the base type, otherwise false</para>
+    ///     <para xml:lang="zh">如果是派生类则返回 True，否则返回 False</para>
+    /// </returns>
     public static bool IsDeriveClassFrom(this Type type, Type baseType, bool canAbstract = false)
     {
         type.NotNull(nameof(type));
@@ -45,19 +79,42 @@ public static partial class TypeExtensions
     }
 
     /// <summary>
-    /// 返回当前类型是否是指定基类的派生类
+    ///     <para xml:lang="en">Checks if the current type is a derived class of the specified base type</para>
+    ///     <para xml:lang="zh">返回当前类型是否是指定基类的派生类</para>
     /// </summary>
-    /// <param name="type">当前类型</param>
-    /// <param name="baseType">要判断的基类型</param>
-    /// <returns>如果是派生类则返回True，否则返回False</returns>
+    /// <param name="type">
+    ///     <para xml:lang="en">The current type</para>
+    ///     <para xml:lang="zh">当前类型</para>
+    /// </param>
+    /// <param name="baseType">
+    ///     <para xml:lang="en">The base type to check</para>
+    ///     <para xml:lang="zh">要判断的基类型</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">True if the type is a derived class of the base type, otherwise false</para>
+    ///     <para xml:lang="zh">如果是派生类则返回 True，否则返回 False</para>
+    /// </returns>
     public static bool IsBaseOn(this Type type, Type baseType) => baseType.IsGenericTypeDefinition ? type.HasImplementedRawGeneric(baseType) : baseType.IsAssignableFrom(type);
 
     /// <summary>
-    /// 判断指定的类型 <paramref name="type" /> 是否是指定泛型类型的子类型，或实现了指定泛型接口。
+    ///     <para xml:lang="en">
+    ///     Checks if the specified type <paramref name="type" /> is a subtype of the specified generic type, or implements the specified
+    ///     generic interface
+    ///     </para>
+    ///     <para xml:lang="zh">判断指定的类型 <paramref name="type" /> 是否是指定泛型类型的子类型，或实现了指定泛型接口</para>
     /// </summary>
-    /// <param name="type">需要测试的类型。</param>
-    /// <param name="generic">泛型接口类型，传入 typeof(IXxx&lt;&gt;)</param>
-    /// <returns>如果是泛型接口的子类型，则返回 true，否则返回 false。</returns>
+    /// <param name="type">
+    ///     <para xml:lang="en">The type to check</para>
+    ///     <para xml:lang="zh">需要测试的类型</para>
+    /// </param>
+    /// <param name="generic">
+    ///     <para xml:lang="en">The generic interface type, pass typeof(IXxx&lt;&gt;)</para>
+    ///     <para xml:lang="zh">泛型接口类型，传入 typeof(IXxx&lt;&gt;)</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">True if the type is a subtype of the generic type, otherwise false</para>
+    ///     <para xml:lang="zh">如果是泛型接口的子类型，则返回 true，否则返回 false</para>
+    /// </returns>
     public static bool HasImplementedRawGeneric(this Type type, Type generic)
     {
         type.NotNull(nameof(type));
@@ -68,57 +125,115 @@ public static partial class TypeExtensions
     }
 
     /// <summary>
-    /// 通过类型转换器获取Nullable类型的基础类型
+    ///     <para xml:lang="en">Gets the underlying type of Nullable type using a type converter</para>
+    ///     <para xml:lang="zh">通过类型转换器获取 Nullable 类型的基础类型</para>
     /// </summary>
-    /// <param name="type"> 要处理的类型对象 </param>
-    /// <returns> 基础类型 </returns>
+    /// <param name="type">
+    ///     <para xml:lang="en">The type to process</para>
+    ///     <para xml:lang="zh">要处理的类型对象</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The underlying type</para>
+    ///     <para xml:lang="zh">基础类型</para>
+    /// </returns>
     public static Type GetUnNullableType(this Type type) => Nullable.GetUnderlyingType(type) ?? type;
 
     /// <summary>
-    /// 是否是 ValueTuple
+    ///     <para xml:lang="en">Checks if the type is a ValueTuple</para>
+    ///     <para xml:lang="zh">是否是 ValueTuple</para>
     /// </summary>
-    /// <param name="type">type</param>
-    /// <returns>如果是 ValueTuple 则返回True，否则返回False</returns>
+    /// <param name="type">
+    ///     <para xml:lang="en">The type to check</para>
+    ///     <para xml:lang="zh">要检查的类型</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">True if the type is a ValueTuple, otherwise false</para>
+    ///     <para xml:lang="zh">如果是 ValueTuple 则返回 True，否则返回 False</para>
+    /// </returns>
     public static bool IsValueTuple(this Type type) => type.IsValueType && type.FullName?.StartsWith("System.ValueTuple`", StringComparison.Ordinal) == true;
 
     /// <summary>
-    /// 判断是否基元类型，如果是可空类型会先获取里面的类型，如 int? 也是基元类型
-    /// The primitive types are Boolean, Byte, SByte, Int16, UInt16, Int32, UInt32, Int64, UInt64, IntPtr, UIntPtr, Char, Double, and Single.
+    ///     <para xml:lang="en">
+    ///     Checks if the type is a primitive type. If it is a nullable type, it first gets the underlying type. For example, int? is
+    ///     also a primitive type.
+    ///     </para>
+    ///     <para xml:lang="zh">判断是否基元类型，如果是可空类型会先获取里面的类型，如 int? 也是基元类型</para>
+    ///     <para xml:lang="en">
+    ///     The primitive types are Boolean, Byte, SByte, Int16, UInt16, Int32, UInt32, Int64, UInt64, IntPtr, UIntPtr, Char, Double, and
+    ///     Single.
+    ///     </para>
     /// </summary>
-    /// <param name="type">type</param>
-    /// <returns>如果是基元类型则返回True，否则返回False</returns>
+    /// <param name="type">
+    ///     <para xml:lang="en">The type to check</para>
+    ///     <para xml:lang="zh">要检查的类型</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">True if the type is a primitive type, otherwise false</para>
+    ///     <para xml:lang="zh">如果是基元类型则返回 True，否则返回 False</para>
+    /// </returns>
     public static bool IsPrimitiveType(this Type type) => (Nullable.GetUnderlyingType(type) ?? type).IsPrimitive;
 
     /// <summary>
-    /// 获取当前类型实现的接口的集合。
+    ///     <para xml:lang="en">Gets the collection of interfaces implemented by the current type</para>
+    ///     <para xml:lang="zh">获取当前类型实现的接口的集合</para>
     /// </summary>
-    /// <param name="type">type</param>
-    /// <returns>当前类型实现的接口的集合。</returns>
+    /// <param name="type">
+    ///     <para xml:lang="en">The type to check</para>
+    ///     <para xml:lang="zh">要检查的类型</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The collection of interfaces implemented by the current type</para>
+    ///     <para xml:lang="zh">当前类型实现的接口的集合</para>
+    /// </returns>
     public static IEnumerable<Type> GetImplementedInterfaces(this Type type) => type.GetInterfaces();
 
     /// <summary>
-    /// 获取类型的描述信息
+    ///     <para xml:lang="en">Gets the description of the type</para>
+    ///     <para xml:lang="zh">获取类型的描述信息</para>
     /// </summary>
-    /// <param name="type">type</param>
-    /// <returns>描述信息</returns>
+    /// <param name="type">
+    ///     <para xml:lang="en">The type to check</para>
+    ///     <para xml:lang="zh">要检查的类型</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The description of the type</para>
+    ///     <para xml:lang="zh">类型的描述信息</para>
+    /// </returns>
     public static string ToDescription(this Type type) => type.GetCustomAttribute<DescriptionAttribute>()?.Description ?? string.Empty;
 
     /// <summary>
-    /// 获取成员的描述信息
+    ///     <para xml:lang="en">Gets the description of the member</para>
+    ///     <para xml:lang="zh">获取成员的描述信息</para>
     /// </summary>
-    /// <typeparam name="TAttribute">动态特性</typeparam>
-    /// <param name="member">成员信息</param>
-    /// <returns>描述信息</returns>
+    /// <typeparam name="TAttribute">
+    ///     <para xml:lang="en">The type of the attribute</para>
+    ///     <para xml:lang="zh">特性的类型</para>
+    /// </typeparam>
+    /// <param name="member">
+    ///     <para xml:lang="en">The member info</para>
+    ///     <para xml:lang="zh">成员信息</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The description of the member</para>
+    ///     <para xml:lang="zh">成员的描述信息</para>
+    /// </returns>
     public static string ToDescription<TAttribute>(this MemberInfo member) where TAttribute : AttributeBase =>
         member.GetCustomAttribute<TAttribute>() is AttributeBase attributeBase
             ? attributeBase.Description()
             : member.Name;
 
     /// <summary>
-    /// 获取成员的描述信息或显示名称
+    ///     <para xml:lang="en">Gets the description or display name of the member</para>
+    ///     <para xml:lang="zh">获取成员的描述信息或显示名称</para>
     /// </summary>
-    /// <param name="member">成员信息</param>
-    /// <returns>描述信息或显示名称</returns>
+    /// <param name="member">
+    ///     <para xml:lang="en">The member info</para>
+    ///     <para xml:lang="zh">成员信息</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The description or display name of the member</para>
+    ///     <para xml:lang="zh">成员的描述信息或显示名称</para>
+    /// </returns>
     public static string ToDescription(this MemberInfo member)
     {
         var desc = member.GetCustomAttribute<DescriptionAttribute>();
@@ -128,11 +243,21 @@ public static partial class TypeExtensions
     }
 
     /// <summary>
-    /// 判断接口类型是否具有相匹配的通用类型
+    ///     <para xml:lang="en">Checks if the interface type has a matching generic type</para>
+    ///     <para xml:lang="zh">判断接口类型是否具有相匹配的通用类型</para>
     /// </summary>
-    /// <param name="interfaceType">接口类型</param>
-    /// <param name="typeInfo">对象类型</param>
-    /// <returns>如果具有相匹配的通用类型则返回True，否则返回False</returns>
+    /// <param name="interfaceType">
+    ///     <para xml:lang="en">The interface type</para>
+    ///     <para xml:lang="zh">接口类型</para>
+    /// </param>
+    /// <param name="typeInfo">
+    ///     <para xml:lang="en">The type info</para>
+    ///     <para xml:lang="zh">类型信息</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">True if the interface type has a matching generic type, otherwise false</para>
+    ///     <para xml:lang="zh">如果具有相匹配的通用类型则返回 True，否则返回 False</para>
+    /// </returns>
     public static bool HasMatchingGenericArity(this Type interfaceType, TypeInfo typeInfo)
     {
         if (!typeInfo.IsGenericType) return true;
@@ -144,11 +269,21 @@ public static partial class TypeExtensions
     }
 
     /// <summary>
-    /// 获取注册类型
+    ///     <para xml:lang="en">Gets the registration type</para>
+    ///     <para xml:lang="zh">获取注册类型</para>
     /// </summary>
-    /// <param name="interfaceType">接口类型</param>
-    /// <param name="typeInfo">对象类型</param>
-    /// <returns>注册类型</returns>
+    /// <param name="interfaceType">
+    ///     <para xml:lang="en">The interface type</para>
+    ///     <para xml:lang="zh">接口类型</para>
+    /// </param>
+    /// <param name="typeInfo">
+    ///     <para xml:lang="en">The type info</para>
+    ///     <para xml:lang="zh">类型信息</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The registration type</para>
+    ///     <para xml:lang="zh">注册类型</para>
+    /// </returns>
     public static Type GetRegistrationType(this Type interfaceType, TypeInfo typeInfo)
     {
         if (!typeInfo.IsGenericTypeDefinition) return interfaceType;
@@ -157,10 +292,17 @@ public static partial class TypeExtensions
     }
 
     /// <summary>
-    /// 获取适合在错误消息中使用的友好类名.
+    ///     <para xml:lang="en">Gets a friendly type name suitable for use in error messages</para>
+    ///     <para xml:lang="zh">获取适合在错误消息中使用的友好类名</para>
     /// </summary>
-    /// <param name="type">The type.</param>
-    /// <returns>友好的类名.</returns>
+    /// <param name="type">
+    ///     <para xml:lang="en">The type</para>
+    ///     <para xml:lang="zh">类型</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">The friendly type name</para>
+    ///     <para xml:lang="zh">友好的类名</para>
+    /// </returns>
     public static string GetFriendlyTypeName(this Type type)
     {
         var typeInfo = type.GetTypeInfo();

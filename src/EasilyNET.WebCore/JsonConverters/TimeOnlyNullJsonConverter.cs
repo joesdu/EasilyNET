@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -7,27 +8,20 @@ using System.Text.Json.Serialization;
 namespace EasilyNET.WebCore.JsonConverters;
 
 /// <summary>
-/// 可空TimeOnly类型Json转换(用于将字符串类型的时间转化成后端可识别的TimeOnly类型)
+///     <para xml:lang="en">JSON converter for nullable TimeOnly type (used to convert string types of time to backend-recognizable TimeOnly type)</para>
+///     <para xml:lang="zh">可空 TimeOnly 类型的 JSON 转换器（用于将字符串类型的时间转换为后端可识别的 TimeOnly 类型）</para>
 /// </summary>
 public sealed class TimeOnlyNullJsonConverter : JsonConverter<TimeOnly?>
 {
-    /// <summary>
-    /// Read
-    /// </summary>
-    /// <param name="reader"></param>
-    /// <param name="typeToConvert"></param>
-    /// <param name="options"></param>
-    /// <returns></returns>
-    public override TimeOnly? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-        string.IsNullOrWhiteSpace(reader.GetString())
-            ? null
-            : TimeOnly.Parse(reader.GetString()!);
+    /// <inheritdoc />
+    public override TimeOnly? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var str = reader.GetString();
+        return string.IsNullOrWhiteSpace(str)
+                   ? null
+                   : TimeOnly.Parse(str, CultureInfo.CurrentCulture);
+    }
 
-    /// <summary>
-    /// Write
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="value"></param>
-    /// <param name="options"></param>
-    public override void Write(Utf8JsonWriter writer, TimeOnly? value, JsonSerializerOptions options) => writer.WriteStringValue(value?.ToString(Constant.TimeFormat));
+    /// <inheritdoc />
+    public override void Write(Utf8JsonWriter writer, TimeOnly? value, JsonSerializerOptions options) => writer.WriteStringValue(value?.ToString(Constant.TimeFormat, CultureInfo.CurrentCulture));
 }

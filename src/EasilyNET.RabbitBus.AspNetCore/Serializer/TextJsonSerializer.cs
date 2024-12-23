@@ -7,7 +7,8 @@ using EasilyNET.RabbitBus.Core.Abstraction;
 namespace EasilyNET.RabbitBus.AspNetCore.Serializer;
 
 /// <summary>
-/// 实现 System.Text.Json 序列化器
+///     <para xml:lang="en">Implements System.Text.Json serializer</para>
+///     <para xml:lang="zh">实现 System.Text.Json 序列化器</para>
 /// </summary>
 internal sealed class TextJsonSerializer : IBusSerializer
 {

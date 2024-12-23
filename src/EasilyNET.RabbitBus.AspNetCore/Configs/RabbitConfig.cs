@@ -8,57 +8,68 @@ using RabbitMQ.Client;
 namespace EasilyNET.RabbitBus.AspNetCore.Configs;
 
 /// <summary>
-/// Configuration settings for RabbitMQ connection.
+///     <para xml:lang="en">Configuration settings for RabbitMQ connection</para>
+///     <para xml:lang="zh">RabbitMQ 连接的配置设置</para>
 /// </summary>
 public sealed class RabbitConfig
 {
     /// <summary>
-    /// The connection string.
+    ///     <para xml:lang="en">The connection string</para>
+    ///     <para xml:lang="zh">连接字符串</para>
     /// </summary>
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Configuration for multiple endpoints. If set, the <see cref="Host" /> configuration is ignored.
+    ///     <para xml:lang="en">Configuration for multiple endpoints. If set, the <see cref="Host" /> configuration is ignored</para>
+    ///     <para xml:lang="zh">多个端点的配置。如果设置了此项，则忽略 <see cref="Host" /> 配置</para>
     /// </summary>
     public List<AmqpTcpEndpoint>? AmqpTcpEndpoints { get; set; } = null;
 
     /// <summary>
-    /// The hostname or IP address.
+    ///     <para xml:lang="en">The hostname or IP address</para>
+    ///     <para xml:lang="zh">主机名或 IP 地址</para>
     /// </summary>
     public string? Host { get; set; } = null;
 
     /// <summary>
-    /// The password.
+    ///     <para xml:lang="en">The password</para>
+    ///     <para xml:lang="zh">密码</para>
     /// </summary>
     public string PassWord { get; set; } = "guest";
 
     /// <summary>
-    /// The username.
+    ///     <para xml:lang="en">The username</para>
+    ///     <para xml:lang="zh">用户名</para>
     /// </summary>
     public string UserName { get; set; } = "guest";
 
     /// <summary>
-    /// The virtual host.
+    ///     <para xml:lang="en">The virtual host</para>
+    ///     <para xml:lang="zh">虚拟主机</para>
     /// </summary>
     public string VirtualHost { get; set; } = "/";
 
     /// <summary>
-    /// The port number. Default is 5672.
+    ///     <para xml:lang="en">The port number. Default is 5672</para>
+    ///     <para xml:lang="zh">端口号。默认是 5672</para>
     /// </summary>
     public int Port { get; set; } = 5672;
 
     /// <summary>
-    /// The number of channels in the pool. Default is the number of logical processors on the machine.
+    ///     <para xml:lang="en">The number of channels in the pool. Default is the number of logical processors on the machine</para>
+    ///     <para xml:lang="zh">池中的通道数量。默认是机器上的逻辑处理器数量</para>
     /// </summary>
     public uint PoolCount { get; set; } = 0;
 
     /// <summary>
-    /// The number of retry attempts. Default is 5.
+    ///     <para xml:lang="en">The number of retry attempts. Default is 5</para>
+    ///     <para xml:lang="zh">重试次数。默认是 5</para>
     /// </summary>
     public int RetryCount { get; set; } = 5;
 
     /// <summary>
-    /// custom serializer
+    ///     <para xml:lang="en">Custom serializer</para>
+    ///     <para xml:lang="zh">自定义序列化器</para>
     /// </summary>
     public IBusSerializer BusSerializer { get; set; } = new TextJsonSerializer();
 }

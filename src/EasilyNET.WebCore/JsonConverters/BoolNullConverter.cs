@@ -7,7 +7,8 @@ using System.Text.Json.Serialization;
 namespace EasilyNET.WebCore.JsonConverters;
 
 /// <summary>
-/// 可空Bool类型Json转换(用于将字符串类型的true或false转化成后端可识别的bool类型)
+///     <para xml:lang="en">JSON converter for nullable bool type (used to convert string types true or false to backend-recognizable bool type)</para>
+///     <para xml:lang="zh">可空 Bool 类型的 JSON 转换器（用于将字符串类型的 true 或 false 转换为后端可识别的 bool 类型）</para>
 /// </summary>
 /// <example>
 ///     <code>
@@ -18,30 +19,18 @@ namespace EasilyNET.WebCore.JsonConverters;
 /// </example>
 public sealed class BoolNullConverter : JsonConverter<bool?>
 {
-    /// <summary>
-    /// Read
-    /// </summary>
-    /// <param name="reader"></param>
-    /// <param name="typeToConvert"></param>
-    /// <param name="options"></param>
-    /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
+    /// <inheritdoc />
     public override bool? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
         reader.TokenType switch
         {
             JsonTokenType.True or JsonTokenType.False => reader.GetBoolean(),
-            JsonTokenType.Null                        => null,
-            JsonTokenType.String                      => bool.Parse(reader.GetString()!),
-            JsonTokenType.Number                      => reader.GetDouble() > 0,
-            _                                         => throw new NotImplementedException($"un processed token type {reader.TokenType}")
+            JsonTokenType.Null => null,
+            JsonTokenType.String => bool.Parse(reader.GetString()!),
+            JsonTokenType.Number => reader.GetDouble() > 0,
+            _ => throw new NotImplementedException($"un processed token type {reader.TokenType}")
         };
 
-    /// <summary>
-    /// Write
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="value"></param>
-    /// <param name="options"></param>
+    /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, bool? value, JsonSerializerOptions options)
     {
         if (value is not null) writer.WriteBooleanValue(value.Value);

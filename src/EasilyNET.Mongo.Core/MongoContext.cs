@@ -7,33 +7,40 @@ namespace EasilyNET.Mongo.Core;
 #nullable disable // Disable nullable check for a response from the community
 
 /// <summary>
-/// MongoDB基础DbContext
+///     <para xml:lang="en">MongoDB basic DbContext</para>
+///     <para xml:lang="zh">MongoDB基础DbContext</para>
 /// </summary>
 public class MongoContext : IDisposable
 {
     /// <summary>
-    /// MongoClient
+    ///     <see cref="IMongoClient" />
     /// </summary>
     public IMongoClient Client { get; private set; }
 
     /// <summary>
-    /// 获取链接字符串或者HoyoMongoSettings中配置的特定名称数据库或默认数据库
+    ///     <para xml:lang="en">Get the specific database name configured in the connection string or HoyoMongoSettings, or the default database</para>
+    ///     <para xml:lang="zh">获取链接字符串或者HoyoMongoSettings中配置的特定名称数据库或默认数据库</para>
     /// </summary>
     public IMongoDatabase Database { get; private set; }
 
-    /// <summary>
-    /// Dispose
-    /// </summary>
+    /// <inheritdoc />
     void IDisposable.Dispose()
     {
         GC.SuppressFinalize(this);
     }
 
     /// <summary>
-    /// 获取 <see cref="IMongoCollection{TDocument}" />.
+    ///     <para xml:lang="en">Get <see cref="IMongoCollection{TDocument}" />.</para>
+    ///     <para xml:lang="zh">获取 <see cref="IMongoCollection{TDocument}" />.</para>
     /// </summary>
-    /// <typeparam name="TDocument">实体</typeparam>
-    /// <param name="name">集合名称</param>
+    /// <typeparam name="TDocument">
+    ///     <para xml:lang="en">Entity</para>
+    ///     <para xml:lang="zh">实体</para>
+    /// </typeparam>
+    /// <param name="name">
+    ///     <para xml:lang="en">Collection name</para>
+    ///     <para xml:lang="zh">集合名称</para>
+    /// </param>
     /// <returns>
     ///     <see cref="IMongoCollection{TDocument}" />
     /// </returns>
@@ -44,7 +51,8 @@ public class MongoContext : IDisposable
     }
 
     /// <summary>
-    /// 同步方式获取一个已开启事务的 <see cref="IClientSessionHandle">Session</see>
+    ///     <para xml:lang="en">Synchronously get a started <see cref="IClientSessionHandle">Session</see> with a transaction</para>
+    ///     <para xml:lang="zh">同步方式获取一个已开启事务的 <see cref="IClientSessionHandle">Session</see></para>
     /// </summary>
     /// <returns>
     ///     <see cref="IClientSessionHandle" />
@@ -57,7 +65,8 @@ public class MongoContext : IDisposable
     }
 
     /// <summary>
-    /// 异步方式获取一个已开启事务的 <see cref="IClientSessionHandle">Session</see>
+    ///     <para xml:lang="en">Asynchronously get a started <see cref="IClientSessionHandle">Session</see> with a transaction</para>
+    ///     <para xml:lang="zh">异步方式获取一个已开启事务的 <see cref="IClientSessionHandle">Session</see></para>
     /// </summary>
     /// <returns>
     ///     <see cref="Task{IClientSessionHandle}" />
@@ -70,13 +79,20 @@ public class MongoContext : IDisposable
     }
 
     /// <summary>
-    /// 创建 <see cref="MongoContext" /> 子类实例
+    ///     <para xml:lang="en">Create an instance of the <see cref="MongoContext" /> subclass</para>
+    ///     <para xml:lang="zh">创建 <see cref="MongoContext" /> 子类实例</para>
     /// </summary>
-    /// <typeparam name="T">DbContext</typeparam>
+    /// <typeparam name="T">
+    ///     <para xml:lang="en">DbContext</para>
+    ///     <para xml:lang="zh">DbContext</para>
+    /// </typeparam>
     /// <param name="settings">
     ///     <see cref="MongoClientSettings" />
     /// </param>
-    /// <param name="dbName">数据库名称</param>
+    /// <param name="dbName">
+    ///     <para xml:lang="en">Database name</para>
+    ///     <para xml:lang="zh">数据库名称</para>
+    /// </param>
     /// <returns>
     ///     <see cref="MongoContext" />
     /// </returns>

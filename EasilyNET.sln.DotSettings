@@ -393,6 +393,9 @@
 	<s:Int64 x:Key="/Default/Environment/UserInterface/InspectionResultView/GroupingIndex/@EntryValue">0</s:Int64>
 	<s:String x:Key="/Default/Environment/UserInterface/ThemedIcon/IconThemeSelection/@EntryValue">GrayDark</s:String>
 	<s:String x:Key="/Default/Environment/UserInterface/ThemedIcon/IconThemeSelectionExtensionForFluentDesign/@EntryValue">Never</s:String>
+	<s:Boolean x:Key="/Default/GrammarAndSpelling/GrammarChecking/Exceptions/=exception_0020of/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/GrammarAndSpelling/GrammarChecking/Exceptions/=Id/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/GrammarAndSpelling/GrammarChecking/Exceptions/=system_002Eprofile/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/GrammarAndSpelling/GrammarChecking/Exceptions/=the_0020clients_0020collection_002E/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/GrammarAndSpelling/GrammarChecking/Exceptions/=the_0020jobs_0020collection_002E/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/GrammarAndSpelling/GrammarChecking/Exceptions/=the_0020keys_0020collection_002E/@EntryIndexedValue">True</s:Boolean>
@@ -445,6 +448,7 @@
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Blang/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=blcommon/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Bonan/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/UserDictionary/Words/=bous/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Bouxcuengh/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Buxqyaix/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Chuanqing/@EntryIndexedValue">True</s:Boolean>

@@ -8,7 +8,8 @@ namespace EasilyNET.Security;
 internal sealed class Sm4
 {
     /// <summary>
-    /// 固定参数CK
+    ///     <para xml:lang="en">Fixed parameter CK</para>
+    ///     <para xml:lang="zh">固定参数CK</para>
     /// </summary>
     private readonly uint[] CK =
     [
@@ -23,12 +24,14 @@ internal sealed class Sm4
     ];
 
     /// <summary>
-    /// 系统参数FK
+    ///     <para xml:lang="en">System parameter FK</para>
+    ///     <para xml:lang="zh">系统参数FK</para>
     /// </summary>
     private readonly uint[] FK = [0xa3b1bac6, 0x56aa3350, 0x677d9197, 0xb27022dc];
 
     /// <summary>
-    /// S盒
+    ///     <para xml:lang="en">S-Box</para>
+    ///     <para xml:lang="zh">S盒</para>
     /// </summary>
     private readonly byte[] SBoxTable =
     [
@@ -52,19 +55,39 @@ internal sealed class Sm4
     ];
 
     /// <summary>
-    /// 加密 非线性τ函数B=τ(A)
+    ///     <para xml:lang="en">Encrypt nonlinear τ function B=τ(A)</para>
+    ///     <para xml:lang="zh">加密 非线性τ函数B=τ(A)</para>
     /// </summary>
-    /// <param name="b"></param>
-    /// <param name="i"></param>
-    /// <returns></returns>
+    /// <param name="b">
+    ///     <para xml:lang="en">Byte array</para>
+    ///     <para xml:lang="zh">字节数组</para>
+    /// </param>
+    /// <param name="i">
+    ///     <para xml:lang="en">Index</para>
+    ///     <para xml:lang="zh">索引</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Long value</para>
+    ///     <para xml:lang="zh">长整型值</para>
+    /// </returns>
     private static long GetULongByBe(ReadOnlySpan<byte> b, int i) => ((long)(b[i] & 0xff) << 24) | (uint)((b[i + 1] & 0xff) << 16) | (uint)((b[i + 2] & 0xff) << 8) | (b[i + 3] & 0xff & 0xffffffffL);
 
     /// <summary>
-    /// 解密 非线性τ函数B=τ(A)
+    ///     <para xml:lang="en">Decrypt nonlinear τ function B=τ(A)</para>
+    ///     <para xml:lang="zh">解密 非线性τ函数B=τ(A)</para>
     /// </summary>
-    /// <param name="n"></param>
-    /// <param name="b"></param>
-    /// <param name="i"></param>
+    /// <param name="n">
+    ///     <para xml:lang="en">Long value</para>
+    ///     <para xml:lang="zh">长整型值</para>
+    /// </param>
+    /// <param name="b">
+    ///     <para xml:lang="en">Byte array</para>
+    ///     <para xml:lang="zh">字节数组</para>
+    /// </param>
+    /// <param name="i">
+    ///     <para xml:lang="en">Index</para>
+    ///     <para xml:lang="zh">索引</para>
+    /// </param>
     private static void PutULongToBe(long n, Span<byte> b, int i)
     {
         b[i] = (byte)(int)(0xFF & (n >> 24));
@@ -76,32 +99,63 @@ internal sealed class Sm4
     private static long SHL(long x, int n) => (x & 0xFFFFFFFF) << n;
 
     /// <summary>
-    /// 循环移位,为32位的x循环左移n位
+    ///     <para xml:lang="en">Circular shift, 32-bit x circularly left shift n bits</para>
+    ///     <para xml:lang="zh">循环移位,为32位的x循环左移n位</para>
     /// </summary>
-    /// <param name="x"></param>
-    /// <param name="n"></param>
-    /// <returns></returns>
+    /// <param name="x">
+    ///     <para xml:lang="en">Long value</para>
+    ///     <para xml:lang="zh">长整型值</para>
+    /// </param>
+    /// <param name="n">
+    ///     <para xml:lang="en">Number of bits</para>
+    ///     <para xml:lang="zh">位数</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Long value</para>
+    ///     <para xml:lang="zh">长整型值</para>
+    /// </returns>
     private static long RotL(long x, int n) => SHL(x, n) | (x >> (32 - n));
 
     /// <summary>
-    /// 将密钥逆序
+    ///     <para xml:lang="en">Reverse the key</para>
+    ///     <para xml:lang="zh">将密钥逆序</para>
     /// </summary>
-    /// <param name="sk"></param>
-    /// <param name="i"></param>
+    /// <param name="sk">
+    ///     <para xml:lang="en">Key array</para>
+    ///     <para xml:lang="zh">密钥数组</para>
+    /// </param>
+    /// <param name="i">
+    ///     <para xml:lang="en">Index</para>
+    ///     <para xml:lang="zh">索引</para>
+    /// </param>
     private static void Swap(long[] sk, int i) => (sk[i], sk[31 - i]) = (sk[31 - i], sk[i]);
 
     /// <summary>
-    /// Sm4的S盒取值
+    ///     <para xml:lang="en">SM4 S-Box value</para>
+    ///     <para xml:lang="zh">Sm4的S盒取值</para>
     /// </summary>
-    /// <param name="inch"></param>
-    /// <returns></returns>
+    /// <param name="inch">
+    ///     <para xml:lang="en">Input byte</para>
+    ///     <para xml:lang="zh">输入字节</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">S-Box value</para>
+    ///     <para xml:lang="zh">S盒值</para>
+    /// </returns>
     private byte SBox(byte inch) => SBoxTable[inch & 0xFF];
 
     /// <summary>
-    /// 线性变换 L
+    ///     <para xml:lang="en">Linear transformation L</para>
+    ///     <para xml:lang="zh">线性变换 L</para>
     /// </summary>
-    /// <param name="ka"></param>
-    /// <returns></returns>
+    /// <param name="ka">
+    ///     <para xml:lang="en">Long value</para>
+    ///     <para xml:lang="zh">长整型值</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Transformed value</para>
+    ///     <para xml:lang="zh">变换后的值</para>
+    /// </returns>
     private long Lt(long ka)
     {
         Span<byte> a = stackalloc byte[4];
@@ -116,21 +170,47 @@ internal sealed class Sm4
     }
 
     /// <summary>
-    /// 轮函数 F
+    ///     <para xml:lang="en">Round function F</para>
+    ///     <para xml:lang="zh">轮函数 F</para>
     /// </summary>
-    /// <param name="x0"></param>
-    /// <param name="x1"></param>
-    /// <param name="x2"></param>
-    /// <param name="x3"></param>
-    /// <param name="rk"></param>
-    /// <returns></returns>
+    /// <param name="x0">
+    ///     <para xml:lang="en">Long value x0</para>
+    ///     <para xml:lang="zh">长整型值 x0</para>
+    /// </param>
+    /// <param name="x1">
+    ///     <para xml:lang="en">Long value x1</para>
+    ///     <para xml:lang="zh">长整型值 x1</para>
+    /// </param>
+    /// <param name="x2">
+    ///     <para xml:lang="en">Long value x2</para>
+    ///     <para xml:lang="zh">长整型值 x2</para>
+    /// </param>
+    /// <param name="x3">
+    ///     <para xml:lang="en">Long value x3</para>
+    ///     <para xml:lang="zh">长整型值 x3</para>
+    /// </param>
+    /// <param name="rk">
+    ///     <para xml:lang="en">Round key</para>
+    ///     <para xml:lang="zh">轮密钥</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Long value</para>
+    ///     <para xml:lang="zh">长整型值</para>
+    /// </returns>
     private long F(long x0, long x1, long x2, long x3, long rk) => x0 ^ Lt(x1 ^ x2 ^ x3 ^ rk);
 
     /// <summary>
-    /// 轮密钥rk
+    ///     <para xml:lang="en">Round key rk</para>
+    ///     <para xml:lang="zh">轮密钥rk</para>
     /// </summary>
-    /// <param name="ka"></param>
-    /// <returns></returns>
+    /// <param name="ka">
+    ///     <para xml:lang="en">Long value</para>
+    ///     <para xml:lang="zh">长整型值</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Round key</para>
+    ///     <para xml:lang="zh">轮密钥</para>
+    /// </returns>
     private long CalcRK(long ka)
     {
         Span<byte> a = stackalloc byte[4];
@@ -145,10 +225,17 @@ internal sealed class Sm4
     }
 
     /// <summary>
-    /// 加密密钥
+    ///     <para xml:lang="en">Set encryption key</para>
+    ///     <para xml:lang="zh">加密密钥</para>
     /// </summary>
-    /// <param name="SK"></param>
-    /// <param name="key"></param>
+    /// <param name="SK">
+    ///     <para xml:lang="en">Key array</para>
+    ///     <para xml:lang="zh">密钥数组</para>
+    /// </param>
+    /// <param name="key">
+    ///     <para xml:lang="en">Key in byte array</para>
+    ///     <para xml:lang="zh">字节数组格式的密钥</para>
+    /// </param>
     private void SetKey(long[] SK, ReadOnlySpan<byte> key)
     {
         Span<long> MK = stackalloc long[4];
@@ -170,11 +257,21 @@ internal sealed class Sm4
     }
 
     /// <summary>
-    /// 解密函数
+    ///     <para xml:lang="en">Decryption function</para>
+    ///     <para xml:lang="zh">解密函数</para>
     /// </summary>
-    /// <param name="sk">轮密钥</param>
-    /// <param name="input">输入分组的密文</param>
-    /// <param name="output">输出的对应的分组明文</param>
+    /// <param name="sk">
+    ///     <para xml:lang="en">Round key</para>
+    ///     <para xml:lang="zh">轮密钥</para>
+    /// </param>
+    /// <param name="input">
+    ///     <para xml:lang="en">Ciphertext input block</para>
+    ///     <para xml:lang="zh">输入分组的密文</para>
+    /// </param>
+    /// <param name="output">
+    ///     <para xml:lang="en">Plaintext output block</para>
+    ///     <para xml:lang="zh">输出的对应的分组明文</para>
+    /// </param>
     private void OneRound(long[] sk, ReadOnlySpan<byte> input, Span<byte> output)
     {
         var i = 0;
@@ -195,11 +292,21 @@ internal sealed class Sm4
     }
 
     /// <summary>
-    /// 补足 16 进制字符串的 0 字符，返回不带 0x 的16进制字符串
+    ///     <para xml:lang="en">Pad the hexadecimal string with 0 characters, return a hexadecimal string without 0x</para>
+    ///     <para xml:lang="zh">补足 16 进制字符串的 0 字符，返回不带 0x 的16进制字符串</para>
     /// </summary>
-    /// <param name="input"></param>
-    /// <param name="mode">1表示加密，0表示解密</param>
-    /// <returns></returns>
+    /// <param name="input">
+    ///     <para xml:lang="en">Input byte array</para>
+    ///     <para xml:lang="zh">输入字节数组</para>
+    /// </param>
+    /// <param name="mode">
+    ///     <para xml:lang="en">1 for encryption, 0 for decryption</para>
+    ///     <para xml:lang="zh">1表示加密，0表示解密</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Padded byte array</para>
+    ///     <para xml:lang="zh">补足后的字节数组</para>
+    /// </returns>
     private static byte[] Padding(ReadOnlySpan<byte> input, ESm4Model mode)
     {
         byte[] ret;
@@ -223,10 +330,17 @@ internal sealed class Sm4
     }
 
     /// <summary>
-    /// 设置加密的key
+    ///     <para xml:lang="en">Set encryption key</para>
+    ///     <para xml:lang="zh">设置加密的key</para>
     /// </summary>
-    /// <param name="ctx"></param>
-    /// <param name="key"></param>
+    /// <param name="ctx">
+    ///     <para xml:lang="en">SM4 context</para>
+    ///     <para xml:lang="zh">SM4上下文</para>
+    /// </param>
+    /// <param name="key">
+    ///     <para xml:lang="en">Key in byte array</para>
+    ///     <para xml:lang="zh">字节数组格式的密钥</para>
+    /// </param>
     internal void SetKeyEnc(Sm4Context ctx, ReadOnlySpan<byte> key)
     {
         ctx.Mode = ESm4Model.Encrypt;
@@ -234,10 +348,17 @@ internal sealed class Sm4
     }
 
     /// <summary>
-    /// 设置解密的key
+    ///     <para xml:lang="en">Set decryption key</para>
+    ///     <para xml:lang="zh">设置解密的key</para>
     /// </summary>
-    /// <param name="ctx"></param>
-    /// <param name="key"></param>
+    /// <param name="ctx">
+    ///     <para xml:lang="en">SM4 context</para>
+    ///     <para xml:lang="zh">SM4上下文</para>
+    /// </param>
+    /// <param name="key">
+    ///     <para xml:lang="en">Key in byte array</para>
+    ///     <para xml:lang="zh">字节数组格式的密钥</para>
+    /// </param>
     internal void SetKeyDec(Sm4Context ctx, ReadOnlySpan<byte> key)
     {
         ctx.Mode = ESm4Model.Decrypt;

@@ -9,11 +9,14 @@ using System.Text;
 namespace EasilyNET.Core.Misc;
 
 /// <summary>
+///     <para xml:lang="en">IEnumerableExtensions</para>
+///     <para xml:lang="zh">IEnumerable扩展方法</para>
 /// </summary>
 public static class IEnumerableExtensions
 {
     /// <summary>
-    /// 按字段属性判等取交集
+    ///     <para xml:lang="en">Get intersection by field property</para>
+    ///     <para xml:lang="zh">按字段属性判等取交集</para>
     /// </summary>
     /// <typeparam name="TFirst"></typeparam>
     /// <typeparam name="TSecond"></typeparam>
@@ -27,7 +30,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 按字段属性判等取交集
+    ///     <para xml:lang="en">Get intersection by field property</para>
+    ///     <para xml:lang="zh">按字段属性判等取交集</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TKey"></typeparam>
@@ -38,7 +42,8 @@ public static class IEnumerableExtensions
     public static IEnumerable<TSource> IntersectBy<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector) => first.IntersectBy(second, keySelector, null);
 
     /// <summary>
-    /// 按字段属性判等取交集
+    ///     <para xml:lang="en">Get intersection by field property</para>
+    ///     <para xml:lang="zh">按字段属性判等取交集</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TKey"></typeparam>
@@ -67,7 +72,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 多个集合取交集元素
+    ///     <para xml:lang="en">Get intersection of multiple collections</para>
+    ///     <para xml:lang="zh">多个集合取交集元素</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="source"></param>
@@ -78,7 +84,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 多个集合取交集元素
+    ///     <para xml:lang="en">Get intersection of multiple collections</para>
+    ///     <para xml:lang="zh">多个集合取交集元素</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TKey"></typeparam>
@@ -91,7 +98,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 多个集合取交集元素
+    ///     <para xml:lang="en">Get intersection of multiple collections</para>
+    ///     <para xml:lang="zh">多个集合取交集元素</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TKey"></typeparam>
@@ -105,7 +113,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 多个集合取交集元素
+    ///     <para xml:lang="en">Get intersection of multiple collections</para>
+    ///     <para xml:lang="zh">多个集合取交集元素</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="source"></param>
@@ -117,7 +126,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 按字段属性判等取差集
+    ///     <para xml:lang="en">Get difference by field property</para>
+    ///     <para xml:lang="zh">按字段属性判等取差集</para>
     /// </summary>
     /// <typeparam name="TFirst"></typeparam>
     /// <typeparam name="TSecond"></typeparam>
@@ -131,7 +141,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 按字段去重
+    ///     <para xml:lang="en">Remove duplicates by field</para>
+    ///     <para xml:lang="zh">按字段去重</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TKey"></typeparam>
@@ -146,7 +157,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 按字段属性判等取交集
+    ///     <para xml:lang="en">Get intersection by field property</para>
+    ///     <para xml:lang="zh">按字段属性判等取交集</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TKey"></typeparam>
@@ -157,7 +169,8 @@ public static class IEnumerableExtensions
     public static IEnumerable<TSource> IntersectBy<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TKey> second, Func<TSource, TKey> keySelector) => first.IntersectBy(second, keySelector, null);
 
     /// <summary>
-    /// 按字段属性判等取交集
+    ///     <para xml:lang="en">Get intersection by field property</para>
+    ///     <para xml:lang="zh">按字段属性判等取交集</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TKey"></typeparam>
@@ -185,7 +198,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 按字段属性判等取差集
+    ///     <para xml:lang="en">Get difference by field property</para>
+    ///     <para xml:lang="zh">按字段属性判等取差集</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TKey"></typeparam>
@@ -196,7 +210,8 @@ public static class IEnumerableExtensions
     public static IEnumerable<TSource> ExceptBy<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TKey> second, Func<TSource, TKey> keySelector) => first.ExceptBy(second, keySelector, null);
 
     /// <summary>
-    /// 按字段属性判等取差集
+    ///     <para xml:lang="en">Get difference by field property</para>
+    ///     <para xml:lang="zh">按字段属性判等取差集</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TKey"></typeparam>
@@ -216,7 +231,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 添加多个元素
+    ///     <para xml:lang="en">Add multiple elements</para>
+    ///     <para xml:lang="zh">添加多个元素</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="this"></param>
@@ -230,7 +246,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 添加多个元素
+    ///     <para xml:lang="en">Add multiple elements</para>
+    ///     <para xml:lang="zh">添加多个元素</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="this"></param>
@@ -244,7 +261,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 添加多个元素
+    ///     <para xml:lang="en">Add multiple elements</para>
+    ///     <para xml:lang="zh">添加多个元素</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="this"></param>
@@ -258,7 +276,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 添加多个元素
+    ///     <para xml:lang="en">Add multiple elements</para>
+    ///     <para xml:lang="zh">添加多个元素</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="this"></param>
@@ -272,7 +291,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 添加符合条件的多个元素
+    ///     <para xml:lang="en">Add multiple elements that meet the condition</para>
+    ///     <para xml:lang="zh">添加符合条件的多个元素</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="this"></param>
@@ -290,7 +310,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 添加符合条件的多个元素
+    ///     <para xml:lang="en">Add multiple elements that meet the condition</para>
+    ///     <para xml:lang="zh">添加符合条件的多个元素</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="this"></param>
@@ -308,7 +329,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 添加符合条件的多个元素
+    ///     <para xml:lang="en">Add multiple elements that meet the condition</para>
+    ///     <para xml:lang="zh">添加符合条件的多个元素</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="this"></param>
@@ -326,7 +348,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 添加不重复的元素
+    ///     <para xml:lang="en">Add non-duplicate elements</para>
+    ///     <para xml:lang="zh">添加不重复的元素</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="this"></param>
@@ -343,7 +366,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 移除符合条件的元素
+    ///     <para xml:lang="en">Remove elements that meet the condition</para>
+    ///     <para xml:lang="zh">移除符合条件的元素</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="this"></param>
@@ -357,7 +381,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 在元素之后添加元素
+    ///     <para xml:lang="en">Insert element after specified element</para>
+    ///     <para xml:lang="zh">在元素之后添加元素</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="list"></param>
@@ -366,10 +391,10 @@ public static class IEnumerableExtensions
     public static void InsertAfter<T>(this IList<T> list, Func<T, bool> condition, T value)
     {
         foreach (var item in list.Select((item, index) => new
-                 {
-                     item,
-                     index
-                 }).Where(p => condition(p.item)).OrderByDescending(p => p.index))
+        {
+            item,
+            index
+        }).Where(p => condition(p.item)).OrderByDescending(p => p.index))
         {
             if (item.index + 1 == list.Count)
             {
@@ -383,7 +408,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 在元素之后添加元素
+    ///     <para xml:lang="en">Insert element after specified index</para>
+    ///     <para xml:lang="zh">在元素之后添加元素</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="list"></param>
@@ -392,10 +418,10 @@ public static class IEnumerableExtensions
     public static void InsertAfter<T>(this IList<T> list, int index, T value)
     {
         foreach (var item in list.Select((v, i) => new
-                 {
-                     Value = v,
-                     Index = i
-                 }).Where(p => p.Index == index).OrderByDescending(p => p.Index))
+        {
+            Value = v,
+            Index = i
+        }).Where(p => p.Index == index).OrderByDescending(p => p.Index))
         {
             if (item.Index + 1 == list.Count)
             {
@@ -409,7 +435,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 转HashSet
+    ///     <para xml:lang="en">Convert to HashSet</para>
+    ///     <para xml:lang="zh">转HashSet</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <typeparam name="TResult"></typeparam>
@@ -424,7 +451,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 遍历IEnumerable
+    ///     <para xml:lang="en">Iterate IEnumerable</para>
+    ///     <para xml:lang="zh">遍历IEnumerable</para>
     /// </summary>
     /// <param name="ts"></param>
     /// <param name="action">回调方法</param>
@@ -438,7 +466,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 异步foreach
+    ///     <para xml:lang="en">Asynchronous foreach</para>
+    ///     <para xml:lang="zh">异步foreach</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="source"></param>
@@ -474,7 +503,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 异步foreach
+    ///     <para xml:lang="en">Asynchronous foreach</para>
+    ///     <para xml:lang="zh">异步foreach</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="source"></param>
@@ -492,7 +522,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 异步Select
+    ///     <para xml:lang="en">Asynchronous Select</para>
+    ///     <para xml:lang="zh">异步Select</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <typeparam name="TResult"></typeparam>
@@ -502,7 +533,8 @@ public static class IEnumerableExtensions
     public static Task<TResult[]> SelectAsync<T, TResult>(this IEnumerable<T> source, Func<T, Task<TResult>> selector) => Task.WhenAll(source.Select(selector));
 
     /// <summary>
-    /// 异步Select
+    ///     <para xml:lang="en">Asynchronous Select</para>
+    ///     <para xml:lang="zh">异步Select</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <typeparam name="TResult"></typeparam>
@@ -512,7 +544,8 @@ public static class IEnumerableExtensions
     public static Task<TResult[]> SelectAsync<T, TResult>(this IEnumerable<T> source, Func<T, int, Task<TResult>> selector) => Task.WhenAll(source.Select(selector));
 
     /// <summary>
-    /// 异步Select
+    ///     <para xml:lang="en">Asynchronous Select</para>
+    ///     <para xml:lang="zh">异步Select</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <typeparam name="TResult"></typeparam>
@@ -539,7 +572,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 异步Select
+    ///     <para xml:lang="en">Asynchronous Select</para>
+    ///     <para xml:lang="zh">异步Select</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <typeparam name="TResult"></typeparam>
@@ -568,7 +602,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 异步For
+    ///     <para xml:lang="en">Asynchronous For</para>
+    ///     <para xml:lang="zh">异步For</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="source"></param>
@@ -605,7 +640,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 异步For
+    ///     <para xml:lang="en">Asynchronous For</para>
+    ///     <para xml:lang="zh">异步For</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="source"></param>
@@ -623,7 +659,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 取最大值
+    ///     <para xml:lang="en">Get maximum value</para>
+    ///     <para xml:lang="zh">取最大值</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TResult"></typeparam>
@@ -633,7 +670,8 @@ public static class IEnumerableExtensions
     public static TResult? MaxOrDefault<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector) => source.Select(selector).DefaultIfEmpty().Max();
 
     /// <summary>
-    /// 取最大值
+    ///     <para xml:lang="en">Get maximum value</para>
+    ///     <para xml:lang="zh">取最大值</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TResult"></typeparam>
@@ -644,7 +682,8 @@ public static class IEnumerableExtensions
     public static TResult? MaxOrDefault<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector, TResult defaultValue) => source.Select(selector).DefaultIfEmpty(defaultValue).Max();
 
     /// <summary>
-    /// 取最大值
+    ///     <para xml:lang="en">Get maximum value</para>
+    ///     <para xml:lang="zh">取最大值</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
@@ -652,7 +691,8 @@ public static class IEnumerableExtensions
     public static TSource? MaxOrDefault<TSource>(this IQueryable<TSource> source) => source.DefaultIfEmpty().Max();
 
     /// <summary>
-    /// 取最大值
+    ///     <para xml:lang="en">Get maximum value</para>
+    ///     <para xml:lang="zh">取最大值</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
@@ -661,7 +701,8 @@ public static class IEnumerableExtensions
     public static TSource? MaxOrDefault<TSource>(this IQueryable<TSource> source, TSource defaultValue) => source.DefaultIfEmpty(defaultValue).Max();
 
     /// <summary>
-    /// 取最大值
+    ///     <para xml:lang="en">Get maximum value</para>
+    ///     <para xml:lang="zh">取最大值</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TResult"></typeparam>
@@ -672,7 +713,8 @@ public static class IEnumerableExtensions
     public static TResult? MaxOrDefault<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector, TResult defaultValue) => source.Select(selector).DefaultIfEmpty(defaultValue).Max();
 
     /// <summary>
-    /// 取最大值
+    ///     <para xml:lang="en">Get maximum value</para>
+    ///     <para xml:lang="zh">取最大值</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TResult"></typeparam>
@@ -682,7 +724,8 @@ public static class IEnumerableExtensions
     public static TResult? MaxOrDefault<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector) => source.Select(selector).DefaultIfEmpty().Max();
 
     /// <summary>
-    /// 取最大值
+    ///     <para xml:lang="en">Get maximum value</para>
+    ///     <para xml:lang="zh">取最大值</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
@@ -690,7 +733,8 @@ public static class IEnumerableExtensions
     public static TSource? MaxOrDefault<TSource>(this IEnumerable<TSource> source) => source.DefaultIfEmpty().Max();
 
     /// <summary>
-    /// 取最大值
+    ///     <para xml:lang="en">Get maximum value</para>
+    ///     <para xml:lang="zh">取最大值</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
@@ -699,7 +743,8 @@ public static class IEnumerableExtensions
     public static TSource? MaxOrDefault<TSource>(this IEnumerable<TSource> source, TSource defaultValue) => source.DefaultIfEmpty(defaultValue).Max();
 
     /// <summary>
-    /// 取最小值
+    ///     <para xml:lang="en">Get minimum value</para>
+    ///     <para xml:lang="zh">取最小值</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TResult"></typeparam>
@@ -709,7 +754,8 @@ public static class IEnumerableExtensions
     public static TResult? MinOrDefault<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector) => source.Select(selector).DefaultIfEmpty().Min();
 
     /// <summary>
-    /// 取最小值
+    ///     <para xml:lang="en">Get minimum value</para>
+    ///     <para xml:lang="zh">取最小值</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TResult"></typeparam>
@@ -720,7 +766,8 @@ public static class IEnumerableExtensions
     public static TResult? MinOrDefault<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector, TResult defaultValue) => source.Select(selector).DefaultIfEmpty(defaultValue).Min();
 
     /// <summary>
-    /// 取最小值
+    ///     <para xml:lang="en">Get minimum value</para>
+    ///     <para xml:lang="zh">取最小值</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
@@ -728,7 +775,8 @@ public static class IEnumerableExtensions
     public static TSource? MinOrDefault<TSource>(this IQueryable<TSource> source) => source.DefaultIfEmpty().Min();
 
     /// <summary>
-    /// 取最小值
+    ///     <para xml:lang="en">Get minimum value</para>
+    ///     <para xml:lang="zh">取最小值</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
@@ -737,17 +785,18 @@ public static class IEnumerableExtensions
     public static TSource? MinOrDefault<TSource>(this IQueryable<TSource> source, TSource defaultValue) => source.DefaultIfEmpty(defaultValue).Min();
 
     /// <summary>
-    /// 取最小值
+    ///     <para xml:lang="en">Get minimum value</para>
+    ///     <para xml:lang="zh">取最小值</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TResult"></typeparam>
     /// <param name="source"></param>
     /// <param name="selector"></param>
-    /// <returns></returns>
     public static TResult? MinOrDefault<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector) => source.Select(selector).DefaultIfEmpty().Min();
 
     /// <summary>
-    /// 取最小值
+    ///     <para xml:lang="en">Get minimum value</para>
+    ///     <para xml:lang="zh">取最小值</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TResult"></typeparam>
@@ -758,7 +807,8 @@ public static class IEnumerableExtensions
     public static TResult? MinOrDefault<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector, TResult defaultValue) => source.Select(selector).DefaultIfEmpty(defaultValue).Min();
 
     /// <summary>
-    /// 取最小值
+    ///     <para xml:lang="en">Get minimum value</para>
+    ///     <para xml:lang="zh">取最小值</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
@@ -766,7 +816,8 @@ public static class IEnumerableExtensions
     public static TSource? MinOrDefault<TSource>(this IEnumerable<TSource> source) => source.DefaultIfEmpty().Min();
 
     /// <summary>
-    /// 取最小值
+    ///     <para xml:lang="en">Get minimum value</para>
+    ///     <para xml:lang="zh">取最小值</para>
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
@@ -775,7 +826,8 @@ public static class IEnumerableExtensions
     public static TSource? MinOrDefault<TSource>(this IEnumerable<TSource> source, TSource defaultValue) => source.DefaultIfEmpty(defaultValue).Min();
 
     /// <summary>
-    /// 标准差
+    ///     <para xml:lang="en">Standard deviation</para>
+    ///     <para xml:lang="zh">标准差</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <typeparam name="TResult"></typeparam>
@@ -788,7 +840,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 标准差
+    ///     <para xml:lang="en">Standard deviation</para>
+    ///     <para xml:lang="zh">标准差</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="source"></param>
@@ -799,7 +852,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 标准差
+    ///     <para xml:lang="en">Standard deviation</para>
+    ///     <para xml:lang="zh">标准差</para>
     /// </summary>
     /// <param name="source"></param>
     /// <returns></returns>
@@ -816,7 +870,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 随机排序
+    ///     <para xml:lang="en">Random order</para>
+    ///     <para xml:lang="zh">随机排序</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="source"></param>
@@ -827,7 +882,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 序列相等
+    ///     <para xml:lang="en">Sequence equal</para>
+    ///     <para xml:lang="zh">序列相等</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="first"></param>
@@ -868,7 +924,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 序列相等
+    ///     <para xml:lang="en">Sequence equal</para>
+    ///     <para xml:lang="zh">序列相等</para>
     /// </summary>
     /// <typeparam name="T1"></typeparam>
     /// <typeparam name="T2"></typeparam>
@@ -910,7 +967,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 对比两个集合哪些是新增的、删除的、修改的
+    ///     <para xml:lang="en">Compare changes between two collections</para>
+    ///     <para xml:lang="zh">对比两个集合哪些是新增的、删除的、修改的</para>
     /// </summary>
     /// <typeparam name="T1"></typeparam>
     /// <typeparam name="T2"></typeparam>
@@ -931,7 +989,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 将集合声明为非null集合
+    ///     <para xml:lang="en">Declare collection as non-null</para>
+    ///     <para xml:lang="zh">将集合声明为非null集合</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="list"></param>
@@ -939,7 +998,8 @@ public static class IEnumerableExtensions
     public static List<T> AsNotNull<T>(this List<T>? list) => list ?? [];
 
     /// <summary>
-    /// 将集合声明为非null集合
+    ///     <para xml:lang="en">Declare collection as non-null</para>
+    ///     <para xml:lang="zh">将集合声明为非null集合</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="list"></param>
@@ -947,7 +1007,8 @@ public static class IEnumerableExtensions
     public static IEnumerable<T> AsNotNull<T>(this IEnumerable<T>? list) => list ?? [];
 
     /// <summary>
-    /// 满足条件时执行筛选条件
+    ///     <para xml:lang="en">Execute filter condition if condition is met</para>
+    ///     <para xml:lang="zh">满足条件时执行筛选条件</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="source"></param>
@@ -957,7 +1018,8 @@ public static class IEnumerableExtensions
     public static IEnumerable<T> WhereIf<T>(this IEnumerable<T> source, bool condition, Func<T, bool> where) => condition ? source.Where(where) : source;
 
     /// <summary>
-    /// 满足条件时执行筛选条件
+    ///     <para xml:lang="en">Execute filter condition if condition is met</para>
+    ///     <para xml:lang="zh">满足条件时执行筛选条件</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="source"></param>
@@ -967,7 +1029,8 @@ public static class IEnumerableExtensions
     public static IEnumerable<T> WhereIf<T>(this IEnumerable<T> source, Func<bool> condition, Func<T, bool> where) => condition() ? source.Where(where) : source;
 
     /// <summary>
-    /// 满足条件时执行筛选条件
+    ///     <para xml:lang="en">Execute filter condition if condition is met</para>
+    ///     <para xml:lang="zh">满足条件时执行筛选条件</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="source"></param>
@@ -977,7 +1040,8 @@ public static class IEnumerableExtensions
     public static IQueryable<T> WhereIf<T>(this IQueryable<T> source, bool condition, Expression<Func<T, bool>> where) => condition ? source.Where(where) : source;
 
     /// <summary>
-    /// 满足条件时执行筛选条件
+    ///     <para xml:lang="en">Execute filter condition if condition is met</para>
+    ///     <para xml:lang="zh">满足条件时执行筛选条件</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="source"></param>
@@ -987,7 +1051,8 @@ public static class IEnumerableExtensions
     public static IQueryable<T> WhereIf<T>(this IQueryable<T> source, Func<bool> condition, Expression<Func<T, bool>> where) => condition() ? source.Where(where) : source;
 
     /// <summary>
-    /// 改变元素的索引位置
+    ///     <para xml:lang="en">Change the index position of an element</para>
+    ///     <para xml:lang="zh">改变元素的索引位置</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="list">集合</param>
@@ -1005,7 +1070,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 改变元素的索引位置
+    ///     <para xml:lang="en">Change the index position of an element</para>
+    ///     <para xml:lang="zh">改变元素的索引位置</para>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="list">集合</param>
@@ -1030,7 +1096,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 把集合转成SqlIn
+    ///     <para xml:lang="en">Convert collection to SQL IN clause</para>
+    ///     <para xml:lang="zh">把集合转成SqlIn</para>
     /// </summary>
     /// <typeparam name="TSource">源</typeparam>
     /// <param name="values">要转换的值</param>
@@ -1051,7 +1118,8 @@ public static class IEnumerableExtensions
     }
 
     /// <summary>
-    /// 将列表转换为树形结构（泛型无限递归）
+    ///     <para xml:lang="en">Convert list to tree structure (generic infinite recursion)</para>
+    ///     <para xml:lang="zh">将列表转换为树形结构（泛型无限递归）</para>
     /// </summary>
     /// <typeparam name="T">类型</typeparam>
     /// <param name="list">数据</param>

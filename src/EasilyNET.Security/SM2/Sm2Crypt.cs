@@ -15,17 +15,25 @@ using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
 namespace EasilyNET.Security;
 
 /// <summary>
-/// BouncyCastle(BC) 实现SM2国密加解密、签名、验签
+///     <para xml:lang="en">BouncyCastle(BC) implementation of SM2 encryption, decryption, signing, and verification</para>
+///     <para xml:lang="zh">BouncyCastle(BC) 实现SM2国密加解密、签名、验签</para>
 /// </summary>
 public static class Sm2Crypt
 {
     private static readonly X9ECParameters x9 = GMNamedCurves.GetByName("SM2P256V1");
 
     /// <summary>
-    /// 构建公钥和私钥
+    ///     <para xml:lang="en">Generate public and private keys</para>
+    ///     <para xml:lang="zh">构建公钥和私钥</para>
     /// </summary>
-    /// <param name="publicKey"></param>
-    /// <param name="privateKey"></param>
+    /// <param name="publicKey">
+    ///     <para xml:lang="en">Public key</para>
+    ///     <para xml:lang="zh">公钥</para>
+    /// </param>
+    /// <param name="privateKey">
+    ///     <para xml:lang="en">Private key</para>
+    ///     <para xml:lang="zh">私钥</para>
+    /// </param>
     public static void GenerateKey(out byte[] publicKey, out byte[] privateKey)
     {
         var g = new ECKeyPairGenerator();
@@ -36,13 +44,29 @@ public static class Sm2Crypt
     }
 
     /// <summary>
-    /// SM2加密,默认:C1C3C2
+    ///     <para xml:lang="en">SM2 encryption, default: C1C3C2</para>
+    ///     <para xml:lang="zh">SM2加密,默认:C1C3C2</para>
     /// </summary>
-    /// <param name="publicKey">公钥</param>
-    /// <param name="data">需要加密的数据</param>
-    /// <param name="model">模式</param>
-    /// <param name="userId">用户ID</param>
-    /// <returns></returns>
+    /// <param name="publicKey">
+    ///     <para xml:lang="en">Public key</para>
+    ///     <para xml:lang="zh">公钥</para>
+    /// </param>
+    /// <param name="data">
+    ///     <para xml:lang="en">Data to be encrypted</para>
+    ///     <para xml:lang="zh">需要加密的数据</para>
+    /// </param>
+    /// <param name="model">
+    ///     <para xml:lang="en">Mode</para>
+    ///     <para xml:lang="zh">模式</para>
+    /// </param>
+    /// <param name="userId">
+    ///     <para xml:lang="en">User ID</para>
+    ///     <para xml:lang="zh">用户ID</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Encrypted data</para>
+    ///     <para xml:lang="zh">加密后的数据</para>
+    /// </returns>
     public static byte[] Encrypt(byte[] publicKey, byte[] data, byte[]? userId = null, Mode model = Mode.C1C3C2)
     {
         var sm2 = new SM2Engine(new SM3Digest(), Mode.C1C3C2);
@@ -58,13 +82,29 @@ public static class Sm2Crypt
     }
 
     /// <summary>
-    /// SM2解密,默认:C1C3C2
+    ///     <para xml:lang="en">SM2 decryption, default: C1C3C2</para>
+    ///     <para xml:lang="zh">SM2解密,默认:C1C3C2</para>
     /// </summary>
-    /// <param name="privateKey">私钥</param>
-    /// <param name="data">需要解密的数据</param>
-    /// <param name="model">模式</param>
-    /// <param name="userId">用户ID</param>
-    /// <returns></returns>
+    /// <param name="privateKey">
+    ///     <para xml:lang="en">Private key</para>
+    ///     <para xml:lang="zh">私钥</para>
+    /// </param>
+    /// <param name="data">
+    ///     <para xml:lang="en">Data to be decrypted</para>
+    ///     <para xml:lang="zh">需要解密的数据</para>
+    /// </param>
+    /// <param name="model">
+    ///     <para xml:lang="en">Mode</para>
+    ///     <para xml:lang="zh">模式</para>
+    /// </param>
+    /// <param name="userId">
+    ///     <para xml:lang="en">User ID</para>
+    ///     <para xml:lang="zh">用户ID</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Decrypted data</para>
+    ///     <para xml:lang="zh">解密后的数据</para>
+    /// </returns>
     public static byte[] Decrypt(byte[] privateKey, byte[] data, byte[]? userId = null, Mode model = Mode.C1C3C2)
     {
         if (model == Mode.C1C2C3) data = C123ToC132(data);
@@ -79,12 +119,25 @@ public static class Sm2Crypt
     }
 
     /// <summary>
-    /// SM2签名
+    ///     <para xml:lang="en">SM2 signature</para>
+    ///     <para xml:lang="zh">SM2签名</para>
     /// </summary>
-    /// <param name="privateKey">私钥</param>
-    /// <param name="msg">数据</param>
-    /// <param name="userId">用户ID</param>
-    /// <returns></returns>
+    /// <param name="privateKey">
+    ///     <para xml:lang="en">Private key</para>
+    ///     <para xml:lang="zh">私钥</para>
+    /// </param>
+    /// <param name="msg">
+    ///     <para xml:lang="en">Data</para>
+    ///     <para xml:lang="zh">数据</para>
+    /// </param>
+    /// <param name="userId">
+    ///     <para xml:lang="en">User ID</para>
+    ///     <para xml:lang="zh">用户ID</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Signature data</para>
+    ///     <para xml:lang="zh">签名数据</para>
+    /// </returns>
     public static byte[] Signature(byte[] privateKey, byte[] msg, byte[]? userId = null)
     {
         var sm2 = new SM2Signer(new SM3Digest());
@@ -101,13 +154,29 @@ public static class Sm2Crypt
     }
 
     /// <summary>
-    /// SM2验签
+    ///     <para xml:lang="en">SM2 verification</para>
+    ///     <para xml:lang="zh">SM2验签</para>
     /// </summary>
-    /// <param name="publicKey">公钥</param>
-    /// <param name="msg">数据</param>
-    /// <param name="signature">签名数据</param>
-    /// <param name="userId">用户ID</param>
-    /// <returns></returns>
+    /// <param name="publicKey">
+    ///     <para xml:lang="en">Public key</para>
+    ///     <para xml:lang="zh">公钥</para>
+    /// </param>
+    /// <param name="msg">
+    ///     <para xml:lang="en">Data</para>
+    ///     <para xml:lang="zh">数据</para>
+    /// </param>
+    /// <param name="signature">
+    ///     <para xml:lang="en">Signature data</para>
+    ///     <para xml:lang="zh">签名数据</para>
+    /// </param>
+    /// <param name="userId">
+    ///     <para xml:lang="en">User ID</para>
+    ///     <para xml:lang="zh">用户ID</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Verification result</para>
+    ///     <para xml:lang="zh">验签结果</para>
+    /// </returns>
     public static bool Verify(byte[] publicKey, byte[] msg, byte[] signature, byte[]? userId = null)
     {
         var sm2 = new SM2Signer(new SM3Digest());
@@ -122,10 +191,17 @@ public static class Sm2Crypt
     }
 
     /// <summary>
-    /// C1C2C3转成C1C3C2
+    ///     <para xml:lang="en">Convert C1C2C3 to C1C3C2</para>
+    ///     <para xml:lang="zh">C1C2C3转成C1C3C2</para>
     /// </summary>
-    /// <param name="c1c2c3"></param>
-    /// <returns></returns>
+    /// <param name="c1c2c3">
+    ///     <para xml:lang="en">Input data in C1C2C3 format</para>
+    ///     <para xml:lang="zh">C1C2C3格式的输入数据</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Data in C1C3C2 format</para>
+    ///     <para xml:lang="zh">C1C3C2格式的数据</para>
+    /// </returns>
     private static byte[] C123ToC132(ReadOnlySpan<byte> c1c2c3)
     {
         var c1Len = (((x9.Curve.FieldSize + 7) >> 3) << 1) + 1; //sm2p256v1的这个固定65。可看GMNamedCurves、ECCurve代码。
@@ -138,10 +214,17 @@ public static class Sm2Crypt
     }
 
     /// <summary>
-    /// C1C3C2转成C1C2C3
+    ///     <para xml:lang="en">Convert C1C3C2 to C1C2C3</para>
+    ///     <para xml:lang="zh">C1C3C2转成C1C2C3</para>
     /// </summary>
-    /// <param name="c1c3c2"></param>
-    /// <returns></returns>
+    /// <param name="c1c3c2">
+    ///     <para xml:lang="en">Input data in C1C3C2 format</para>
+    ///     <para xml:lang="zh">C1C3C2格式的输入数据</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Data in C1C2C3 format</para>
+    ///     <para xml:lang="zh">C1C2C3格式的数据</para>
+    /// </returns>
     private static byte[] C132ToC123(ReadOnlySpan<byte> c1c3c2)
     {
         var c1Len = (((x9.Curve.FieldSize + 7) >> 3) << 1) + 1;

@@ -1,16 +1,24 @@
 namespace EasilyNET.RabbitBus.Core.Attributes;
 
 /// <summary>
-/// Rabbit字典
+///     <para xml:lang="en">Rabbit dictionary</para>
+///     <para xml:lang="zh">Rabbit字典</para>
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
 public class RabbitDictionaryAttribute : Attribute
 {
     /// <summary>
-    /// 构造函数
+    ///     <para xml:lang="en">Constructor</para>
+    ///     <para xml:lang="zh">构造函数</para>
     /// </summary>
-    /// <param name="key"></param>
-    /// <param name="value"></param>
+    /// <param name="key">
+    ///     <para xml:lang="en">The key</para>
+    ///     <para xml:lang="zh">键</para>
+    /// </param>
+    /// <param name="value">
+    ///     <para xml:lang="en">The value</para>
+    ///     <para xml:lang="zh">值</para>
+    /// </param>
     protected RabbitDictionaryAttribute(string key, object? value)
     {
         Key = key;
@@ -18,12 +26,14 @@ public class RabbitDictionaryAttribute : Attribute
     }
 
     /// <summary>
-    /// 键
+    ///     <para xml:lang="en">The key</para>
+    ///     <para xml:lang="zh">键</para>
     /// </summary>
     public string Key { get; }
 
     /// <summary>
-    /// 值
+    ///     <para xml:lang="en">The value</para>
+    ///     <para xml:lang="zh">值</para>
     /// </summary>
     public object? Value { get; }
 }
