@@ -32,7 +32,7 @@
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)EasilyNET.snk</AssemblyOriginatorKeyFile>
     <DelaySign>False</DelaySign>
     <Copyright>© joesdu. All rights reserved.</Copyright>
-    <NoWarn>$(NoWarn);CS8002;</NoWarn>
+    <NoWarn>$(NoWarn);</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup>
