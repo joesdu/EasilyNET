@@ -60,7 +60,7 @@ internal sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<Erro
         {
             StatusCode = HttpStatusCode.InternalServerError,
             Msg = ex.Message,
-            Data = default
+            Data = null
         }, options));
     }
 }

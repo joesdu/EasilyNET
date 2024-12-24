@@ -64,7 +64,7 @@ file sealed class ActionExecuteFilter : ActionFilterAttribute
                 context.Result = new ObjectResult(new ResultObject { StatusCode = HttpStatusCode.OK, Msg = "success", Data = result.Value });
                 break;
             case EmptyResult:
-                context.Result = new ObjectResult(new ResultObject { StatusCode = HttpStatusCode.OK, Msg = "success", Data = default });
+                context.Result = new ObjectResult(new ResultObject { StatusCode = HttpStatusCode.OK, Msg = "success", Data = null });
                 break;
         }
         base.OnActionExecuted(context);
@@ -92,7 +92,7 @@ file sealed class ExceptionFilter(ILogger<ExceptionFilter> logger) : ExceptionFi
     {
         logger.LogError("{Stacktrace}", context.Exception.ToString());
         context.ExceptionHandled = true;
-        context.Result = new ObjectResult(new ResultObject { StatusCode = HttpStatusCode.InternalServerError, Msg = context.Exception.Message, Data = default });
+        context.Result = new ObjectResult(new ResultObject { StatusCode = HttpStatusCode.InternalServerError, Msg = context.Exception.Message, Data = null });
         return base.OnExceptionAsync(context);
     }
 }

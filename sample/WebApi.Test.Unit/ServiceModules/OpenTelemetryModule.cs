@@ -19,7 +19,7 @@ internal sealed class OpenTelemetryModule : AppModule
     public override async Task ConfigureServices(ConfigureServicesContext context)
     {
         var otel = context.ServiceProvider.GetConfiguration().GetSection("OpenTelemetry");
-        var env = context.ServiceProvider?.GetRequiredService<IWebHostEnvironment>() ?? throw new("获取服务出错");
+        var env = context.ServiceProvider.GetRequiredService<IWebHostEnvironment>() ?? throw new("获取服务出错");
         context.Services.AddOpenTelemetry()
                .ConfigureResource(c => c.AddService(Constant.InstanceName))
                .WithMetrics(c =>
