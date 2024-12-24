@@ -9,8 +9,10 @@ namespace EasilyNET.Test.Unit.System;
 /// 测试雪花ID,其实是MongoDB的ObjectId,用来对没有使用Mongodb的情况下,获取雪花ID的一种方案.
 /// </summary>
 [TestClass]
-public class SnowIdTest(TestContext context)
+public class SnowIdTest
 {
+    public TestContext? TestContext { get; set; }
+
     /// <summary>
     /// 测试生成的 SnowId 是否唯一
     /// </summary>
@@ -19,8 +21,8 @@ public class SnowIdTest(TestContext context)
     {
         var snow1 = SnowId.GenerateNewId();
         var snow2 = SnowId.GenerateNewId();
-        context.WriteLine($"snow1: {snow1}");
-        context.WriteLine($"snow2: {snow2}");
+        TestContext?.WriteLine($"snow1: {snow1}");
+        TestContext?.WriteLine($"snow2: {snow2}");
         var equal = snow1 == snow2 || snow1.Equals(snow2);
         equal.Should().BeFalse();
     }

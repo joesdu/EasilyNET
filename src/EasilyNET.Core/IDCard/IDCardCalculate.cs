@@ -40,7 +40,7 @@ public static class IDCardCalculate
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Calculate birth date from ID card number</para>
+    ///     <para xml:lang="en">Calculate birthdate from ID card number</para>
     ///     <para xml:lang="zh">根据身份证号码计算生日日期</para>
     /// </summary>
     /// <param name="no">
@@ -48,7 +48,7 @@ public static class IDCardCalculate
     ///     <para xml:lang="zh">身份证号码</para>
     /// </param>
     /// <param name="birthday">
-    ///     <para xml:lang="en">Birth date</para>
+    ///     <para xml:lang="en">Birthdate</para>
     ///     <para xml:lang="zh">生日日期</para>
     /// </param>
     /// <exception cref="ArgumentException"></exception>
@@ -59,7 +59,7 @@ public static class IDCardCalculate
         {
             18 => ParseDateTime(no.AsSpan(6, 8)),
             15 => ParseDateTime($"19{no.AsSpan(6, 6)}"),
-            _ => throw new ArgumentException("该身份证号无法正确计算出生日")
+            _  => throw new ArgumentException("该身份证号无法正确计算出生日")
         };
     }
 
@@ -83,7 +83,7 @@ public static class IDCardCalculate
         {
             18 => (no[16] - 48) % 2 == 0 ? EGender.女 : EGender.男,
             15 => (no[14] - 48) % 2 == 0 ? EGender.女 : EGender.男,
-            _ => EGender.女
+            _  => EGender.女
         };
     }
 

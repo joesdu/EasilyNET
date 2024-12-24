@@ -5,10 +5,12 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace EasilyNET.Test.Unit.Threading;
 
 [TestClass]
-public class AsyncLockTests(TestContext testContext)
+public class AsyncLockTests
 {
     // ReSharper disable once CollectionNeverQueried.Local
     private static readonly Dictionary<string, string> _dictionary = [];
+
+    public TestContext? TestContext { get; set; }
 
     /// <summary>
     /// 测试异步锁
@@ -19,10 +21,10 @@ public class AsyncLockTests(TestContext testContext)
         var asyncLock = new AsyncLock();
         Parallel.For(0, 1000, Body);
         var c = _dictionary.Count;
-        testContext.WriteLine($"Counter incremented to {c}");
+        TestContext?.WriteLine($"Counter incremented to {c}");
         await Task.Delay(1);
         var c2 = _dictionary.Count;
-        testContext.WriteLine($"Counter2 incremented to {c2}");
+        TestContext?.WriteLine($"Counter2 incremented to {c2}");
         return;
 
         async void Body(int i)

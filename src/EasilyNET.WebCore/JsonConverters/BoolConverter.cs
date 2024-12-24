@@ -30,9 +30,9 @@ public sealed class BoolConverter : JsonConverter<bool>
         reader.TokenType switch
         {
             JsonTokenType.True or JsonTokenType.False => reader.GetBoolean(),
-            JsonTokenType.String => bool.Parse(reader.GetString()!),
-            JsonTokenType.Number => reader.GetDouble() > 0,
-            _ => throw new NotImplementedException($"un processed token type {reader.TokenType}")
+            JsonTokenType.String                      => bool.Parse(reader.GetString()!),
+            JsonTokenType.Number                      => reader.GetDouble() > 0,
+            _                                         => throw new NotImplementedException($"un processed token type {reader.TokenType}")
         };
 
     /// <inheritdoc />

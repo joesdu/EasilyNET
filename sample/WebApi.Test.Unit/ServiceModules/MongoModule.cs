@@ -59,7 +59,7 @@ internal sealed class MongoModule : AppModule
         //        cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber());
         //    };
         //});
-        var env = context.ServiceProvider?.GetRequiredService<IWebHostEnvironment>() ?? throw new("获取服务出错");
+        var env = context.ServiceProvider.GetRequiredService<IWebHostEnvironment>() ?? throw new("获取服务出错");
         context.Services.AddMongoContext<DbContext>(config, c =>
         {
             c.DatabaseName = "easilynet";
