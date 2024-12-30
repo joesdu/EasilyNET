@@ -270,30 +270,6 @@ public static partial class StringExtensions
     public static string Replace(this string input, Regex regex, string replacement) => regex.Replace(input, replacement);
 
     /// <summary>
-    ///     <para xml:lang="en">Truncate a string and add a suffix at the end</para>
-    ///     <para xml:lang="zh">截断一个字符串,并在末尾添加一个后缀</para>
-    /// </summary>
-    /// <param name="value">
-    ///     <para xml:lang="en">Original string</para>
-    ///     <para xml:lang="zh">原始字符串</para>
-    /// </param>
-    /// <param name="maxLength">
-    ///     <para xml:lang="en">Maximum length (length after adding suffix)</para>
-    ///     <para xml:lang="zh">最大长度(添加后缀后的长度)</para>
-    /// </param>
-    /// <param name="suffix">
-    ///     <para xml:lang="en">Suffix, default: ...</para>
-    ///     <para xml:lang="zh">后缀,默认: ...</para>
-    /// </param>
-    /// <returns></returns>
-    public static string Truncate(this string value, int maxLength, string suffix = "...") =>
-        string.IsNullOrWhiteSpace(value) || value.Length <= maxLength
-            ? value
-            : maxLength - suffix.Length <= 0
-                ? suffix[..maxLength]
-                : $"{value[..(maxLength - suffix.Length)]}{suffix}";
-
-    /// <summary>
     ///     <para xml:lang="en">Join a collection of strings</para>
     ///     <para xml:lang="zh">将字符串集合链接起来</para>
     /// </summary>
@@ -353,21 +329,7 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Whether the match is successful</para>
     ///     <para xml:lang="zh">是否匹配成功</para>
     /// </returns>
-    public static bool MatchPhoneNumber(this string s) => !string.IsNullOrWhiteSpace(s) && s[0] == '1' && (s[1] > '2' || s[1] <= '9');
-
-    /// <summary>
-    ///     <para xml:lang="en">Convert RMB amount to uppercase</para>
-    ///     <para xml:lang="zh">转换人民币大小金额</para>
-    /// </summary>
-    /// <param name="numStr">
-    ///     <para xml:lang="en">Amount</para>
-    ///     <para xml:lang="zh">金额</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Returns uppercase form</para>
-    ///     <para xml:lang="zh">返回大写形式</para>
-    /// </returns>
-    public static string ToRmb(this string numStr) => numStr.ConvertTo<decimal>().ToRmb();
+    public static bool IsPhoneNumber(this string s) => !string.IsNullOrWhiteSpace(s) && s[0] == '1' && (s[1] > '2' || s[1] <= '9');
 
     /// <summary>
     ///     <para xml:lang="en">Convert string to DateTime, supports multiple formats</para>
@@ -450,14 +412,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="zh">字节流</para>
     /// </returns>
     public static MemoryStream ToStream(this string value) => value.ToStream(Encoding.UTF8);
-
-    /// <summary>
-    ///     <para xml:lang="en">Convert to Guid type</para>
-    ///     <para xml:lang="zh">转换为Guid类型</para>
-    /// </summary>
-    /// <param name="str"></param>
-    /// <returns></returns>
-    public static Guid ToGuid(this string str) => Guid.TryParse(str, out var guid) ? guid : Guid.Empty;
 
     /// <summary>
     ///     <para xml:lang="en">Convert to full-width characters (SBC case)</para>
@@ -660,40 +614,6 @@ public static partial class StringExtensions
         var pattern = $"^({array.Select(Regex.Escape).Join('|')})";
         return ignoreCase ? Regex.IsMatch(source, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(source, pattern);
     }
-
-    /// <summary>
-    ///     <para xml:lang="en">Check if the string contains any keywords from the list</para>
-    ///     <para xml:lang="zh">检测字符串中是否包含列表中的关键词</para>
-    /// </summary>
-    /// <param name="source">
-    ///     <para xml:lang="en">Source string</para>
-    ///     <para xml:lang="zh">源字符串</para>
-    /// </param>
-    /// <param name="regex">
-    ///     <para xml:lang="en">List of keywords</para>
-    ///     <para xml:lang="zh">关键词列表</para>
-    /// </param>
-    /// <param name="ignoreCase">
-    ///     <para xml:lang="en">Ignore case</para>
-    ///     <para xml:lang="zh">忽略大小写</para>
-    /// </param>
-    /// <returns></returns>
-    public static bool RegexMatch(this string source, string regex, bool ignoreCase = true) => !string.IsNullOrWhiteSpace(regex) && !string.IsNullOrWhiteSpace(source) && (ignoreCase ? Regex.IsMatch(source, regex, RegexOptions.IgnoreCase) : Regex.IsMatch(source, regex));
-
-    /// <summary>
-    ///     <para xml:lang="en">Check if the string contains any keywords from the list</para>
-    ///     <para xml:lang="zh">检测字符串中是否包含列表中的关键词</para>
-    /// </summary>
-    /// <param name="source">
-    ///     <para xml:lang="en">Source string</para>
-    ///     <para xml:lang="zh">源字符串</para>
-    /// </param>
-    /// <param name="regex">
-    ///     <para xml:lang="en">List of keywords</para>
-    ///     <para xml:lang="zh">关键词列表</para>
-    /// </param>
-    /// <returns></returns>
-    public static bool RegexMatch(this string source, Regex regex) => !string.IsNullOrWhiteSpace(source) && regex.IsMatch(source);
 
     /// <summary>
     ///     <para xml:lang="en">Try to parse a hexadecimal string into a byte array</para>
@@ -997,5 +917,11 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Formatted string. If the format string is empty or contains only whitespace characters, an empty string is returned</para>
     ///     <para xml:lang="zh">格式化后的字符串。如果格式字符串为空或仅包含空白字符，则返回空字符串</para>
     /// </returns>
-    public static string Format(this string format, params object?[] args) => format.Format(CultureInfo.InvariantCulture, args);
+    public static string Format(this string format, params object?[] args)
+    {
+        if (string.IsNullOrWhiteSpace(format))
+            return string.Empty;
+        var str = FormattableStringFactory.Create(format, args);
+        return str.ToString(CultureInfo.InvariantCulture);
+    }
 }

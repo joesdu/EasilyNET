@@ -41,7 +41,7 @@ public class SimpleClassTests
         Assert.AreEqual(s.GetPrivateField(), sCopy.GetPrivateField());
         Assert.AreEqual(s.GetPrivateProperty(), sCopy.GetPrivateProperty());
 
-        // doublecheck that copy is a different instance
+        // double check that copy is a different instance
         sCopy.FieldPublic++;
         Assert.AreNotEqual(s.FieldPublic, sCopy.FieldPublic);
         sCopy.FieldPublic--;
