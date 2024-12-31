@@ -28,7 +28,7 @@ public class RmbCapitalizedTest
     [DataRow("1594278327421378518276358712.6589")]
     public void RmbCapitalizedMax(string value)
     {
-        Console.WriteLine(value.ToRmb());
-        value.ToRmb().Should().Be("壹仟伍佰玖拾肆秭贰仟柒佰捌拾叁垓贰仟柒佰肆拾贰京壹仟叁佰柒拾捌兆伍仟壹佰捌拾贰亿柒仟陆佰叁拾伍万捌仟柒佰壹拾贰元柒角");
+        Console.WriteLine(value.ConvertTo<decimal>().ToRmb());
+        value.ConvertTo<decimal>().ToRmb().Should().Be("壹仟伍佰玖拾肆秭贰仟柒佰捌拾叁垓贰仟柒佰肆拾贰京壹仟叁佰柒拾捌兆伍仟壹佰捌拾贰亿柒仟陆佰叁拾伍万捌仟柒佰壹拾贰元柒角");
     }
 }
