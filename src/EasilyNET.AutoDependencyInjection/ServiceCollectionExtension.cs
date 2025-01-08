@@ -89,4 +89,11 @@ public static class ServiceCollectionExtension
     ///     <para xml:lang="zh">配置服务</para>
     /// </returns>
     public static IConfiguration GetConfiguration(this IServiceProvider provider) => provider.GetRequiredService<IConfiguration>();
+
+    internal static void AddNamedService(this IServiceCollection services, Type serviceType, string name, Type implementationType, ServiceLifetime lifetime)
+    {
+        var descriptor = new NamedServiceDescriptor(serviceType, implementationType, lifetime);
+        ServiceProviderExtension.NamedServices[name] = descriptor;
+        services.Add(new(descriptor.ServiceType, p => p.CreateInstance(descriptor.ImplementationType), descriptor.Lifetime));
+    }
 }
