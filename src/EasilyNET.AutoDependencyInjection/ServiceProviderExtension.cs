@@ -46,15 +46,11 @@ public static class ServiceProviderExtension
     ///     <para xml:lang="en">Parameters to pass to the constructor</para>
     ///     <para xml:lang="zh">传递给构造函数的参数</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Instance of the service</para>
-    ///     <para xml:lang="zh">服务的实例</para>
-    /// </returns>
     /// <exception cref="InvalidOperationException">
     ///     <para xml:lang="en">Thrown when no matching service or constructor is found</para>
     ///     <para xml:lang="zh">当找不到匹配的服务或构造函数时抛出</para>
     /// </exception>
-    public static T ResolveNamed<T>(this IServiceProvider provider, string name, params Dictionary<string, object>[] parameters)
+    public static T ResolveNamed<T>(this IServiceProvider provider, string name, Dictionary<string, object?>? parameters = null)
     {
         if (!NamedServices.TryGetValue(name, out var descriptor))
         {
@@ -62,17 +58,14 @@ public static class ServiceProviderExtension
         }
         var constructor = descriptor.ImplementationType.GetConstructors()
                                     .FirstOrDefault(c => c.GetParameters()
-                                                          .All(p => parameters.Any(dict =>
-                                                                        dict.ContainsKey(p.Name.AsNotNull())) ||
+                                                          .All(p => parameters?.ContainsKey(p.Name.AsNotNull()) is true ||
                                                                     provider.GetService(p.ParameterType) is not null));
         if (constructor is null)
         {
             throw new InvalidOperationException($"No matching constructor found for type {descriptor.ImplementationType.Name} with provided parameters.");
         }
         var args = constructor.GetParameters()
-                              .Select(p => parameters.SelectMany(dict => dict)
-                                                     .FirstOrDefault(kv => kv.Key == p.Name).Value ??
-                                           provider.GetService(p.ParameterType))
+                              .Select(p => parameters?.TryGetValue(p.Name.AsNotNull(), out var value) is true ? value : provider.GetService(p.ParameterType))
                               .ToArray();
         return (T)constructor.Invoke(args);
     }
