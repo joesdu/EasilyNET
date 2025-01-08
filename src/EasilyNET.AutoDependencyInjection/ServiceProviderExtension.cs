@@ -11,18 +11,26 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class ServiceProviderExtension
 {
-    internal static readonly Dictionary<string, NamedServiceDescriptor> NamedServices = [];
+    internal static readonly Dictionary<object, NamedServiceDescriptor> NamedServices = [];
 
     internal static object CreateInstance(this IServiceProvider provider, Type implementationType)
     {
-        // 在这里可以根据需要从provider获取依赖项并传入构造函数
-        // Here you can get dependencies from the provider as needed and pass them into the constructor
         var constructor = implementationType.GetConstructors().FirstOrDefault();
         if (constructor is null)
         {
             throw new InvalidOperationException($"No public constructor found for type {implementationType.Name}");
         }
-        var parameters = constructor.GetParameters().Select(p => provider.GetService(p.ParameterType)).ToArray();
+        var parameters = constructor.GetParameters().Select(p =>
+        {
+            var keyed = p.CustomAttributes.FirstOrDefault(c => c.AttributeType == typeof(FromKeyedServicesAttribute));
+            // ReSharper disable once InvertIf
+            if (keyed is not null)
+            {
+                var key = keyed.ConstructorArguments.FirstOrDefault().Value;
+                return provider.GetRequiredKeyedService(p.ParameterType, key);
+            }
+            return provider.GetService(p.ParameterType) ?? throw new InvalidOperationException($"Unable to resolve service for type '{p.ParameterType}' while attempting to activate '{implementationType}'.");
+        }).ToArray();
         return constructor.Invoke(parameters);
     }
 
