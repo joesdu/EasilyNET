@@ -48,12 +48,11 @@ public static class ServiceCollectionExtension
     ///     <para xml:lang="en">The service collection</para>
     ///     <para xml:lang="zh">服务集合</para>
     /// </returns>
-    public static IServiceCollection AddApplicationModules<T>(this IServiceCollection services) where T : AppModule
+    public static void AddApplicationModules<T>(this IServiceCollection services) where T : AppModule
     {
         ArgumentNullException.ThrowIfNull(services, nameof(services));
         services.AddSingleton<IObjectAccessor<IHost>>(new ObjectAccessor<IHost>());
         ApplicationFactory.Create<T>(services);
-        return services;
     }
 
     /// <summary>
@@ -90,10 +89,23 @@ public static class ServiceCollectionExtension
     /// </returns>
     public static IConfiguration GetConfiguration(this IServiceProvider provider) => provider.GetRequiredService<IConfiguration>();
 
-    internal static void AddNamedService(this IServiceCollection services, Type serviceType, string name, Type implementationType, ServiceLifetime lifetime)
+    internal static void AddNamedService(this IServiceCollection services, Type serviceType, object key, Type implementationType, ServiceLifetime lifetime)
     {
         var descriptor = new NamedServiceDescriptor(serviceType, implementationType, lifetime);
-        ServiceProviderExtension.NamedServices[name] = descriptor;
-        services.Add(new(descriptor.ServiceType, p => p.CreateInstance(descriptor.ImplementationType), descriptor.Lifetime));
+        ServiceProviderExtension.NamedServices[key.ToString() ?? throw new ArgumentNullException(nameof(key))] = descriptor;
+        switch (lifetime)
+        {
+            case ServiceLifetime.Singleton:
+                services.AddKeyedSingleton(descriptor.ServiceType, key, (p, _) => p.CreateInstance(descriptor.ImplementationType));
+                break;
+            case ServiceLifetime.Scoped:
+                services.AddKeyedScoped(descriptor.ServiceType, key, (p, _) => p.CreateInstance(descriptor.ImplementationType));
+                break;
+            case ServiceLifetime.Transient:
+                services.AddKeyedTransient(descriptor.ServiceType, key, (p, _) => p.CreateInstance(descriptor.ImplementationType));
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(lifetime), lifetime, null);
+        }
     }
 }

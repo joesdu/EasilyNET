@@ -10,7 +10,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// <param name="provider"></param>
 [Route("api/[controller]")]
 [ApiController]
-public class NoDefaultConstructorController(IServiceProvider provider) : ControllerBase
+public class NoDefaultConstructorController(IServiceProvider provider, [FromKeyedServices("InjectClass")] InjectClass jc) : ControllerBase
 {
     /// <summary>
     /// Get
@@ -21,6 +21,7 @@ public class NoDefaultConstructorController(IServiceProvider provider) : Control
     {
         var test = provider.ResolveNamed<ITestNoDefaultConstructor>("TestNoDefaultConstructor", new()
         {
+            { "jc", jc },
             { "str", "Jack" },
             { "str2", "Rose" }
         });
@@ -31,7 +32,7 @@ public class NoDefaultConstructorController(IServiceProvider provider) : Control
 /// <summary>
 /// Test class without default constructor
 /// </summary>
-[DependencyInjection(ServiceLifetime.Singleton)]
+[DependencyInjection(ServiceLifetime.Singleton, ServiceKey = "InjectClass")]
 // ReSharper disable once ClassNeverInstantiated.Global
 public sealed class InjectClass
 {

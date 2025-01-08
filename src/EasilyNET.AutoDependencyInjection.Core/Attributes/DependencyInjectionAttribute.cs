@@ -38,7 +38,7 @@ public sealed class DependencyInjectionAttribute(ServiceLifetime lifetime) : Att
     ///     <para xml:lang="en">Set the service key, compatible with KeyedService</para>
     ///     <para xml:lang="zh">设置服务的键，适配 KeyedService</para>
     /// </summary>
-    public string ServiceKey { get; set; } = string.Empty;
+    public object? ServiceKey { get; set; }
 
     /// <summary>
     ///     <para xml:lang="en">
