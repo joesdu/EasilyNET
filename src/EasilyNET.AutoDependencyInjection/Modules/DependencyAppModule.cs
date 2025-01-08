@@ -24,37 +24,37 @@ public sealed class DependencyAppModule : AppModule
     private static void AddAutoInjection(IServiceCollection services)
     {
         var types = AssemblyHelper.FindTypesByAttribute<DependencyInjectionAttribute>().ToHashSet();
-        foreach (var implementedType in types)
+        foreach (var impl in types)
         {
-            var attr = implementedType.GetCustomAttribute<DependencyInjectionAttribute>();
+            var attr = impl.GetCustomAttribute<DependencyInjectionAttribute>();
             var lifetime = attr?.Lifetime;
             if (lifetime is null) continue;
             if (attr?.AsType is not null)
             {
                 // 若实现类,不是注册类型的派生类,则跳过
-                if (implementedType.IsBaseOn(attr.AsType))
+                if (impl.IsBaseOn(attr.AsType))
                 {
                     if (!string.IsNullOrWhiteSpace(attr.ServiceKey))
                     {
-                        services.Add(new(implementedType, attr.ServiceKey, implementedType, lifetime.Value));
+                        services.AddNamedService(impl, attr.ServiceKey, impl, lifetime.Value);
                     }
                     else
                     {
-                        services.Add(new(attr.AsType, implementedType, lifetime.Value));
+                        services.Add(new(attr.AsType, p => p.CreateInstance(impl), lifetime.Value));
                     }
                 }
                 continue;
             }
-            var serviceTypes = GetServiceTypes(implementedType);
+            var serviceTypes = GetServiceTypes(impl);
             if (serviceTypes.Count is 0 || attr?.AddSelf is true)
             {
                 if (!string.IsNullOrWhiteSpace(attr?.ServiceKey))
                 {
-                    services.Add(new(implementedType, attr.ServiceKey, implementedType, lifetime.Value));
+                    services.AddNamedService(impl, attr.ServiceKey, impl, lifetime.Value);
                 }
                 else
                 {
-                    services.Add(new(implementedType, implementedType, lifetime.Value));
+                    services.Add(new(impl, p => p.CreateInstance(impl), lifetime.Value));
                 }
                 if (attr?.SelfOnly is true || serviceTypes.Count is 0) continue;
             }
@@ -62,11 +62,11 @@ public sealed class DependencyAppModule : AppModule
             {
                 if (!string.IsNullOrWhiteSpace(attr?.ServiceKey))
                 {
-                    services.Add(new(serviceType, attr.ServiceKey, implementedType, lifetime.Value));
+                    services.AddNamedService(serviceType, attr.ServiceKey, impl, lifetime.Value);
                 }
                 else
                 {
-                    services.Add(new(serviceType, implementedType, lifetime.Value));
+                    services.Add(new(serviceType, p => p.CreateInstance(impl), lifetime.Value));
                 }
             }
         }
