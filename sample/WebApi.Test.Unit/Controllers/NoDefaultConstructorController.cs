@@ -8,6 +8,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// test controller without default constructor
 /// </summary>
 /// <param name="provider"></param>
+/// <param name="jc"></param>
 [Route("api/[controller]")]
 [ApiController]
 public class NoDefaultConstructorController(IServiceProvider provider, [FromKeyedServices("InjectClass")] InjectClass jc) : ControllerBase
