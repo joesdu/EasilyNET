@@ -3,8 +3,10 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyModel;
 
+// ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
 
 namespace EasilyNET.Core.Misc;
@@ -16,8 +18,17 @@ namespace EasilyNET.Core.Misc;
 public static class AssemblyHelper
 {
     private static readonly ConcurrentDictionary<string, Assembly?> AssemblyCache = new();
-    private static readonly Lazy<IEnumerable<Assembly>> LazyAllAssemblies = new(LoadAssemblies);
+    private static readonly Lazy<IEnumerable<Assembly>> LazyAllAssemblies = new(() => LoadAssemblies(LoadFromAllDll));
     private static readonly Lazy<IEnumerable<Type>> LazyAllTypes = new(() => LoadTypes(LazyAllAssemblies.Value));
+
+    static AssemblyHelper()
+    {
+        var entryAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
+        if (!string.IsNullOrEmpty(entryAssemblyName))
+        {
+            AssemblyNames.Add(entryAssemblyName);
+        }
+    }
 
     /// <summary>
     ///     <para xml:lang="en">Gets all assemblies that match the criteria</para>
@@ -32,31 +43,62 @@ public static class AssemblyHelper
     public static IEnumerable<Type> AllTypes => LazyAllTypes.Value;
 
     /// <summary>
+    ///     <para xml:lang="en">
+    ///     Indicates whether to load all assemblies. Loading all assemblies may be slow. For general use, it defaults to
+    ///     <see langword="true" />. It is recommended to set it to <see langword="false" /> and manually specify the assemblies to load using
+    ///     <see cref="AddAssemblyNames" />.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     是否获取所有的程序集。加载所有程序集可能会比较慢。为保持通用性，默认为 <see langword="true" />。推荐设置为 <see langword="false" /> 并手动通过
+    ///     <see cref="AddAssemblyNames" /> 指定需要加载的程序集。
+    ///     </para>
+    /// </summary>
+    public static bool LoadFromAllDll { get; set; } = true;
+
+    private static List<string> AssemblyNames { get; } = ["EasilyNET*"];
+
+    /// <summary>
+    ///     <para xml:lang="en">Adds assembly names to be loaded when <see cref="LoadFromAllDll" /> is set to <see langword="false" />.</para>
+    ///     <para xml:lang="zh">当 <see cref="LoadFromAllDll" /> 设置为 <see langword="false" /> 时，添加要加载的程序集名称。</para>
+    /// </summary>
+    /// <param name="names">
+    ///     <para xml:lang="en">The names of the assemblies to add.</para>
+    ///     <para xml:lang="zh">要添加的程序集名称。</para>
+    /// </param>
+    public static void AddAssemblyNames(params IEnumerable<string> names) => AssemblyNames.AddRange(names);
+
+    /// <summary>
     ///     <para xml:lang="en">Gets assemblies by their names</para>
     ///     <para xml:lang="zh">通过名称获取程序集</para>
     /// </summary>
     /// <param name="assemblyNames">
-    ///     <para xml:lang="en">Assembly FullName</para>
-    ///     <para xml:lang="zh">程序集全名</para>
+    ///     <para xml:lang="en">Assembly name</para>
+    ///     <para xml:lang="zh">程序集名称,支持通配符匹配,如: EasilyNET* </para>
     /// </param>
     /// <returns>
     ///     <para xml:lang="en">A collection of assemblies</para>
     ///     <para xml:lang="zh">程序集集合</para>
     /// </returns>
     [RequiresUnreferencedCode("This method uses reflection and may not be compatible with AOT.")]
-    public static IEnumerable<Assembly> GetAssembliesByName(params string[] assemblyNames)
+    public static IEnumerable<Assembly> GetAssembliesByName(params IEnumerable<string> assemblyNames)
     {
-        return assemblyNames.Select(name =>
+        var regexPatterns = assemblyNames.Select(name => new Regex("^" + Regex.Escape(name).Replace("\\*", ".*").Replace("\\?", ".") + "$", RegexOptions.IgnoreCase)).ToArray();
+        var allAssemblyFiles = Directory.GetFiles(AppContext.BaseDirectory, "*.dll");
+        var matchingAssemblies = allAssemblyFiles.Where(file =>
         {
-            // ReSharper disable once InvertIf
-            if (AssemblyCache.TryGetValue(name, out var assembly))
+            var fileName = Path.GetFileNameWithoutExtension(file);
+            return regexPatterns.Any(pattern => pattern.IsMatch(fileName));
+        });
+        return matchingAssemblies.Select(file =>
+        {
+            var name = Path.GetFileNameWithoutExtension(file);
+            if (AssemblyCache.TryGetValue(name, out var assembly) && assembly is not null)
             {
-                if (assembly is not null)
-                {
-                    return assembly;
-                }
+                return assembly;
             }
-            return AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(AppContext.BaseDirectory, $"{name}.dll"));
+            var loadedAssembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(file);
+            AssemblyCache[name] = loadedAssembly;
+            return loadedAssembly;
         });
     }
 
@@ -155,9 +197,9 @@ public static class AssemblyHelper
         }
     }
 
-    private static IEnumerable<Assembly> LoadAssemblies()
+    private static IEnumerable<Assembly> LoadAssemblies(bool fromAll)
     {
-        var assemblies = DependencyContext.Default?.GetRuntimeAssemblyNames(AppContext.BaseDirectory) ?? [];
+        var assemblies = fromAll ? DependencyContext.Default?.GetRuntimeAssemblyNames(AppContext.BaseDirectory) ?? [] : GetAssembliesByName(AssemblyNames).Select(c => c.GetName());
         var loadedAssemblies = new ConcurrentBag<Assembly>();
         Parallel.ForEach(assemblies, assembly => LoadAssembly(assembly, ref loadedAssemblies));
         foreach (var item in loadedAssemblies)

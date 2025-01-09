@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using EasilyNET.Core.Misc;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
@@ -7,6 +8,7 @@ using Serilog.Sinks.SystemConsole.Themes;
 using WebApi.Test.Unit;
 using WebApi.Test.Unit.Common;
 
+AssemblyHelper.LoadFromAllDll = false;
 // App init start time
 var AppInitial = Stopwatch.GetTimestamp();
 Console.Title = $"❤️ {Constant.InstanceName}";
