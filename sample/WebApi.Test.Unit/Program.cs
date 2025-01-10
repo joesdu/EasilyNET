@@ -10,7 +10,7 @@ using WebApi.Test.Unit.Common;
 
 AssemblyHelper.LoadFromAllDll = false;
 // App init start time
-var AppInitial = Stopwatch.GetTimestamp();
+var appInitial = Stopwatch.GetTimestamp();
 Console.Title = $"❤️ {Constant.InstanceName}";
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,11 +61,23 @@ if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
 app.InitializeApplication();
 app.MapControllers();
 
-// Log application startup time
-_ = Task.Run(() =>
-{
-    var AppComplete = Stopwatch.GetTimestamp();
-    Log.Information("Operating System: {OS}", RuntimeInformation.OSDescription);
-    Log.Information("Application started in {Elapsed} ms", Stopwatch.GetElapsedTime(AppInitial, AppComplete).TotalMilliseconds);
-});
+// 启动，关闭事件
+app.Lifetime.ApplicationStopping.Register(OnShutdown);
+app.Lifetime.ApplicationStarted.Register(OnStarted);
+
+// 原神·启动
 app.Run();
+return;
+
+void OnStarted()
+{
+    Log.Information("Application started");
+    var appComplete = Stopwatch.GetTimestamp();
+    Log.Information("Operating System: {OS}", RuntimeInformation.OSDescription);
+    Log.Information("Application started in {Elapsed} ms", Stopwatch.GetElapsedTime(appInitial, appComplete).TotalMilliseconds);
+}
+
+void OnShutdown()
+{
+    Log.Information("Application shutdown");
+}
