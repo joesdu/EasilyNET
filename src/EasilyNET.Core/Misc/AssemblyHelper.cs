@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -82,8 +83,12 @@ public static class AssemblyHelper
     [RequiresUnreferencedCode("This method uses reflection and may not be compatible with AOT.")]
     public static IEnumerable<Assembly> GetAssembliesByName(params IEnumerable<string> assemblyNames)
     {
-        var regexPatterns = assemblyNames.Select(name => new Regex("^" + Regex.Escape(name).Replace("\\*", ".*").Replace("\\?", ".") + "$", RegexOptions.IgnoreCase)).ToArray();
-        var allAssemblyFiles = Directory.GetFiles(AppContext.BaseDirectory, "*.dll");
+        var regexPatterns = assemblyNames.Select(name =>
+                                             new Regex($"^{Regex.Escape(name)
+                                                                .Replace("\\*", ".*", StringComparison.OrdinalIgnoreCase)
+                                                                .Replace("\\?", ".", StringComparison.OrdinalIgnoreCase)}$", RegexOptions.IgnoreCase))
+                                         .ToFrozenSet();
+        var allAssemblyFiles = Directory.GetFiles(AppContext.BaseDirectory, "*.dll", SearchOption.AllDirectories);
         var matchingAssemblies = allAssemblyFiles.Where(file =>
         {
             var fileName = Path.GetFileNameWithoutExtension(file);
