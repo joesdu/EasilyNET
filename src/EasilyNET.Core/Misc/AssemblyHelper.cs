@@ -94,15 +94,28 @@ public static class AssemblyHelper
             var fileName = Path.GetFileNameWithoutExtension(file);
             return regexPatterns.Any(pattern => pattern.IsMatch(fileName));
         });
+        //var result = new ConcurrentBag<Assembly>();
+        //Parallel.ForEach(matchingAssemblies, file =>
+        //{
+        //    var name = Path.GetFileNameWithoutExtension(file);
+        //    if (AssemblyCache.TryGetValue(name, out var assembly) && assembly is not null)
+        //    {
+        //        return;
+        //    }
+        //    var loadedAssembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(file);
+        //    AssemblyCache[name] = loadedAssembly;
+        //    result.Add(loadedAssembly);
+        //});
+        //return result;
         return matchingAssemblies.Select(file =>
         {
-            var name = Path.GetFileNameWithoutExtension(file);
-            if (AssemblyCache.TryGetValue(name, out var assembly) && assembly is not null)
+            var assemblyName = AssemblyLoadContext.GetAssemblyName(file);
+            if (AssemblyCache.TryGetValue(assemblyName.FullName, out var assembly) && assembly is not null)
             {
                 return assembly;
             }
             var loadedAssembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(file);
-            AssemblyCache[name] = loadedAssembly;
+            AssemblyCache[assemblyName.FullName] = loadedAssembly;
             return loadedAssembly;
         });
     }
