@@ -65,7 +65,7 @@ app.MapControllers();
 app.Lifetime.ApplicationStopping.Register(OnShutdown);
 app.Lifetime.ApplicationStarted.Register(OnStarted);
 
-// 原神·启动
+// .NET·启动
 app.Run();
 return;
 
