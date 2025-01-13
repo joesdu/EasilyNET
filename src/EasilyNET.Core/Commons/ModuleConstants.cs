@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace EasilyNET.Core.Commons;
 
 /// <summary>
@@ -18,7 +16,6 @@ internal static class ModuleConstants
     ///     <para xml:lang="en">Common DateTime formats</para>
     ///     <para xml:lang="zh">DateTime常见格式</para>
     /// </summary>
-    [SuppressMessage("ReSharper", "StringLiteralTypo")]
     internal static readonly string[] DateTimeFormats =
     [
         "yyyy/MM/dd",
