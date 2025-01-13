@@ -71,7 +71,6 @@ return;
 
 void OnStarted()
 {
-    Log.Information("Application started");
     var appComplete = Stopwatch.GetTimestamp();
     Log.Information("Operating System: {OS}", RuntimeInformation.OSDescription);
     Log.Information("Application started in {Elapsed} ms", Stopwatch.GetElapsedTime(appInitial, appComplete).TotalMilliseconds);
