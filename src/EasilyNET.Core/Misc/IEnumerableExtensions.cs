@@ -860,7 +860,7 @@ public static class IEnumerableExtensions
     public static double StandardDeviation(this IEnumerable<double> source)
     {
         double result = 0;
-        var list = source as ICollection<double> ?? source.ToList();
+        var list = source as ICollection<double> ?? [.. source];
         var count = list.Count;
         if (count <= 1) return result;
         var avg = list.Average();
@@ -980,8 +980,8 @@ public static class IEnumerableExtensions
     {
         first ??= [];
         second ??= [];
-        var firstSource = first as ICollection<T1> ?? first.ToList();
-        var secondSource = second as ICollection<T2> ?? second.ToList();
+        var firstSource = first as ICollection<T1> ?? [.. first];
+        var secondSource = second as ICollection<T2> ?? [.. second];
         var add = firstSource.ExceptBy(secondSource, condition).ToList();
         var remove = secondSource.ExceptBy(firstSource, (s, f) => condition(f, s)).ToList();
         var update = firstSource.IntersectBy(secondSource, condition).ToList();
@@ -1108,7 +1108,7 @@ public static class IEnumerableExtensions
     public static string ToSqlIn<TSource>(this IEnumerable<TSource> values, string separator = ",", string left = "'", string right = "'")
     {
         StringBuilder sb = new();
-        var enumerable = values as TSource[] ?? values.ToArray();
+        var enumerable = values as TSource[] ?? [.. values];
         if (enumerable.Length == 0)
         {
             return string.Empty;

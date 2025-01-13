@@ -512,7 +512,7 @@ public static partial class StringExtensions
     {
         if (keys is not string[] array)
         {
-            array = keys.ToArray();
+            array = [.. keys];
         }
         return array.Length != 0 && !string.IsNullOrWhiteSpace(source) && (ignoreCase ? array.Any(item => source.Contains(item, StringComparison.InvariantCultureIgnoreCase)) : array.Any(source.Contains));
     }
@@ -538,7 +538,7 @@ public static partial class StringExtensions
     {
         if (keys is not string[] array)
         {
-            array = keys.ToArray();
+            array = [.. keys];
         }
         if (array.Length == 0 || string.IsNullOrWhiteSpace(source)) return false;
         var flag = false;
@@ -580,7 +580,7 @@ public static partial class StringExtensions
     {
         if (keys is not string[] array)
         {
-            array = keys.ToArray();
+            array = [.. keys];
         }
         if (array.Length == 0 || string.IsNullOrWhiteSpace(source)) return false;
         var pattern = $"({array.Select(Regex.Escape).Join('|')})$";
@@ -608,7 +608,7 @@ public static partial class StringExtensions
     {
         if (keys is not string[] array)
         {
-            array = keys.ToArray();
+            array = [.. keys];
         }
         if (array.Length == 0 || string.IsNullOrWhiteSpace(source)) return false;
         var pattern = $"^({array.Select(Regex.Escape).Join('|')})";
