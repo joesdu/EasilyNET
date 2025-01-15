@@ -1,8 +1,10 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using EasilyNET.Mongo.ConsoleDebug.Options;
 using MongoDB.Bson;
+using MongoDB.Bson.IO;
 using MongoDB.Driver.Core.Events;
 using Spectre.Console;
 using Spectre.Console.Json;
@@ -44,6 +46,10 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
         _subscriber = new(this, bindingFlags: BindingFlags.Instance | BindingFlags.NonPublic);
     }
 
+    private long StartTime { get; set; }
+
+    private long EndTime { get; set; }
+
     private string InfoJson { get; set; } = string.Empty;
 
     private string CommandJson { get; set; } = string.Empty;
@@ -68,14 +74,21 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
 
     private void WritStatus(int request_id, bool success)
     {
+        var duration = Stopwatch.GetElapsedTime(StartTime, EndTime).TotalMilliseconds; // 计算耗时，单位为毫秒
+        var durationColor = duration switch
+        {
+            < 100 => "[#00af00]", // 绿色
+            < 200 => "[#ffd700]", // 黄色
+            _     => "[#af0000]"  // 红色
+        };
         var table = new Table
         {
             Border = new RoundedTableBorder()
         };
-        table.AddColumn(new TableColumn("RequestId").Centered());
         table.AddColumn(new TableColumn("Time").Centered());
+        table.AddColumn(new TableColumn("Duration (ms)").Centered());
         table.AddColumn(new TableColumn("Status").Centered());
-        table.AddRow($"{request_id}", $"[#ffd700]{DateTime.Now:HH:mm:ss.fffff}[/]", success ? "[#00af00]Succeeded[/]" : "[#af0000]Failed[/]");
+        table.AddRow($"[#ffd700]{DateTime.Now:HH:mm:ss.fff}[/]", $"{durationColor}{duration:F4}[/]", success ? "[#00af00]succeed[/]" : "[#af0000]failed[/]");
         var layout = new Layout("Root")
             .SplitColumns(new Layout(new Panel(new Text(CommandJson, new(Color.Purple)))
                 {
@@ -108,7 +121,7 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
                 }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand(), new Panel(table)
                 {
                     Height = 7,
-                    Header = new("Request Status", Justify.Center)
+                    Header = new($"Request [#ff5f00]{request_id}[/] Status", Justify.Center)
                 }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand(), new Panel(new Text("""
                                                                                                           --------------------------------------
                                                                                                         /     Only two things are infinite,      \
@@ -132,7 +145,8 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
                 });
         AnsiConsole.Write(new Panel(layout)
         {
-            Height = 47
+            Height = 47,
+            Border = BoxBorder.Rounded
         }.NoBorder().NoSafeBorder().Expand());
     }
 
@@ -141,6 +155,7 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
     {
         if (RequestIdWithCollectionName.Count > 50) RequestIdWithCollectionName.Clear();
         if (@event.Command.Elements.All(c => c.Name != @event.CommandName)) return;
+        StartTime = Stopwatch.GetTimestamp();
         var coll_name = @event.Command.Elements.First(c => c.Name == @event.CommandName).Value.ToString() ?? "N/A";
         RequestIdWithCollectionName.AddOrUpdate(@event.RequestId, coll_name, (_, v) => v);
         switch (_options.Enable)
@@ -150,21 +165,21 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
                 return;
             case true:
             {
+                dynamic? endpoint = @event.ConnectionId?.ServerId?.EndPoint;
                 // 使用字符串的方式替代序列化
                 InfoJson = $$"""
                              {
                                "RequestId": {{@event.RequestId}},
-                               "Timestamp": "{{@event.Timestamp:yyyy-MM-dd HH:mm:ss}}",
+                               "Timestamp": "{{@event.Timestamp}}",
                                "Method": "{{@event.CommandName}}",
-                               "DatabaseName": "{{@event.DatabaseNamespace?.DatabaseName}}",
-                               "CollectionName": "{{coll_name}}",
-                               "ConnectionInfo": {
-                                  "ClusterId": {{@event.ConnectionId?.ServerId?.ClusterId.Value}},
-                                  "EndPoint": "{{@event.ConnectionId?.ServerId?.EndPoint}}"
-                               }
+                               "Database": "{{@event.DatabaseNamespace?.DatabaseName}}",
+                               "Collection": "{{coll_name}}",
+                               "ClusterId": {{@event.ConnectionId?.ServerId?.ClusterId.Value}},
+                               "Host": "{{endpoint?.Host ?? "N/A"}}",
+                               "Port": {{endpoint?.Port ?? "N/A"}}
                              }
                              """;
-                CommandJson = @event.Command.ToJson(new() { Indent = true });
+                CommandJson = @event.Command.ToJson(new() { Indent = true, OutputMode = JsonOutputMode.Shell });
                 break;
             }
         }
@@ -180,12 +195,14 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
             if (success && !_options.ShouldStartCollection(coll_name!)) return;
         }
         if (!CommonExtensions.CommandsWithCollectionNameAsValue.Contains(@event.CommandName)) return;
+        EndTime = Stopwatch.GetTimestamp();
         WritStatus(@event.RequestId, true);
     }
 
     [SuppressMessage("CodeQuality", "IDE0051:删除未使用的私有成员", Justification = "<挂起>")]
     private void Handle(CommandFailedEvent @event)
     {
+        EndTime = Stopwatch.GetTimestamp();
         if (!_options.Enable) return;
         if (_options.ShouldStartCollection is not null)
         {

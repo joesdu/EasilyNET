@@ -133,7 +133,7 @@ file class CustomStringObjectIdGenerator : IIdGenerator
                 var itemClassMap = BsonClassMap.LookupClassMap(item.GetType());
                 var itemIdMemberMap = itemClassMap.IdMemberMap;
                 // 如果子对象的Id字段为空，则为其生成新的ObjectId
-                if (itemIdMemberMap is not null && itemIdMemberMap.MemberType == typeof(string) && string.IsNullOrWhiteSpace(itemIdMemberMap.Getter(item)?.ToString()))
+                if (itemIdMemberMap is not null && itemIdMemberMap.MemberType == typeof(string) && IsEmpty(itemIdMemberMap.Getter(item)))
                 {
                     itemIdMemberMap.Setter(item, ObjectId.GenerateNewId().ToString());
                 }

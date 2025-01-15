@@ -94,10 +94,10 @@ public class MongoTestController(DbContext db) : ControllerBase
     public async Task InitTest2()
     {
         var os = new List<MongoTest2>();
-        for (var i = 0; i < 30; i++)
+        for (var i = 0; i < 3; i++)
         {
             var date = DateOnly.FromDateTime(DateTime.Now.AddDays(i));
-            os.Add(new() { Id = Guid.NewGuid().ToString(), Date = date, Index = i });
+            os.Add(new() { Date = date, Index = i });
         }
         var session = await db.GetStartedSessionAsync();
         await db.Test2.InsertManyAsync(session, os);

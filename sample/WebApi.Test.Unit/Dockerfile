@@ -18,15 +18,13 @@ COPY ["src/EasilyNET.AutoDependencyInjection/EasilyNET.AutoDependencyInjection.c
 COPY ["src/EasilyNET.AutoDependencyInjection.Core/EasilyNET.AutoDependencyInjection.Core.csproj", "src/EasilyNET.AutoDependencyInjection.Core/"]
 COPY ["src/EasilyNET.Core/EasilyNET.Core.csproj", "src/EasilyNET.Core/"]
 COPY ["src/EasilyNET.Mongo.ConsoleDebug/EasilyNET.Mongo.ConsoleDebug.csproj", "src/EasilyNET.Mongo.ConsoleDebug/"]
-COPY ["src/EasilyNET.MongoDistributedLock.AspNetCore/EasilyNET.MongoDistributedLock.AspNetCore.csproj", "src/EasilyNET.MongoDistributedLock.AspNetCore/"]
-COPY ["src/EasilyNET.MongoDistributedLock/EasilyNET.MongoDistributedLock.csproj", "src/EasilyNET.MongoDistributedLock/"]
 COPY ["src/EasilyNET.Mongo.AspNetCore/EasilyNET.Mongo.AspNetCore.csproj", "src/EasilyNET.Mongo.AspNetCore/"]
 COPY ["src/EasilyNET.Mongo.Core/EasilyNET.Mongo.Core.csproj", "src/EasilyNET.Mongo.Core/"]
 COPY ["src/EasilyNET.RabbitBus.AspNetCore/EasilyNET.RabbitBus.AspNetCore.csproj", "src/EasilyNET.RabbitBus.AspNetCore/"]
 COPY ["src/EasilyNET.RabbitBus.Core/EasilyNET.RabbitBus.Core.csproj", "src/EasilyNET.RabbitBus.Core/"]
 COPY ["src/EasilyNET.Security/EasilyNET.Security.csproj", "src/EasilyNET.Security/"]
-COPY ["src/EasilyNET.WebCore.Swagger/EasilyNET.WebCore.Swagger.csproj", "src/EasilyNET.WebCore.Swagger/"]
 COPY ["src/EasilyNET.WebCore/EasilyNET.WebCore.csproj", "src/EasilyNET.WebCore/"]
+COPY ["src/EasilyNET.WebCore.Swagger/EasilyNET.WebCore.Swagger.csproj", "src/EasilyNET.WebCore.Swagger/"]
 RUN dotnet restore "./sample/WebApi.Test.Unit/WebApi.Test.Unit.csproj"
 COPY . .
 WORKDIR "/src/sample/WebApi.Test.Unit"
