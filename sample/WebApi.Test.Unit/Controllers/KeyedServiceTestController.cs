@@ -1,20 +1,16 @@
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.Core.Attributes;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace WebApi.Test.Unit.Controllers;
 
-/// <summary>
-/// KeyedServiceTest
-/// </summary>
+/// <inheritdoc />
 [Route("api/[controller]")]
 [ApiController]
 [ApiGroup("KeyedServiceTest", "KeyedServiceTestController")]
-[Authorize]
-public class KeyedServiceTestController(IServiceProvider sp, IKeyedServiceTest kst2) : ControllerBase
+public class KeyedServiceTestController(IServiceProvider sp, [FromKeyedServices("helloKey")] IKeyedServiceTest2 kst2) : ControllerBase
 {
     /// <summary>
     /// ShowHello
@@ -32,8 +28,7 @@ public class KeyedServiceTestController(IServiceProvider sp, IKeyedServiceTest k
     /// </summary>
     /// <returns></returns>
     [HttpGet("HelloKeyedService2")]
-    [AllowAnonymous]
-    public string ShowHello2() => kst2.ShowHello();
+    public string ShowHello2() => kst2.ShowHello2();
 
     /// <summary>
     /// ShowHello3
@@ -50,15 +45,26 @@ public class KeyedServiceTestController(IServiceProvider sp, IKeyedServiceTest k
 /// <summary>
 /// KeyedServiceTest
 /// </summary>
-[DependencyInjection(ServiceLifetime.Transient, ServiceKey = "helloKey")]
-public sealed class KeyedServiceTest : IKeyedServiceTest
+[DependencyInjection(ServiceLifetime.Transient, AsType = typeof(IKeyedServiceTest2), ServiceKey = "helloKey")]
+public sealed class KeyedServiceTest : IKeyedServiceTest, IKeyedServiceTest2
+{
+    /// <inheritdoc />
+    public string ShowHello() => "Hello, KeyedServiceTest!";
+
+    /// <inheritdoc />
+    public string ShowHello2() => "Hello2, KeyedServiceTest!";
+}
+
+/// <summary>
+/// IKeyedServiceTest2
+/// </summary>
+public interface IKeyedServiceTest2
 {
     /// <summary>
-    /// ShowHello
+    /// ShowHello2
     /// </summary>
     /// <returns></returns>
-    // ReSharper disable once MemberCanBeMadeStatic.Global
-    public string ShowHello() => "Hello, KeyedServiceTest!";
+    string ShowHello2();
 }
 
 /// <summary>
