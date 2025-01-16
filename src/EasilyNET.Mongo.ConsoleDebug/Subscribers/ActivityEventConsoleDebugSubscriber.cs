@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Reflection;
 using EasilyNET.Mongo.ConsoleDebug.Options;
 using MongoDB.Bson;
@@ -165,7 +166,7 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
                 return;
             case true:
             {
-                dynamic? endpoint = @event.ConnectionId?.ServerId?.EndPoint;
+                var endpoint = @event.ConnectionId?.ServerId?.EndPoint as DnsEndPoint;
                 // 使用字符串的方式替代序列化
                 InfoJson = $$"""
                              {
@@ -176,7 +177,7 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
                                "Collection": "{{coll_name}}",
                                "ClusterId": {{@event.ConnectionId?.ServerId?.ClusterId.Value}},
                                "Host": "{{endpoint?.Host ?? "N/A"}}",
-                               "Port": {{endpoint?.Port ?? "N/A"}}
+                               "Port": {{endpoint?.Port}}
                              }
                              """;
                 CommandJson = @event.Command.ToJson(new() { Indent = true, OutputMode = JsonOutputMode.Shell });
