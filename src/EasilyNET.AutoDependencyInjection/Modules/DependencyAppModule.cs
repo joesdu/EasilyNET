@@ -37,7 +37,7 @@ public sealed class DependencyAppModule : AppModule
                 {
                     if (attr.ServiceKey is not null)
                     {
-                        services.AddNamedService(impl, attr.ServiceKey, impl, lifetime.Value);
+                        services.AddNamedService(attr.AsType, attr.ServiceKey, impl, lifetime.Value);
                     }
                     else
                     {
