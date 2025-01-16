@@ -15,11 +15,7 @@ public static class ServiceProviderExtension
 
     internal static object CreateInstance(this IServiceProvider provider, Type implementationType)
     {
-        var constructor = implementationType.GetConstructors().FirstOrDefault();
-        if (constructor is null)
-        {
-            throw new InvalidOperationException($"No public constructor found for type {implementationType.Name}");
-        }
+        var constructor = implementationType.GetConstructors().FirstOrDefault() ?? throw new InvalidOperationException($"No public constructor found for type {implementationType.Name}");
         var parameters = constructor.GetParameters().Select(p =>
         {
             var keyed = p.CustomAttributes.FirstOrDefault(c => c.AttributeType == typeof(FromKeyedServicesAttribute));
@@ -67,11 +63,8 @@ public static class ServiceProviderExtension
         var constructor = descriptor.ImplementationType.GetConstructors()
                                     .FirstOrDefault(c => c.GetParameters()
                                                           .All(p => parameters?.ContainsKey(p.Name.AsNotNull()) is true ||
-                                                                    provider.GetService(p.ParameterType) is not null));
-        if (constructor is null)
-        {
-            throw new InvalidOperationException($"No matching constructor found for type {descriptor.ImplementationType.Name} with provided parameters.");
-        }
+                                                                    provider.GetService(p.ParameterType) is not null)) ??
+                          throw new InvalidOperationException($"No matching constructor found for type {descriptor.ImplementationType.Name} with provided parameters.");
         var args = constructor.GetParameters()
                               .Select(p => parameters?.TryGetValue(p.Name.AsNotNull(), out var value) is true ? value : provider.GetService(p.ParameterType))
                               .ToArray();
