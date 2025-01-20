@@ -1,7 +1,7 @@
 using System.Text;
 using EasilyNET.Security;
-using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Shouldly;
 
 // ReSharper disable StringLiteralTypo
 
@@ -24,9 +24,9 @@ public class Rc4Test
         var byte_data = Encoding.UTF8.GetBytes(data);
         var secret = Rc4Crypt.Encrypt(byte_data, key);
         var base64 = Convert.ToBase64String(secret);
-        base64.Should().Be("TZEdFUtAevoL");
+        base64.ShouldBe("TZEdFUtAevoL");
         var data_result = Rc4Crypt.Decrypt(secret, key);
         var result = Encoding.UTF8.GetString(data_result);
-        result.Should().Be(data);
+        result.ShouldBe(data);
     }
 }

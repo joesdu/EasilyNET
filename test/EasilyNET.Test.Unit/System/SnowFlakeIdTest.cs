@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using EasilyNET.Core.System;
-using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Shouldly;
 
 namespace EasilyNET.Test.Unit.System;
 
@@ -17,7 +17,7 @@ public class SnowFlakeIdTest
     public void TestDefaultNextId()
     {
         var id = SnowFlakeId.Default.NextId();
-        id.Should().BeGreaterThan(0);
+        id.ShouldBeGreaterThan(0);
     }
 
     /// <summary>
@@ -30,7 +30,7 @@ public class SnowFlakeIdTest
         for (var i = 0; i < 100; i++)
         {
             var id = SnowFlakeId.Default.NextId();
-            id.Should().BeGreaterThan(lastId);
+            id.ShouldBeGreaterThan(lastId);
             lastId = id;
         }
     }
@@ -52,7 +52,7 @@ public class SnowFlakeIdTest
                 Debug.WriteLine($"重复ID{id}");
             }
         }
-        set.Count.Should().Be(N);
+        set.Count.ShouldBe(N);
     }
 
     /// <summary>
@@ -80,7 +80,7 @@ public class SnowFlakeIdTest
                 }
             }
         });
-        set.Count.Should().Be(N * numberOfThreads);
+        set.Count.ShouldBe(N * numberOfThreads);
     }
 
     /// <summary>

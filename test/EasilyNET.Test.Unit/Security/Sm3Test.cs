@@ -1,6 +1,6 @@
 using EasilyNET.Security;
-using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Shouldly;
 
 namespace EasilyNET.Test.Unit.Security;
 
@@ -20,7 +20,7 @@ public class Sm3Test
     {
         var byte_data = Sm3Crypt.Signature(data);
         var hex = Convert.ToHexString(byte_data);
-        hex.ToUpper().Should().Be("1749CE3E4EF7622F1EBABB52078EC86309CABD5A6073C8A0711BF35E19BA51B8");
+        hex.ToUpper().ShouldBe("1749CE3E4EF7622F1EBABB52078EC86309CABD5A6073C8A0711BF35E19BA51B8");
     }
 
     /// <summary>
@@ -31,6 +31,6 @@ public class Sm3Test
     {
         var byte_data = Sm3Crypt.Signature(data);
         var base64 = Convert.ToBase64String(byte_data);
-        base64.ToUpper().Should().Be("F0NOPK73YI8EURTSB47IYWNKVVPGC8IGCRVZXHM6UBG=");
+        base64.ToUpper().ShouldBe("F0NOPK73YI8EURTSB47IYWNKVVPGC8IGCRVZXHM6UBG=");
     }
 }

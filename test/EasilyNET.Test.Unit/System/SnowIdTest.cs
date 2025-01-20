@@ -1,7 +1,7 @@
 using EasilyNET.Core.Misc;
 using EasilyNET.Core.System;
-using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Shouldly;
 
 namespace EasilyNET.Test.Unit.System;
 
@@ -24,7 +24,7 @@ public class SnowIdTest
         TestContext?.WriteLine($"snow1: {snow1}");
         TestContext?.WriteLine($"snow2: {snow2}");
         var equal = snow1 == snow2 || snow1.Equals(snow2);
-        equal.Should().BeFalse();
+        Assert.IsFalse(equal);
     }
 
     /// <summary>
@@ -36,7 +36,7 @@ public class SnowIdTest
         var snow1 = SnowId.GenerateNewId();
         var snow2 = SnowId.GenerateNewId();
         var comparison = snow2.CompareTo(snow1);
-        comparison.Should().Be(1);
+        comparison.ShouldBe(1);
     }
 
     /// <summary>
@@ -48,7 +48,7 @@ public class SnowIdTest
         var snow1 = SnowId.GenerateNewId();
         var snow1String = snow1.ToString();
         var parsedSnow1 = SnowId.Parse(snow1String);
-        snow1.Should().Be(parsedSnow1);
+        snow1.ShouldBe(parsedSnow1);
     }
 
     /// <summary>
@@ -60,7 +60,7 @@ public class SnowIdTest
         var snow1 = SnowId.GenerateNewId();
         var byteArray = snow1.ToByteArray();
         var snowFromBytes = new SnowId(byteArray);
-        snow1.Should().Be(snowFromBytes);
+        snow1.ShouldBe(snowFromBytes);
     }
 
     /// <summary>
@@ -72,6 +72,6 @@ public class SnowIdTest
         var snow1 = SnowId.GenerateNewId();
         var timestamp = snow1.Timestamp;
         var creationTime = snow1.CreationTime;
-        creationTime.Should().Be(DateTimeStampExtensions.UnixEpoch.AddSeconds((uint)timestamp));
+        creationTime.ShouldBe(DateTimeStampExtensions.UnixEpoch.AddSeconds((uint)timestamp));
     }
 }

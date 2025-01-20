@@ -1,6 +1,6 @@
 using EasilyNET.Core.Threading;
-using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Shouldly;
 
 namespace EasilyNET.Test.Unit.Threading;
 
@@ -49,25 +49,25 @@ public class AsyncLockTests
         var task2 = asyncLock.LockAsync();
         var task3 = asyncLock.LockAsync();
         await Task.Delay(5);
-        task2.IsCompleted.Should().BeFalse();
-        task3.IsCompleted.Should().BeFalse();
+        task2.IsCompleted.ShouldBeFalse();
+        task3.IsCompleted.ShouldBeFalse();
 
         //Released
         using (await task1)
         {
             // Lock acquired by task1
-            task2.IsCompleted.Should().BeFalse();
-            task3.IsCompleted.Should().BeFalse();
+            task2.IsCompleted.ShouldBeFalse();
+            task3.IsCompleted.ShouldBeFalse();
         }
         using (await task2)
         {
-            task1.IsCompleted.Should().BeTrue();
-            task3.IsCompleted.Should().BeFalse();
+            task1.IsCompleted.ShouldBeTrue();
+            task3.IsCompleted.ShouldBeFalse();
         }
         using (await task3)
         {
-            task1.IsCompleted.Should().BeTrue();
-            task2.IsCompleted.Should().BeTrue();
+            task1.IsCompleted.ShouldBeTrue();
+            task2.IsCompleted.ShouldBeTrue();
         }
     }
 
@@ -89,10 +89,10 @@ public class AsyncLockTests
                 }
             }));
         }
-        tasks.Count(x => x.IsCompleted).Should().NotBe(100);
+        tasks.Count(x => x.IsCompleted).ShouldNotBe(100);
         await Task.WhenAll(tasks);
         var count = tasks.Count(x => x.IsCompleted);
-        count.Should().Be(100);
+        count.ShouldBe(100);
     }
 
     /// <summary>
@@ -104,16 +104,16 @@ public class AsyncLockTests
         var asyncLock = new AsyncLock();
         var taskSemaphore1 = asyncLock.LockAsync();
         var taskSemaphore2 = asyncLock.LockAsync();
-        asyncLock.GetSemaphoreTaken().Should().Be(1);
-        taskSemaphore1.IsCompleted.Should().BeTrue();
-        taskSemaphore2.IsCompleted.Should().BeFalse();
-        asyncLock.GetQueueCount().Should().Be(1);
+        asyncLock.GetSemaphoreTaken().ShouldBe(1);
+        taskSemaphore1.IsCompleted.ShouldBeTrue();
+        taskSemaphore2.IsCompleted.ShouldBeFalse();
+        asyncLock.GetQueueCount().ShouldBe(1);
         var res1 = await taskSemaphore1;
         res1.Dispose(); //释放
-        taskSemaphore1.IsCompleted.Should().BeTrue();
+        taskSemaphore1.IsCompleted.ShouldBeTrue();
         var res2 = await taskSemaphore2;
         res2.Dispose(); //释放
-        asyncLock.GetSemaphoreTaken().Should().Be(0);
+        asyncLock.GetSemaphoreTaken().ShouldBe(0);
     }
 
     /// <summary>

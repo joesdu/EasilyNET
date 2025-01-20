@@ -1,6 +1,6 @@
 using EasilyNET.Core.Misc;
-using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Shouldly;
 
 namespace EasilyNET.Test.Unit.Misc;
 
@@ -18,8 +18,8 @@ public class ObjectExtension
     {
         var person = new Person();
         var succeed = person.TrySetProperty(o => o.Name, () => "大黄瓜");
-        succeed.Should().BeTrue();
-        person.Name.Should().Be("大黄瓜");
+        succeed.ShouldBeTrue();
+        person.Name.ShouldBe("大黄瓜");
     }
 
     /// <summary>
@@ -33,8 +33,8 @@ public class ObjectExtension
             Age = 1
         };
         var succeed = person.TrySetProperty(o => o.Age, value => value.Age + 1);
-        succeed.Should().BeTrue();
-        person.Age.Should().Be(2);
+        succeed.ShouldBeTrue();
+        person.Age.ShouldBe(2);
     }
 
     /// <summary>
@@ -47,10 +47,10 @@ public class ObjectExtension
         {
             Time = DateTime.Now
         };
-        person.Time.HasValue.Should().BeTrue();
+        person.Time.HasValue.ShouldBeTrue();
         var succeed = person.TrySetProperty(o => o.Time, () => null);
-        succeed.Should().BeTrue();
-        person.Time.Should().BeNull();
+        succeed.ShouldBeTrue();
+        person.Time.ShouldBeNull();
     }
 }
 

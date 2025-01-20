@@ -1,6 +1,6 @@
 using EasilyNET.Core;
-using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Shouldly;
 
 namespace EasilyNET.Tests.Unit;
 
@@ -27,8 +27,8 @@ public class ReferenceItemTest
         var r3 = o1 != o3;
 
         // Assert
-        r1.Should().Be(true);
-        r2.Should().Be(true);
-        r3.Should().Be(true);
+        r1.ShouldBe(true);
+        r2.ShouldBe(true);
+        r3.ShouldBe(true);
     }
 }
