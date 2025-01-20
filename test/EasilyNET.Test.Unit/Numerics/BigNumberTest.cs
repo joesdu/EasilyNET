@@ -1,7 +1,7 @@
 using System.Numerics;
 using EasilyNET.Core.Numerics;
-using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Shouldly;
 
 namespace EasilyNET.Test.Unit.Numerics;
 
@@ -14,7 +14,7 @@ public class BigNumberTest
         var a = BigNumber.FromBigInteger(new(10));
         var b = BigNumber.FromBigInteger(new(20));
         var result = BigNumber.Add(a, b);
-        result.Should().Be(BigNumber.FromBigInteger(new(30)));
+        result.ShouldBe(BigNumber.FromBigInteger(new(30)));
     }
 
     [TestMethod]
@@ -23,7 +23,7 @@ public class BigNumberTest
         var a = BigNumber.FromBigInteger(new(30));
         var b = BigNumber.FromBigInteger(new(20));
         var result = BigNumber.Subtract(a, b);
-        result.Should().Be(BigNumber.FromBigInteger(new(10)));
+        result.ShouldBe(BigNumber.FromBigInteger(new(10)));
     }
 
     [TestMethod]
@@ -32,7 +32,7 @@ public class BigNumberTest
         var a = BigNumber.FromBigInteger(new(10));
         var b = BigNumber.FromBigInteger(new(20));
         var result = BigNumber.Multiply(a, b);
-        result.Should().Be(BigNumber.FromBigInteger(new(200)));
+        result.ShouldBe(BigNumber.FromBigInteger(new(200)));
     }
 
     [TestMethod]
@@ -41,7 +41,7 @@ public class BigNumberTest
         var a = BigNumber.FromBigInteger(new(20));
         var b = BigNumber.FromBigInteger(new(10));
         var result = BigNumber.Divide(a, b);
-        result.Should().Be(BigNumber.FromBigInteger(new(2)));
+        result.ShouldBe(BigNumber.FromBigInteger(new(2)));
     }
 
     [TestMethod]
@@ -49,7 +49,7 @@ public class BigNumberTest
     {
         var a = BigNumber.FromBigInteger(new(2));
         var result = BigNumber.Pow(a, new BigInteger(3));
-        result.Should().Be(BigNumber.FromBigInteger(new(8)));
+        result.ShouldBe(BigNumber.FromBigInteger(new(8)));
     }
 
     [TestMethod]
@@ -57,6 +57,6 @@ public class BigNumberTest
     {
         var a = BigNumber.FromBigInteger(new(-10));
         var result = BigNumber.Abs(a);
-        result.Should().Be(BigNumber.FromBigInteger(new(10)));
+        result.ShouldBe(BigNumber.FromBigInteger(new(10)));
     }
 }

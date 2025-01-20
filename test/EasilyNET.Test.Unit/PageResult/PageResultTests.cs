@@ -1,6 +1,6 @@
 using EasilyNET.Core;
-using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Shouldly;
 
 namespace EasilyNET.Tests.Unit;
 
@@ -24,8 +24,8 @@ public class PageResultTests
         var result = PageResult.Wrap(total, list);
 
         // Assert
-        result.Total.Should().Be(total);
-        result.List.Should().BeEquivalentTo(list);
+        result.Total.ShouldBe(total);
+        result.List.ShouldBeEquivalentTo(list);
     }
 
     /// <summary>
@@ -42,8 +42,8 @@ public class PageResultTests
         var result = PageResult.WrapDynamic(total, list);
 
         // Assert
-        result.Total.Should().Be(total);
-        result.List.Should().BeEquivalentTo(list);
+        result.Total.ShouldBe(total);
+        result.List.ShouldBeEquivalentTo(list);
     }
 
     /// <summary>
@@ -60,8 +60,8 @@ public class PageResultTests
         var result = PageResult.Wrap(total, list);
 
         // Assert
-        result.Total.Should().Be(0);
-        result.List.Should().BeEquivalentTo(list);
+        result.Total.ShouldBe(0);
+        result.List.ShouldBeEquivalentTo(list);
     }
 
     /// <summary>
@@ -78,8 +78,8 @@ public class PageResultTests
         var result = PageResult.Wrap(total, list);
 
         // Assert
-        result.Total.Should().Be(total);
-        result.List.Should().BeNull();
+        result.Total.ShouldBe(total);
+        result.List.ShouldBeNull();
     }
 
     /// <summary>
@@ -96,8 +96,8 @@ public class PageResultTests
         var result = PageResult.WrapDynamic(total, list);
 
         // Assert
-        result.Total.Should().Be(0);
-        result.List.Should().BeEquivalentTo(list);
+        result.Total.ShouldBe(0);
+        result.List.ShouldBeEquivalentTo(list);
     }
 
     /// <summary>
@@ -114,7 +114,7 @@ public class PageResultTests
         var result = PageResult.WrapDynamic(total, list);
 
         // Assert
-        result.Total.Should().Be(total);
-        result.List.Should().BeNull();
+        result.Total.ShouldBe(total);
+        result.List.ShouldBeNull();
     }
 }

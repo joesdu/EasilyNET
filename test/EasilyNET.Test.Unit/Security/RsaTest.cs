@@ -1,7 +1,7 @@
 using System.Text;
 using EasilyNET.Security;
-using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Shouldly;
 
 namespace EasilyNET.Test.Unit.Security;
 
@@ -33,10 +33,9 @@ public class RsaTest
     {
         var pri = RsaKeyConverter.ToBase64PrivateKey(PrivateKey);
         var pub = RsaKeyConverter.ToBase64PublicKey(PublicKey);
-        pri.Should().Be(
+        pri.ShouldBe(
             "MIICdQIBADANBgkqhkiG9w0BAQEFAASCAl8wggJbAgEAAoGBAKdB/uHxTGRSEKuiwIVzX92Zpd4pojglOpszIjHKkbv8ecdPF96Vhepvr/tU+3zqOD/9hmJbmYrkMyr3iZ0S8VdDupEXVYrwKWegvy2/L57J6HGkpZhDqLMHTmb5oXt7OLQEOCpWXq1nUWMd3VIKB/OtiFL+hTYkshf890z+DOdBAgMBAAECgYAKQ7yWtS5RAdBQGD7kcb4yZVmOltODypUcLTkuARaMiOQYXTxDxr1fM9eC/yYn9l/ZXX+/zYtQwMx7GJHzd9Qjw3E25mMP6V1HVmqa0T3r7iVoDT9ZQfR9vWcEDp+hVL5YHrjec3TV0mzT/chXrmTfkZ+S6ooNy3qCV3z9QVo3WQJBANjYadP5jN6kZE6s1HuQ3iOa+YZg0tuF2LErXhyizbg+urGtCtRBaa07LcPevmSXV1v2yfkefI+/GD9X65CxVacCQQDFdWrifI/tSmkNdfIpONaKd1aYxO4PS/16XoSfJaKpqhoZEXogAvWco5yuHk78GIWAFmblxOfSSdQ0TwHNoUjXAkBPi6vep7emYLWvKrVTksP6WbpZMiGHh+UCsP74EDzY7qH71ZeYX1qNwpy6MnazXdUdFj3nFejprlcNvYnbbUIXAkAmnFolJXRDUyyNnEWY9+tDsig1wTRHu3U6S2clc4eGI6PsyPUXc1yxn3CQv450Txszu62tOj6WaSdcfyJ8IhCLAkBW8xb3j+LIGAo0fw3Vd2KSfXsEsLRry1iyb8f9UMxeNpWeABcap43fvQd3Vm6SPQQZXD+8SXZiwCgnqj0qZCA0");
-        pub.Should()
-           .Be("MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCnQf7h8UxkUhCrosCFc1/dmaXeKaI4JTqbMyIxypG7/HnHTxfelYXqb6/7VPt86jg//YZiW5mK5DMq94mdEvFXQ7qRF1WK8ClnoL8tvy+eyehxpKWYQ6izB05m+aF7ezi0BDgqVl6tZ1FjHd1SCgfzrYhS/oU2JLIX/PdM/gznQQIDAQAB");
+        pub.ShouldBe("MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCnQf7h8UxkUhCrosCFc1/dmaXeKaI4JTqbMyIxypG7/HnHTxfelYXqb6/7VPt86jg//YZiW5mK5DMq94mdEvFXQ7qRF1WK8ClnoL8tvy+eyehxpKWYQ6izB05m+aF7ezi0BDgqVl6tZ1FjHd1SCgfzrYhS/oU2JLIX/PdM/gznQQIDAQAB");
     }
 
     /// <summary>
@@ -52,7 +51,7 @@ public class RsaTest
         var secret_str = Convert.ToBase64String(secret_data);
         Console.WriteLine(secret_str);
         RsaCrypt.Decrypt(key.PrivateKey, Convert.FromBase64String(secret_str), out var data_byte);
-        Encoding.UTF8.GetString(data_byte).Should().Be(data);
+        Encoding.UTF8.GetString(data_byte).ShouldBe(data);
     }
 
     private static RsaSecretKey GetXmlFromBase64()
@@ -76,7 +75,7 @@ public class RsaTest
         var secret_str = Convert.ToBase64String(secret_data);
         Console.WriteLine(secret_str);
         RsaCrypt.Decrypt(key_from_base64.PrivateKey, Convert.FromBase64String(secret_str), out var data_byte);
-        Encoding.UTF8.GetString(data_byte).Should().Be(data);
+        Encoding.UTF8.GetString(data_byte).ShouldBe(data);
     }
 
     /// <summary>
@@ -93,6 +92,6 @@ public class RsaTest
         var secret_str = Convert.ToBase64String(secret_data);
         Console.WriteLine(secret_str);
         var data_byte = RsaCrypt.Decrypt(keys.PrivateKey, secret_data);
-        Encoding.UTF8.GetString(data_byte).Should().Be(data);
+        Encoding.UTF8.GetString(data_byte).ShouldBe(data);
     }
 }
