@@ -23,16 +23,12 @@ internal sealed class ControllersModule : AppModule
         context.Services.AddControllers()
                .AddJsonOptions(c =>
                {
-                   c.JsonSerializerOptions.Converters.Add(new DecimalNullConverter());
-                   c.JsonSerializerOptions.Converters.Add(new IntNullConverter());
-                   c.JsonSerializerOptions.Converters.Add(new BoolNullConverter());
+                   c.JsonSerializerOptions.Converters.Add(new BoolConverter());
                    c.JsonSerializerOptions.Converters.Add(new DateTimeConverter());
-                   c.JsonSerializerOptions.Converters.Add(new DateTimeNullConverter());
                    c.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
-                   c.JsonSerializerOptions.Converters.Add(new TimeOnlyNullJsonConverter());
                    c.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
-                   c.JsonSerializerOptions.Converters.Add(new DateOnlyNullJsonConverter());
                    c.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                   c.JsonSerializerOptions.Converters.Add(new BsonDocumentConverter());
                });
         context.Services.AddEndpointsApiExplorer();
         await Task.CompletedTask;

@@ -8,17 +8,32 @@ using System.Text.Json.Serialization;
 namespace EasilyNET.WebCore.JsonConverters;
 
 /// <summary>
-///     <para xml:lang="en">JSON converter for decimal data type (used to convert string types of numbers to backend-recognizable decimal type)</para>
-///     <para xml:lang="zh">Decimal 数据类型的 JSON 转换器（用于将字符串类型的数字转换为后端可识别的 decimal 类型）</para>
+///     <para xml:lang="en">JSON converter for <see cref="decimal"/> and nullable <see cref="decimal"/> data types (used to convert string types of numbers to backend-recognizable <see cref="decimal"/> type)</para>
+///     <para xml:lang="zh"><see cref="decimal"/> 和可空 <see cref="decimal"/> 数据类型的 JSON 转换器（用于将字符串类型的数字转换为后端可识别的 <see cref="decimal"/> 类型）</para>
 /// </summary>
-public sealed class DecimalConverter : JsonConverter<decimal>
+public sealed class DecimalConverter : JsonConverter<decimal?>
 {
     /// <inheritdoc />
-    public override decimal Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-        reader.TokenType == JsonTokenType.Number
-            ? reader.GetDecimal()
-            : decimal.Parse(reader.GetString() ?? string.Empty, CultureInfo.CurrentCulture);
+    public override decimal? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Number)
+        {
+            return reader.GetDecimal();
+        }
+        var str = reader.GetString();
+        return string.IsNullOrWhiteSpace(str) ? null : decimal.Parse(str, CultureInfo.CurrentCulture);
+    }
 
     /// <inheritdoc />
-    public override void Write(Utf8JsonWriter writer, decimal value, JsonSerializerOptions options) => writer.WriteStringValue(value.ToString(CultureInfo.CurrentCulture));
+    public override void Write(Utf8JsonWriter writer, decimal? value, JsonSerializerOptions options)
+    {
+        if (value.HasValue)
+        {
+            writer.WriteStringValue(value.Value.ToString(CultureInfo.CurrentCulture));
+        }
+        else
+        {
+            writer.WriteNullValue();
+        }
+    }
 }
