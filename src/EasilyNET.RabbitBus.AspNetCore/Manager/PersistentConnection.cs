@@ -27,6 +27,7 @@ internal sealed class PersistentConnection : IPersistentConnection
     public PersistentConnection(IConnectionFactory connFactory, IOptionsMonitor<RabbitConfig> options, ILogger<PersistentConnection> logger, ResiliencePipelineProvider<string> pipelineProvider)
     {
         _connFactory = connFactory ?? throw new ArgumentNullException(nameof(connFactory));
+        _connFactory.RequestedHeartbeat = TimeSpan.FromSeconds(30);
         _config = options.Get(Constant.OptionName);
         _poolCount = _config.PoolCount < 1 ? (uint)Environment.ProcessorCount : _config.PoolCount;
         _logger = logger;

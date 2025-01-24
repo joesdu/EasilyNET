@@ -23,15 +23,13 @@ internal sealed class ControllersModule : AppModule
         context.Services.AddControllers()
                .AddJsonOptions(c =>
                {
-                   c.JsonSerializerOptions.Converters.Add(new DecimalNullConverter());
-                   c.JsonSerializerOptions.Converters.Add(new IntNullConverter());
-                   c.JsonSerializerOptions.Converters.Add(new BoolNullConverter());
-                   c.JsonSerializerOptions.Converters.Add(new DateTimeConverter());
-                   c.JsonSerializerOptions.Converters.Add(new DateTimeNullConverter());
-                   c.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
-                   c.JsonSerializerOptions.Converters.Add(new TimeOnlyNullJsonConverter());
+                   c.JsonSerializerOptions.Converters.Add(new BoolJsonConverter());
                    c.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
-                   c.JsonSerializerOptions.Converters.Add(new DateOnlyNullJsonConverter());
+                   c.JsonSerializerOptions.Converters.Add(new DateTimeJsonConverter());
+                   c.JsonSerializerOptions.Converters.Add(new DecimalJsonConverter());
+                   c.JsonSerializerOptions.Converters.Add(new IntJsonConverter());
+                   c.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
+                   c.JsonSerializerOptions.Converters.Add(new BsonDocumentJsonConverter());
                    c.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                });
         context.Services.AddEndpointsApiExplorer();
