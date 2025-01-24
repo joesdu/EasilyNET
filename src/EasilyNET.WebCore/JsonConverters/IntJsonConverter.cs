@@ -14,7 +14,7 @@ namespace EasilyNET.WebCore.JsonConverters;
 ///     </para>
 ///     <para xml:lang="zh"><see cref="int" /> 和可空 <see cref="int" /> 数据类型的 JSON 转换器（用于将字符串类型的数字转换为后端可识别的 <see cref="int" /> 类型）</para>
 /// </summary>
-public sealed class IntConverter : JsonConverter<int?>
+public sealed class IntJsonConverter : JsonConverter<int?>
 {
     /// <inheritdoc />
     public override int? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

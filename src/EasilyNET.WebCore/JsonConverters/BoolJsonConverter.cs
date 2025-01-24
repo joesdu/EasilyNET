@@ -23,7 +23,7 @@ namespace EasilyNET.WebCore.JsonConverters;
 ///  ]]>
 ///  </code>
 /// </example>
-public sealed class BoolConverter : JsonConverter<bool?>
+public sealed class BoolJsonConverter : JsonConverter<bool?>
 {
     /// <inheritdoc />
     public override bool? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>

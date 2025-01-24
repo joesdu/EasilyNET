@@ -14,7 +14,7 @@ namespace EasilyNET.WebCore.JsonConverters;
 ///     </para>
 ///     <para xml:lang="zh"><see cref="decimal" /> 和可空 <see cref="decimal" /> 数据类型的 JSON 转换器（用于将字符串类型的数字转换为后端可识别的 <see cref="decimal" /> 类型）</para>
 /// </summary>
-public sealed class DecimalConverter : JsonConverter<decimal?>
+public sealed class DecimalJsonConverter : JsonConverter<decimal?>
 {
     /// <inheritdoc />
     public override decimal? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

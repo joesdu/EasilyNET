@@ -21,7 +21,7 @@ namespace EasilyNET.WebCore.JsonConverters;
 ///  ]]>
 ///  </code>
 /// </example>
-public sealed class DateTimeConverter : JsonConverter<DateTime?>
+public sealed class DateTimeJsonConverter : JsonConverter<DateTime?>
 {
     /// <inheritdoc />
     public override DateTime? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

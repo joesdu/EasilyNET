@@ -9,9 +9,10 @@ namespace EasilyNET.WebCore.JsonConverters;
 
 /// <summary>
 ///     <para xml:lang="en">
-///     JSON converter for <see cref="BsonDocument"/> and nullable <see cref="BsonDocument"/> types (used to convert JSON to backend-recognizable <see cref="BsonDocument"/> type)
+///     JSON converter for <see cref="BsonDocument" /> and nullable <see cref="BsonDocument" /> types (used to convert JSON to backend-recognizable
+///     <see cref="BsonDocument" /> type)
 ///     </para>
-///     <para xml:lang="zh"><see cref="BsonDocument"/> 和可空 <see cref="BsonDocument"/> 类型的 JSON 转换器（用于将 JSON 转换为后端可识别的 <see cref="BsonDocument"/> 类型）</para>
+///     <para xml:lang="zh"><see cref="BsonDocument" /> 和可空 <see cref="BsonDocument" /> 类型的 JSON 转换器（用于将 JSON 转换为后端可识别的 <see cref="BsonDocument" /> 类型）</para>
 /// </summary>
 /// <example>
 ///     <code>
@@ -20,7 +21,7 @@ namespace EasilyNET.WebCore.JsonConverters;
 ///  ]]>
 ///  </code>
 /// </example>
-public sealed class BsonDocumentConverter : JsonConverter<BsonDocument?>
+public sealed class BsonDocumentJsonConverter : JsonConverter<BsonDocument?>
 {
     /// <inheritdoc />
     public override BsonDocument? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
