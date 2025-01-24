@@ -29,8 +29,8 @@ internal sealed class ControllersModule : AppModule
                    c.JsonSerializerOptions.Converters.Add(new DecimalJsonConverter());
                    c.JsonSerializerOptions.Converters.Add(new IntJsonConverter());
                    c.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
-                   c.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                    c.JsonSerializerOptions.Converters.Add(new BsonDocumentJsonConverter());
+                   c.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                });
         context.Services.AddEndpointsApiExplorer();
         await Task.CompletedTask;
