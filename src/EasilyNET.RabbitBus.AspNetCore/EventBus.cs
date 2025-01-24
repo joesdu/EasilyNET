@@ -158,7 +158,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
             logger.LogWarning(ea.Exception, "Recreating consumer channel");
             subsManager.ClearSubscriptions();
             _handleAsyncDelegateCache.Clear();
-            await Subscribe();
+            await Subscribe().ConfigureAwait(false);
         };
         return channel;
     }
@@ -210,7 +210,21 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
     {
         try
         {
-            await ProcessEvent(eventType, ea.Body.Span.ToArray(), handleKind, async () => await channel.BasicAckAsync(ea.DeliveryTag, false).ConfigureAwait(false));
+            await ProcessEvent(eventType, ea.Body.Span.ToArray(), handleKind, async () =>
+            {
+                try
+                {
+                    await channel.BasicAckAsync(ea.DeliveryTag, false).ConfigureAwait(false);
+                }
+                catch (ObjectDisposedException ex)
+                {
+                    logger.LogError(ex, "Channel was disposed before acknowledging message, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
+                    // 重新执行 Subscribe 方法，重新初始化消费者和服务端的连接
+                    subsManager.ClearSubscriptions();
+                    _handleAsyncDelegateCache.Clear();
+                    await Subscribe().ConfigureAwait(false);
+                }
+            });
         }
         catch (Exception ex)
         {
