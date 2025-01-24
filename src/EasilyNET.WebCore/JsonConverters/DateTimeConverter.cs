@@ -31,7 +31,7 @@ public sealed class DateTimeConverter : JsonConverter<DateTime?>
         {
             return null;
         }
-        return Convert.ToDateTime(str, CultureInfo.CurrentCulture);
+        return DateTime.TryParseExact(str, Constant.DateTimeFormat, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var result) ? result : null;
     }
 
     /// <inheritdoc />

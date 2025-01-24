@@ -8,8 +8,11 @@ using System.Text.Json.Serialization;
 namespace EasilyNET.WebCore.JsonConverters;
 
 /// <summary>
-///     <para xml:lang="en">JSON converter for <see cref="TimeOnly"/> and nullable <see cref="TimeOnly"/> types (used to convert string types of time to backend-recognizable <see cref="TimeOnly"/> type)</para>
-///     <para xml:lang="zh"><see cref="TimeOnly"/> 和可空 <see cref="TimeOnly"/> 类型的 JSON 转换器（用于将字符串类型的时间转换为后端可识别的 <see cref="TimeOnly"/> 类型）</para>
+///     <para xml:lang="en">
+///     JSON converter for <see cref="TimeOnly" /> and nullable <see cref="TimeOnly" /> types (used to convert string types of time
+///     to backend-recognizable <see cref="TimeOnly" /> type)
+///     </para>
+///     <para xml:lang="zh"><see cref="TimeOnly" /> 和可空 <see cref="TimeOnly" /> 类型的 JSON 转换器（用于将字符串类型的时间转换为后端可识别的 <see cref="TimeOnly" /> 类型）</para>
 /// </summary>
 public sealed class TimeOnlyJsonConverter : JsonConverter<TimeOnly?>
 {
@@ -21,7 +24,7 @@ public sealed class TimeOnlyJsonConverter : JsonConverter<TimeOnly?>
         {
             return null;
         }
-        return TimeOnly.Parse(str, CultureInfo.CurrentCulture);
+        return TimeOnly.TryParseExact(str, Constant.TimeFormat, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var result) ? result : null;
     }
 
     /// <inheritdoc />

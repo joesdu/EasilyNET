@@ -12,7 +12,8 @@ namespace EasilyNET.WebCore.JsonConverters;
 ///     <see langword="false" /> to backend-recognizable boolean types)
 ///     </para>
 ///     <para xml:lang="zh">
-///     <see cref="bool" /> 和可空 <see cref="bool" /> 类型的 JSON 转换器（用于将字符串类型的 <see langword="true" /> 或 <see langword="false" /> 转换为后端可识别的 <see cref="bool" /> 类型）
+///     <see cref="bool" /> 和可空 <see cref="bool" /> 类型的 JSON 转换器（用于将字符串类型的 <see langword="true" /> 或 <see langword="false" /> 转换为后端可识别的
+///     <see cref="bool" /> 类型）
 ///     </para>
 /// </summary>
 /// <example>
@@ -29,10 +30,10 @@ public sealed class BoolConverter : JsonConverter<bool?>
         reader.TokenType switch
         {
             JsonTokenType.True or JsonTokenType.False => reader.GetBoolean(),
-            JsonTokenType.Null => null,
-            JsonTokenType.String => bool.Parse(reader.GetString()!),
-            JsonTokenType.Number => reader.GetDouble() > 0,
-            _ => throw new NotImplementedException($"unprocessed token type {reader.TokenType}")
+            JsonTokenType.Null                        => null,
+            JsonTokenType.String                      => bool.TryParse(reader.GetString(), out var result) ? result : null,
+            JsonTokenType.Number                      => reader.GetDouble() > 0,
+            _                                         => throw new NotImplementedException($"unprocessed token type {reader.TokenType}")
         };
 
     /// <inheritdoc />

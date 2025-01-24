@@ -8,8 +8,11 @@ using System.Text.Json.Serialization;
 namespace EasilyNET.WebCore.JsonConverters;
 
 /// <summary>
-///     <para xml:lang="en">JSON converter for <see cref="int"/> and nullable <see cref="int"/> data types (used to convert string types of numbers to backend-recognizable <see cref="int"/> type)</para>
-///     <para xml:lang="zh"><see cref="int"/> 和可空 <see cref="int"/> 数据类型的 JSON 转换器（用于将字符串类型的数字转换为后端可识别的 <see cref="int"/> 类型）</para>
+///     <para xml:lang="en">
+///     JSON converter for <see cref="int" /> and nullable <see cref="int" /> data types (used to convert string types of numbers to
+///     backend-recognizable <see cref="int" /> type)
+///     </para>
+///     <para xml:lang="zh"><see cref="int" /> 和可空 <see cref="int" /> 数据类型的 JSON 转换器（用于将字符串类型的数字转换为后端可识别的 <see cref="int" /> 类型）</para>
 /// </summary>
 public sealed class IntConverter : JsonConverter<int?>
 {
@@ -21,7 +24,11 @@ public sealed class IntConverter : JsonConverter<int?>
             return reader.GetInt32();
         }
         var str = reader.GetString();
-        return string.IsNullOrEmpty(str) ? null : int.Parse(str, CultureInfo.CurrentCulture);
+        return string.IsNullOrEmpty(str)
+                   ? null
+                   : int.TryParse(str, CultureInfo.CurrentCulture, out var result)
+                       ? result
+                       : null;
     }
 
     /// <inheritdoc />

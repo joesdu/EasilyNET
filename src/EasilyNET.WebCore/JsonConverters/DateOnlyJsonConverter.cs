@@ -9,7 +9,8 @@ namespace EasilyNET.WebCore.JsonConverters;
 
 /// <summary>
 ///     <para xml:lang="en">
-///     JSON converter for <see cref="DateOnly" /> and nullable <see cref="DateOnly" /> types (used to convert string types of dates to backend-recognizable
+///     JSON converter for <see cref="DateOnly" /> and nullable <see cref="DateOnly" /> types (used to convert string types of dates to
+///     backend-recognizable
 ///     <see cref="DateOnly" /> type)
 ///     </para>
 ///     <para xml:lang="zh"><see cref="DateOnly" /> 和可空 <see cref="DateOnly" /> 类型的 JSON 转换器（用于将字符串类型的日期转换为后端可识别的 <see cref="DateOnly" /> 类型）</para>
@@ -31,7 +32,7 @@ public sealed class DateOnlyJsonConverter : JsonConverter<DateOnly?>
         {
             return null;
         }
-        return DateOnly.ParseExact(str, Constant.DateFormat, CultureInfo.CurrentCulture);
+        return DateOnly.TryParseExact(str, Constant.DateFormat, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var result) ? result : null;
     }
 
     /// <inheritdoc />
