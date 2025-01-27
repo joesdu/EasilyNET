@@ -53,23 +53,23 @@ services:
       - "4317:4317" # OTLP gRPC接收器
       - "4318:4318" # OTLP http接收器
 
-  openobserve:
-    image: public.ecr.aws/zinclabs/openobserve:latest
-    container_name: openobserve
-    volumes:
-      - obdata:/data
-    environment:
-      - TZ=Asia/Chongqing
-      - ZO_DATA_DIR=/data
-      - ZO_ROOT_USER_EMAIL=root@exp.com
-      - ZO_ROOT_USER_PASSWORD=a123456
-    ports:
-      - "5080:5080"
-
-volumes:
-  obdata:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./obdata
+#  openobserve:
+#    image: public.ecr.aws/zinclabs/openobserve:latest
+#    container_name: openobserve
+#    volumes:
+#      - obdata:/data
+#    environment:
+#      - TZ=Asia/Chongqing
+#      - ZO_DATA_DIR=/data
+#      - ZO_ROOT_USER_EMAIL=root@exp.com
+#      - ZO_ROOT_USER_PASSWORD=a123456
+#    ports:
+#      - "5080:5080"
+#
+#volumes:
+#  obdata:
+#    driver: local
+#    driver_opts:
+#      type: none
+#      o: bind
+#      device: ./obdata
