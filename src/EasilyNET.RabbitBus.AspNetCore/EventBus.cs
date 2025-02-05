@@ -17,9 +17,7 @@ namespace EasilyNET.RabbitBus.AspNetCore;
 
 internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager subsManager, IBusSerializer serializer, IServiceProvider sp, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pipelineProvider) : IBus
 {
-#pragma warning disable IDE0340 // Use unbound generic type
-    private const string HandleName = nameof(IEventHandler<IEvent>.HandleAsync);
-#pragma warning restore IDE0340 // Use unbound generic type
+    private const string HandleName = nameof(IEventHandler<>.HandleAsync);
     private readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Func<object, Task>?> _handleAsyncDelegateCache = [];
 
     public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
