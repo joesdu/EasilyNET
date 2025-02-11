@@ -17,8 +17,10 @@ namespace EasilyNET.RabbitBus.AspNetCore;
 
 internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager subsManager, IBusSerializer serializer, IServiceProvider sp, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pipelineProvider) : IBus
 {
+#pragma warning disable IDE0340 // Remove redundant assignment
     // ReSharper disable once RedundantTypeArgumentsInsideNameof
     private const string HandleName = nameof(IEventHandler<IEvent>.HandleAsync);
+#pragma warning restore IDE0340 // Remove redundant assignment
     private readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Func<object, Task>?> _handleAsyncDelegateCache = [];
 
     public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
@@ -105,8 +107,8 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
 
     public async Task Publish<T>(T @event, TimeSpan ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
     {
-        var real_ttl = ttl.TotalMilliseconds.ConvertTo<uint>();
-        await Publish(@event, real_ttl, routingKey, priority, cancellationToken);
+        var realTtl = ttl.TotalMilliseconds.ConvertTo<uint>();
+        await Publish(@event, realTtl, routingKey, priority, cancellationToken);
     }
 
     internal async Task Subscribe()
@@ -157,7 +159,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
             logger.LogWarning(ea.Exception, "Recreating consumer channel");
             subsManager.ClearSubscriptions();
             _handleAsyncDelegateCache.Clear();
-            await Subscribe().ConfigureAwait(false);
+            await Subscribe();
         };
         return channel;
     }
@@ -218,16 +220,33 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
                 catch (ObjectDisposedException ex)
                 {
                     logger.LogError(ex, "Channel was disposed before acknowledging message, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
-                    // 重新执行 Subscribe 方法，重新初始化消费者和服务端的连接
-                    subsManager.ClearSubscriptions();
-                    _handleAsyncDelegateCache.Clear();
-                    await Subscribe().ConfigureAwait(false);
+                    // 重新获取通道并重试
+                    await RetryAcknowledgeMessage(ea);
                 }
             });
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error processing message, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
+        }
+    }
+
+    private async Task RetryAcknowledgeMessage(BasicDeliverEventArgs ea)
+    {
+        try
+        {
+            if (!conn.IsConnected) await conn.TryConnect();
+            var newChannel = await conn.GetChannel();
+            await newChannel.BasicAckAsync(ea.DeliveryTag, false).ConfigureAwait(false);
+            await conn.ReturnChannel(newChannel).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to acknowledge message after retry, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
+            // 重新执行 Subscribe 方法，重新初始化消费者和服务端的连接
+            subsManager.ClearSubscriptions();
+            _handleAsyncDelegateCache.Clear();
+            await Subscribe();
         }
     }
 

@@ -14,18 +14,19 @@ internal sealed class ChannelPool(IConnection connection, uint poolCount) : ICha
     /// <inheritdoc />
     public async Task<IChannel> GetChannel()
     {
-        if (!_channels.TryTake(out var channel))
+        while (_channels.TryTake(out var channel))
         {
-            return await _connection.CreateChannelAsync();
+            if (channel.IsClosed) continue;
+            Interlocked.Decrement(ref _currentCount); // Safely decrement the count
+            return channel;
         }
-        Interlocked.Decrement(ref _currentCount); // Safely decrement the count
-        return channel;
+        return await _connection.CreateChannelAsync();
     }
 
     /// <inheritdoc />
     public async Task ReturnChannel(IChannel channel)
     {
-        if (Interlocked.Increment(ref _currentCount) > poolCount)
+        if (channel.IsClosed || Interlocked.Increment(ref _currentCount) > poolCount)
         {
             Interlocked.Decrement(ref _currentCount); // Safely decrement the count
             await channel.CloseAsync();
