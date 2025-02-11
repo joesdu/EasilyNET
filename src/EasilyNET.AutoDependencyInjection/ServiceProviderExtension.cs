@@ -3,6 +3,7 @@ using EasilyNET.Core.Misc;
 
 #pragma warning disable IDE0130 // 命名空间与文件夹结构不匹配
 
+// ReSharper disable once CheckNamespace
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
