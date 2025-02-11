@@ -1,3 +1,4 @@
+using EasilyNET.Mongo.AspNetCore.Serializers;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 
@@ -81,6 +82,35 @@ public static class SerializersCollectionExtensions
     {
         var objectSerializer = new ObjectSerializer(type => ObjectSerializer.DefaultAllowedTypes(type) || (type.FullName is not null && type.FullName.StartsWith("<>f__AnonymousType")));
         BsonSerializer.RegisterSerializer(objectSerializer);
+        return services;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Register global dictionary serializer for handling dictionaries with enum keys</para>
+    ///     <para xml:lang="zh">注册全局字典序列化器，用于处理使用枚举值作为键的字典类型数据</para>
+    ///     <remarks>
+    ///         <para xml:lang="en">
+    ///         Add a global dictionary serializer for MongoDB to handle dictionaries with enum keys.
+    ///         </para>
+    ///         <para xml:lang="zh">
+    ///         为MongoDB添加全局字典序列化器，以处理使用枚举值作为键的字典类型数据。
+    ///         </para>
+    ///         <example>
+    ///             <para>Usage:</para>
+    ///             <code>
+    /// <![CDATA[
+    /// builder.Services.RegisterGlobalEnumKeyDictionarySerializer();
+    /// ]]>
+    /// </code>
+    ///         </example>
+    ///     </remarks>
+    /// </summary>
+    /// <param name="services">
+    ///     <see cref="IServiceCollection" />
+    /// </param>
+    public static IServiceCollection RegisterGlobalEnumKeyDictionarySerializer(this IServiceCollection services)
+    {
+        BsonSerializer.RegisterGenericSerializerDefinition(typeof(Dictionary<,>), typeof(EnumKeyDictionarySerializer<,>));
         return services;
     }
 }
