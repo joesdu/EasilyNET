@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.OutputCaching;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
+using WebApi.Test.Unit.Domain;
 
 namespace WebApi.Test.Unit.Controllers;
 
@@ -132,6 +133,36 @@ public class MongoTestController(DbContext db) : ControllerBase
     {
         var coll = db.GetCollection<MultiEnum>(nameof(MultiEnum));
         await coll.InsertOneAsync(new());
+    }
+
+    /// <summary>
+    /// 使用枚举值作为字典的键
+    /// </summary>
+    /// <returns></returns>
+    [HttpPost("PostEnumKeyDic")]
+    public async Task<EnumKeyDicTest> PostEnumKeyDic()
+    {
+        var obj = new EnumKeyDicTest
+        {
+            Dic = new()
+            {
+                { EZodiac.兔, "兔" },
+                { EZodiac.牛, "牛" },
+                { EZodiac.狗, "狗" }
+            }
+        };
+        await db.EnumKeyDic.InsertOneAsync(obj);
+        return obj;
+    }
+
+    /// <summary>
+    /// 使用枚举值作为字典的键
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("GetEnumKeyDic")]
+    public async Task<List<EnumKeyDicTest>> GetEnumKeyDic()
+    {
+        return await db.EnumKeyDic.Find(c => true).ToListAsync();
     }
 }
 

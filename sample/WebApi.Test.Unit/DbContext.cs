@@ -23,4 +23,9 @@ public sealed class DbContext : MongoContext
     /// 家庭信息
     /// </summary>
     public IMongoCollection<FamilyInfo> FamilyInfo => Database.GetCollection<FamilyInfo>("family.info");
+
+    /// <summary>
+    /// 使用枚举值作为字典的键
+    /// </summary>
+    public IMongoCollection<EnumKeyDicTest> EnumKeyDic => Database.GetCollection<EnumKeyDicTest>("enum.key.dic");
 }
