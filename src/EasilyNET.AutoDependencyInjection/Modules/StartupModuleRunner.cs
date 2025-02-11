@@ -7,7 +7,7 @@ namespace EasilyNET.AutoDependencyInjection.Modules;
 /// <inheritdoc cref="IStartupModuleRunner" />
 internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModuleRunner
 {
-    private static readonly Lazy<StartupModuleRunner> LazyInstance = new(() => new(_startModuleType, _services));
+    private static readonly Lazy<StartupModuleRunner> _instance = new(() => new(_startModuleType, _services));
 
     private static Type? _startModuleType;
     private static IServiceCollection? _services;
@@ -22,13 +22,13 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
 
     internal static StartupModuleRunner Instance(Type startModuleType, IServiceCollection services)
     {
-        if (LazyInstance.IsValueCreated)
+        if (_instance.IsValueCreated)
         {
-            return LazyInstance.Value;
+            return _instance.Value;
         }
         Interlocked.CompareExchange(ref _startModuleType, startModuleType ?? throw new ArgumentNullException(nameof(startModuleType)), null);
         Interlocked.CompareExchange(ref _services, services ?? throw new ArgumentNullException(nameof(services)), null);
-        return LazyInstance.Value;
+        return _instance.Value;
     }
 
     private void ConfigureServices()
