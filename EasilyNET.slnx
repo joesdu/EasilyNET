@@ -1,0 +1,59 @@
+<Solution>
+  <Folder Name="/.github/">
+    <File Path=".github/dependabot.yml" />
+    <File Path=".github/release-drafter.yml" />
+  </Folder>
+  <Folder Name="/.github/ISSUE_TEMPLATE/">
+    <File Path=".github/ISSUE_TEMPLATE/bug.yml" />
+    <File Path=".github/ISSUE_TEMPLATE/config.yml" />
+    <File Path=".github/ISSUE_TEMPLATE/feature.yml" />
+    <File Path=".github/ISSUE_TEMPLATE/feedback.yml" />
+  </Folder>
+  <Folder Name="/.github/workflows/">
+    <File Path=".github/workflows/build_test.yml" />
+    <File Path=".github/workflows/releaser.yml" />
+  </Folder>
+  <Folder Name="/sample/">
+    <Project Path="sample/WebApi.Test.Unit/WebApi.Test.Unit.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="Build.ps1" />
+    <File Path="Directory.Build.props" />
+    <File Path="docker-compose.basic.service.yml" />
+    <File Path="docker-compose.mongo.rs.yml" />
+    <File Path="EasilyNET.snk" />
+    <File Path="gitemoji.md" />
+    <File Path="LICENSE" />
+    <File Path="otel-collector-config.yaml" />
+    <File Path="Push.ps1" />
+    <File Path="README.md" />
+    <File Path="Test.ps1" />
+  </Folder>
+  <Folder Name="/src/">
+    <File Path="src/Directory.Packages.props" />
+  </Folder>
+  <Folder Name="/src/Core/">
+    <Project Path="src/EasilyNET.Core/EasilyNET.Core.csproj" />
+    <Project Path="src/EasilyNET.WebCore.Swagger/EasilyNET.WebCore.Swagger.csproj" />
+    <Project Path="src/EasilyNET.WebCore/EasilyNET.WebCore.csproj" />
+  </Folder>
+  <Folder Name="/src/Framework/">
+    <Project Path="src/EasilyNET.AutoDependencyInjection.Core/EasilyNET.AutoDependencyInjection.Core.csproj" />
+    <Project Path="src/EasilyNET.AutoDependencyInjection/EasilyNET.AutoDependencyInjection.csproj" />
+    <Project Path="src/EasilyNET.RabbitBus.AspNetCore/EasilyNET.RabbitBus.AspNetCore.csproj" />
+    <Project Path="src/EasilyNET.RabbitBus.Core/EasilyNET.RabbitBus.Core.csproj" />
+    <Project Path="src/EasilyNET.Security/EasilyNET.Security.csproj" />
+  </Folder>
+  <Folder Name="/src/Mongo/">
+    <Project Path="src/EasilyNET.Mongo.AspNetCore/EasilyNET.Mongo.AspNetCore.csproj" />
+    <Project Path="src/EasilyNET.Mongo.ConsoleDebug/EasilyNET.Mongo.ConsoleDebug.csproj" />
+    <Project Path="src/EasilyNET.Mongo.Core/EasilyNET.Mongo.Core.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/EasilyNET.Core.Benchmark/EasilyNET.Core.Benchmark.csproj" />
+    <Project Path="test/EasilyNET.Test.Unit/EasilyNET.Test.Unit.csproj" />
+  </Folder>
+  <Properties Name="ExtensibilityGlobals" Scope="PostLoad">
+    <Property Name="RESX_NeutralResourcesLanguage" Value="zh-Hans" />
+  </Properties>
+</Solution>

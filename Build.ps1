@@ -27,7 +27,7 @@ function Exec
 $SOLUTION = $env:SOLUTION
 if (-not $SOLUTION)
 {
-  $SOLUTION = "EasilyNET.sln"
+  $SOLUTION = "EasilyNET.slnx"
 }
 $ARTIFACTS = $env:ARTIFACTS
 if (-not $ARTIFACTS)

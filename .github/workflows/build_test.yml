@@ -13,7 +13,7 @@ env:
   TZ: Asia/Chongqing
   # Windows
   #TZ: "China Standard Time"
-  SOLUTION: EasilyNET.sln
+  SOLUTION: EasilyNET.slnx
   ARTIFACTS: ./artifacts
 jobs:
   build:
