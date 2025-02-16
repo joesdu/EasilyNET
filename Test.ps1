@@ -23,13 +23,6 @@ function Exec
   }
 }
 
-# 尝试从环境变量中获取 SOLUTION，如果不存在则使用默认值
-$SOLUTION = $env:SOLUTION
-if (-not $SOLUTION)
-{
-  $SOLUTION = "EasilyNET.slnx"
-}
-
-exec { & dotnet clean $SOLUTION -c Release }
-exec { & dotnet build $SOLUTION -c Release }
-exec { & dotnet test $SOLUTION -c Release --no-build -l trx --verbosity=normal }
+exec { & dotnet clean -c Release }
+exec { & dotnet build -c Release }
+exec { & dotnet test -c Release --no-build -l trx --verbosity=normal }
