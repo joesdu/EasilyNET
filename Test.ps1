@@ -27,7 +27,7 @@ function Exec
 $SOLUTION = $env:SOLUTION
 if (-not $SOLUTION)
 {
-  $SOLUTION = "EasilyNET.sln"
+  $SOLUTION = "EasilyNET.slnx"
 }
 
 exec { & dotnet clean $SOLUTION -c Release }
