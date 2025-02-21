@@ -22,7 +22,7 @@ internal sealed class SubscribeService(IServiceProvider serviceProvider) : Backg
     {
         using var scope = serviceProvider.CreateScope();
         var bus = scope.ServiceProvider.GetRequiredService<IBus>() as EventBus ?? throw new InvalidOperationException("IBus service is not registered.");
-        await bus.Subscribe();
+        await bus.RunRabbit();
         while (!cancelToken.IsCancellationRequested) await Task.Delay(5000, cancelToken);
     }
 }

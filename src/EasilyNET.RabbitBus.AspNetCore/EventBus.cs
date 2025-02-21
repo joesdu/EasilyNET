@@ -4,6 +4,7 @@ using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using EasilyNET.RabbitBus.AspNetCore.Enums;
 using EasilyNET.RabbitBus.AspNetCore.Extensions;
+using EasilyNET.RabbitBus.AspNetCore.Manager;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Attributes;
 using EasilyNET.RabbitBus.Core.Enums;
@@ -15,7 +16,7 @@ using RabbitMQ.Client.Events;
 
 namespace EasilyNET.RabbitBus.AspNetCore;
 
-internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager subsManager, IBusSerializer serializer, IServiceProvider sp, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pipelineProvider) : IBus
+internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager subsManager, IBusSerializer serializer, IServiceProvider sp, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pipelineProvider) : IBus
 {
 #pragma warning disable IDE0340 // Remove redundant assignment
     // ReSharper disable once RedundantTypeArgumentsInsideNameof
@@ -25,12 +26,12 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
 
     public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
     {
-        if (!conn.IsConnected) await conn.TryConnect();
+        //if (!conn.IsConnected) await conn.TryConnect();
         var type = @event.GetType();
         var exc = type.GetCustomAttribute<ExchangeAttribute>() ??
                   throw new InvalidOperationException($"The event '{@event.GetType().Name}' is missing the required ExchangeAttribute. Unable to create the message.");
         if (!exc.Enable) return;
-        var channel = await conn.GetChannel();
+        var channel = conn.Channel;
         var properties = new BasicProperties
         {
             Persistent = true,
@@ -52,20 +53,20 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         {
             logger.LogTrace("Publishing event: {EventName} with ID: {EventId}", @event.GetType().Name, @event.EventId);
             await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
-            await conn.ReturnChannel(channel).ConfigureAwait(false);
+            //await conn.ReturnChannel(channel).ConfigureAwait(false);
         }).ConfigureAwait(false);
     }
 
     public async Task Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
     {
-        if (!conn.IsConnected) await conn.TryConnect();
+        //if (!conn.IsConnected) await conn.TryConnect();
         var type = @event.GetType();
         var exc = type.GetCustomAttribute<ExchangeAttribute>() ??
                   throw new InvalidOperationException($"The event '{@event.GetType().Name}' is missing the required ExchangeAttribute. Unable to create the message.");
         if (!exc.Enable) return;
         if (exc is not { WorkModel: EModel.Delayed })
             throw new InvalidOperationException($"The exchange type for the delayed queue must be '{nameof(EModel.Delayed)}'. Event: '{@event.GetType().Name}'");
-        var channel = await conn.GetChannel();
+        var channel = conn.Channel;
         var properties = new BasicProperties
         {
             Persistent = true,
@@ -101,7 +102,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         {
             logger.LogTrace("Publishing event: {EventName} with ID: {EventId}", @event.GetType().Name, @event.EventId);
             await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
-            await conn.ReturnChannel(channel).ConfigureAwait(false);
+            //await conn.ReturnChannel(channel).ConfigureAwait(false);
         }).ConfigureAwait(false);
     }
 
@@ -111,9 +112,8 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
         await Publish(@event, realTtl, routingKey, priority, cancellationToken);
     }
 
-    internal async Task Subscribe()
+    internal async Task RunRabbit()
     {
-        if (!conn.IsConnected) await conn.TryConnect();
         await InitialRabbit();
     }
 
@@ -137,7 +137,6 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
                     if (exc is not { WorkModel: EModel.None })
                     {
                         if (subsManager.HasSubscriptionsForEvent(@event.Name, handleKind)) return;
-                        if (!conn.IsConnected) await conn.TryConnect();
                         await channel.QueueBindAsync(exc.Queue, exc.ExchangeName, exc.RoutingKey);
                     }
                     subsManager.AddSubscription(@event, handleKind, handler);
@@ -150,7 +149,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
     private async Task<IChannel> CreateConsumerChannel(ExchangeAttribute exc, Type @event)
     {
         logger.LogTrace("Creating consumer channel");
-        var channel = await conn.GetChannel();
+        var channel = conn.Channel;
         var queueArgs = @event.GetQueueArgAttributes();
         await DeclareExchangeIfNeeded(exc, @event, channel);
         await channel.QueueDeclareAsync(exc.Queue, true, false, false, queueArgs);
@@ -159,7 +158,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
             logger.LogWarning(ea.Exception, "Recreating consumer channel");
             subsManager.ClearSubscriptions();
             _handleAsyncDelegateCache.Clear();
-            await Subscribe();
+            await RunRabbit();
         };
         return channel;
     }
@@ -235,10 +234,8 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
     {
         try
         {
-            if (!conn.IsConnected) await conn.TryConnect();
-            var newChannel = await conn.GetChannel();
+            var newChannel = conn.Channel;
             await newChannel.BasicAckAsync(ea.DeliveryTag, false).ConfigureAwait(false);
-            await conn.ReturnChannel(newChannel).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -246,7 +243,7 @@ internal sealed class EventBus(IPersistentConnection conn, ISubscriptionsManager
             // 重新执行 Subscribe 方法，重新初始化消费者和服务端的连接
             subsManager.ClearSubscriptions();
             _handleAsyncDelegateCache.Clear();
-            await Subscribe();
+            await RunRabbit();
         }
     }
 
