@@ -99,7 +99,7 @@ public static class ServiceCollectionExtension
         services.AddResiliencePipeline(Constant.ResiliencePipelineName, (builder, context) =>
         {
             var config = context.ServiceProvider.GetRequiredService<IOptionsMonitor<RabbitConfig>>().Get(Constant.OptionName);
-            var logger = context.ServiceProvider.GetRequiredService<ILogger<IPersistentConnection>>();
+            var logger = context.ServiceProvider.GetRequiredService<ILogger<PersistentConnection>>();
             builder.AddRetry(new()
             {
                 ShouldHandle = new PredicateBuilder().Handle<BrokerUnreachableException>().Handle<SocketException>().Handle<TimeoutRejectedException>(),
@@ -117,7 +117,7 @@ public static class ServiceCollectionExtension
             });
             builder.AddTimeout(TimeSpan.FromMinutes(1));
         });
-        services.AddSingleton<IPersistentConnection, PersistentConnection>();
+        services.AddSingleton<PersistentConnection>();
         return services;
     }
 
