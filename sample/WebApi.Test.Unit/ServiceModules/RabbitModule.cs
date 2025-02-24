@@ -14,7 +14,6 @@ internal sealed class RabbitModule : AppModule
         var config = context.ServiceProvider.GetConfiguration();
         context.Services.AddRabbitBus(config, c =>
         {
-            c.PoolCount = (uint)Environment.ProcessorCount;
             c.RetryCount = 5;
             //c.BusSerializer = new MsgPackSerializer();
         });

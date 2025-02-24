@@ -56,12 +56,6 @@ public sealed class RabbitConfig
     public int Port { get; set; } = 5672;
 
     /// <summary>
-    ///     <para xml:lang="en">The number of channels in the pool. Default is the number of logical processors on the machine</para>
-    ///     <para xml:lang="zh">池中的通道数量。默认是机器上的逻辑处理器数量</para>
-    /// </summary>
-    public uint PoolCount { get; set; } = 0;
-
-    /// <summary>
     ///     <para xml:lang="en">The number of retry attempts. Default is 5</para>
     ///     <para xml:lang="zh">重试次数。默认是 5</para>
     /// </summary>
