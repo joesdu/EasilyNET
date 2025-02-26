@@ -5,7 +5,6 @@ on:
     tags:
       - "*.*.*"
 env:
-  DOTNET_VERSION: "9.0.x"
   # Linux
   TZ: Asia/Chongqing
   # Windows
@@ -65,10 +64,13 @@ jobs:
       #- name: Display the latest tag
       #  run: Write-Host $EASILYNET_VERSION
 
-      - name: Setup .Net SDK
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
 
       - name: Build and Test
         run: ./Build.ps1

@@ -8,6 +8,8 @@ using Serilog.Sinks.SystemConsole.Themes;
 using WebApi.Test.Unit;
 using WebApi.Test.Unit.Common;
 
+#pragma warning disable CS1591 // 缺少对公共可见类型或成员的 XML 注释
+
 AssemblyHelper.LoadFromAllDll = false;
 // App init start time
 var appInitial = Stopwatch.GetTimestamp();

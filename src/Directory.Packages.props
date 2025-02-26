@@ -8,7 +8,7 @@
     <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
   </ItemGroup>
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <PropertyGroup>
@@ -20,16 +20,15 @@
     <PackageVersion Include="MongoDB.Driver" Version="3.2.1" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.1.0" />
     <PackageVersion Include="Serilog" Version="4.1.0-dev-02238" />
-    <PackageVersion Include="Spectre.Console.Json" Version="0.49.2-preview.0.75" />
+    <PackageVersion Include="Spectre.Console.Json" Version="0.49.2-preview.0.76" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="7.2.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.2.0" />
     <!--microsoft asp.net core -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="9.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0-preview.1.25080.5" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.0-preview.1.25080.5" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0-preview.1.25080.5" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0-preview.1.25080.5" />
     <PackageVersion Include="Microsoft.Extensions.Resilience" Version="9.2.0" />
-    <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="9.0.2" />
   </ItemGroup>
   <!-- 自定义任务来检查 TargetFramework -->
   <PropertyGroup>
