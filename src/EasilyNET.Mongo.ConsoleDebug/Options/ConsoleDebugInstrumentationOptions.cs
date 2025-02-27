@@ -1,3 +1,5 @@
+// ReSharper disable UnusedAutoPropertyAccessor.Global
+
 namespace EasilyNET.Mongo.ConsoleDebug.Options;
 
 /// <summary>

@@ -75,13 +75,13 @@ public sealed class ActivityEventDiagnosticsSubscriber : IEventSubscriber
         if (activity is null) return;
         var databaseName = @event.DatabaseNamespace?.DatabaseName;
         if (@event.Command.Elements.All(c => c.Name != @event.CommandName)) return;
-        var coll_name = @event.Command.Elements.First(c => c.Name == @event.CommandName).Value.ToString() ?? "N/A";
+        var collName = @event.Command.Elements.First(c => c.Name == @event.CommandName).Value.ToString() ?? "N/A";
         // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/database/database-spans.md
-        activity.DisplayName = string.IsNullOrEmpty(coll_name) ? $"{@event.CommandName} {databaseName}" : $"{@event.CommandName} {coll_name}";
+        activity.DisplayName = string.IsNullOrEmpty(collName) ? $"{@event.CommandName} {databaseName}" : $"{@event.CommandName} {collName}";
         activity.AddTag("db.system", "mongodb");
         activity.AddTag("db.connection_id", @event.ConnectionId?.ToString());
         activity.AddTag("db.namespace", databaseName);
-        activity.AddTag("db.collection.name", coll_name);
+        activity.AddTag("db.collection.name", collName);
         activity.AddTag("db.operation.name", @event.CommandName);
         activity.AddTag("network.transport", "tcp");
         var endPoint = @event.ConnectionId?.ServerId?.EndPoint;
