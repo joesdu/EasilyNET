@@ -73,7 +73,7 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
     /// </returns>
     public bool TryGetEventHandler<TEvent>(out Action<TEvent> handler) => _subscriber.TryGetEventHandler(out handler);
 
-    private void WritStatus(int request_id, bool success)
+    private void WritStatus(int requestId, bool success)
     {
         var duration = Stopwatch.GetElapsedTime(StartTime, EndTime).TotalMilliseconds; // 计算耗时，单位为毫秒
         var durationColor = duration switch
@@ -122,7 +122,7 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
                 }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand(), new Panel(table)
                 {
                     Height = 7,
-                    Header = new($"Request [#ff5f00]{request_id}[/] Status", Justify.Center)
+                    Header = new($"Request [#ff5f00]{requestId}[/] Status", Justify.Center)
                 }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand(), new Panel(new Text("""
                                                                                                           --------------------------------------
                                                                                                         /     Only two things are infinite,      \
@@ -157,12 +157,12 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
         if (RequestIdWithCollectionName.Count > 50) RequestIdWithCollectionName.Clear();
         if (@event.Command.Elements.All(c => c.Name != @event.CommandName)) return;
         StartTime = Stopwatch.GetTimestamp();
-        var coll_name = @event.Command.Elements.First(c => c.Name == @event.CommandName).Value.ToString() ?? "N/A";
-        RequestIdWithCollectionName.AddOrUpdate(@event.RequestId, coll_name, (_, v) => v);
+        var collName = @event.Command.Elements.First(c => c.Name == @event.CommandName).Value.ToString() ?? "N/A";
+        RequestIdWithCollectionName.AddOrUpdate(@event.RequestId, collName, (_, v) => v);
         switch (_options.Enable)
         {
             case true when !CommonExtensions.CommandsWithCollectionNameAsValue.Contains(@event.CommandName):
-            case true when _options.ShouldStartCollection is not null && !_options.ShouldStartCollection(coll_name):
+            case true when _options.ShouldStartCollection is not null && !_options.ShouldStartCollection(collName):
                 return;
             case true:
             {
@@ -174,7 +174,7 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
                                "Timestamp": "{{@event.Timestamp}}",
                                "Method": "{{@event.CommandName}}",
                                "Database": "{{@event.DatabaseNamespace?.DatabaseName}}",
-                               "Collection": "{{coll_name}}",
+                               "Collection": "{{collName}}",
                                "ClusterId": {{@event.ConnectionId?.ServerId?.ClusterId.Value}},
                                "Host": "{{endpoint?.Host ?? "N/A"}}",
                                "Port": {{endpoint?.Port}}
@@ -192,8 +192,8 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
         if (!_options.Enable) return;
         if (_options.ShouldStartCollection is not null)
         {
-            var success = RequestIdWithCollectionName.TryGetValue(@event.RequestId, out var coll_name);
-            if (success && !_options.ShouldStartCollection(coll_name!)) return;
+            var success = RequestIdWithCollectionName.TryGetValue(@event.RequestId, out var collName);
+            if (success && !_options.ShouldStartCollection(collName!)) return;
         }
         if (!CommonExtensions.CommandsWithCollectionNameAsValue.Contains(@event.CommandName)) return;
         EndTime = Stopwatch.GetTimestamp();
@@ -207,8 +207,8 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
         if (!_options.Enable) return;
         if (_options.ShouldStartCollection is not null)
         {
-            var success = RequestIdWithCollectionName.TryGetValue(@event.RequestId, out var coll_name);
-            if (success && !_options.ShouldStartCollection(coll_name!)) return;
+            var success = RequestIdWithCollectionName.TryGetValue(@event.RequestId, out var collName);
+            if (success && !_options.ShouldStartCollection(collName!)) return;
         }
         if (!CommonExtensions.CommandsWithCollectionNameAsValue.Contains(@event.CommandName)) return;
         WritStatus(@event.RequestId, false);

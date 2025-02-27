@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
+// ReSharper disable CheckNamespace
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 

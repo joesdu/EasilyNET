@@ -2,6 +2,7 @@ using EasilyNET.Mongo.AspNetCore.Serializers;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 
+// ReSharper disable CheckNamespace
 // ReSharper disable UnusedMethodReturnValue.Global
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
