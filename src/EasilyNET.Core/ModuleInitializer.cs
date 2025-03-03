@@ -1,22 +1,22 @@
+using EasilyNET.Core.Misc;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
-using EasilyNET.Core.Misc;
 
 namespace EasilyNET.Core;
 
 internal static class ModuleInitializer
 {
-    private const string logo = """
-                                 ______          _ _       _   _ ______ _______
-                                |  ____|        (_) |     | \ | |  ____|__   __|
-                                | |__   __ _ ___ _| |_   _|  \| | |__     | |
-                                |  __| / _` / __| | | | | | . ` |  __|    | |
-                                | |___| (_| \__ \ | | |_| | |\  | |____   | |
-                                |______\__,_|___/_|_|\__, |_| \_|______|  |_|
-                                                      __/ |
-                                                     |___/
-                                """;
+    // private const string logo = """
+    //                              ______          _ _       _   _ ______ _______
+    //                             |  ____|        (_) |     | \ | |  ____|__   __|
+    //                             | |__   __ _ ___ _| |_   _|  \| | |__     | |
+    //                             |  __| / _` / __| | | | | | . ` |  __|    | |
+    //                             | |___| (_| \__ \ | | |_| | |\  | |____   | |
+    //                             |______\__,_|___/_|_|\__, |_| \_|______|  |_|
+    //                                                   __/ |
+    //                                                  |___/
+    //                             """;
 
     private const string welcomeMessage = "Welcome EasilyNET Project";
 
@@ -32,9 +32,10 @@ internal static class ModuleInitializer
                       .FirstOrDefault(attr => attr.Key == "RepositoryUrl")?.Value ??
               "未知URL";
         // 计算图形的宽度
-        var logoWidth = logo.Split('\n').Max(line => Encoding.ASCII.GetBytes(line).Length);
+        // var logoWidth = logo.Split('\n').Max(line => Encoding.ASCII.GetBytes(line).Length);
         // 计算欢迎消息前的空格数量
-        var padding = ((logoWidth - Encoding.ASCII.GetBytes(welcomeMessage).Length) / 2) - 3;
+        //var padding = ((logoWidth - Encoding.ASCII.GetBytes(welcomeMessage).Length) / 2) - 3;
+        var padding = Encoding.ASCII.GetBytes(welcomeMessage).Length / 2 - 3;
         // 创建居中的欢迎消息
         centeredWelcomeMessage = welcomeMessage.PadLeft(padding + welcomeMessage.Length);
     }
@@ -49,8 +50,6 @@ internal static class ModuleInitializer
         if (TextWriterExtensions.IsAnsiSupported())
         {
             Console.WriteLine($"""
-                               {logo}
-
                                {centeredWelcomeMessage}
                                Ver: [32m{version}[0m
                                Url: [35m{url}[0m
@@ -59,8 +58,8 @@ internal static class ModuleInitializer
         }
         else
         {
-            Console.WriteLine(logo);
-            Console.WriteLine();
+            // Console.WriteLine(logo);
+            // Console.WriteLine();
             Console.WriteLine(centeredWelcomeMessage);
             Console.Write("Ver: ");
             Console.ForegroundColor = ConsoleColor.Green;
