@@ -18,6 +18,7 @@
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Build.ps1" />
+    <File Path="ClearCPM.ps1" />
     <File Path="Directory.Build.props" />
     <File Path="docker-compose.basic.service.yml" />
     <File Path="docker-compose.mongo.rs.yml" />
