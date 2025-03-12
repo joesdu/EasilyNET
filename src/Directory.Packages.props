@@ -27,7 +27,7 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.0-preview.1.25080.5" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0-preview.1.25080.5" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0-preview.1.25080.5" />
-    <PackageVersion Include="Microsoft.Extensions.Resilience" Version="9.2.0" />
+    <PackageVersion Include="Microsoft.Extensions.Resilience" Version="9.3.0" />
   </ItemGroup>
   <!-- 自定义任务来检查 TargetFramework -->
   <PropertyGroup>
