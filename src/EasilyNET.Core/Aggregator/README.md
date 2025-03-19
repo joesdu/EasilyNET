@@ -7,22 +7,27 @@
 <details>
 <summary style="font-size: 14px">English</summary>
 
-> A simple event aggregator that decouples event publishers and subscribers. Establish a one-to-many relationship between event publishers and subscribers, allowing subscribers to subscribe to events, and when event publishers publish events, subscribers can receive events.
+> A simple event aggregator that decouples event publishers and subscribers. Establish a one-to-many relationship
+> between event publishers and subscribers, allowing subscribers to subscribe to events, and when event publishers
+> publish
+> events, subscribers can receive events.
 
 </details>
 
 ##### 使用方法(Usage)
 
--   这里采用依赖注入的模式来提供示例代码,默认认为你已经了解依赖注入的基本概念,并且注入了 SimpleEventAggregator 实例.
--   其他方式请手动管理 SimpleEventAggregator 实例的生命周期.推荐使用单例模式.
--   以下是在依赖注入模式下使用 SimpleEventAggregator 的示例代码.
+- 这里采用依赖注入的模式来提供示例代码,默认认为你已经了解依赖注入的基本概念,并且注入了 SimpleEventAggregator 实例.
+- 其他方式请手动管理 SimpleEventAggregator 实例的生命周期.推荐使用单例模式.
+- 以下是在依赖注入模式下使用 SimpleEventAggregator 的示例代码.
 
 <details>
 <summary style="font-size: 14px">English</summary>
 
--   Here we use the dependency injection pattern to provide sample code, assuming you already understand the basic concepts of dependency injection and have injected the SimpleEventAggregator instance.
--   Other ways to manually manage the lifecycle of the SimpleEventAggregator instance. It is recommended to use the singleton pattern.
--   The following is an example of using the SimpleEventAggregator in the dependency injection pattern.
+- Here we use the dependency injection pattern to provide sample code, assuming you already understand the basic
+  concepts of dependency injection and have injected the SimpleEventAggregator instance.
+- Other ways to manually manage the lifecycle of the SimpleEventAggregator instance. It is recommended to use the
+  singleton pattern.
+- The following is an example of using the SimpleEventAggregator in the dependency injection pattern.
 
 </details>
 

@@ -30,14 +30,14 @@ exporters:
 service:
     pipelines:
         traces:
-            receivers: [otlp]
-            processors: [batch]
-            exporters: [otlp/aspire, otlp/openobserve]
+            receivers: [ otlp ]
+            processors: [ batch ]
+            exporters: [ otlp/aspire, otlp/openobserve ]
         metrics:
-            receivers: [otlp]
-            processors: [batch]
-            exporters: [otlp/aspire, otlp/openobserve]
+            receivers: [ otlp ]
+            processors: [ batch ]
+            exporters: [ otlp/aspire, otlp/openobserve ]
         logs:
-            receivers: [otlp]
-            processors: [batch]
-            exporters: [otlp/aspire, otlp/openobserve]
+            receivers: [ otlp ]
+            processors: [ batch ]
+            exporters: [ otlp/aspire, otlp/openobserve ]

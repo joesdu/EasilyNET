@@ -4,31 +4,31 @@
 
 #### 地球坐标(WGS84)
 
--   国际标准,从 GPS 设备中取出的数据的坐标系
--   国际地图提供商使用的坐标系
+- 国际标准,从 GPS 设备中取出的数据的坐标系
+- 国际地图提供商使用的坐标系
 
 #### 火星坐标(GCJ-02)也叫国测局坐标系
 
--   中国标准,从国行移动设备中定位获取的坐标数据使用这个坐标系
--   国家规定: 国内出版的各种地图系统(包括电子形式),必须至少采用 GCJ-02 对地理位置进行首次加密.
+- 中国标准,从国行移动设备中定位获取的坐标数据使用这个坐标系
+- 国家规定: 国内出版的各种地图系统(包括电子形式),必须至少采用 GCJ-02 对地理位置进行首次加密.
 
 #### 百度坐标(BD-09)
 
--   百度标准,百度 SDK,百度地图,GeoCoding 使用 -(本来就乱了,百度又在火星坐标上来个二次加密)
+- 百度标准,百度 SDK,百度地图,GeoCoding 使用 -(本来就乱了,百度又在火星坐标上来个二次加密)
 
 ### 开发过程需要注意的事
 
--   从设备获取经纬度(GPS)坐标
+- 从设备获取经纬度(GPS)坐标
 
-    如果使用的是百度 sdk 那么可以获得百度坐标(bd09)或者火星坐标(GCJ02),默认是 bd09 如果使用的是 ios 的原生定位库,那么获得的坐标是
-    WGS84 如果使用的是高德 sdk,那么获取的坐标是 GCJ02
+  如果使用的是百度 sdk 那么可以获得百度坐标(bd09)或者火星坐标(GCJ02),默认是 bd09 如果使用的是 ios 的原生定位库,那么获得的坐标是
+  WGS84 如果使用的是高德 sdk,那么获取的坐标是 GCJ02
 
--   互联网在线地图使用的坐标系
+- 互联网在线地图使用的坐标系
 
-        火星坐标系:
+      火星坐标系:
 
-    iOS 地图(其实是高德) Google 国内地图(.cn 域名下) 搜搜、阿里云、高德地图、腾讯百度坐标系: 当然只有百度地图 WGS84 坐标系:
-    国际标准,谷歌国外地图、osm 地图等国外的地图一般都是这个
+  iOS 地图(其实是高德) Google 国内地图(.cn 域名下) 搜搜、阿里云、高德地图、腾讯百度坐标系: 当然只有百度地图 WGS84 坐标系:
+  国际标准,谷歌国外地图、osm 地图等国外的地图一般都是这个
 
 <details>
 <summary style="font-size: 14px">English</summary>
@@ -37,28 +37,34 @@
 
 #### Earth coordinates (WGS84)
 
--   International standard, the coordinate system of data taken from GPS devices
--   Coordinate system used by international map providers
+- International standard, the coordinate system of data taken from GPS devices
+- Coordinate system used by international map providers
 
 #### Mars coordinates (GCJ-02) also known as the national coordinate system
 
--   Chinese standard, the coordinate data obtained from domestic mobile devices is used in this coordinate system
--   National regulations: Various map systems published in China (including electronic form) must encrypt geographic locations at least once using GCJ-02.
+- Chinese standard, the coordinate data obtained from domestic mobile devices is used in this coordinate system
+- National regulations: Various map systems published in China (including electronic form) must encrypt geographic
+  locations at least once using GCJ-02.
 
 #### Baidu coordinates (BD-09)
 
--   Baidu standard, Baidu SDK, Baidu Maps, GeoCoding use -(originally confused, Baidu adds a second encryption to Mars coordinates)
+- Baidu standard, Baidu SDK, Baidu Maps, GeoCoding use -(originally confused, Baidu adds a second encryption to Mars
+  coordinates)
 
 #### Things to note in the development process
 
--   Get latitude and longitude (GPS) coordinates from the device
-    If you are using the Baidu SDK, you can get Baidu coordinates (bd09) or Mars coordinates (GCJ02), which are bd09 by default. If you are using the native iOS positioning library, the coordinates you get are WGS84. If you are using the Gaode SDK, the coordinates you get are GCJ02.
+- Get latitude and longitude (GPS) coordinates from the device
+  If you are using the Baidu SDK, you can get Baidu coordinates (bd09) or Mars coordinates (GCJ02), which are bd09 by
+  default. If you are using the native iOS positioning library, the coordinates you get are WGS84. If you are using the
+  Gaode SDK, the coordinates you get are GCJ02.
 
--   Coordinate system used by Internet online maps
+- Coordinate system used by Internet online maps
 
-         Mars coordinate system:
+       Mars coordinate system:
 
-    iOS Maps (actually Gaode) Google domestic maps (.cn domain) Soso, Aliyun, Gaode Maps, Tencent Baidu coordinate system: Of course, only Baidu Maps WGS84 coordinate system: International standard, Google foreign maps, osm maps, etc., foreign maps are generally this
+  iOS Maps (actually Gaode) Google domestic maps (.cn domain) Soso, Aliyun, Gaode Maps, Tencent Baidu coordinate system:
+  Of course, only Baidu Maps WGS84 coordinate system: International standard, Google foreign maps, osm maps, etc.,
+  foreign maps are generally this
 
 </details>
 

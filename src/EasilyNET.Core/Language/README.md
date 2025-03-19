@@ -5,7 +5,8 @@
 <details>
 <summary style="font-size: 14px">English</summary>
 
-> Add syntactic sugar to C#, so that you can use `..` instead of the `Enumerable.Range` method, as well as the extension method of the `..` syntactic sugar.
+> Add syntactic sugar to C#, so that you can use `..` instead of the `Enumerable.Range` method, as well as the extension
+> method of the `..` syntactic sugar.
 
 </details>
 

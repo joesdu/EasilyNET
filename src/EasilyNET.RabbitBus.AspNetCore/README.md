@@ -3,14 +3,14 @@
 支持延时队列,服务端需要启用 [rabbitmq-delayed-message-exchange](https://github.com/rabbitmq/rabbitmq-delayed-message-exchange)
 插件
 
--   支持同一个消息被多个 Handler 消费
--   若是就是想写多个 Handler 但是又希望某些 Handler 不执行,可以在不需要的 Handler 上标记 [IgnoreHandler] 特性
+- 支持同一个消息被多个 Handler 消费
+- 若是就是想写多个 Handler 但是又希望某些 Handler 不执行,可以在不需要的 Handler 上标记 [IgnoreHandler] 特性
 
 ##### 如何使用
 
--   首先使用 Nuget 包管理工具添加依赖 EasilyNET.RabbitBus.AspNetCore
--   等待下载完成和同意开源协议后,即可使用本库.
--   Step1.在 Program.cs 中配置消息总线
+- 首先使用 Nuget 包管理工具添加依赖 EasilyNET.RabbitBus.AspNetCore
+- 等待下载完成和同意开源协议后,即可使用本库.
+- Step1.在 Program.cs 中配置消息总线
 
 ```csharp
 // 配置服务(亦可使用集群模式或者使用配置文件,或者环境变量.)
@@ -26,7 +26,7 @@ builder.Services.AddRabbitBus(c =>
 });
 ```
 
--   Step2.接下来配置事件和事件处理器
+- Step2.接下来配置事件和事件处理器
 
 ```csharp
 /// <summary>
@@ -78,7 +78,7 @@ public class TestEventHandlerSecond(ILogger<TestEventHandlerSecond> logger) : IE
 }
 ```
 
--   Step3.使用消息队列发送消息
+- Step3.使用消息队列发送消息
 
 ```csharp
 private readonly IBus _ibus;
@@ -103,8 +103,9 @@ public async Task TTLTest()
 
 #### 使用自定义序列化器
 
--   默认序列化器是 System.Text.Json,若是需要使用其他序列化器,可以实现 IBusSerializer 接口,然后在配置中指定序列化器.
--   若是单独开启一个项目用于该实现,推荐使用基础 Nuget 包 EasilyNET.RabbitBus.Core 然后实现 IBusSerializer 接口即可.这里以 MessagePack 为例.
+- 默认序列化器是 System.Text.Json,若是需要使用其他序列化器,可以实现 IBusSerializer 接口,然后在配置中指定序列化器.
+- 若是单独开启一个项目用于该实现,推荐使用基础 Nuget 包 EasilyNET.RabbitBus.Core 然后实现 IBusSerializer 接口即可.这里以
+  MessagePack 为例.
 
 ```csharp
 /// <summary>
@@ -147,7 +148,7 @@ public sealed class MsgPackSerializer : IBusSerializer
 }
 ```
 
--   然后调整服务注册代码添加如下内容
+- 然后调整服务注册代码添加如下内容
 
 ```csharp
 // 配置服务(亦可使用集群模式或者使用配置文件,或者环境变量.)

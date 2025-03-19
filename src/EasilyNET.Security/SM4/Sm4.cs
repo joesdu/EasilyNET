@@ -312,7 +312,7 @@ internal sealed class Sm4
         byte[] ret;
         if (mode is ESm4Model.Encrypt)
         {
-            var p = 16 - (input.Length % 16);
+            var p = 16 - input.Length % 16;
             ret = new byte[input.Length + p];
             input.CopyTo(ret);
             for (var i = 0; i < p; i++)

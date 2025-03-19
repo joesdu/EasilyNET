@@ -8,12 +8,10 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <inheritdoc />
 internal sealed class PersistentConnection : IDisposable
 {
-    private readonly ILogger<PersistentConnection> _logger;
     private readonly Lazy<IChannel> _channel;
     private readonly Lazy<IConnection> _connection;
+    private readonly ILogger<PersistentConnection> _logger;
     private bool _disposed;
-
-    public IChannel Channel => _channel.Value;
 
     public PersistentConnection(IConnectionFactory connFactory, IOptionsMonitor<RabbitConfig> options, ILogger<PersistentConnection> logger)
     {
@@ -25,6 +23,8 @@ internal sealed class PersistentConnection : IDisposable
                                     : connFactory.CreateConnectionAsync().Result);
         _channel = new(() => _connection.Value.CreateChannelAsync().Result);
     }
+
+    public IChannel Channel => _channel.Value;
 
     public void Dispose()
     {
@@ -41,5 +41,8 @@ internal sealed class PersistentConnection : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    ~PersistentConnection() => Dispose();
+    ~PersistentConnection()
+    {
+        Dispose();
+    }
 }
