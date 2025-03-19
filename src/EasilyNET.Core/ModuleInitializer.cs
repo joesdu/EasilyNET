@@ -1,7 +1,7 @@
-using EasilyNET.Core.Misc;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using EasilyNET.Core.Misc;
 
 namespace EasilyNET.Core;
 

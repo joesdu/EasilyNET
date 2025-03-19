@@ -3,7 +3,7 @@
 > 常使用 EF 的小伙伴就应该能够知道,可以让 EF 生产的 SQL 语句输出到控制台,在开发的时候非常方便调试.<br/>
 > 而 MongoDB 却没有这样的功能,所以产生了这个库,虽然不完美,但是能够解决一些开发过程中不方便排查问题的情况.
 
--   最终效果类似如下:
+- 最终效果类似如下:
 
 ```txt
  ╭───────────────────────────────Command─────────────────────────╮╭──────────────────Calendar──────────────────╮
@@ -55,7 +55,7 @@
 
 ### 使用方法
 
--   使用默认值配置
+- 使用默认值配置
 
 ```csharp
 var clientSettings = MongoClientSettings.FromUrl(mongoUrl);
@@ -63,7 +63,7 @@ clientSettings.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventConsole
 var mongoClient = new MongoClient(clientSettings);
 ```
 
--   使用集合名称进行过滤
+- 使用集合名称进行过滤
 
 ```csharp
 var clientSettings = MongoClientSettings.FromUrl(mongoUrl);
@@ -81,7 +81,7 @@ clientSettings.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventConsole
 var mongoClient = new MongoClient(clientSettings);
 ```
 
--   添加 MongoDB 诊断信息输出到 OpenTelemetry
+- 添加 MongoDB 诊断信息输出到 OpenTelemetry
 
 ```csharp
 // 在上面的基础上,添加如下代码

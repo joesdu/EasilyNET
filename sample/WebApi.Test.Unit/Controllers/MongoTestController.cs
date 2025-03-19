@@ -111,8 +111,7 @@ public class MongoTestController(DbContext db) : ControllerBase
     /// <param name="id"></param>
     /// <returns></returns>
     [HttpGet("Test2")]
-    public async Task<MongoTest2> GetTest2([DefaultValue(typeof(string), "1")] string id) =>
-        await db.Test2.Find(c => c.Id == id).SingleOrDefaultAsync();
+    public async Task<MongoTest2> GetTest2([DefaultValue(typeof(string), "1")] string id) => await db.Test2.Find(c => c.Id == id).SingleOrDefaultAsync();
 
     /// <summary>
     /// 查询测试Test2

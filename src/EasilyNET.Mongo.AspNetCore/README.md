@@ -1,22 +1,22 @@
 ### EasilyNET.Mongo.AspNetCore
 
--   一个 MongoDB 驱动的服务包,方便使用 MongoDB 数据库.
--   数据库中字段名驼峰命名,ID,Id 自动转化成 ObjectId.
--   可配置部分类的 Id 字段不存为 ObjectId,而存为 string 类型.支持子对象以及集合成员的 Id 字段转化.
--   自动本地化 MongoDB 时间类型
--   添加.Net6 Date/Time Only 类型支持(序列化到 String 或 long)
+- 一个 MongoDB 驱动的服务包,方便使用 MongoDB 数据库.
+- 数据库中字段名驼峰命名,ID,Id 自动转化成 ObjectId.
+- 可配置部分类的 Id 字段不存为 ObjectId,而存为 string 类型.支持子对象以及集合成员的 Id 字段转化.
+- 自动本地化 MongoDB 时间类型
+- 添加.Net6 Date/Time Only 类型支持(序列化到 String 或 long)
 
 ---
 
 ##### ChangeLogs
 
--   支持自定义 TimeOnly 和 DateOnly 的格式化格式.
+- 支持自定义 TimeOnly 和 DateOnly 的格式化格式.
     1. 支持转换成字符串格式
     2. 转换成 Ticks 的方式存储
     3. 若想转化成其他类型也可自行实现,如:转化成 ulong 类型
--   添加动态类型支持[object 和 dynamic], 2.20 版后官方又加上了.
-    JsonArray.
--   添加 JsonNode 类型支持.
+- 添加动态类型支持[object 和 dynamic], 2.20 版后官方又加上了.
+  JsonArray.
+- 添加 JsonNode 类型支持.
 
 ---
 
@@ -24,7 +24,8 @@
 
 -
 
-JsonNode 类型因为反序列化时不支持 Unicode 字符，如果需要序列化插入至其他地方（例如 Redis），在序列化时需要将 JsonSerializerOptions 的 Encoder 属性设置为 System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping.
+JsonNode 类型因为反序列化时不支持 Unicode 字符，如果需要序列化插入至其他地方（例如 Redis），在序列化时需要将
+JsonSerializerOptions 的 Encoder 属性设置为 System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping.
 
 ```csharp
 builder.Services.AddMongoContext<DbContext>(builder.Configuration)
@@ -41,12 +42,12 @@ builder.Services.RegisterSerializer(new JsonNodeSerializer());
 
 #### 使用
 
--   Nuget 安装 EasilyNET.Mongo.AspNetCore
--   在系统环境变量或者 Docker 容器中设置环境变量名称为: CONNECTIONSTRINGS_MONGO = mongodb 链接字符串 或者在
-    appsettings.json 中添加,
--   现在你也可以参考 example.api 项目查看直接传入相关数据.
--   添加 APM
-    探针支持,根据 [SkyApm.Diagnostics.MongoDB](https://github.com/SkyAPM/SkyAPM-dotnet/tree/main/src/SkyApm.Diagnostics.MongoDB)
+- Nuget 安装 EasilyNET.Mongo.AspNetCore
+- 在系统环境变量或者 Docker 容器中设置环境变量名称为: CONNECTIONSTRINGS_MONGO = mongodb 链接字符串 或者在
+  appsettings.json 中添加,
+- 现在你也可以参考 example.api 项目查看直接传入相关数据.
+- 添加 APM
+  探针支持,根据 [SkyApm.Diagnostics.MongoDB](https://github.com/SkyAPM/SkyAPM-dotnet/tree/main/src/SkyApm.Diagnostics.MongoDB)
 
 ```json
 {
@@ -105,8 +106,8 @@ var app = builder.Build();
 
 ##### 方法 2. 使用 EasilyNET.AutoDependencyInjection
 
--   项目添加 EasilyNET.AutoDependencyInjection Nuget 包
--   创建 EasilyNETMongoModule.cs 并继承 AppModule 类
+- 项目添加 EasilyNET.AutoDependencyInjection Nuget 包
+- 创建 EasilyNETMongoModule.cs 并继承 AppModule 类
 
 ```csharp
 public class EasilyNETMongoModule : AppModule
@@ -197,7 +198,7 @@ public class EasilyNETMongoModule : AppModule
 }
 ```
 
--   创建 AppWebModule.cs 并添加 EasilyNETMongoModule
+- 创建 AppWebModule.cs 并添加 EasilyNETMongoModule
 
 ```csharp
 /**
@@ -231,7 +232,7 @@ public class AppWebModule : AppModule
 }
 ```
 
--   最后在 Program.cs 中添加如下内容
+- 最后在 Program.cs 中添加如下内容
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
@@ -255,14 +256,14 @@ app.Run();
 
 #### 使用 GridFS
 
--   注册服务
+- 注册服务
 
 ```csharp
 // 需要提前注册 IMongoDatabase, 或者使用其他重载来注册服务.
 builder.Services.AddMongoGridFS();
 ```
 
--   使用依赖注入获取 GridFSBucket 操作 GridFS
+- 使用依赖注入获取 GridFSBucket 操作 GridFS
 
 ```csharp
 public class YourClass(IGridFSBucket bucket)
