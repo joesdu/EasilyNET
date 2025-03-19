@@ -58,11 +58,13 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
         if (info.Start is not null) f &= _bf.Gte(c => c.CreateTime, info.Start);
         if (info.End is not null) f &= _bf.Lte(c => c.CreateTime, info.End);
         if (!string.IsNullOrWhiteSpace(info.Key))
+        {
             f &= _bf.Or(_bf.Where(c => c.FileName.Contains(info.Key!)),
                 _bf.Where(c => c.UserName.Contains(info.Key!)),
                 _bf.Where(c => c.UserId.Contains(info.Key!)),
                 _bf.Where(c => c.App.Contains(info.Key!)),
                 _bf.Where(c => c.BusinessType.Contains(info.Key!)));
+        }
         var total = await Coll.CountDocumentsAsync(f, cancellationToken: cancellationToken);
         var list = await Coll
                          .FindAsync(f, new()
