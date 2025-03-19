@@ -57,7 +57,10 @@ builder.Host.UseSerilog((hbc, lc) =>
 // Automatically inject service modules
 builder.Services.AddApplicationModules<AppWebModule>();
 var app = builder.Build();
-if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
 
 // Add middleware for automatic injection
 app.InitializeApplication();
