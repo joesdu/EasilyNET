@@ -20,8 +20,8 @@ export default function() {
 
     const params = {
         headers: {
-            'Content-Type': 'application/json',
-        },
+            'Content-Type': 'application/json'
+        }
     };
 
     const res = http.post(url, params);
