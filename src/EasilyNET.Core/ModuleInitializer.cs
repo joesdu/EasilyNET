@@ -35,7 +35,7 @@ internal static class ModuleInitializer
         // var logoWidth = logo.Split('\n').Max(line => Encoding.ASCII.GetBytes(line).Length);
         // 计算欢迎消息前的空格数量
         //var padding = ((logoWidth - Encoding.ASCII.GetBytes(welcomeMessage).Length) / 2) - 3;
-        var padding = Encoding.ASCII.GetBytes(welcomeMessage).Length / 2 - 3;
+        var padding = (Encoding.ASCII.GetBytes(welcomeMessage).Length / 2) - 3;
         // 创建居中的欢迎消息
         centeredWelcomeMessage = welcomeMessage.PadLeft(padding + welcomeMessage.Length);
     }
@@ -50,6 +50,7 @@ internal static class ModuleInitializer
         if (TextWriterExtensions.IsAnsiSupported())
         {
             Console.WriteLine($"""
+
                                {centeredWelcomeMessage}
                                Ver: [32m{version}[0m
                                Url: [35m{url}[0m
@@ -59,7 +60,7 @@ internal static class ModuleInitializer
         else
         {
             // Console.WriteLine(logo);
-            // Console.WriteLine();
+            Console.WriteLine();
             Console.WriteLine(centeredWelcomeMessage);
             Console.Write("Ver: ");
             Console.ForegroundColor = ConsoleColor.Green;
