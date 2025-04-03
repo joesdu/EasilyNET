@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <Project>
   <PropertyGroup>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
@@ -17,12 +16,12 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Backport.System.Threading.Lock" Version="3.1.4" />
-    <PackageVersion Include="BouncyCastle.Cryptography" Version="2.5.1" />
-    <PackageVersion Include="MongoDB.Driver" Version="3.2.1" />
+    <PackageVersion Include="BouncyCastle.Cryptography" Version="2.6.0-beta.106" />
+    <PackageVersion Include="MongoDB.Driver" Version="3.3.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.1.2" />
-    <PackageVersion Include="Spectre.Console.Json" Version="0.49.2-preview.0.76" />
-    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="8.0.0" />
-    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="8.0.0" />
+    <PackageVersion Include="Spectre.Console.Json" Version="0.49.2-preview.0.77" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="8.1.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="8.1.0" />
     <!--microsoft asp.net core -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0-preview.2.25163.2" />
     <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.0-preview.2.25163.2" />
@@ -34,9 +33,7 @@
   <PropertyGroup>
     <IsVisualStudioMSBuild Condition="'$(MSBuildRuntimeType)' == 'Full'">true</IsVisualStudioMSBuild>
   </PropertyGroup>
-  <UsingTask TaskName="CheckTargetFrameworkTask" TaskFactory="CodeTaskFactory"
-             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll"
-             Condition="'$(IsVisualStudioMSBuild)' == 'true' and '$(UseWPF)' != 'true' and '$(UseWindowsForms)' != 'true'">
+  <UsingTask TaskName="CheckTargetFrameworkTask" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" Condition="'$(IsVisualStudioMSBuild)' == 'true' and '$(UseWPF)' != 'true' and '$(UseWindowsForms)' != 'true'">
     <ParameterGroup>
       <ProjectFile ParameterType="System.String" Required="true" />
     </ParameterGroup>
@@ -51,8 +48,7 @@
                 ]]></Code>
     </Task>
   </UsingTask>
-  <Target Name="CheckTargetFramework" BeforeTargets="BeforeBuild"
-          Condition="'$(IsVisualStudioMSBuild)' == 'true' and '$(UseWPF)' != 'true'">
+  <Target Name="CheckTargetFramework" BeforeTargets="BeforeBuild" Condition="'$(IsVisualStudioMSBuild)' == 'true' and '$(UseWPF)' != 'true'">
     <CheckTargetFrameworkTask ProjectFile="$(MSBuildProjectFullPath)" />
   </Target>
 </Project>

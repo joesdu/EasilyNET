@@ -30,7 +30,10 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
         var type = @event.GetType();
         var exc = type.GetCustomAttribute<ExchangeAttribute>() ??
                   throw new InvalidOperationException($"The event '{@event.GetType().Name}' is missing the required ExchangeAttribute. Unable to create the message.");
-        if (!exc.Enable) return;
+        if (!exc.Enable)
+        {
+            return;
+        }
         var channel = conn.Channel;
         var properties = new BasicProperties
         {
@@ -39,19 +42,28 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
             Priority = priority.GetValueOrDefault()
         };
         var headers = @event.GetHeaderAttributes();
-        if (headers is not null && headers.Count is not 0) properties.Headers = headers;
+        if (headers is not null && headers.Count is not 0)
+        {
+            properties.Headers = headers;
+        }
         if (exc is not { WorkModel: EModel.None })
         {
             var exchangeArgs = @event.GetExchangeArgAttributes();
             await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, arguments: exchangeArgs);
         }
         // 在发布事件前检查是否已经取消发布
-        if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
+        if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested)
+        {
+            return;
+        }
         var body = serializer.Serialize(@event, @event.GetType());
         var pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
         await pipeline.ExecuteAsync(async ct =>
         {
-            logger.LogTrace("Publishing event: {EventName} with ID: {EventId}", @event.GetType().Name, @event.EventId);
+            if (logger.IsEnabled(LogLevel.Trace))
+            {
+                logger.LogTrace("Publishing event: {EventName} with ID: {EventId}", @event.GetType().Name, @event.EventId);
+            }
             await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
             //await conn.ReturnChannel(channel).ConfigureAwait(false);
         }).ConfigureAwait(false);
@@ -63,9 +75,14 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
         var type = @event.GetType();
         var exc = type.GetCustomAttribute<ExchangeAttribute>() ??
                   throw new InvalidOperationException($"The event '{@event.GetType().Name}' is missing the required ExchangeAttribute. Unable to create the message.");
-        if (!exc.Enable) return;
+        if (!exc.Enable)
+        {
+            return;
+        }
         if (exc is not { WorkModel: EModel.Delayed })
+        {
             throw new InvalidOperationException($"The exchange type for the delayed queue must be '{nameof(EModel.Delayed)}'. Event: '{@event.GetType().Name}'");
+        }
         var channel = conn.Channel;
         var properties = new BasicProperties
         {
@@ -95,12 +112,18 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
         //创建延时交换机,type类型为x-delayed-message
         await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, false, excArgs);
         // 在发布事件前检查是否已经取消发布
-        if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested) return;
+        if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested)
+        {
+            return;
+        }
         var body = serializer.Serialize(@event, @event.GetType());
         var pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
         await pipeline.ExecuteAsync(async ct =>
         {
-            logger.LogTrace("Publishing event: {EventName} with ID: {EventId}", @event.GetType().Name, @event.EventId);
+            if (logger.IsEnabled(LogLevel.Trace))
+            {
+                logger.LogTrace("Publishing event: {EventName} with ID: {EventId}", @event.GetType().Name, @event.EventId);
+            }
             await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
             //await conn.ReturnChannel(channel).ConfigureAwait(false);
         }).ConfigureAwait(false);
@@ -126,7 +149,10 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
         foreach (var @event in events)
         {
             var exc = @event.GetCustomAttribute<ExchangeAttribute>();
-            if (exc is null || exc.Enable is false) continue;
+            if (exc is null || exc.Enable is false)
+            {
+                continue;
+            }
             var handler = handlers.FindAll(o => o.ImplementedInterfaces.Any(s => s.GenericTypeArguments.Contains(@event)));
             if (handler.Count is not 0)
             {
@@ -136,7 +162,10 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
                     var handleKind = exc.WorkModel is EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
                     if (exc is not { WorkModel: EModel.None })
                     {
-                        if (subsManager.HasSubscriptionsForEvent(@event.Name, handleKind)) return;
+                        if (subsManager.HasSubscriptionsForEvent(@event.Name, handleKind))
+                        {
+                            return;
+                        }
                         await channel.QueueBindAsync(exc.Queue, exc.ExchangeName, exc.RoutingKey);
                     }
                     subsManager.AddSubscription(@event, handleKind, handler);
@@ -218,7 +247,10 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    logger.LogError(ex, "Channel was disposed before acknowledging message, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
+                    if (logger.IsEnabled(LogLevel.Error))
+                    {
+                        logger.LogError(ex, "Channel was disposed before acknowledging message, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
+                    }
                     // 重新获取通道并重试
                     await RetryAcknowledgeMessage(ea);
                 }
@@ -226,7 +258,10 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error processing message, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Error processing message, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
+            }
         }
     }
 
@@ -239,7 +274,10 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to acknowledge message after retry, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Failed to acknowledge message after retry, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
+            }
             // 重新执行 Subscribe 方法，重新初始化消费者和服务端的连接
             subsManager.ClearSubscriptions();
             _handleAsyncDelegateCache.Clear();
@@ -257,16 +295,25 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
 
     private async Task ProcessEvent(Type eventType, byte[] message, EKindOfHandler handleKind, Func<ValueTask> ack)
     {
-        logger.LogTrace("Processing event: {EventName}", eventType.Name);
+        if (logger.IsEnabled(LogLevel.Trace))
+        {
+            logger.LogTrace("Processing event: {EventName}", eventType.Name);
+        }
         if (!subsManager.HasSubscriptionsForEvent(eventType.Name, handleKind))
         {
-            logger.LogError("No subscriptions for event: {EventName}", eventType.Name);
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError("No subscriptions for event: {EventName}", eventType.Name);
+            }
             return;
         }
         var @event = serializer.Deserialize(message, eventType);
         if (@event is null)
         {
-            logger.LogError("Failed to deserialize event: {EventName}", eventType.Name);
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError("Failed to deserialize event: {EventName}", eventType.Name);
+            }
             return;
         }
         var handlerTypes = subsManager.GetHandlersForEvent(eventType.Name, handleKind);
@@ -295,11 +342,17 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
             var method = handlerType.GetMethod(HandleName, [eventType]);
             if (method is null)
             {
-                logger.LogError("Handler method not found for event: {EventName}", eventType.Name);
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError("Handler method not found for event: {EventName}", eventType.Name);
+                }
                 return null;
             }
             var handler = scope?.ServiceProvider.GetService(handlerType);
-            if (handler is null) return null;
+            if (handler is null)
+            {
+                return null;
+            }
             cachedDelegate = CreateHandleAsyncDelegate(handler, method, eventType);
             _handleAsyncDelegateCache[key] = cachedDelegate;
         }
