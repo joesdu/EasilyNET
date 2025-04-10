@@ -38,7 +38,7 @@ services:
       - "18888:18888"
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib
+    image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:latest
     container_name: otel-collector
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
