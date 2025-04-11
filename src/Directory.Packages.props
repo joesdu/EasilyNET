@@ -20,13 +20,13 @@
     <PackageVersion Include="MongoDB.Driver" Version="3.3.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.1.2" />
     <PackageVersion Include="Spectre.Console.Json" Version="0.50.1-preview.0.3" />
-    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="8.1.0" />
-    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="8.1.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="8.1.1" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="8.1.1" />
     <!--microsoft asp.net core -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0-preview.2.25163.2" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.0-preview.2.25163.2" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0-preview.2.25163.2" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0-preview.2.25163.2" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0-preview.3.25171.5" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.0-preview.3.25171.5" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0-preview.3.25171.5" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0-preview.3.25171.5" />
     <PackageVersion Include="Microsoft.Extensions.Resilience" Version="9.4.0" />
   </ItemGroup>
   <!-- 自定义任务来检查 TargetFramework -->
