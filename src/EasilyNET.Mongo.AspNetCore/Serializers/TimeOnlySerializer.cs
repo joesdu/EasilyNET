@@ -82,6 +82,6 @@ public sealed class TimeOnlySerializerAsTicks : StructSerializerBase<TimeOnly>
     public override TimeOnly Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
         var ticks = InnerSerializer.Deserialize(context, args);
-        return ticks.ToTimeOnly();
+        return TimeOnly.FromTimeSpan(TimeSpan.FromTicks(ticks));
     }
 }

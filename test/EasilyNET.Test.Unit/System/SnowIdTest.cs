@@ -72,6 +72,6 @@ public class SnowIdTest
         var snow1 = SnowId.GenerateNewId();
         var timestamp = snow1.Timestamp;
         var creationTime = snow1.CreationTime;
-        creationTime.ShouldBe(DateTimeStampExtensions.UnixEpoch.AddSeconds((uint)timestamp));
+        creationTime.ShouldBe(DateTime.UnixEpoch.AddSeconds((uint)timestamp));
     }
 }

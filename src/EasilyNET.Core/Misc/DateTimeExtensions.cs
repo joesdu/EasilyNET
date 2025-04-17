@@ -14,184 +14,133 @@ namespace EasilyNET.Core.Misc;
 public static class DateTimeExtensions
 {
     /// <summary>
-    ///     <para xml:lang="en">Gets the start time of a specific day</para>
-    ///     <para xml:lang="zh">获取某天的开始时间</para>
+    ///     <para xml:lang="en">DateTime extensions</para>
+    ///     <para xml:lang="zh">DateTime 扩展</para>
     /// </summary>
-    /// <param name="dateTime">
-    ///     <para xml:lang="en">Any time within a specific day</para>
-    ///     <para xml:lang="zh">某天中的任意时间</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The start time of the day</para>
-    ///     <para xml:lang="zh">该天的开始时间</para>
-    /// </returns>
-    public static DateTime DayStart(this DateTime dateTime) => dateTime.Date;
+    extension(DateTime dt)
+    {
+        /// <summary>
+        ///     <para xml:lang="en">Gets the date only from specific datetime</para>
+        ///     <para xml:lang="zh">获取仅包含日期部分</para>
+        /// </summary>
+        public DateOnly DateOnly => DateOnly.FromDateTime(dt);
 
-    /// <summary>
-    ///     <para xml:lang="en">Gets the end time of a specific day</para>
-    ///     <para xml:lang="zh">获取某天的结束时间</para>
-    /// </summary>
-    /// <param name="dateTime">
-    ///     <para xml:lang="en">Any time within a specific day</para>
-    ///     <para xml:lang="zh">某天中的任意时间</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The end time of the day</para>
-    ///     <para xml:lang="zh">该天的结束时间</para>
-    /// </returns>
-    public static DateTime DayEnd(this DateTime dateTime) => dateTime.DayStart().AddDays(1).AddMilliseconds(-1);
+        /// <summary>
+        ///     <para xml:lang="en">Gets the time only from specific datetime</para>
+        ///     <para xml:lang="zh">获取仅包含时间部分</para>
+        /// </summary>
+        public TimeOnly TimeOnly => TimeOnly.FromDateTime(dt);
 
-    /// <summary>
-    ///     <para xml:lang="en">Gets the start and end time of a specific day</para>
-    ///     <para xml:lang="zh">获取某天的开始和结束时间</para>
-    /// </summary>
-    /// <param name="dateTime">
-    ///     <para xml:lang="en">Any time within a specific day</para>
-    ///     <para xml:lang="zh">某天中的任意时间</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">(Start, End)</para>
-    ///     <para xml:lang="zh">(开始时间, 结束时间)</para>
-    /// </returns>
-    public static ValueTuple<DateTime, DateTime> DayStartEnd(this DateTime dateTime) => new(dateTime.DayStart(), dateTime.DayEnd());
+        /// <summary>
+        ///     <para xml:lang="en">Gets the start time of a specific day</para>
+        ///     <para xml:lang="zh">获取某天的开始时间</para>
+        /// </summary>
+        public DateTime DayStart => dt.Date;
 
-    /// <summary>
-    ///     <para xml:lang="en">Gets the start time of the week that a specific day belongs to</para>
-    ///     <para xml:lang="zh">获取某天所属周的开始时间</para>
-    /// </summary>
-    /// <param name="dateTime">
-    ///     <para xml:lang="en">Any date within a specific week</para>
-    ///     <para xml:lang="zh">某周中的任意日期</para>
-    /// </param>
-    /// <param name="firstDay">
-    ///     <para xml:lang="en">The first day of the week (Sunday, Monday, etc.)</para>
-    ///     <para xml:lang="zh">一周的第一天（周日、周一等）</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The start time of the week</para>
-    ///     <para xml:lang="zh">该周的开始时间</para>
-    /// </returns>
-    public static DateTime WeekStart(this DateTime dateTime, DayOfWeek firstDay) => dateTime.AddDays(-dateTime.DayOfWeek.DayNumber()).DayStart().AddDays((int)firstDay);
+        /// <summary>
+        ///     <para xml:lang="en">Gets the end time of a specific day</para>
+        ///     <para xml:lang="zh">获取某天的结束时间</para>
+        /// </summary>
+        public DateTime DayEnd => dt.Date.AddDays(1).AddMilliseconds(-1);
 
-    /// <summary>
-    ///     <para xml:lang="en">Gets the end time of the week that a specific day belongs to</para>
-    ///     <para xml:lang="zh">获取某天所属周的结束时间</para>
-    /// </summary>
-    /// <param name="dateTime">
-    ///     <para xml:lang="en">Any date within a specific week</para>
-    ///     <para xml:lang="zh">某周中的任意日期</para>
-    /// </param>
-    /// <param name="firstDay">
-    ///     <para xml:lang="en">The first day of the week (Sunday, Monday, etc.)</para>
-    ///     <para xml:lang="zh">一周的第一天（周日、周一等）</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The end time of the week</para>
-    ///     <para xml:lang="zh">该周的结束时间</para>
-    /// </returns>
-    public static DateTime WeekEnd(this DateTime dateTime, DayOfWeek firstDay) => dateTime.WeekStart(firstDay).AddDays(6).DayEnd();
+        /// <summary>
+        ///     <para xml:lang="en">Gets the start and end time of a specific day</para>
+        ///     <para xml:lang="zh">获取某天的开始和结束时间</para>
+        /// </summary>
+        public ValueTuple<DateTime, DateTime> DayStartEnd => new(dt.DayStart, dt.DayEnd);
 
-    /// <summary>
-    ///     <para xml:lang="en">Gets the start and end time of the week that a specific day belongs to</para>
-    ///     <para xml:lang="zh">获取某天所属周的开始和结束时间</para>
-    /// </summary>
-    /// <param name="dateTime">
-    ///     <para xml:lang="en">Any date within a specific week</para>
-    ///     <para xml:lang="zh">某周中的任意日期</para>
-    /// </param>
-    /// <param name="firstDay">
-    ///     <para xml:lang="en">The first day of the week (Sunday, Monday, etc.)</para>
-    ///     <para xml:lang="zh">一周的第一天（周日、周一等）</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">(Start, End)</para>
-    ///     <para xml:lang="zh">(开始时间, 结束时间)</para>
-    /// </returns>
-    public static ValueTuple<DateTime, DateTime> WeekStartEnd(this DateTime dateTime, DayOfWeek firstDay) => new(dateTime.WeekStart(firstDay), dateTime.WeekEnd(firstDay));
+        /// <summary>
+        ///     <para xml:lang="en">Gets the start time of a specific month</para>
+        ///     <para xml:lang="zh">获取某月的开始时间</para>
+        /// </summary>
+        public DateTime MonthStart => dt.DayStart.AddDays(1 - dt.Day);
 
-    /// <summary>
-    ///     <para xml:lang="en">Gets the start time of a specific month</para>
-    ///     <para xml:lang="zh">获取某月的开始时间</para>
-    /// </summary>
-    /// <param name="dateTime">
-    ///     <para xml:lang="en">Any date within a specific month</para>
-    ///     <para xml:lang="zh">某月中的任意日期</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The start time of the month</para>
-    ///     <para xml:lang="zh">该月的开始时间</para>
-    /// </returns>
-    public static DateTime MonthStart(this DateTime dateTime) => dateTime.DayStart().AddDays(1 - dateTime.Day);
+        /// <summary>
+        ///     <para xml:lang="en">Gets the end time of a specific month</para>
+        ///     <para xml:lang="zh">获取某月的结束时间</para>
+        /// </summary>
+        public DateTime MonthEnd => dt.MonthStart.AddMonths(1).AddMilliseconds(-1);
 
-    /// <summary>
-    ///     <para xml:lang="en">Gets the end time of a specific month</para>
-    ///     <para xml:lang="zh">获取某月的结束时间</para>
-    /// </summary>
-    /// <param name="dateTime">
-    ///     <para xml:lang="en">Any date within a specific month</para>
-    ///     <para xml:lang="zh">某月中的任意日期</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The end time of the month</para>
-    ///     <para xml:lang="zh">该月的结束时间</para>
-    /// </returns>
-    public static DateTime MonthEnd(this DateTime dateTime) => dateTime.MonthStart().AddMonths(1).AddMilliseconds(-1);
+        /// <summary>
+        ///     <para xml:lang="en">Gets the start and end time of a specific month</para>
+        ///     <para xml:lang="zh">获取某月的开始和结束时间</para>
+        /// </summary>
+        public ValueTuple<DateTime, DateTime> MonthStartEnd => new(dt.MonthStart, dt.MonthEnd);
 
-    /// <summary>
-    ///     <para xml:lang="en">Gets the start and end time of a specific month</para>
-    ///     <para xml:lang="zh">获取某月的开始和结束时间</para>
-    /// </summary>
-    /// <param name="dateTime">
-    ///     <para xml:lang="en">Any date within a specific month</para>
-    ///     <para xml:lang="zh">某月中的任意日期</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">(Start, End)</para>
-    ///     <para xml:lang="zh">(开始时间, 结束时间)</para>
-    /// </returns>
-    public static ValueTuple<DateTime, DateTime> MonthStartEnd(this DateTime dateTime) => new(dateTime.MonthStart(), dateTime.MonthEnd());
+        /// <summary>
+        ///     <para xml:lang="en">Gets the start time of a specific year</para>
+        ///     <para xml:lang="zh">获取某年的开始时间</para>
+        /// </summary>
+        public DateTime YearStart => dt.Date.AddMonths(1 - dt.Month).AddDays(1 - dt.Day).DayStart;
 
-    /// <summary>
-    ///     <para xml:lang="en">Gets the start time of a specific year</para>
-    ///     <para xml:lang="zh">获取某年的开始时间</para>
-    /// </summary>
-    /// <param name="dateTime">
-    ///     <para xml:lang="en">Any date within a specific year</para>
-    ///     <para xml:lang="zh">某年中的任意日期</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The start time of the year</para>
-    ///     <para xml:lang="zh">该年的开始时间</para>
-    /// </returns>
-    public static DateTime YearStart(this DateTime dateTime) => dateTime.Date.AddMonths(1 - dateTime.Month).AddDays(1 - dateTime.Day).DayStart();
+        /// <summary>
+        ///     <para xml:lang="en">Gets the end time of a specific year</para>
+        ///     <para xml:lang="zh">获取某年的结束时间</para>
+        /// </summary>
+        public DateTime YearEnd => dt.YearStart.AddYears(1).AddMilliseconds(-1);
 
-    /// <summary>
-    ///     <para xml:lang="en">Gets the end time of a specific year</para>
-    ///     <para xml:lang="zh">获取某年的结束时间</para>
-    /// </summary>
-    /// <param name="dateTime">
-    ///     <para xml:lang="en">Any date within a specific year</para>
-    ///     <para xml:lang="zh">某年中的任意日期</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The end time of the year</para>
-    ///     <para xml:lang="zh">该年的结束时间</para>
-    /// </returns>
-    public static DateTime YearEnd(this DateTime dateTime) => dateTime.YearStart().AddYears(1).AddMilliseconds(-1);
+        /// <summary>
+        ///     <para xml:lang="en">Gets the start and end time of a specific year</para>
+        ///     <para xml:lang="zh">获取某年的开始和结束时间</para>
+        /// </summary>
+        public ValueTuple<DateTime, DateTime> YearStartEnd => new(dt.YearStart, dt.YearEnd);
 
-    /// <summary>
-    ///     <para xml:lang="en">Gets the start and end time of a specific year</para>
-    ///     <para xml:lang="zh">获取某年的开始和结束时间</para>
-    /// </summary>
-    /// <param name="dateTime">
-    ///     <para xml:lang="en">Any date within a specific year</para>
-    ///     <para xml:lang="zh">某年中的任意日期</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">(Start, End)</para>
-    ///     <para xml:lang="zh">(开始时间, 结束时间)</para>
-    /// </returns>
-    public static ValueTuple<DateTime, DateTime> YearStartEnd(this DateTime dateTime) => new(dateTime.YearStart(), dateTime.YearEnd());
+        /// <summary>
+        ///     <para xml:lang="en">Gets the start time of the week that a specific day belongs to</para>
+        ///     <para xml:lang="zh">获取某天所属周的开始时间</para>
+        /// </summary>
+        /// <param name="firstDay">
+        ///     <para xml:lang="en">The first day of the week (Sunday, Monday, etc.)</para>
+        ///     <para xml:lang="zh">一周的第一天（周日、周一等）</para>
+        /// </param>
+        public DateTime WeekStart(DayOfWeek firstDay) => dt.AddDays(-dt.DayOfWeek.DayNumber()).DayStart.AddDays((int)firstDay);
+
+        /// <summary>
+        ///     <para xml:lang="en">Gets the end time of the week that a specific day belongs to</para>
+        ///     <para xml:lang="zh">获取某天所属周的结束时间</para>
+        /// </summary>
+        /// <param name="firstDay">
+        ///     <para xml:lang="en">The first day of the week (Sunday, Monday, etc.)</para>
+        ///     <para xml:lang="zh">一周的第一天（周日、周一等）</para>
+        /// </param>
+        public DateTime WeekEnd(DayOfWeek firstDay) => dt.WeekStart(firstDay).AddDays(6).DayEnd;
+
+        /// <summary>
+        ///     <para xml:lang="en">Gets the start and end time of the week that a specific day belongs to</para>
+        ///     <para xml:lang="zh">获取某天所属周的开始和结束时间</para>
+        /// </summary>
+        /// <param name="firstDay">
+        ///     <para xml:lang="en">The first day of the week (Sunday, Monday, etc.)</para>
+        ///     <para xml:lang="zh">一周的第一天（周日、周一等）</para>
+        /// </param>
+        public ValueTuple<DateTime, DateTime> WeekStartEnd(DayOfWeek firstDay) => new(dt.WeekStart(firstDay), dt.WeekEnd(firstDay));
+
+        /// <summary>
+        ///     <para xml:lang="en">Gets the week number of a specific date within the year</para>
+        ///     <para xml:lang="zh">获取某日期在一年中的周数</para>
+        /// </summary>
+        /// <param name="cultureInfo">
+        ///     <para xml:lang="en">The culture info, default is the current culture</para>
+        ///     <para xml:lang="zh">区域信息，默认是当前区域</para>
+        /// </param>
+        public int GetWeekOfYear(CultureInfo? cultureInfo = null)
+        {
+            var culture = cultureInfo ?? CultureInfo.CurrentCulture;
+            return culture.Calendar.GetWeekOfYear(dt, culture.DateTimeFormat.CalendarWeekRule, culture.DateTimeFormat.FirstDayOfWeek);
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Converts a DateTime to the number of milliseconds since the Unix epoch</para>
+        ///     <para xml:lang="zh">将日期时间转换为自 Unix 纪元以来的毫秒数</para>
+        /// </summary>
+        public long MillisecondsSinceEpoch=> (dt.ToUniversalTime() - DateTime.UnixEpoch).Ticks / 10000;
+
+        /// <summary>
+        ///     <para xml:lang="en">Converts a DateTime to the number of seconds since the Unix epoch</para>
+        ///     <para xml:lang="zh">将日期时间转换为自 Unix 纪元以来的秒数</para>
+        /// </summary>
+        public long SecondsSinceEpoch=> (dt.ToUniversalTime() - DateTime.UnixEpoch).Ticks / TimeSpan.TicksPerSecond;
+    }
 
     /// <summary>
     ///     <para xml:lang="en">Gets the start and end time of a specific week by week number and year</para>
@@ -231,21 +180,7 @@ public static class DateTimeExtensions
     ///     <para xml:lang="en">(Start, End)</para>
     ///     <para xml:lang="zh">(开始时间, 结束时间)</para>
     /// </returns>
-    public static ValueTuple<DateTime, DateTime> MonthStartEndByMonth(this int month, int year) => (month < 1) | (month > 13) ? throw new("非法月份") : new DateTime(year, month, 2).MonthStartEnd();
-
-    /// <summary>
-    ///     <para xml:lang="en">Converts a year to a DateTime representing the start of that year</para>
-    ///     <para xml:lang="zh">将年份转换为表示该年开始的 DateTime</para>
-    /// </summary>
-    /// <param name="year">
-    ///     <para xml:lang="en">The year</para>
-    ///     <para xml:lang="zh">年份</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A DateTime representing the start of the year</para>
-    ///     <para xml:lang="zh">表示该年开始的 DateTime</para>
-    /// </returns>
-    public static DateTime YearToDateTime(this int year) => new(year, 1, 1);
+    public static ValueTuple<DateTime, DateTime> MonthStartEndByMonth(this int month, int year) => (month < 1) | (month > 13) ? throw new("非法月份") : new DateTime(year, month, 2).MonthStartEnd;
 
     /// <summary>
     ///     <para xml:lang="en">Gets the numeric representation of a day of the week</para>
@@ -419,58 +354,4 @@ public static class DateTimeExtensions
         var daysCount = (date.Value - first_monday).TotalDays;
         return (int)(daysCount / 7) + (daysCount % 7 == 0 ? 0 : 1);
     }
-
-    /// <summary>
-    ///     <para xml:lang="en">Converts a DateTime to a byte array</para>
-    ///     <para xml:lang="zh">将 DateTime 转换为 byte[]</para>
-    /// </summary>
-    /// <param name="dateTime">
-    ///     <para xml:lang="en">The DateTime to convert</para>
-    ///     <para xml:lang="zh">要转换的 DateTime</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The byte array</para>
-    ///     <para xml:lang="zh">字节数组</para>
-    /// </returns>
-    public static byte[] ToByteArray(this DateTime dateTime) => BitConverter.GetBytes(dateTime.Ticks);
-
-    /// <summary>
-    ///     <para xml:lang="en">Gets the week number of a specific date within the year</para>
-    ///     <para xml:lang="zh">获取某日期在一年中的周数</para>
-    /// </summary>
-    /// <param name="date">
-    ///     <para xml:lang="en">The date</para>
-    ///     <para xml:lang="zh">日期</para>
-    /// </param>
-    /// <param name="cultureInfo">
-    ///     <para xml:lang="en">The culture info, default is the current culture</para>
-    ///     <para xml:lang="zh">区域信息，默认是当前区域</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The week number</para>
-    ///     <para xml:lang="zh">周数</para>
-    /// </returns>
-    public static int GetWeekOfYear(this DateTime date, CultureInfo? cultureInfo = null)
-    {
-        var culture = cultureInfo ?? CultureInfo.CurrentCulture;
-        return culture.Calendar.GetWeekOfYear(date, culture.DateTimeFormat.CalendarWeekRule, culture.DateTimeFormat.FirstDayOfWeek);
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Gets the week number of a specific date within the year (current culture)</para>
-    ///     <para xml:lang="zh">获取某日期在一年中的周数（当前区域）</para>
-    /// </summary>
-    /// <param name="date">
-    ///     <para xml:lang="en">The date</para>
-    ///     <para xml:lang="zh">日期</para>
-    /// </param>
-    /// <param name="cultureInfo">
-    ///     <para xml:lang="en">The culture info, default is the current culture</para>
-    ///     <para xml:lang="zh">区域信息，默认是当前区域</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The week number</para>
-    ///     <para xml:lang="zh">周数</para>
-    /// </returns>
-    public static int GetWeekOfYear(this DateOnly date, CultureInfo? cultureInfo = null) => GetWeekOfYear(date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local), cultureInfo);
 }

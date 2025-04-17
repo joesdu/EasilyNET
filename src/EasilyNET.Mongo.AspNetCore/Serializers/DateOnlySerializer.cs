@@ -82,6 +82,6 @@ public sealed class DateOnlySerializerAsTicks : StructSerializerBase<DateOnly>
     public override DateOnly Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
         var ticks = InnerSerializer.Deserialize(context, args);
-        return ticks.ToDateOnly();
+        return DateOnly.FromDateTime(new(ticks, DateTimeKind.Local));
     }
 }

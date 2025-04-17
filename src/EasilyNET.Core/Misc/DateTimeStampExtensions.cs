@@ -12,34 +12,28 @@ namespace EasilyNET.Core.Misc;
 public static class DateTimeStampExtensions
 {
     /// <summary>
-    ///     <para xml:lang="en">Gets the Unix epoch date and time (1970-01-01) (UTC time)</para>
-    ///     <para xml:lang="zh">获取 Unix 纪元日期时间(1970-01-01)(UTC时间)</para>
-    /// </summary>
-    public static readonly DateTime UnixEpoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
-    /// <summary>
     ///     <para xml:lang="en">Gets the number of milliseconds since the Unix epoch from DateTime.MaxValue (UTC+0)</para>
     ///     <para xml:lang="zh">获取自 DateTime.MaxValue 的 Unix 纪元以来的毫秒数(UTC+0)</para>
     /// </summary>
-    public static long DateTimeMaxValueMillisecondsSinceEpoch => (DateTime.MaxValue - UnixEpoch).Ticks / TimeSpan.TicksPerMillisecond;
+    public static long DateTimeMaxValueMillisecondsSinceEpoch => (DateTime.MaxValue - DateTime.UnixEpoch).Ticks / TimeSpan.TicksPerMillisecond;
 
     /// <summary>
     ///     <para xml:lang="en">Gets the number of milliseconds since the Unix epoch from DateTime.MinValue (UTC+0)</para>
     ///     <para xml:lang="zh">获取自 DateTime.MinValue 的 Unix 纪元以来的毫秒数(UTC+0)</para>
     /// </summary>
-    public static long DateTimeMinValueMillisecondsSinceEpoch => (DateTime.MinValue - UnixEpoch).Ticks / TimeSpan.TicksPerMillisecond;
+    public static long DateTimeMinValueMillisecondsSinceEpoch => (DateTime.MinValue - DateTime.UnixEpoch).Ticks / TimeSpan.TicksPerMillisecond;
 
     /// <summary>
     ///     <para xml:lang="en">Gets the number of seconds since the Unix epoch from DateTime.MaxValue (UTC+0)</para>
     ///     <para xml:lang="zh">获取自 DateTime.MaxValue 的 Unix 纪元以来的秒数(UTC+0)</para>
     /// </summary>
-    public static long DateTimeMaxValueSecondsSinceEpoch => (DateTime.MaxValue - UnixEpoch).Ticks / TimeSpan.TicksPerSecond;
+    public static long DateTimeMaxValueSecondsSinceEpoch => (DateTime.MaxValue - DateTime.UnixEpoch).Ticks / TimeSpan.TicksPerSecond;
 
     /// <summary>
     ///     <para xml:lang="en">Gets the number of seconds since the Unix epoch from DateTime.MinValue (UTC+0)</para>
     ///     <para xml:lang="zh">获取自 DateTime.MinValue 的 Unix 纪元以来的秒数(UTC+0)</para>
     /// </summary>
-    public static long DateTimeMinValueSecondsSinceEpoch => (DateTime.MinValue - UnixEpoch).Ticks / TimeSpan.TicksPerSecond;
+    public static long DateTimeMinValueSecondsSinceEpoch => (DateTime.MinValue - DateTime.UnixEpoch).Ticks / TimeSpan.TicksPerSecond;
 
     /// <summary>
     ///     <para xml:lang="en">Converts milliseconds since the Unix epoch to a DateTime (UTC+0)</para>
@@ -62,7 +56,7 @@ public static class DateTimeStampExtensions
         if (millisecondsSinceEpoch >= DateTimeMinValueMillisecondsSinceEpoch && millisecondsSinceEpoch <= DateTimeMaxValueMillisecondsSinceEpoch)
             return millisecondsSinceEpoch == DateTimeMaxValueMillisecondsSinceEpoch
                        ? DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc)
-                       : UnixEpoch.AddTicks(millisecondsSinceEpoch * TimeSpan.TicksPerMillisecond);
+                       : DateTime.UnixEpoch.AddTicks(millisecondsSinceEpoch * TimeSpan.TicksPerMillisecond);
         var message = $"The value {millisecondsSinceEpoch} for the BsonDateTime MillisecondsSinceEpoch is outside the range that can be converted to a .NET DateTime.";
         throw new ArgumentOutOfRangeException(nameof(millisecondsSinceEpoch), message);
     }
@@ -88,45 +82,9 @@ public static class DateTimeStampExtensions
         if (secondsSinceEpoch >= DateTimeMinValueSecondsSinceEpoch && secondsSinceEpoch <= DateTimeMaxValueSecondsSinceEpoch)
             return secondsSinceEpoch == DateTimeMaxValueSecondsSinceEpoch
                        ? DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc)
-                       : UnixEpoch.AddTicks(secondsSinceEpoch * TimeSpan.TicksPerSecond);
+                       : DateTime.UnixEpoch.AddTicks(secondsSinceEpoch * TimeSpan.TicksPerSecond);
         var message = $"The value {secondsSinceEpoch} for the BsonDateTime SecondsSinceEpoch is outside the range that can be converted to a .NET DateTime.";
         throw new ArgumentOutOfRangeException(nameof(secondsSinceEpoch), message);
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Converts a DateTime to the number of milliseconds since the Unix epoch</para>
-    ///     <para xml:lang="zh">将日期时间转换为自 Unix 纪元以来的毫秒数</para>
-    /// </summary>
-    /// <param name="dateTime">
-    ///     <para xml:lang="en">A DateTime</para>
-    ///     <para xml:lang="zh">一个 DateTime</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The number of milliseconds since the Unix epoch (UTC+0)</para>
-    ///     <para xml:lang="zh">自 Unix 纪元以来的毫秒数(UTC+0)</para>
-    /// </returns>
-    public static long ToMillisecondsSinceEpoch(this DateTime dateTime)
-    {
-        var utcDateTime = dateTime.ToUniversalTime();
-        return (utcDateTime - UnixEpoch).Ticks / 10000;
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Converts a DateTime to the number of seconds since the Unix epoch</para>
-    ///     <para xml:lang="zh">将日期时间转换为自 Unix 纪元以来的秒数</para>
-    /// </summary>
-    /// <param name="dateTime">
-    ///     <para xml:lang="en">A DateTime</para>
-    ///     <para xml:lang="zh">一个 DateTime</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The number of seconds since the Unix epoch</para>
-    ///     <para xml:lang="zh">自 Unix 纪元以来的秒数</para>
-    /// </returns>
-    public static long ToSecondsSinceEpoch(this DateTime dateTime)
-    {
-        var utcDateTime = dateTime.ToUniversalTime();
-        return (utcDateTime - UnixEpoch).Ticks / TimeSpan.TicksPerSecond;
     }
 
     /// <summary>
