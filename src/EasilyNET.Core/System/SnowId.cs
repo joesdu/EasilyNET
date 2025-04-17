@@ -101,7 +101,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">Gets the creation time (derived from the timestamp)</para>
     ///     <para xml:lang="zh">获取创建时间(从时间戳派生)</para>
     /// </summary>
-    public readonly DateTime CreationTime => DateTimeStampExtensions.UnixEpoch.AddSeconds((uint)Timestamp);
+    public readonly DateTime CreationTime => DateTime.UnixEpoch.AddSeconds((uint)Timestamp);
 
     /// <inheritdoc cref="IComparable" />
     public static bool operator <(SnowId lhs, SnowId rhs) => lhs.CompareTo(rhs) < 0;
@@ -241,7 +241,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 
     private static int GetTimestampFromDateTime(DateTime timestamp)
     {
-        var secondsSinceEpoch = (long)Math.Floor((timestamp.ToUniversalTime() - DateTimeStampExtensions.UnixEpoch).TotalSeconds);
+        var secondsSinceEpoch = (long)Math.Floor((timestamp.ToUniversalTime() - DateTime.UnixEpoch).TotalSeconds);
         return secondsSinceEpoch is < uint.MinValue or > uint.MaxValue ? throw new ArgumentOutOfRangeException(nameof(timestamp)) : (int)(uint)secondsSinceEpoch;
     }
 

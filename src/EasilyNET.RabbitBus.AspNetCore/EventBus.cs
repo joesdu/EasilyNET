@@ -49,7 +49,7 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
         if (exc is not { WorkModel: EModel.None })
         {
             var exchangeArgs = @event.GetExchangeArgAttributes();
-            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, arguments: exchangeArgs);
+            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.Description, true, arguments: exchangeArgs);
         }
         // 在发布事件前检查是否已经取消发布
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested)
@@ -110,7 +110,7 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
             excArgs["x-delayed-type"] = !xDelayedType || delayedType is null ? "direct" : delayedType;
         }
         //创建延时交换机,type类型为x-delayed-message
-        await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, false, excArgs);
+        await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.Description, true, false, excArgs);
         // 在发布事件前检查是否已经取消发布
         if (cancellationToken is not null && cancellationToken.Value.IsCancellationRequested)
         {
@@ -198,7 +198,7 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
         {
             var exchangeArgs = @event.GetExchangeArgAttributes();
             AddDelayedTypeIfNeeded(exc, exchangeArgs);
-            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.ToDescription(), true, false, exchangeArgs);
+            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.Description, true, false, exchangeArgs);
         }
     }
 

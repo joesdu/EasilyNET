@@ -15,26 +15,23 @@ public static class EnumExtensions
     private static readonly ConcurrentDictionary<Enum, string> DescriptionCache = [];
 
     /// <summary>
-    ///     <para xml:lang="en">Converts an enum value to its description</para>
-    ///     <para xml:lang="zh">将枚举值转换为其描述</para>
+    ///     <para xml:lang="en">Enum extensions</para>
+    ///     <para xml:lang="zh">扩展枚举</para>
     /// </summary>
-    /// <param name="value">
-    ///     <para xml:lang="en">The enum value</para>
-    ///     <para xml:lang="zh">枚举值</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The description of the enum value</para>
-    ///     <para xml:lang="zh">枚举值的描述</para>
-    /// </returns>
-    public static string ToDescription(this Enum value)
+    extension(Enum value)
     {
-        return DescriptionCache.GetOrAdd(value, enumValue =>
+        /// <summary>
+        ///     <para xml:lang="en">Converts an enum value to its description</para>
+        ///     <para xml:lang="zh">将枚举值转换为其描述</para>
+        /// </summary>
+        public string Description => DescriptionCache.GetOrAdd(value, enumValue =>
         {
             var fieldInfo = enumValue.GetType().GetField(enumValue.ToString());
             var descriptionAttribute = fieldInfo?.GetCustomAttributes(typeof(DescriptionAttribute), false).FirstOrDefault() as DescriptionAttribute;
             return descriptionAttribute?.Description ?? enumValue.ToString();
         });
     }
+    
 
     /// <summary>
     ///     <para xml:lang="en">Gets all enum values, excluding the specified values</para>

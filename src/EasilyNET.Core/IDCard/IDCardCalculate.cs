@@ -120,7 +120,7 @@ public static class IDCardCalculate
     ///     <para xml:lang="en">Exact age</para>
     ///     <para xml:lang="zh">精确年龄</para>
     /// </returns>
-    public static int CalculateAge(DateTime birthday) => CalculateAge(birthday.ToDateOnly());
+    public static int CalculateAge(DateTime birthday) => CalculateAge(birthday.DateOnly);
 
     /// <summary>
     ///     <para xml:lang="en">Calculate birthdate from ID card number</para>
@@ -137,7 +137,7 @@ public static class IDCardCalculate
     public static void CalculateBirthday(this string no, out DateOnly birthday)
     {
         no.CalculateBirthday(out DateTime date);
-        birthday = date.ToDateOnly();
+        birthday = date.DateOnly;
     }
 
     /// <summary>

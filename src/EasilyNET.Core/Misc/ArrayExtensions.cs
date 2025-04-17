@@ -7,25 +7,40 @@ namespace EasilyNET.Core.Misc;
 public static class ArrayExtensions
 {
     /// <summary>
-    ///     <para xml:lang="en">Iterates over each element in the array and performs the specified action</para>
-    ///     <para xml:lang="zh">遍历数组中的每个元素并执行指定的操作</para>
+    ///     <para xml:lang="en">Array extensions</para>
+    ///     <para xml:lang="zh">数组扩展</para>
     /// </summary>
-    /// <param name="array">
-    ///     <para xml:lang="en">The array to iterate over</para>
-    ///     <para xml:lang="zh">要遍历的数组</para>
-    /// </param>
-    /// <param name="action">
-    ///     <para xml:lang="en">The action to perform on each element</para>
-    ///     <para xml:lang="zh">对每个元素执行的操作</para>
-    /// </param>
-    public static void ForEach(this Array array, Action<Array, int[]> action)
+    extension(Array array)
     {
-        if (array.LongLength == 0) return;
-        var walker = new ArrayTraverse(array);
-        do
+        /// <summary>
+        ///    <para xml:lang="en">Gets the total number of elements in the array.</para>
+        ///    <para xml:lang="zh">数组元素数量</para>
+        /// </summary>
+        public int Count => array.Length;
+
+        /// <summary>
+        ///     <para xml:lang="en">Gets the total number of elements in the array.</para>
+        ///     <para xml:lang="zh">数组元素数量</para>
+        /// </summary>
+        public long LongCount => array.LongLength;
+
+        /// <summary>
+        ///     <para xml:lang="en">Iterates over each element in the array and performs the specified action</para>
+        ///     <para xml:lang="zh">遍历数组中的每个元素并执行指定的操作</para>
+        /// </summary>
+        /// <param name="action">
+        ///     <para xml:lang="en">The action to perform on each element</para>
+        ///     <para xml:lang="zh">对每个元素执行的操作</para>
+        /// </param>
+        public void ForEach(Action<Array, int[]> action)
         {
-            action(array, walker.Position);
-        } while (walker.Step());
+            if (array.LongCount is 0) return;
+            var walker = new ArrayTraverse(array);
+            do
+            {
+                action(array, walker.Position);
+            } while (walker.Step());
+        }
     }
 }
 
