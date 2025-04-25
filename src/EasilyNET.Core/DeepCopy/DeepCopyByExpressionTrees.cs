@@ -5,6 +5,7 @@
 // limitations for both personal and commercial purposes.
 
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -23,6 +24,7 @@ public static class DeepCopyByExpressionTrees
 {
     private static readonly ConcurrentDictionary<Type, bool> IsStructTypeToDeepCopyDictionary = new();
     private static readonly ConcurrentDictionary<Type, Func<object, Dictionary<object, object>, object>> CompiledCopyFunctionsDictionary = new();
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicMethods)]
     private static readonly Type ObjectType = typeof(object);
     private static readonly Type ObjectDictionaryType = typeof(Dictionary<object, object>);
     private static readonly Type FieldInfoType = typeof(FieldInfo);

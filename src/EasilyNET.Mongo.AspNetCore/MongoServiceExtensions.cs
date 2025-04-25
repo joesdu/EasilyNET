@@ -31,7 +31,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 ///         </para>
 ///     </description>
 /// </summary>
-public static class ServiceCollectionExtensions
+public static class MongoServiceExtensions
 {
     /// <summary>
     ///     <para xml:lang="en">

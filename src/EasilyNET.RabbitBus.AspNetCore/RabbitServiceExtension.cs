@@ -25,7 +25,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 ///     <para xml:lang="en">RabbitMQ ServiceCollection</para>
 ///     <para xml:lang="zh">RabbitMQ 服务集合</para>
 /// </summary>
-public static class ServiceCollectionExtension
+public static class RabbitServiceExtension
 {
     /// <summary>
     ///     <para xml:lang="en">Adds RabbitMQ message bus service</para>

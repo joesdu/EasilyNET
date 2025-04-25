@@ -3,7 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 // ReSharper disable MethodSupportsCancellation
 
-namespace EasilyNET.Test.Unit.System;
+namespace EasilyNET.Test.Unit.Essentials;
 
 [TestClass]
 public class AsyncBarrierTest

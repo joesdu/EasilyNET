@@ -1,9 +1,9 @@
+using EasilyNET.Core.Essentials;
 using EasilyNET.Core.Misc;
-using EasilyNET.Core.System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
-namespace EasilyNET.Test.Unit.System;
+namespace EasilyNET.Test.Unit.Essentials;
 
 /// <summary>
 /// 测试雪花ID,其实是MongoDB的ObjectId,用来对没有使用Mongodb的情况下,获取雪花ID的一种方案.

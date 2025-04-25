@@ -1,5 +1,5 @@
 using System.Text;
-using EasilyNET.Core.System;
+using EasilyNET.Core.Essentials;
 
 // ReSharper disable InvertIf
 

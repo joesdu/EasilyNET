@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using EasilyNET.Core.System;
+using EasilyNET.Core.Essentials;
 using EasilyNET.RabbitBus.Core.Abstraction;
 
 namespace EasilyNET.RabbitBus.Core;

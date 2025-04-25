@@ -1,4 +1,4 @@
-using EasilyNET.Core.System;
+using EasilyNET.Core.Essentials;
 
 namespace EasilyNET.RabbitBus.Core.Abstraction;
 

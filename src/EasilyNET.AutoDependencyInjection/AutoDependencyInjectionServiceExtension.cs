@@ -17,7 +17,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 ///     <para xml:lang="en"><see cref="IServiceCollection" /> extensions</para>
 ///     <para xml:lang="zh"><see cref="IServiceCollection" /> 扩展</para>
 /// </summary>
-public static class ServiceCollectionExtension
+public static class AutoDependencyInjectionServiceExtension
 {
     /// <summary>
     ///     <para xml:lang="en">Get the application host</para>

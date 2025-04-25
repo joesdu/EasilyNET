@@ -4,13 +4,14 @@ using EasilyNET.WebCore.Middleware;
 // ReSharper disable UnusedMember.Global
 // ReSharper disable UnusedType.Global
 
+#pragma warning disable IDE0130 // 命名空间与文件夹结构不匹配
 namespace Microsoft.AspNetCore.Builder;
 
 /// <summary>
 ///     <para xml:lang="en">Middleware extensions for unified handling of middleware invocation extensions</para>
 ///     <para xml:lang="zh">中间件扩展，用于统一处理中间件调用扩展</para>
 /// </summary>
-public static class ApplicationBuilderExtensions
+public static class WebCoreExtensions
 {
     /// <summary>
     ///     <para xml:lang="en">Uses the global API response time monitoring middleware</para>

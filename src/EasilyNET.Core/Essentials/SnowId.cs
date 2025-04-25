@@ -20,7 +20,7 @@ using EasilyNET.Core.Misc.Exceptions;
 
 // ReSharper disable UnusedMember.Global
 
-namespace EasilyNET.Core.System;
+namespace EasilyNET.Core.Essentials;
 
 /// <summary>
 ///     <para xml:lang="en">SnowId algorithm compatible with MongoDB's ObjectId, so they can be cast to each other</para>
@@ -220,7 +220,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     {
         var high = RandomExtensions.StrictNext();
         var low = RandomExtensions.StrictNext();
-        var combined = (long)(((ulong)(uint)high << 32) | (uint)low);
+        var combined = (long)((ulong)(uint)high << 32 | (uint)low);
         return combined & 0xffffffffff; // low order 5 bytes
     }
 
@@ -248,9 +248,9 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     // ReSharper disable once SuggestBaseTypeForParameter
     private static void FromByteArray(byte[] bytes, int offset, out int a, out int b, out int c)
     {
-        a = (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
-        b = (bytes[offset + 4] << 24) | (bytes[offset + 5] << 16) | (bytes[offset + 6] << 8) | bytes[offset + 7];
-        c = (bytes[offset + 8] << 24) | (bytes[offset + 9] << 16) | (bytes[offset + 10] << 8) | bytes[offset + 11];
+        a = bytes[offset] << 24 | bytes[offset + 1] << 16 | bytes[offset + 2] << 8 | bytes[offset + 3];
+        b = bytes[offset + 4] << 24 | bytes[offset + 5] << 16 | bytes[offset + 6] << 8 | bytes[offset + 7];
+        c = bytes[offset + 8] << 24 | bytes[offset + 9] << 16 | bytes[offset + 10] << 8 | bytes[offset + 11];
     }
 
     // private static char ToHexChar(int value) => Convert.ToChar(value < 10 ? value + 48 : value + 55); // 全大写字符
@@ -389,29 +389,29 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     public readonly override string ToString()
     {
         var c = new char[24];
-        c[0] = ToHexChar((_a >> 28) & 0x0f);
-        c[1] = ToHexChar((_a >> 24) & 0x0f);
-        c[2] = ToHexChar((_a >> 20) & 0x0f);
-        c[3] = ToHexChar((_a >> 16) & 0x0f);
-        c[4] = ToHexChar((_a >> 12) & 0x0f);
-        c[5] = ToHexChar((_a >> 8) & 0x0f);
-        c[6] = ToHexChar((_a >> 4) & 0x0f);
+        c[0] = ToHexChar(_a >> 28 & 0x0f);
+        c[1] = ToHexChar(_a >> 24 & 0x0f);
+        c[2] = ToHexChar(_a >> 20 & 0x0f);
+        c[3] = ToHexChar(_a >> 16 & 0x0f);
+        c[4] = ToHexChar(_a >> 12 & 0x0f);
+        c[5] = ToHexChar(_a >> 8 & 0x0f);
+        c[6] = ToHexChar(_a >> 4 & 0x0f);
         c[7] = ToHexChar(_a & 0x0f);
-        c[8] = ToHexChar((_b >> 28) & 0x0f);
-        c[9] = ToHexChar((_b >> 24) & 0x0f);
-        c[10] = ToHexChar((_b >> 20) & 0x0f);
-        c[11] = ToHexChar((_b >> 16) & 0x0f);
-        c[12] = ToHexChar((_b >> 12) & 0x0f);
-        c[13] = ToHexChar((_b >> 8) & 0x0f);
-        c[14] = ToHexChar((_b >> 4) & 0x0f);
+        c[8] = ToHexChar(_b >> 28 & 0x0f);
+        c[9] = ToHexChar(_b >> 24 & 0x0f);
+        c[10] = ToHexChar(_b >> 20 & 0x0f);
+        c[11] = ToHexChar(_b >> 16 & 0x0f);
+        c[12] = ToHexChar(_b >> 12 & 0x0f);
+        c[13] = ToHexChar(_b >> 8 & 0x0f);
+        c[14] = ToHexChar(_b >> 4 & 0x0f);
         c[15] = ToHexChar(_b & 0x0f);
-        c[16] = ToHexChar((_c >> 28) & 0x0f);
-        c[17] = ToHexChar((_c >> 24) & 0x0f);
-        c[18] = ToHexChar((_c >> 20) & 0x0f);
-        c[19] = ToHexChar((_c >> 16) & 0x0f);
-        c[20] = ToHexChar((_c >> 12) & 0x0f);
-        c[21] = ToHexChar((_c >> 8) & 0x0f);
-        c[22] = ToHexChar((_c >> 4) & 0x0f);
+        c[16] = ToHexChar(_c >> 28 & 0x0f);
+        c[17] = ToHexChar(_c >> 24 & 0x0f);
+        c[18] = ToHexChar(_c >> 20 & 0x0f);
+        c[19] = ToHexChar(_c >> 16 & 0x0f);
+        c[20] = ToHexChar(_c >> 12 & 0x0f);
+        c[21] = ToHexChar(_c >> 8 & 0x0f);
+        c[22] = ToHexChar(_c >> 4 & 0x0f);
         c[23] = ToHexChar(_c & 0x0f);
         return new(c);
     }

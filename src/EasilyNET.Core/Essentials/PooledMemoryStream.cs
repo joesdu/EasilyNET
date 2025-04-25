@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.Core.System;
+namespace EasilyNET.Core.Essentials;
 
 /// <summary>
 ///     <para xml:lang="en">Pooled memory stream</para>
