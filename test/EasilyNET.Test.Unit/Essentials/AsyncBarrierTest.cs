@@ -34,7 +34,7 @@ public class AsyncBarrierTest
             Task.Run(async () =>
             {
                 await cts.CancelAsync(); // 取消令牌
-                await Assert.ThrowsExceptionAsync<TaskCanceledException>(async () => await barrier.SignalAndWait(cts.Token));
+                await Assert.ThrowsExactlyAsync<TaskCanceledException>(async () => await barrier.SignalAndWait(cts.Token));
             })
         };
         try

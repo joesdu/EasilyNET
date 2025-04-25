@@ -88,7 +88,10 @@ file sealed class ExceptionFilter(ILogger<ExceptionFilter> logger) : ExceptionFi
     /// <returns></returns>
     public override Task OnExceptionAsync(ExceptionContext context)
     {
-        logger.LogError("{Stacktrace}", context.Exception.ToString());
+        if (logger.IsEnabled(LogLevel.Error))
+        {
+            logger.LogError("{Stacktrace}", context.Exception.ToString());
+        }
         context.ExceptionHandled = true;
         context.Result = new ObjectResult(new ResultObject { StatusCode = HttpStatusCode.InternalServerError, Msg = context.Exception.Message, Data = null });
         return base.OnExceptionAsync(context);
