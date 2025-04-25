@@ -111,7 +111,10 @@ public static class RabbitServiceExtension
                 OnRetry = args =>
                 {
                     var ex = args.Outcome.Exception!;
-                    logger.LogWarning(ex, "RabbitMQ client failed after a timeout of {TimeOut} seconds. Exception message: {ExceptionMessage}", args.Duration.TotalSeconds, ex.Message);
+                    if (logger.IsEnabled(LogLevel.Warning))
+                    {
+                        logger.LogWarning(ex, "RabbitMQ client failed after a timeout of {TimeOut} seconds. Exception message: {ExceptionMessage}", args.Duration.TotalSeconds, ex.Message);
+                    }
                     return ValueTask.CompletedTask;
                 }
             });

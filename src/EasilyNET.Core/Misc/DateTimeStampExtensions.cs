@@ -87,21 +87,22 @@ public static class DateTimeStampExtensions
     ///     <para xml:lang="en">The TimeSpan to convert</para>
     ///     <para xml:lang="zh">要转换的 TimeSpan</para>
     /// </param>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0046:转换为条件表达式", Justification = "<挂起>")]
     public static string ToString(TimeSpan value)
     {
         const int msInOneSecond = 1000;
         const int msInOneMinute = 60 * msInOneSecond;
         const int msInOneHour = 60 * msInOneMinute;
         var ms = (long)value.TotalMilliseconds;
-        if (ms % msInOneHour == 0)
+        if (ms % msInOneHour is 0)
         {
             return $"{ms / msInOneHour}h";
         }
-        if (ms % msInOneMinute == 0 && ms < msInOneHour)
+        if (ms % msInOneMinute is 0 && ms < msInOneHour)
         {
             return $"{ms / msInOneMinute}m";
         }
-        if (ms % msInOneSecond == 0 && ms < msInOneMinute)
+        if (ms % msInOneSecond is 0 && ms < msInOneMinute)
         {
             return $"{ms / msInOneSecond}s";
         }
