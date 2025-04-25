@@ -12,19 +12,20 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 // ReSharper disable UnusedMember.Global
 
 // ReSharper disable once CheckNamespace
+#pragma warning disable IDE0130 // 命名空间与文件夹结构不匹配
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 ///     <para xml:lang="en">Swagger extensions</para>
 ///     <para xml:lang="zh">Swagger扩展</para>
 /// </summary>
-public static class SwaggerGenOptionsExtensions
+public static class SwaggerExtensions
 {
     private const string _defaultDescription = "Console.WriteLine(\"🐂🍺\")";
     private static readonly FrozenDictionary<string, OpenApiInfo> attributesDic;
     private static readonly string? _docName = Assembly.GetEntryAssembly()?.GetName().Name ?? string.Empty;
 
-    static SwaggerGenOptionsExtensions()
+    static SwaggerExtensions()
     {
         var dic = new ConcurrentDictionary<string, OpenApiInfo>();
         var _description = new ConcurrentDictionary<string, HashSet<string>>();
@@ -99,7 +100,8 @@ public static class SwaggerGenOptionsExtensions
     /// <param name="app"></param>
     public static void UseEasilySwaggerUI(this IApplicationBuilder app)
     {
-        app.UseSwagger().UseSwaggerUI(c =>
+        app.UseSwagger();
+        app.UseSwaggerUI(c =>
         {
             foreach (var item in attributesDic)
             {

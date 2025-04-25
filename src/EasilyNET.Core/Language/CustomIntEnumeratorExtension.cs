@@ -60,8 +60,7 @@ public static class CustomIntEnumeratorExtension
     public struct CustomIntEnumerator
     {
         // public ref struct CustomIntEnumerator
-        // ref struct的设计是为了限制该结构体只能栈上分配,
-        // 不能在托管堆上分配.这通常用于高性能的场景,以减少垃圾回收的压力.
+        // ref struct的设计是为了限制该结构体只能栈上分配,不能在托管堆上分配.这通常用于高性能的场景,以减少垃圾回收的压力.
 
         private readonly int _end;
 

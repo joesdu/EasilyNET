@@ -16,7 +16,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Backport.System.Threading.Lock" Version="3.1.4" />
-    <PackageVersion Include="BouncyCastle.Cryptography" Version="2.6.0-beta.114" />
+    <PackageVersion Include="BouncyCastle.Cryptography" Version="2.6.0-beta.133" />
     <PackageVersion Include="MongoDB.Driver" Version="3.3.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.1.2" />
     <PackageVersion Include="Spectre.Console.Json" Version="0.50.1-preview.0.5" />

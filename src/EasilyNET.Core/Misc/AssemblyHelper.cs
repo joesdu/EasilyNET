@@ -19,8 +19,8 @@ namespace EasilyNET.Core.Misc;
 public static class AssemblyHelper
 {
     private static readonly ConcurrentDictionary<string, Assembly?> AssemblyCache = new();
-    private static readonly Lazy<IEnumerable<Assembly>> LazyAllAssemblies = new(() => LoadAssemblies(LoadFromAllDll));
-    private static readonly Lazy<IEnumerable<Type>> LazyAllTypes = new(() => LoadTypes(LazyAllAssemblies.Value));
+    private static readonly Lazy<IEnumerable<Assembly>> LazyAllAssemblies = new(static () => LoadAssemblies(LoadFromAllDll));
+    private static readonly Lazy<IEnumerable<Type>> LazyAllTypes = new(static () => LoadTypes(LazyAllAssemblies.Value));
 
     static AssemblyHelper()
     {
@@ -76,10 +76,6 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">Assembly name</para>
     ///     <para xml:lang="zh">程序集名称,支持通配符匹配,如: EasilyNET* </para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A collection of assemblies</para>
-    ///     <para xml:lang="zh">程序集集合</para>
-    /// </returns>
     [RequiresUnreferencedCode("This method uses reflection and may not be compatible with AOT.")]
     public static IEnumerable<Assembly> GetAssembliesByName(params IEnumerable<string> assemblyNames)
     {
@@ -94,19 +90,6 @@ public static class AssemblyHelper
             var fileName = Path.GetFileNameWithoutExtension(file);
             return regexPatterns.Any(pattern => pattern.IsMatch(fileName));
         });
-        //var result = new ConcurrentBag<Assembly>();
-        //Parallel.ForEach(matchingAssemblies, file =>
-        //{
-        //    var name = Path.GetFileNameWithoutExtension(file);
-        //    if (AssemblyCache.TryGetValue(name, out var assembly) && assembly is not null)
-        //    {
-        //        return;
-        //    }
-        //    var loadedAssembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(file);
-        //    AssemblyCache[name] = loadedAssembly;
-        //    result.Add(loadedAssembly);
-        //});
-        //return result;
         return matchingAssemblies.Select(file =>
         {
             var assemblyName = AssemblyLoadContext.GetAssemblyName(file);
@@ -128,10 +111,6 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">The predicate to match types</para>
     ///     <para xml:lang="zh">匹配类型的谓词</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A collection of types</para>
-    ///     <para xml:lang="zh">类型集合</para>
-    /// </returns>
     public static IEnumerable<Type> FindTypes(Func<Type, bool> predicate) => AllTypes.Where(predicate);
 
     /// <summary>
@@ -142,10 +121,6 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">The attribute type</para>
     ///     <para xml:lang="zh">属性类型</para>
     /// </typeparam>
-    /// <returns>
-    ///     <para xml:lang="en">A collection of types</para>
-    ///     <para xml:lang="zh">类型集合</para>
-    /// </returns>
     public static IEnumerable<Type> FindTypesByAttribute<TAttribute>() where TAttribute : Attribute => FindTypesByAttribute(typeof(TAttribute));
 
     /// <summary>
@@ -160,10 +135,6 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">The predicate to match types</para>
     ///     <para xml:lang="zh">匹配类型的谓词</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A collection of types</para>
-    ///     <para xml:lang="zh">类型集合</para>
-    /// </returns>
     public static IEnumerable<Type> FindTypesByAttribute<TAttribute>(Func<Type, bool> predicate) where TAttribute : Attribute => FindTypesByAttribute<TAttribute>().Where(predicate);
 
     /// <summary>
@@ -174,10 +145,6 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">The attribute type</para>
     ///     <para xml:lang="zh">属性类型</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A collection of types</para>
-    ///     <para xml:lang="zh">类型集合</para>
-    /// </returns>
     public static IEnumerable<Type> FindTypesByAttribute(Type type) => AllTypes.Where(a => a.IsDefined(type, true)).Distinct();
 
     /// <summary>
@@ -188,10 +155,6 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">The predicate to match assemblies</para>
     ///     <para xml:lang="zh">匹配程序集的谓词</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A collection of assemblies</para>
-    ///     <para xml:lang="zh">程序集集合</para>
-    /// </returns>
     public static IEnumerable<Assembly> FindAllItems(Func<Assembly, bool> predicate) => AllAssemblies.Where(predicate);
 
     private static IEnumerable<Type> LoadTypes(IEnumerable<Assembly> assemblies)

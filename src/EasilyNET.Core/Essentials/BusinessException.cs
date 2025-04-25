@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace EasilyNET.Core.System;
+namespace EasilyNET.Core.Essentials;
 
 /// <summary>
 ///     <para xml:lang="en">Business exception, used to handle exceptions in business logic</para>

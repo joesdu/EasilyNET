@@ -43,10 +43,6 @@ public static class DateTimeStampExtensions
     ///     <para xml:lang="en">The number of milliseconds since the Unix epoch</para>
     ///     <para xml:lang="zh">自 Unix 纪元以来的毫秒数</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A DateTime</para>
-    ///     <para xml:lang="zh">一个 DateTime</para>
-    /// </returns>
     /// <exception cref="ArgumentOutOfRangeException">
     ///     <para xml:lang="en">Thrown when the value is outside the range that can be converted to a .NET DateTime</para>
     ///     <para xml:lang="zh">当值超出可以转换为 .NET DateTime 的范围时抛出</para>
@@ -69,10 +65,6 @@ public static class DateTimeStampExtensions
     ///     <para xml:lang="en">The number of seconds since the Unix epoch</para>
     ///     <para xml:lang="zh">自 Unix 纪元以来的秒数</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A DateTime</para>
-    ///     <para xml:lang="zh">一个 DateTime</para>
-    /// </returns>
     /// <exception cref="ArgumentOutOfRangeException">
     ///     <para xml:lang="en">Thrown when the value is outside the range that can be converted to a .NET DateTime</para>
     ///     <para xml:lang="zh">当值超出可以转换为 .NET DateTime 的范围时抛出</para>
@@ -95,7 +87,6 @@ public static class DateTimeStampExtensions
     ///     <para xml:lang="en">The TimeSpan to convert</para>
     ///     <para xml:lang="zh">要转换的 TimeSpan</para>
     /// </param>
-    /// <returns />
     public static string ToString(TimeSpan value)
     {
         const int msInOneSecond = 1000;
@@ -125,10 +116,6 @@ public static class DateTimeStampExtensions
     ///     <para xml:lang="en">The string to convert</para>
     ///     <para xml:lang="zh">要转换的字符串</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The corresponding TimeSpan</para>
-    ///     <para xml:lang="zh">对应的 TimeSpan</para>
-    /// </returns>
     /// <exception cref="FormatException">
     ///     <para xml:lang="en">Thrown when the string is not a valid TimeSpan</para>
     ///     <para xml:lang="zh">当字符串不是有效的 TimeSpan 时抛出</para>
@@ -147,10 +134,6 @@ public static class DateTimeStampExtensions
     ///     <para xml:lang="en">The resulting TimeSpan</para>
     ///     <para xml:lang="zh">转换结果 TimeSpan</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if the conversion was successful, otherwise false</para>
-    ///     <para xml:lang="zh">如果转换成功则为 true，否则为 false</para>
-    /// </returns>
     public static bool TryParse(string value, out TimeSpan result)
     {
         if (!string.IsNullOrEmpty(value))
