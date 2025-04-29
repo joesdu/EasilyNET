@@ -85,7 +85,10 @@ public static class RabbitServiceExtension
             } &&
             o.IsBaseOn(typeof(IEventHandler<>)) &&
             !o.HasAttribute<IgnoreHandlerAttribute>());
-        foreach (var handler in handlers) services.AddSingleton(handler);
+        foreach (var handler in handlers)
+        {
+            services.AddSingleton(handler);
+        }
     }
 
     private static IServiceCollection RabbitPersistentConnection(this IServiceCollection services, Action<RabbitConfig> options)

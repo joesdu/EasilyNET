@@ -36,7 +36,7 @@ public interface IBus
     ///     <para xml:lang="en">CancellationToken</para>
     ///     <para xml:lang="zh">取消令牌</para>
     /// </param>
-    Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent;
+    Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent;
 
     /// <summary>
     ///     <para xml:lang="en">Publishes a delayed event</para>
@@ -72,7 +72,7 @@ public interface IBus
     ///     <para xml:lang="en">CancellationToken</para>
     ///     <para xml:lang="zh">取消令牌</para>
     /// </param>
-    Task Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent;
+    Task Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent;
 
     /// <summary>
     ///     <para xml:lang="en">Publishes a delayed event</para>
@@ -108,5 +108,5 @@ public interface IBus
     ///     <para xml:lang="en">CancellationToken</para>
     ///     <para xml:lang="zh">取消令牌</para>
     /// </param>
-    Task Publish<T>(T @event, TimeSpan ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent;
+    Task Publish<T>(T @event, TimeSpan ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent;
 }
