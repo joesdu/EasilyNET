@@ -26,7 +26,7 @@
     <PackageReference Include="RabbitMQ.Client.OpenTelemetry" Version="1.0.0-rc.1" />
     <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
-    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0-dev-02301" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <PackageReference Include="Serilog.Sinks.Map" Version="2.0.0" />
     <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0-dev-02302" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />

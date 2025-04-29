@@ -25,6 +25,10 @@ builder.Host.UseSerilog((hbc, lc) =>
       .MinimumLevel.Override("System", logLevel)
       // 添加下面这行来过滤掉 Microsoft.Extensions.Resilience 的日志
       .MinimumLevel.Override("Polly", LogEventLevel.Warning)
+      .MinimumLevel.Override("Microsoft.AspNetCore", logLevel)
+      .MinimumLevel.Override("Microsoft.AspNetCore.Cors.Infrastructure.CorsService", logLevel)
+      .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", logLevel)
+      .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", logLevel)
       .Enrich.FromLogContext()
       .WriteTo.Async(wt =>
       {

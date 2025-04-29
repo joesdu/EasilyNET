@@ -26,7 +26,11 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
 
     public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
     {
-        //if (!conn.IsConnected) await conn.TryConnect();
+        // 检查连接是否可用，如果不可用则尝试重新连接
+        if (!conn.IsConnected)
+        {
+            await conn.TryConnect();
+        }
         var type = @event.GetType();
         var exc = type.GetCustomAttribute<ExchangeAttribute>() ??
                   throw new InvalidOperationException($"The event '{@event.GetType().Name}' is missing the required ExchangeAttribute. Unable to create the message.");
@@ -34,7 +38,7 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
         {
             return;
         }
-        var channel = conn.Channel;
+        var channel = await conn.GetChannelAsync();
         var properties = new BasicProperties
         {
             Persistent = true,
@@ -65,13 +69,15 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
                 logger.LogTrace("Publishing event: {EventName} with ID: {EventId}", @event.GetType().Name, @event.EventId);
             }
             await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
-            //await conn.ReturnChannel(channel).ConfigureAwait(false);
         }).ConfigureAwait(false);
     }
 
     public async Task Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken? cancellationToken = null) where T : IEvent
     {
-        //if (!conn.IsConnected) await conn.TryConnect();
+        if (!conn.IsConnected)
+        {
+            await conn.TryConnect();
+        }
         var type = @event.GetType();
         var exc = type.GetCustomAttribute<ExchangeAttribute>() ??
                   throw new InvalidOperationException($"The event '{@event.GetType().Name}' is missing the required ExchangeAttribute. Unable to create the message.");
@@ -83,7 +89,7 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
         {
             throw new InvalidOperationException($"The exchange type for the delayed queue must be '{nameof(EModel.Delayed)}'. Event: '{@event.GetType().Name}'");
         }
-        var channel = conn.Channel;
+        var channel = await conn.GetChannelAsync();
         var properties = new BasicProperties
         {
             Persistent = true,
@@ -125,7 +131,6 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
                 logger.LogTrace("Publishing event: {EventName} with ID: {EventId}", @event.GetType().Name, @event.EventId);
             }
             await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
-            //await conn.ReturnChannel(channel).ConfigureAwait(false);
         }).ConfigureAwait(false);
     }
 
@@ -177,14 +182,20 @@ internal sealed class EventBus(PersistentConnection conn, ISubscriptionsManager 
 
     private async Task<IChannel> CreateConsumerChannel(ExchangeAttribute exc, Type @event)
     {
-        logger.LogTrace("Creating consumer channel");
+        if (logger.IsEnabled(LogLevel.Trace))
+        {
+            logger.LogTrace("Creating consumer channel");
+        }
         var channel = conn.Channel;
         var queueArgs = @event.GetQueueArgAttributes();
         await DeclareExchangeIfNeeded(exc, @event, channel);
         await channel.QueueDeclareAsync(exc.Queue, true, false, false, queueArgs);
         channel.CallbackExceptionAsync += async (_, ea) =>
         {
-            logger.LogWarning(ea.Exception, "Recreating consumer channel");
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning(ea.Exception, "Recreating consumer channel");
+            }
             subsManager.ClearSubscriptions();
             _handleAsyncDelegateCache.Clear();
             await RunRabbit();
