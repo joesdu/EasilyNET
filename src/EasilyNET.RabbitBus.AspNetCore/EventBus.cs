@@ -18,10 +18,7 @@ namespace EasilyNET.RabbitBus.AspNetCore;
 
 internal sealed record EventBus : IBus
 {
-#pragma warning disable IDE0340 // Remove redundant assignment
-    // ReSharper disable once RedundantTypeArgumentsInsideNameof
-    private const string HandleName = nameof(IEventHandler<IEvent>.HandleAsync);
-#pragma warning restore IDE0340 // Remove redundant assignment
+    private const string HandleName = nameof(IEventHandler<>.HandleAsync);
     private readonly PersistentConnection _conn;
     private readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Func<object, Task>?> _handleAsyncDelegateCache = [];
     private readonly ILogger<EventBus> _logger;
