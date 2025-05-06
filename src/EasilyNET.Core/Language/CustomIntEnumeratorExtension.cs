@@ -13,7 +13,6 @@ public static class CustomIntEnumeratorExtension
     /// 为 <see cref="Range" /> 提供自定义枚举器。
     /// </summary>
     /// <param name="range">要枚举的范围。</param>
-    /// <returns>自定义整数枚举器。</returns>
     public static CustomIntEnumerator GetEnumerator(this Range range) => new(range);
 
     /// <summary>
@@ -24,10 +23,6 @@ public static class CustomIntEnumeratorExtension
     ///     <para xml:lang="en">The number to enumerate</para>
     ///     <para xml:lang="zh">要枚举的数字</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A custom integer enumerator</para>
-    ///     <para xml:lang="zh">自定义整数枚举器</para>
-    /// </returns>
     public static CustomIntEnumerator GetEnumerator(this int number) => new(new(0, number));
 
     /// <summary>
@@ -93,10 +88,6 @@ public static class CustomIntEnumeratorExtension
         ///     <para xml:lang="en">Move to the next element</para>
         ///     <para xml:lang="zh">移动到下一个元素</para>
         /// </summary>
-        /// <returns>
-        ///     <para xml:lang="en">Returns <see langword="true" /> if successfully moved to the next element; otherwise, <see langword="false" /></para>
-        ///     <para xml:lang="zh">如果成功移动到下一个元素，则返回 <see langword="true" />；否则返回 <see langword="false" /></para>
-        /// </returns>
         public bool MoveNext() => Current++ < _end;
     }
 }

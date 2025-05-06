@@ -258,10 +258,6 @@ public static class ObjectExtensions
     ///     </para>
     ///     <para xml:lang="zh">在需要的时候计算属性值的值工厂。处理计算成本较高或依赖于其他因素的属性值时非常有用。</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if the property was successfully set, otherwise false</para>
-    ///     <para xml:lang="zh">如果属性设置成功则返回 true，否则返回 false</para>
-    /// </returns>
     [RequiresUnreferencedCode("This method uses reflection and may not be compatible with AOT.")]
     public static bool TrySetProperty<TObject, TValue>(this TObject obj, Expression<Func<TObject, TValue>> propertySelector, Func<TValue> valueFactory)
     {
@@ -298,10 +294,6 @@ public static class ObjectExtensions
     ///     </para>
     ///     <para xml:lang="zh">在需要的时候计算属性值的值工厂。处理计算成本较高或依赖于其他因素的属性值时非常有用。</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if the property was successfully set, otherwise false</para>
-    ///     <para xml:lang="zh">如果属性设置成功则返回 true，否则返回 false</para>
-    /// </returns>
     [RequiresUnreferencedCode("This method uses reflection and may not be compatible with AOT.")]
     public static bool TrySetProperty<TObject, TValue>(this TObject obj, Expression<Func<TObject, TValue>> propertySelector, Func<TObject, TValue> valueFactory)
     {

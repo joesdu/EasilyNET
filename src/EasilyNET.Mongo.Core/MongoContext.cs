@@ -41,9 +41,6 @@ public class MongoContext : IDisposable
     ///     <para xml:lang="en">Collection name</para>
     ///     <para xml:lang="zh">集合名称</para>
     /// </param>
-    /// <returns>
-    ///     <see cref="IMongoCollection{TDocument}" />
-    /// </returns>
     public IMongoCollection<TDocument> GetCollection<TDocument>(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
@@ -54,9 +51,6 @@ public class MongoContext : IDisposable
     ///     <para xml:lang="en">Synchronously get a started <see cref="IClientSessionHandle">Session</see> with a transaction</para>
     ///     <para xml:lang="zh">同步方式获取一个已开启事务的 <see cref="IClientSessionHandle">Session</see></para>
     /// </summary>
-    /// <returns>
-    ///     <see cref="IClientSessionHandle" />
-    /// </returns>
     public IClientSessionHandle GetStartedSession()
     {
         var session = Client.StartSession();
@@ -68,9 +62,6 @@ public class MongoContext : IDisposable
     ///     <para xml:lang="en">Asynchronously get a started <see cref="IClientSessionHandle">Session</see> with a transaction</para>
     ///     <para xml:lang="zh">异步方式获取一个已开启事务的 <see cref="IClientSessionHandle">Session</see></para>
     /// </summary>
-    /// <returns>
-    ///     <see cref="Task{IClientSessionHandle}" />
-    /// </returns>
     public async Task<IClientSessionHandle> GetStartedSessionAsync()
     {
         var session = await Client.StartSessionAsync();
@@ -93,9 +84,6 @@ public class MongoContext : IDisposable
     ///     <para xml:lang="en">Database name</para>
     ///     <para xml:lang="zh">数据库名称</para>
     /// </param>
-    /// <returns>
-    ///     <see cref="MongoContext" />
-    /// </returns>
     public static T CreateInstance<T>(MongoClientSettings settings, string dbName) where T : MongoContext
     {
         var t = Activator.CreateInstance<T>();

@@ -410,10 +410,11 @@ public static class TextWriterExtensions
         }
     }
 
-    /// <returns>
+    /// <summary>
     ///     <para xml:lang="en">Whether UTF-8 encoding is supported</para>
     ///     <para xml:lang="zh">是否支持 UTF-8 编码</para>
-    /// </returns>
+    /// </summary>
+    /// <returns></returns>
     public static bool IsUtf8Supported()
     {
         // 检查当前平台是否支持 UTF-8 编码
@@ -436,10 +437,6 @@ public static class TextWriterExtensions
     ///     <para xml:lang="en">Determine whether the current terminal environment supports ANSI escape sequences</para>
     ///     <para xml:lang="zh">判断当前环境终端是否支持 ANSI 转义序列</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">Whether supported</para>
-    ///     <para xml:lang="zh">是否支持</para>
-    /// </returns>
     public static bool IsAnsiSupported()
     {
         if (_ansiSupported.HasValue)
@@ -454,10 +451,6 @@ public static class TextWriterExtensions
     ///     <para xml:lang="en">Determine whether the current terminal environment supports console cursor movement</para>
     ///     <para xml:lang="zh">判断当前环境终端是否支持控制台光标移动</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">Whether supported</para>
-    ///     <para xml:lang="zh">是否支持</para>
-    /// </returns>
     public static bool IsCursorPosSupported()
     {
         if (_cursorPosSupported.HasValue)
@@ -500,10 +493,6 @@ public static class TextWriterExtensions
     ///     <para xml:lang="en">Determine whether the current terminal environment supports getting console window size</para>
     ///     <para xml:lang="zh">判断当前环境终端是否支持获取控制台窗口大小</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">Whether supported</para>
-    ///     <para xml:lang="zh">是否支持</para>
-    /// </returns>
     public static bool IsWindowSizeSupported()
     {
         if (_windowSizeSupported.HasValue) return _windowSizeSupported.Value;
@@ -556,7 +545,6 @@ public static class TextWriterExtensions
     /// ]]>
     /// </code>
     /// </remarks>
-    /// <returns></returns>
     public static async Task ShowProgressBarAsync(this TextWriter writer, double percentage, string message = "", int width = -1, char completedChar = '=', char incompleteChar = '-', bool isFixedBarWidth = true)
     {
         var output = GenerateProgressBarOutput(percentage, message, width, completedChar, incompleteChar, isFixedBarWidth);
@@ -617,7 +605,6 @@ public static class TextWriterExtensions
     /// ]]>
     /// </code>
     /// </remarks>
-    /// <returns></returns>
     public static void ShowProgressBar(this TextWriter writer, double percentage, string message = "", int width = -1, char completedChar = '=', char incompleteChar = '-', bool isFixedBarWidth = true)
     {
         var output = GenerateProgressBarOutput(percentage, message, width, completedChar, incompleteChar, isFixedBarWidth);
@@ -644,7 +631,6 @@ public static class TextWriterExtensions
     ///     <para xml:lang="en"><see langword="true" />: Show cursor, <see langword="false" />: Hide cursor</para>
     ///     <para xml:lang="zh"><see langword="true" />: 显示光标, <see langword="false" />: 隐藏光标</para>
     /// </param>
-    /// <returns></returns>
     public static async Task SetCursorVisibilityAsync(this TextWriter writer, bool visible)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -729,7 +715,6 @@ public static class TextWriterExtensions
     /// ]]>
     /// </code>
     /// </remarks>
-    /// <returns></returns>
     public static async Task ShowLoadingAsync(this TextWriter writer, CancellationToken cancellationToken, int delay = 100, ConsoleColor color = ConsoleColor.Green)
     {
         var frameIndex = 0;

@@ -27,11 +27,9 @@ public sealed class DateTimeJsonConverter : JsonConverter<DateTime?>
     public override DateTime? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         var str = reader.GetString();
-        if (string.IsNullOrWhiteSpace(str))
-        {
-            return null;
-        }
-        return DateTime.TryParseExact(str, Constant.DateTimeFormat, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var result) ? result : null;
+        return string.IsNullOrWhiteSpace(str)
+            ? null
+            : DateTime.TryParseExact(str, Constant.DateTimeFormat, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var result) ? result : null;
     }
 
     /// <inheritdoc />

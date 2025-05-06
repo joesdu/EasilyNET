@@ -27,10 +27,6 @@ public static class AutoDependencyInjectionServiceExtension
     ///     <para xml:lang="en">Application context</para>
     ///     <para xml:lang="zh">应用上下文</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The application host</para>
-    ///     <para xml:lang="zh">应用程序构建器</para>
-    /// </returns>
     public static IHost GetApplicationHost(this ApplicationContext context) => context.ServiceProvider.GetRequiredService<IObjectAccessor<IHost>>().Value ?? throw new ArgumentNullException(nameof(context));
 
     /// <summary>
@@ -45,10 +41,6 @@ public static class AutoDependencyInjectionServiceExtension
     ///     <para xml:lang="en"><see cref="IServiceCollection" /> to configure services</para>
     ///     <para xml:lang="zh">用于配置服务的 <see cref="IServiceCollection" /></para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The service collection</para>
-    ///     <para xml:lang="zh">服务集合</para>
-    /// </returns>
     public static void AddApplicationModules<T>(this IServiceCollection services) where T : AppModule
     {
         ArgumentNullException.ThrowIfNull(services, nameof(services));
@@ -64,10 +56,6 @@ public static class AutoDependencyInjectionServiceExtension
     ///     <para xml:lang="en">The application host</para>
     ///     <para xml:lang="zh">应用程序构建器</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The initialized application host</para>
-    ///     <para xml:lang="zh">已初始化的应用程序构建器</para>
-    /// </returns>
     public static IHost InitializeApplication(this IHost host)
     {
         host.Services.GetRequiredService<IObjectAccessor<IHost>>().Value = host;
@@ -84,10 +72,6 @@ public static class AutoDependencyInjectionServiceExtension
     ///     <para xml:lang="en">Service provider</para>
     ///     <para xml:lang="zh">服务提供者</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The configuration service</para>
-    ///     <para xml:lang="zh">配置服务</para>
-    /// </returns>
     public static IConfiguration GetConfiguration(this IServiceProvider provider) => provider.GetRequiredService<IConfiguration>();
 
     internal static void AddNamedService(this IServiceCollection services, Type serviceType, object key, Type implementationType, ServiceLifetime lifetime)

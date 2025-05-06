@@ -2,6 +2,7 @@
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 
+#pragma warning disable IDE0130 // 命名空间与文件夹结构不匹配
 namespace EasilyNET.Core;
 
 /// <summary>
@@ -27,20 +28,11 @@ public class IdNameItem
     ///     <para xml:lang="en">Convert to <see cref="ReferenceItem" /> object</para>
     ///     <para xml:lang="zh">转化成 <see cref="ReferenceItem" /> 对象</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">
-    ///         <see cref="ReferenceItem" />
-    ///     </para>
-    ///     <para xml:lang="zh">
-    ///         <see cref="ReferenceItem" />
-    ///     </para>
-    /// </returns>
     public ReferenceItem GetReferenceItem() => new(Id, Name);
 
     /// <summary>
     ///     <para xml:lang="en">Get the Name value</para>
     ///     <para xml:lang="zh">获取Name值</para>
     /// </summary>
-    /// <returns></returns>
     public override string ToString() => Name;
 }

@@ -105,20 +105,12 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     ///     <para xml:lang="en">Returns an enumerator that iterates through the collection</para>
     ///     <para xml:lang="zh">返回一个枚举器，用于遍历集合</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">An enumerator that can be used to iterate through the collection</para>
-    ///     <para xml:lang="zh">一个枚举器，可用于遍历集合</para>
-    /// </returns>
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <summary>
     ///     <para xml:lang="en">Gets an enumerator</para>
     ///     <para xml:lang="zh">获取枚举器</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">An enumerator that can be used to iterate through the collection</para>
-    ///     <para xml:lang="zh">一个枚举器，可用于遍历集合</para>
-    /// </returns>
     public IEnumerator<byte> GetEnumerator()
     {
         for (var i = 0; i < Length; i++)
@@ -140,10 +132,6 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     ///     <para xml:lang="en">Converts to an ArraySegment</para>
     ///     <para xml:lang="zh">转换为 ArraySegment</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">An ArraySegment of bytes</para>
-    ///     <para xml:lang="zh">字节的 ArraySegment</para>
-    /// </returns>
     public ArraySegment<byte> ToArraySegment() => new(_data, 0, (int)Length);
 
     /// <summary>
@@ -171,10 +159,6 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     ///     <para xml:lang="en">The maximum number of bytes to read</para>
     ///     <para xml:lang="zh">要读取的最大字节数</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The total number of bytes read into the buffer</para>
-    ///     <para xml:lang="zh">读取到缓冲区的字节总数</para>
-    /// </returns>
     public override int Read(byte[] buffer, int offset, int count)
     {
         AssertNotDisposed();
@@ -200,10 +184,6 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     ///     <para xml:lang="en">A value of type SeekOrigin indicating the reference point used to obtain the new position</para>
     ///     <para xml:lang="zh">SeekOrigin 类型的值，指示用于获取新位置的参考点</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The new position within the stream</para>
-    ///     <para xml:lang="zh">流中的新位置</para>
-    /// </returns>
     /// <exception cref="ArgumentOutOfRangeException">
     ///     <para xml:lang="en">Thrown when the offset is out of range</para>
     ///     <para xml:lang="zh">当偏移量超出范围时抛出</para>
@@ -350,10 +330,6 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     ///     <para xml:lang="en">Gets the byte array of the stream</para>
     ///     <para xml:lang="zh">获取流的字节数组</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">The byte array of the stream</para>
-    ///     <para xml:lang="zh">流的字节数组</para>
-    /// </returns>
     public byte[] ToArray() => GetBuffer();
 
     /// <summary>
@@ -393,19 +369,11 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     ///     <para xml:lang="en">Gets a span of bytes</para>
     ///     <para xml:lang="zh">获取 Span</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">A span of bytes</para>
-    ///     <para xml:lang="zh">字节的 Span</para>
-    /// </returns>
     public Span<byte> GetSpan() => _data.AsSpan(0, _length);
 
     /// <summary>
     ///     <para xml:lang="en">Gets a memory of bytes</para>
     ///     <para xml:lang="zh">获取 Memory&lt;<see cref="byte" />&gt;</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">A memory of bytes</para>
-    ///     <para xml:lang="zh">字节的 Memory</para>
-    /// </returns>
     public Memory<byte> GetMemory() => _data.AsMemory(0, _length);
 }

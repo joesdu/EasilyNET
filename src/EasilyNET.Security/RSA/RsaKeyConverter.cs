@@ -26,10 +26,6 @@ public static class RsaKeyConverter
     ///     <para xml:lang="en">XML private key</para>
     ///     <para xml:lang="zh">XML私钥</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Base64 private key</para>
-    ///     <para xml:lang="zh">Base64私钥</para>
-    /// </returns>
     public static string ToBase64PrivateKey(string xmlPrivate)
     {
         using var rsa = new RSACryptoServiceProvider();
@@ -51,10 +47,6 @@ public static class RsaKeyConverter
     ///     <para xml:lang="en">XML public key</para>
     ///     <para xml:lang="zh">XML公钥</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Base64 public key</para>
-    ///     <para xml:lang="zh">Base64公钥</para>
-    /// </returns>
     public static string ToBase64PublicKey(string xmlPublic)
     {
         using var rsa = new RSACryptoServiceProvider();
@@ -73,10 +65,6 @@ public static class RsaKeyConverter
     ///     <para xml:lang="en">Base64 private key</para>
     ///     <para xml:lang="zh">Base64私钥</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">XML private key</para>
-    ///     <para xml:lang="zh">XML私钥</para>
-    /// </returns>
     public static string ToXmlPrivateKey(string base64Private)
     {
         var privateKeyParams = (RsaPrivateCrtKeyParameters)PrivateKeyFactory.CreateKey(Convert.FromBase64String(base64Private));
@@ -104,10 +92,6 @@ public static class RsaKeyConverter
     ///     <para xml:lang="en">Base64 public key</para>
     ///     <para xml:lang="zh">Base64公钥</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">XML public key</para>
-    ///     <para xml:lang="zh">XML公钥</para>
-    /// </returns>
     public static string ToXmlPublicKey(string base64Public)
     {
         var p = (RsaKeyParameters)PublicKeyFactory.CreateKey(Convert.FromBase64String(base64Public));

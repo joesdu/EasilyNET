@@ -63,10 +63,6 @@ public static class Sm2Crypt
     ///     <para xml:lang="en">User ID</para>
     ///     <para xml:lang="zh">用户ID</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Encrypted data</para>
-    ///     <para xml:lang="zh">加密后的数据</para>
-    /// </returns>
     public static byte[] Encrypt(byte[] publicKey, byte[] data, byte[]? userId = null, Mode model = Mode.C1C3C2)
     {
         var sm2 = new SM2Engine(new SM3Digest(), Mode.C1C3C2);
@@ -101,10 +97,6 @@ public static class Sm2Crypt
     ///     <para xml:lang="en">User ID</para>
     ///     <para xml:lang="zh">用户ID</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Decrypted data</para>
-    ///     <para xml:lang="zh">解密后的数据</para>
-    /// </returns>
     public static byte[] Decrypt(byte[] privateKey, byte[] data, byte[]? userId = null, Mode model = Mode.C1C3C2)
     {
         if (model == Mode.C1C2C3) data = C123ToC132(data);
@@ -134,10 +126,6 @@ public static class Sm2Crypt
     ///     <para xml:lang="en">User ID</para>
     ///     <para xml:lang="zh">用户ID</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Signature data</para>
-    ///     <para xml:lang="zh">签名数据</para>
-    /// </returns>
     public static byte[] Signature(byte[] privateKey, byte[] msg, byte[]? userId = null)
     {
         var sm2 = new SM2Signer(new SM3Digest());
@@ -173,10 +161,6 @@ public static class Sm2Crypt
     ///     <para xml:lang="en">User ID</para>
     ///     <para xml:lang="zh">用户ID</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Verification result</para>
-    ///     <para xml:lang="zh">验签结果</para>
-    /// </returns>
     public static bool Verify(byte[] publicKey, byte[] msg, byte[] signature, byte[]? userId = null)
     {
         var sm2 = new SM2Signer(new SM3Digest());
@@ -198,10 +182,6 @@ public static class Sm2Crypt
     ///     <para xml:lang="en">Input data in C1C2C3 format</para>
     ///     <para xml:lang="zh">C1C2C3格式的输入数据</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Data in C1C3C2 format</para>
-    ///     <para xml:lang="zh">C1C3C2格式的数据</para>
-    /// </returns>
     private static byte[] C123ToC132(ReadOnlySpan<byte> c1c2c3)
     {
         var c1Len = (((x9.Curve.FieldSize + 7) >> 3) << 1) + 1; //sm2p256v1的这个固定65。可看GMNamedCurves、ECCurve代码。
@@ -221,10 +201,6 @@ public static class Sm2Crypt
     ///     <para xml:lang="en">Input data in C1C3C2 format</para>
     ///     <para xml:lang="zh">C1C3C2格式的输入数据</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Data in C1C2C3 format</para>
-    ///     <para xml:lang="zh">C1C2C3格式的数据</para>
-    /// </returns>
     private static byte[] C132ToC123(ReadOnlySpan<byte> c1c3c2)
     {
         var c1Len = (((x9.Curve.FieldSize + 7) >> 3) << 1) + 1;

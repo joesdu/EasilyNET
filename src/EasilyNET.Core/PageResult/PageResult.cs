@@ -25,10 +25,6 @@ public static class PageResult
     ///     <para xml:lang="en">The paginated data</para>
     ///     <para xml:lang="zh">分页数据</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A PageResult object containing the total number of data items and the paginated data</para>
-    ///     <para xml:lang="zh">包含数据总量和分页数据的 PageResult 对象</para>
-    /// </returns>
     public static PageResult<T> Wrap<T>(long? total, IEnumerable<T>? list) => new(total, list);
 
     /// <summary>
@@ -43,10 +39,6 @@ public static class PageResult
     ///     <para xml:lang="en">The paginated data</para>
     ///     <para xml:lang="zh">分页数据</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A PageResult object containing the total number of data items and the paginated data</para>
-    ///     <para xml:lang="zh">包含数据总量和分页数据的 PageResult 对象</para>
-    /// </returns>
     public static PageResult<dynamic> WrapDynamic(long? total, IEnumerable<dynamic>? list) => new(total, list);
 }
 

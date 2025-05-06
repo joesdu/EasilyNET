@@ -25,10 +25,6 @@ public static class Sm3Crypt
     ///     <para xml:lang="en">The input string</para>
     ///     <para xml:lang="zh">输入的字符串</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The SM3 signature</para>
-    ///     <para xml:lang="zh">SM3签名</para>
-    /// </returns>
     public static byte[] Signature(string data)
     {
         var msg = Encoding.UTF8.GetBytes(data);
@@ -43,10 +39,6 @@ public static class Sm3Crypt
     ///     <para xml:lang="en">The input byte array</para>
     ///     <para xml:lang="zh">输入的字节数组</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The SM3 signature</para>
-    ///     <para xml:lang="zh">SM3签名</para>
-    /// </returns>
     public static byte[] Signature(ReadOnlySpan<byte> data)
     {
         Span<byte> md = stackalloc byte[32];

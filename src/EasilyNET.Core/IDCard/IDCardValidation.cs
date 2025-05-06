@@ -20,10 +20,6 @@ public static class IDCardValidation
     ///     <para xml:lang="en">ID card number</para>
     ///     <para xml:lang="zh">身份证号码</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Whether it is valid</para>
-    ///     <para xml:lang="zh">是否有效</para>
-    /// </returns>
     public static bool CheckIDCard(this string no) =>
         no.Length switch
         {
@@ -38,9 +34,12 @@ public static class IDCardValidation
     /// </summary>
     private static bool CheckIDCard18(ReadOnlySpan<char> no)
     {
-        if (!no[..17].ToString().IsNumber()) return false;
-        if (!IsValidProvince(no[..2])) return false;
-        if (!DateTime.TryParse($"{no.Slice(6, 4)}-{no.Slice(10, 2)}-{no.Slice(12, 2)}", out _)) return false; // 生日验证
+        if (!no[..17].ToString().IsNumber())
+            return false;
+        if (!IsValidProvince(no[..2]))
+            return false;
+        if (!DateTime.TryParse($"{no.Slice(6, 4)}-{no.Slice(10, 2)}-{no.Slice(12, 2)}", out _))
+            return false; // 生日验证
         var sum = 0;
         for (var i = 0; i < 17; i++)
         {
@@ -56,7 +55,8 @@ public static class IDCardValidation
     /// </summary>
     private static bool CheckIDCard15(ReadOnlySpan<char> no)
     {
-        if (!no.ToString().IsNumber()) return false;
+        if (!no.ToString().IsNumber())
+            return false;
         return IsValidProvince(no[..2]) && DateTime.TryParse($"19{no.Slice(6, 2)}-{no.Slice(8, 2)}-{no.Slice(10, 2)}", out _); // 生日验证
     }
 
@@ -68,9 +68,5 @@ public static class IDCardValidation
     ///     <para xml:lang="en">Province code</para>
     ///     <para xml:lang="zh">省份代码</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Whether it is valid</para>
-    ///     <para xml:lang="zh">是否有效</para>
-    /// </returns>
     private static bool IsValidProvince(ReadOnlySpan<char> province) => address.Contains(province.ToString());
 }

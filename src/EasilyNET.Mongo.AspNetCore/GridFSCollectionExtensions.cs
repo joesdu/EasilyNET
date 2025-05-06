@@ -1,4 +1,4 @@
-using EasilyNET.Mongo.AspNetCore;
+using EasilyNET.Mongo.AspNetCore.Abstraction;
 using EasilyNET.Mongo.AspNetCore.Common;
 using EasilyNET.Mongo.AspNetCore.Factories;
 using Microsoft.Extensions.Configuration;
@@ -34,10 +34,6 @@ public static class GridFSCollectionExtensions
     ///     <para xml:lang="en">Configuration action</para>
     ///     <para xml:lang="zh">配置操作</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Service collection</para>
-    ///     <para xml:lang="zh">服务集合</para>
-    /// </returns>
     public static IServiceCollection AddMongoGridFS(this IServiceCollection services, Action<GridFSBucketOptions>? configure = null)
     {
         var db = services.BuildServiceProvider().GetService<IMongoDatabase>() ?? throw new("请先注册IMongoDatabase服务");
@@ -65,10 +61,6 @@ public static class GridFSCollectionExtensions
     ///     <para xml:lang="en">Configuration action</para>
     ///     <para xml:lang="zh">配置操作</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Service collection</para>
-    ///     <para xml:lang="zh">服务集合</para>
-    /// </returns>
     public static IServiceCollection AddMongoGridFS(this IServiceCollection services, MongoClientSettings mongoSettings, string? dbName = null, Action<GridFSBucketOptions>? configure = null)
     {
         var db = new MongoClient(mongoSettings).GetDatabase(dbName ?? Constant.DefaultDbName);
@@ -95,10 +87,6 @@ public static class GridFSCollectionExtensions
     ///     <para xml:lang="en">Configuration action</para>
     ///     <para xml:lang="zh">配置操作</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Service collection</para>
-    ///     <para xml:lang="zh">服务集合</para>
-    /// </returns>
     public static IServiceCollection AddMongoGridFS(this IServiceCollection services, IConfiguration configuration, Action<GridFSBucketOptions>? configure = null)
     {
         var connStr = configuration.GetConnectionString("Mongo") ?? Environment.GetEnvironmentVariable("CONNECTIONSTRINGS_MONGO");
@@ -129,10 +117,6 @@ public static class GridFSCollectionExtensions
     ///     <para xml:lang="en">Configuration action</para>
     ///     <para xml:lang="zh">配置操作</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Service collection</para>
-    ///     <para xml:lang="zh">服务集合</para>
-    /// </returns>
     public static IServiceCollection AddMongoGridFS(this IServiceCollection services, IMongoDatabase db, Action<GridFSBucketOptions>? configure = null)
     {
         services.AddMongoGridFS(db, Constant.ConfigName, c =>
@@ -167,10 +151,6 @@ public static class GridFSCollectionExtensions
     ///     <para xml:lang="en">Configuration action</para>
     ///     <para xml:lang="zh">配置操作</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Service collection</para>
-    ///     <para xml:lang="zh">服务集合</para>
-    /// </returns>
     public static IServiceCollection AddMongoGridFS(this IServiceCollection services, IMongoDatabase db, string name, Action<GridFSBucketOptions> configure)
     {
         services.Configure(name, configure);

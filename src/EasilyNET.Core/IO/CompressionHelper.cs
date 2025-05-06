@@ -19,10 +19,6 @@ public static class CompressionHelper
     ///     <para xml:lang="en">Byte array to compress</para>
     ///     <para xml:lang="zh">要压缩的字节数组</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Compressed byte array</para>
-    ///     <para xml:lang="zh">压缩后的字节数组</para>
-    /// </returns>
     public static byte[] Compress(byte[] data)
     {
         using var memoryStream = new MemoryStream();
@@ -41,10 +37,6 @@ public static class CompressionHelper
     ///     <para xml:lang="en">Compressed byte array</para>
     ///     <para xml:lang="zh">压缩的字节数组</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Decompressed byte array</para>
-    ///     <para xml:lang="zh">解压后的字节数组</para>
-    /// </returns>
     public static byte[] Decompress(byte[] compressedData)
     {
         using var memoryStream = new MemoryStream(compressedData);

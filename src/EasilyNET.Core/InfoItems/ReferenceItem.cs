@@ -1,6 +1,7 @@
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
 
+#pragma warning disable IDE0130 // 命名空间与文件夹结构不匹配
 namespace EasilyNET.Core;
 
 /// <summary>
@@ -48,7 +49,6 @@ public class ReferenceItem : IEquatable<ReferenceItem>
     ///     <para xml:lang="zh">对比两个对象是否相同,通常理解为数据一致就相等</para>
     /// </summary>
     /// <param name="other"></param>
-    /// <returns></returns>
     public bool Equals(ReferenceItem? other) => Equals(this, other!);
 
     /// <summary>
@@ -56,14 +56,12 @@ public class ReferenceItem : IEquatable<ReferenceItem>
     ///     <para xml:lang="zh">比较对象是否相等</para>
     /// </summary>
     /// <param name="obj"></param>
-    /// <returns></returns>
     public override bool Equals(object? obj) => obj is not null && (ReferenceEquals(this, obj) || (obj.GetType() == GetType() && Equals((ReferenceItem)obj)));
 
     /// <summary>
     ///     <para xml:lang="en">GetHashCode</para>
     ///     <para xml:lang="zh">GetHashCode</para>
     /// </summary>
-    /// <returns></returns>
     public override int GetHashCode()
     {
         unchecked
@@ -76,7 +74,6 @@ public class ReferenceItem : IEquatable<ReferenceItem>
     ///     <para xml:lang="en">Output name string</para>
     ///     <para xml:lang="zh">输出名称字符串</para>
     /// </summary>
-    /// <returns></returns>
     public override string ToString() => Name;
 
     /// <summary>
@@ -85,7 +82,6 @@ public class ReferenceItem : IEquatable<ReferenceItem>
     /// </summary>
     /// <param name="x"></param>
     /// <param name="y"></param>
-    /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
     public static bool Equals(ReferenceItem x, ReferenceItem y) => x.Rid == y.Rid && x.Name == y.Name;
 
@@ -95,7 +91,6 @@ public class ReferenceItem : IEquatable<ReferenceItem>
     /// </summary>
     /// <param name="x"></param>
     /// <param name="y"></param>
-    /// <returns></returns>
     public static bool operator ==(ReferenceItem x, ReferenceItem y) => Equals(x, y);
 
     /// <summary>
@@ -104,6 +99,5 @@ public class ReferenceItem : IEquatable<ReferenceItem>
     /// </summary>
     /// <param name="x"></param>
     /// <param name="y"></param>
-    /// <returns></returns>
     public static bool operator !=(ReferenceItem x, ReferenceItem y) => !Equals(x, y);
 }

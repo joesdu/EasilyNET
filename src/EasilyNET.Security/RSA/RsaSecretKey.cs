@@ -32,10 +32,6 @@ public struct RsaSecretKey(string privateKey, string publicKey)
     ///     <para xml:lang="en">Gets the private and public keys in XML format</para>
     ///     <para xml:lang="zh">得到XML格式的私钥和公钥</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">The private and public keys in XML format</para>
-    ///     <para xml:lang="zh">XML格式的私钥和公钥</para>
-    /// </returns>
     public readonly string ToXmlString() =>
         $"""
          -----BEGIN RSA XML PRIVATE KEY-----
@@ -51,10 +47,6 @@ public struct RsaSecretKey(string privateKey, string publicKey)
     ///     <para xml:lang="en">Gets the private and public keys in Base64 format</para>
     ///     <para xml:lang="zh">得到Base64格式的私钥和公钥</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">The private and public keys in Base64 format</para>
-    ///     <para xml:lang="zh">Base64格式的私钥和公钥</para>
-    /// </returns>
     public readonly string ToBase64String() =>
         $"""
          -----BEGIN RSA BASE64 PRIVATE KEY-----

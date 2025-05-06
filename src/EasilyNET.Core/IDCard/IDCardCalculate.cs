@@ -35,7 +35,8 @@ public static class IDCardCalculate
     /// </exception>
     public static void ValidateIDCard(this string no)
     {
-        if (no.CheckIDCard()) return;
+        if (no.CheckIDCard())
+            return;
         throw new ArgumentException($"身份证号不合法:{no}");
     }
 
@@ -71,10 +72,6 @@ public static class IDCardCalculate
     ///     <para xml:lang="en">ID card number</para>
     ///     <para xml:lang="zh">身份证号码</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en"><see cref="EGender" /> Gender</para>
-    ///     <para xml:lang="zh"><see cref="EGender" /> 性别</para>
-    /// </returns>
     public static EGender CalculateGender(this string no)
     {
         no.ValidateIDCard();
@@ -95,16 +92,13 @@ public static class IDCardCalculate
     ///     <para xml:lang="en">Birthdate (<see cref="DateOnly" />)</para>
     ///     <para xml:lang="zh">生日(<see cref="DateOnly" />)</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Exact age</para>
-    ///     <para xml:lang="zh">精确年龄</para>
-    /// </returns>
     public static int CalculateAge(DateOnly birthday)
     {
         var now = DateTime.Now;
         var age = now.Year - birthday.Year;
         // 再考虑月、天的因素
-        if (now.Month < birthday.Month || (now.Month == birthday.Month && now.Day < birthday.Day)) age--;
+        if (now.Month < birthday.Month || (now.Month == birthday.Month && now.Day < birthday.Day))
+            age--;
         return age;
     }
 
@@ -116,10 +110,6 @@ public static class IDCardCalculate
     ///     <para xml:lang="en">Birthdate (<see cref="DateTime" />)</para>
     ///     <para xml:lang="zh">生日(<see cref="DateTime" />)</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Exact age</para>
-    ///     <para xml:lang="zh">精确年龄</para>
-    /// </returns>
     public static int CalculateAge(DateTime birthday) => CalculateAge(birthday.DateOnly);
 
     /// <summary>
@@ -148,10 +138,6 @@ public static class IDCardCalculate
     ///     <para xml:lang="en">Date string</para>
     ///     <para xml:lang="zh">日期字符串</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Parsed <see cref="DateTime" /></para>
-    ///     <para xml:lang="zh">解析后的 <see cref="DateTime" /></para>
-    /// </returns>
     private static DateTime ParseDateTime(ReadOnlySpan<char> dateSpan)
     {
         var year = int.Parse(dateSpan[..4]);

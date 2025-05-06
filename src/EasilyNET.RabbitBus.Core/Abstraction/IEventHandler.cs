@@ -14,9 +14,5 @@ public interface IEventHandler<in TEvent> where TEvent : IEvent
     ///     <para xml:lang="en">The event object</para>
     ///     <para xml:lang="zh">事件对象</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A task that represents the asynchronous operation</para>
-    ///     <para xml:lang="zh">表示异步操作的任务</para>
-    /// </returns>
     Task HandleAsync(TEvent @event);
 }

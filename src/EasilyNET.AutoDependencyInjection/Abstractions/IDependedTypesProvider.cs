@@ -10,9 +10,5 @@ internal interface IDependedTypesProvider
     ///     <para xml:lang="en">Get collection of dependent types</para>
     ///     <para xml:lang="zh">得到依赖类型集合</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">Collection of dependent types</para>
-    ///     <para xml:lang="zh">依赖类型集合</para>
-    /// </returns>
     IEnumerable<Type> GetDependedTypes();
 }

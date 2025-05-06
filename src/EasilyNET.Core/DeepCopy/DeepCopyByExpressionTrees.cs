@@ -24,8 +24,10 @@ public static class DeepCopyByExpressionTrees
 {
     private static readonly ConcurrentDictionary<Type, bool> IsStructTypeToDeepCopyDictionary = new();
     private static readonly ConcurrentDictionary<Type, Func<object, Dictionary<object, object>, object>> CompiledCopyFunctionsDictionary = new();
+
     [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicMethods)]
     private static readonly Type ObjectType = typeof(object);
+
     private static readonly Type ObjectDictionaryType = typeof(Dictionary<object, object>);
     private static readonly Type FieldInfoType = typeof(FieldInfo);
     private static readonly MethodInfo SetValueMethod = FieldInfoType.GetMethod(nameof(Array.SetValue), [ObjectType, ObjectType])!;
@@ -47,27 +49,29 @@ public static class DeepCopyByExpressionTrees
     ///     <para xml:lang="en">A dictionary of already copied objects (key: original object, value: their copies).</para>
     ///     <para xml:lang="zh">已拷贝对象的字典（键：原始对象，值：它们的拷贝）。</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The copied object.</para>
-    ///     <para xml:lang="zh">拷贝后的对象。</para>
-    /// </returns>
     public static T? DeepCopy<T>(this T original, Dictionary<object, object>? copiedReferencesDict = null) => (T?)DeepCopyObj(original, false, copiedReferencesDict ?? new Dictionary<object, object>(new ReferenceEqualityComparer()));
 
     private static object? DeepCopyObj(object? original, bool forceDeepCopy, Dictionary<object, object> copiedReferencesDict)
     {
-        if (original is null) return null;
+        if (original is null)
+            return null;
         var type = original.GetType();
-        if (IsDelegate(type)) return null;
-        if (!forceDeepCopy && !IsTypeToDeepCopy(type)) return original;
-        if (copiedReferencesDict.TryGetValue(original, out var alreadyCopiedObject)) return alreadyCopiedObject;
-        if (type == ObjectType) return new();
+        if (IsDelegate(type))
+            return null;
+        if (!forceDeepCopy && !IsTypeToDeepCopy(type))
+            return original;
+        if (copiedReferencesDict.TryGetValue(original, out var alreadyCopiedObject))
+            return alreadyCopiedObject;
+        if (type == ObjectType)
+            return new();
         var compiledCopyFunction = GetOrCreateCompiledLambdaCopyFunction(type);
         return compiledCopyFunction(original, copiedReferencesDict);
     }
 
     private static Func<object, Dictionary<object, object>, object> GetOrCreateCompiledLambdaCopyFunction(Type type)
     {
-        if (CompiledCopyFunctionsDictionary.TryGetValue(type, out var compiledCopyFunction)) return compiledCopyFunction;
+        if (CompiledCopyFunctionsDictionary.TryGetValue(type, out var compiledCopyFunction))
+            return compiledCopyFunction;
         var unCompiledCopyFunction = CreateCompiledLambdaCopyFunctionForType(type);
         compiledCopyFunction = unCompiledCopyFunction.Compile();
         CompiledCopyFunctionsDictionary[type] = compiledCopyFunction;
@@ -310,7 +314,8 @@ public static class DeepCopyByExpressionTrees
 
     private static bool IsStructWhichNeedsDeepCopy(Type type)
     {
-        if (IsStructTypeToDeepCopyDictionary.TryGetValue(type, out var isStructTypeToDeepCopy)) return isStructTypeToDeepCopy;
+        if (IsStructTypeToDeepCopyDictionary.TryGetValue(type, out var isStructTypeToDeepCopy))
+            return isStructTypeToDeepCopy;
         isStructTypeToDeepCopy = IsStructWhichNeedsDeepCopy_NoDictionaryUsed(type);
         IsStructTypeToDeepCopyDictionary[type] = isStructTypeToDeepCopy;
         return isStructTypeToDeepCopy;
@@ -327,7 +332,8 @@ public static class DeepCopyByExpressionTrees
         var allFields = GetAllFields(type);
         var allFieldTypes = allFields.Select(f => f.FieldType).Distinct().ToList();
         var hasFieldsWithClasses = allFieldTypes.Any(IsClassOtherThanString);
-        if (hasFieldsWithClasses) return true;
+        if (hasFieldsWithClasses)
+            return true;
         var notBasicStructsTypes = allFieldTypes.Where(IsStructOtherThanBasicValueTypes).ToList();
         var typesToCheck = notBasicStructsTypes.Where(t => !alreadyCheckedTypes.Contains(t)).ToList();
         return typesToCheck.Any(typeToCheck => HasInItsHierarchyFieldsWithClasses(typeToCheck, alreadyCheckedTypes));

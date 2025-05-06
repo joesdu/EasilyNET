@@ -54,7 +54,10 @@ internal sealed class PersistentConnection : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogCritical("Error disposing RabbitMQ connection: {Message}", ex.Message);
+            if (_logger.IsEnabled(LogLevel.Critical))
+            {
+                _logger.LogCritical("Error disposing RabbitMQ connection: {Message}", ex.Message);
+            }
         }
     }
 
@@ -128,16 +131,10 @@ internal sealed class PersistentConnection : IDisposable
     private async Task<IConnection> CreateConnectionAsync()
     {
         var _config = _options.Get(Constant.OptionName);
-        IConnection conn;
-        if (_config.AmqpTcpEndpoints is not null && _config.AmqpTcpEndpoints.Count > 0)
-        {
-            conn = await _connectionFactory.CreateConnectionAsync(_config.AmqpTcpEndpoints);
-        }
-        else
-        {
-            conn = await _connectionFactory.CreateConnectionAsync();
-        }
-        if (conn.IsOpen)
+        var conn = _config.AmqpTcpEndpoints is not null && _config.AmqpTcpEndpoints.Count > 0
+            ? await _connectionFactory.CreateConnectionAsync(_config.AmqpTcpEndpoints)
+            : await _connectionFactory.CreateConnectionAsync();
+        if (conn.IsOpen && _logger.IsEnabled(LogLevel.Information))
         {
             _logger.LogInformation("已成功连接到RabbitMQ服务器");
         }
@@ -146,11 +143,9 @@ internal sealed class PersistentConnection : IDisposable
 
     private async Task<IChannel> CreateChannelAsync()
     {
-        if (_currentConnection is not { IsOpen: true })
-        {
-            throw new InvalidOperationException("无法在没有有效连接的情况下创建通道");
-        }
-        return await _currentConnection.CreateChannelAsync();
+        return _currentConnection is not { IsOpen: true }
+            ? throw new InvalidOperationException("无法在没有有效连接的情况下创建通道")
+            : await _currentConnection.CreateChannelAsync();
     }
 
     private void RegisterConnectionEvents()

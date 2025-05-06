@@ -23,7 +23,6 @@ public static class IEnumerableExtensions
     /// <param name="second"></param>
     /// <param name="condition"></param>
     /// <param name="first"></param>
-    /// <returns></returns>
     public static IEnumerable<TFirst> IntersectBy<TFirst, TSecond>(this IEnumerable<TFirst> first, IEnumerable<TSecond> second, Func<TFirst, TSecond, bool> condition)
     {
         return first.Where(f => second.Any(s => condition(f, s)));
@@ -38,7 +37,6 @@ public static class IEnumerableExtensions
     /// <param name="first"></param>
     /// <param name="second"></param>
     /// <param name="keySelector"></param>
-    /// <returns></returns>
     public static IEnumerable<TSource> IntersectBy<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector) => first.IntersectBy(second, keySelector, null);
 
     /// <summary>
@@ -51,7 +49,6 @@ public static class IEnumerableExtensions
     /// <param name="second"></param>
     /// <param name="keySelector"></param>
     /// <param name="comparer"></param>
-    /// <returns></returns>
     public static IEnumerable<TSource> IntersectBy<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer) =>
         first is null
             ? throw new ArgumentNullException(nameof(first))
@@ -77,7 +74,6 @@ public static class IEnumerableExtensions
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="source"></param>
-    /// <returns></returns>
     public static IEnumerable<T> IntersectAll<T>(this IEnumerable<IEnumerable<T>> source)
     {
         return source.Aggregate((current, item) => current.Intersect(item));
@@ -91,7 +87,6 @@ public static class IEnumerableExtensions
     /// <typeparam name="TKey"></typeparam>
     /// <param name="source"></param>
     /// <param name="keySelector"></param>
-    /// <returns></returns>
     public static IEnumerable<TSource> IntersectAll<TSource, TKey>(this IEnumerable<IEnumerable<TSource>> source, Func<TSource, TKey> keySelector)
     {
         return source.Aggregate((current, item) => current.IntersectBy(item, keySelector));
@@ -106,7 +101,6 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="keySelector"></param>
     /// <param name="comparer"></param>
-    /// <returns></returns>
     public static IEnumerable<TSource> IntersectAll<TSource, TKey>(this IEnumerable<IEnumerable<TSource>> source, Func<TSource, TKey> keySelector, IEqualityComparer<TKey> comparer)
     {
         return source.Aggregate((current, item) => current.IntersectBy(item, keySelector, comparer));
@@ -119,7 +113,6 @@ public static class IEnumerableExtensions
     /// <typeparam name="T"></typeparam>
     /// <param name="source"></param>
     /// <param name="comparer"></param>
-    /// <returns></returns>
     public static IEnumerable<T> IntersectAll<T>(this IEnumerable<IEnumerable<T>> source, IEqualityComparer<T> comparer)
     {
         return source.Aggregate((current, item) => current.Intersect(item, comparer));
@@ -134,7 +127,6 @@ public static class IEnumerableExtensions
     /// <param name="second"></param>
     /// <param name="condition"></param>
     /// <param name="first"></param>
-    /// <returns></returns>
     public static IEnumerable<TFirst> ExceptBy<TFirst, TSecond>(this IEnumerable<TFirst> first, IEnumerable<TSecond> second, Func<TFirst, TSecond, bool> condition)
     {
         return first.Where(f => !second.Any(s => condition(f, s)));
@@ -148,7 +140,6 @@ public static class IEnumerableExtensions
     /// <typeparam name="TKey"></typeparam>
     /// <param name="source"></param>
     /// <param name="keySelector"></param>
-    /// <returns></returns>
     public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -165,7 +156,6 @@ public static class IEnumerableExtensions
     /// <param name="first"></param>
     /// <param name="second"></param>
     /// <param name="keySelector"></param>
-    /// <returns></returns>
     public static IEnumerable<TSource> IntersectBy<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TKey> second, Func<TSource, TKey> keySelector) => first.IntersectBy(second, keySelector, null);
 
     /// <summary>
@@ -206,7 +196,6 @@ public static class IEnumerableExtensions
     /// <param name="first"></param>
     /// <param name="second"></param>
     /// <param name="keySelector"></param>
-    /// <returns></returns>
     public static IEnumerable<TSource> ExceptBy<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TKey> second, Func<TSource, TKey> keySelector) => first.ExceptBy(second, keySelector, null);
 
     /// <summary>
@@ -219,7 +208,6 @@ public static class IEnumerableExtensions
     /// <param name="second"></param>
     /// <param name="keySelector"></param>
     /// <param name="comparer"></param>
-    /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     public static IEnumerable<TSource> ExceptBy<TSource, TKey>(this IEnumerable<TSource> first, IEnumerable<TKey> second, Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer)
     {
@@ -442,7 +430,6 @@ public static class IEnumerableExtensions
     /// <typeparam name="TResult"></typeparam>
     /// <param name="source"></param>
     /// <param name="selector"></param>
-    /// <returns></returns>
     public static HashSet<TResult> ToHashSet<T, TResult>(this IEnumerable<T> source, Func<T, TResult> selector)
     {
         var set = new HashSet<TResult>();
@@ -474,7 +461,6 @@ public static class IEnumerableExtensions
     /// <param name="maxParallelCount">最大并行数</param>
     /// <param name="action"></param>
     /// <param name="cancellationToken"></param>
-    /// <returns></returns>
     public static async Task ForeachAsync<T>(this IEnumerable<T> source, Func<T, Task> action, int maxParallelCount, CancellationToken cancellationToken = default)
     {
         if (Debugger.IsAttached)
@@ -510,7 +496,6 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="action"></param>
     /// <param name="cancellationToken"></param>
-    /// <returns></returns>
     public static Task ForeachAsync<T>(this IEnumerable<T> source, Func<T, Task> action, CancellationToken cancellationToken = default)
     {
         if (source is ICollection<T> collection)
@@ -529,7 +514,6 @@ public static class IEnumerableExtensions
     /// <typeparam name="TResult"></typeparam>
     /// <param name="source"></param>
     /// <param name="selector"></param>
-    /// <returns></returns>
     public static Task<TResult[]> SelectAsync<T, TResult>(this IEnumerable<T> source, Func<T, Task<TResult>> selector) => Task.WhenAll(source.Select(selector));
 
     /// <summary>
@@ -540,7 +524,6 @@ public static class IEnumerableExtensions
     /// <typeparam name="TResult"></typeparam>
     /// <param name="source"></param>
     /// <param name="selector"></param>
-    /// <returns></returns>
     public static Task<TResult[]> SelectAsync<T, TResult>(this IEnumerable<T> source, Func<T, int, Task<TResult>> selector) => Task.WhenAll(source.Select(selector));
 
     /// <summary>
@@ -552,7 +535,6 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="selector"></param>
     /// <param name="maxParallelCount">最大并行数</param>
-    /// <returns></returns>
     public static async Task<List<TResult>> SelectAsync<T, TResult>(this IEnumerable<T> source, Func<T, Task<TResult>> selector, int maxParallelCount)
     {
         var results = new List<TResult>();
@@ -580,7 +562,6 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="selector"></param>
     /// <param name="maxParallelCount">最大并行数</param>
-    /// <returns></returns>
     public static async Task<List<TResult>> SelectAsync<T, TResult>(this IEnumerable<T> source, Func<T, int, Task<TResult>> selector, int maxParallelCount)
     {
         var results = new List<TResult>();
@@ -610,7 +591,6 @@ public static class IEnumerableExtensions
     /// <param name="selector"></param>
     /// <param name="maxParallelCount">最大并行数</param>
     /// <param name="cancellationToken">取消口令</param>
-    /// <returns></returns>
     public static async Task ForAsync<T>(this IEnumerable<T> source, Func<T, int, Task> selector, int maxParallelCount, CancellationToken cancellationToken = default)
     {
         var index = 0;
@@ -647,7 +627,6 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="selector"></param>
     /// <param name="cancellationToken">取消口令</param>
-    /// <returns></returns>
     public static Task ForAsync<T>(this IEnumerable<T> source, Func<T, int, Task> selector, CancellationToken cancellationToken = default)
     {
         if (source is ICollection<T> collection)
@@ -666,7 +645,6 @@ public static class IEnumerableExtensions
     /// <typeparam name="TResult"></typeparam>
     /// <param name="source"></param>
     /// <param name="selector"></param>
-    /// <returns></returns>
     public static TResult? MaxOrDefault<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector) => source.Select(selector).DefaultIfEmpty().Max();
 
     /// <summary>
@@ -678,7 +656,6 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="selector"></param>
     /// <param name="defaultValue"></param>
-    /// <returns></returns>
     public static TResult? MaxOrDefault<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector, TResult defaultValue) => source.Select(selector).DefaultIfEmpty(defaultValue).Max();
 
     /// <summary>
@@ -687,7 +664,6 @@ public static class IEnumerableExtensions
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
-    /// <returns></returns>
     public static TSource? MaxOrDefault<TSource>(this IQueryable<TSource> source) => source.DefaultIfEmpty().Max();
 
     /// <summary>
@@ -697,7 +673,6 @@ public static class IEnumerableExtensions
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
     /// <param name="defaultValue"></param>
-    /// <returns></returns>
     public static TSource? MaxOrDefault<TSource>(this IQueryable<TSource> source, TSource defaultValue) => source.DefaultIfEmpty(defaultValue).Max();
 
     /// <summary>
@@ -709,7 +684,6 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="selector"></param>
     /// <param name="defaultValue"></param>
-    /// <returns></returns>
     public static TResult? MaxOrDefault<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector, TResult defaultValue) => source.Select(selector).DefaultIfEmpty(defaultValue).Max();
 
     /// <summary>
@@ -720,7 +694,6 @@ public static class IEnumerableExtensions
     /// <typeparam name="TResult"></typeparam>
     /// <param name="source"></param>
     /// <param name="selector"></param>
-    /// <returns></returns>
     public static TResult? MaxOrDefault<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector) => source.Select(selector).DefaultIfEmpty().Max();
 
     /// <summary>
@@ -729,7 +702,6 @@ public static class IEnumerableExtensions
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
-    /// <returns></returns>
     public static TSource? MaxOrDefault<TSource>(this IEnumerable<TSource> source) => source.DefaultIfEmpty().Max();
 
     /// <summary>
@@ -739,7 +711,6 @@ public static class IEnumerableExtensions
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
     /// <param name="defaultValue"></param>
-    /// <returns></returns>
     public static TSource? MaxOrDefault<TSource>(this IEnumerable<TSource> source, TSource defaultValue) => source.DefaultIfEmpty(defaultValue).Max();
 
     /// <summary>
@@ -750,7 +721,6 @@ public static class IEnumerableExtensions
     /// <typeparam name="TResult"></typeparam>
     /// <param name="source"></param>
     /// <param name="selector"></param>
-    /// <returns></returns>
     public static TResult? MinOrDefault<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector) => source.Select(selector).DefaultIfEmpty().Min();
 
     /// <summary>
@@ -762,7 +732,6 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="selector"></param>
     /// <param name="defaultValue"></param>
-    /// <returns></returns>
     public static TResult? MinOrDefault<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector, TResult defaultValue) => source.Select(selector).DefaultIfEmpty(defaultValue).Min();
 
     /// <summary>
@@ -771,7 +740,6 @@ public static class IEnumerableExtensions
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
-    /// <returns></returns>
     public static TSource? MinOrDefault<TSource>(this IQueryable<TSource> source) => source.DefaultIfEmpty().Min();
 
     /// <summary>
@@ -781,7 +749,6 @@ public static class IEnumerableExtensions
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
     /// <param name="defaultValue"></param>
-    /// <returns></returns>
     public static TSource? MinOrDefault<TSource>(this IQueryable<TSource> source, TSource defaultValue) => source.DefaultIfEmpty(defaultValue).Min();
 
     /// <summary>
@@ -803,7 +770,6 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="selector"></param>
     /// <param name="defaultValue"></param>
-    /// <returns></returns>
     public static TResult? MinOrDefault<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector, TResult defaultValue) => source.Select(selector).DefaultIfEmpty(defaultValue).Min();
 
     /// <summary>
@@ -812,7 +778,6 @@ public static class IEnumerableExtensions
     /// </summary>
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
-    /// <returns></returns>
     public static TSource? MinOrDefault<TSource>(this IEnumerable<TSource> source) => source.DefaultIfEmpty().Min();
 
     /// <summary>
@@ -822,7 +787,6 @@ public static class IEnumerableExtensions
     /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
     /// <param name="defaultValue"></param>
-    /// <returns></returns>
     public static TSource? MinOrDefault<TSource>(this IEnumerable<TSource> source, TSource defaultValue) => source.DefaultIfEmpty(defaultValue).Min();
 
     /// <summary>
@@ -833,7 +797,6 @@ public static class IEnumerableExtensions
     /// <typeparam name="TResult"></typeparam>
     /// <param name="source"></param>
     /// <param name="selector"></param>
-    /// <returns></returns>
     public static TResult? StandardDeviation<T, TResult>(this IEnumerable<T> source, Func<T, TResult> selector) where TResult : IConvertible
     {
         return source.Select(t => selector(t).ConvertTo<double>()).StandardDeviation().ConvertTo<TResult>();
@@ -845,7 +808,6 @@ public static class IEnumerableExtensions
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="source"></param>
-    /// <returns></returns>
     public static T? StandardDeviation<T>(this IEnumerable<T> source) where T : IConvertible
     {
         return source.Select(t => t.ConvertTo<double>()).StandardDeviation().ConvertTo<T>();
@@ -856,7 +818,6 @@ public static class IEnumerableExtensions
     ///     <para xml:lang="zh">标准差</para>
     /// </summary>
     /// <param name="source"></param>
-    /// <returns></returns>
     public static double StandardDeviation(this IEnumerable<double> source)
     {
         double result = 0;
@@ -875,7 +836,6 @@ public static class IEnumerableExtensions
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="source"></param>
-    /// <returns></returns>
     public static IOrderedEnumerable<T> OrderByRandom<T>(this IEnumerable<T> source)
     {
         return source.OrderBy(_ => Guid.NewGuid());
@@ -889,7 +849,6 @@ public static class IEnumerableExtensions
     /// <param name="first"></param>
     /// <param name="second"></param>
     /// <param name="condition"></param>
-    /// <returns></returns>
     public static bool SequenceEqual<T>(this IEnumerable<T> first, IEnumerable<T> second, Func<T, T, bool> condition)
     {
         if (first is ICollection<T> source1 && second is ICollection<T> source2)
@@ -932,7 +891,6 @@ public static class IEnumerableExtensions
     /// <param name="first"></param>
     /// <param name="second"></param>
     /// <param name="condition"></param>
-    /// <returns></returns>
     public static bool SequenceEqual<T1, T2>(this IEnumerable<T1> first, IEnumerable<T2> second, Func<T1, T2, bool> condition)
     {
         if (first is ICollection<T1> source1 && second is ICollection<T2> source2)
@@ -975,7 +933,6 @@ public static class IEnumerableExtensions
     /// <param name="first"></param>
     /// <param name="second"></param>
     /// <param name="condition">对比因素条件</param>
-    /// <returns></returns>
     public static (List<T1> adds, List<T2> remove, List<T1> updates) CompareChanges<T1, T2>(this IEnumerable<T1>? first, IEnumerable<T2>? second, Func<T1, T2, bool> condition)
     {
         first ??= [];
@@ -994,7 +951,6 @@ public static class IEnumerableExtensions
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="list"></param>
-    /// <returns></returns>
     public static List<T> AsNotNull<T>(this List<T>? list) => list ?? [];
 
     /// <summary>
@@ -1003,7 +959,6 @@ public static class IEnumerableExtensions
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="list"></param>
-    /// <returns></returns>
     public static IEnumerable<T> AsNotNull<T>(this IEnumerable<T>? list) => list ?? [];
 
     /// <summary>
@@ -1014,7 +969,6 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="condition"></param>
     /// <param name="where"></param>
-    /// <returns></returns>
     public static IEnumerable<T> WhereIf<T>(this IEnumerable<T> source, bool condition, Func<T, bool> where) => condition ? source.Where(where) : source;
 
     /// <summary>
@@ -1025,7 +979,6 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="condition"></param>
     /// <param name="where"></param>
-    /// <returns></returns>
     public static IEnumerable<T> WhereIf<T>(this IEnumerable<T> source, Func<bool> condition, Func<T, bool> where) => condition() ? source.Where(where) : source;
 
     /// <summary>
@@ -1036,7 +989,6 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="condition"></param>
     /// <param name="where"></param>
-    /// <returns></returns>
     public static IQueryable<T> WhereIf<T>(this IQueryable<T> source, bool condition, Expression<Func<T, bool>> where) => condition ? source.Where(where) : source;
 
     /// <summary>
@@ -1047,7 +999,6 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     /// <param name="condition"></param>
     /// <param name="where"></param>
-    /// <returns></returns>
     public static IQueryable<T> WhereIf<T>(this IQueryable<T> source, Func<bool> condition, Expression<Func<T, bool>> where) => condition() ? source.Where(where) : source;
 
     /// <summary>
@@ -1127,7 +1078,6 @@ public static class IEnumerableExtensions
     /// <param name="childrenWhere">节点条件</param>
     /// <param name="addChildren">添加子节点</param>
     /// <param name="entity"></param>
-    /// <returns></returns>
     public static List<T> ToTree<T>(this List<T> list, Func<T, T, bool> rootWhere, Func<T, T, bool> childrenWhere, Action<T, IEnumerable<T>> addChildren, T? entity = default)
     {
         var treeList = new List<T>();

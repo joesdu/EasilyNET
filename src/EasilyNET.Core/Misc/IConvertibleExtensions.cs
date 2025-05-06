@@ -20,10 +20,6 @@ public static class IConvertibleExtensions
     ///     <para xml:lang="en">The type to check</para>
     ///     <para xml:lang="zh">要检查的类型</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if the type is numeric, otherwise false</para>
-    ///     <para xml:lang="zh">如果是数字类型，则为 <see langword="true" />，否则为 <see langword="false" /></para>
-    /// </returns>
     public static bool IsNumeric(this Type type) =>
         Type.GetTypeCode(type) switch
         {
@@ -53,10 +49,6 @@ public static class IConvertibleExtensions
     ///     <para xml:lang="en">The value to convert</para>
     ///     <para xml:lang="zh">要转换的值</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The converted value</para>
-    ///     <para xml:lang="zh">转换后的值</para>
-    /// </returns>
     /// <exception cref="InvalidCastException">
     ///     <para xml:lang="en">Thrown when the value cannot be converted to the target type</para>
     ///     <para xml:lang="zh">当值无法转换为目标类型时抛出</para>
@@ -125,10 +117,6 @@ public static class IConvertibleExtensions
     ///     <para xml:lang="en">The converted value</para>
     ///     <para xml:lang="zh">转换后的值</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if the conversion was successful, otherwise false</para>
-    ///     <para xml:lang="zh">如果转换成功则为 true，否则为 false</para>
-    /// </returns>
     public static bool TryConvertTo<T>(this IConvertible? value, out T? convertible) where T : IConvertible
     {
         convertible = default;

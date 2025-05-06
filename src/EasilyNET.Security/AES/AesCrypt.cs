@@ -41,10 +41,6 @@ public static class AesCrypt
     ///     <para xml:lang="en">Key and IV mode</para>
     ///     <para xml:lang="zh">Key和IV模式</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A tuple containing the key and IV</para>
-    ///     <para xml:lang="zh">包含密钥和IV的元组</para>
-    /// </returns>
     private static (byte[] Key, byte[] IV) GetAesKey(string pwd, AesKeyModel model = AesKeyModel.AES256)
     {
         var cacheKey = $"{pwd}-{model}";
@@ -101,10 +97,6 @@ public static class AesCrypt
     ///     <para xml:lang="en">Padding mode</para>
     ///     <para xml:lang="zh">填充模式</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Encrypted data</para>
-    ///     <para xml:lang="zh">加密数据</para>
-    /// </returns>
     public static byte[] Encrypt(ReadOnlySpan<byte> content, string pwd, AesKeyModel model, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7)
     {
         var (Key, IV) = GetAesKey(pwd, model);
@@ -144,10 +136,6 @@ public static class AesCrypt
     ///     <para xml:lang="en">Padding mode</para>
     ///     <para xml:lang="zh">填充模式</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Decrypted data</para>
-    ///     <para xml:lang="zh">解密数据</para>
-    /// </returns>
     public static byte[] Decrypt(ReadOnlySpan<byte> secret, string pwd, AesKeyModel model, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7)
     {
         var (Key, IV) = GetAesKey(pwd, model);
