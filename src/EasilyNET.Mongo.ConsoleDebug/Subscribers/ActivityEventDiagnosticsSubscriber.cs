@@ -60,10 +60,6 @@ public sealed class ActivityEventDiagnosticsSubscriber : IEventSubscriber
     ///     <para xml:lang="en">Event handler.</para>
     ///     <para xml:lang="zh">事件处理程序。</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if the event handler is found; otherwise, false.</para>
-    ///     <para xml:lang="zh">如果找到事件处理程序，则为 <c>true</c>；否则为 <c>false</c>。</para>
-    /// </returns>
     public bool TryGetEventHandler<TEvent>(out Action<TEvent> handler) => _subscriber.TryGetEventHandler(out handler);
 
     [SuppressMessage("CodeQuality", "IDE0051:删除未使用的私有成员", Justification = "<挂起>")]

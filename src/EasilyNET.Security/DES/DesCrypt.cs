@@ -36,10 +36,6 @@ public static class DesCrypt
     ///     <para xml:lang="en">The input password</para>
     ///     <para xml:lang="zh">输入的密码</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A tuple containing the key and IV</para>
-    ///     <para xml:lang="zh">包含密钥和IV的元组</para>
-    /// </returns>
     private static (byte[] Key, byte[] IV) GetEesKey(string pwd)
     {
         if (KeyCache.TryGetValue(pwd, out var cachedKey))
@@ -79,10 +75,6 @@ public static class DesCrypt
     ///     <para xml:lang="en">Padding mode</para>
     ///     <para xml:lang="zh">填充模式</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Encrypted data</para>
-    ///     <para xml:lang="zh">加密后的数据</para>
-    /// </returns>
     public static byte[] Encrypt(ReadOnlySpan<byte> content, string pwd, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7)
     {
         var (Key, IV) = GetEesKey(pwd);
@@ -118,10 +110,6 @@ public static class DesCrypt
     ///     <para xml:lang="en">Padding mode</para>
     ///     <para xml:lang="zh">填充模式</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Decrypted data</para>
-    ///     <para xml:lang="zh">解密后的字符串</para>
-    /// </returns>
     public static byte[] Decrypt(ReadOnlySpan<byte> secret, string pwd, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7)
     {
         var (Key, IV) = GetEesKey(pwd);

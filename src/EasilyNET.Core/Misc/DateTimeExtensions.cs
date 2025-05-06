@@ -158,10 +158,6 @@ public static class DateTimeExtensions
     ///     <para xml:lang="en">The first day of the week (Sunday, Monday, etc.)</para>
     ///     <para xml:lang="zh">一周的第一天（周日、周一等）</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">(Start, End)</para>
-    ///     <para xml:lang="zh">(开始时间, 结束时间)</para>
-    /// </returns>
     public static ValueTuple<DateTime, DateTime> WeekStartEndByNumber(this int week, int year, DayOfWeek firstDay) => new DateTime(year, 1, 1).AddDays((week - 1) * 7).WeekStartEnd(firstDay);
 
     /// <summary>
@@ -176,10 +172,6 @@ public static class DateTimeExtensions
     ///     <para xml:lang="en">The year</para>
     ///     <para xml:lang="zh">年份</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">(Start, End)</para>
-    ///     <para xml:lang="zh">(开始时间, 结束时间)</para>
-    /// </returns>
     public static ValueTuple<DateTime, DateTime> MonthStartEndByMonth(this int month, int year) => (month < 1) | (month > 13) ? throw new("非法月份") : new DateTime(year, month, 2).MonthStartEnd;
 
     /// <summary>
@@ -190,10 +182,6 @@ public static class DateTimeExtensions
     ///     <para xml:lang="en">The day of the week</para>
     ///     <para xml:lang="zh">一周中的某天</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The numeric representation of the day</para>
-    ///     <para xml:lang="zh">该天的数字表示</para>
-    /// </returns>
     public static int DayNumber(this DayOfWeek day) =>
         day switch
         {
@@ -214,10 +202,6 @@ public static class DateTimeExtensions
     ///     <para xml:lang="en">The number to convert</para>
     ///     <para xml:lang="zh">要转换的数字</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The corresponding DayOfWeek</para>
-    ///     <para xml:lang="zh">对应的 DayOfWeek</para>
-    /// </returns>
     public static DayOfWeek ToDayOfWeek(this int number) =>
         (number > 7) | (number < 0)
             ? throw new("please input 0-7")
@@ -245,10 +229,6 @@ public static class DateTimeExtensions
     ///     <para xml:lang="en">1 for "周", otherwise "星期"</para>
     ///     <para xml:lang="zh">1 表示 "周"，否则表示 "星期"</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The Chinese name of the day</para>
-    ///     <para xml:lang="zh">该天的中文名称</para>
-    /// </returns>
     public static string DayName(this int day, int type = 1)
     {
         var name = day switch
@@ -277,10 +257,6 @@ public static class DateTimeExtensions
     ///     <para xml:lang="en">1 for "周", otherwise "星期"</para>
     ///     <para xml:lang="zh">1 表示 "周"，否则表示 "星期"</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The Chinese name of the day</para>
-    ///     <para xml:lang="zh">该天的中文名称</para>
-    /// </returns>
     public static string DayName(this DayOfWeek day, int type = 1)
     {
         var name = day switch
@@ -309,10 +285,6 @@ public static class DateTimeExtensions
     ///     <para xml:lang="en">The source time period</para>
     ///     <para xml:lang="zh">源时间段</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The overlap situation</para>
-    ///     <para xml:lang="zh">重合情况</para>
-    /// </returns>
     public static ETimeOverlap TimeOverlap(Tuple<DateTime, DateTime> sub, Tuple<DateTime, DateTime> source)
     {
         var (subStart, subEnd) = sub;
@@ -341,10 +313,6 @@ public static class DateTimeExtensions
     ///     <para xml:lang="en">The date to calculate</para>
     ///     <para xml:lang="zh">要计算的日期</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The number of weeks</para>
-    ///     <para xml:lang="zh">间隔周数</para>
-    /// </returns>
     public static int WeekNoFromPoint(DateTime point, DateTime? date)
     {
         date ??= DateTime.Now;

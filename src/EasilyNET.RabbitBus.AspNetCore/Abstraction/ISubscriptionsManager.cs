@@ -45,10 +45,6 @@ internal interface ISubscriptionsManager
     ///     <para xml:lang="en">The kind of event handler</para>
     ///     <para xml:lang="zh">事件处理程序的类型</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">An enumerable of handler types</para>
-    ///     <para xml:lang="zh">处理程序类型的可枚举集合</para>
-    /// </returns>
     IEnumerable<Type> GetHandlersForEvent(string name, EKindOfHandler handleKind);
 
     /// <summary>
@@ -63,9 +59,5 @@ internal interface ISubscriptionsManager
     ///     <para xml:lang="en">The kind of event handler</para>
     ///     <para xml:lang="zh">事件处理程序的类型</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if there are subscriptions, otherwise false</para>
-    ///     <para xml:lang="zh">如果有订阅则返回 true，否则返回 false</para>
-    /// </returns>
     bool HasSubscriptionsForEvent(string name, EKindOfHandler handleKind);
 }

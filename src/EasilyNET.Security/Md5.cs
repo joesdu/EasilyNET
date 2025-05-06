@@ -13,10 +13,6 @@ internal static class Md5
     ///     <para xml:lang="en">Input string</para>
     ///     <para xml:lang="zh">输入字符串</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">16-character length MD5 uppercase string</para>
-    ///     <para xml:lang="zh">16位长度的MD5大写字符串</para>
-    /// </returns>
     internal static string To16MD5(this string value) => value.To32MD5().Substring(8, 16);
 
     /// <summary>
@@ -27,10 +23,6 @@ internal static class Md5
     ///     <para xml:lang="en">Input string</para>
     ///     <para xml:lang="zh">输入字符串</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">32-character length MD5 uppercase string</para>
-    ///     <para xml:lang="zh">32位长度的MD5大写字符串</para>
-    /// </returns>
     internal static string To32MD5(this string value)
     {
         // 计算所需的最大字节数

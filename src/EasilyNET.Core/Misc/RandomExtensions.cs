@@ -29,10 +29,6 @@ public static class RandomExtensions
         ///     <para xml:lang="en">The maximum value, default is <see cref="int.MaxValue" /></para>
         ///     <para xml:lang="zh">最大值，默认是 <see cref="int.MaxValue" /></para>
         /// </param>
-        /// <returns>
-        ///     <para xml:lang="en">A random integer between startIndex and maxValue</para>
-        ///     <para xml:lang="zh">在 startIndex 和 maxValue 之间的随机整数</para>
-        /// </returns>
         /// <exception cref="ArgumentOutOfRangeException">
         ///     <para xml:lang="en">Thrown when startIndex is greater than maxValue</para>
         ///     <para xml:lang="zh">当 startIndex 大于 maxValue 时抛出</para>
@@ -61,10 +57,6 @@ public static class RandomExtensions
         ///     <para xml:lang="en">The standard deviation</para>
         ///     <para xml:lang="zh">标准差</para>
         /// </param>
-        /// <returns>
-        ///     <para xml:lang="en">A random number with a normal distribution</para>
-        ///     <para xml:lang="zh">正态分布的随机数</para>
-        /// </returns>
         public double NextGauss(double mean, double stdDev)
         {
             var u1 = 1.0 - rd.NextDouble();

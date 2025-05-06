@@ -29,7 +29,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">String</para>
     ///     <para xml:lang="zh">字符串</para>
     /// </param>
-    /// <returns></returns>
     public static string RemoveWhiteSpace(this string value) => RemoveWhiteSpaceRegex().Replace(value, string.Empty);
 
     [GeneratedRegex(@"\s")]
@@ -47,10 +46,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Separator for substrings in this instance</para>
     ///     <para xml:lang="zh">分隔此实例中子字符串</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Converted string collection, returns an empty collection if the input array is null</para>
-    ///     <para xml:lang="zh">转化后的字符串集合，如果传入数组为null则返回空集合</para>
-    /// </returns>
     public static StringCollection ToStringCollection(this string value, string separator)
     {
         var col = new StringCollection();
@@ -82,7 +77,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Lowercase? Default: true</para>
     ///     <para xml:lang="zh">是否小写? 默认:true</para>
     /// </param>
-    /// <returns></returns>
     public static string ToTitleUpperCase(this string value, bool lower = true)
     {
         var regex = ToTitleUpperCaseRegex();
@@ -115,7 +109,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Insert separator every few characters</para>
     ///     <para xml:lang="zh">隔多少个字符插入分隔符</para>
     /// </param>
-    /// <returns></returns>
     public static string Spacing(this string text, string spacingString, int spacingIndex)
     {
         var sb = new StringBuilder(text);
@@ -135,10 +128,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">String to validate</para>
     ///     <para xml:lang="zh">需验证的字符串</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Boolean value indicating whether it is valid</para>
-    ///     <para xml:lang="zh">是否合法的bool值</para>
-    /// </returns>
     public static bool IsNumber(this string value) => value.Validate(@"^\d+$");
 
     /// <summary>
@@ -153,10 +142,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Content of the regular expression</para>
     ///     <para xml:lang="zh">正则表达式的内容</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Boolean value indicating whether it is valid</para>
-    ///     <para xml:lang="zh">是否合法的bool值</para>
-    /// </returns>
     public static bool Validate(this string value, string express)
     {
         if (string.IsNullOrWhiteSpace(value)) return false;
@@ -170,7 +155,6 @@ public static partial class StringExtensions
     /// </summary>
     /// <param name="str"></param>
     /// <param name="len"></param>
-    /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
     public static string Left(this string str, int len) => str.Length < len ? throw new ArgumentException("len参数不能大于给定字符串的长度") : str[..len];
 
@@ -180,7 +164,6 @@ public static partial class StringExtensions
     /// </summary>
     /// <param name="str"></param>
     /// <param name="len"></param>
-    /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
     public static string Right(this string str, int len) => str.Length < len ? throw new ArgumentException("len参数不能大于给定字符串的长度") : str.Substring(str.Length - len, len);
 
@@ -190,7 +173,6 @@ public static partial class StringExtensions
     /// </summary>
     /// <param name="str"></param>
     /// <param name="len"></param>
-    /// <returns></returns>
     public static string MaxLeft(this string str, int len) => str.Length < len ? str : str[..len];
 
     /// <summary>
@@ -199,7 +181,6 @@ public static partial class StringExtensions
     /// </summary>
     /// <param name="str"></param>
     /// <param name="len"></param>
-    /// <returns></returns>
     public static string MaxRight(this string str, int len) => str.Length < len ? str : str.Substring(str.Length - len, len);
 
     /// <summary>
@@ -214,7 +195,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Mask character</para>
     ///     <para xml:lang="zh">掩码符</para>
     /// </param>
-    /// <returns></returns>
     public static string Mask(this string value, char mask = '*')
     {
         if (string.IsNullOrWhiteSpace(value.Trim())) return value;
@@ -266,7 +246,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">New content</para>
     ///     <para xml:lang="zh">新内容</para>
     /// </param>
-    /// <returns></returns>
     public static string Replace(this string input, Regex regex, string replacement) => regex.Replace(input, replacement);
 
     /// <summary>
@@ -282,7 +261,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Remove empty characters</para>
     ///     <para xml:lang="zh">是否移除空白字符</para>
     /// </param>
-    /// <returns></returns>
     public static string Join(this IEnumerable<string> strs, char separate = ',', bool removeEmpty = false) => string.Join(separate, removeEmpty ? strs.Where(s => !string.IsNullOrWhiteSpace(s)) : strs);
 
     /// <summary>
@@ -290,7 +268,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="zh">转成非null</para>
     /// </summary>
     /// <param name="s"></param>
-    /// <returns></returns>
     public static string AsNotNull(this string? s) => string.IsNullOrWhiteSpace(s) ? string.Empty : s;
 
     /// <summary>
@@ -302,7 +279,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Replacement value when null</para>
     ///     <para xml:lang="zh">为空时的替换值</para>
     /// </param>
-    /// <returns></returns>
     public static string IfNullOrEmpty(this string s, string value) => string.IsNullOrWhiteSpace(s) ? value : s;
 
     /// <summary>
@@ -314,7 +290,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Replacement value function when null</para>
     ///     <para xml:lang="zh">为空时的替换值函数</para>
     /// </param>
-    /// <returns></returns>
     public static string IfNullOrEmpty(this string s, Func<string> valueFactory) => string.IsNullOrWhiteSpace(s) ? valueFactory() : s;
 
     /// <summary>
@@ -325,10 +300,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Source string</para>
     ///     <para xml:lang="zh">源字符串</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Whether the match is successful</para>
-    ///     <para xml:lang="zh">是否匹配成功</para>
-    /// </returns>
     public static bool IsPhoneNumber(this string s) => !string.IsNullOrWhiteSpace(s) && s[0] == '1' && (s[1] > '2' || s[1] <= '9');
 
     /// <summary>
@@ -343,10 +314,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Throw exception if parsing fails</para>
     ///     <para xml:lang="zh">解析失败时是否抛出异常</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Parsed DateTime object</para>
-    ///     <para xml:lang="zh">解析后的DateTime对象</para>
-    /// </returns>
     public static DateTime? ToDateTime(this string value, bool force = false) =>
         string.IsNullOrWhiteSpace(value)
             ? force ? throw new ArgumentException("日期字符串不能为空") : null
@@ -368,10 +335,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Encoding type</para>
     ///     <para xml:lang="zh">编码类型</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Byte stream</para>
-    ///     <para xml:lang="zh">字节流</para>
-    /// </returns>
     public static MemoryStream ToStream(this string value, Encoding encoding)
     {
         var mStream = new MemoryStream();
@@ -393,10 +356,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Character set code</para>
     ///     <para xml:lang="zh">字符集代码</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Byte stream</para>
-    ///     <para xml:lang="zh">字节流</para>
-    /// </returns>
     public static MemoryStream ToStream(this string value, string charset) => value.ToStream(Encoding.GetEncoding(charset));
 
     /// <summary>
@@ -407,10 +366,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">String to convert</para>
     ///     <para xml:lang="zh">需转换的字符串</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Byte stream</para>
-    ///     <para xml:lang="zh">字节流</para>
-    /// </returns>
     public static MemoryStream ToStream(this string value) => value.ToStream(Encoding.UTF8);
 
     /// <summary>
@@ -421,10 +376,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">String to convert</para>
     ///     <para xml:lang="zh">需要转换的字符串</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Converted full-width string</para>
-    ///     <para xml:lang="zh">转换为全角的字符串</para>
-    /// </returns>
     public static string ToSBC(this string input)
     {
         // 半角转全角：
@@ -449,10 +400,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">String to convert</para>
     ///     <para xml:lang="zh">需要转换的字符串</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Converted half-width string</para>
-    ///     <para xml:lang="zh">转换为半角的字符串</para>
-    /// </returns>
     public static string ToDBC(this string input)
     {
         var c = input.ToCharArray();
@@ -479,10 +426,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">String to reverse</para>
     ///     <para xml:lang="zh">待反转字符串</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Reversed string</para>
-    ///     <para xml:lang="zh">反转后的字符串</para>
-    /// </returns>
     public static string Reverse(this string value)
     {
         if (string.IsNullOrEmpty(value)) return value;
@@ -507,7 +450,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Ignore case</para>
     ///     <para xml:lang="zh">忽略大小写</para>
     /// </param>
-    /// <returns></returns>
     public static bool Contains(this string source, IEnumerable<string> keys, bool ignoreCase = true)
     {
         if (keys is not string[] array)
@@ -533,7 +475,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Ignore case</para>
     ///     <para xml:lang="zh">忽略大小写</para>
     /// </param>
-    /// <returns></returns>
     public static bool ContainsSafety(this string source, IEnumerable<string> keys, bool ignoreCase = true)
     {
         if (keys is not string[] array)
@@ -575,7 +516,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Ignore case</para>
     ///     <para xml:lang="zh">忽略大小写</para>
     /// </param>
-    /// <returns></returns>
     public static bool EndsWith(this string source, IEnumerable<string> keys, bool ignoreCase = true)
     {
         if (keys is not string[] array)
@@ -603,7 +543,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Ignore case</para>
     ///     <para xml:lang="zh">忽略大小写</para>
     /// </param>
-    /// <returns></returns>
     public static bool StartsWith(this string source, IEnumerable<string> keys, bool ignoreCase = true)
     {
         if (keys is not string[] array)
@@ -627,10 +566,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">A byte array</para>
     ///     <para xml:lang="zh">字节数组</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if the hexadecimal string is successfully parsed</para>
-    ///     <para xml:lang="zh">如果成功解析十六进制字符串，则为 True</para>
-    /// </returns>
     public static bool TryParseHex(this string hex, out byte[]? bytes)
     {
         bytes = null;
@@ -678,7 +613,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="zh">获取16位长度的MD5大写字符串</para>
     /// </summary>
     /// <param name="value"></param>
-    /// <returns></returns>
     public static string To16MD5(this string value) => value.To32MD5().Substring(8, 16);
 
     /// <summary>
@@ -686,7 +620,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="zh">获取32位长度的MD5大写字符串</para>
     /// </summary>
     /// <param name="value"></param>
-    /// <returns></returns>
     public static string To32MD5(this string value)
     {
         // 计算所需的最大字节数
@@ -769,7 +702,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Target type, default: lower camel case</para>
     ///     <para xml:lang="zh">目标方式,默认:小驼峰</para>
     /// </param>
-    /// <returns></returns>
     public static string SnakeCaseToCamelCase(this string value, ECamelCase toType = ECamelCase.LowerCamelCase)
     {
         if (string.IsNullOrWhiteSpace(value)) return value;
@@ -808,7 +740,6 @@ public static partial class StringExtensions
     ///     <para xml:lang="en">Path to process</para>
     ///     <para xml:lang="zh">需要处理的路径</para>
     /// </param>
-    /// <returns></returns>
     public static string GetClickablePath(this string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path, nameof(path));

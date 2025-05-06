@@ -28,11 +28,9 @@ public sealed class DateOnlyJsonConverter : JsonConverter<DateOnly?>
     public override DateOnly? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         var str = reader.GetString();
-        if (string.IsNullOrWhiteSpace(str))
-        {
-            return null;
-        }
-        return DateOnly.TryParseExact(str, Constant.DateFormat, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var result) ? result : null;
+        return string.IsNullOrWhiteSpace(str)
+            ? null
+            : DateOnly.TryParseExact(str, Constant.DateFormat, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var result) ? result : null;
     }
 
     /// <inheritdoc />

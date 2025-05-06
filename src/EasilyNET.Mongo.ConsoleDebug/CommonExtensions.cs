@@ -41,9 +41,5 @@ internal static class CommonExtensions
     ///     <para xml:lang="en">Type.</para>
     ///     <para xml:lang="zh">类型。</para>
     /// </typeparam>
-    /// <returns>
-    ///     <para xml:lang="en">Assembly version.</para>
-    ///     <para xml:lang="zh">程序集版本。</para>
-    /// </returns>
     internal static string GetVersion<T>() => typeof(T).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? string.Empty;
 }

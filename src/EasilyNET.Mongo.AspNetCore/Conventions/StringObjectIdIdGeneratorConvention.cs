@@ -113,10 +113,6 @@ file class CustomStringObjectIdGenerator : IIdGenerator
     ///     <para xml:lang="en">Document object</para>
     ///     <para xml:lang="zh">文档对象</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Generated Id</para>
-    ///     <para xml:lang="zh">生成的Id</para>
-    /// </returns>
     public object GenerateId(object container, object document)
     {
         var classMap = BsonClassMap.LookupClassMap(document.GetType());
@@ -151,9 +147,5 @@ file class CustomStringObjectIdGenerator : IIdGenerator
     ///     <para xml:lang="en">Id object</para>
     ///     <para xml:lang="zh">Id对象</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if Id is empty, otherwise false</para>
-    ///     <para xml:lang="zh">如果Id为空则返回true，否则返回false</para>
-    /// </returns>
     public bool IsEmpty(object? id) => string.IsNullOrWhiteSpace(id?.ToString());
 }

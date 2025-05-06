@@ -23,10 +23,6 @@ public static partial class TypeExtensions
         ///     <para xml:lang="en">Checks if the type is a Nullable type</para>
         ///     <para xml:lang="zh">判断类型是否为 Nullable 类型</para>
         /// </summary>
-        /// <returns>
-        ///     <para xml:lang="en">True if the type is Nullable, otherwise false</para>
-        ///     <para xml:lang="zh">如果是 Nullable 类型则返回 True，否则返回 False</para>
-        /// </returns>
         public bool IsNullable => Nullable.GetUnderlyingType(type) != null;
 
         /// <summary>
@@ -40,20 +36,12 @@ public static partial class TypeExtensions
         ///     Single.
         ///     </para>
         /// </summary>
-        /// <returns>
-        ///     <para xml:lang="en">True if the type is a primitive type, otherwise false</para>
-        ///     <para xml:lang="zh">如果是基元类型则返回 True，否则返回 False</para>
-        /// </returns>
         public bool IsPrimitiveType => (Nullable.GetUnderlyingType(type) ?? type).IsPrimitive;
 
         /// <summary>
         ///     <para xml:lang="en">Gets the collection of interfaces implemented by the current type</para>
         ///     <para xml:lang="zh">获取当前类型实现的接口的集合</para>
         /// </summary>
-        /// <returns>
-        ///     <para xml:lang="en">The collection of interfaces implemented by the current type</para>
-        ///     <para xml:lang="zh">当前类型实现的接口的集合</para>
-        /// </returns>
         public IEnumerable<Type> ImplementedInterfaces => type.GetInterfaces();
 
         /// <summary>
@@ -82,10 +70,6 @@ public static partial class TypeExtensions
         ///     <para xml:lang="en">Whether abstract classes are allowed</para>
         ///     <para xml:lang="zh">是否允许抽象类</para>
         /// </param>
-        /// <returns>
-        ///     <para xml:lang="en">True if the type can be derived from the base type, otherwise false</para>
-        ///     <para xml:lang="zh">如果是派生类则返回 True，否则返回 False</para>
-        /// </returns>
         public bool IsDeriveClassFrom(Type baseType, bool canAbstract = false)
         {
             type.NotNull(nameof(type));
@@ -101,10 +85,6 @@ public static partial class TypeExtensions
         ///     <para xml:lang="en">The base type to check</para>
         ///     <para xml:lang="zh">要判断的基类型</para>
         /// </param>
-        /// <returns>
-        ///     <para xml:lang="en">True if the type is a derived class of the base type, otherwise false</para>
-        ///     <para xml:lang="zh">如果是派生类则返回 True，否则返回 False</para>
-        /// </returns>
         public bool IsBaseOn(Type baseType) => baseType.IsGenericTypeDefinition ? type.HasImplementedRawGeneric(baseType) : baseType.IsAssignableFrom(type);
 
         /// <summary>
@@ -118,10 +98,6 @@ public static partial class TypeExtensions
         ///     <para xml:lang="en">The generic interface type, pass typeof(IXxx&lt;&gt;)</para>
         ///     <para xml:lang="zh">泛型接口类型，传入 typeof(IXxx&lt;&gt;)</para>
         /// </param>
-        /// <returns>
-        ///     <para xml:lang="en">True if the type is a subtype of the generic type, otherwise false</para>
-        ///     <para xml:lang="zh">如果是泛型接口的子类型，则返回 true，否则返回 false</para>
-        /// </returns>
         public bool HasImplementedRawGeneric(Type generic)
         {
             type.NotNull(nameof(type));
@@ -139,10 +115,6 @@ public static partial class TypeExtensions
         ///     <para xml:lang="en">The type info</para>
         ///     <para xml:lang="zh">类型信息</para>
         /// </param>
-        /// <returns>
-        ///     <para xml:lang="en">True if the interface type has a matching generic type, otherwise false</para>
-        ///     <para xml:lang="zh">如果具有相匹配的通用类型则返回 True，否则返回 False</para>
-        /// </returns>
         public bool HasMatchingGenericArity(TypeInfo typeInfo)
         {
             if (!typeInfo.IsGenericType) return true;
@@ -161,10 +133,6 @@ public static partial class TypeExtensions
         ///     <para xml:lang="en">The type info</para>
         ///     <para xml:lang="zh">类型信息</para>
         /// </param>
-        /// <returns>
-        ///     <para xml:lang="en">The registration type</para>
-        ///     <para xml:lang="zh">注册类型</para>
-        /// </returns>
         public Type GetRegistrationType(TypeInfo typeInfo)
         {
             if (!typeInfo.IsGenericTypeDefinition) return type;
@@ -176,10 +144,6 @@ public static partial class TypeExtensions
         ///     <para xml:lang="en">Gets a friendly type name suitable for use in error messages</para>
         ///     <para xml:lang="zh">获取适合在错误消息中使用的友好类名</para>
         /// </summary>
-        /// <returns>
-        ///     <para xml:lang="en">The friendly type name</para>
-        ///     <para xml:lang="zh">友好的类名</para>
-        /// </returns>
         public string GetFriendlyTypeName()
         {
             var typeInfo = type.GetTypeInfo();

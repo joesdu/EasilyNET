@@ -1,3 +1,4 @@
+using EasilyNET.Mongo.AspNetCore.Abstraction;
 using EasilyNET.Mongo.AspNetCore.Common;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;

@@ -45,10 +45,6 @@ public static class EnumExtensions
     ///     <para xml:lang="en">The enum values to exclude</para>
     ///     <para xml:lang="zh">要排除的枚举值</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The collection of enum values excluding the specified values</para>
-    ///     <para xml:lang="zh">排除指定值后的枚举值集合</para>
-    /// </returns>
     public static IEnumerable<T> GetValues<T>(params T[] exclude) where T : Enum
     {
         var allValues = Enum.GetValues(typeof(T)).Cast<T>();

@@ -24,10 +24,6 @@ public static class Rc4Crypt
     ///     <para xml:lang="en">Key</para>
     ///     <para xml:lang="zh">密钥</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Decrypted data</para>
-    ///     <para xml:lang="zh">解密后的数据</para>
-    /// </returns>
     public static byte[] Decrypt(ReadOnlySpan<byte> data, ReadOnlySpan<byte> key) => Encrypt(data, key);
 
     /// <summary>
@@ -42,10 +38,6 @@ public static class Rc4Crypt
     ///     <para xml:lang="en">Key</para>
     ///     <para xml:lang="zh">密钥</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Encrypted data</para>
-    ///     <para xml:lang="zh">加密后的数据</para>
-    /// </returns>
     public static byte[] Encrypt(ReadOnlySpan<byte> data, ReadOnlySpan<byte> key)
     {
         Span<byte> s = stackalloc byte[256];

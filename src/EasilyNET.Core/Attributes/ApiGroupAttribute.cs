@@ -26,7 +26,6 @@ public sealed class ApiGroupAttribute(string title, string des = "") : Attribute
     ///     <para xml:lang="en">Get the description of the attribute</para>
     ///     <para xml:lang="zh">获取特性的描述信息</para>
     /// </summary>
-    /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
     public override string Description() => "被此特性标记的控制器可在Swagger文档分组中发挥作用. This attribute can be used to group controllers in Swagger documentation.";
 }

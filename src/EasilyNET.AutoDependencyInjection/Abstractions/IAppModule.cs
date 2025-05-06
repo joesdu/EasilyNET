@@ -26,10 +26,6 @@ public interface IAppModule : IApplicationInitialization
     ///     <para xml:lang="en">Module type</para>
     ///     <para xml:lang="zh">模块类型</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Collection of dependent types</para>
-    ///     <para xml:lang="zh">依赖类型集合</para>
-    /// </returns>
     IEnumerable<Type> GetDependedTypes(Type? moduleType = null);
 
     /// <summary>
@@ -40,9 +36,5 @@ public interface IAppModule : IApplicationInitialization
     ///     <para xml:lang="en">Configuration services context</para>
     ///     <para xml:lang="zh">配置服务上下文</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Boolean indicating whether the module is enabled</para>
-    ///     <para xml:lang="zh">指示模块是否启用的布尔值</para>
-    /// </returns>
     bool GetEnable(ConfigureServicesContext context);
 }

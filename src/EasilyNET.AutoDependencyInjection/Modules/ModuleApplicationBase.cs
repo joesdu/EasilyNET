@@ -73,10 +73,6 @@ internal class ModuleApplicationBase : IModuleApplication
     ///     <para xml:lang="en">Get all modules that need to be loaded</para>
     ///     <para xml:lang="zh">获取所有需要加载的模块</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">A task representing the asynchronous operation</para>
-    ///     <para xml:lang="zh">表示异步操作的任务</para>
-    /// </returns>
     private async Task GetModules()
     {
         var sources = await GetAllEnabledModule();
@@ -97,10 +93,6 @@ internal class ModuleApplicationBase : IModuleApplication
     ///     <para xml:lang="en">Get all enabled modules</para>
     ///     <para xml:lang="zh">获取所有启用的模块</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">A task representing the asynchronous operation</para>
-    ///     <para xml:lang="zh">表示异步操作的任务</para>
-    /// </returns>
     private async Task<ConcurrentBag<IAppModule>> GetAllEnabledModule()
     {
         var types = AssemblyHelper.AllTypes.Where(AppModule.IsAppModule);
@@ -124,10 +116,6 @@ internal class ModuleApplicationBase : IModuleApplication
     ///     <para xml:lang="en">Type of the module</para>
     ///     <para xml:lang="zh">模块的类型</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">An instance of <see cref="IAppModule" /></para>
-    ///     <para xml:lang="zh"><see cref="IAppModule" /> 的实例</para>
-    /// </returns>
     private async Task<IAppModule?> CreateModule(Type moduleType)
     {
         return await Task.Run(() =>

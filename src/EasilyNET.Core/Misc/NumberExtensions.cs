@@ -27,10 +27,6 @@ public static partial class NumberExtensions
     ///     <para xml:lang="en">The rounding strategy</para>
     ///     <para xml:lang="zh">四舍五入策略</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The converted decimal</para>
-    ///     <para xml:lang="zh">转换后的 decimal</para>
-    /// </returns>
     public static decimal ToDecimal(this double num, int precision, MidpointRounding mode = MidpointRounding.AwayFromZero) => Math.Round((decimal)num, precision, mode);
 
     /// <summary>
@@ -49,10 +45,6 @@ public static partial class NumberExtensions
     ///     <para xml:lang="en">The rounding strategy</para>
     ///     <para xml:lang="zh">四舍五入策略</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The converted decimal</para>
-    ///     <para xml:lang="zh">转换后的 decimal</para>
-    /// </returns>
     public static decimal ToDecimal(this float num, int precision, MidpointRounding mode = MidpointRounding.AwayFromZero) => Math.Round((decimal)num, precision, mode);
 
     /// <summary>
@@ -63,10 +55,6 @@ public static partial class NumberExtensions
     ///     <para xml:lang="en">The amount</para>
     ///     <para xml:lang="zh">金额</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The Chinese RMB representation</para>
-    ///     <para xml:lang="zh">返回大写形式</para>
-    /// </returns>
     public static string ToRmb(this decimal number)
     {
         var s = number.ToString("#L#E#D#C#K#E#D#C#J#E#D#C#I#E#D#C#H#E#D#C#G#E#D#C#F#E#D#C#.0B0A");
@@ -88,10 +76,6 @@ public static partial class NumberExtensions
     ///     <para xml:lang="en">The amount</para>
     ///     <para xml:lang="zh">金额</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The Chinese RMB representation</para>
-    ///     <para xml:lang="zh">返回大写形式</para>
-    /// </returns>
     public static string ToRmb(this double number) => ((decimal)number).ToRmb();
 
     /// <summary>
@@ -125,10 +109,6 @@ public static partial class NumberExtensions
     ///     <para xml:lang="en">The precision, default is 0.000001</para>
     ///     <para xml:lang="zh">精度默认: 0.000001</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if the numbers are almost equal, otherwise false</para>
-    ///     <para xml:lang="zh">如果数字几乎相等，则为 true，否则为 false</para>
-    /// </returns>
     public static bool AreAlmostEqual<T>(this T a, T b, double epsilon = ModuleConstants.Epsilon) where T : struct, IComparable, IConvertible, IFormattable
     {
         if (typeof(T) == typeof(float))
@@ -184,10 +164,6 @@ public static partial class NumberExtensions
     ///     <para xml:lang="en">The precision, default is 0.000001</para>
     ///     <para xml:lang="zh">精度默认: 0.000001</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if a is greater than b, otherwise false</para>
-    ///     <para xml:lang="zh">如果 a 大于 b，返回 true；否则返回 false</para>
-    /// </returns>
     public static bool IsGreaterThan<T>(this T a, T b, double epsilon = ModuleConstants.Epsilon) where T : struct, IComparable, IConvertible, IFormattable
     {
         if (typeof(T) == typeof(float))

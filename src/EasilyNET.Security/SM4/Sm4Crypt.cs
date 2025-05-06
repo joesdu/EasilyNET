@@ -28,10 +28,6 @@ public static class Sm4Crypt
     ///     <para xml:lang="en">Plain text in binary format</para>
     ///     <para xml:lang="zh">二进制格式加密的内容</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Returns the ciphertext in binary format</para>
-    ///     <para xml:lang="zh">返回二进制格式密文</para>
-    /// </returns>
     public static byte[] EncryptECB(string secretKey, bool hexString, ReadOnlySpan<byte> plainText)
     {
         var ctx = new Sm4Context
@@ -61,10 +57,6 @@ public static class Sm4Crypt
     ///     <para xml:lang="en">Ciphertext in binary format</para>
     ///     <para xml:lang="zh">二进制格式密文</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Returns the plaintext in binary format</para>
-    ///     <para xml:lang="zh">返回二进制格式明文</para>
-    /// </returns>
     public static byte[] DecryptECB(string secretKey, bool hexString, ReadOnlySpan<byte> cipherBytes)
     {
         var ctx = new Sm4Context
@@ -98,10 +90,6 @@ public static class Sm4Crypt
     ///     <para xml:lang="en">Plain text in binary format</para>
     ///     <para xml:lang="zh">二进制格式明文</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Returns the ciphertext in binary format</para>
-    ///     <para xml:lang="zh">返回二进制密文数组</para>
-    /// </returns>
     public static byte[] EncryptCBC(string secretKey, bool hexString, string iv, ReadOnlySpan<byte> plainText)
     {
         var ctx = new Sm4Context
@@ -136,10 +124,6 @@ public static class Sm4Crypt
     ///     <para xml:lang="en">Ciphertext in binary format</para>
     ///     <para xml:lang="zh">二进制格式密文</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Returns the plaintext in binary format</para>
-    ///     <para xml:lang="zh">返回二进制格式明文</para>
-    /// </returns>
     public static byte[] DecryptCBC(string secretKey, bool hexString, string iv, ReadOnlySpan<byte> cipherText)
     {
         var ctx = new Sm4Context

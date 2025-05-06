@@ -125,10 +125,6 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">Generates a new <see cref="SnowId" /> with a unique value</para>
     ///     <para xml:lang="zh">生成具有唯一值的新 <see cref="SnowId" /></para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">A <see cref="SnowId" /></para>
-    ///     <para xml:lang="zh">一个 <see cref="SnowId" /></para>
-    /// </returns>
     public static SnowId GenerateNewId() => GenerateNewId(GetTimestampFromDateTime(DateTime.UtcNow));
 
     /// <summary>
@@ -139,10 +135,6 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">The timestamp (expressed as a date and time)</para>
     ///     <para xml:lang="zh">时间戳 (表示为日期时间)</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A <see cref="SnowId" /></para>
-    ///     <para xml:lang="zh">一个 <see cref="SnowId" /></para>
-    /// </returns>
     public static SnowId GenerateNewId(DateTime timestamp) => GenerateNewId(GetTimestampFromDateTime(timestamp));
 
     /// <summary>
@@ -153,10 +145,6 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">The timestamp</para>
     ///     <para xml:lang="zh">时间戳</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A <see cref="SnowId" /></para>
-    ///     <para xml:lang="zh">一个 <see cref="SnowId" /></para>
-    /// </returns>
     public static SnowId GenerateNewId(int timestamp)
     {
         var increment = Interlocked.Increment(ref __staticIncrement) & 0x00ffffff; // only use low order 3 bytes
@@ -171,10 +159,6 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">The string value</para>
     ///     <para xml:lang="zh">字符串值</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A <see cref="SnowId" /> object</para>
-    ///     <para xml:lang="zh">一个 <see cref="SnowId" /> 对象</para>
-    /// </returns>
     public static SnowId Parse(string s)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(s, nameof(s));
@@ -198,10 +182,6 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">A new <see cref="SnowId" /></para>
     ///     <para xml:lang="zh">一个新的 <see cref="SnowId" /></para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if the string was successfully parsed</para>
-    ///     <para xml:lang="zh">如果字符串已成功分析,则为 <see langword="true" /></para>
-    /// </returns>
     public static bool TryParse(string s, out SnowId snowId)
     {
         if (s is { Length: 24 })
@@ -220,7 +200,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     {
         var high = RandomExtensions.StrictNext();
         var low = RandomExtensions.StrictNext();
-        var combined = (long)((ulong)(uint)high << 32 | (uint)low);
+        var combined = (long)(((ulong)(uint)high << 32) | (uint)low);
         return combined & 0xffffffffff; // low order 5 bytes
     }
 
@@ -248,9 +228,9 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     // ReSharper disable once SuggestBaseTypeForParameter
     private static void FromByteArray(byte[] bytes, int offset, out int a, out int b, out int c)
     {
-        a = bytes[offset] << 24 | bytes[offset + 1] << 16 | bytes[offset + 2] << 8 | bytes[offset + 3];
-        b = bytes[offset + 4] << 24 | bytes[offset + 5] << 16 | bytes[offset + 6] << 8 | bytes[offset + 7];
-        c = bytes[offset + 8] << 24 | bytes[offset + 9] << 16 | bytes[offset + 10] << 8 | bytes[offset + 11];
+        a = (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+        b = (bytes[offset + 4] << 24) | (bytes[offset + 5] << 16) | (bytes[offset + 6] << 8) | bytes[offset + 7];
+        c = (bytes[offset + 8] << 24) | (bytes[offset + 9] << 16) | (bytes[offset + 10] << 8) | bytes[offset + 11];
     }
 
     // private static char ToHexChar(int value) => Convert.ToChar(value < 10 ? value + 48 : value + 55); // 全大写字符
@@ -264,10 +244,6 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">The other <see cref="SnowId" /></para>
     ///     <para xml:lang="zh">另一个 <see cref="SnowId" /></para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A 32-bit signed integer that indicates whether this <see cref="SnowId" /> is less than, equal to, or greater than the other</para>
-    ///     <para xml:lang="zh">一个 32 位有符号整数, 指示此 <see cref="SnowId" /> 是小于, 等于还是大于另一个</para>
-    /// </returns>
     public readonly int CompareTo(SnowId other)
     {
         var result = ((uint)_a).CompareTo((uint)other._a);
@@ -287,10 +263,6 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">The other <see cref="SnowId" /></para>
     ///     <para xml:lang="zh">另一个 <see cref="SnowId" /></para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if the two <see cref="SnowId" /> are equal</para>
-    ///     <para xml:lang="zh">如果两个 <see cref="SnowId" /> 相等, 则为 <see langword="true" /></para>
-    /// </returns>
     public readonly bool Equals(SnowId rhs) =>
         _a == rhs._a &&
         _b == rhs._b &&
@@ -304,26 +276,18 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">The other object</para>
     ///     <para xml:lang="zh">另一个对象</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if the other object is a <see cref="SnowId" /> and is equal to this one</para>
-    ///     <para xml:lang="zh">如果另一个对象是 <see cref="SnowId" /> 并且等于此对象, 则为 <see langword="true" /></para>
-    /// </returns>
     public readonly override bool Equals(object? obj) => obj is SnowId id && Equals(id);
 
     /// <summary>
     ///     <para xml:lang="en">Gets the hash code</para>
     ///     <para xml:lang="zh">获取哈希代码</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">The hash code</para>
-    ///     <para xml:lang="zh">哈希代码</para>
-    /// </returns>
     public readonly override int GetHashCode()
     {
         var hash = 17;
-        hash = 37 * hash + _a.GetHashCode();
-        hash = 37 * hash + _b.GetHashCode();
-        hash = 37 * hash + _c.GetHashCode();
+        hash = (37 * hash) + _a.GetHashCode();
+        hash = (37 * hash) + _b.GetHashCode();
+        hash = (37 * hash) + _c.GetHashCode();
         return hash;
     }
 
@@ -331,12 +295,6 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">Converts the <see cref="SnowId" /> to a byte array</para>
     ///     <para xml:lang="zh">将 <see cref="SnowId" /> 转换为字节数组</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">A byte array</para>
-    ///     <para xml:lang="zh">
-    ///         <see langword="byte[]" />
-    ///     </para>
-    /// </returns>
     public readonly byte[] ToByteArray()
     {
         var bytes = new byte[12];
@@ -382,36 +340,32 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">Returns a string representation of the value</para>
     ///     <para xml:lang="zh">返回值的字符串表示形式</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">The string representation of the value</para>
-    ///     <para xml:lang="zh">值的字符串表示形式</para>
-    /// </returns>
     public readonly override string ToString()
     {
         var c = new char[24];
-        c[0] = ToHexChar(_a >> 28 & 0x0f);
-        c[1] = ToHexChar(_a >> 24 & 0x0f);
-        c[2] = ToHexChar(_a >> 20 & 0x0f);
-        c[3] = ToHexChar(_a >> 16 & 0x0f);
-        c[4] = ToHexChar(_a >> 12 & 0x0f);
-        c[5] = ToHexChar(_a >> 8 & 0x0f);
-        c[6] = ToHexChar(_a >> 4 & 0x0f);
+        c[0] = ToHexChar((_a >> 28) & 0x0f);
+        c[1] = ToHexChar((_a >> 24) & 0x0f);
+        c[2] = ToHexChar((_a >> 20) & 0x0f);
+        c[3] = ToHexChar((_a >> 16) & 0x0f);
+        c[4] = ToHexChar((_a >> 12) & 0x0f);
+        c[5] = ToHexChar((_a >> 8) & 0x0f);
+        c[6] = ToHexChar((_a >> 4) & 0x0f);
         c[7] = ToHexChar(_a & 0x0f);
-        c[8] = ToHexChar(_b >> 28 & 0x0f);
-        c[9] = ToHexChar(_b >> 24 & 0x0f);
-        c[10] = ToHexChar(_b >> 20 & 0x0f);
-        c[11] = ToHexChar(_b >> 16 & 0x0f);
-        c[12] = ToHexChar(_b >> 12 & 0x0f);
-        c[13] = ToHexChar(_b >> 8 & 0x0f);
-        c[14] = ToHexChar(_b >> 4 & 0x0f);
+        c[8] = ToHexChar((_b >> 28) & 0x0f);
+        c[9] = ToHexChar((_b >> 24) & 0x0f);
+        c[10] = ToHexChar((_b >> 20) & 0x0f);
+        c[11] = ToHexChar((_b >> 16) & 0x0f);
+        c[12] = ToHexChar((_b >> 12) & 0x0f);
+        c[13] = ToHexChar((_b >> 8) & 0x0f);
+        c[14] = ToHexChar((_b >> 4) & 0x0f);
         c[15] = ToHexChar(_b & 0x0f);
-        c[16] = ToHexChar(_c >> 28 & 0x0f);
-        c[17] = ToHexChar(_c >> 24 & 0x0f);
-        c[18] = ToHexChar(_c >> 20 & 0x0f);
-        c[19] = ToHexChar(_c >> 16 & 0x0f);
-        c[20] = ToHexChar(_c >> 12 & 0x0f);
-        c[21] = ToHexChar(_c >> 8 & 0x0f);
-        c[22] = ToHexChar(_c >> 4 & 0x0f);
+        c[16] = ToHexChar((_c >> 28) & 0x0f);
+        c[17] = ToHexChar((_c >> 24) & 0x0f);
+        c[18] = ToHexChar((_c >> 20) & 0x0f);
+        c[19] = ToHexChar((_c >> 16) & 0x0f);
+        c[20] = ToHexChar((_c >> 12) & 0x0f);
+        c[21] = ToHexChar((_c >> 8) & 0x0f);
+        c[22] = ToHexChar((_c >> 4) & 0x0f);
         c[23] = ToHexChar(_c & 0x0f);
         return new(c);
     }
@@ -447,9 +401,11 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
         // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
         switch (Type.GetTypeCode(conversionType))
         {
-            case TypeCode.String: return ((IConvertible)this).ToString(provider);
+            case TypeCode.String:
+                return ((IConvertible)this).ToString(provider);
             case TypeCode.Object:
-                if (conversionType == typeof(object) || conversionType == typeof(SnowId)) return this;
+                if (conversionType == typeof(object) || conversionType == typeof(SnowId))
+                    return this;
                 break;
         }
         throw new InvalidCastException();

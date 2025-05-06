@@ -1,7 +1,7 @@
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
 
-namespace EasilyNET.Mongo.AspNetCore;
+namespace EasilyNET.Mongo.AspNetCore.Abstraction;
 
 /// <summary>
 ///     <para xml:lang="en">Factory interface</para>
@@ -17,9 +17,5 @@ internal interface IGridFSBucketFactory
     ///     <para xml:lang="en">Mongo database</para>
     ///     <para xml:lang="zh">Mongo数据库</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">GridFS bucket</para>
-    ///     <para xml:lang="zh">GridFS存储桶</para>
-    /// </returns>
     IGridFSBucket CreateBucket(IMongoDatabase db);
 }

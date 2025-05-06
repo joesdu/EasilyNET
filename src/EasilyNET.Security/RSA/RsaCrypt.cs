@@ -20,10 +20,6 @@ public static class RsaCrypt
     ///     <para xml:lang="en">Key size, must be between 384 and 16384 bits, in increments of 8</para>
     ///     <para xml:lang="zh">密钥的大小,必须384位到16384位,增量为8</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">RSA secret key</para>
-    ///     <para xml:lang="zh">RSA密钥</para>
-    /// </returns>
     public static RsaSecretKey GenerateKey(int keySize)
     {
         if (keySize is > 16384 or < 384 && keySize % 8 is not 0)
@@ -48,10 +44,6 @@ public static class RsaCrypt
     ///     <para xml:lang="en">Key size, providing common length enumeration</para>
     ///     <para xml:lang="zh">密钥的大小,提供常用长度枚举</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">RSA secret key</para>
-    ///     <para xml:lang="zh">RSA密钥</para>
-    /// </returns>
     public static RsaSecretKey GenerateKey(ERsaKeyLength keySize) => GenerateKey((int)keySize);
 
     /// <summary>
@@ -66,10 +58,6 @@ public static class RsaCrypt
     ///     <para xml:lang="en">Byte array to be encrypted</para>
     ///     <para xml:lang="zh">需要进行加密的字节数组</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Encrypted data</para>
-    ///     <para xml:lang="zh">加密后的数据</para>
-    /// </returns>
     public static byte[] Encrypt(string xmlPublicKey, ReadOnlySpan<byte> content)
     {
         using var rsa = new RSACryptoServiceProvider();
@@ -89,10 +77,6 @@ public static class RsaCrypt
     ///     <para xml:lang="en">Byte array to be decrypted</para>
     ///     <para xml:lang="zh">需要进行解密的字节数组</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Decrypted data</para>
-    ///     <para xml:lang="zh">解密后的字符串</para>
-    /// </returns>
     public static byte[] Decrypt(string xmlPrivateKey, ReadOnlySpan<byte> secret)
     {
         using var rsa = new RSACryptoServiceProvider();
@@ -181,10 +165,6 @@ public static class RsaCrypt
     ///     <para xml:lang="en">File stream</para>
     ///     <para xml:lang="zh">文件流</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">SHA256 hash string</para>
-    ///     <para xml:lang="zh">SHA256哈希字符串</para>
-    /// </returns>
     public static string GetFileSHA256(FileStream objFile)
     {
         ArgumentNullException.ThrowIfNull(objFile, nameof(objFile));
@@ -210,10 +190,6 @@ public static class RsaCrypt
     ///     <para xml:lang="en">Data to be signed</para>
     ///     <para xml:lang="zh">需要签名的数据</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Signature data</para>
-    ///     <para xml:lang="zh">签名数据</para>
-    /// </returns>
     public static byte[] Signature(string xmlPrivateKey, ReadOnlySpan<byte> context)
     {
         using var rsa = new RSACryptoServiceProvider();
@@ -241,10 +217,6 @@ public static class RsaCrypt
     ///     <para xml:lang="en">Signature to be verified</para>
     ///     <para xml:lang="zh">要为该数据验证的已签名数据</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if the signature is valid, otherwise false</para>
-    ///     <para xml:lang="zh">如果 Verification 与使用指定的哈希算法和密钥在 signature 上计算出的签名匹配,则为 <see langword="true" />;否则为 <see langword="false" />.</para>
-    /// </returns>
     public static bool Verification(string xmlPublicKey, ReadOnlySpan<byte> secret, ReadOnlySpan<byte> signature)
     {
         using var rsa = new RSACryptoServiceProvider();

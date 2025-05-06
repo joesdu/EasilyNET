@@ -20,11 +20,9 @@ public sealed class TimeOnlyJsonConverter : JsonConverter<TimeOnly?>
     public override TimeOnly? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         var str = reader.GetString();
-        if (string.IsNullOrWhiteSpace(str))
-        {
-            return null;
-        }
-        return TimeOnly.TryParseExact(str, Constant.TimeFormat, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var result) ? result : null;
+        return string.IsNullOrWhiteSpace(str)
+            ? null
+            : TimeOnly.TryParseExact(str, Constant.TimeFormat, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var result) ? result : null;
     }
 
     /// <inheritdoc />

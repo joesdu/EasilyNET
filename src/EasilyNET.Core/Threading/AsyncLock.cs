@@ -27,30 +27,18 @@ public sealed class AsyncLock
     ///     <para xml:lang="en">Gets the occupancy status of the internal semaphore</para>
     ///     <para xml:lang="zh">获取内部信号量的占用状态</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">The occupancy status of the internal semaphore</para>
-    ///     <para xml:lang="zh">内部信号量的占用状态</para>
-    /// </returns>
     public int GetSemaphoreTaken() => _semaphore.GetTaken();
 
     /// <summary>
     ///     <para xml:lang="en">Gets the queue count of the internal semaphore</para>
     ///     <para xml:lang="zh">获取内部信号量的队列计数</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">The queue count of the internal semaphore</para>
-    ///     <para xml:lang="zh">内部信号量的队列计数</para>
-    /// </returns>
     public int GetQueueCount() => _semaphore.GetQueueCount();
 
     /// <summary>
     ///     <para xml:lang="en">Locks and returns a <see cref="Release" /> object</para>
     ///     <para xml:lang="zh">锁定，返回一个 <see cref="Release" /> 对象</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">A task that represents the asynchronous operation</para>
-    ///     <para xml:lang="zh">表示异步操作的任务</para>
-    /// </returns>
     public Task<Release> LockAsync()
     {
         var task = _semaphore.WaitAsync();
@@ -68,10 +56,6 @@ public sealed class AsyncLock
     ///     <para xml:lang="en">The task function to execute</para>
     ///     <para xml:lang="zh">要执行的任务函数</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A task that represents the asynchronous operation</para>
-    ///     <para xml:lang="zh">表示异步操作的任务</para>
-    /// </returns>
     public async Task LockAsync(Func<Task> taskFunc)
     {
         using (await LockAsync())
@@ -88,10 +72,6 @@ public sealed class AsyncLock
     ///     <para xml:lang="en">The task function to execute</para>
     ///     <para xml:lang="zh">要执行的任务函数</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A task that represents the asynchronous operation and returns the result</para>
-    ///     <para xml:lang="zh">表示异步操作的任务，并返回结果</para>
-    /// </returns>
     public async Task<T> LockAsync<T>(Func<Task<T>> taskFunc)
     {
         using (await LockAsync())

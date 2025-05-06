@@ -76,10 +76,6 @@ file sealed class ArrayTraverse
     ///     <para xml:lang="en">Moves to the next element in the array</para>
     ///     <para xml:lang="zh">移动到数组中的下一个元素</para>
     /// </summary>
-    /// <returns>
-    ///     <para xml:lang="en">Returns <see langword="true" /> if successfully moved to the next element; otherwise, <see langword="false" /></para>
-    ///     <para xml:lang="zh">如果成功移动到下一个元素，则返回 <see langword="true" />；否则返回 <see langword="false" /></para>
-    /// </returns>
     public bool Step()
     {
         for (var i = 0; i < Position.Length; ++i)

@@ -18,10 +18,6 @@ public interface IBusSerializer
     ///     <para xml:lang="en">The type of the object</para>
     ///     <para xml:lang="zh">对象的类型</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A byte array representing the serialized object</para>
-    ///     <para xml:lang="zh">表示序列化对象的字节数组</para>
-    /// </returns>
     byte[] Serialize(object? obj, Type type);
 
     /// <summary>
@@ -36,9 +32,5 @@ public interface IBusSerializer
     ///     <para xml:lang="en">The target type of the deserialized object</para>
     ///     <para xml:lang="zh">反序列化对象的目标类型</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">The deserialized object</para>
-    ///     <para xml:lang="zh">反序列化的对象</para>
-    /// </returns>
     object? Deserialize(byte[] data, Type type);
 }

@@ -22,10 +22,6 @@ public static class StreamExtensions
     ///     <para xml:lang="en">Input stream</para>
     ///     <para xml:lang="zh">输入流</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Memory stream</para>
-    ///     <para xml:lang="zh">内存流</para>
-    /// </returns>
     public static PooledMemoryStream SaveAsMemoryStream(this Stream stream)
     {
         if (stream is PooledMemoryStream pooledMemoryStream)
@@ -47,10 +43,6 @@ public static class StreamExtensions
     ///     <para xml:lang="en">Input stream</para>
     ///     <para xml:lang="zh">输入流</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Byte array</para>
-    ///     <para xml:lang="zh">字节数组</para>
-    /// </returns>
     public static byte[] ToArray(this Stream stream)
     {
         if (stream is MemoryStream memoryStream)
@@ -97,10 +89,6 @@ public static class StreamExtensions
     ///     <para xml:lang="en">Close stream after reading</para>
     ///     <para xml:lang="zh">读取完毕后关闭流</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">List of all lines</para>
-    ///     <para xml:lang="zh">所有行的列表</para>
-    /// </returns>
     public static List<string> ReadAllLines(this StreamReader stream, bool closeAfter = true)
     {
         var stringList = new List<string>();
@@ -132,10 +120,6 @@ public static class StreamExtensions
     ///     <para xml:lang="en">Close stream after reading</para>
     ///     <para xml:lang="zh">读取完毕后关闭流</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">List of all lines</para>
-    ///     <para xml:lang="zh">所有行的列表</para>
-    /// </returns>
     public static List<string> ReadAllLines(this FileStream stream, Encoding encoding, bool closeAfter = true)
     {
         using var sr = new StreamReader(stream, encoding);
@@ -168,10 +152,6 @@ public static class StreamExtensions
     ///     <para xml:lang="en">Close stream after reading</para>
     ///     <para xml:lang="zh">读取完毕后关闭流</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">All text</para>
-    ///     <para xml:lang="zh">所有文本</para>
-    /// </returns>
     public static string ReadAllText(this FileStream stream, Encoding encoding, bool closeAfter = true)
     {
         using var sr = new StreamReader(stream, encoding);
@@ -260,10 +240,6 @@ public static class StreamExtensions
     ///     <para xml:lang="en">File info</para>
     ///     <para xml:lang="zh">文件信息</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">File stream</para>
-    ///     <para xml:lang="zh">文件流</para>
-    /// </returns>
     public static FileStream ShareReadWrite(this FileInfo file) => file.Open(FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
 
     /// <summary>
@@ -278,10 +254,6 @@ public static class StreamExtensions
     ///     <para xml:lang="en">Close stream after reading</para>
     ///     <para xml:lang="zh">读取完毕后关闭流</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">List of all lines</para>
-    ///     <para xml:lang="zh">所有行的列表</para>
-    /// </returns>
     public static async Task<List<string>> ReadAllLinesAsync(this StreamReader stream, bool closeAfter = true)
     {
         var stringList = new List<string>();
@@ -312,10 +284,6 @@ public static class StreamExtensions
     ///     <para xml:lang="en">Close stream after reading</para>
     ///     <para xml:lang="zh">读取完毕后关闭流</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">List of all lines</para>
-    ///     <para xml:lang="zh">所有行的列表</para>
-    /// </returns>
     public static async Task<List<string>> ReadAllLinesAsync(this FileStream stream, Encoding encoding, bool closeAfter = true)
     {
         using var sr = new StreamReader(stream, encoding);
@@ -347,10 +315,6 @@ public static class StreamExtensions
     ///     <para xml:lang="en">Close stream after reading</para>
     ///     <para xml:lang="zh">读取完毕后关闭流</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">All text</para>
-    ///     <para xml:lang="zh">所有文本</para>
-    /// </returns>
     public static async Task<string> ReadAllTextAsync(this FileStream stream, Encoding encoding, bool closeAfter = true)
     {
         using var sr = new StreamReader(stream, encoding);
@@ -441,10 +405,6 @@ public static class StreamExtensions
     ///     <para xml:lang="en">Cancellation token</para>
     ///     <para xml:lang="zh">取消令牌</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Byte array</para>
-    ///     <para xml:lang="zh">字节数组</para>
-    /// </returns>
     public static async Task<byte[]> ToArrayAsync(this Stream stream, CancellationToken cancellationToken = default)
     {
         if (stream is MemoryStream memoryStream)

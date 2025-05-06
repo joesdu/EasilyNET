@@ -66,10 +66,6 @@ internal sealed class Sm4
     ///     <para xml:lang="en">Index</para>
     ///     <para xml:lang="zh">索引</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Long value</para>
-    ///     <para xml:lang="zh">长整型值</para>
-    /// </returns>
     private static long GetULongByBe(ReadOnlySpan<byte> b, int i) => ((long)(b[i] & 0xff) << 24) | (uint)((b[i + 1] & 0xff) << 16) | (uint)((b[i + 2] & 0xff) << 8) | (b[i + 3] & 0xff & 0xffffffffL);
 
     /// <summary>
@@ -110,10 +106,6 @@ internal sealed class Sm4
     ///     <para xml:lang="en">Number of bits</para>
     ///     <para xml:lang="zh">位数</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Long value</para>
-    ///     <para xml:lang="zh">长整型值</para>
-    /// </returns>
     private static long RotL(long x, int n) => SHL(x, n) | (x >> (32 - n));
 
     /// <summary>
@@ -138,10 +130,6 @@ internal sealed class Sm4
     ///     <para xml:lang="en">Input byte</para>
     ///     <para xml:lang="zh">输入字节</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">S-Box value</para>
-    ///     <para xml:lang="zh">S盒值</para>
-    /// </returns>
     private byte SBox(byte inch) => SBoxTable[inch & 0xFF];
 
     /// <summary>
@@ -152,10 +140,6 @@ internal sealed class Sm4
     ///     <para xml:lang="en">Long value</para>
     ///     <para xml:lang="zh">长整型值</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Transformed value</para>
-    ///     <para xml:lang="zh">变换后的值</para>
-    /// </returns>
     private long Lt(long ka)
     {
         Span<byte> a = stackalloc byte[4];
@@ -193,10 +177,6 @@ internal sealed class Sm4
     ///     <para xml:lang="en">Round key</para>
     ///     <para xml:lang="zh">轮密钥</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Long value</para>
-    ///     <para xml:lang="zh">长整型值</para>
-    /// </returns>
     private long F(long x0, long x1, long x2, long x3, long rk) => x0 ^ Lt(x1 ^ x2 ^ x3 ^ rk);
 
     /// <summary>
@@ -207,10 +187,6 @@ internal sealed class Sm4
     ///     <para xml:lang="en">Long value</para>
     ///     <para xml:lang="zh">长整型值</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Round key</para>
-    ///     <para xml:lang="zh">轮密钥</para>
-    /// </returns>
     private long CalcRK(long ka)
     {
         Span<byte> a = stackalloc byte[4];
@@ -303,10 +279,6 @@ internal sealed class Sm4
     ///     <para xml:lang="en">1 for encryption, 0 for decryption</para>
     ///     <para xml:lang="zh">1表示加密，0表示解密</para>
     /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Padded byte array</para>
-    ///     <para xml:lang="zh">补足后的字节数组</para>
-    /// </returns>
     private static byte[] Padding(ReadOnlySpan<byte> input, ESm4Model mode)
     {
         byte[] ret;
