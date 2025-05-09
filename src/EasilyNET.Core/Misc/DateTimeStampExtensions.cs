@@ -161,13 +161,13 @@ public static class DateTimeStampExtensions
                     multiplier = 3_600_000;
                     break;
                 default:
-                {
-                    if (value.Contains(':'))
                     {
-                        return TimeSpan.TryParse(value, out result);
+                        if (value.Contains(':'))
+                        {
+                            return TimeSpan.TryParse(value, out result);
+                        }
+                        break;
                     }
-                    break;
-                }
             }
             const NumberStyles numberStyles = NumberStyles.None;
             if (double.TryParse(value, numberStyles, CultureInfo.InvariantCulture, out var multiplicand))

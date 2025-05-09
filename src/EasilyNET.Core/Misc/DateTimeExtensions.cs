@@ -133,13 +133,13 @@ public static class DateTimeExtensions
         ///     <para xml:lang="en">Converts a DateTime to the number of milliseconds since the Unix epoch</para>
         ///     <para xml:lang="zh">将日期时间转换为自 Unix 纪元以来的毫秒数</para>
         /// </summary>
-        public long MillisecondsSinceEpoch=> (dt.ToUniversalTime() - DateTime.UnixEpoch).Ticks / 10000;
+        public long MillisecondsSinceEpoch => (dt.ToUniversalTime() - DateTime.UnixEpoch).Ticks / 10000;
 
         /// <summary>
         ///     <para xml:lang="en">Converts a DateTime to the number of seconds since the Unix epoch</para>
         ///     <para xml:lang="zh">将日期时间转换为自 Unix 纪元以来的秒数</para>
         /// </summary>
-        public long SecondsSinceEpoch=> (dt.ToUniversalTime() - DateTime.UnixEpoch).Ticks / TimeSpan.TicksPerSecond;
+        public long SecondsSinceEpoch => (dt.ToUniversalTime() - DateTime.UnixEpoch).Ticks / TimeSpan.TicksPerSecond;
     }
 
     /// <summary>
@@ -185,13 +185,13 @@ public static class DateTimeExtensions
     public static int DayNumber(this DayOfWeek day) =>
         day switch
         {
-            DayOfWeek.Friday    => 5,
-            DayOfWeek.Monday    => 1,
-            DayOfWeek.Saturday  => 6,
-            DayOfWeek.Thursday  => 4,
-            DayOfWeek.Tuesday   => 2,
+            DayOfWeek.Friday => 5,
+            DayOfWeek.Monday => 1,
+            DayOfWeek.Saturday => 6,
+            DayOfWeek.Thursday => 4,
+            DayOfWeek.Tuesday => 2,
             DayOfWeek.Wednesday => 3,
-            _                   => 7
+            _ => 7
         };
 
     /// <summary>
@@ -261,14 +261,14 @@ public static class DateTimeExtensions
     {
         var name = day switch
         {
-            DayOfWeek.Monday    => "一",
-            DayOfWeek.Tuesday   => "二",
+            DayOfWeek.Monday => "一",
+            DayOfWeek.Tuesday => "二",
             DayOfWeek.Wednesday => "三",
-            DayOfWeek.Thursday  => "四",
-            DayOfWeek.Friday    => "五",
-            DayOfWeek.Saturday  => "六",
-            DayOfWeek.Sunday    => type == 1 ? "日" : "天",
-            _                   => "错误"
+            DayOfWeek.Thursday => "四",
+            DayOfWeek.Friday => "五",
+            DayOfWeek.Saturday => "六",
+            DayOfWeek.Sunday => type == 1 ? "日" : "天",
+            _ => "错误"
         };
         return $"{(type == 1 ? "周" : "星期")}{name}";
     }
@@ -291,10 +291,10 @@ public static class DateTimeExtensions
         var (validateStart, validateEnd) = source;
         return (subStart < validateEnd && validateStart < subEnd) switch
         {
-            true when subStart >= validateStart && subEnd <= validateEnd                          => ETimeOverlap.完全重合,
+            true when subStart >= validateStart && subEnd <= validateEnd => ETimeOverlap.完全重合,
             true when subStart < validateStart && subEnd >= validateStart && subEnd < validateEnd => ETimeOverlap.后段重合,
-            true when subStart > validateStart && subStart < validateEnd && subEnd > validateEnd  => ETimeOverlap.前段重合,
-            _                                                                                     => ETimeOverlap.完全不重合
+            true when subStart > validateStart && subStart < validateEnd && subEnd > validateEnd => ETimeOverlap.前段重合,
+            _ => ETimeOverlap.完全不重合
         };
     }
 
