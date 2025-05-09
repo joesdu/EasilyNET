@@ -379,10 +379,10 @@ public static class IEnumerableExtensions
     public static void InsertAfter<T>(this IList<T> list, Func<T, bool> condition, T value)
     {
         foreach (var item in list.Select((item, index) => new
-                 {
-                     item,
-                     index
-                 }).Where(p => condition(p.item)).OrderByDescending(p => p.index))
+        {
+            item,
+            index
+        }).Where(p => condition(p.item)).OrderByDescending(p => p.index))
         {
             if (item.index + 1 == list.Count)
             {
@@ -406,10 +406,10 @@ public static class IEnumerableExtensions
     public static void InsertAfter<T>(this IList<T> list, int index, T value)
     {
         foreach (var item in list.Select((v, i) => new
-                 {
-                     Value = v,
-                     Index = i
-                 }).Where(p => p.Index == index).OrderByDescending(p => p.Index))
+        {
+            Value = v,
+            Index = i
+        }).Where(p => p.Index == index).OrderByDescending(p => p.Index))
         {
             if (item.Index + 1 == list.Count)
             {

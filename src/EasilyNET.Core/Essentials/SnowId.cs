@@ -276,13 +276,13 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">The other object</para>
     ///     <para xml:lang="zh">另一个对象</para>
     /// </param>
-    public readonly override bool Equals(object? obj) => obj is SnowId id && Equals(id);
+    public override readonly bool Equals(object? obj) => obj is SnowId id && Equals(id);
 
     /// <summary>
     ///     <para xml:lang="en">Gets the hash code</para>
     ///     <para xml:lang="zh">获取哈希代码</para>
     /// </summary>
-    public readonly override int GetHashCode()
+    public override readonly int GetHashCode()
     {
         var hash = 17;
         hash = (37 * hash) + _a.GetHashCode();
@@ -340,7 +340,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">Returns a string representation of the value</para>
     ///     <para xml:lang="zh">返回值的字符串表示形式</para>
     /// </summary>
-    public readonly override string ToString()
+    public override readonly string ToString()
     {
         var c = new char[24];
         c[0] = ToHexChar((_a >> 28) & 0x0f);

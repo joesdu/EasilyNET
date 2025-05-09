@@ -31,7 +31,7 @@ public static class EnumExtensions
             return descriptionAttribute?.Description ?? enumValue.ToString();
         });
     }
-    
+
 
     /// <summary>
     ///     <para xml:lang="en">Gets all enum values, excluding the specified values</para>

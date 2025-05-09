@@ -60,7 +60,7 @@ public static class IDCardCalculate
         {
             18 => ParseDateTime(no.AsSpan(6, 8)),
             15 => ParseDateTime($"19{no.AsSpan(6, 6)}"),
-            _  => throw new ArgumentException("该身份证号无法正确计算出生日")
+            _ => throw new ArgumentException("该身份证号无法正确计算出生日")
         };
     }
 
@@ -80,7 +80,7 @@ public static class IDCardCalculate
         {
             18 => (no[16] - 48) % 2 == 0 ? EGender.女 : EGender.男,
             15 => (no[14] - 48) % 2 == 0 ? EGender.女 : EGender.男,
-            _  => EGender.女
+            _ => EGender.女
         };
     }
 
