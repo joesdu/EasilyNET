@@ -47,7 +47,7 @@ public static class DateTimeExtensions
         ///     <para xml:lang="en">Gets the start and end time of a specific day</para>
         ///     <para xml:lang="zh">获取某天的开始和结束时间</para>
         /// </summary>
-        public ValueTuple<DateTime, DateTime> DayStartEnd => new(dt.DayStart, dt.DayEnd);
+        public (DateTime Start, DateTime End) DayStartEnd => new(dt.DayStart, dt.DayEnd);
 
         /// <summary>
         ///     <para xml:lang="en">Gets the start time of a specific month</para>
@@ -65,7 +65,7 @@ public static class DateTimeExtensions
         ///     <para xml:lang="en">Gets the start and end time of a specific month</para>
         ///     <para xml:lang="zh">获取某月的开始和结束时间</para>
         /// </summary>
-        public ValueTuple<DateTime, DateTime> MonthStartEnd => new(dt.MonthStart, dt.MonthEnd);
+        public (DateTime Start, DateTime End) MonthStartEnd => new(dt.MonthStart, dt.MonthEnd);
 
         /// <summary>
         ///     <para xml:lang="en">Gets the start time of a specific year</para>
@@ -83,7 +83,7 @@ public static class DateTimeExtensions
         ///     <para xml:lang="en">Gets the start and end time of a specific year</para>
         ///     <para xml:lang="zh">获取某年的开始和结束时间</para>
         /// </summary>
-        public ValueTuple<DateTime, DateTime> YearStartEnd => new(dt.YearStart, dt.YearEnd);
+        public (DateTime Start, DateTime End) YearStartEnd => new(dt.YearStart, dt.YearEnd);
 
         /// <summary>
         ///     <para xml:lang="en">Gets the start time of the week that a specific day belongs to</para>
@@ -113,7 +113,7 @@ public static class DateTimeExtensions
         ///     <para xml:lang="en">The first day of the week (Sunday, Monday, etc.)</para>
         ///     <para xml:lang="zh">一周的第一天（周日、周一等）</para>
         /// </param>
-        public ValueTuple<DateTime, DateTime> WeekStartEnd(DayOfWeek firstDay) => new(dt.WeekStart(firstDay), dt.WeekEnd(firstDay));
+        public (DateTime Start, DateTime End) WeekStartEnd(DayOfWeek firstDay) => new(dt.WeekStart(firstDay), dt.WeekEnd(firstDay));
 
         /// <summary>
         ///     <para xml:lang="en">Gets the week number of a specific date within the year</para>
@@ -158,7 +158,7 @@ public static class DateTimeExtensions
     ///     <para xml:lang="en">The first day of the week (Sunday, Monday, etc.)</para>
     ///     <para xml:lang="zh">一周的第一天（周日、周一等）</para>
     /// </param>
-    public static ValueTuple<DateTime, DateTime> WeekStartEndByNumber(this int week, int year, DayOfWeek firstDay) => new DateTime(year, 1, 1).AddDays((week - 1) * 7).WeekStartEnd(firstDay);
+    public static (DateTime Start, DateTime End) WeekStartEndByNumber(this int week, int year, DayOfWeek firstDay) => new DateTime(year, 1, 1).AddDays((week - 1) * 7).WeekStartEnd(firstDay);
 
     /// <summary>
     ///     <para xml:lang="en">Gets the start and end time of a specific month by month number and year</para>
@@ -172,7 +172,7 @@ public static class DateTimeExtensions
     ///     <para xml:lang="en">The year</para>
     ///     <para xml:lang="zh">年份</para>
     /// </param>
-    public static ValueTuple<DateTime, DateTime> MonthStartEndByMonth(this int month, int year) => (month < 1) | (month > 13) ? throw new("非法月份") : new DateTime(year, month, 2).MonthStartEnd;
+    public static (DateTime Start, DateTime End) MonthStartEndByMonth(this int month, int year) => (month < 1) | (month > 12) ? throw new("非法月份") : new DateTime(year, month, 2).MonthStartEnd;
 
     /// <summary>
     ///     <para xml:lang="en">Gets the numeric representation of a day of the week</para>
