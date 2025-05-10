@@ -1,4 +1,5 @@
 using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
@@ -22,24 +23,21 @@ namespace EasilyNET.Core.Misc;
 public static partial class StringExtensions
 {
     /// <summary>
-    ///     <para xml:lang="en">String extensions</para>
-    ///     <para xml:lang="zh">字符串扩展</para>
+    /// Determines whether the string value is not null, empty, or consists only of white-space characters.
     /// </summary>
-    extension(string value)
-    {
-        /// <summary>
-        /// Determines whether the string value is not null, empty, or consists only of white-space characters.
-        /// </summary>
-        /// <returns><see langword="true"/> if the string value is not null, not empty, and does not consist solely of
-        /// white-space characters; otherwise, <see langword="false"/>.</returns>
-        public bool IsNotNullOrWhiteSpace() => !string.IsNullOrWhiteSpace(value);
+    /// <returns>
+    /// <see langword="true" /> if the string value is not null, not empty, and does not consist solely of
+    /// white-space characters; otherwise, <see langword="false" />.
+    /// </returns>
+    public static bool IsNotNullOrWhiteSpace([NotNullWhen(true)] this string? val) => !string.IsNullOrWhiteSpace(val);
 
-        /// <summary>
-        /// Determines whether the string is not null or empty.
-        /// </summary>
-        /// <returns><see langword="true"/> if the string is not null or empty; otherwise, <see langword="false"/>.</returns>
-        public bool IsNotNullOrEmpty() => !string.IsNullOrEmpty(value);
-    }
+    /// <summary>
+    /// Determines whether the string is not null or empty.
+    /// </summary>
+    /// <returns>
+    /// <see langword="true" /> if the string is not null or empty; otherwise, <see langword="false" />.
+    /// </returns>
+    public static bool IsNotNullOrEmpty([NotNullWhen(true)] this string? val) => !string.IsNullOrEmpty(val);
 
     /// <summary>
     ///     <para xml:lang="en">Remove all whitespace characters from the string</para>
@@ -105,7 +103,9 @@ public static partial class StringExtensions
             {
                 var str = m.ToString();
                 if (!char.IsLower(str[0]))
+                {
                     return str;
+                }
                 var header = lower ? char.ToLower(str[0], CultureInfo.CurrentCulture) : char.ToUpper(str[0], CultureInfo.CurrentCulture);
                 return $"{header}{str[1..]}";
             });
@@ -136,7 +136,9 @@ public static partial class StringExtensions
         for (var i = spacingIndex; i <= sb.Length; i += spacingIndex + 1)
         {
             if (i >= sb.Length)
+            {
                 break;
+            }
             _ = sb.Insert(i, spacingString);
         }
         return sb.ToString();
@@ -167,7 +169,9 @@ public static partial class StringExtensions
     public static bool Validate(this string value, string express)
     {
         if (string.IsNullOrWhiteSpace(value))
+        {
             return false;
+        }
         var myRegex = new Regex(express);
         return myRegex.IsMatch(value);
     }
@@ -221,7 +225,9 @@ public static partial class StringExtensions
     public static string Mask(this string value, char mask = '*')
     {
         if (string.IsNullOrWhiteSpace(value.Trim()))
+        {
             return value;
+        }
         value = value.Trim();
         var masks = mask.ToString().PadLeft(4, mask);
         return value.Length switch
@@ -412,7 +418,9 @@ public static partial class StringExtensions
                 continue;
             }
             if (c[i] < 0x7F)
+            {
                 c[i] = (char)(c[i] + 0xFEE0);
+            }
         }
         return new(c);
     }
@@ -454,7 +462,9 @@ public static partial class StringExtensions
     public static string Reverse(this string value)
     {
         if (string.IsNullOrEmpty(value))
+        {
             return value;
+        }
         var charArray = value.ToCharArray();
         Array.Reverse(charArray);
         return new(charArray);
@@ -508,14 +518,18 @@ public static partial class StringExtensions
             array = [.. keys];
         }
         if (array.Length == 0 || string.IsNullOrWhiteSpace(source))
+        {
             return false;
+        }
         var flag = false;
         if (ignoreCase)
         {
             foreach (var item in array)
             {
                 if (source.Contains(item))
+                {
                     flag = true;
+                }
             }
         }
         else
@@ -523,7 +537,9 @@ public static partial class StringExtensions
             foreach (var item in array)
             {
                 if (source?.IndexOf(item, StringComparison.InvariantCultureIgnoreCase) >= 0)
+                {
                     flag = true;
+                }
             }
         }
         return flag;
@@ -552,7 +568,9 @@ public static partial class StringExtensions
             array = [.. keys];
         }
         if (array.Length == 0 || string.IsNullOrWhiteSpace(source))
+        {
             return false;
+        }
         var pattern = $"({array.Select(Regex.Escape).Join('|')})$";
         return ignoreCase ? Regex.IsMatch(source, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(source, pattern);
     }
@@ -580,7 +598,9 @@ public static partial class StringExtensions
             array = [.. keys];
         }
         if (array.Length == 0 || string.IsNullOrWhiteSpace(source))
+        {
             return false;
+        }
         var pattern = $"^({array.Select(Regex.Escape).Join('|')})";
         return ignoreCase ? Regex.IsMatch(source, pattern, RegexOptions.IgnoreCase) : Regex.IsMatch(source, pattern);
     }
@@ -601,7 +621,9 @@ public static partial class StringExtensions
     {
         bytes = null;
         if (string.IsNullOrWhiteSpace(hex))
+        {
             return false;
+        }
         var buffer = new byte[(hex.Length + 1) / 2];
         var i = 0;
         var j = 0;
@@ -609,15 +631,21 @@ public static partial class StringExtensions
         {
             // if s has an odd length assume an implied leading "0"
             if (!TryParseHex(hex[i++], out var y))
+            {
                 return false;
+            }
             buffer[j++] = (byte)y;
         }
         while (i < hex.Length)
         {
             if (!TryParseHex(hex[i++], out var x))
+            {
                 return false;
+            }
             if (!TryParseHex(hex[i++], out var y))
+            {
                 return false;
+            }
             buffer[j++] = (byte)((x << 4) | y);
         }
         bytes = buffer;
@@ -740,7 +768,9 @@ public static partial class StringExtensions
     public static string SnakeCaseToCamelCase(this string value, ECamelCase toType = ECamelCase.LowerCamelCase)
     {
         if (string.IsNullOrWhiteSpace(value))
+        {
             return value;
+        }
         // 分割字符串，然后将每个单词(除了第一个)的首字母大写
         var words = value.Split('_');
         var index = 0;

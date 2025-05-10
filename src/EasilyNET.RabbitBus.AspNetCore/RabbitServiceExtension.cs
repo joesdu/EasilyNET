@@ -130,7 +130,7 @@ public static class RabbitServiceExtension
     [SuppressMessage("Style", "IDE0046:转换为条件表达式", Justification = "<挂起>")]
     private static ConnectionFactory CreateConnectionFactory(RabbitConfig config)
     {
-        if (!string.IsNullOrWhiteSpace(config.ConnectionString))
+        if (config.ConnectionString.IsNotNullOrWhiteSpace())
         {
             return new() { Uri = new(config.ConnectionString) };
         }
@@ -138,7 +138,7 @@ public static class RabbitServiceExtension
         {
             return new() { UserName = config.UserName, Password = config.PassWord, VirtualHost = config.VirtualHost };
         }
-        if (!string.IsNullOrWhiteSpace(config.Host))
+        if (config.Host.IsNotNullOrWhiteSpace())
         {
             return new()
             {
