@@ -276,7 +276,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">The other object</para>
     ///     <para xml:lang="zh">另一个对象</para>
     /// </param>
-    public readonly override bool Equals(object? obj) => obj is SnowId id && Equals(id);
+    public override readonly bool Equals(object? obj) => obj is SnowId id && Equals(id);
 
     /// <summary>
     ///     <para xml:lang="en">Gets the hash code</para>
