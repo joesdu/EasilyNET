@@ -198,8 +198,8 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 
     private static long CalculateRandomValue()
     {
-        var high = RandomExtensions.StrictNext();
-        var low = RandomExtensions.StrictNext();
+        var high = Random.StrictNext();
+        var low = Random.StrictNext();
         var combined = (long)(((ulong)(uint)high << 32) | (uint)low);
         return combined & 0xffffffffff; // low order 5 bytes
     }
@@ -282,7 +282,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">Gets the hash code</para>
     ///     <para xml:lang="zh">获取哈希代码</para>
     /// </summary>
-    public override readonly int GetHashCode()
+    public readonly override int GetHashCode()
     {
         var hash = 17;
         hash = (37 * hash) + _a.GetHashCode();
@@ -340,7 +340,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">Returns a string representation of the value</para>
     ///     <para xml:lang="zh">返回值的字符串表示形式</para>
     /// </summary>
-    public override readonly string ToString()
+    public readonly override string ToString()
     {
         var c = new char[24];
         c[0] = ToHexChar((_a >> 28) & 0x0f);
@@ -405,7 +405,9 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
                 return ((IConvertible)this).ToString(provider);
             case TypeCode.Object:
                 if (conversionType == typeof(object) || conversionType == typeof(SnowId))
+                {
                     return this;
+                }
                 break;
         }
         throw new InvalidCastException();
