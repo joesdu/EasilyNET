@@ -64,6 +64,15 @@ public sealed class JsonNodeSerializer : SerializerBase<JsonNode?>
                         throw new BsonSerializationException($"Unsupported scalar value type: {jsonValue.GetValue<object?>()?.GetType()}");
                 }
                 return;
+            case JsonArray jsonArray:
+                // Handle JsonArray using BsonArraySerializer
+                var bsonArray = new BsonArray();
+                foreach (var item in jsonArray)
+                {
+                    bsonArray.Add(BsonValue.Create(item));
+                }
+                BsonArraySerializer.Instance.Serialize(context, bsonArray);
+                return;
         }
         var jsonString = value.ToJsonString();
         var bsonDocument = BsonDocument.Parse(jsonString);
