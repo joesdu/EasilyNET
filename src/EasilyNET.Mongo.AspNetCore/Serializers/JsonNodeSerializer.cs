@@ -33,38 +33,37 @@ public sealed class JsonNodeSerializer : SerializerBase<JsonNode?>
     /// <inheritdoc />
     public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, JsonNode? value)
     {
-        if (value is null)
+        switch (value)
         {
-            context.Writer.WriteNull();
-            return;
-        }
-        if (value is JsonValue jsonValue)
-        {
-            // Handle scalar values directly
-            switch (jsonValue.GetValue<object>())
-            {
-                case string strValue:
-                    context.Writer.WriteString(strValue);
-                    break;
-                case int intValue:
-                    context.Writer.WriteInt32(intValue);
-                    break;
-                case long longValue:
-                    context.Writer.WriteInt64(longValue);
-                    break;
-                case double doubleValue:
-                    context.Writer.WriteDouble(doubleValue);
-                    break;
-                case bool boolValue:
-                    context.Writer.WriteBoolean(boolValue);
-                    break;
-                case decimal decimalValue:
-                    context.Writer.WriteDecimal128(decimalValue);
-                    break;
-                default:
-                    throw new BsonSerializationException($"Unsupported scalar value type: {jsonValue.GetValue<object?>()?.GetType()}");
-            }
-            return;
+            case null:
+                context.Writer.WriteNull();
+                return;
+            case JsonValue jsonValue:
+                // Handle scalar values directly
+                switch (jsonValue.GetValue<object>())
+                {
+                    case string strValue:
+                        context.Writer.WriteString(strValue);
+                        break;
+                    case int intValue:
+                        context.Writer.WriteInt32(intValue);
+                        break;
+                    case long longValue:
+                        context.Writer.WriteInt64(longValue);
+                        break;
+                    case double doubleValue:
+                        context.Writer.WriteDouble(doubleValue);
+                        break;
+                    case bool boolValue:
+                        context.Writer.WriteBoolean(boolValue);
+                        break;
+                    case decimal decimalValue:
+                        context.Writer.WriteDecimal128(decimalValue);
+                        break;
+                    default:
+                        throw new BsonSerializationException($"Unsupported scalar value type: {jsonValue.GetValue<object?>()?.GetType()}");
+                }
+                return;
         }
         var jsonString = value.ToJsonString();
         var bsonDocument = BsonDocument.Parse(jsonString);
