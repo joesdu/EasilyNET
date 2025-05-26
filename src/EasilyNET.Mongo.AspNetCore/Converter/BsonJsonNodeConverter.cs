@@ -10,7 +10,7 @@ internal static class BsonJsonNodeConverter
         return value.BsonType switch
         {
             BsonType.Document            => BsonToJsonObject(value.AsBsonDocument),
-            BsonType.Array               => new JsonArray(value.AsBsonArray.Select(BsonToJsonNode).ToArray()),
+            BsonType.Array               => new JsonArray([.. value.AsBsonArray.Select(BsonToJsonNode)]),
             BsonType.Boolean             => value.AsBoolean,
             BsonType.DateTime            => value.ToUniversalTime().ToString("o"),
             BsonType.Double              => value.AsDouble,
