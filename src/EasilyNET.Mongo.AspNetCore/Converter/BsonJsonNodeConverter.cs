@@ -26,7 +26,7 @@ internal static class BsonJsonNodeConverter
             BsonType.JavaScript          => value.AsBsonJavaScript.Code,
             BsonType.Symbol              => value.AsBsonSymbol.Name,
             BsonType.JavaScriptWithScope => value.AsBsonJavaScriptWithScope.Code,
-            BsonType.Timestamp           => new DateTime(0, DateTimeKind.Utc).AddSeconds(value.AsBsonTimestamp.Timestamp).ToString("o"),
+            BsonType.Timestamp           => DateTime.UnixEpoch.AddSeconds(value.AsBsonTimestamp.Timestamp).ToString("o"),
             BsonType.MinKey              => "MinKey",
             BsonType.MaxKey              => "MaxKey",
             _                            => value.ToString()
