@@ -22,6 +22,35 @@ public class MongoTestController(DbContext db) : ControllerBase
     private readonly FilterDefinitionBuilder<MongoTest> bf = Builders<MongoTest>.Filter;
 
     /// <summary>
+    /// 测试JsonObject
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("JsonObjectTest")]
+    public async Task<JsonObjectTest> JsonObjectTest()
+    {
+        var coll = db.GetCollection<JsonObjectTest>("test.json.object");
+        var id = ObjectId.GenerateNewId();
+        var obj = new JsonObjectTest
+        {
+            Id = id.ToString(),
+            JsonObject = new()
+            {
+                ["name"] = "test",
+                ["age"] = 18,
+                ["isActive"] = true,
+                ["tags"] = new JsonArray("mongodb", "json", "test"),
+                ["address"] = new JsonObject
+                {
+                    ["city"] = "Shanghai",
+                    ["zip"] = "200000"
+                }
+            }
+        };
+        await coll.InsertOneAsync(obj);
+        return await coll.Find(c => c.Id == obj.Id).FirstOrDefaultAsync();
+    }
+
+    /// <summary>
     /// 测试JsonNode
     /// </summary>
     /// <returns></returns>
@@ -41,6 +70,18 @@ public class MongoTestController(DbContext db) : ControllerBase
         };
         await coll.InsertOneAsync(obj);
         return await coll.Find(c => c.Id == obj.Id).FirstOrDefaultAsync();
+    }
+
+    /// <summary>
+    /// 查询JsonObjectTest插入的数据，便于Swagger查看数据库内容
+    /// </summary>
+    /// <param name="id">要查询的ID</param>
+    /// <returns>返回指定ID的JsonNodeTest对象</returns>
+    [HttpGet("GetJsonObjectTest")]
+    public async Task<JsonNodeTest?> GetJsonObjectTest([FromQuery] string id)
+    {
+        var coll = db.GetCollection<JsonNodeTest>("test.json.node");
+        return await coll.Find(c => c.Id == id).FirstOrDefaultAsync();
     }
 
     /// <summary>
@@ -220,4 +261,25 @@ public sealed class JsonNodeTest
     /// 可空的JsonNode
     /// </summary>
     public JsonNode? JsonNodeNullAble { get; set; }
+}
+
+/// <summary>
+/// 测试JsonObject的序列化
+/// </summary>
+public sealed class JsonObjectTest
+{
+    /// <summary>
+    /// ID
+    /// </summary>
+    public required string Id { get; set; }
+
+    /// <summary>
+    /// 常规的JsonObject
+    /// </summary>
+    public required JsonObject JsonObject { get; set; }
+
+    /// <summary>
+    /// 可空的JsonObject
+    /// </summary>
+    public JsonObject? JsonObjectNullAble { get; set; }
 }
