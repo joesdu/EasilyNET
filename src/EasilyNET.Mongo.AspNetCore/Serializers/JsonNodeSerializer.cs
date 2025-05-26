@@ -77,7 +77,7 @@ public sealed class JsonNodeSerializer : SerializerBase<JsonNode?>
             case BsonType.Boolean:
                 return context.Reader.ReadBoolean();
             case BsonType.DateTime:
-                return context.Reader.ReadDateTime().ToString();
+                return context.Reader.ReadDateTime().ToString("o");
             case BsonType.Double:
                 return context.Reader.ReadDouble();
             case BsonType.Int32:
