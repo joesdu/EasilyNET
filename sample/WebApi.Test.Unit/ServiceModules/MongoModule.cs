@@ -98,6 +98,7 @@ internal sealed class MongoModule : AppModule
         context.Services.RegisterSerializer(new DateOnlySerializerAsString());
         context.Services.RegisterSerializer(new TimeOnlySerializerAsString());
         context.Services.RegisterSerializer(new JsonNodeSerializer());
+        context.Services.RegisterSerializer(new JsonObjectSerializer());
         context.Services.RegisterDynamicSerializer();
         context.Services.RegisterGlobalEnumKeyDictionarySerializer();
         await Task.CompletedTask;

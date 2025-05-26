@@ -22,11 +22,41 @@ public class MongoTestController(DbContext db) : ControllerBase
     private readonly FilterDefinitionBuilder<MongoTest> bf = Builders<MongoTest>.Filter;
 
     /// <summary>
+    /// 测试JsonObject
+    /// </summary>
+    /// <returns>A <see cref="JsonObjectTest" /> object retrieved from the MongoDB collection.</returns>
+    [HttpGet("JsonObjectTest")]
+    public async Task<JsonObjectTest?> JsonObjectTest()
+    {
+        var coll = db.GetCollection<JsonObjectTest>("test.json.object");
+        var id = ObjectId.GenerateNewId();
+        var obj = new JsonObjectTest
+        {
+            Id = id.ToString(),
+            JsonObject = new()
+            {
+                ["name"] = "test",
+                ["age"] = 18,
+                ["decimal"] = 2345235.3462376234724572457m,
+                ["isActive"] = true,
+                ["tags"] = new JsonArray("mongodb", "json", "test"),
+                ["address"] = new JsonObject
+                {
+                    ["city"] = "Shanghai",
+                    ["zip"] = "200000"
+                }
+            }
+        };
+        await coll.InsertOneAsync(obj);
+        return await coll.Find(c => c.Id == obj.Id).FirstOrDefaultAsync();
+    }
+
+    /// <summary>
     /// 测试JsonNode
     /// </summary>
     /// <returns></returns>
     [HttpGet("JsonNodeTest")]
-    public async Task<JsonNodeTest> JsonNodeTest()
+    public async Task<JsonNodeTest?> JsonNodeTest()
     {
         var coll = db.GetCollection<JsonNodeTest>("test.json.node");
         var id = ObjectId.GenerateNewId();
@@ -139,8 +169,8 @@ public class MongoTestController(DbContext db) : ControllerBase
     /// 使用枚举值作为字典的键
     /// </summary>
     /// <returns></returns>
-    [HttpPost("PostEnumKeyDic")]
-    public async Task<EnumKeyDicTest> PostEnumKeyDic()
+    [HttpGet("GetEnumKeyDic")]
+    public async Task<List<EnumKeyDicTest>> GetEnumKeyDic()
     {
         var obj = new EnumKeyDicTest
         {
@@ -152,16 +182,6 @@ public class MongoTestController(DbContext db) : ControllerBase
             }
         };
         await db.EnumKeyDic.InsertOneAsync(obj);
-        return obj;
-    }
-
-    /// <summary>
-    /// 使用枚举值作为字典的键
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("GetEnumKeyDic")]
-    public async Task<List<EnumKeyDicTest>> GetEnumKeyDic()
-    {
         return await db.EnumKeyDic.Find(c => true).ToListAsync();
     }
 }
@@ -220,4 +240,25 @@ public sealed class JsonNodeTest
     /// 可空的JsonNode
     /// </summary>
     public JsonNode? JsonNodeNullAble { get; set; }
+}
+
+/// <summary>
+/// 测试JsonObject的序列化
+/// </summary>
+public sealed class JsonObjectTest
+{
+    /// <summary>
+    /// ID
+    /// </summary>
+    public required string Id { get; set; }
+
+    /// <summary>
+    /// 常规的JsonObject
+    /// </summary>
+    public required JsonObject JsonObject { get; set; }
+
+    /// <summary>
+    /// 可空的JsonObject
+    /// </summary>
+    public JsonObject? JsonObjectNullAble { get; set; }
 }
