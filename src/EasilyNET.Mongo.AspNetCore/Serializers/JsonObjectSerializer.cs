@@ -82,7 +82,7 @@ public sealed class JsonObjectSerializer : SerializerBase<JsonObject?>
             case BsonType.Array:
             {
                 var bsonArray = BsonArraySerializer.Instance.Deserialize(context, args);
-                return new() { ["array"] = BsonJsonNodeConverter.BsonToJsonNode(bsonArray) };
+                return BsonJsonNodeConverter.BsonToJsonNode(bsonArray);
             }
             case BsonType.Boolean:
                 return new() { ["value"] = context.Reader.ReadBoolean() };
