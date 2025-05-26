@@ -24,7 +24,7 @@ public class MongoTestController(DbContext db) : ControllerBase
     /// <summary>
     /// 测试JsonObject
     /// </summary>
-    /// <returns></returns>
+    /// <returns>A <see cref="JsonObjectTest"/> object retrieved from the MongoDB collection.</returns>
     [HttpGet("JsonObjectTest")]
     public async Task<JsonObjectTest> JsonObjectTest()
     {
