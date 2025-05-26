@@ -99,7 +99,11 @@ public sealed class JsonNodeSerializer : SerializerBase<JsonNode?>
             case BsonType.JavaScriptWithScope:
                 return context.Reader.ReadJavaScriptWithScope();
             case BsonType.Timestamp:
-                return context.Reader.ReadTimestamp();
+            {
+                var bsonTimestamp = context.Reader.ReadTimestamp();
+                var timestampDateTime = bsonTimestamp.ToUniversalTime();
+                return timestampDateTime.ToString("o"); // ISO 8601 format
+            }
             case BsonType.MinKey:
                 context.Reader.ReadMinKey();
                 return "MinKey";
