@@ -59,10 +59,10 @@ public sealed class JsonNodeSerializer : SerializerBase<JsonNode?>
                     context.Writer.WriteBoolean(boolValue);
                     break;
                 case decimal decimalValue:
-                    context.Writer.WriteDecimal128((MongoDB.Bson.Decimal128)decimalValue);
+                    context.Writer.WriteDecimal128(decimalValue);
                     break;
                 default:
-                    throw new BsonSerializationException($"Unsupported scalar value type: {jsonValue.GetValue<object>()?.GetType()}");
+                    throw new BsonSerializationException($"Unsupported scalar value type: {jsonValue.GetValue<object?>()?.GetType()}");
             }
             return;
         }
@@ -129,7 +129,7 @@ public sealed class JsonNodeSerializer : SerializerBase<JsonNode?>
             case BsonType.Timestamp:
             {
                 var bsonTimestamp = context.Reader.ReadTimestamp();
-                var timestampDateTime = DateTimeOffset.FromUnixTimeSeconds(bsonTimestamp.Timestamp).UtcDateTime;
+                var timestampDateTime = DateTimeOffset.FromUnixTimeSeconds(bsonTimestamp).UtcDateTime;
                 return timestampDateTime.ToString("o"); // ISO 8601 format
             }
             case BsonType.MinKey:
