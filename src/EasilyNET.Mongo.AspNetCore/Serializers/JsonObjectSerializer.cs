@@ -87,7 +87,7 @@ public sealed class JsonObjectSerializer : SerializerBase<JsonObject?>
             case BsonType.Boolean:
                 return new() { ["value"] = context.Reader.ReadBoolean() };
             case BsonType.DateTime:
-                return new() { ["value"] = context.Reader.ReadDateTime().ToString() };
+                return new() { ["value"] = context.Reader.ReadDateTime().ToString("o") };
             case BsonType.Double:
                 return new() { ["value"] = context.Reader.ReadDouble() };
             case BsonType.Int32:
