@@ -101,7 +101,7 @@ public sealed class JsonNodeSerializer : SerializerBase<JsonNode?>
             case BsonType.Timestamp:
             {
                 var bsonTimestamp = context.Reader.ReadTimestamp();
-                var timestampDateTime = bsonTimestamp.ToUniversalTime();
+                var timestampDateTime = DateTime.FromBinary(bsonTimestamp).ToUniversalTime();
                 return timestampDateTime.ToString("o"); // ISO 8601 format
             }
             case BsonType.MinKey:
