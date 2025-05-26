@@ -74,18 +74,6 @@ public class MongoTestController(DbContext db) : ControllerBase
     }
 
     /// <summary>
-    /// 查询JsonObjectTest插入的数据，便于Swagger查看数据库内容
-    /// </summary>
-    /// <param name="id">要查询的ID</param>
-    /// <returns>返回指定ID的JsonNodeTest对象</returns>
-    [HttpGet("GetJsonObjectTest")]
-    public async Task<JsonNodeTest?> GetJsonObjectTest([FromQuery] string id)
-    {
-        var coll = db.GetCollection<JsonNodeTest>("test.json.node");
-        return await coll.Find(c => c.Id == id).FirstOrDefaultAsync();
-    }
-
-    /// <summary>
     /// 添加一个动态数据,可便于快速测试一些代码.
     /// </summary>
     /// <returns></returns>
@@ -181,8 +169,8 @@ public class MongoTestController(DbContext db) : ControllerBase
     /// 使用枚举值作为字典的键
     /// </summary>
     /// <returns></returns>
-    [HttpPost("PostEnumKeyDic")]
-    public async Task<EnumKeyDicTest> PostEnumKeyDic()
+    [HttpGet("GetEnumKeyDic")]
+    public async Task<List<EnumKeyDicTest>> GetEnumKeyDic()
     {
         var obj = new EnumKeyDicTest
         {
@@ -194,16 +182,6 @@ public class MongoTestController(DbContext db) : ControllerBase
             }
         };
         await db.EnumKeyDic.InsertOneAsync(obj);
-        return obj;
-    }
-
-    /// <summary>
-    /// 使用枚举值作为字典的键
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("GetEnumKeyDic")]
-    public async Task<List<EnumKeyDicTest>> GetEnumKeyDic()
-    {
         return await db.EnumKeyDic.Find(c => true).ToListAsync();
     }
 }
