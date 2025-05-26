@@ -24,9 +24,9 @@ public class MongoTestController(DbContext db) : ControllerBase
     /// <summary>
     /// 测试JsonObject
     /// </summary>
-    /// <returns>A <see cref="JsonObjectTest"/> object retrieved from the MongoDB collection.</returns>
+    /// <returns>A <see cref="JsonObjectTest" /> object retrieved from the MongoDB collection.</returns>
     [HttpGet("JsonObjectTest")]
-    public async Task<JsonObjectTest> JsonObjectTest()
+    public async Task<JsonObjectTest?> JsonObjectTest()
     {
         var coll = db.GetCollection<JsonObjectTest>("test.json.object");
         var id = ObjectId.GenerateNewId();
@@ -56,7 +56,7 @@ public class MongoTestController(DbContext db) : ControllerBase
     /// </summary>
     /// <returns></returns>
     [HttpGet("JsonNodeTest")]
-    public async Task<JsonNodeTest> JsonNodeTest()
+    public async Task<JsonNodeTest?> JsonNodeTest()
     {
         var coll = db.GetCollection<JsonNodeTest>("test.json.node");
         var id = ObjectId.GenerateNewId();
