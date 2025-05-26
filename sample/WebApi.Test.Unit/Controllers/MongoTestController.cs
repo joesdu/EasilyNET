@@ -37,6 +37,7 @@ public class MongoTestController(DbContext db) : ControllerBase
             {
                 ["name"] = "test",
                 ["age"] = 18,
+                ["decimal"] = 2345235.3462376234724572457m,
                 ["isActive"] = true,
                 ["tags"] = new JsonArray("mongodb", "json", "test"),
                 ["address"] = new JsonObject

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using EasilyNET.Mongo.AspNetCore.Converter;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
@@ -21,7 +22,7 @@ namespace EasilyNET.Mongo.AspNetCore.Serializers;
 ///             <para xml:lang="zh">使用方法:</para>
 ///             <code>
 /// <![CDATA[
-/// BsonSerializer.RegisterSerializer(new JsonObjectBsonSerializer());
+/// BsonSerializer.RegisterSerializer(new JsonObjectSerializer());
 /// ]]>
 /// </code>
 ///         </example>
@@ -37,9 +38,17 @@ public sealed class JsonObjectSerializer : SerializerBase<JsonObject?>
             context.Writer.WriteNull();
             return;
         }
-        // 将 JsonObject 转换为 BsonDocument 进行序列化
+        // 更安全地将 JsonObject 转换为 BsonDocument
         var jsonString = value.ToJsonString();
-        var bsonDocument = BsonDocument.Parse(jsonString);
+        BsonDocument bsonDocument;
+        try
+        {
+            bsonDocument = BsonDocument.Parse(jsonString);
+        }
+        catch (Exception ex)
+        {
+            throw new BsonSerializationException($"Failed to parse JsonObject to BsonDocument. JSON: {jsonString}", ex);
+        }
         BsonDocumentSerializer.Instance.Serialize(context, bsonDocument);
     }
 
@@ -47,35 +56,72 @@ public sealed class JsonObjectSerializer : SerializerBase<JsonObject?>
     public override JsonObject? Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
         var currentBsonType = context.Reader.GetCurrentBsonType();
-        // ReSharper disable once ConvertIfStatementToSwitchStatement
-        if (currentBsonType is BsonType.Null)
+        switch (currentBsonType)
         {
-            context.Reader.ReadNull();
-            return null;
-        }
-        if (currentBsonType is BsonType.Document)
-        {
-            var bsonDocument = BsonDocumentSerializer.Instance.Deserialize(context, args);
-            var jsonString = bsonDocument.ToJson();
-            return JsonNode.Parse(jsonString)?.AsObject();
-        }
-        // Handle String type - convert string to JsonObject
-        if (currentBsonType is BsonType.String)
-        {
-            var jsonString = context.Reader.ReadString();
-            try
+            case BsonType.Null:
+                context.Reader.ReadNull();
+                return null;
+            case BsonType.Document:
             {
-                return JsonNode.Parse(jsonString)?.AsObject();
+                var bsonDocument = BsonDocumentSerializer.Instance.Deserialize(context, args);
+                // 尝试递归转换，保留类型信息
+                return BsonJsonNodeConverter.BsonToJsonObject(bsonDocument);
             }
-            catch (JsonException)
+            case BsonType.String:
             {
-                // If the string is not valid JSON, create a new JsonObject with the string as a property
-                return new()
+                var jsonString = context.Reader.ReadString();
+                try
                 {
-                    ["value"] = jsonString
-                };
+                    return JsonNode.Parse(jsonString)?.AsObject();
+                }
+                catch (JsonException)
+                {
+                    return new() { ["value"] = jsonString };
+                }
             }
+            case BsonType.Array:
+            {
+                var bsonArray = BsonArraySerializer.Instance.Deserialize(context, args);
+                return new() { ["array"] = BsonJsonNodeConverter.BsonToJsonNode(bsonArray) };
+            }
+            case BsonType.Boolean:
+                return new() { ["value"] = context.Reader.ReadBoolean() };
+            case BsonType.DateTime:
+                return new() { ["value"] = context.Reader.ReadDateTime().ToString() };
+            case BsonType.Double:
+                return new() { ["value"] = context.Reader.ReadDouble() };
+            case BsonType.Int32:
+                return new() { ["value"] = context.Reader.ReadInt32() };
+            case BsonType.Int64:
+                return new() { ["value"] = context.Reader.ReadInt64() };
+            case BsonType.Decimal128:
+                return new() { ["value"] = (decimal)context.Reader.ReadDecimal128() };
+            case BsonType.ObjectId:
+                return new() { ["value"] = context.Reader.ReadObjectId().ToString() };
+            case BsonType.Binary:
+                return new() { ["value"] = Convert.ToBase64String(context.Reader.ReadBinaryData().Bytes) };
+            case BsonType.RegularExpression:
+                return new() { ["value"] = context.Reader.ReadRegularExpression().Pattern };
+            case BsonType.JavaScript:
+                return new() { ["value"] = context.Reader.ReadJavaScript() };
+            case BsonType.Symbol:
+                return new() { ["value"] = context.Reader.ReadSymbol() };
+            case BsonType.JavaScriptWithScope:
+                return new() { ["value"] = context.Reader.ReadJavaScriptWithScope() };
+            case BsonType.Timestamp:
+                return new() { ["value"] = context.Reader.ReadTimestamp().ToString() };
+            case BsonType.MinKey:
+                context.Reader.ReadMinKey();
+                return new() { ["value"] = "MinKey" };
+            case BsonType.MaxKey:
+                context.Reader.ReadMaxKey();
+                return new() { ["value"] = "MaxKey" };
+            case BsonType.Undefined:
+                context.Reader.ReadUndefined();
+                return null;
+            case BsonType.EndOfDocument:
+            default:
+                throw new BsonSerializationException($"Cannot deserialize BsonType {currentBsonType} to JsonObject.");
         }
-        throw new BsonSerializationException($"Cannot deserialize BsonType {currentBsonType} to JsonObject.");
     }
 }

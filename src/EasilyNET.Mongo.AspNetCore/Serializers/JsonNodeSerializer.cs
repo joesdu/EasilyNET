@@ -1,4 +1,7 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
+using EasilyNET.Mongo.AspNetCore.Converter;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 
@@ -27,18 +30,88 @@ namespace EasilyNET.Mongo.AspNetCore.Serializers;
 /// </summary>
 public sealed class JsonNodeSerializer : SerializerBase<JsonNode?>
 {
-    private readonly StringSerializer InnerSerializer = new();
-
     /// <inheritdoc />
     public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, JsonNode? value)
     {
-        InnerSerializer.Serialize(context, args, string.IsNullOrWhiteSpace(value?.ToString()) ? null : value.ToString());
+        if (value is null)
+        {
+            context.Writer.WriteNull();
+            return;
+        }
+        var jsonString = value.ToJsonString();
+        var bsonDocument = BsonDocument.Parse(jsonString);
+        BsonDocumentSerializer.Instance.Serialize(context, bsonDocument);
     }
 
     /// <inheritdoc />
     public override JsonNode? Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
-        var value = InnerSerializer.Deserialize(context, args);
-        return string.IsNullOrWhiteSpace(value) ? null : JsonNode.Parse(value);
+        var currentBsonType = context.Reader.GetCurrentBsonType();
+        switch (currentBsonType)
+        {
+            case BsonType.Null:
+                context.Reader.ReadNull();
+                return null;
+            case BsonType.Document:
+            {
+                var bsonDocument = BsonDocumentSerializer.Instance.Deserialize(context, args);
+                return BsonJsonNodeConverter.BsonToJsonNode(bsonDocument);
+            }
+            case BsonType.String:
+            {
+                var jsonString = context.Reader.ReadString();
+                try
+                {
+                    return JsonNode.Parse(jsonString);
+                }
+                catch (JsonException)
+                {
+                    return new JsonObject { ["value"] = jsonString };
+                }
+            }
+            case BsonType.Array:
+            {
+                var bsonArray = BsonArraySerializer.Instance.Deserialize(context, args);
+                return BsonJsonNodeConverter.BsonToJsonNode(bsonArray);
+            }
+            case BsonType.Boolean:
+                return context.Reader.ReadBoolean();
+            case BsonType.DateTime:
+                return context.Reader.ReadDateTime().ToString();
+            case BsonType.Double:
+                return context.Reader.ReadDouble();
+            case BsonType.Int32:
+                return context.Reader.ReadInt32();
+            case BsonType.Int64:
+                return context.Reader.ReadInt64();
+            case BsonType.Decimal128:
+                return (decimal)context.Reader.ReadDecimal128();
+            case BsonType.ObjectId:
+                return context.Reader.ReadObjectId().ToString();
+            case BsonType.Binary:
+                return Convert.ToBase64String(context.Reader.ReadBinaryData().Bytes);
+            case BsonType.RegularExpression:
+                return context.Reader.ReadRegularExpression().Pattern;
+            case BsonType.JavaScript:
+                return context.Reader.ReadJavaScript();
+            case BsonType.Symbol:
+                return context.Reader.ReadSymbol();
+            case BsonType.JavaScriptWithScope:
+                return context.Reader.ReadJavaScriptWithScope();
+            case BsonType.Timestamp:
+                return context.Reader.ReadTimestamp();
+            case BsonType.MinKey:
+                context.Reader.ReadMinKey();
+                return "MinKey";
+            case BsonType.MaxKey:
+                context.Reader.ReadMaxKey();
+                return "MaxKey";
+            case BsonType.Undefined:
+                context.Reader.ReadUndefined();
+                return null;
+            case BsonType.EndOfDocument:
+            default:
+                throw new BsonSerializationException($"Cannot deserialize BsonType {currentBsonType} to JsonNode.");
+        }
     }
 }
