@@ -34,7 +34,6 @@ builder.Host.UseSerilog((hbc, lc) =>
       {
           if (hbc.HostingEnvironment.IsDevelopment())
           {
-              //wt.SpectreConsole();
               wt.Debug();
           }
           if (hbc.HostingEnvironment.IsProduction())
