@@ -84,7 +84,7 @@ void OnStarted()
     Log.Information("Application started in {Elapsed} ms", Stopwatch.GetElapsedTime(appInitial, appComplete).TotalMilliseconds);
 }
 
-void OnShutdown()
+static void OnShutdown()
 {
     Log.Information("Application shutdown");
 }
