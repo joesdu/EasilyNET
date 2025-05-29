@@ -10,6 +10,8 @@ using System.Runtime.Serialization;
 using System.Security.Cryptography;
 using System.Text;
 
+#pragma warning disable IDE0046
+
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
@@ -732,7 +734,7 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
     /// </returns>
     public override string ToString()
     {
-        return string.Create(26, this, (span, state) => { state.TryWriteStringify(span); });
+        return string.Create(26, this, static (span, state) => state.TryWriteStringify(span));
     }
 
     //
@@ -1200,11 +1202,11 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
     {
         Debug.Assert(BitConverter.IsLittleEndian);
         Debug.Assert(IsVector128Supported);
-        if (Vector128.IsHardwareAccelerated)
-        {
-            return Vector128.Shuffle(value, mask);
-        }
-        return Ssse3.IsSupported ? Ssse3.Shuffle(value, mask) : throw new NotImplementedException();
+        return Vector128.IsHardwareAccelerated
+                   ? Vector128.Shuffle(value, mask)
+                   : Ssse3.IsSupported
+                       ? Ssse3.Shuffle(value, mask)
+                       : throw new NotImplementedException();
     }
 }
 
@@ -1270,7 +1272,7 @@ internal sealed class XorShift64
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ulong Next()
     {
-        x = x ^ (x << 7);
-        return x = x ^ (x >> 9);
+        x ^= x << 7;
+        return x ^= x >> 9;
     }
 }
