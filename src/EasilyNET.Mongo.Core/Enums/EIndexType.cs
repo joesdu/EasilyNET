@@ -1,7 +1,7 @@
 namespace EasilyNET.Mongo.Core.Enums;
 
 /// <summary>
-/// 索引类型
+/// 索引类型枚举
 /// </summary>
 public enum EIndexType
 {
