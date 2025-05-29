@@ -14,7 +14,7 @@ public class MongoCompoundIndexAttribute : Attribute
     {
         if (fields.Length != types.Length)
         {
-            throw new ArgumentException("Fields and Types must have the same length");
+            throw new ArgumentException("Fields and Types must have the same length", nameof(fields));
         }
         Fields = fields;
         Types = types;
