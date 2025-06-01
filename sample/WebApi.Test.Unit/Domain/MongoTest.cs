@@ -1,10 +1,26 @@
+using System.Text.Json.Serialization;
+using EasilyNET.Mongo.Core.Attributes;
+using EasilyNET.Mongo.Core.Enums;
+using MongoDB.Bson.Serialization.Attributes;
+
 namespace WebApi.Test.Unit;
 
 /// <summary>
 /// Mongo测试数据类型
 /// </summary>
+[MongoCompoundIndex(["timeSpan", "dateOnly"],
+    [EIndexType.Ascending, EIndexType.Descending],
+    Name = "MongoCompoundIndexTest",
+    Unique = false)]
 public class MongoTest
 {
+    /// <summary>
+    /// DateTimeDescending
+    /// </summary>
+    [BsonIgnore]
+    [JsonIgnore]
+    private const string DateTimeDescending = "datetime_desc";
+
     /// <summary>
     /// ID
     /// </summary>
@@ -14,6 +30,7 @@ public class MongoTest
     /// <summary>
     /// 完整DateTime
     /// </summary>
+    [MongoIndex(EIndexType.Descending, Name = DateTimeDescending)]
     public DateTime DateTime { get; set; }
 
     /// <summary>

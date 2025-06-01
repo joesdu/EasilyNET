@@ -1,3 +1,4 @@
+using EasilyNET.Core.Misc;
 using EasilyNET.Mongo.AspNetCore.Common;
 using EasilyNET.Mongo.AspNetCore.Conventions;
 using EasilyNET.Mongo.AspNetCore.Options;
@@ -102,12 +103,15 @@ public static class MongoServiceExtensions
         option?.Invoke(options);
         options.ClientSettings?.Invoke(settings);
         var dbName = !string.IsNullOrWhiteSpace(mongoUrl.DatabaseName) ? mongoUrl.DatabaseName : options.DatabaseName ?? Constant.DefaultDbName;
-        if (options.DatabaseName is not null) dbName = options.DatabaseName;
+        if (options.DatabaseName is not null)
+        {
+            dbName = options.DatabaseName;
+        }
         services.AddMongoContext<T>(settings, c =>
         {
             c.ObjectIdToStringTypes = options.ObjectIdToStringTypes;
             c.DefaultConventionRegistry = options.DefaultConventionRegistry;
-            c.ConventionRegistry = options.ConventionRegistry;
+            c.ConventionRegistry.AddRange(options.ConventionRegistry);
             c.DatabaseName = dbName;
         });
     }
@@ -139,6 +143,7 @@ public static class MongoServiceExtensions
         services.AddSingleton(context.Client);
         services.AddSingleton(context.Database);
         services.AddSingleton(context);
+        services.AddSingleton(options);
     }
 
     private static void RegistryConventionPack(BasicClientOptions options)

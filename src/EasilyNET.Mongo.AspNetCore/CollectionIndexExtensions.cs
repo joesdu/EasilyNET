@@ -1,11 +1,13 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using EasilyNET.Core.Misc;
+using EasilyNET.Mongo.AspNetCore.Options;
 using EasilyNET.Mongo.Core;
 using EasilyNET.Mongo.Core.Attributes;
 using EasilyNET.Mongo.Core.Enums;
 using Microsoft.AspNetCore.Builder;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 
 // ReSharper disable CheckNamespace
@@ -21,8 +23,8 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class CollectionIndexExtensions
 {
-    private static readonly ConcurrentBag<string> CollectionCache = [];
-    private static readonly ConcurrentDictionary<string, ConcurrentBag<string>> IndexCache = [];
+    private static readonly ConcurrentDictionary<string, byte> CollectionCache = new();
+    private static readonly ConcurrentDictionary<string, ConcurrentBag<string>> IndexCache = new();
 
     /// <summary>
     ///     <para xml:lang="en">
@@ -39,16 +41,28 @@ public static class CollectionIndexExtensions
         ArgumentNullException.ThrowIfNull(app);
         var db = app.ApplicationServices.GetService<T>();
         ArgumentNullException.ThrowIfNull(db, nameof(T));
-        var collections = db.Database.ListCollectionNames().ToList().Where(c => c.IsNotNullOrWhiteSpace()).ToArray();
-        CollectionCache.AddRange(collections);
-        EnsureIndexes(db.Database);
+        // 获取MongoOptions配置
+        var options = app.ApplicationServices.GetRequiredService<BasicClientOptions>();
+        // 判断是否启用小驼峰
+        var useCamelCase =
+            // 1. 用户未禁用默认配置，并且默认配置中包含CamelCase
+            options is { DefaultConventionRegistry: true, ConventionRegistry.Values.Count: 0 } // 没有自定义覆盖，默认注册
+            ||
+            // 2. 用户自定义的ConventionRegistry中有CamelCase
+            options.ConventionRegistry.Values.Any(pack => pack.Conventions.Any(c => c is CamelCaseElementNameConvention));
+        foreach (var collectionName in db.Database.ListCollectionNames().ToEnumerable().Where(c => c.IsNotNullOrWhiteSpace()))
+        {
+            CollectionCache.TryAdd(collectionName, 0);
+        }
+        EnsureIndexes(db, useCamelCase);
         return app;
     }
 
-    private static void EnsureIndexes(IMongoDatabase db)
+    private static void EnsureIndexes<T>(T dbContext, bool useCamelCase) where T : MongoContext
     {
+        ArgumentNullException.ThrowIfNull(dbContext);
         // 获取所有DbContext相关类型
-        var dbContextType = db.GetType().DeclaringType ?? db.GetType();
+        var dbContextType = dbContext.GetType().DeclaringType ?? dbContext.GetType();
         // 获取所有IMongoCollection<>属性
         var properties = AssemblyHelper.FindTypes(t => t == dbContextType).SelectMany(t => t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
                                        .Where(prop => prop.PropertyType.IsGenericType && prop.PropertyType.GetGenericTypeDefinition() == typeof(IMongoCollection<>)).ToList();
@@ -63,47 +77,44 @@ public static class CollectionIndexExtensions
                 continue;
             }
             // 获取IMongoCollection实例
-            var collectionObj = prop.GetValue(db);
+            var collectionObj = prop.GetValue(dbContext);
+            string? collectionName;
             if (collectionObj is IMongoCollection<BsonDocument> collection)
             {
-                var collectionName = collection.CollectionNamespace.CollectionName;
+                collectionName = collection.CollectionNamespace.CollectionName;
                 if (string.Equals(collectionName, "system.profile", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
-                var hasCache = CollectionCache.Contains(collectionName);
-                if (!hasCache)
+                if (CollectionCache.TryAdd(collectionName, 0))
                 {
-                    db.CreateCollection(collectionName);
-                    CollectionCache.Add(collectionName);
+                    dbContext.Database.CreateCollection(collectionName);
                 }
-                EnsureIndexesForCollection(collection, entityType);
+                EnsureIndexesForCollection(collection, entityType, useCamelCase);
             }
             else if (collectionObj is not null)
             {
                 // 兼容IMongoCollection<T>不是BsonDocument的情况
-                var collectionNameProp = collectionObj.GetType().GetProperty("CollectionNamespace");
+                var collectionNameProp = collectionObj.GetType().GetProperty(nameof(IMongoCollection<>.CollectionNamespace));
                 var collectionNamespace = collectionNameProp?.GetValue(collectionObj);
-                var nameProp = collectionNamespace?.GetType().GetProperty("CollectionName");
-                var collectionName = nameProp?.GetValue(collectionNamespace)?.ToString();
+                var nameProp = collectionNamespace?.GetType().GetProperty(nameof(IMongoCollection<>.CollectionNamespace.CollectionName));
+                collectionName = nameProp?.GetValue(collectionNamespace)?.ToString();
                 if (string.IsNullOrEmpty(collectionName) || string.Equals(collectionName, "system.profile", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
-                var hasCache = CollectionCache.Contains(collectionName);
-                if (!hasCache)
+                if (CollectionCache.TryAdd(collectionName, 0))
                 {
-                    db.CreateCollection(collectionName);
-                    CollectionCache.Add(collectionName);
+                    dbContext.Database.CreateCollection(collectionName);
                 }
                 // 获取BsonDocument集合
-                var bsonCollection = db.GetCollection<BsonDocument>(collectionName);
-                EnsureIndexesForCollection(bsonCollection, entityType);
+                var bsonCollection = dbContext.Database.GetCollection<BsonDocument>(collectionName);
+                EnsureIndexesForCollection(bsonCollection, entityType, useCamelCase);
             }
         }
     }
 
-    private static void EnsureIndexesForCollection(IMongoCollection<BsonDocument> collection, Type type)
+    private static void EnsureIndexesForCollection(IMongoCollection<BsonDocument> collection, Type type, bool useCamelCase)
     {
         // 初始化索引缓存
         IndexCache.TryAdd(collection.CollectionNamespace.CollectionName, []);
@@ -119,7 +130,8 @@ public static class CollectionIndexExtensions
                                                      .Select(attr => new { Property = prop, Attribute = attr }));
         foreach (var item in properties)
         {
-            var indexName = item.Attribute.Name ?? $"{item.Property.Name}_{item.Attribute.Type}";
+            var fieldName = useCamelCase ? item.Property.Name.ToLowerCamelCase() : item.Property.Name;
+            var indexName = item.Attribute.Name ?? $"{fieldName}_{item.Attribute.Type}";
             var needCreate = true;
             if (existingIndexes.Contains(indexName))
             {
@@ -129,12 +141,12 @@ public static class CollectionIndexExtensions
                 var unique = existing.Contains("unique") && existing["unique"].AsBoolean;
                 var expectedKey = item.Attribute.Type switch
                 {
-                    EIndexType.Ascending   => new(item.Property.Name, 1),
-                    EIndexType.Descending  => new(item.Property.Name, -1),
-                    EIndexType.Geo2D       => new(item.Property.Name, "2d"),
-                    EIndexType.Geo2DSphere => new(item.Property.Name, "2dsphere"),
-                    EIndexType.Hashed      => new(item.Property.Name, "hashed"),
-                    EIndexType.Text        => new BsonDocument(item.Property.Name, "text"),
+                    EIndexType.Ascending   => new(fieldName, 1),
+                    EIndexType.Descending  => new(fieldName, -1),
+                    EIndexType.Geo2D       => new(fieldName, "2d"),
+                    EIndexType.Geo2DSphere => new(fieldName, "2dsphere"),
+                    EIndexType.Hashed      => new(fieldName, "hashed"),
+                    EIndexType.Text        => new BsonDocument(fieldName, "text"),
                     _                      => throw new NotSupportedException($"Index type {item.Attribute.Type} is not supported")
                 };
                 if (keys.Equals(expectedKey) && unique == item.Attribute.Unique)
@@ -154,12 +166,12 @@ public static class CollectionIndexExtensions
             var builder = Builders<BsonDocument>.IndexKeys;
             var indexDefinition = item.Attribute.Type switch
             {
-                EIndexType.Ascending   => builder.Ascending(item.Property.Name),
-                EIndexType.Descending  => builder.Descending(item.Property.Name),
-                EIndexType.Geo2D       => builder.Geo2D(item.Property.Name),
-                EIndexType.Geo2DSphere => builder.Geo2DSphere(item.Property.Name),
-                EIndexType.Hashed      => builder.Hashed(item.Property.Name),
-                EIndexType.Text        => builder.Text(item.Property.Name),
+                EIndexType.Ascending   => builder.Ascending(fieldName),
+                EIndexType.Descending  => builder.Descending(fieldName),
+                EIndexType.Geo2D       => builder.Geo2D(fieldName),
+                EIndexType.Geo2DSphere => builder.Geo2DSphere(fieldName),
+                EIndexType.Hashed      => builder.Hashed(fieldName),
+                EIndexType.Text        => builder.Text(fieldName),
                 _                      => throw new NotSupportedException($"Index type {item.Attribute.Type} is not supported")
             };
             var options = new CreateIndexOptions
@@ -176,7 +188,8 @@ public static class CollectionIndexExtensions
         var compoundIndexes = type.GetCustomAttributes<MongoCompoundIndexAttribute>(false);
         foreach (var index in compoundIndexes)
         {
-            var indexName = index.Name ?? $"compound_{string.Join("_", index.Fields)}";
+            var fields = index.Fields.Select(f => useCamelCase ? f.ToLowerCamelCase() : f).ToArray();
+            var indexName = index.Name ?? $"compound_{string.Join("_", fields)}";
             var needCreate = true;
             if (existingIndexes.Contains(indexName))
             {
@@ -185,9 +198,8 @@ public static class CollectionIndexExtensions
                 var unique = existing.Contains("unique") && existing["unique"].AsBoolean;
                 // 构造期望的key文档
                 var expectedKey = new BsonDocument();
-                for (var i = 0; i < index.Fields.Length; i++)
+                for (var i = 0; i < fields.Length; i++)
                 {
-                    var field = index.Fields[i];
                     object typeVal = index.Types[i] switch
                     {
                         EIndexType.Ascending   => 1,
@@ -198,7 +210,7 @@ public static class CollectionIndexExtensions
                         EIndexType.Text        => "text",
                         _                      => throw new NotSupportedException($"Index type {index.Types[i]} is not supported")
                     };
-                    expectedKey.Add(field, BsonValue.Create(typeVal));
+                    expectedKey.Add(fields[i], BsonValue.Create(typeVal));
                 }
                 if (keys.Equals(expectedKey) && unique == index.Unique)
                 {
@@ -214,17 +226,17 @@ public static class CollectionIndexExtensions
                 continue;
             }
             var builder = Builders<BsonDocument>.IndexKeys;
-            var definitions = new IndexKeysDefinition<BsonDocument>[index.Fields.Length];
-            for (var i = 0; i < index.Fields.Length; i++)
+            var definitions = new IndexKeysDefinition<BsonDocument>[fields.Length];
+            for (var i = 0; i < fields.Length; i++)
             {
                 definitions[i] = index.Types[i] switch
                 {
-                    EIndexType.Ascending   => builder.Ascending(index.Fields[i]),
-                    EIndexType.Descending  => builder.Descending(index.Fields[i]),
-                    EIndexType.Geo2D       => builder.Geo2D(index.Fields[i]),
-                    EIndexType.Geo2DSphere => builder.Geo2DSphere(index.Fields[i]),
-                    EIndexType.Hashed      => builder.Hashed(index.Fields[i]),
-                    EIndexType.Text        => builder.Text(index.Fields[i]),
+                    EIndexType.Ascending   => builder.Ascending(fields[i]),
+                    EIndexType.Descending  => builder.Descending(fields[i]),
+                    EIndexType.Geo2D       => builder.Geo2D(fields[i]),
+                    EIndexType.Geo2DSphere => builder.Geo2DSphere(fields[i]),
+                    EIndexType.Hashed      => builder.Hashed(fields[i]),
+                    EIndexType.Text        => builder.Text(fields[i]),
                     _                      => throw new NotSupportedException($"Index type {index.Types[i]} is not supported")
                 };
             }

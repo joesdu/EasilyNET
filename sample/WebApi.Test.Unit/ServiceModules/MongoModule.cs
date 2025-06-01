@@ -103,4 +103,11 @@ internal sealed class MongoModule : AppModule
         context.Services.RegisterGlobalEnumKeyDictionarySerializer();
         await Task.CompletedTask;
     }
+
+    public override async Task ApplicationInitialization(ApplicationContext context)
+    {
+        var app = context.GetApplicationHost() as IApplicationBuilder;
+        app?.UseCreateMongoIndexes<DbContext>();
+        await base.ApplicationInitialization(context);
+    }
 }

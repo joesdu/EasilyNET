@@ -5,6 +5,7 @@
 - 可配置部分类的 Id 字段不存为 ObjectId,而存为 string 类型.支持子对象以及集合成员的 Id 字段转化.
 - 自动本地化 MongoDB 时间类型
 - 添加.Net6 Date/Time Only 类型支持(序列化到 String 或 long)
+- 支持通过特性的方式创建和更新索引
 
 ---
 
@@ -16,7 +17,7 @@
     3. 若想转化成其他类型也可自行实现,如:转化成 ulong 类型
 - 添加动态类型支持[object 和 dynamic], 2.20 版后官方又加上了.
   JsonArray.
-- 添加 JsonNode 类型支持.
+- 添加 JsonNode, JsonObject 类型支持.
 
 ---
 
@@ -35,9 +36,9 @@ builder.Services.RegisterSerializer(new TimeOnlySerializerAsString());
 // 或者将他们存储为long类型的Ticks,也可以自己组合使用.
 builder.Services.RegisterSerializer(new DateOnlySerializerAsTicks());
 builder.Services.RegisterSerializer(new TimeOnlySerializerAsTicks());
-
 // 添加JsonNode支持
 builder.Services.RegisterSerializer(new JsonNodeSerializer());
+builder.Services.RegisterSerializer(new JsonObjectSerializer());
 ```
 
 #### 使用
@@ -276,3 +277,46 @@ public class YourClass(IGridFSBucket bucket)
     }
 }
 ```
+
+#### 使用索引
+
+EasilyNET.Mongo.AspNetCore 支持基于特性自动为实体类创建 MongoDB 索引,且会根据你的字段命名约定(如小驼峰)自动适配索引字段名.
+
+自动索引创建的核心特性：
+- 支持在实体属性上使用 [MongoIndex] 特性声明单字段索引.
+- 支持在实体类上使用 [MongoCompoundIndex] 特性声明复合索引.
+- 支持唯一索引、文本索引、地理空间索引等多种类型.
+- 字段名自动适配小驼峰等命名约定,无需手动处理.
+
+使用案例:
+
+```csharp
+public class User
+{
+    [MongoIndex(EIndexType.Ascending, Unique = true)]
+    public string UserName { get; set; } = string.Empty;
+
+    [MongoIndex(EIndexType.Descending)]
+    public DateTime CreatedAt { get; set; }
+}
+
+[MongoCompoundIndex(new[] { "UserName", "CreatedAt" }, new[] { EIndexType.Ascending, EIndexType.Descending }, Unique = true)]
+public class Log
+{
+    public string UserName { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+}
+```
+
+最后在中间件中配置对应DbContext的内容:
+
+```csharp
+var app = builder.Build();
+// 自动为所有集合创建索引，字段名自动适配小驼峰等命名约定
+app.UseCreateMongoIndexes<DbContext>();
+// 若存在多个或者集合分布在多个Context中.需要多次应用.
+app.UseCreateMongoIndexes<DbContext2>();
+```
+
+注意事项：
+- 自动索引创建会比对现有索引定义,若定义不一致会自动删除并重建(通过名称匹配,若是不存在对应名称,将不会删除原有索引[为了避免手动创建的索引失效]).
