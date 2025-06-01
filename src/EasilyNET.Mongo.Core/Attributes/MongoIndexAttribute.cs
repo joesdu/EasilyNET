@@ -23,9 +23,4 @@ public class MongoIndexAttribute(EIndexType type) : Attribute
     /// Gets or sets a value indicating whether the index is unique.
     /// </summary>
     public bool Unique { get; set; }
-
-    /// <summary>
-    /// Gets or sets the order of the field in a composite index.
-    /// </summary>
-    public int Order { get; set; } = 0;
 }

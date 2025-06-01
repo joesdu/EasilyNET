@@ -72,7 +72,7 @@ public class BasicClientOptions
     ///     <para xml:lang="en">Add your own convention configurations to set some behaviors for MongoDB serialization and deserialization</para>
     ///     <para xml:lang="zh">添加自己的一些Convention配置,用于设置mongodb序列化反序列化的一些表现</para>
     /// </summary>
-    public Dictionary<string, ConventionPack> ConventionRegistry { get; set; } = [];
+    public Dictionary<string, ConventionPack> ConventionRegistry { get; } = [];
 }
 
 /// <summary>
