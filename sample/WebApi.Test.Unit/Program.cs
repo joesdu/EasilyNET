@@ -84,7 +84,6 @@ void OnStarted()
     Log.Information("Application started in {Elapsed} ms", Stopwatch.GetElapsedTime(appInitial, appComplete).TotalMilliseconds);
 }
 
-void OnShutdown()
-{
-    Log.Information("Application shutdown");
-}
+#pragma warning disable IDE0062
+void OnShutdown() => Log.Information("Application shutdown");
+#pragma warning restore IDE0062

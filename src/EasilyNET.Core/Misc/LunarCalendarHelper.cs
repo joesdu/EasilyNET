@@ -1,6 +1,8 @@
 using System.Globalization;
 using EasilyNET.Core.Enums;
 
+// ReSharper disable UnusedMember.Global
+// ReSharper disable UnusedType.Global
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable NotAccessedPositionalProperty.Global
 
@@ -373,7 +375,9 @@ public static class LunarCalendarHelper
     {
         var ganzhiDay = GetGanzhiDay(date);
         var dayStem = Array.IndexOf(HeavenlyStems, ganzhiDay[..1]);
+#pragma warning disable IDE0047 // 删除不必要的括号
         var hourBranch = ((date.Hour + 1) / 2) % 12;
+#pragma warning restore IDE0047 // 删除不必要的括号
         var hourStem = ((dayStem * 2) + hourBranch) % 10;
         if (hourStem < 0)
         {
@@ -411,9 +415,9 @@ public static class LunarCalendarHelper
             return false;
         }
         var branch = ganzhi.Length > 1 ? ganzhi.Substring(1, 1) : string.Empty;
-        var deityInfo = DayDeities.FirstOrDefault(d => d.Branch == branch);
-        deity = deityInfo.Deity;
-        return deityInfo.IsHuangdao;
+        var (_, Deity, IsHuangdao) = DayDeities.FirstOrDefault(d => d.Branch == branch);
+        deity = Deity;
+        return IsHuangdao;
     }
 
     /// <summary>
@@ -440,8 +444,8 @@ public static class LunarCalendarHelper
             return string.Empty;
         }
         var branch = ganzhi.Length > 1 ? ganzhi.Substring(1, 1) : string.Empty;
-        var deityInfo = DayDeities.FirstOrDefault(d => d.Branch == branch);
-        return deityInfo.Deity;
+        var (_, Deity, _) = DayDeities.FirstOrDefault(d => d.Branch == branch);
+        return Deity;
     }
 
     /// <summary>
