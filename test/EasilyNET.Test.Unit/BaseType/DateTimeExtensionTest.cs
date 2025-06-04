@@ -2,7 +2,7 @@ using EasilyNET.Core.Enums;
 using EasilyNET.Core.Misc;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace EasilyNET.Test.Unit;
+namespace EasilyNET.Test.Unit.BaseType;
 
 /// <summary>
 /// </summary>

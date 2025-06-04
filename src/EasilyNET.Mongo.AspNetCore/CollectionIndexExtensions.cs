@@ -23,8 +23,8 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class CollectionIndexExtensions
 {
-    private static readonly ConcurrentDictionary<string, byte> CollectionCache = new();
-    private static readonly ConcurrentDictionary<string, ConcurrentBag<string>> IndexCache = new();
+    private static readonly ConcurrentDictionary<string, byte> CollectionCache = [];
+    private static readonly ConcurrentDictionary<string, ConcurrentBag<string>> IndexCache = [];
 
     /// <summary>
     ///     <para xml:lang="en">
@@ -73,6 +73,13 @@ public static class CollectionIndexExtensions
             var entityType = prop.PropertyType.GetGenericArguments()[0];
             // 跳过时序集合
             if (timeSeriesTypes.Contains(entityType))
+            {
+                continue;
+            }
+            // 新增: 跳过未标记索引特性的类型
+            var hasIndexAttribute = entityType.GetProperties().Any(p => p.GetCustomAttributes(typeof(MongoIndexAttribute), false).Length is not 0);
+            var hasCompoundIndexAttribute = entityType.GetCustomAttributes(typeof(MongoCompoundIndexAttribute), false).Length is not 0;
+            if (!hasIndexAttribute && !hasCompoundIndexAttribute)
             {
                 continue;
             }

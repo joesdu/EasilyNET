@@ -41,7 +41,7 @@ public static class MongoServiceExtensions
     ///     </para>
     ///     <para xml:lang="zh">Lazy&lt;T&gt; 提供了线程安全的延迟初始化机制，确保全局序列化器的注册逻辑只执行一次。该变量用于在第一次访问时注册全局的 DateTime 和 Decimal 序列化器。</para>
     /// </summary>
-    private static readonly Lazy<bool> _firstInitialization = new(() =>
+    private static readonly Lazy<bool> FirstInitialization = new(() =>
     {
         // 注册全局 DateTime 序列化器，将 DateTime 序列化为本地时间
         BsonSerializer.RegisterSerializer(new DateTimeSerializer(DateTimeKind.Local));
@@ -167,6 +167,6 @@ public static class MongoServiceExtensions
             new StringToObjectIdIdGeneratorConvention() //ObjectId → String mapping ObjectId
         }, x => !options.ObjectIdToStringTypes.Contains(x));
         // 确保全局序列化器只注册一次
-        _ = _firstInitialization.Value;
+        _ = FirstInitialization.Value;
     }
 }
