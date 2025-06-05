@@ -6,7 +6,6 @@ namespace EasilyNET.Mongo.Core.Attributes;
 /// 复合索引特性
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-// ReSharper disable once ClassNeverInstantiated.Global
 public class MongoCompoundIndexAttribute : Attribute
 {
     /// <inheritdoc />
@@ -39,4 +38,19 @@ public class MongoCompoundIndexAttribute : Attribute
     /// Gets or sets a value indicating whether the index is unique.
     /// </summary>
     public bool Unique { get; set; }
+
+    /// <summary>
+    /// 是否为稀疏索引
+    /// </summary>
+    public bool Sparse { get; set; }
+
+    /// <summary>
+    /// TTL索引的过期秒数（仅对TTL索引有效）
+    /// </summary>
+    public int? ExpireAfterSeconds { get; set; }
+
+    /// <summary>
+    /// 排序规则（Collation，json字符串）
+    /// </summary>
+    public string? Collation { get; set; }
 }
