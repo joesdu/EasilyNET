@@ -13,6 +13,8 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 
+// ReSharper disable PropertyCanBeMadeInitOnly.Local
+
 #pragma warning disable IDE0130 // 命名空间与文件夹结构不匹配
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -22,7 +24,6 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static class CollectionIndexExtensions
 {
     private static readonly ConcurrentDictionary<string, byte> CollectionCache = [];
-    private static readonly ConcurrentDictionary<string, ConcurrentBag<string>> IndexCache = [];
     private static readonly ConcurrentDictionary<Type, PropertyInfo[]> PropertyCache = [];
 
     /// <summary>
@@ -127,14 +128,149 @@ public static class CollectionIndexExtensions
 
     private static void EnsureIndexesForCollection(IMongoCollection<BsonDocument> collection, Type type, bool useCamelCase, ILogger? logger)
     {
-        IndexCache.TryAdd(collection.CollectionNamespace.CollectionName, []);
-        var existingIndexDocs = collection.Indexes.List().ToList();
-        var existingIndexes = existingIndexDocs.Select(idx => idx["name"].AsString).ToHashSet();
-        var existingIndexDict = existingIndexDocs.ToDictionary(idx => idx["name"].AsString, idx => idx);
+        var collectionName = collection.CollectionNamespace.CollectionName;
+
+        // 检查是否为时序集合并获取时序字段信息
+        var isTimeSeries = IsTimeSeriesCollection(collection.Database, collectionName);
+        var timeSeriesFields = GetTimeSeriesFields(type);
+        if (isTimeSeries && timeSeriesFields.Count > 0)
+        {
+            logger?.LogInformation("Detected time-series collection {CollectionName}. Time fields [{TimeFields}] will be excluded from indexing.", collectionName, string.Join(", ", timeSeriesFields));
+        }
+        try
+        {
+            // 1. 查询数据库中现有的所有索引
+            var existingIndexes = GetExistingIndexes(collection, logger);
+
+            // 2. 生成当前类型需要的所需索引定义
+            var requiredIndexes = GenerateRequiredIndexes(type, collectionName, useCamelCase, logger, timeSeriesFields);
+
+            // 3. 比对索引并执行相应操作
+            ManageIndexes(collection, existingIndexes, requiredIndexes, logger);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogError(ex, "Failed to manage indexes for collection {CollectionName}.", collectionName);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 获取集合中现有的所有索引
+    /// </summary>
+    private static Dictionary<string, IndexDefinition> GetExistingIndexes(IMongoCollection<BsonDocument> collection, ILogger? logger)
+    {
+        var existingIndexes = new Dictionary<string, IndexDefinition>();
+        try
+        {
+            var indexDocs = collection.Indexes.List().ToList();
+            logger?.LogDebug("Found {Count} existing indexes in collection {CollectionName}.", indexDocs.Count, collection.CollectionNamespace.CollectionName);
+            foreach (var indexDoc in indexDocs)
+            {
+                var indexName = indexDoc["name"].AsString;
+
+                // 跳过默认的 _id 索引
+                if (indexName == "_id_")
+                {
+                    continue;
+                }
+                var indexDef = new IndexDefinition
+                {
+                    Name = indexName,
+                    Keys = indexDoc["key"].AsBsonDocument,
+                    Unique = indexDoc.Contains("unique") && indexDoc["unique"].AsBoolean,
+                    Sparse = indexDoc.Contains("sparse") && indexDoc["sparse"].AsBoolean,
+                    ExpireAfterSeconds = indexDoc.Contains("expireAfterSeconds") ? indexDoc["expireAfterSeconds"].AsInt32 : null
+                };
+
+                // 解析排序规则
+                if (indexDoc.Contains("collation"))
+                {
+                    var collationDoc = indexDoc["collation"].AsBsonDocument;
+                    if (collationDoc.Contains("locale"))
+                    {
+                        indexDef.Collation = new(collationDoc["locale"].AsString);
+                    }
+                }
+
+                // 解析文本索引权重
+                if (indexDoc.Contains("weights"))
+                {
+                    indexDef.Weights = indexDoc["weights"].AsBsonDocument;
+                }
+
+                // 解析默认语言
+                if (indexDoc.Contains("default_language"))
+                {
+                    indexDef.DefaultLanguage = indexDoc["default_language"].AsString;
+                }
+                existingIndexes[indexName] = indexDef;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger?.LogError(ex, "Failed to retrieve existing indexes for collection {CollectionName}.", collection.CollectionNamespace.CollectionName);
+            throw;
+        }
+        return existingIndexes;
+    }
+
+    /// <summary>
+    /// 生成当前类型需要的所有索引定义
+    /// </summary>
+    private static List<IndexDefinition> GenerateRequiredIndexes(Type type, string collectionName, bool useCamelCase, ILogger? logger, HashSet<string>? timeSeriesFields = null)
+    {
+        var requiredIndexes = new List<IndexDefinition>();
         var allIndexFields = new List<(string Path, MongoIndexAttribute Attr, Type DeclaringType)>();
         var allTextFields = new List<string>();
         var allWildcardFields = new List<(string Path, MongoIndexAttribute Attr)>();
-        CollectIndexFields(type, useCamelCase, null, allIndexFields, allTextFields, allWildcardFields); // 验证文本索引
+
+        // 检查是否为时序集合
+        var isTimeSeries = timeSeriesFields is { Count: > 0 };
+
+        // 收集所有索引字段
+        CollectIndexFields(type, useCamelCase, null, allIndexFields, allTextFields, allWildcardFields, timeSeriesFields);
+
+        // 验证文本索引
+        ValidateTextIndexes(allIndexFields, allTextFields);
+
+        // 生成单字段索引
+        foreach (var (path, attr, declaringType) in allIndexFields.Where(x => x.Attr.Type != EIndexType.Text))
+        {
+            var indexDef = CreateSingleFieldIndex(path, attr, declaringType, collectionName, isTimeSeries);
+            requiredIndexes.Add(indexDef);
+        }
+
+        // 生成通配符索引
+        foreach (var (path, attr) in allWildcardFields)
+        {
+            var indexDef = CreateWildcardIndex(path, attr, collectionName, isTimeSeries);
+            requiredIndexes.Add(indexDef);
+        }
+
+        // 生成文本索引
+        if (allTextFields.Count > 0)
+        {
+            var indexDef = CreateTextIndex(allTextFields, allIndexFields, collectionName, isTimeSeries);
+            requiredIndexes.Add(indexDef);
+        }
+
+        // 生成复合索引
+        var compoundIndexes = type.GetCustomAttributes<MongoCompoundIndexAttribute>(false);
+        foreach (var compoundAttr in compoundIndexes)
+        {
+            var indexDef = CreateCompoundIndex(compoundAttr, type, collectionName, useCamelCase);
+            requiredIndexes.Add(indexDef);
+        }
+        logger?.LogDebug("Generated {Count} required indexes for type {TypeName}.", requiredIndexes.Count, type.Name);
+        return requiredIndexes;
+    }
+
+    /// <summary>
+    /// 验证文本索引
+    /// </summary>
+    private static void ValidateTextIndexes(List<(string Path, MongoIndexAttribute Attr, Type DeclaringType)> allIndexFields, List<string> allTextFields)
+    {
         if (allTextFields.Count > 0)
         {
             var textIndexFields = allIndexFields.Where(x => x.Attr.Type == EIndexType.Text).ToList();
@@ -148,329 +284,431 @@ public static class CollectionIndexExtensions
             {
                 throw new InvalidOperationException("文本索引不支持唯一性约束。");
             }
-        } // 处理通配符索引
-        foreach (var (path, attr) in allWildcardFields)
+        }
+    }
+
+    /// <summary>
+    /// 管理索引：比对现有索引和需要的索引，执行增删改操作
+    /// </summary>
+    private static void ManageIndexes(IMongoCollection<BsonDocument> collection,
+        Dictionary<string, IndexDefinition> existingIndexes,
+        List<IndexDefinition> requiredIndexes,
+        ILogger? logger)
+    {
+        var collectionName = collection.CollectionNamespace.CollectionName;
+        var requiredIndexDict = requiredIndexes.ToDictionary(idx => idx.Name, idx => idx);
+
+        // 1. 检查需要创建或更新的索引
+        foreach (var requiredIndex in requiredIndexes)
         {
-            // 通配符索引支持多种格式：$**, field.$**, field.subfield.$** 等
-            var wildcardPath = path.EndsWith("$**") ? path : $"{path}.$**";
-            if (!wildcardPath.Contains("$**"))
+            if (existingIndexes.TryGetValue(requiredIndex.Name, out var existingIndex))
             {
-                throw new InvalidOperationException($"通配符索引路径 '{path}' 格式无效，应包含 '$**' 通配符。");
-            }
-            var indexName = attr.Name ?? $"{collection.CollectionNamespace.CollectionName}_{wildcardPath.Replace("$", "").Replace("*", "")}_Wildcard";
-            if (indexName.Length > 127)
-            {
-                throw new InvalidOperationException($"索引名称 '{indexName}' 超过 MongoDB 的 127 字节限制。");
-            }
-            var needCreate = true;
-            if (existingIndexes.Contains(indexName))
-            {
-                var existing = existingIndexDict[indexName];
-                var keys = existing["key"].AsBsonDocument;
-                var expectedKey = new BsonDocument(wildcardPath, new BsonString("$**"));
-                if (keys.Equals(expectedKey))
+                // 索引已存在，比较定义
+                if (existingIndex.Equals(requiredIndex))
                 {
-                    needCreate = false;
+                    // 定义相同，跳过
+                    logger?.LogDebug("Index {IndexName} already exists with matching definition.", requiredIndex.Name);
                 }
                 else
                 {
-                    logger?.LogInformation("Dropping outdated wildcard index {IndexName}.", indexName);
-                    collection.Indexes.DropOne(indexName);
+                    // 定义不同，需要更新（删除后重建）
+                    logger?.LogInformation("Updating index {IndexName} in collection {CollectionName} (definition changed).", requiredIndex.Name, collectionName);
+                    try
+                    {
+                        collection.Indexes.DropOne(requiredIndex.Name);
+                        CreateIndex(collection, requiredIndex, logger);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger?.LogError(ex, "Failed to update index {IndexName} in collection {CollectionName}.", requiredIndex.Name, collectionName);
+                        throw;
+                    }
                 }
             }
-            if (!needCreate)
+            else
             {
-                continue;
-            }
-            var builder = Builders<BsonDocument>.IndexKeys;
-            var def = builder.Wildcard(wildcardPath);
-            var options = new CreateIndexOptions { Name = indexName, Background = true, Sparse = attr.Sparse, Unique = attr.Unique };
-            if (!string.IsNullOrWhiteSpace(attr.Collation))
-            {
+                // 索引不存在，需要创建
+                logger?.LogInformation("Creating new index {IndexName} in collection {CollectionName}.", requiredIndex.Name, collectionName);
                 try
                 {
-                    var collationDoc = BsonSerializer.Deserialize<BsonDocument>(attr.Collation);
-                    var locale = collationDoc.GetValue("locale", null)?.AsString;
-                    if (!string.IsNullOrEmpty(locale))
-                    {
-                        options.Collation = new(locale);
-                    }
+                    CreateIndex(collection, requiredIndex, logger);
                 }
                 catch (Exception ex)
                 {
-                    throw new InvalidOperationException($"索引 '{indexName}' 的排序规则 JSON 无效: {attr.Collation}", ex);
+                    logger?.LogError(ex, "Failed to create index {IndexName} in collection {CollectionName}.", requiredIndex.Name, collectionName);
+                    throw;
                 }
             }
-            logger?.LogInformation("Creating wildcard index {IndexName} on {Path}.", indexName, wildcardPath);
-            collection.Indexes.CreateOne(new CreateIndexModel<BsonDocument>(def, options));
-            IndexCache[collection.CollectionNamespace.CollectionName].Add(indexName);
         }
 
-        // 处理文本索引
-        if (allTextFields.Count > 0)
+        // 2. 检查需要删除的索引（存在于数据库但不在需要的索引中）
+        foreach (var existingIndexName in existingIndexes.Keys.Where(existingIndexName => !requiredIndexDict.ContainsKey(existingIndexName)))
         {
-            var textIndexName = $"{collection.CollectionNamespace.CollectionName}_" + string.Join("_", allTextFields) + "_Text";
-            if (textIndexName.Length > 127)
+            logger?.LogInformation("Dropping unused index {IndexName} from collection {CollectionName}.", existingIndexName, collectionName);
+            try
             {
-                throw new InvalidOperationException($"文本索引名称 '{textIndexName}' 超过 MongoDB 的 127 字节限制。");
+                collection.Indexes.DropOne(existingIndexName);
             }
-            var needCreate = true;
-            if (existingIndexes.Contains(textIndexName))
+            catch (Exception ex)
             {
-                var existing = existingIndexDict[textIndexName];
-                var keys = existing["key"].AsBsonDocument;
-                var expectedKey = new BsonDocument();
-                foreach (var f in allTextFields)
-                    expectedKey.Add(f, "text");
-                if (keys.Equals(expectedKey))
-                {
-                    needCreate = false;
-                }
-                else
-                {
-                    logger?.LogInformation("Dropping outdated text index {IndexName}.", textIndexName);
-                    collection.Indexes.DropOne(textIndexName);
-                }
+                logger?.LogWarning(ex, "Failed to drop unused index {IndexName} from collection {CollectionName}.", existingIndexName, collectionName);
             }
-            if (needCreate)
-            {
-                var builder = Builders<BsonDocument>.IndexKeys;
-                var def = builder.Combine(allTextFields.Select(f => builder.Text(f)));
-                var options = new CreateIndexOptions { Name = textIndexName, Background = true };
-                var firstTextAttr = allIndexFields.FirstOrDefault(x => x.Attr.Type == EIndexType.Text).Attr;
-                if (firstTextAttr?.Sparse == true)
-                {
-                    options.Sparse = true;
-                }
-                if (!string.IsNullOrWhiteSpace(firstTextAttr?.Collation))
-                {
-                    try
-                    {
-                        var collationDoc = BsonSerializer.Deserialize<BsonDocument>(firstTextAttr.Collation);
-                        var locale = collationDoc.GetValue("locale", null)?.AsString;
-                        if (!string.IsNullOrEmpty(locale))
-                        {
-                            options.Collation = new(locale);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InvalidOperationException($"文本索引 '{textIndexName}' 的排序规则 JSON 无效: {firstTextAttr.Collation}", ex);
-                    }
-                }
-                if (!string.IsNullOrWhiteSpace(firstTextAttr?.TextIndexOptions))
-                {
-                    try
-                    {
-                        var textOptionsDoc = BsonSerializer.Deserialize<BsonDocument>(firstTextAttr.TextIndexOptions);
-                        if (textOptionsDoc.Contains("weights"))
-                        {
-                            options.Weights = textOptionsDoc["weights"].AsBsonDocument;
-                        }
-                        if (textOptionsDoc.Contains("default_language"))
-                        {
-                            options.DefaultLanguage = textOptionsDoc["default_language"].AsString;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InvalidOperationException($"文本索引 '{textIndexName}' 的选项 JSON 无效: {firstTextAttr.TextIndexOptions}", ex);
-                    }
-                }
-                logger?.LogInformation("Creating text index {IndexName} on fields {Fields}.", textIndexName, string.Join(", ", allTextFields));
-                collection.Indexes.CreateOne(new CreateIndexModel<BsonDocument>(def, options));
-                IndexCache[collection.CollectionNamespace.CollectionName].Add(textIndexName);
-            }
-        } // 处理单字段索引
-        foreach (var (path, attr, declaringType) in allIndexFields.Where(x => x.Attr.Type != EIndexType.Text))
+        }
+    }
+
+    /// <summary>
+    /// 创建单字段索引定义
+    /// </summary>
+    private static IndexDefinition CreateSingleFieldIndex(string path, MongoIndexAttribute attr, Type declaringType, string collectionName, bool isTimeSeries = false)
+    {
+        var indexName = attr.Name ?? GenerateIndexName(collectionName, path, attr.Type.ToString());
+        if (indexName.Length > 127)
         {
-            var indexName = attr.Name ?? $"{collection.CollectionNamespace.CollectionName}_{path}_{attr.Type}";
-            if (indexName.Length > 127)
+            indexName = TruncateIndexName(indexName, 127);
+        }
+
+        // TTL 索引类型验证
+        if (attr.ExpireAfterSeconds.HasValue)
+        {
+            var propertyType = GetNestedPropertyType(declaringType, path.Replace('_', '.'));
+            if (propertyType == null || (propertyType != typeof(DateTime) && propertyType != typeof(DateTime?) && propertyType != typeof(BsonDateTime)))
             {
-                throw new InvalidOperationException($"索引名称 '{indexName}' 超过 MongoDB 的 127 字节限制。");
+                throw new InvalidOperationException($"TTL 索引字段 '{path}' 必须为 DateTime、DateTime? 或 BsonDateTime 类型。当前类型: {propertyType?.Name ?? "未知"}");
             }
-            if (attr.ExpireAfterSeconds.HasValue)
+        }
+        var keys = attr.Type switch
+        {
+            EIndexType.Ascending   => new(path, 1),
+            EIndexType.Descending  => new(path, -1),
+            EIndexType.Geo2D       => new(path, "2d"),
+            EIndexType.Geo2DSphere => new(path, "2dsphere"),
+            EIndexType.Hashed      => new(path, "hashed"),
+            EIndexType.Multikey    => new(path, 1),                       // Multikey 自动识别
+            EIndexType.Text        => new(path, "text"),                  // Text 索引
+            EIndexType.Wildcard    => new BsonDocument(path, "wildcard"), // Wildcard 索引
+            _                      => throw new NotSupportedException($"不支持的索引类型 {attr.Type}")
+        };
+
+        // 时序集合不支持稀疏索引，需要强制禁用
+        var sparse = attr.Sparse;
+        if (isTimeSeries && sparse)
+        {
+            sparse = false; // 时序集合强制禁用稀疏索引
+        }
+        var indexDef = new IndexDefinition
+        {
+            Name = indexName,
+            Keys = keys,
+            Unique = attr.Unique,
+            Sparse = sparse,
+            ExpireAfterSeconds = attr.ExpireAfterSeconds,
+            IndexType = attr.Type,
+            OriginalPath = path
+        };
+
+        // 解析排序规则
+        if (!string.IsNullOrWhiteSpace(attr.Collation))
+        {
+            try
             {
-                var propertyType = GetNestedPropertyType(declaringType, path.Replace('_', '.'));
+                var collationDoc = BsonSerializer.Deserialize<BsonDocument>(attr.Collation);
+                var locale = collationDoc.GetValue("locale", null)?.AsString;
+                if (!string.IsNullOrEmpty(locale))
+                {
+                    indexDef.Collation = new(locale);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"索引 '{indexName}' 的排序规则 JSON 无效: {attr.Collation}", ex);
+            }
+        }
+        return indexDef;
+    }
+
+    /// <summary>
+    /// 创建通配符索引定义
+    /// </summary>
+    private static IndexDefinition CreateWildcardIndex(string path, MongoIndexAttribute attr, string collectionName, bool isTimeSeries = false)
+    {
+        var wildcardPath = path.EndsWith("$**") ? path : $"{path}.$**";
+        if (!wildcardPath.Contains("$**"))
+        {
+            throw new InvalidOperationException($"通配符索引路径 '{path}' 格式无效，应包含 '$**' 通配符。");
+        }
+        var indexName = attr.Name ?? GenerateIndexName(collectionName, wildcardPath, "Wildcard");
+        if (indexName.Length > 127)
+        {
+            indexName = TruncateIndexName(indexName, 127);
+        }
+
+        // 时序集合不支持稀疏索引，需要强制禁用
+        var sparse = attr.Sparse;
+        if (isTimeSeries && sparse)
+        {
+            sparse = false; // 时序集合强制禁用稀疏索引
+        }
+        var indexDef = new IndexDefinition
+        {
+            Name = indexName,
+            Keys = new(wildcardPath, "$**"),
+            Unique = attr.Unique,
+            Sparse = sparse,
+            IndexType = EIndexType.Wildcard,
+            OriginalPath = wildcardPath
+        };
+
+        // 解析排序规则
+        if (attr.Collation.IsNotNullOrWhiteSpace())
+        {
+            try
+            {
+                var collationDoc = BsonSerializer.Deserialize<BsonDocument>(attr.Collation);
+                var locale = collationDoc.GetValue("locale", null)?.AsString;
+                if (!string.IsNullOrEmpty(locale))
+                {
+                    indexDef.Collation = new(locale);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"通配符索引 '{indexName}' 的排序规则 JSON 无效: {attr.Collation}", ex);
+            }
+        }
+        return indexDef;
+    }
+
+    /// <summary>
+    /// 创建文本索引定义
+    /// </summary>
+    private static IndexDefinition CreateTextIndex(List<string> textFields,
+        List<(string Path, MongoIndexAttribute Attr, Type DeclaringType)> allIndexFields,
+        string collectionName,
+        bool isTimeSeries = false)
+    {
+        var textIndexName = $"{collectionName}_" + string.Join("_", textFields) + "_Text";
+        if (textIndexName.Length > 127)
+        {
+            textIndexName = TruncateIndexName(textIndexName, 127);
+        }
+        var keys = new BsonDocument();
+        foreach (var field in textFields)
+        {
+            keys.Add(field, "text");
+        }
+        var firstTextAttr = allIndexFields.FirstOrDefault(x => x.Attr.Type == EIndexType.Text).Attr;
+
+        // 时序集合不支持稀疏索引，需要强制禁用
+        var sparse = firstTextAttr?.Sparse ?? false;
+        if (isTimeSeries && sparse)
+        {
+            sparse = false; // 时序集合强制禁用稀疏索引
+        }
+        var indexDef = new IndexDefinition
+        {
+            Name = textIndexName,
+            Keys = keys,
+            Unique = false, // 文本索引不支持唯一性
+            Sparse = sparse,
+            IndexType = EIndexType.Text,
+            OriginalPath = string.Join(",", textFields)
+        };
+
+        // 解析排序规则
+        if (!string.IsNullOrWhiteSpace(firstTextAttr?.Collation))
+        {
+            try
+            {
+                var collationDoc = BsonSerializer.Deserialize<BsonDocument>(firstTextAttr.Collation);
+                var locale = collationDoc.GetValue("locale", null)?.AsString;
+                if (!string.IsNullOrEmpty(locale))
+                {
+                    indexDef.Collation = new(locale);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"文本索引 '{textIndexName}' 的排序规则 JSON 无效: {firstTextAttr.Collation}", ex);
+            }
+        }
+
+        // 解析文本索引选项
+        if (!string.IsNullOrWhiteSpace(firstTextAttr?.TextIndexOptions))
+        {
+            try
+            {
+                var textOptionsDoc = BsonSerializer.Deserialize<BsonDocument>(firstTextAttr.TextIndexOptions);
+                if (textOptionsDoc.Contains("weights"))
+                {
+                    indexDef.Weights = textOptionsDoc["weights"].AsBsonDocument;
+                }
+                if (textOptionsDoc.Contains("default_language"))
+                {
+                    indexDef.DefaultLanguage = textOptionsDoc["default_language"].AsString;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"文本索引 '{textIndexName}' 的选项 JSON 无效: {firstTextAttr.TextIndexOptions}", ex);
+            }
+        }
+        return indexDef;
+    }
+
+    /// <summary>
+    /// 创建复合索引定义
+    /// </summary>
+    private static IndexDefinition CreateCompoundIndex(MongoCompoundIndexAttribute compoundAttr, Type type, string collectionName, bool useCamelCase)
+    {
+        var fields = compoundAttr.Fields.Select(f => useCamelCase ? f.ToLowerCamelCase() : f).ToArray();
+        var indexName = compoundAttr.Name ?? $"{collectionName}_{string.Join("_", fields)}";
+        if (indexName.Length > 127)
+        {
+            indexName = TruncateIndexName(indexName, 127);
+        }
+
+        // TTL 索引类型验证
+        if (compoundAttr.ExpireAfterSeconds.HasValue)
+        {
+            foreach (var field in compoundAttr.Fields)
+            {
+                var propertyType = GetNestedPropertyType(type, field);
                 if (propertyType == null || (propertyType != typeof(DateTime) && propertyType != typeof(DateTime?) && propertyType != typeof(BsonDateTime)))
                 {
-                    throw new InvalidOperationException($"TTL 索引字段 '{path}' 必须为 DateTime、DateTime? 或 BsonDateTime 类型。当前类型: {propertyType?.Name ?? "未知"}");
+                    throw new InvalidOperationException($"复合索引 '{indexName}' 的 TTL 字段 '{field}' 必须为 DateTime、DateTime? 或 BsonDateTime 类型。当前类型: {propertyType?.Name ?? "未知"}");
                 }
             }
-            var needCreate = true;
-            if (existingIndexes.Contains(indexName))
+        }
+        var keys = new BsonDocument();
+        for (var i = 0; i < fields.Length; i++)
+        {
+            object typeVal = compoundAttr.Types[i] switch
             {
-                var existing = existingIndexDict[indexName];
-                var keys = existing["key"].AsBsonDocument;
-                var unique = existing.Contains("unique") && existing["unique"].AsBoolean;
-                // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-                var expectedKey = attr.Type switch
-                {
-                    EIndexType.Ascending   => new(path, 1),
-                    EIndexType.Descending  => new(path, -1),
-                    EIndexType.Geo2D       => new(path, "2d"),
-                    EIndexType.Geo2DSphere => new(path, "2dsphere"),
-                    EIndexType.Hashed      => new(path, "hashed"),
-                    EIndexType.Multikey    => new BsonDocument(path, 1), // Multikey 自动识别
-                    _                      => throw new NotSupportedException($"不支持的索引类型 {attr.Type}")
-                };
-                if (keys.Equals(expectedKey) && unique == attr.Unique)
-                {
-                    needCreate = false;
-                }
-                else
-                {
-                    logger?.LogInformation("Dropping outdated index {IndexName}.", indexName);
-                    collection.Indexes.DropOne(indexName);
-                }
-            }
-            if (!needCreate)
-            {
-                continue;
-            }
-            var builder = Builders<BsonDocument>.IndexKeys;
-            // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-            var indexDefinition = attr.Type switch
-            {
-                EIndexType.Ascending   => builder.Ascending(path),
-                EIndexType.Descending  => builder.Descending(path),
-                EIndexType.Geo2D       => builder.Geo2D(path),
-                EIndexType.Geo2DSphere => builder.Geo2DSphere(path),
-                EIndexType.Hashed      => builder.Hashed(path),
-                EIndexType.Multikey    => builder.Ascending(path), // Multikey 自动识别
-                _                      => throw new NotSupportedException($"不支持的索引类型 {attr.Type}")
+                EIndexType.Ascending   => 1,
+                EIndexType.Descending  => -1,
+                EIndexType.Geo2D       => "2d",
+                EIndexType.Geo2DSphere => "2dsphere",
+                EIndexType.Hashed      => "hashed",
+                EIndexType.Text        => "text",
+                _                      => throw new NotSupportedException($"不支持的索引类型 {compoundAttr.Types[i]}")
             };
-            var options = new CreateIndexOptions { Name = indexName, Unique = attr.Unique, Background = true, Sparse = attr.Sparse };
-            if (attr.ExpireAfterSeconds.HasValue)
-            {
-                options.ExpireAfter = TimeSpan.FromSeconds(attr.ExpireAfterSeconds.Value);
-            }
-            if (!string.IsNullOrWhiteSpace(attr.Collation))
-            {
-                try
-                {
-                    var collationDoc = BsonSerializer.Deserialize<BsonDocument>(attr.Collation);
-                    var locale = collationDoc.GetValue("locale", null)?.AsString;
-                    if (!string.IsNullOrEmpty(locale))
-                    {
-                        options.Collation = new(locale);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException($"索引 '{indexName}' 的排序规则 JSON 无效: {attr.Collation}", ex);
-                }
-            }
-            logger?.LogInformation("Creating index {IndexName} on {Path} with type {Type}.", indexName, path, attr.Type);
-            collection.Indexes.CreateOne(new CreateIndexModel<BsonDocument>(indexDefinition, options));
-            IndexCache[collection.CollectionNamespace.CollectionName].Add(indexName);
+            keys.Add(fields[i], BsonValue.Create(typeVal));
         }
-
-        // 处理复合索引
-        var compoundIndexes = type.GetCustomAttributes<MongoCompoundIndexAttribute>(false);
-        foreach (var index in compoundIndexes)
+        var indexDef = new IndexDefinition
         {
-            var fields = index.Fields.Select(f => useCamelCase ? f.ToLowerCamelCase() : f).ToArray();
-            var indexName = index.Name ?? $"{collection.CollectionNamespace.CollectionName}_{string.Join("_", fields)}";
-            if (indexName.Length > 127)
+            Name = indexName,
+            Keys = keys,
+            Unique = compoundAttr.Unique,
+            Sparse = compoundAttr.Sparse,
+            ExpireAfterSeconds = compoundAttr.ExpireAfterSeconds,
+            IndexType = EIndexType.Ascending, // 复合索引使用默认类型
+            OriginalPath = string.Join(",", fields)
+        };
+
+        // 解析排序规则
+        if (!string.IsNullOrWhiteSpace(compoundAttr.Collation))
+        {
+            try
             {
-                throw new InvalidOperationException($"复合索引名称 '{indexName}' 超过 MongoDB 的 127 字节限制。");
-            }
-            if (index.ExpireAfterSeconds.HasValue)
-            {
-                foreach (var field in index.Fields)
+                var collationDoc = BsonSerializer.Deserialize<BsonDocument>(compoundAttr.Collation);
+                var locale = collationDoc.GetValue("locale", null)?.AsString;
+                if (!string.IsNullOrEmpty(locale))
                 {
-                    var propertyType = GetNestedPropertyType(type, field);
-                    if (propertyType == null || (propertyType != typeof(DateTime) && propertyType != typeof(DateTime?) && propertyType != typeof(BsonDateTime)))
-                    {
-                        throw new InvalidOperationException($"复合索引 '{indexName}' 的 TTL 字段 '{field}' 必须为 DateTime、DateTime? 或 BsonDateTime 类型。当前类型: {propertyType?.Name ?? "未知"}");
-                    }
+                    indexDef.Collation = new(locale);
                 }
             }
-            var needCreate = true;
-            if (existingIndexes.Contains(indexName))
+            catch (Exception ex)
             {
-                var existing = existingIndexDict[indexName];
-                var keys = existing["key"].AsBsonDocument;
-                var unique = existing.Contains("unique") && existing["unique"].AsBoolean;
-                var expectedKey = new BsonDocument();
-                for (var i = 0; i < fields.Length; i++)
-                {
-                    // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-                    object typeVal = index.Types[i] switch
-                    {
-                        EIndexType.Ascending   => 1,
-                        EIndexType.Descending  => -1,
-                        EIndexType.Geo2D       => "2d",
-                        EIndexType.Geo2DSphere => "2dsphere",
-                        EIndexType.Hashed      => "hashed",
-                        EIndexType.Text        => "text",
-                        _                      => throw new NotSupportedException($"不支持的索引类型 {index.Types[i]}")
-                    };
-                    expectedKey.Add(fields[i], BsonValue.Create(typeVal));
-                }
-                if (keys.Equals(expectedKey) && unique == index.Unique)
-                {
-                    needCreate = false;
-                }
-                else
-                {
-                    logger?.LogInformation("Dropping outdated compound index {IndexName}.", indexName);
-                    collection.Indexes.DropOne(indexName);
-                }
+                throw new InvalidOperationException($"复合索引 '{indexName}' 的排序规则 JSON 无效: {compoundAttr.Collation}", ex);
             }
-            if (!needCreate)
-            {
-                continue;
-            }
-            var builder = Builders<BsonDocument>.IndexKeys;
-            var definitions = new IndexKeysDefinition<BsonDocument>[fields.Length];
-            for (var i = 0; i < fields.Length; i++)
-            {
-                // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-                definitions[i] = index.Types[i] switch
-                {
-                    EIndexType.Ascending   => builder.Ascending(fields[i]),
-                    EIndexType.Descending  => builder.Descending(fields[i]),
-                    EIndexType.Geo2D       => builder.Geo2D(fields[i]),
-                    EIndexType.Geo2DSphere => builder.Geo2DSphere(fields[i]),
-                    EIndexType.Hashed      => builder.Hashed(fields[i]),
-                    EIndexType.Text        => builder.Text(fields[i]),
-                    _                      => throw new NotSupportedException($"不支持的索引类型 {index.Types[i]}")
-                };
-            }
-            var combinedDefinition = builder.Combine(definitions);
-            var options = new CreateIndexOptions { Name = indexName, Unique = index.Unique, Background = true, Sparse = index.Sparse };
-            if (index.ExpireAfterSeconds.HasValue)
-            {
-                options.ExpireAfter = TimeSpan.FromSeconds(index.ExpireAfterSeconds.Value);
-            }
-            if (!string.IsNullOrWhiteSpace(index.Collation))
-            {
-                try
-                {
-                    var collationDoc = BsonSerializer.Deserialize<BsonDocument>(index.Collation);
-                    var locale = collationDoc.GetValue("locale", null)?.AsString;
-                    if (!string.IsNullOrEmpty(locale))
-                    {
-                        options.Collation = new(locale);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException($"复合索引 '{indexName}' 的排序规则 JSON 无效: {index.Collation}", ex);
-                }
-            }
-            logger?.LogInformation("Creating compound index {IndexName} on fields {Fields}.", indexName, string.Join(", ", fields));
-            collection.Indexes.CreateOne(new CreateIndexModel<BsonDocument>(combinedDefinition, options));
-            IndexCache[collection.CollectionNamespace.CollectionName].Add(indexName);
         }
+        return indexDef;
+    }
 
-        // 清理未使用的索引（排除 _id_ 索引）
-        foreach (var index in existingIndexes.Where(index => index != "_id_" && !IndexCache[collection.CollectionNamespace.CollectionName].Contains(index)))
+    /// <summary>
+    /// 创建索引
+    /// </summary>
+    private static void CreateIndex(IMongoCollection<BsonDocument> collection, IndexDefinition indexDef, ILogger? logger)
+    {
+        var builder = Builders<BsonDocument>.IndexKeys;
+        IndexKeysDefinition<BsonDocument> keysDef;
+
+        // 根据索引类型创建不同的索引定义
+        if (indexDef.IndexType == EIndexType.Wildcard)
         {
-            logger?.LogInformation("Dropping unused index {IndexName} from collection {CollectionName}.", index, collection.CollectionNamespace.CollectionName);
-            collection.Indexes.DropOne(index);
+            var wildcardField = indexDef.Keys.Names.First();
+            keysDef = builder.Wildcard(wildcardField);
+        }
+        else if (indexDef.IndexType == EIndexType.Text)
+        {
+            var textFields = indexDef.Keys.Names.Where(name => indexDef.Keys[name].AsString == "text");
+            keysDef = builder.Combine(textFields.Select(f => builder.Text(f)));
+        }
+        else if (indexDef.Keys.ElementCount > 1)
+        {
+            // 复合索引
+            var keyDefinitions = (from element in indexDef.Keys
+                                  let fieldName = element.Name
+                                  let fieldValue = element.Value
+                                  select fieldValue switch
+                                  {
+                                      BsonInt32 { Value: 1 }           => builder.Ascending(fieldName),
+                                      BsonInt32 { Value: -1 }          => builder.Descending(fieldName),
+                                      BsonString { Value: "2d" }       => builder.Geo2D(fieldName),
+                                      BsonString { Value: "2dsphere" } => builder.Geo2DSphere(fieldName),
+                                      BsonString { Value: "hashed" }   => builder.Hashed(fieldName),
+                                      BsonString { Value: "text" }     => builder.Text(fieldName),
+                                      _                                => throw new NotSupportedException($"不支持的索引字段类型: {fieldValue}")
+                                  }).ToList();
+            keysDef = builder.Combine(keyDefinitions);
+        }
+        else
+        {
+            // 单字段索引
+            var fieldName = indexDef.Keys.Names.First();
+            var fieldValue = indexDef.Keys[fieldName];
+            keysDef = fieldValue switch
+            {
+                BsonInt32 { Value: 1 }           => builder.Ascending(fieldName),
+                BsonInt32 { Value: -1 }          => builder.Descending(fieldName),
+                BsonString { Value: "2d" }       => builder.Geo2D(fieldName),
+                BsonString { Value: "2dsphere" } => builder.Geo2DSphere(fieldName),
+                BsonString { Value: "hashed" }   => builder.Hashed(fieldName),
+                _                                => throw new NotSupportedException($"不支持的索引类型: {fieldValue}")
+            };
+        }
+        var options = new CreateIndexOptions
+        {
+            Name = indexDef.Name,
+            Unique = indexDef.Unique,
+            Sparse = indexDef.Sparse,
+            Background = true
+        };
+        if (indexDef.ExpireAfterSeconds.HasValue)
+        {
+            options.ExpireAfter = TimeSpan.FromSeconds(indexDef.ExpireAfterSeconds.Value);
+        }
+        if (indexDef.Collation != null)
+        {
+            options.Collation = indexDef.Collation;
+        }
+        if (indexDef.Weights != null)
+        {
+            options.Weights = indexDef.Weights;
+        }
+        if (!string.IsNullOrEmpty(indexDef.DefaultLanguage))
+        {
+            options.DefaultLanguage = indexDef.DefaultLanguage;
+        }
+        try
+        {
+            collection.Indexes.CreateOne(new CreateIndexModel<BsonDocument>(keysDef, options));
+            logger?.LogInformation("Successfully created index {IndexName} on collection {CollectionName}.", indexDef.Name, collection.CollectionNamespace.CollectionName);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogError(ex, "Failed to create index {IndexName} on collection {CollectionName}.", indexDef.Name, collection.CollectionNamespace.CollectionName);
+            throw;
         }
     }
 
@@ -480,13 +718,20 @@ public static class CollectionIndexExtensions
         string? parentPath,
         List<(string Path, MongoIndexAttribute Attr, Type DeclaringType)> fields,
         List<string> textFields,
-        List<(string Path, MongoIndexAttribute Attr)> allWildcardFields)
+        List<(string Path, MongoIndexAttribute Attr)> allWildcardFields,
+        HashSet<string>? timeSeriesFields = null)
     {
         foreach (var prop in type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
         {
             var propType = prop.PropertyType;
             var fieldName = useCamelCase ? prop.Name.ToLowerCamelCase() : prop.Name;
             var fullPath = string.IsNullOrEmpty(parentPath) ? fieldName : $"{parentPath}.{fieldName}";
+
+            // 检查是否为时序字段，如果是则跳过
+            if (timeSeriesFields != null && timeSeriesFields.Contains(fieldName))
+            {
+                continue;
+            }
             foreach (var attr in prop.GetCustomAttributes<MongoIndexAttribute>(false))
             {
                 var path = fullPath.Replace('.', '_');
@@ -533,7 +778,7 @@ public static class CollectionIndexExtensions
                 !typeof(IEnumerable).IsAssignableFrom(propType) &&
                 !propType.Assembly.GetName().Name!.StartsWith("System", StringComparison.OrdinalIgnoreCase))
             {
-                CollectIndexFields(propType, useCamelCase, fullPath, fields, textFields, allWildcardFields);
+                CollectIndexFields(propType, useCamelCase, fullPath, fields, textFields, allWildcardFields, timeSeriesFields);
             }
         }
     }
@@ -568,5 +813,159 @@ public static class CollectionIndexExtensions
             }
         }
         return currentType;
+    }
+
+    /// <summary>
+    /// 生成索引名称
+    /// </summary>
+    /// <param name="collectionName">集合名称</param>
+    /// <param name="fieldPath">字段路径</param>
+    /// <param name="indexType">索引类型</param>
+    /// <returns>生成的索引名称</returns>
+    private static string GenerateIndexName(string collectionName, string fieldPath, string indexType)
+    {
+        // 清理路径中的特殊字符
+        var cleanPath = fieldPath.Replace("$", "").Replace("*", "").Replace(".", "_");
+        return $"{collectionName}_{cleanPath}_{indexType}";
+    }
+
+    /// <summary>
+    /// 截断索引名称以符合MongoDB限制
+    /// </summary>
+    /// <param name="indexName">原始索引名称</param>
+    /// <param name="maxLength">最大长度</param>
+    /// <returns>截断后的索引名称</returns>
+    private static string TruncateIndexName(string indexName, int maxLength)
+    {
+        if (indexName.Length <= maxLength)
+        {
+            return indexName;
+        }
+
+        // 保留前缀和后缀，中间用哈希值填充
+        var prefix = indexName[..(maxLength / 3)];
+        var suffix = indexName[^(maxLength / 3)..];
+        var hash = indexName.GetHashCode().ToString("X")[..Math.Min(8, maxLength - prefix.Length - suffix.Length)];
+        return $"{prefix}_{hash}_{suffix}";
+    }
+
+    /// <summary>
+    /// 检测集合是否为时序集合
+    /// </summary>
+    /// <param name="database">数据库</param>
+    /// <param name="collectionName">集合名称</param>
+    /// <returns>是否为时序集合</returns>
+    private static bool IsTimeSeriesCollection(IMongoDatabase database, string collectionName)
+    {
+        try
+        {
+            var collectionInfo = database.ListCollections(new ListCollectionsOptions
+            {
+                Filter = Builders<BsonDocument>.Filter.Eq("name", collectionName)
+            }).FirstOrDefault();
+            return collectionInfo?.Contains("options") == true && collectionInfo["options"].AsBsonDocument.Contains("timeseries");
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 获取时序集合的时序字段列表
+    /// </summary>
+    /// <param name="type">实体类型</param>
+    /// <returns>时序字段名称集合</returns>
+    private static HashSet<string> GetTimeSeriesFields(Type type)
+    {
+        var timeSeriesFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var timeSeriesAttr = type.GetCustomAttribute<TimeSeriesCollectionAttribute>();
+        if (timeSeriesAttr?.TimeSeriesOptions != null)
+        {
+            // 添加时间字段
+            if (!string.IsNullOrWhiteSpace(timeSeriesAttr.TimeSeriesOptions.TimeField))
+            {
+                timeSeriesFields.Add(timeSeriesAttr.TimeSeriesOptions.TimeField);
+            }
+
+            // 添加元数据字段
+            if (!string.IsNullOrWhiteSpace(timeSeriesAttr.TimeSeriesOptions.MetaField))
+            {
+                timeSeriesFields.Add(timeSeriesAttr.TimeSeriesOptions.MetaField);
+            }
+        }
+        return timeSeriesFields;
+    }
+
+    /// <summary>
+    /// 索引定义信息
+    /// </summary>
+    private class IndexDefinition
+    {
+        public string Name { get; set; } = string.Empty;
+
+        public BsonDocument Keys { get; set; } = [];
+
+        public bool Unique { get; set; }
+
+        public bool Sparse { get; set; }
+
+        public int? ExpireAfterSeconds { get; set; }
+
+        public Collation? Collation { get; set; }
+
+        public BsonDocument? Weights { get; set; }
+
+        public string? DefaultLanguage { get; set; }
+
+        public EIndexType IndexType { get; set; }
+
+        // ReSharper disable once UnusedAutoPropertyAccessor.Local
+        public string OriginalPath { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 比较两个索引定义是否相同
+        /// </summary>
+        public bool Equals(IndexDefinition? other)
+        {
+            if (other == null)
+            {
+                return false;
+            }
+            return Name == other.Name &&
+                   Keys.Equals(other.Keys) &&
+                   Unique == other.Unique &&
+                   Sparse == other.Sparse &&
+                   ExpireAfterSeconds == other.ExpireAfterSeconds &&
+                   CollationEquals(Collation, other.Collation) &&
+                   WeightsEquals(Weights, other.Weights) &&
+                   DefaultLanguage == other.DefaultLanguage;
+        }
+
+        private static bool CollationEquals(Collation? c1, Collation? c2)
+        {
+            if (c1 == null && c2 == null)
+            {
+                return true;
+            }
+            if (c1 == null || c2 == null)
+            {
+                return false;
+            }
+            return c1.Locale == c2.Locale;
+        }
+
+        private static bool WeightsEquals(BsonDocument? w1, BsonDocument? w2)
+        {
+            if (w1 == null && w2 == null)
+            {
+                return true;
+            }
+            if (w1 == null || w2 == null)
+            {
+                return false;
+            }
+            return w1.Equals(w2);
+        }
     }
 }
