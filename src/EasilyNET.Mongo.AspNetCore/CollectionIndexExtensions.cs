@@ -138,7 +138,7 @@ public static class CollectionIndexExtensions
         foreach (var item in properties)
         {
             var fieldName = useCamelCase ? item.Property.Name.ToLowerCamelCase() : item.Property.Name;
-            var indexName = item.Attribute.Name ?? $"{fieldName}_{item.Attribute.Type}";
+            var indexName = item.Attribute.Name ?? $"{(useCamelCase ? type.Name.ToLowerCamelCase() : type.Name)}_{fieldName}_{item.Attribute.Type}";
             var needCreate = true;
             if (existingIndexes.Contains(indexName))
             {
@@ -196,7 +196,7 @@ public static class CollectionIndexExtensions
         foreach (var index in compoundIndexes)
         {
             var fields = index.Fields.Select(f => useCamelCase ? f.ToLowerCamelCase() : f).ToArray();
-            var indexName = index.Name ?? $"compound_{string.Join("_", fields)}";
+            var indexName = index.Name ?? $"{(useCamelCase ? type.Name.ToLowerCamelCase() : type.Name)}_{string.Join("_", fields)}";
             var needCreate = true;
             if (existingIndexes.Contains(indexName))
             {
