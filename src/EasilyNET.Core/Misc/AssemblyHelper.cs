@@ -24,10 +24,19 @@ public static class AssemblyHelper
 
     static AssemblyHelper()
     {
-        var entryAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
-        if (!string.IsNullOrEmpty(entryAssemblyName))
+        var entryAssembly = Assembly.GetEntryAssembly();
+        if (entryAssembly == null) return;
+        var entryAssemblyName = entryAssembly.GetName().Name;
+        if (entryAssemblyName.IsNotNullOrWhiteSpace())
         {
             AssemblyNames.Add(entryAssemblyName);
+            // 通常.NET程序集名称为 "EasilyNET.*"，因此可以尝试将其通过点分割,取第0个元素添加通配符
+            var split = entryAssemblyName.Split('.');
+            if (split.Length > 0 && split[0].IsNotNullOrWhiteSpace())
+            {
+                var wildcardName = split[0] + ".*";
+                AssemblyNames.Add(wildcardName);
+            }
         }
     }
 

@@ -6,7 +6,6 @@ namespace EasilyNET.Mongo.Core.Attributes;
 /// 单个字段索引特性
 /// </summary>
 [AttributeUsage(AttributeTargets.Property, AllowMultiple = true)]
-// ReSharper disable once ClassNeverInstantiated.Global
 public class MongoIndexAttribute(EIndexType type) : Attribute
 {
     /// <summary>
@@ -23,4 +22,24 @@ public class MongoIndexAttribute(EIndexType type) : Attribute
     /// Gets or sets a value indicating whether the index is unique.
     /// </summary>
     public bool Unique { get; set; }
+
+    /// <summary>
+    /// 是否为稀疏索引
+    /// </summary>
+    public bool Sparse { get; set; }
+
+    /// <summary>
+    /// TTL索引的过期秒数（仅对TTL索引有效）
+    /// </summary>
+    public int? ExpireAfterSeconds { get; set; }
+
+    /// <summary>
+    /// 排序规则（Collation，json字符串）
+    /// </summary>
+    public string? Collation { get; set; }
+
+    /// <summary>
+    /// 文本索引选项（如 weights、default_language，JSON字符串）
+    /// </summary>
+    public string? TextIndexOptions { get; set; }
 }

@@ -39,5 +39,17 @@ public enum EIndexType
     /// 文本索引
     /// <para xml:lang="en">Text Index</para>
     /// </summary>
-    Text = 5
+    Text = 5,
+
+    /// <summary>
+    /// 多键索引（数组字段）
+    /// <para xml:lang="en">Multikey Index</para>
+    /// </summary>
+    Multikey = 6,
+
+    /// <summary>
+    /// 通配符索引（Wildcard Index）
+    /// <para xml:lang="en">Wildcard Index</para>
+    /// </summary>
+    Wildcard = 7
 }
