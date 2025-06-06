@@ -257,11 +257,7 @@ public static class CollectionIndexExtensions
 
         // 生成复合索引
         var compoundIndexes = type.GetCustomAttributes<MongoCompoundIndexAttribute>(false);
-        foreach (var compoundAttr in compoundIndexes)
-        {
-            var indexDef = CreateCompoundIndex(compoundAttr, type, collectionName, useCamelCase);
-            requiredIndexes.Add(indexDef);
-        }
+        requiredIndexes.AddRange(compoundIndexes.Select(compoundAttr => CreateCompoundIndex(compoundAttr, type, collectionName, useCamelCase)));
         logger?.LogDebug("Generated {Count} required indexes for type {TypeName}.", requiredIndexes.Count, type.Name);
         return requiredIndexes;
     }
@@ -271,19 +267,20 @@ public static class CollectionIndexExtensions
     /// </summary>
     private static void ValidateTextIndexes(List<(string Path, MongoIndexAttribute Attr, Type DeclaringType)> allIndexFields, List<string> allTextFields)
     {
-        if (allTextFields.Count > 0)
+        if (allTextFields.Count <= 0)
         {
-            var textIndexFields = allIndexFields.Where(x => x.Attr.Type == EIndexType.Text).ToList();
-            if (textIndexFields.Count > 0 && textIndexFields.Any(x => !allTextFields.Contains(x.Path)))
-            {
-                throw new InvalidOperationException("每个集合只允许一个文本索引，所有文本字段必须包含在同一个文本索引中。");
-            }
+            return;
+        }
+        var textIndexFields = allIndexFields.Where(x => x.Attr.Type == EIndexType.Text).ToList();
+        if (textIndexFields.Count > 0 && textIndexFields.Any(x => !allTextFields.Contains(x.Path)))
+        {
+            throw new InvalidOperationException("每个集合只允许一个文本索引，所有文本字段必须包含在同一个文本索引中。");
+        }
 
-            // 验证文本索引唯一性约束
-            if (textIndexFields.Any(x => x.Attr.Unique))
-            {
-                throw new InvalidOperationException("文本索引不支持唯一性约束。");
-            }
+        // 验证文本索引唯一性约束
+        if (textIndexFields.Any(x => x.Attr.Unique))
+        {
+            throw new InvalidOperationException("文本索引不支持唯一性约束。");
         }
     }
 
@@ -296,31 +293,32 @@ public static class CollectionIndexExtensions
         ILogger? logger)
     {
         var collectionName = collection.CollectionNamespace.CollectionName;
-        var requiredIndexDict = requiredIndexes.ToDictionary(idx => idx.Name, idx => idx);
 
         // 1. 检查需要创建或更新的索引
         foreach (var requiredIndex in requiredIndexes)
         {
-            if (existingIndexes.TryGetValue(requiredIndex.Name, out var existingIndex))
+            // 首先检查是否有相同字段的索引（基于字段匹配，而不是名称匹配）
+            var matchingIndex = FindMatchingIndex(existingIndexes.Values, requiredIndex);
+            if (matchingIndex != null)
             {
-                // 索引已存在，比较定义
-                if (existingIndex.Equals(requiredIndex))
+                // 找到相同字段的索引，比较定义
+                if (matchingIndex.Equals(requiredIndex))
                 {
                     // 定义相同，跳过
-                    logger?.LogDebug("Index {IndexName} already exists with matching definition.", requiredIndex.Name);
+                    logger?.LogDebug("Index with fields {Fields} already exists with matching definition (name: {IndexName}).", string.Join(", ", requiredIndex.Keys.Names), matchingIndex.Name);
                 }
                 else
                 {
                     // 定义不同，需要更新（删除后重建）
-                    logger?.LogInformation("Updating index {IndexName} in collection {CollectionName} (definition changed).", requiredIndex.Name, collectionName);
+                    logger?.LogInformation("Updating index {IndexName} in collection {CollectionName} (definition changed).", matchingIndex.Name, collectionName);
                     try
                     {
-                        collection.Indexes.DropOne(requiredIndex.Name);
+                        collection.Indexes.DropOne(matchingIndex.Name);
                         CreateIndex(collection, requiredIndex, logger);
                     }
                     catch (Exception ex)
                     {
-                        logger?.LogError(ex, "Failed to update index {IndexName} in collection {CollectionName}.", requiredIndex.Name, collectionName);
+                        logger?.LogError(ex, "Failed to update index {IndexName} in collection {CollectionName}.", matchingIndex.Name, collectionName);
                         throw;
                     }
                 }
@@ -342,7 +340,8 @@ public static class CollectionIndexExtensions
         }
 
         // 2. 检查需要删除的索引（存在于数据库但不在需要的索引中）
-        foreach (var existingIndexName in existingIndexes.Keys.Where(existingIndexName => !requiredIndexDict.ContainsKey(existingIndexName)))
+        var requiredIndexNames = requiredIndexes.Select(idx => idx.Name).ToHashSet();
+        foreach (var existingIndexName in existingIndexes.Keys.Where(existingIndexName => !requiredIndexNames.Contains(existingIndexName)))
         {
             logger?.LogInformation("Dropping unused index {IndexName} from collection {CollectionName}.", existingIndexName, collectionName);
             try
@@ -354,6 +353,22 @@ public static class CollectionIndexExtensions
                 logger?.LogWarning(ex, "Failed to drop unused index {IndexName} from collection {CollectionName}.", existingIndexName, collectionName);
             }
         }
+    }
+
+    /// <summary>
+    /// 基于字段匹配找到相同的索引（而不是基于名称匹配）
+    /// </summary>
+    private static IndexDefinition? FindMatchingIndex(IEnumerable<IndexDefinition> existingIndexes, IndexDefinition requiredIndex)
+    {
+        return existingIndexes.FirstOrDefault(existingIndex => IndexKeysEqual(existingIndex.Keys, requiredIndex.Keys));
+    }
+
+    /// <summary>
+    /// 比较两个索引键是否相等
+    /// </summary>
+    private static bool IndexKeysEqual(BsonDocument keys1, BsonDocument keys2)
+    {
+        return keys1.ElementCount == keys2.ElementCount && keys1.All(element1 => keys2.Contains(element1.Name) && keys2[element1.Name].Equals(element1.Value));
     }
 
     /// <summary>
@@ -407,6 +422,7 @@ public static class CollectionIndexExtensions
         };
 
         // 解析排序规则
+        // ReSharper disable once InvertIf
         if (!string.IsNullOrWhiteSpace(attr.Collation))
         {
             try
@@ -459,6 +475,7 @@ public static class CollectionIndexExtensions
         };
 
         // 解析排序规则
+        // ReSharper disable once InvertIf
         if (attr.Collation.IsNotNullOrWhiteSpace())
         {
             try
@@ -533,6 +550,7 @@ public static class CollectionIndexExtensions
         }
 
         // 解析文本索引选项
+        // ReSharper disable once InvertIf
         if (!string.IsNullOrWhiteSpace(firstTextAttr?.TextIndexOptions))
         {
             try
@@ -606,6 +624,7 @@ public static class CollectionIndexExtensions
         };
 
         // 解析排序规则
+        // ReSharper disable once InvertIf
         if (!string.IsNullOrWhiteSpace(compoundAttr.Collation))
         {
             try
@@ -634,6 +653,7 @@ public static class CollectionIndexExtensions
         IndexKeysDefinition<BsonDocument> keysDef;
 
         // 根据索引类型创建不同的索引定义
+        // ReSharper disable once ConvertIfStatementToSwitchStatement
         if (indexDef.IndexType == EIndexType.Wildcard)
         {
             var wildcardField = indexDef.Keys.Names.First();
@@ -735,38 +755,42 @@ public static class CollectionIndexExtensions
             foreach (var attr in prop.GetCustomAttributes<MongoIndexAttribute>(false))
             {
                 var path = fullPath.Replace('.', '_');
-                if (attr.Type == EIndexType.Text)
+                switch (attr.Type)
                 {
-                    textFields.Add(path);
-                }
-                else if (attr.Type == EIndexType.Wildcard)
-                {
-                    // 通配符索引：支持 field.$** 格式
-                    var wildcardPath = path.EndsWith("$**") ? path : $"{path}.$**";
-                    allWildcardFields.Add((wildcardPath, attr));
-                }
-                else
-                {
-                    // 自动检测数组或集合类型并标记为 Multikey
-                    if (attr.Type == EIndexType.Multikey ||
-                        propType.IsArray ||
-                        (propType.IsGenericType && typeof(IEnumerable).IsAssignableFrom(propType) && propType != typeof(string)))
+                    case EIndexType.Text:
+                        textFields.Add(path);
+                        break;
+                    case EIndexType.Wildcard:
                     {
-                        // 为 Multikey 类型创建新的属性实例，保持原有属性设置
-                        var multikeyAttr = new MongoIndexAttribute(EIndexType.Multikey)
-                        {
-                            Name = attr.Name,
-                            Unique = attr.Unique,
-                            Sparse = attr.Sparse,
-                            ExpireAfterSeconds = attr.ExpireAfterSeconds,
-                            Collation = attr.Collation,
-                            TextIndexOptions = attr.TextIndexOptions
-                        };
-                        fields.Add((path, multikeyAttr, type));
+                        // 通配符索引：支持 field.$** 格式
+                        var wildcardPath = path.EndsWith("$**") ? path : $"{path}.$**";
+                        allWildcardFields.Add((wildcardPath, attr));
+                        break;
                     }
-                    else
+                    default:
                     {
-                        fields.Add((path, attr, type));
+                        // 自动检测数组或集合类型并标记为 Multikey
+                        if (attr.Type == EIndexType.Multikey ||
+                            propType.IsArray ||
+                            (propType.IsGenericType && typeof(IEnumerable).IsAssignableFrom(propType) && propType != typeof(string)))
+                        {
+                            // 为 Multikey 类型创建新的属性实例，保持原有属性设置
+                            var multikeyAttr = new MongoIndexAttribute(EIndexType.Multikey)
+                            {
+                                Name = attr.Name,
+                                Unique = attr.Unique,
+                                Sparse = attr.Sparse,
+                                ExpireAfterSeconds = attr.ExpireAfterSeconds,
+                                Collation = attr.Collation,
+                                TextIndexOptions = attr.TextIndexOptions
+                            };
+                            fields.Add((path, multikeyAttr, type));
+                        }
+                        else
+                        {
+                            fields.Add((path, attr, type));
+                        }
+                        break;
                     }
                 }
             }
@@ -880,6 +904,7 @@ public static class CollectionIndexExtensions
     {
         var timeSeriesFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var timeSeriesAttr = type.GetCustomAttribute<TimeSeriesCollectionAttribute>();
+        // ReSharper disable once InvertIf
         if (timeSeriesAttr?.TimeSeriesOptions != null)
         {
             // 添加时间字段
@@ -900,7 +925,7 @@ public static class CollectionIndexExtensions
     /// <summary>
     /// 索引定义信息
     /// </summary>
-    private class IndexDefinition
+    internal class IndexDefinition
     {
         public string Name { get; set; } = string.Empty;
 
