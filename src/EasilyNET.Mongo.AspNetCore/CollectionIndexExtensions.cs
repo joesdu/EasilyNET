@@ -153,10 +153,8 @@ public static class CollectionIndexExtensions
         {
             // 1. 查询数据库中现有的所有索引
             var existingIndexes = GetExistingIndexes(collection, logger);
-
             // 2. 生成当前类型需要的所需索引定义
-            var requiredIndexes = GenerateRequiredIndexes(type, collectionName, useCamelCase, logger, timeSeriesFields);
-
+            var requiredIndexes = GenerateRequiredIndexes(type, collectionName, useCamelCase, logger, isTimeSeries, timeSeriesFields);
             // 3. 比对索引并执行相应操作
             ManageIndexes(collection, existingIndexes, requiredIndexes, logger);
         }
@@ -239,43 +237,34 @@ public static class CollectionIndexExtensions
     /// <summary>
     /// 生成当前类型需要的所有索引定义
     /// </summary>
-    private static List<IndexDefinition> GenerateRequiredIndexes(Type type, string collectionName, bool useCamelCase, ILogger? logger, HashSet<string>? timeSeriesFields = null)
+    private static List<IndexDefinition> GenerateRequiredIndexes(Type type, string collectionName, bool useCamelCase, ILogger? logger, bool isTimeSeries, HashSet<string>? timeSeriesFields = null)
     {
         var requiredIndexes = new List<IndexDefinition>();
         var allIndexFields = new List<(string Path, MongoIndexAttribute Attr, Type DeclaringType)>();
         var allTextFields = new List<string>();
         var allWildcardFields = new List<(string Path, MongoIndexAttribute Attr)>();
-
-        // 检查是否为时序集合
-        var isTimeSeries = timeSeriesFields is { Count: > 0 };
-
         // 收集所有索引字段
         CollectIndexFields(type, useCamelCase, null, allIndexFields, allTextFields, allWildcardFields, timeSeriesFields);
-
         // 验证文本索引
         ValidateTextIndexes(allIndexFields, allTextFields);
-
         // 生成单字段索引
         foreach (var (path, attr, declaringType) in allIndexFields.Where(x => x.Attr.Type != EIndexType.Text))
         {
             var indexDef = CreateSingleFieldIndex(path, attr, declaringType, collectionName, isTimeSeries);
             requiredIndexes.Add(indexDef);
         }
-
         // 生成通配符索引
         foreach (var (path, attr) in allWildcardFields)
         {
             var indexDef = CreateWildcardIndex(path, attr, collectionName, isTimeSeries);
             requiredIndexes.Add(indexDef);
         }
-
         // 生成文本索引
         if (allTextFields.Count > 0)
         {
             var indexDef = CreateTextIndex(allTextFields, allIndexFields, collectionName, isTimeSeries);
             requiredIndexes.Add(indexDef);
         }
-
         // 生成复合索引
         var compoundIndexes = type.GetCustomAttributes<MongoCompoundIndexAttribute>(false);
         requiredIndexes.AddRange(compoundIndexes.Select(compoundAttr => CreateCompoundIndex(compoundAttr, type, collectionName, useCamelCase, isTimeSeries)));
@@ -300,7 +289,6 @@ public static class CollectionIndexExtensions
         {
             throw new InvalidOperationException("每个集合只允许一个文本索引，所有文本字段必须包含在同一个文本索引中。");
         }
-
         // 验证文本索引唯一性约束
         if (textIndexFields.Any(x => x.Attr.Unique))
         {
@@ -311,13 +299,9 @@ public static class CollectionIndexExtensions
     /// <summary>
     /// 管理索引：比对现有索引和需要的索引，执行增删改操作
     /// </summary>
-    private static void ManageIndexes(IMongoCollection<BsonDocument> collection,
-        Dictionary<string, IndexDefinition> existingIndexes,
-        List<IndexDefinition> requiredIndexes,
-        ILogger? logger)
+    private static void ManageIndexes(IMongoCollection<BsonDocument> collection, Dictionary<string, IndexDefinition> existingIndexes, List<IndexDefinition> requiredIndexes, ILogger? logger)
     {
         var collectionName = collection.CollectionNamespace.CollectionName;
-
         // 1. 检查需要创建或更新的索引
         foreach (var requiredIndex in requiredIndexes)
         {
@@ -384,7 +368,6 @@ public static class CollectionIndexExtensions
                 }
             }
         }
-
         // 2. 检查需要删除的索引（存在于数据库但不在需要的索引中）
         var requiredIndexNames = requiredIndexes.Select(idx => idx.Name).ToHashSet();
         foreach (var existingIndexName in existingIndexes.Keys.Where(existingIndexName => !requiredIndexNames.Contains(existingIndexName)))
@@ -433,7 +416,6 @@ public static class CollectionIndexExtensions
         {
             indexName = TruncateIndexName(indexName, 127);
         }
-
         // TTL 索引类型验证
         if (attr.ExpireAfterSeconds.HasValue)
         {
@@ -455,7 +437,6 @@ public static class CollectionIndexExtensions
             EIndexType.Wildcard    => new BsonDocument(path, "wildcard"), // Wildcard 索引
             _                      => throw new NotSupportedException($"不支持的索引类型 {attr.Type}")
         };
-
         // 时序集合不支持稀疏索引，需要强制禁用
         var sparse = attr.Sparse;
         if (isTimeSeries && sparse)
@@ -472,7 +453,6 @@ public static class CollectionIndexExtensions
             IndexType = attr.Type,
             OriginalPath = path
         };
-
         // 解析排序规则
         // ReSharper disable once InvertIf
         if (!string.IsNullOrWhiteSpace(attr.Collation))
@@ -509,7 +489,6 @@ public static class CollectionIndexExtensions
         {
             indexName = TruncateIndexName(indexName, 127);
         }
-
         // 时序集合不支持稀疏索引，需要强制禁用
         var sparse = attr.Sparse;
         if (isTimeSeries && sparse)
@@ -525,7 +504,6 @@ public static class CollectionIndexExtensions
             IndexType = EIndexType.Wildcard,
             OriginalPath = wildcardPath
         };
-
         // 解析排序规则
         // ReSharper disable once InvertIf
         if (attr.Collation.IsNotNullOrWhiteSpace())
@@ -550,10 +528,7 @@ public static class CollectionIndexExtensions
     /// <summary>
     /// 创建文本索引定义
     /// </summary>
-    private static IndexDefinition CreateTextIndex(List<string> textFields,
-        List<(string Path, MongoIndexAttribute Attr, Type DeclaringType)> allIndexFields,
-        string collectionName,
-        bool isTimeSeries = false)
+    private static IndexDefinition CreateTextIndex(List<string> textFields, List<(string Path, MongoIndexAttribute Attr, Type DeclaringType)> allIndexFields, string collectionName, bool isTimeSeries = false)
     {
         var textIndexName = $"{collectionName}_" + string.Join("_", textFields) + "_Text";
         if (textIndexName.Length > 127)
@@ -566,7 +541,6 @@ public static class CollectionIndexExtensions
             keys.Add(field, "text");
         }
         var firstTextAttr = allIndexFields.FirstOrDefault(x => x.Attr.Type == EIndexType.Text).Attr;
-
         // 时序集合不支持稀疏索引，需要强制禁用
         var sparse = firstTextAttr?.Sparse ?? false;
         if (isTimeSeries && sparse)
@@ -582,7 +556,6 @@ public static class CollectionIndexExtensions
             IndexType = EIndexType.Text,
             OriginalPath = string.Join(",", textFields)
         };
-
         // 解析排序规则
         if (!string.IsNullOrWhiteSpace(firstTextAttr?.Collation))
         {
@@ -600,7 +573,6 @@ public static class CollectionIndexExtensions
                 throw new InvalidOperationException($"文本索引 '{textIndexName}' 的排序规则 JSON 无效: {firstTextAttr.Collation}", ex);
             }
         }
-
         // 解析文本索引选项
         // ReSharper disable once InvertIf
         if (!string.IsNullOrWhiteSpace(firstTextAttr?.TextIndexOptions))
@@ -636,7 +608,6 @@ public static class CollectionIndexExtensions
         {
             indexName = TruncateIndexName(indexName, 127);
         }
-
         // TTL 索引类型验证
         if (compoundAttr.ExpireAfterSeconds.HasValue)
         {
@@ -665,7 +636,6 @@ public static class CollectionIndexExtensions
             };
             keys.Add(fields[i], BsonValue.Create(typeVal));
         }
-
         // 时序集合不支持稀疏索引，需要强制禁用
         var sparse = compoundAttr.Sparse;
         if (isTimeSeries && sparse)
@@ -682,7 +652,6 @@ public static class CollectionIndexExtensions
             IndexType = EIndexType.Ascending, // 复合索引使用默认类型
             OriginalPath = string.Join(",", fields)
         };
-
         // 解析排序规则
         // ReSharper disable once InvertIf
         if (!string.IsNullOrWhiteSpace(compoundAttr.Collation))
