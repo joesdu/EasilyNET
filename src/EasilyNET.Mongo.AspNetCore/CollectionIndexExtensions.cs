@@ -56,7 +56,10 @@ public static class CollectionIndexExtensions
         }
         catch (Exception ex)
         {
-            logger?.LogError(ex, "Failed to create MongoDB indexes for context {ContextType}.", typeof(T).Name);
+            if (logger is not null && logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Failed to create MongoDB indexes for context {ContextType}.", typeof(T).Name);
+            }
             throw;
         }
         return app;
@@ -76,7 +79,7 @@ public static class CollectionIndexExtensions
                                        .ToArray();
             PropertyCache.TryAdd(dbContextType, properties);
         }
-        var timeSeriesTypes = AssemblyHelper.FindTypesByAttribute<TimeSeriesCollectionAttribute>().ToHashSet();
+        var timeSeriesTypes = AssemblyHelper.FindTypesByAttribute<TimeSeriesCollectionAttribute>(o => o is { IsClass: true, IsAbstract: false }, false).ToHashSet();
         foreach (var prop in properties)
         {
             var entityType = prop.PropertyType.GetGenericArguments()[0];
@@ -101,7 +104,10 @@ public static class CollectionIndexExtensions
                 if (CollectionCache.TryAdd(collectionName, 0))
                 {
                     dbContext.Database.CreateCollection(collectionName);
-                    logger?.LogInformation("Created collection {CollectionName}.", collectionName);
+                    if (logger is not null && logger.IsEnabled(LogLevel.Information))
+                    {
+                        logger.LogInformation("Created collection {CollectionName}.", collectionName);
+                    }
                 }
                 EnsureIndexesForCollection(collection, entityType, useCamelCase, logger);
             }
@@ -118,7 +124,10 @@ public static class CollectionIndexExtensions
                 if (CollectionCache.TryAdd(collectionName, 0))
                 {
                     dbContext.Database.CreateCollection(collectionName);
-                    logger?.LogInformation("Created collection {CollectionName}.", collectionName);
+                    if (logger is not null && logger.IsEnabled(LogLevel.Information))
+                    {
+                        logger.LogInformation("Created collection {CollectionName}.", collectionName);
+                    }
                 }
                 var bsonCollection = dbContext.Database.GetCollection<BsonDocument>(collectionName);
                 EnsureIndexesForCollection(bsonCollection, entityType, useCamelCase, logger);
@@ -135,7 +144,10 @@ public static class CollectionIndexExtensions
         var timeSeriesFields = GetTimeSeriesFields(type);
         if (isTimeSeries && timeSeriesFields.Count > 0)
         {
-            logger?.LogInformation("Detected time-series collection {CollectionName}. Time fields [{TimeFields}] will be excluded from indexing.", collectionName, string.Join(", ", timeSeriesFields));
+            if (logger is not null && logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Detected time-series collection {CollectionName}. Time fields [{TimeFields}] will be excluded from indexing.", collectionName, string.Join(", ", timeSeriesFields));
+            }
         }
         try
         {
@@ -150,7 +162,10 @@ public static class CollectionIndexExtensions
         }
         catch (Exception ex)
         {
-            logger?.LogError(ex, "Failed to manage indexes for collection {CollectionName}.", collectionName);
+            if (logger is not null && logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Failed to manage indexes for collection {CollectionName}.", collectionName);
+            }
             throw;
         }
     }
@@ -164,7 +179,10 @@ public static class CollectionIndexExtensions
         try
         {
             var indexDocs = collection.Indexes.List().ToList();
-            logger?.LogDebug("Found {Count} existing indexes in collection {CollectionName}.", indexDocs.Count, collection.CollectionNamespace.CollectionName);
+            if (logger is not null && logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Found {Count} existing indexes in collection {CollectionName}.", indexDocs.Count, collection.CollectionNamespace.CollectionName);
+            }
             foreach (var indexDoc in indexDocs)
             {
                 var indexName = indexDoc["name"].AsString;
@@ -209,7 +227,10 @@ public static class CollectionIndexExtensions
         }
         catch (Exception ex)
         {
-            logger?.LogError(ex, "Failed to retrieve existing indexes for collection {CollectionName}.", collection.CollectionNamespace.CollectionName);
+            if (logger is not null && logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Failed to retrieve existing indexes for collection {CollectionName}.", collection.CollectionNamespace.CollectionName);
+            }
             throw;
         }
         return existingIndexes;
@@ -258,7 +279,10 @@ public static class CollectionIndexExtensions
         // 生成复合索引
         var compoundIndexes = type.GetCustomAttributes<MongoCompoundIndexAttribute>(false);
         requiredIndexes.AddRange(compoundIndexes.Select(compoundAttr => CreateCompoundIndex(compoundAttr, type, collectionName, useCamelCase)));
-        logger?.LogDebug("Generated {Count} required indexes for type {TypeName}.", requiredIndexes.Count, type.Name);
+        if (logger is not null && logger.IsEnabled(LogLevel.Debug))
+        {
+            logger.LogDebug("Generated {Count} required indexes for type {TypeName}.", requiredIndexes.Count, type.Name);
+        }
         return requiredIndexes;
     }
 
@@ -299,18 +323,24 @@ public static class CollectionIndexExtensions
         {
             // 首先检查是否有相同字段的索引（基于字段匹配，而不是名称匹配）
             var matchingIndex = FindMatchingIndex(existingIndexes.Values, requiredIndex);
-            if (matchingIndex != null)
+            if (matchingIndex is not null)
             {
                 // 找到相同字段的索引，比较定义
                 if (matchingIndex.Equals(requiredIndex))
                 {
-                    // 定义相同，跳过
-                    logger?.LogDebug("Index with fields {Fields} already exists with matching definition (name: {IndexName}).", string.Join(", ", requiredIndex.Keys.Names), matchingIndex.Name);
+                    if (logger is not null && logger.IsEnabled(LogLevel.Debug))
+                    {
+                        // 定义相同，跳过
+                        logger.LogDebug("Index with fields {Fields} already exists with matching definition (name: {IndexName}).", string.Join(", ", requiredIndex.Keys.Names), matchingIndex.Name);
+                    }
                 }
                 else
                 {
-                    // 定义不同，需要更新（删除后重建）
-                    logger?.LogInformation("Updating index {IndexName} in collection {CollectionName} (definition changed).", matchingIndex.Name, collectionName);
+                    if (logger is not null && logger.IsEnabled(LogLevel.Information))
+                    {
+                        // 定义不同，需要更新（删除后重建）
+                        logger.LogInformation("Updating index {IndexName} in collection {CollectionName} (definition changed).", matchingIndex.Name, collectionName);
+                    }
                     try
                     {
                         collection.Indexes.DropOne(matchingIndex.Name);
@@ -318,22 +348,31 @@ public static class CollectionIndexExtensions
                     }
                     catch (Exception ex)
                     {
-                        logger?.LogError(ex, "Failed to update index {IndexName} in collection {CollectionName}.", matchingIndex.Name, collectionName);
+                        if (logger is not null && logger.IsEnabled(LogLevel.Error))
+                        {
+                            logger.LogError(ex, "Failed to update index {IndexName} in collection {CollectionName}.", matchingIndex.Name, collectionName);
+                        }
                         throw;
                     }
                 }
             }
             else
             {
-                // 索引不存在，需要创建
-                logger?.LogInformation("Creating new index {IndexName} in collection {CollectionName}.", requiredIndex.Name, collectionName);
+                if (logger is not null && logger.IsEnabled(LogLevel.Information))
+                {
+                    // 索引不存在，需要创建
+                    logger.LogInformation("Creating new index {IndexName} in collection {CollectionName}.", requiredIndex.Name, collectionName);
+                }
                 try
                 {
                     CreateIndex(collection, requiredIndex, logger);
                 }
                 catch (Exception ex)
                 {
-                    logger?.LogError(ex, "Failed to create index {IndexName} in collection {CollectionName}.", requiredIndex.Name, collectionName);
+                    if (logger is not null && logger.IsEnabled(LogLevel.Error))
+                    {
+                        logger.LogError(ex, "Failed to create index {IndexName} in collection {CollectionName}.", requiredIndex.Name, collectionName);
+                    }
                     throw;
                 }
             }
@@ -343,14 +382,20 @@ public static class CollectionIndexExtensions
         var requiredIndexNames = requiredIndexes.Select(idx => idx.Name).ToHashSet();
         foreach (var existingIndexName in existingIndexes.Keys.Where(existingIndexName => !requiredIndexNames.Contains(existingIndexName)))
         {
-            logger?.LogInformation("Dropping unused index {IndexName} from collection {CollectionName}.", existingIndexName, collectionName);
+            if (logger is not null && logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Dropping unused index {IndexName} from collection {CollectionName}.", existingIndexName, collectionName);
+            }
             try
             {
                 collection.Indexes.DropOne(existingIndexName);
             }
             catch (Exception ex)
             {
-                logger?.LogWarning(ex, "Failed to drop unused index {IndexName} from collection {CollectionName}.", existingIndexName, collectionName);
+                if (logger is not null && logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning(ex, "Failed to drop unused index {IndexName} from collection {CollectionName}.", existingIndexName, collectionName);
+                }
             }
         }
     }
@@ -600,6 +645,7 @@ public static class CollectionIndexExtensions
         var keys = new BsonDocument();
         for (var i = 0; i < fields.Length; i++)
         {
+            // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
             object typeVal = compoundAttr.Types[i] switch
             {
                 EIndexType.Ascending   => 1,
@@ -723,11 +769,17 @@ public static class CollectionIndexExtensions
         try
         {
             collection.Indexes.CreateOne(new CreateIndexModel<BsonDocument>(keysDef, options));
-            logger?.LogInformation("Successfully created index {IndexName} on collection {CollectionName}.", indexDef.Name, collection.CollectionNamespace.CollectionName);
+            if (logger is not null && logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Successfully created index {IndexName} on collection {CollectionName}.", indexDef.Name, collection.CollectionNamespace.CollectionName);
+            }
         }
         catch (Exception ex)
         {
-            logger?.LogError(ex, "Failed to create index {IndexName} on collection {CollectionName}.", indexDef.Name, collection.CollectionNamespace.CollectionName);
+            if (logger is not null && logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Failed to create index {IndexName} on collection {CollectionName}.", indexDef.Name, collection.CollectionNamespace.CollectionName);
+            }
             throw;
         }
     }
@@ -767,6 +819,12 @@ public static class CollectionIndexExtensions
                         allWildcardFields.Add((wildcardPath, attr));
                         break;
                     }
+                    case EIndexType.Ascending:
+                    case EIndexType.Descending:
+                    case EIndexType.Geo2D:
+                    case EIndexType.Geo2DSphere:
+                    case EIndexType.Hashed:
+                    case EIndexType.Multikey:
                     default:
                     {
                         // 自动检测数组或集合类型并标记为 Multikey
