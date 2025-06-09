@@ -346,6 +346,13 @@ public static class CollectionIndexExtensions
                         collection.Indexes.DropOne(matchingIndex.Name);
                         CreateIndex(collection, requiredIndex, logger);
                     }
+                    catch (MongoCommandException ex) when (ex.Message.Contains("index not found"))
+                    {
+                        if (logger is not null && logger.IsEnabled(LogLevel.Warning))
+                        {
+                            logger.LogWarning("索引 {IndexName} 在集合 {CollectionName} 中不存在，跳过删除。", matchingIndex.Name, collectionName);
+                        }
+                    }
                     catch (Exception ex)
                     {
                         if (logger is not null && logger.IsEnabled(LogLevel.Error))
