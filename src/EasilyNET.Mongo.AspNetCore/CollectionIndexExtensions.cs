@@ -278,7 +278,7 @@ public static class CollectionIndexExtensions
 
         // 生成复合索引
         var compoundIndexes = type.GetCustomAttributes<MongoCompoundIndexAttribute>(false);
-        requiredIndexes.AddRange(compoundIndexes.Select(compoundAttr => CreateCompoundIndex(compoundAttr, type, collectionName, useCamelCase)));
+        requiredIndexes.AddRange(compoundIndexes.Select(compoundAttr => CreateCompoundIndex(compoundAttr, type, collectionName, useCamelCase, isTimeSeries)));
         if (logger is not null && logger.IsEnabled(LogLevel.Debug))
         {
             logger.LogDebug("Generated {Count} required indexes for type {TypeName}.", requiredIndexes.Count, type.Name);
@@ -621,7 +621,7 @@ public static class CollectionIndexExtensions
     /// <summary>
     /// 创建复合索引定义
     /// </summary>
-    private static IndexDefinition CreateCompoundIndex(MongoCompoundIndexAttribute compoundAttr, Type type, string collectionName, bool useCamelCase)
+    private static IndexDefinition CreateCompoundIndex(MongoCompoundIndexAttribute compoundAttr, Type type, string collectionName, bool useCamelCase, bool isTimeSeries = false)
     {
         var fields = compoundAttr.Fields.Select(f => useCamelCase ? f.ToLowerCamelCase() : f).ToArray();
         var indexName = compoundAttr.Name ?? $"{collectionName}_{string.Join("_", fields)}";
@@ -658,12 +658,19 @@ public static class CollectionIndexExtensions
             };
             keys.Add(fields[i], BsonValue.Create(typeVal));
         }
+
+        // 时序集合不支持稀疏索引，需要强制禁用
+        var sparse = compoundAttr.Sparse;
+        if (isTimeSeries && sparse)
+        {
+            sparse = false; // 时序集合强制禁用稀疏索引
+        }
         var indexDef = new IndexDefinition
         {
             Name = indexName,
             Keys = keys,
             Unique = compoundAttr.Unique,
-            Sparse = compoundAttr.Sparse,
+            Sparse = sparse,
             ExpireAfterSeconds = compoundAttr.ExpireAfterSeconds,
             IndexType = EIndexType.Ascending, // 复合索引使用默认类型
             OriginalPath = string.Join(",", fields)
