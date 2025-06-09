@@ -327,15 +327,35 @@ public static class CollectionIndexExtensions
                     }
                     try
                     {
-                        collection.Indexes.DropOne(matchingIndex.Name);
-                        CreateIndex(collection, requiredIndex, logger);
-                    }
-                    catch (MongoCommandException ex) when (ex.Message.Contains("index not found"))
-                    {
-                        if (logger is not null && logger.IsEnabled(LogLevel.Warning))
+                        if (existingIndexes.ContainsKey(matchingIndex.Name))
                         {
-                            logger.LogWarning("索引 {IndexName} 在集合 {CollectionName} 中不存在，跳过删除。", matchingIndex.Name, collectionName);
+                            try
+                            {
+                                collection.Indexes.DropOne(matchingIndex.Name);
+                            }
+                            catch (MongoCommandException ex) when (ex.Message.Contains("index not found"))
+                            {
+                                if (logger is not null && logger.IsEnabled(LogLevel.Warning))
+                                {
+                                    logger.LogWarning("索引 {IndexName} 在集合 {CollectionName} 中不存在,跳过删除.", matchingIndex.Name, collectionName);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                if (logger is not null && logger.IsEnabled(LogLevel.Warning))
+                                {
+                                    logger.LogWarning(ex, "Failed to drop unused index {IndexName} from collection {CollectionName}.", matchingIndex.Name, collectionName);
+                                }
+                            }
                         }
+                        else
+                        {
+                            if (logger is not null && logger.IsEnabled(LogLevel.Warning))
+                            {
+                                logger.LogWarning("Index {IndexName} not found in collection {CollectionName}, skip drop.", matchingIndex.Name, collectionName);
+                            }
+                        }
+                        CreateIndex(collection, requiredIndex, logger);
                     }
                     catch (Exception ex)
                     {
@@ -730,9 +750,13 @@ public static class CollectionIndexExtensions
         {
             Name = indexDef.Name,
             Unique = indexDef.Unique,
-            Sparse = indexDef.Sparse,
             Background = true
         };
+        // 只在非时序集合时设置 Sparse
+        if (indexDef.Sparse)
+        {
+            options.Sparse = true;
+        }
         if (indexDef.ExpireAfterSeconds.HasValue)
         {
             options.ExpireAfter = TimeSpan.FromSeconds(indexDef.ExpireAfterSeconds.Value);
