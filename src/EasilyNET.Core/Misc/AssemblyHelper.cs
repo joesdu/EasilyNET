@@ -126,7 +126,11 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">The attribute type</para>
     ///     <para xml:lang="zh">属性类型</para>
     /// </typeparam>
-    public static IEnumerable<Type> FindTypesByAttribute<TAttribute>() where TAttribute : Attribute => FindTypesByAttribute(typeof(TAttribute));
+    /// <param name="inherit">
+    ///     <para xml:lang="en">When true, look for the attribute in the inheritance chain</para>
+    ///     <para xml:lang="zh">为true时，在继承链中查找该属性</para>
+    /// </param>
+    public static IEnumerable<Type> FindTypesByAttribute<TAttribute>(bool inherit = true) where TAttribute : Attribute => FindTypesByAttribute(typeof(TAttribute), inherit);
 
     /// <summary>
     ///     <para xml:lang="en">Finds all types marked with the specified attribute</para>
@@ -140,7 +144,11 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">The predicate to match types</para>
     ///     <para xml:lang="zh">匹配类型的谓词</para>
     /// </param>
-    public static IEnumerable<Type> FindTypesByAttribute<TAttribute>(Func<Type, bool> predicate) where TAttribute : Attribute => FindTypesByAttribute<TAttribute>().Where(predicate);
+    /// <param name="inherit">
+    ///     <para xml:lang="en">When true, look for the attribute in the inheritance chain</para>
+    ///     <para xml:lang="zh">为true时，在继承链中查找该属性</para>
+    /// </param>
+    public static IEnumerable<Type> FindTypesByAttribute<TAttribute>(Func<Type, bool> predicate, bool inherit = true) where TAttribute : Attribute => FindTypesByAttribute<TAttribute>(inherit).Where(predicate);
 
     /// <summary>
     ///     <para xml:lang="en">Finds all types marked with the specified attribute</para>
@@ -150,7 +158,11 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">The attribute type</para>
     ///     <para xml:lang="zh">属性类型</para>
     /// </param>
-    public static IEnumerable<Type> FindTypesByAttribute(Type type) => AllTypes.Where(a => a.IsDefined(type, true)).Distinct();
+    /// <param name="inherit">
+    ///     <para xml:lang="en">When true, look for the attribute in the inheritance chain</para>
+    ///     <para xml:lang="zh">为true时，在继承链中查找该属性</para>
+    /// </param>
+    public static IEnumerable<Type> FindTypesByAttribute(Type type, bool inherit = true) => AllTypes.Where(a => a.IsDefined(type, inherit)).Distinct();
 
     /// <summary>
     ///     <para xml:lang="en">Finds assemblies that match the specified predicate</para>

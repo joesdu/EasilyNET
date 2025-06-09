@@ -54,15 +54,27 @@ public static class TimeSeriesCollectionExtensions
 
     private static void EnsureTimeSeriesCollections(IMongoDatabase db)
     {
-        var types = AssemblyHelper.FindTypesByAttribute<TimeSeriesCollectionAttribute>(o => o is { IsClass: true, IsAbstract: false });
+        var types = AssemblyHelper.FindTypesByAttribute<TimeSeriesCollectionAttribute>(o => o is { IsClass: true, IsAbstract: false }, false);
         foreach (var type in types)
         {
-            var attribute = type.GetCustomAttributes<TimeSeriesCollectionAttribute>(false).First();
+            var tsCollectionAttrs = type.GetCustomAttributes<TimeSeriesCollectionAttribute>(false).ToArray();
+            // 处理被继承的情况
+            if (tsCollectionAttrs.Length == 0)
+            {
+                continue;
+            }
+            var attribute = tsCollectionAttrs[0];
             var collectionName = attribute.CollectionName;
-            if (IllegalName.Equals(collectionName, StringComparison.OrdinalIgnoreCase)) continue;
+            if (IllegalName.Equals(collectionName, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
             var hasCache = CollectionCache.Contains(collectionName);
             // 如果缓存中存在且为true，跳过创建
-            if (hasCache) continue;
+            if (hasCache)
+            {
+                continue;
+            }
             // 如果缓存中没有则创建集合
             db.CreateCollection(collectionName, new()
             {
