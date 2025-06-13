@@ -25,14 +25,22 @@ public static class AssemblyHelper
     static AssemblyHelper()
     {
         var entryAssembly = Assembly.GetEntryAssembly();
-        if (entryAssembly == null)
+        if (entryAssembly is null)
         {
             return;
         }
         var entryAssemblyName = entryAssembly.GetName().Name;
-        if (entryAssemblyName.IsNotNullOrWhiteSpace())
+        if (!entryAssemblyName.IsNotNullOrWhiteSpace())
         {
-            AssemblyNames.Add(entryAssemblyName);
+            return;
+        }
+        AssemblyNames.Add(entryAssemblyName);
+        // 大部分.NET自定义的程序集名称都是以 XXX.XXX.XXX 的格式命名,所以可以通过 . 进行拆分获取程序集前面的部分用于匹配
+        var entryAssemblyPrefix = entryAssemblyName.Split('.').FirstOrDefault() ?? string.Empty;
+        if (entryAssemblyPrefix.IsNotNullOrWhiteSpace())
+        {
+            // 添加通配符匹配,如: EasilyNET.* 这样可以匹配 EasilyNET.Core, EasilyNET.Web 等程序集
+            AssemblyNames.Add($"{entryAssemblyPrefix}.*");
         }
     }
 

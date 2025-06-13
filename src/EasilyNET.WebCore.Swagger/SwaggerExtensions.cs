@@ -82,7 +82,14 @@ public static class SwaggerExtensions
         var files = Directory.GetFiles(AppContext.BaseDirectory, "*.xml");
         foreach (var file in files)
         {
-            op.IncludeXmlComments(file, true);
+            try
+            {
+                op.IncludeXmlComments(file, true);
+            }
+            catch (Exception)
+            {
+                // ignore
+            }
         }
         op.DocumentAsyncFilter<SwaggerHiddenApiFilter>();
         op.OperationAsyncFilter<SwaggerAuthorizeFilter>();
