@@ -34,10 +34,18 @@ public sealed class TimeSeriesCollectionAttribute : Attribute
     ///     <para xml:lang="en">Represents the granularity of the time series. If using bucketMaxSpanSeconds, do not set this.</para>
     ///     <para xml:lang="zh">表示时间序列的粒度。如果使用 bucketMaxSpanSeconds，则不设置。</para>
     /// </param>
-    public TimeSeriesCollectionAttribute(string collectionName, string timeField, string metaField, TimeSeriesGranularity granularity = TimeSeriesGranularity.Seconds)
+    /// <param name="ttl">
+    ///     <para xml:lang="en">
+    ///     Optional. Enable automatic deletion of documents in the time series collection by specifying the number of seconds after
+    ///     which the documents expire. MongoDB automatically deletes expired documents. See Setting TTL for Time Series Collections for more information.
+    ///     </para>
+    ///     <para xml:lang="zh">可选。通过指定文档过期后的秒数，启用自动删除时间序列集合中文档的功能。MongoDB 自动删除过期文档。请参阅设置自动删除时间序列集合 (TTL)，获取更多信息。</para>
+    /// </param>
+    public TimeSeriesCollectionAttribute(string collectionName, string timeField, string metaField, TimeSeriesGranularity granularity = TimeSeriesGranularity.Seconds, TimeSpan? ttl = null)
     {
         CollectionName = collectionName;
         TimeSeriesOptions = new(timeField, metaField, granularity, null, null);
+        ExpireAfter = ttl;
     }
 
     /// <summary>
@@ -64,10 +72,18 @@ public sealed class TimeSeriesCollectionAttribute : Attribute
     ///     <para xml:lang="en">The interval used to round the first timestamp when opening a new bucket.</para>
     ///     <para xml:lang="zh">打开新存储桶时用于四舍五入第一个时间戳的间隔。</para>
     /// </param>
-    public TimeSeriesCollectionAttribute(string collectionName, string timeField, string metaField, int bucketMaxSpanSeconds, int bucketRoundingSeconds)
+    /// <param name="ttl">
+    ///     <para xml:lang="en">
+    ///     Optional. Enable automatic deletion of documents in the time series collection by specifying the number of seconds after
+    ///     which the documents expire. MongoDB automatically deletes expired documents. See Setting TTL for Time Series Collections for more information.
+    ///     </para>
+    ///     <para xml:lang="zh">可选。通过指定文档过期后的秒数，启用自动删除时间序列集合中文档的功能。MongoDB 自动删除过期文档。请参阅设置自动删除时间序列集合 (TTL)，获取更多信息。</para>
+    /// </param>
+    public TimeSeriesCollectionAttribute(string collectionName, string timeField, string metaField, int bucketMaxSpanSeconds, int bucketRoundingSeconds, TimeSpan? ttl = null)
     {
         CollectionName = collectionName;
         TimeSeriesOptions = new(timeField, metaField, null, bucketMaxSpanSeconds, bucketRoundingSeconds);
+        ExpireAfter = ttl;
     }
 
     /// <summary>

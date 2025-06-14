@@ -82,7 +82,7 @@ public static class TimeSeriesCollectionExtensions
                 ExpireAfter = attribute.ExpireAfter
             });
             var collection = db.GetCollection<BsonDocument>(collectionName);
-            var indexKeys = Builders<BsonDocument>.IndexKeys.Ascending(attribute.TimeSeriesOptions.TimeField);
+            var indexKeys = Builders<BsonDocument>.IndexKeys.Ascending(attribute.TimeSeriesOptions.TimeField).Descending(attribute.TimeSeriesOptions.TimeField);
             var indexOptions = new CreateIndexOptions { Background = true };
             collection.Indexes.CreateOne(new CreateIndexModel<BsonDocument>(indexKeys, indexOptions));
             // 更新缓存
