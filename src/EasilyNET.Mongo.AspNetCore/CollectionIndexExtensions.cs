@@ -33,35 +33,53 @@ public static class CollectionIndexExtensions
     public static IApplicationBuilder UseCreateMongoIndexes<T>(this IApplicationBuilder app) where T : MongoContext
     {
         ArgumentNullException.ThrowIfNull(app);
-        var db = app.ApplicationServices.GetService<T>();
-        ArgumentNullException.ThrowIfNull(db, nameof(T));
-        var logger = app.ApplicationServices.GetService<ILogger<T>>();
+        var serviceProvider = app.ApplicationServices;
+        Task.Run(() =>
+        {
+            // 在后台线程中解析服务
+            using var scope = serviceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetService<T>();
+            ArgumentNullException.ThrowIfNull(db, nameof(T));
+            var logger = scope.ServiceProvider.GetService<ILogger<T>>(); // Log with the context type T
 
-        // 获取MongoOptions配置
-        var options = app.ApplicationServices.GetRequiredService<BasicClientOptions>();
-        var useCamelCase =
-            options is { DefaultConventionRegistry: true, ConventionRegistry.Values.Count: 0 } ||
-            options.ConventionRegistry.Values.Any(pack => pack.Conventions.Any(c => c is CamelCaseElementNameConvention));
-        foreach (var collectionName in db.Database.ListCollectionNames().ToEnumerable().Where(c => c.IsNotNullOrWhiteSpace()))
-        {
-            if (collectionName.StartsWith("system.", StringComparison.OrdinalIgnoreCase))
+            // 获取MongoOptions配置
+            var options = scope.ServiceProvider.GetRequiredService<BasicClientOptions>();
+            var useCamelCase =
+                options is { DefaultConventionRegistry: true, ConventionRegistry.Values.Count: 0 } ||
+                options.ConventionRegistry.Values.Any(pack => pack.Conventions.Any(c => c is CamelCaseElementNameConvention));
+            foreach (var collectionName in db.Database.ListCollectionNames().ToEnumerable().Where(c => c.IsNotNullOrWhiteSpace()))
             {
-                continue;
+                if (collectionName.StartsWith("system.", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                CollectionCache.TryAdd(collectionName, 0);
             }
-            CollectionCache.TryAdd(collectionName, 0);
-        }
-        try
-        {
-            EnsureIndexes(db, useCamelCase, logger);
-        }
-        catch (Exception ex)
-        {
-            if (logger is not null && logger.IsEnabled(LogLevel.Error))
+            try
             {
-                logger.LogError(ex, "Failed to create MongoDB indexes for context {ContextType}.", typeof(T).Name);
+                EnsureIndexes(db, useCamelCase, logger);
             }
-            throw;
-        }
+            catch (Exception ex)
+            {
+                if (logger is not null && logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(ex, "Failed to create MongoDB indexes for context {ContextType} in background task.", typeof(T).Name);
+                }
+                // Consider how to handle exceptions in a background task.
+                // For example, log it or provide a mechanism to observe these exceptions.
+            }
+        }).ContinueWith(t =>
+        {
+            // Optional: Log completion or errors from the task itself
+            // Use a general logger or a specific non-static type if available for logging task completion/errors
+            var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
+            if (!t.IsFaulted || loggerFactory is null)
+            {
+                return;
+            }
+            var globalLogger = loggerFactory.CreateLogger("MongoIndexCreationTask"); // Using a category name
+            globalLogger.LogError(t.Exception, "Background task for creating MongoDB indexes failed.");
+        }, TaskScheduler.Default);
         return app;
     }
 

@@ -4,7 +4,7 @@ using MongoDB.Driver;
 // ReSharper disable UnusedMember.Global
 // ReSharper disable ClassNeverInstantiated.Global
 
-namespace EasilyNET.Mongo.Core;
+namespace EasilyNET.Mongo.Core.Attributes;
 
 /// <summary>
 ///     <para xml:lang="en">Marked as a time series collection</para>
