@@ -74,7 +74,7 @@ public static class DateTimeExtensions
     ///     <para xml:lang="zh">要转换的数字</para>
     /// </param>
     public static DayOfWeek ToDayOfWeek(this int number) =>
-        number > 7 | number < 0
+        number > 7 || number < 0
             ? throw new("please input 0-7")
             : number switch
             {
