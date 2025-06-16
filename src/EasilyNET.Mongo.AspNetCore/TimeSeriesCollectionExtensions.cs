@@ -107,8 +107,8 @@ public static class TimeSeriesCollectionExtensions
                 {
                     db.CreateCollection(collectionName, new()
                     {
-                        TimeSeriesOptions = attribute.TimeSeriesOptions, // 设置时序选项
-                        ExpireAfter = attribute.ExpireAfter              // 设置过期时间
+                        TimeSeriesOptions = attribute.TimeSeriesOptions,                                             // 设置时序选项
+                        ExpireAfter = attribute.ExpireAfter < 0 ? null : TimeSpan.FromSeconds(attribute.ExpireAfter) // 设置过期时间
                     });
                     logger?.LogInformation("Successfully created time-series collection: {CollectionName}", collectionName);
                     CollectionCache.Add(collectionName);
