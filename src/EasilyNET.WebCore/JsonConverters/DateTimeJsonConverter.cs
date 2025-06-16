@@ -28,8 +28,10 @@ public sealed class DateTimeJsonConverter : JsonConverter<DateTime?>
     {
         var str = reader.GetString();
         return string.IsNullOrWhiteSpace(str)
-            ? null
-            : DateTime.TryParseExact(str, Constant.DateTimeFormat, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var result) ? result : null;
+                   ? null
+                   : DateTime.TryParseExact(str, Constant.DateTimeFormat, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var result)
+                       ? result
+                       : null;
     }
 
     /// <inheritdoc />

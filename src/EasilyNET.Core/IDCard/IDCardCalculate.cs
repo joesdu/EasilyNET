@@ -1,5 +1,4 @@
 using EasilyNET.Core.Enums;
-using EasilyNET.Core.Misc;
 
 // ReSharper disable UnusedType.Global
 // ReSharper disable MemberCanBePrivate.Global
@@ -36,7 +35,9 @@ public static class IDCardCalculate
     public static void ValidateIDCard(this string no)
     {
         if (no.CheckIDCard())
+        {
             return;
+        }
         throw new ArgumentException($"身份证号不合法:{no}");
     }
 
@@ -60,7 +61,7 @@ public static class IDCardCalculate
         {
             18 => ParseDateTime(no.AsSpan(6, 8)),
             15 => ParseDateTime($"19{no.AsSpan(6, 6)}"),
-            _ => throw new ArgumentException("该身份证号无法正确计算出生日")
+            _  => throw new ArgumentException("该身份证号无法正确计算出生日")
         };
     }
 
@@ -80,7 +81,7 @@ public static class IDCardCalculate
         {
             18 => (no[16] - 48) % 2 == 0 ? EGender.女 : EGender.男,
             15 => (no[14] - 48) % 2 == 0 ? EGender.女 : EGender.男,
-            _ => EGender.女
+            _  => EGender.女
         };
     }
 
@@ -98,7 +99,9 @@ public static class IDCardCalculate
         var age = now.Year - birthday.Year;
         // 再考虑月、天的因素
         if (now.Month < birthday.Month || (now.Month == birthday.Month && now.Day < birthday.Day))
+        {
             age--;
+        }
         return age;
     }
 
@@ -110,7 +113,7 @@ public static class IDCardCalculate
     ///     <para xml:lang="en">Birthdate (<see cref="DateTime" />)</para>
     ///     <para xml:lang="zh">生日(<see cref="DateTime" />)</para>
     /// </param>
-    public static int CalculateAge(DateTime birthday) => CalculateAge(birthday.DateOnly);
+    public static int CalculateAge(DateTime birthday) => CalculateAge(DateOnly.FromDateTime(birthday));
 
     /// <summary>
     ///     <para xml:lang="en">Calculate birthdate from ID card number</para>
@@ -127,7 +130,7 @@ public static class IDCardCalculate
     public static void CalculateBirthday(this string no, out DateOnly birthday)
     {
         no.CalculateBirthday(out DateTime date);
-        birthday = date.DateOnly;
+        birthday = DateOnly.FromDateTime(date);
     }
 
     /// <summary>

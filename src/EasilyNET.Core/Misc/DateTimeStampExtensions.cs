@@ -1,6 +1,7 @@
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
 
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace EasilyNET.Core.Misc;
@@ -50,9 +51,11 @@ public static class DateTimeStampExtensions
     public static DateTime ToDateTimeFromMillisecondsSinceEpoch(this long millisecondsSinceEpoch)
     {
         if (millisecondsSinceEpoch >= DateTimeMinValueMillisecondsSinceEpoch && millisecondsSinceEpoch <= DateTimeMaxValueMillisecondsSinceEpoch)
+        {
             return millisecondsSinceEpoch == DateTimeMaxValueMillisecondsSinceEpoch
                        ? DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc)
                        : DateTime.UnixEpoch.AddTicks(millisecondsSinceEpoch * TimeSpan.TicksPerMillisecond);
+        }
         var message = $"The value {millisecondsSinceEpoch} for the BsonDateTime MillisecondsSinceEpoch is outside the range that can be converted to a .NET DateTime.";
         throw new ArgumentOutOfRangeException(nameof(millisecondsSinceEpoch), message);
     }
@@ -72,9 +75,11 @@ public static class DateTimeStampExtensions
     public static DateTime ToDateTimeFromSecondsSinceEpoch(this long secondsSinceEpoch)
     {
         if (secondsSinceEpoch >= DateTimeMinValueSecondsSinceEpoch && secondsSinceEpoch <= DateTimeMaxValueSecondsSinceEpoch)
+        {
             return secondsSinceEpoch == DateTimeMaxValueSecondsSinceEpoch
                        ? DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc)
                        : DateTime.UnixEpoch.AddTicks(secondsSinceEpoch * TimeSpan.TicksPerSecond);
+        }
         var message = $"The value {secondsSinceEpoch} for the BsonDateTime SecondsSinceEpoch is outside the range that can be converted to a .NET DateTime.";
         throw new ArgumentOutOfRangeException(nameof(secondsSinceEpoch), message);
     }
@@ -87,7 +92,7 @@ public static class DateTimeStampExtensions
     ///     <para xml:lang="en">The TimeSpan to convert</para>
     ///     <para xml:lang="zh">要转换的 TimeSpan</para>
     /// </param>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0046:转换为条件表达式", Justification = "<挂起>")]
+    [SuppressMessage("Style", "IDE0046:转换为条件表达式", Justification = "<挂起>")]
     public static string ToString(TimeSpan value)
     {
         const int msInOneSecond = 1000;
@@ -161,13 +166,13 @@ public static class DateTimeStampExtensions
                     multiplier = 3_600_000;
                     break;
                 default:
+                {
+                    if (value.Contains(':'))
                     {
-                        if (value.Contains(':'))
-                        {
-                            return TimeSpan.TryParse(value, out result);
-                        }
-                        break;
+                        return TimeSpan.TryParse(value, out result);
                     }
+                    break;
+                }
             }
             const NumberStyles numberStyles = NumberStyles.None;
             if (double.TryParse(value, numberStyles, CultureInfo.InvariantCulture, out var multiplicand))

@@ -13,6 +13,9 @@ namespace EasilyNET.Core.Misc;
 /// </summary>
 public static partial class TypeExtensions
 {
+    [GeneratedRegex(@"\`\d+$")]
+    private static partial Regex FriendlyTypeNameRegex();
+
     /// <summary>
     ///     <para xml:lang="en">Type extensions</para>
     ///     <para xml:lang="zh">Type 扩展</para>
@@ -117,9 +120,15 @@ public static partial class TypeExtensions
         /// </param>
         public bool HasMatchingGenericArity(TypeInfo typeInfo)
         {
-            if (!typeInfo.IsGenericType) return true;
+            if (!typeInfo.IsGenericType)
+            {
+                return true;
+            }
             var interfaceTypeInfo = type.GetTypeInfo();
-            if (!interfaceTypeInfo.IsGenericType) return false;
+            if (!interfaceTypeInfo.IsGenericType)
+            {
+                return false;
+            }
             var argumentCount = type.GenericTypeArguments.Length;
             var parameterCount = typeInfo.GenericTypeParameters.Length;
             return argumentCount == parameterCount;
@@ -135,7 +144,10 @@ public static partial class TypeExtensions
         /// </param>
         public Type GetRegistrationType(TypeInfo typeInfo)
         {
-            if (!typeInfo.IsGenericTypeDefinition) return type;
+            if (!typeInfo.IsGenericTypeDefinition)
+            {
+                return type;
+            }
             var interfaceTypeInfo = type.GetTypeInfo();
             return interfaceTypeInfo.IsGenericType ? type.GetGenericTypeDefinition() : type;
         }
@@ -157,7 +169,7 @@ public static partial class TypeExtensions
             var genericArguments = typeInfo.GetGenericArguments();
             var totalLength = typeNameBytes.Length + 2 + genericArguments.Sum(arg => arg.GetFriendlyTypeName().Length + 2); // 包括 '<' 和 '>'
             totalLength -= 2;                                                                                               // 去掉最后一个 ", "
-                                                                                                                            // 使用 Span<byte> 进行二进制处理
+            // 使用 Span<byte> 进行二进制处理
             var buffer = totalLength <= 256 ? stackalloc byte[totalLength] : new byte[totalLength];
             var offset = 0;
             // 复制类型名称
@@ -165,7 +177,7 @@ public static partial class TypeExtensions
             offset += typeNameBytes.Length;
             // 添加 '<'
             buffer[offset++] = 0x3C; // '<'
-                                     // 复制泛型参数
+            // 复制泛型参数
             for (var i = 0; i < genericArguments.Length; i++)
             {
                 if (i > 0)
@@ -181,11 +193,8 @@ public static partial class TypeExtensions
             // 添加 '>'
             // ReSharper disable once RedundantAssignment
             buffer[offset++] = 0x3E; // 这行代码中[offset++]是必要的
-                                     // 返回结果
+            // 返回结果
             return Encoding.UTF8.GetString(buffer);
         }
     }
-
-    [GeneratedRegex(@"\`\d+$")]
-    private static partial Regex FriendlyTypeNameRegex();
 }

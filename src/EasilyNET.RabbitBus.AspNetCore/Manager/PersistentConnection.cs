@@ -132,8 +132,8 @@ internal sealed class PersistentConnection : IDisposable
     {
         var _config = _options.Get(Constant.OptionName);
         var conn = _config.AmqpTcpEndpoints is not null && _config.AmqpTcpEndpoints.Count > 0
-            ? await _connectionFactory.CreateConnectionAsync(_config.AmqpTcpEndpoints)
-            : await _connectionFactory.CreateConnectionAsync();
+                       ? await _connectionFactory.CreateConnectionAsync(_config.AmqpTcpEndpoints)
+                       : await _connectionFactory.CreateConnectionAsync();
         if (conn.IsOpen && _logger.IsEnabled(LogLevel.Information))
         {
             _logger.LogInformation("已成功连接到RabbitMQ服务器");
@@ -141,12 +141,10 @@ internal sealed class PersistentConnection : IDisposable
         return conn;
     }
 
-    private async Task<IChannel> CreateChannelAsync()
-    {
-        return _currentConnection is not { IsOpen: true }
+    private async Task<IChannel> CreateChannelAsync() =>
+        _currentConnection is not { IsOpen: true }
             ? throw new InvalidOperationException("无法在没有有效连接的情况下创建通道")
             : await _currentConnection.CreateChannelAsync();
-    }
 
     private void RegisterConnectionEvents()
     {

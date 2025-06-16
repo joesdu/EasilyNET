@@ -28,13 +28,19 @@ public class AppModule : IAppModule
     {
         moduleType ??= GetType();
         var dependedTypes = moduleType.GetCustomAttributes().OfType<IDependedTypesProvider>();
-        if (!dependedTypes.Any()) return [];
+        if (!dependedTypes.Any())
+        {
+            return [];
+        }
         var dependSet = new HashSet<Type>();
         var stack = new Stack<Type>([moduleType]);
         while (stack.Count > 0)
         {
             var currentType = stack.Pop();
-            if (!dependSet.Add(currentType)) continue;
+            if (!dependSet.Add(currentType))
+            {
+                continue;
+            }
             var cdt = currentType.GetCustomAttributes().OfType<IDependedTypesProvider>();
             foreach (var dependedType in cdt)
             {

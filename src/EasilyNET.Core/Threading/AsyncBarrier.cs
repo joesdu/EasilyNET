@@ -68,7 +68,9 @@ public sealed class AsyncBarrier
     public AsyncBarrier(int participants)
     {
         if (participants <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(participants), $"参数 {nameof(participants)} 必须是一个正数。");
+        }
         participantCount = participants;
         waiters = new(participants - 1);
     }

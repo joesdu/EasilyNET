@@ -57,7 +57,8 @@ file sealed class ActionExecuteFilter : ActionFilterAttribute
     {
         switch (context.Result)
         {
-            case ObjectResult { Value: not null } result when result.Value.GetType().IsSubclassOf(typeof(Stream)): break;
+            case ObjectResult { Value: not null } result when result.Value.GetType().IsSubclassOf(typeof(Stream)):
+                break;
             case ObjectResult result:
                 context.Result = new ObjectResult(new ResultObject { StatusCode = HttpStatusCode.OK, Msg = "success", Data = result.Value });
                 break;

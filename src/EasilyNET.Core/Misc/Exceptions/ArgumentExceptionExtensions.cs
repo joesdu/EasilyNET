@@ -30,6 +30,9 @@ public static class ArgumentExceptionExtensions
     /// </exception>
     public static void ThrowIf(Func<bool> express, string? message, [CallerArgumentExpression(nameof(express))] string? paramName = null)
     {
-        if (express.Invoke()) throw new ArgumentException(message, paramName);
+        if (express.Invoke())
+        {
+            throw new ArgumentException(message, paramName);
+        }
     }
 }

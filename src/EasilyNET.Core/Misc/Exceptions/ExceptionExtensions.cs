@@ -27,6 +27,9 @@ public static class ExceptionExtensions
     /// </exception>
     public static void ThrowIf(Func<bool> express, string? message)
     {
-        if (express.Invoke()) throw new(message);
+        if (express.Invoke())
+        {
+            throw new(message);
+        }
     }
 }

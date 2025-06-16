@@ -237,7 +237,10 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
     ///     <para xml:lang="zh">使用指定 16 字节数组初始化 ULID。前 8 字节为时间戳，后 8 字节为随机数。</para>
     /// </summary>
     /// <param name="bytes">
-    ///     <para xml:lang="en">A read-only span of 16 bytes representing the ULID value. The first 8 bytes represent the timestamp, and the remaining 8 bytes represent the randomness.</para>
+    ///     <para xml:lang="en">
+    ///     A read-only span of 16 bytes representing the ULID value. The first 8 bytes represent the timestamp, and the remaining 8
+    ///     bytes represent the randomness.
+    ///     </para>
     ///     <para xml:lang="zh">16 字节的只读字节数组，前 8 字节为时间戳，后 8 字节为随机数。</para>
     /// </param>
     /// <exception cref="ArgumentException">
@@ -446,7 +449,10 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
     ///     <para xml:lang="zh">尝试解析 Base32 编码字符串为 ULID。</para>
     /// </summary>
     /// <param name="base32">
-    ///     <para xml:lang="en">The Base32-encoded string to parse, represented as a <see cref="ReadOnlySpan{T}" /> of characters. Must be exactly 26 characters long.</para>
+    ///     <para xml:lang="en">
+    ///     The Base32-encoded string to parse, represented as a <see cref="ReadOnlySpan{T}" /> of characters. Must be exactly 26
+    ///     characters long.
+    ///     </para>
     ///     <para xml:lang="zh">要解析的 Base32 编码字符串，<see cref="ReadOnlySpan{T}" /> 类型，长度必须为 26。</para>
     /// </param>
     /// <param name="ulid">
@@ -827,7 +833,10 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
     /// </remarks>
     /// <param name="destination">The buffer to which the formatted UTF-8 byte sequence will be written.</param>
     /// <param name="charsWritten">
-    ///     <para xml:lang="en">When this method returns, contains the number of characters written to the <paramref name="destination" /> buffer,  or 0 if the operation fails.</para>
+    ///     <para xml:lang="en">
+    ///     When this method returns, contains the number of characters written to the <paramref name="destination" /> buffer,  or 0 if
+    ///     the operation fails.
+    ///     </para>
     ///     <para xml:lang="zh">方法返回时，写入目标缓冲区的字符数，若操作失败则为 0。</para>
     /// </param>
     /// <param name="format">
@@ -835,7 +844,10 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
     ///     <para xml:lang="zh">格式字符串，或空表示默认格式。</para>
     /// </param>
     /// <param name="provider">
-    ///     <para xml:lang="en">An optional object that provides culture-specific formatting information, or <see langword="null" /> to use the default format provider.</para>
+    ///     <para xml:lang="en">
+    ///     An optional object that provides culture-specific formatting information, or <see langword="null" /> to use the default
+    ///     format provider.
+    ///     </para>
     ///     <para xml:lang="zh">可选的区域性信息对象，null 表示使用默认格式提供程序。</para>
     /// </param>
     /// <returns>
@@ -970,7 +982,10 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
     private static int GetResult(byte me, byte them) => me < them ? -1 : 1;
 
     /// <summary>
-    ///     <para xml:lang="en">Compares the current <see cref="Ulid" /> instance to another <see cref="Ulid" /> instance and returns an integer that indicates their relative order.</para>
+    ///     <para xml:lang="en">
+    ///     Compares the current <see cref="Ulid" /> instance to another <see cref="Ulid" /> instance and returns an integer that
+    ///     indicates their relative order.
+    ///     </para>
     ///     <para xml:lang="zh">将当前 <see cref="Ulid" /> 实例与另一个 <see cref="Ulid" /> 实例进行比较，并返回一个整数，指示它们的相对顺序。</para>
     /// </summary>
     /// <remarks>
@@ -1076,7 +1091,10 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Compares the current instance with another object of the same type and returns an integer that indicates whether the current instance precedes, follows, or occurs in the same position in the sort order as the other object.</para>
+    ///     <para xml:lang="en">
+    ///     Compares the current instance with another object of the same type and returns an integer that indicates whether the current
+    ///     instance precedes, follows, or occurs in the same position in the sort order as the other object.
+    ///     </para>
     ///     <para xml:lang="zh">将当前实例与另一个相同类型的对象进行比较，并返回一个整数，指示当前实例在排序顺序中是位于另一个对象之前、之后还是在相同位置。</para>
     /// </summary>
     /// <exception cref="ArgumentException">

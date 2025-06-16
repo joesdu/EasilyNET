@@ -104,7 +104,10 @@ public static class TextWriterExtensions
     {
         lock (_syncLock)
         {
-            if (_lastOutput == msg) return;
+            if (_lastOutput == msg)
+            {
+                return;
+            }
             if (IsAnsiSupported())
             {
                 writer.WriteLine($"\e[1A\e[2K\e[1G{msg}");
@@ -180,7 +183,10 @@ public static class TextWriterExtensions
     {
         lock (_syncLock)
         {
-            if (_lastOutput == msg) return;
+            if (_lastOutput == msg)
+            {
+                return;
+            }
             if (IsAnsiSupported())
             {
                 writer.Write($"\e[2K\e[1G{msg}");
@@ -322,10 +328,19 @@ public static class TextWriterExtensions
     /// </param>
     public static void WriteClickablePath(this TextWriter writer, string path, bool relative = false, int deep = 5, bool newLine = false)
     {
-        if (string.IsNullOrWhiteSpace(path)) return;
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
         var outputPath = relative ? path.GetClickableRelativePath(deep) : path.GetClickablePath();
-        if (newLine) writer.WriteLine(outputPath);
-        else writer.Write(outputPath);
+        if (newLine)
+        {
+            writer.WriteLine(outputPath);
+        }
+        else
+        {
+            writer.Write(outputPath);
+        }
     }
 
     /// <summary>
@@ -341,7 +356,10 @@ public static class TextWriterExtensions
     /// </param>
     public static void MoveCursorInCurrentLine(this TextWriter writer, int positions)
     {
-        if (positions == 0) return;
+        if (positions == 0)
+        {
+            return;
+        }
         if (IsAnsiSupported())
         {
             var direction = positions > 0 ? 'C' : 'D'; // 'C' 表示向右移动，'D' 表示向左移动
@@ -382,7 +400,10 @@ public static class TextWriterExtensions
     /// </param>
     public static async Task MoveCursorInCurrentLineAsync(this TextWriter writer, int positions)
     {
-        if (positions == 0) return;
+        if (positions == 0)
+        {
+            return;
+        }
         if (IsAnsiSupported())
         {
             var direction = positions > 0 ? 'C' : 'D'; // 'C' 表示向右移动，'D' 表示向左移动
@@ -495,7 +516,10 @@ public static class TextWriterExtensions
     /// </summary>
     public static bool IsWindowSizeSupported()
     {
-        if (_windowSizeSupported.HasValue) return _windowSizeSupported.Value;
+        if (_windowSizeSupported.HasValue)
+        {
+            return _windowSizeSupported.Value;
+        }
         _windowSizeSupported = !(Console.IsOutputRedirected || Console.IsErrorRedirected);
         return _windowSizeSupported.Value;
     }
@@ -557,7 +581,10 @@ public static class TextWriterExtensions
             await writer.SafeWriteLineAsync(output);
         }
         // 当进度为 100% 时，输出换行
-        if (Math.Abs(percentage - 100) <= 0.000001) await writer.WriteLineAsync();
+        if (Math.Abs(percentage - 100) <= 0.000001)
+        {
+            await writer.WriteLineAsync();
+        }
     }
 
     /// <summary>
@@ -617,7 +644,10 @@ public static class TextWriterExtensions
             writer.SafeWriteLine(output);
         }
         // 当进度为 100% 时，输出换行
-        if (Math.Abs(percentage - 100) <= 0.000001) writer.WriteLine();
+        if (Math.Abs(percentage - 100) <= 0.000001)
+        {
+            writer.WriteLine();
+        }
     }
 
     /// <summary>
@@ -854,7 +884,10 @@ public static class TextWriterExtensions
         {
             try
             {
-                if (Console.CursorTop <= 0) return;
+                if (Console.CursorTop <= 0)
+                {
+                    return;
+                }
                 Console.SetCursorPosition(0, Console.CursorTop - 1);
                 ClearBuffer(_lastOutput.Length);
                 Console.Write(_clearBuffer, 0, _lastOutput.Length);
@@ -884,7 +917,10 @@ public static class TextWriterExtensions
         {
             try
             {
-                if (Console.CursorTop <= 0) return;
+                if (Console.CursorTop <= 0)
+                {
+                    return;
+                }
                 Console.SetCursorPosition(0, Console.CursorTop - 1);
                 ClearBuffer(_lastOutput.Length);
                 Console.Write(_clearBuffer, 0, _lastOutput.Length);
@@ -956,8 +992,14 @@ public static class TextWriterExtensions
 
     private static string GenerateProgressBarOutput(double percentage, string message, int width, char completedChar, char incompleteChar, bool isFixedBarWidth = true)
     {
-        if (percentage < 0) percentage = 0;
-        if (percentage > 100) percentage = 100;
+        if (percentage < 0)
+        {
+            percentage = 0;
+        }
+        if (percentage > 100)
+        {
+            percentage = 100;
+        }
         var progressText = $"{percentage / 100.0:P1}".PadLeft(7, (char)32);
         // 使用 UTF-8 编码计算消息的字节长度
         var messageBytes = Encoding.UTF8.GetBytes(message);
@@ -984,7 +1026,10 @@ public static class TextWriterExtensions
             }
         }
         var completedWidth = (int)(percentage * width) / 100;
-        if (percentage.AreAlmostEqual(100d)) completedWidth = width; // 确保在 100% 时填满进度条
+        if (percentage.AreAlmostEqual(100d))
+        {
+            completedWidth = width; // 确保在 100% 时填满进度条
+        }
         var outputLength = width + extraWidth;
         var outputBytes = outputLength <= 256 ? stackalloc byte[outputLength] : new byte[outputLength];
         outputBytes[0] = 91; // ASCII for '['

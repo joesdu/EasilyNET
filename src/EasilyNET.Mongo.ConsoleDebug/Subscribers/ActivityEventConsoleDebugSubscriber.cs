@@ -76,7 +76,7 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
         {
             < 100 => "[#00af00]", // 绿色
             < 200 => "[#ffd700]", // 黄色
-            _ => "[#af0000]"  // 红色
+            _     => "[#af0000]"  // 红色
         };
         var table = new Table
         {
@@ -88,14 +88,14 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
         table.AddRow($"[#ffd700]{DateTime.Now:HH:mm:ss.fff}[/]", $"{durationColor}{duration:F4}[/]", success ? "[#00af00]succeed[/]" : "[#af0000]failed[/]");
         var layout = new Layout("Root")
             .SplitColumns(new Layout(new Panel(new Text(CommandJson, new(Color.Purple)))
-            {
-                Height = 45,
-                Header = new("Command", Justify.Center)
-            }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand())
-            {
-                MinimumSize = 48,
-                Size = 72
-            },
+                {
+                    Height = 45,
+                    Header = new("Command", Justify.Center)
+                }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand())
+                {
+                    MinimumSize = 48,
+                    Size = 72
+                },
                 new Layout(new Rows(new Panel(new Calendar(DateTime.Now)
                 {
                     HeaderStyle = new(Color.Blue, decoration: Decoration.Bold),
@@ -150,8 +150,14 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
     [SuppressMessage("CodeQuality", "IDE0051:删除未使用的私有成员", Justification = "<挂起>")]
     private void Handle(CommandStartedEvent @event)
     {
-        if (RequestIdWithCollectionName.Count > 50) RequestIdWithCollectionName.Clear();
-        if (@event.Command.Elements.All(c => c.Name != @event.CommandName)) return;
+        if (RequestIdWithCollectionName.Count > 50)
+        {
+            RequestIdWithCollectionName.Clear();
+        }
+        if (@event.Command.Elements.All(c => c.Name != @event.CommandName))
+        {
+            return;
+        }
         StartTime = Stopwatch.GetTimestamp();
         var collName = @event.Command.Elements.First(c => c.Name == @event.CommandName).Value.ToString() ?? "N/A";
         RequestIdWithCollectionName.AddOrUpdate(@event.RequestId, collName, (_, v) => v);
@@ -161,10 +167,10 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
             case true when _options.ShouldStartCollection is not null && !_options.ShouldStartCollection(collName):
                 return;
             case true:
-                {
-                    var endpoint = @event.ConnectionId?.ServerId?.EndPoint as DnsEndPoint;
-                    // 使用字符串的方式替代序列化
-                    InfoJson = $$"""
+            {
+                var endpoint = @event.ConnectionId?.ServerId?.EndPoint as DnsEndPoint;
+                // 使用字符串的方式替代序列化
+                InfoJson = $$"""
                              {
                                "RequestId": {{@event.RequestId}},
                                "Timestamp": "{{@event.Timestamp}}",
@@ -176,22 +182,31 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
                                "Port": {{endpoint?.Port}}
                              }
                              """;
-                    CommandJson = @event.Command.ToJson(new() { Indent = true, OutputMode = JsonOutputMode.Shell });
-                    break;
-                }
+                CommandJson = @event.Command.ToJson(new() { Indent = true, OutputMode = JsonOutputMode.Shell });
+                break;
+            }
         }
     }
 
     [SuppressMessage("CodeQuality", "IDE0051:删除未使用的私有成员", Justification = "<挂起>")]
     private void Handle(CommandSucceededEvent @event)
     {
-        if (!_options.Enable) return;
+        if (!_options.Enable)
+        {
+            return;
+        }
         if (_options.ShouldStartCollection is not null)
         {
             var success = RequestIdWithCollectionName.TryGetValue(@event.RequestId, out var collName);
-            if (success && !_options.ShouldStartCollection(collName!)) return;
+            if (success && !_options.ShouldStartCollection(collName!))
+            {
+                return;
+            }
         }
-        if (!CommonExtensions.CommandsWithCollectionNameAsValue.Contains(@event.CommandName)) return;
+        if (!CommonExtensions.CommandsWithCollectionNameAsValue.Contains(@event.CommandName))
+        {
+            return;
+        }
         EndTime = Stopwatch.GetTimestamp();
         WritStatus(@event.RequestId, true);
     }
@@ -200,13 +215,22 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
     private void Handle(CommandFailedEvent @event)
     {
         EndTime = Stopwatch.GetTimestamp();
-        if (!_options.Enable) return;
+        if (!_options.Enable)
+        {
+            return;
+        }
         if (_options.ShouldStartCollection is not null)
         {
             var success = RequestIdWithCollectionName.TryGetValue(@event.RequestId, out var collName);
-            if (success && !_options.ShouldStartCollection(collName!)) return;
+            if (success && !_options.ShouldStartCollection(collName!))
+            {
+                return;
+            }
         }
-        if (!CommonExtensions.CommandsWithCollectionNameAsValue.Contains(@event.CommandName)) return;
+        if (!CommonExtensions.CommandsWithCollectionNameAsValue.Contains(@event.CommandName))
+        {
+            return;
+        }
         WritStatus(@event.RequestId, false);
     }
 }

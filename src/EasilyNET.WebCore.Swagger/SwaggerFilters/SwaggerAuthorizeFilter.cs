@@ -23,8 +23,14 @@ public sealed class SwaggerAuthorizeFilter : IOperationAsyncFilter
             var classAttributes = context.MethodInfo.DeclaringType?.GetCustomAttributes(true) ?? [];
             var authAttributes = methodAttributes.Union(classAttributes).OfType<AuthorizeAttribute>();
             var allowAnonymousAttributes = methodAttributes.Union(classAttributes).OfType<AllowAnonymousAttribute>();
-            if (allowAnonymousAttributes.Any()) return; // 如果存在AllowAnonymous特性，则不添加锁图标
-            if (!authAttributes.Any()) return;          // 如果不存在Authorize特性，也不添加锁图标
+            if (allowAnonymousAttributes.Any())
+            {
+                return; // 如果存在AllowAnonymous特性，则不添加锁图标
+            }
+            if (!authAttributes.Any())
+            {
+                return; // 如果不存在Authorize特性，也不添加锁图标
+            }
             operation.Security =
             [
                 new()

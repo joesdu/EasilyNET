@@ -70,7 +70,10 @@ internal sealed class StringToObjectIdIdGeneratorConvention : ConventionBase, IP
             if (typeof(IEnumerable).IsAssignableFrom(memberType) && memberType.IsGenericType)
             {
                 var itemType = memberType.GetGenericArguments().FirstOrDefault();
-                if (itemType is null) continue;
+                if (itemType is null)
+                {
+                    continue;
+                }
                 if (!BsonClassMap.IsClassMapRegistered(itemType))
                 {
                     BsonClassMap.RegisterClassMap(new(itemType));
@@ -120,10 +123,19 @@ file class CustomStringObjectIdGenerator : IIdGenerator
         foreach (var memberMap in classMap.AllMemberMaps)
         {
             // 如果成员类型是泛型集合，则处理集合中的项
-            if (!typeof(IEnumerable).IsAssignableFrom(memberMap.MemberType) || !memberMap.MemberType.IsGenericType) continue;
+            if (!typeof(IEnumerable).IsAssignableFrom(memberMap.MemberType) || !memberMap.MemberType.IsGenericType)
+            {
+                continue;
+            }
             var itemType = memberMap.MemberType.GetGenericArguments().FirstOrDefault();
-            if (itemType is null) continue;
-            if (memberMap.Getter(document) is not IEnumerable items) continue;
+            if (itemType is null)
+            {
+                continue;
+            }
+            if (memberMap.Getter(document) is not IEnumerable items)
+            {
+                continue;
+            }
             foreach (var item in items)
             {
                 var itemClassMap = BsonClassMap.LookupClassMap(item.GetType());

@@ -368,7 +368,10 @@ internal sealed class Sm4
 
     internal byte[] CBC(Sm4Context ctx, ReadOnlySpan<byte> iv, ReadOnlySpan<byte> input)
     {
-        if (ctx is { IsPadding: true, Mode: ESm4Model.Encrypt }) input = Padding(input, ESm4Model.Encrypt);
+        if (ctx is { IsPadding: true, Mode: ESm4Model.Encrypt })
+        {
+            input = Padding(input, ESm4Model.Encrypt);
+        }
         var length = input.Length;
         var bins = new byte[length];
         input.CopyTo(bins);

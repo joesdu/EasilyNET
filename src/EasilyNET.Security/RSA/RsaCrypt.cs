@@ -102,7 +102,10 @@ public static class RsaCrypt
     /// </param>
     public static void Encrypt(string xmlPublicKey, ReadOnlySpan<byte> content, out byte[] secret)
     {
-        if (content.Length is 0) throw new("加密字符串不能为空.");
+        if (content.Length is 0)
+        {
+            throw new("加密字符串不能为空.");
+        }
         ArgumentException.ThrowIfNullOrEmpty(xmlPublicKey, nameof(xmlPublicKey));
         using var rsaProvider = new RSACryptoServiceProvider();
         rsaProvider.FromXmlString(xmlPublicKey);          //载入公钥
@@ -113,7 +116,10 @@ public static class RsaCrypt
         {
             //分段加密
             var readSize = ms.Read(buffer);
-            if (readSize <= 0) break;
+            if (readSize <= 0)
+            {
+                break;
+            }
             var temp = buffer[..readSize].ToArray();
             var encryptedBytes = rsaProvider.Encrypt(temp, false);
             os.Write(encryptedBytes, 0, encryptedBytes.Length);
@@ -139,7 +145,10 @@ public static class RsaCrypt
     /// </param>
     public static void Decrypt(string xmlPrivateKey, ReadOnlySpan<byte> secret, out byte[] context)
     {
-        if (secret.Length is 0) throw new("解密字符串不能为空.");
+        if (secret.Length is 0)
+        {
+            throw new("解密字符串不能为空.");
+        }
         ArgumentException.ThrowIfNullOrEmpty(xmlPrivateKey, nameof(xmlPrivateKey));
         using var rsaProvider = new RSACryptoServiceProvider();
         rsaProvider.FromXmlString(xmlPrivateKey);
@@ -149,7 +158,10 @@ public static class RsaCrypt
         while (true)
         {
             var readSize = ms.Read(buffer);
-            if (readSize <= 0) break;
+            if (readSize <= 0)
+            {
+                break;
+            }
             var temp = buffer[..readSize].ToArray();
             var rawBytes = rsaProvider.Decrypt(temp, false);
             os.Write(rawBytes, 0, rawBytes.Length);

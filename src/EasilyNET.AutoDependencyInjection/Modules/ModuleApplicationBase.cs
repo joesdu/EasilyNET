@@ -65,7 +65,10 @@ internal class ModuleApplicationBase : IModuleApplication
     /// <inheritdoc />
     public virtual void Dispose()
     {
-        if (ServiceProvider is IDisposable disposableServiceProvider) disposableServiceProvider.Dispose();
+        if (ServiceProvider is IDisposable disposableServiceProvider)
+        {
+            disposableServiceProvider.Dispose();
+        }
         GC.SuppressFinalize(this);
     }
 
@@ -122,7 +125,10 @@ internal class ModuleApplicationBase : IModuleApplication
         {
             var module = Expression.Lambda(Expression.New(moduleType)).Compile().DynamicInvoke() as IAppModule;
             ArgumentNullException.ThrowIfNull(module, nameof(moduleType));
-            if (module.GetEnable(new(Services, ServiceProvider))) return module;
+            if (module.GetEnable(new(Services, ServiceProvider)))
+            {
+                return module;
+            }
 #if DEBUG
             Console.Error.WriteLine($"Module: {moduleType.Name} is disabled");
 #endif
@@ -138,6 +144,9 @@ internal class ModuleApplicationBase : IModuleApplication
     {
         ArgumentNullException.ThrowIfNull(ServiceProvider, nameof(ServiceProvider));
         var ctx = new ApplicationContext(ServiceProvider);
-        foreach (var cfg in Modules) cfg.ApplicationInitialization(ctx);
+        foreach (var cfg in Modules)
+        {
+            cfg.ApplicationInitialization(ctx);
+        }
     }
 }

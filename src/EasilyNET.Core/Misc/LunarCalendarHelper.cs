@@ -11,8 +11,15 @@ namespace EasilyNET.Core.Misc;
 /// <summary>
 ///     <para xml:lang="en">Lunar calendar and 24 solar terms calculation utility</para>
 ///     <para xml:lang="zh">农历与24节气、天干地支、黄道吉日计算工具类</para>
-///     <para xml:lang="en">Applicable date range: All .NET DateTime (0001-01-01 to 9999-12-31). Heavenly Stems and Earthly Branches (Ganzhi) are supported for the entire range. Lunar calendar and solar terms are only accurate for 1900-01-31 to 2100-12-31 (lunar) and 1900-01-01 to 3000-12-31 (solar terms); out-of-range returns default or empty values.</para>
-///     <para xml:lang="zh">适用日期范围：支持所有 .NET DateTime (0001-01-01 至 9999-12-31)。天干地支算法全时段兼容。农历与节气仅在 1900-01-31 至 2100-12-31（农历）和 1900-01-01 至 3000-12-31（节气）准确，超出范围返回默认值或空。</para>
+///     <para xml:lang="en">
+///     Applicable date range: All .NET DateTime (0001-01-01 to 9999-12-31). Heavenly Stems and Earthly Branches (Ganzhi) are
+///     supported for the entire range. Lunar calendar and solar terms are only accurate for 1900-01-31 to 2100-12-31 (lunar) and 1900-01-01 to
+///     3000-12-31 (solar terms); out-of-range returns default or empty values.
+///     </para>
+///     <para xml:lang="zh">
+///     适用日期范围：支持所有 .NET DateTime (0001-01-01 至 9999-12-31)。天干地支算法全时段兼容。农历与节气仅在 1900-01-31 至 2100-12-31（农历）和 1900-01-01 至
+///     3000-12-31（节气）准确，超出范围返回默认值或空。
+///     </para>
 ///     <para xml:lang="en">This class is fully implemented by AI (GitHub Copilot) based on user requirements.</para>
 ///     <para xml:lang="zh">本类全部由AI（GitHub Copilot）根据用户需求自动生成。</para>
 /// </summary>
@@ -376,7 +383,7 @@ public static class LunarCalendarHelper
         var ganzhiDay = GetGanzhiDay(date);
         var dayStem = Array.IndexOf(HeavenlyStems, ganzhiDay[..1]);
 #pragma warning disable IDE0047 // 删除不必要的括号
-        var hourBranch = ((date.Hour + 1) / 2) % 12;
+        var hourBranch = (date.Hour + 1) / 2 % 12;
 #pragma warning restore IDE0047 // 删除不必要的括号
         var hourStem = ((dayStem * 2) + hourBranch) % 10;
         if (hourStem < 0)

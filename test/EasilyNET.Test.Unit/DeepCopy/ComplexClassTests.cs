@@ -77,19 +77,28 @@ public class ComplexClassTests
         }
 
         // test of array of arrays of arrays (SimpleClass[][][])
-        if (c.SimpleMultiDimArray is null) return;
+        if (c.SimpleMultiDimArray is null)
+        {
+            return;
+        }
         Assert.AreEqual(c.SimpleMultiDimArray.Length, cCopy.SimpleMultiDimArray.Length);
         for (var i = 0; i < c.SimpleMultiDimArray.Length; i++)
         {
             var subArray = c.SimpleMultiDimArray[i];
             var subArrayCopy = cCopy.SimpleMultiDimArray[i];
-            if (subArray == null) continue;
+            if (subArray == null)
+            {
+                continue;
+            }
             Assert.AreEqual(subArray.Length, subArrayCopy.Length);
             for (var j = 0; j < subArray.Length; j++)
             {
                 var subSubArray = subArray[j];
                 var subSubArrayCopy = subArrayCopy[j];
-                if (subSubArray == null) continue;
+                if (subSubArray == null)
+                {
+                    continue;
+                }
                 Assert.AreEqual(subSubArray.Length, subSubArrayCopy.Length);
                 for (var k = 0; k < subSubArray.Length; k++)
                 {

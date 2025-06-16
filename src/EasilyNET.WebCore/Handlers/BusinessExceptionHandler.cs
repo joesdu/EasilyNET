@@ -15,7 +15,10 @@ public sealed class BusinessExceptionHandler(IHostEnvironment env) : IExceptionH
     /// <inheritdoc cref="IExceptionHandler.TryHandleAsync" />
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
-        if (exception is not BusinessException business) return false;
+        if (exception is not BusinessException business)
+        {
+            return false;
+        }
         var details = new ProblemDetails
         {
             Status = (int?)business.Code,

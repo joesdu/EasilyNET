@@ -1,60 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <Project>
-  <PropertyGroup>
-    <Authors>joesdu</Authors>
-    <PackagePrefix>EasilyNET</PackagePrefix>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/joesdu/EasilyNET</RepositoryUrl>
-    <GenerateAssemblyConfigurationAttribute>True</GenerateAssemblyConfigurationAttribute>
-    <GenerateAssemblyCompanyAttribute>True</GenerateAssemblyCompanyAttribute>
-    <GenerateAssemblyProductAttribute>True</GenerateAssemblyProductAttribute>
-    <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-  </PropertyGroup>
+	<PropertyGroup>
+		<Authors>joesdu</Authors>
+		<PackagePrefix>EasilyNET</PackagePrefix>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/joesdu/EasilyNET</RepositoryUrl>
+		<GenerateAssemblyConfigurationAttribute>True</GenerateAssemblyConfigurationAttribute>
+		<GenerateAssemblyCompanyAttribute>True</GenerateAssemblyCompanyAttribute>
+		<GenerateAssemblyProductAttribute>True</GenerateAssemblyProductAttribute>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <None Include=".\README.md" Pack="true" PackagePath="" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Include=".\README.md" Pack="true" PackagePath="" />
+	</ItemGroup>
 
-  <PropertyGroup>
-    <LangVersion>preview</LangVersion>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <!--<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>-->
-    <NoWarn>$(NoWarn);</NoWarn>
-    <!--控制生成产物目录-->
-    <!--<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>-->
-  </PropertyGroup>
+	<PropertyGroup>
+		<LangVersion>preview</LangVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<!--<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>-->
+		<NoWarn>$(NoWarn);</NoWarn>
+		<!--控制生成产物目录-->
+		<!--<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>-->
+	</PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <SignAssembly>True</SignAssembly>
-    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)EasilyNET.snk</AssemblyOriginatorKeyFile>
-    <DelaySign>False</DelaySign>
-    <Copyright>© joesdu. All rights reserved.</Copyright>
-    <NoWarn>$(NoWarn);</NoWarn>
-  </PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<SignAssembly>True</SignAssembly>
+		<AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)EasilyNET.snk</AssemblyOriginatorKeyFile>
+		<DelaySign>False</DelaySign>
+		<Copyright>© joesdu. All rights reserved.</Copyright>
+		<NoWarn>$(NoWarn);</NoWarn>
+	</PropertyGroup>
 
-  <PropertyGroup>
-    <VersionMajor>4</VersionMajor>
-    <VersionMinor>$([System.DateTime]::Now.ToString("yy"))</VersionMinor>
-    <VersionBuild>$([System.DateTime]::Now.ToString("MMdd").TrimStart('0'))</VersionBuild>
-    <VersionRevision>$([System.DateTime]::Now.ToString("HHmm").Substring(0, 3).TrimStart('0'))</VersionRevision>
-    <VersionRevision Condition="'$(VersionRevision)' == ''">0</VersionRevision>
-    <DefaultVersion>$(VersionMajor).$(VersionMinor).$(VersionBuild).$(VersionRevision)</DefaultVersion>
-  </PropertyGroup>
+	<PropertyGroup>
+		<VersionMajor>4</VersionMajor>
+		<VersionMinor>$([System.DateTime]::Now.ToString("yy"))</VersionMinor>
+		<VersionBuild>$([System.DateTime]::Now.ToString("MMdd").TrimStart('0'))</VersionBuild>
+		<VersionRevision>$([System.DateTime]::Now.ToString("HHmm").Substring(0, 3).TrimStart('0'))</VersionRevision>
+		<VersionRevision Condition="'$(VersionRevision)' == ''">0</VersionRevision>
+		<DefaultVersion>$(VersionMajor).$(VersionMinor).$(VersionBuild).$(VersionRevision)</DefaultVersion>
+	</PropertyGroup>
 
-  <PropertyGroup>
-    <!-- 从环境变量中获取版本号 -->
-    <EASILYNET_VERSION>$([System.Environment]::GetEnvironmentVariable('EASILYNET_VERSION'))</EASILYNET_VERSION>
-    <!-- 验证环境变量是否为有效的版本字符串 -->
-    <IsValidVersion Condition="'$(EASILYNET_VERSION)' != ''">$([System.Text.RegularExpressions.Regex]::IsMatch($(EASILYNET_VERSION), '^\d+\.\d+\.\d+(\.\d+)?$'))</IsValidVersion>
-    <!-- 如果环境变量为空或无效，则使用默认版本号 -->
-    <Version Condition="'$(IsValidVersion)' == 'false' or '$(EASILYNET_VERSION)' == ''">$(DefaultVersion)</Version>
-    <Version Condition="'$(IsValidVersion)' == 'true'">$(EASILYNET_VERSION)</Version>
-    <FileVersion>$(Version)</FileVersion>
-    <AssemblyVersion>$(Version)</AssemblyVersion>
-    <AssemblyInformationalVersion>$(Version)</AssemblyInformationalVersion>
-  </PropertyGroup>
+	<PropertyGroup>
+		<!-- 从环境变量中获取版本号 -->
+		<EASILYNET_VERSION>$([System.Environment]::GetEnvironmentVariable('EASILYNET_VERSION'))</EASILYNET_VERSION>
+		<!-- 验证环境变量是否为有效的版本字符串 -->
+		<IsValidVersion Condition="'$(EASILYNET_VERSION)' != ''">$([System.Text.RegularExpressions.Regex]::IsMatch($(EASILYNET_VERSION), '^\d+\.\d+\.\d+(\.\d+)?$'))</IsValidVersion>
+		<!-- 如果环境变量为空或无效，则使用默认版本号 -->
+		<Version Condition="'$(IsValidVersion)' == 'false' or '$(EASILYNET_VERSION)' == ''">$(DefaultVersion)</Version>
+		<Version Condition="'$(IsValidVersion)' == 'true'">$(EASILYNET_VERSION)</Version>
+		<FileVersion>$(Version)</FileVersion>
+		<AssemblyVersion>$(Version)</AssemblyVersion>
+		<AssemblyInformationalVersion>$(Version)</AssemblyInformationalVersion>
+	</PropertyGroup>
 
 </Project>
