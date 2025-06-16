@@ -60,9 +60,9 @@ public static class TimeSeriesCollectionExtensions
                 // ConcurrentBag is already thread-safe for Add.
                 // 确保 CollectionCache 在并发调用 EnsureTimeSeriesCollections 时对于添加操作是线程安全的。
                 // ConcurrentBag 本身对于 Add 操作就是线程安全的。
-                foreach (var colName in collections)
+                foreach (var colName in collections.Where(colName => !CollectionCache.Contains(colName)))
                 {
-                    CollectionCache.TryAdd(colName, 0);
+                    CollectionCache.Add(colName);
                 }
                 EnsureTimeSeriesCollections(db.Database, logger);
             }
