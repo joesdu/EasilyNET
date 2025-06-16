@@ -64,7 +64,9 @@ public static class IEnumerableExtensions
         foreach (var source in first)
         {
             if (set.Remove(keySelector(source)))
+            {
                 yield return source;
+            }
         }
     }
 
@@ -183,7 +185,9 @@ public static class IEnumerableExtensions
         foreach (var source in first)
         {
             if (set.Remove(keySelector(source)))
+            {
                 yield return source;
+            }
         }
     }
 
@@ -379,10 +383,10 @@ public static class IEnumerableExtensions
     public static void InsertAfter<T>(this IList<T> list, Func<T, bool> condition, T value)
     {
         foreach (var item in list.Select((item, index) => new
-        {
-            item,
-            index
-        }).Where(p => condition(p.item)).OrderByDescending(p => p.index))
+                 {
+                     item,
+                     index
+                 }).Where(p => condition(p.item)).OrderByDescending(p => p.index))
         {
             if (item.index + 1 == list.Count)
             {
@@ -406,10 +410,10 @@ public static class IEnumerableExtensions
     public static void InsertAfter<T>(this IList<T> list, int index, T value)
     {
         foreach (var item in list.Select((v, i) => new
-        {
-            Value = v,
-            Index = i
-        }).Where(p => p.Index == index).OrderByDescending(p => p.Index))
+                 {
+                     Value = v,
+                     Index = i
+                 }).Where(p => p.Index == index).OrderByDescending(p => p.Index))
         {
             if (item.Index + 1 == list.Count)
             {
@@ -479,7 +483,10 @@ public static class IEnumerableExtensions
                 return;
             }
             list.Add(action(item));
-            if (list.Count(t => !t.IsCompleted) < maxParallelCount) continue;
+            if (list.Count(t => !t.IsCompleted) < maxParallelCount)
+            {
+                continue;
+            }
             {
                 await Task.WhenAny(list);
                 list.RemoveAll(t => t.IsCompleted);
@@ -543,7 +550,10 @@ public static class IEnumerableExtensions
         {
             var task = selector(item);
             tasks.Add(task);
-            if (tasks.Count < maxParallelCount) continue;
+            if (tasks.Count < maxParallelCount)
+            {
+                continue;
+            }
             await Task.WhenAny(tasks);
             var completedTasks = tasks.Where(t => t.IsCompleted).ToArray();
             results.AddRange(completedTasks.Select(t => t.Result));
@@ -572,7 +582,10 @@ public static class IEnumerableExtensions
             var task = selector(item, index);
             tasks.Add(task);
             Interlocked.Add(ref index, 1);
-            if (tasks.Count < maxParallelCount) continue;
+            if (tasks.Count < maxParallelCount)
+            {
+                continue;
+            }
             await Task.WhenAny(tasks);
             var completedTasks = tasks.Where(t => t.IsCompleted).ToArray();
             results.AddRange(completedTasks.Select(t => t.Result));
@@ -612,7 +625,10 @@ public static class IEnumerableExtensions
             }
             list.Add(selector(item, index));
             Interlocked.Add(ref index, 1);
-            if (list.Count < maxParallelCount) continue;
+            if (list.Count < maxParallelCount)
+            {
+                continue;
+            }
             await Task.WhenAny(list);
             list.RemoveAll(t => t.IsCompleted);
         }
@@ -823,7 +839,10 @@ public static class IEnumerableExtensions
         double result = 0;
         var list = source as ICollection<double> ?? [.. source];
         var count = list.Count;
-        if (count <= 1) return result;
+        if (count <= 1)
+        {
+            return result;
+        }
         var avg = list.Average();
         var sum = list.Sum(d => (d - avg) * (d - avg));
         result = Math.Sqrt(sum / count);
@@ -1098,7 +1117,10 @@ public static class IEnumerableExtensions
         //树叶
         foreach (var item in treeList)
         {
-            if (!list.Any(e => childrenWhere(item, e))) continue;
+            if (!list.Any(e => childrenWhere(item, e)))
+            {
+                continue;
+            }
             var nodeData = list.Where(e => childrenWhere(item, e)).ToList();
             foreach (var child in nodeData)
             {

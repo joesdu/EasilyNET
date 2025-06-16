@@ -65,12 +65,21 @@ public sealed class ActivityEventDiagnosticsSubscriber : IEventSubscriber
     [SuppressMessage("CodeQuality", "IDE0051:删除未使用的私有成员", Justification = "<挂起>")]
     private void Handle(CommandStartedEvent @event)
     {
-        if (_options.ShouldStartActivity is not null && !_options.ShouldStartActivity(@event)) return;
+        if (_options.ShouldStartActivity is not null && !_options.ShouldStartActivity(@event))
+        {
+            return;
+        }
         // ReSharper disable once ExplicitCallerInfoArgument
         var activity = ActivitySource.StartActivity(ActivityName, ActivityKind.Client);
-        if (activity is null) return;
+        if (activity is null)
+        {
+            return;
+        }
         var databaseName = @event.DatabaseNamespace?.DatabaseName;
-        if (@event.Command.Elements.All(c => c.Name != @event.CommandName)) return;
+        if (@event.Command.Elements.All(c => c.Name != @event.CommandName))
+        {
+            return;
+        }
         var collName = @event.Command.Elements.First(c => c.Name == @event.CommandName).Value.ToString() ?? "N/A";
         // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/database/database-spans.md
         activity.DisplayName = string.IsNullOrEmpty(collName) ? $"{@event.CommandName} {databaseName}" : $"{@event.CommandName} {collName}";

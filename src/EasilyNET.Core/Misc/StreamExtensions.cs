@@ -68,7 +68,10 @@ public static class StreamExtensions
     /// </param>
     public static void ShuffleCode(this Stream stream)
     {
-        if (stream is not { CanWrite: true, CanSeek: true }) return;
+        if (stream is not { CanWrite: true, CanSeek: true })
+        {
+            return;
+        }
         var position = stream.Position;
         stream.Position = stream.Length;
         var buffer = new byte[RandomExtensions.StrictNext(1, 20)];

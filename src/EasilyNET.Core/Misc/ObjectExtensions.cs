@@ -48,7 +48,10 @@ public static class ObjectExtensions
     /// </param>
     public static void Require<TException>(bool assertion, string message) where TException : Exception
     {
-        if (assertion) return;
+        if (assertion)
+        {
+            return;
+        }
         ArgumentException.ThrowIfNullOrEmpty(message, nameof(message));
         throw (TException)Activator.CreateInstance(typeof(TException), message)!;
     }

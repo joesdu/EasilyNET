@@ -73,7 +73,10 @@ public static class CustomIntEnumeratorExtension
         /// </exception>
         public CustomIntEnumerator(Range range)
         {
-            if (range.End.IsFromEnd) throw new NotSupportedException("不支持从末尾计算的范围。");
+            if (range.End.IsFromEnd)
+            {
+                throw new NotSupportedException("不支持从末尾计算的范围。");
+            }
             Current = range.Start.Value - 1;
             _end = range.End.Value;
         }

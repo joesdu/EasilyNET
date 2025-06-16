@@ -73,7 +73,10 @@ public static class Sm2Crypt
         }
         sm2.Init(true, cp);
         data = sm2.ProcessBlock(data, 0, data.Length);
-        if (model == Mode.C1C2C3) data = C132ToC123(data);
+        if (model == Mode.C1C2C3)
+        {
+            data = C132ToC123(data);
+        }
         return data;
     }
 
@@ -99,7 +102,10 @@ public static class Sm2Crypt
     /// </param>
     public static byte[] Decrypt(byte[] privateKey, byte[] data, byte[]? userId = null, Mode model = Mode.C1C3C2)
     {
-        if (model == Mode.C1C2C3) data = C123ToC132(data);
+        if (model == Mode.C1C2C3)
+        {
+            data = C123ToC132(data);
+        }
         var sm2 = new SM2Engine(new SM3Digest(), Mode.C1C3C2);
         ICipherParameters cp = new ECPrivateKeyParameters(new(1, privateKey), new(x9));
         if (userId is not null)
@@ -184,7 +190,7 @@ public static class Sm2Crypt
     /// </param>
     private static byte[] C123ToC132(ReadOnlySpan<byte> c1c2c3)
     {
-        var c1Len = (((x9.Curve.FieldSize + 7) >> 3) << 1) + 1; //sm2p256v1的这个固定65。可看GMNamedCurves、ECCurve代码。
+        var c1Len = ((x9.Curve.FieldSize + 7) >> 3 << 1) + 1; //sm2p256v1的这个固定65。可看GMNamedCurves、ECCurve代码。
         const int c3Len = 32;
         var result = new byte[c1c2c3.Length];
         c1c2c3[..c1Len].CopyTo(result);
@@ -203,7 +209,7 @@ public static class Sm2Crypt
     /// </param>
     private static byte[] C132ToC123(ReadOnlySpan<byte> c1c3c2)
     {
-        var c1Len = (((x9.Curve.FieldSize + 7) >> 3) << 1) + 1;
+        var c1Len = ((x9.Curve.FieldSize + 7) >> 3 << 1) + 1;
         const int c3Len = 32;
         var result = new byte[c1c3c2.Length];
         c1c3c2[..c1Len].CopyTo(result);

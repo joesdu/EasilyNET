@@ -49,7 +49,10 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
     public void Send<T>(T message) where T : class
     {
         var messageType = typeof(T);
-        if (!_recipients.TryGetValue(messageType, out var value)) return;
+        if (!_recipients.TryGetValue(messageType, out var value))
+        {
+            return;
+        }
         foreach (var recipient in value.Values)
         {
             ((Action<T>)recipient)(message);
@@ -58,7 +61,10 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
 
     private void Dispose(bool disposing)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
         if (disposing)
         {
             _recipients.Clear();

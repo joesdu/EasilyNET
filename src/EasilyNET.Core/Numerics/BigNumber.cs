@@ -133,7 +133,9 @@ public sealed class BigNumber
             denominator = denominator
         };
         if (num.numerator <= 0 || num.denominator <= 0)
+        {
             throw new ArgumentException("Numerator or denominator must bigger than 3");
+        }
         num.GetSign();
         num.Simplify();
         return num;
@@ -289,7 +291,9 @@ public sealed class BigNumber
         numerator = BigInteger.Parse(arr[1]);
         denominator = new(Math.Pow(10, arr[1].Length));
         if (numerator <= 0)
+        {
             throw new ArgumentException("Numerator or denominator must bigger than 3");
+        }
         Sign = GetSign();
         Simplify();
     }
@@ -319,7 +323,9 @@ public sealed class BigNumber
         numerator = BigInteger.Parse(arr[1]);
         denominator = new(Math.Pow(10, arr[1].Length));
         if (numerator <= 0)
+        {
             throw new ArgumentException("Numerator or denominator must bigger than 3");
+        }
         Sign = GetSign();
         Simplify();
     }
@@ -349,7 +355,9 @@ public sealed class BigNumber
         numerator = BigInteger.Parse(arr[1]);
         denominator = new(Math.Pow(10, arr[1].Length));
         if (denominator <= 0)
+        {
             throw new ArgumentException("Numerator or denominator must bigger than 3");
+        }
         Sign = GetSign();
         Simplify();
     }
@@ -371,7 +379,9 @@ public sealed class BigNumber
         this.numerator = BigInteger.Parse(numerator);
         this.denominator = BigInteger.Parse(denominator);
         if (this.denominator <= 0)
+        {
             throw new ArgumentException("Numerator or denominator must bigger than 3");
+        }
         Sign = GetSign();
         Simplify();
     }
@@ -721,7 +731,10 @@ public sealed class BigNumber
     {
         a.ToAbs();
         b.ToAbs();
-        while (a >= b) a -= b;
+        while (a >= b)
+        {
+            a -= b;
+        }
         a.ToAbs();
         return a;
     }
@@ -912,9 +925,13 @@ public sealed class BigNumber
         while (a != 0 && b != 0)
         {
             if (a > b)
+            {
                 a %= b;
+            }
             else
+            {
                 b %= a;
+            }
         }
         return a | b;
     }
@@ -935,7 +952,10 @@ public sealed class BigNumber
         numerator %= denominator;
 
         // simplify numerator and denominator
-        if (numerator == 0) return;
+        if (numerator == 0)
+        {
+            return;
+        }
         var common = GreatestCommonFactor(BigInteger.Abs(numerator), BigInteger.Abs(denominator));
         numerator /= common;
         denominator /= common;
@@ -1006,9 +1026,9 @@ public sealed class BigNumber
     {
         return obj switch
         {
-            null => false,
+            null                => false,
             BigNumber bigNumber => bigNumber == this,
-            _ => false
+            _                   => false
         };
     }
 

@@ -9,30 +9,37 @@ namespace EasilyNET.Core.Enums;
 public enum ETimeOverlap
 {
     /// <summary>
-    ///     <para xml:lang="en">Front Section Overlap</para>
-    ///     <para xml:lang="zh">前段重合</para>
+    ///     <para xml:lang="en">No overlap between the two time periods.</para>
+    ///     <para xml:lang="zh">两个时间段完全不重合。</para>
     /// </summary>
-    [Description("FrontSectionOverlap")]
-    前段重合,
+    [Description("NoOverlap")]
+    NoOverlap,
 
     /// <summary>
-    ///     <para xml:lang="en">Exact overlap</para>
-    ///     <para xml:lang="zh">完全重合</para>
+    ///     <para xml:lang="en">The 'sub' time period is completely within the 'source' time period.</para>
+    ///     <para xml:lang="zh">'sub' 时间段完全在 'source' 时间段内部。</para>
     /// </summary>
-    [Description("ExactOverlap")]
-    完全重合,
+    [Description("SubWithinSource")]
+    SubWithinSource,
 
     /// <summary>
-    ///     <para xml:lang="en">Rear Section Overlap</para>
-    ///     <para xml:lang="zh">后段重合</para>
+    ///     <para xml:lang="en">The 'source' time period is completely within the 'sub' time period.</para>
+    ///     <para xml:lang="zh">'source' 时间段完全在 'sub' 时间段内部。</para>
     /// </summary>
-    [Description("RearSectionOverlap")]
-    后段重合,
+    [Description("SourceWithinSub")]
+    SourceWithinSub,
 
     /// <summary>
-    ///     <para xml:lang="en">No overlap at all</para>
-    ///     <para xml:lang="zh">完全不重合</para>
+    ///     <para xml:lang="en">The 'sub' time period overlaps the start of the 'source' time period.</para>
+    ///     <para xml:lang="zh">'sub' 时间段与 'source' 时间段的前部分重合。</para>
     /// </summary>
-    [Description("AllNontOverlap")]
-    完全不重合
+    [Description("SubOverlapsStartOfSource")]
+    SubOverlapsStartOfSource,
+
+    /// <summary>
+    ///     <para xml:lang="en">The 'sub' time period overlaps the end of the 'source' time period.</para>
+    ///     <para xml:lang="zh">'sub' 时间段与 'source' 时间段的后部分重合。</para>
+    /// </summary>
+    [Description("SubOverlapsEndOfSource")]
+    SubOverlapsEndOfSource
 }

@@ -41,39 +41,79 @@ public class DateTimeExtensionTest
     [TestMethod]
     public void TestTimeOverlap()
     {
-        // Test case 0: 完全重合
+        // Test case 0: Sub within Source (完全重合 in old enum)
         var sub0 = Tuple.Create(new DateTime(2022, 1, 10), new DateTime(2022, 1, 20));
-        var validate0 = Tuple.Create(new DateTime(2022, 1, 1), new DateTime(2022, 1, 31));
-        Assert.AreEqual(ETimeOverlap.完全重合, DateTimeExtensions.TimeOverlap(sub0, validate0));
+        var source0 = Tuple.Create(new DateTime(2022, 1, 1), new DateTime(2022, 1, 31));
+        Assert.AreEqual(ETimeOverlap.SubWithinSource, DateTimeExtensions.TimeOverlap(sub0, source0));
 
-        // Test case 1: 完全重合
+        // Test case 1: Sub within Source (Exact match - sub is same as source)
         var sub1 = Tuple.Create(new DateTime(2022, 1, 1), new DateTime(2022, 1, 31));
-        var validate1 = Tuple.Create(new DateTime(2022, 1, 1), new DateTime(2022, 1, 31));
-        Assert.AreEqual(ETimeOverlap.完全重合, DateTimeExtensions.TimeOverlap(sub1, validate1));
+        var source1 = Tuple.Create(new DateTime(2022, 1, 1), new DateTime(2022, 1, 31));
+        Assert.AreEqual(ETimeOverlap.SubWithinSource, DateTimeExtensions.TimeOverlap(sub1, source1)); // Or SourceWithinSub, depending on strict definition. Current logic makes it SubWithinSource.
 
-        // Test case 2: 完全重合
+        // Test case 2: Sub within Source (Sub starts at source start)
         var sub2 = Tuple.Create(new DateTime(2022, 1, 1), new DateTime(2022, 1, 15));
-        var validate2 = Tuple.Create(new DateTime(2022, 1, 1), new DateTime(2022, 1, 31));
-        Assert.AreEqual(ETimeOverlap.完全重合, DateTimeExtensions.TimeOverlap(sub2, validate2));
+        var source2 = Tuple.Create(new DateTime(2022, 1, 1), new DateTime(2022, 1, 31));
+        Assert.AreEqual(ETimeOverlap.SubWithinSource, DateTimeExtensions.TimeOverlap(sub2, source2));
 
-        // Test case 3: 完全重合
+        // Test case 3: Sub within Source (Sub ends at source end)
         var sub3 = Tuple.Create(new DateTime(2022, 1, 15), new DateTime(2022, 1, 31));
-        var validate3 = Tuple.Create(new DateTime(2022, 1, 1), new DateTime(2022, 1, 31));
-        Assert.AreEqual(ETimeOverlap.完全重合, DateTimeExtensions.TimeOverlap(sub3, validate3));
+        var source3 = Tuple.Create(new DateTime(2022, 1, 1), new DateTime(2022, 1, 31));
+        Assert.AreEqual(ETimeOverlap.SubWithinSource, DateTimeExtensions.TimeOverlap(sub3, source3));
 
-        // Test case 4: 完全不重合
+        // Test case 4: No overlap (Sub after source)
         var sub4 = Tuple.Create(new DateTime(2022, 2, 1), new DateTime(2022, 2, 28));
-        var validate4 = Tuple.Create(new DateTime(2022, 1, 1), new DateTime(2022, 1, 31));
-        Assert.AreEqual(ETimeOverlap.完全不重合, DateTimeExtensions.TimeOverlap(sub4, validate4));
+        var source4 = Tuple.Create(new DateTime(2022, 1, 1), new DateTime(2022, 1, 31));
+        Assert.AreEqual(ETimeOverlap.NoOverlap, DateTimeExtensions.TimeOverlap(sub4, source4));
 
-        // Test case 5: 后段重合
-        var sub5 = Tuple.Create(new DateTime(2022, 2, 1), new DateTime(2022, 2, 10));
-        var validate5 = Tuple.Create(new DateTime(2022, 2, 5), new DateTime(2022, 2, 20));
-        Assert.AreEqual(ETimeOverlap.后段重合, DateTimeExtensions.TimeOverlap(sub5, validate5));
+        // Test case 5: Sub overlaps end of Source (后段重合 in old enum)
+        var sub5 = Tuple.Create(new DateTime(2022, 2, 5), new DateTime(2022, 2, 20)); // sub: Feb 5 - Feb 20
+        var source5 = Tuple.Create(new DateTime(2022, 2, 1), new DateTime(2022, 2, 10)); // source: Feb 1 - Feb 10
+        Assert.AreEqual(ETimeOverlap.SubOverlapsEndOfSource, DateTimeExtensions.TimeOverlap(sub5, source5));
 
-        // Test case 6: 前段重合
-        var sub6 = Tuple.Create(new DateTime(2022, 2, 10), new DateTime(2022, 2, 15));
-        var validate6 = Tuple.Create(new DateTime(2022, 2, 8), new DateTime(2022, 2, 14));
-        Assert.AreEqual(ETimeOverlap.前段重合, DateTimeExtensions.TimeOverlap(sub6, validate6));
+        // Test case 6: Sub overlaps start of Source (前段重合 in old enum)
+        var sub6 = Tuple.Create(new DateTime(2022, 2, 8), new DateTime(2022, 2, 14)); // sub: Feb 8 - Feb 14
+        var source6 = Tuple.Create(new DateTime(2022, 2, 10), new DateTime(2022, 2, 15)); // source: Feb 10 - Feb 15
+        Assert.AreEqual(ETimeOverlap.SubOverlapsStartOfSource, DateTimeExtensions.TimeOverlap(sub6, source6));
+
+        // Test case 7: Source within Sub
+        var sub7 = Tuple.Create(new DateTime(2022, 1, 1), new DateTime(2022, 1, 31));
+        var source7 = Tuple.Create(new DateTime(2022, 1, 10), new DateTime(2022, 1, 20));
+        Assert.AreEqual(ETimeOverlap.SourceWithinSub, DateTimeExtensions.TimeOverlap(sub7, source7));
+
+        // Test case 8: No overlap (Sub before source)
+        var sub8 = Tuple.Create(new DateTime(2022, 1, 1), new DateTime(2022, 1, 15));
+        var source8 = Tuple.Create(new DateTime(2022, 1, 20), new DateTime(2022, 1, 31));
+        Assert.AreEqual(ETimeOverlap.NoOverlap, DateTimeExtensions.TimeOverlap(sub8, source8));
+
+        // Test case 9: Sub overlaps start of Source (Sub ends within source)
+        var sub9 = Tuple.Create(new DateTime(2022, 3, 1), new DateTime(2022, 3, 15)); // sub: Mar 1 - Mar 15
+        var source9 = Tuple.Create(new DateTime(2022, 3, 10), new DateTime(2022, 3, 20)); // source: Mar 10 - Mar 20
+        Assert.AreEqual(ETimeOverlap.SubOverlapsStartOfSource, DateTimeExtensions.TimeOverlap(sub9, source9));
+
+        // Test case 10: Sub overlaps end of Source (Sub starts within source)
+        var sub10 = Tuple.Create(new DateTime(2022, 3, 10), new DateTime(2022, 3, 25)); // sub: Mar 10 - Mar 25
+        var source10 = Tuple.Create(new DateTime(2022, 3, 5), new DateTime(2022, 3, 15)); // source: Mar 5 - Mar 15
+        Assert.AreEqual(ETimeOverlap.SubOverlapsEndOfSource, DateTimeExtensions.TimeOverlap(sub10, source10));
+
+        // Test case 11: ArgumentException for sub
+        var sub11 = Tuple.Create(new DateTime(2022, 1, 20), new DateTime(2022, 1, 10)); // Invalid sub
+        var source11 = Tuple.Create(new DateTime(2022, 1, 1), new DateTime(2022, 1, 31));
+        Assert.ThrowsException<ArgumentException>(() => DateTimeExtensions.TimeOverlap(sub11, source11));
+
+        // Test case 12: ArgumentException for source
+        var sub12 = Tuple.Create(new DateTime(2022, 1, 10), new DateTime(2022, 1, 20));
+        var source12 = Tuple.Create(new DateTime(2022, 1, 31), new DateTime(2022, 1, 1)); // Invalid source
+        Assert.ThrowsException<ArgumentException>(() => DateTimeExtensions.TimeOverlap(sub12, source12));
+
+        // Test case 13: No overlap (sub ends exactly at source start)
+        var sub13 = Tuple.Create(new DateTime(2023, 1, 1), new DateTime(2023, 1, 5));
+        var source13 = Tuple.Create(new DateTime(2023, 1, 5), new DateTime(2023, 1, 10));
+        Assert.AreEqual(ETimeOverlap.NoOverlap, DateTimeExtensions.TimeOverlap(sub13, source13));
+
+        // Test case 14: No overlap (sub starts exactly at source end)
+        var sub14 = Tuple.Create(new DateTime(2023, 1, 10), new DateTime(2023, 1, 15));
+        var source14 = Tuple.Create(new DateTime(2023, 1, 5), new DateTime(2023, 1, 10));
+        Assert.AreEqual(ETimeOverlap.NoOverlap, DateTimeExtensions.TimeOverlap(sub14, source14));
     }
 }

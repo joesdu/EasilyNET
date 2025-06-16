@@ -68,7 +68,7 @@ internal sealed class OpenTelemetryModule : AppModule
     }
 }
 
-file static class OpenTelemetryExtensions
+static file class OpenTelemetryExtensions
 {
     public static void AddMongoDBInstrumentation(this TracerProviderBuilder builder) => builder.AddSource("EasilyNET.Mongo.ConsoleDebug");
 }

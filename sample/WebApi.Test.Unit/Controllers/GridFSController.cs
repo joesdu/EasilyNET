@@ -50,13 +50,34 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
     public virtual async Task<object> Infos(InfoSearch info, CancellationToken cancellationToken)
     {
         var f = _bf.Empty;
-        if (!string.IsNullOrWhiteSpace(info.FileName)) f &= _bf.Where(c => c.FileName.Contains(info.FileName));
-        if (!string.IsNullOrWhiteSpace(info.UserName)) f &= _bf.Where(c => c.UserName.Contains(info.UserName));
-        if (!string.IsNullOrWhiteSpace(info.UserId)) f &= _bf.Where(c => c.UserId.Contains(info.UserId));
-        if (!string.IsNullOrWhiteSpace(info.App)) f &= _bf.Where(c => c.App.Contains(info.App));
-        if (!string.IsNullOrWhiteSpace(info.BusinessType)) f &= _bf.Where(c => c.BusinessType.Contains(info.BusinessType));
-        if (info.Start is not null) f &= _bf.Gte(c => c.CreateTime, info.Start);
-        if (info.End is not null) f &= _bf.Lte(c => c.CreateTime, info.End);
+        if (!string.IsNullOrWhiteSpace(info.FileName))
+        {
+            f &= _bf.Where(c => c.FileName.Contains(info.FileName));
+        }
+        if (!string.IsNullOrWhiteSpace(info.UserName))
+        {
+            f &= _bf.Where(c => c.UserName.Contains(info.UserName));
+        }
+        if (!string.IsNullOrWhiteSpace(info.UserId))
+        {
+            f &= _bf.Where(c => c.UserId.Contains(info.UserId));
+        }
+        if (!string.IsNullOrWhiteSpace(info.App))
+        {
+            f &= _bf.Where(c => c.App.Contains(info.App));
+        }
+        if (!string.IsNullOrWhiteSpace(info.BusinessType))
+        {
+            f &= _bf.Where(c => c.BusinessType.Contains(info.BusinessType));
+        }
+        if (info.Start is not null)
+        {
+            f &= _bf.Gte(c => c.CreateTime, info.Start);
+        }
+        if (info.End is not null)
+        {
+            f &= _bf.Lte(c => c.CreateTime, info.End);
+        }
         if (!string.IsNullOrWhiteSpace(info.Key))
         {
             f &= _bf.Or(_bf.Where(c => c.FileName.Contains(info.Key!)),
@@ -83,19 +104,34 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
     [HttpPost("UploadMulti")]
     public virtual async Task<IEnumerable<GridFSItem>> PostMulti([FromForm] UploadGridFSMulti fs, CancellationToken cancellationToken)
     {
-        if (fs.File is null || fs.File.Count == 0) throw new("no files find");
-        if (fs.DeleteIds.Count > 0) _ = Delete(cancellationToken, [.. fs.DeleteIds]);
+        if (fs.File is null || fs.File.Count == 0)
+        {
+            throw new("no files find");
+        }
+        if (fs.DeleteIds.Count > 0)
+        {
+            _ = Delete(cancellationToken, [.. fs.DeleteIds]);
+        }
         var rsList = new ConcurrentBag<GridFSItem>();
         var infos = new ConcurrentBag<GridFSItemInfo>();
         await Parallel.ForEachAsync(fs.File, cancellationToken, async (item, token) =>
         {
-            if (item.ContentType is null) throw new("ContentType in File is null");
+            if (item.ContentType is null)
+            {
+                throw new("ContentType in File is null");
+            }
             var metadata = new Dictionary<string, object>
             {
                 { "contentType", item.ContentType }
             };
-            if (!string.IsNullOrWhiteSpace(fs.BusinessType)) metadata.Add("business", fs.BusinessType);
-            if (!string.IsNullOrWhiteSpace(fs.CategoryId)) metadata.Add("category", fs.CategoryId!);
+            if (!string.IsNullOrWhiteSpace(fs.BusinessType))
+            {
+                metadata.Add("business", fs.BusinessType);
+            }
+            if (!string.IsNullOrWhiteSpace(fs.CategoryId))
+            {
+                metadata.Add("category", fs.CategoryId!);
+            }
             var upo = new GridFSUploadOptions { BatchSize = fs.File.Count, Metadata = new(metadata) };
             var oid = await Bucket.UploadFromStreamAsync(item.FileName, item.OpenReadStream(), upo, token);
             rsList.Add(new() { FileId = oid.ToString() ?? string.Empty, FileName = item.FileName, Length = item.Length, ContentType = item.ContentType });
@@ -123,15 +159,30 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
     [HttpPost("UploadSingle")]
     public virtual async Task<GridFSItem> PostSingle([FromForm] UploadGridFSSingle fs, CancellationToken cancellationToken)
     {
-        if (fs.File is null) throw new("no files find");
-        if (!string.IsNullOrWhiteSpace(fs.DeleteId)) _ = await Delete(cancellationToken, fs.DeleteId!);
-        if (fs.File.ContentType is null) throw new("ContentType in File is null");
+        if (fs.File is null)
+        {
+            throw new("no files find");
+        }
+        if (!string.IsNullOrWhiteSpace(fs.DeleteId))
+        {
+            _ = await Delete(cancellationToken, fs.DeleteId!);
+        }
+        if (fs.File.ContentType is null)
+        {
+            throw new("ContentType in File is null");
+        }
         var metadata = new Dictionary<string, object>
         {
             { "contentType", fs.File.ContentType }
         };
-        if (!string.IsNullOrWhiteSpace(fs.BusinessType)) metadata.Add("business", fs.BusinessType);
-        if (!string.IsNullOrWhiteSpace(fs.CategoryId)) metadata.Add("category", fs.CategoryId!);
+        if (!string.IsNullOrWhiteSpace(fs.BusinessType))
+        {
+            metadata.Add("business", fs.BusinessType);
+        }
+        if (!string.IsNullOrWhiteSpace(fs.CategoryId))
+        {
+            metadata.Add("category", fs.CategoryId!);
+        }
         var upo = new GridFSUploadOptions { BatchSize = 1, Metadata = new(metadata) };
         var oid = await Bucket.UploadFromStreamAsync(fs.File.FileName, fs.File.OpenReadStream(), upo, cancellationToken);
         _ = Coll.InsertOneAsync(new()
@@ -161,7 +212,10 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
     {
         var stream = await Bucket.OpenDownloadStreamAsync(ObjectId.Parse(id), new() { Seekable = true }, cancellationToken);
         var content_type = stream.FileInfo.Metadata["contentType"].AsString;
-        if (string.IsNullOrWhiteSpace(content_type)) content_type = "application/octet-stream";
+        if (string.IsNullOrWhiteSpace(content_type))
+        {
+            content_type = "application/octet-stream";
+        }
         return File(stream, content_type, stream.FileInfo.Filename);
     }
 
@@ -176,7 +230,10 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
     {
         var stream = await Bucket.OpenDownloadStreamByNameAsync(name, new() { Seekable = true }, cancellationToken);
         var content_type = stream.FileInfo.Metadata["contentType"].AsString;
-        if (string.IsNullOrWhiteSpace(content_type)) content_type = "application/octet-stream";
+        if (string.IsNullOrWhiteSpace(content_type))
+        {
+            content_type = "application/octet-stream";
+        }
         return File(stream, content_type, stream.FileInfo.Filename);
     }
 
@@ -249,7 +306,10 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
 
         Task DeleteSingleFile()
         {
-            foreach (var item in fids) _ = Bucket.DeleteAsync(ObjectId.Parse(item.Id), cancellationToken);
+            foreach (var item in fids)
+            {
+                _ = Bucket.DeleteAsync(ObjectId.Parse(item.Id), cancellationToken);
+            }
             return Task.CompletedTask;
         }
     }

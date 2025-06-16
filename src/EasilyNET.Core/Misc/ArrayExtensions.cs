@@ -13,8 +13,8 @@ public static class ArrayExtensions
     extension(Array array)
     {
         /// <summary>
-        ///    <para xml:lang="en">Gets the total number of elements in the array.</para>
-        ///    <para xml:lang="zh">数组元素数量</para>
+        ///     <para xml:lang="en">Gets the total number of elements in the array.</para>
+        ///     <para xml:lang="zh">数组元素数量</para>
         /// </summary>
         public int Count => array.Length;
 
@@ -34,7 +34,10 @@ public static class ArrayExtensions
         /// </param>
         public void ForEach(Action<Array, int[]> action)
         {
-            if (array.LongCount is 0) return;
+            if (array.LongCount is 0)
+            {
+                return;
+            }
             var walker = new ArrayTraverse(array);
             do
             {
@@ -80,7 +83,10 @@ file sealed class ArrayTraverse
     {
         for (var i = 0; i < Position.Length; ++i)
         {
-            if (Position[i] >= _maxLengths[i]) continue;
+            if (Position[i] >= _maxLengths[i])
+            {
+                continue;
+            }
             Position[i]++;
             for (var j = 0; j < i; j++)
             {

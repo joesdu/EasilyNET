@@ -21,8 +21,10 @@ public sealed class TimeOnlyJsonConverter : JsonConverter<TimeOnly?>
     {
         var str = reader.GetString();
         return string.IsNullOrWhiteSpace(str)
-            ? null
-            : TimeOnly.TryParseExact(str, Constant.TimeFormat, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var result) ? result : null;
+                   ? null
+                   : TimeOnly.TryParseExact(str, Constant.TimeFormat, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var result)
+                       ? result
+                       : null;
     }
 
     /// <inheritdoc />

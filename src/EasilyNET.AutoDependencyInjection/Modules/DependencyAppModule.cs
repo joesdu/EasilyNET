@@ -29,7 +29,10 @@ public sealed class DependencyAppModule : AppModule
         {
             var attr = impl.GetCustomAttribute<DependencyInjectionAttribute>();
             var lifetime = attr?.Lifetime;
-            if (lifetime is null) continue;
+            if (lifetime is null)
+            {
+                continue;
+            }
             if (attr?.AsType is not null)
             {
                 // 若实现类,不是注册类型的派生类,则跳过
@@ -57,7 +60,10 @@ public sealed class DependencyAppModule : AppModule
                 {
                     services.Add(new(impl, p => p.CreateInstance(impl), lifetime.Value));
                 }
-                if (attr?.SelfOnly is true || serviceTypes.Count is 0) continue;
+                if (attr?.SelfOnly is true || serviceTypes.Count is 0)
+                {
+                    continue;
+                }
             }
             foreach (var serviceType in serviceTypes)
             {

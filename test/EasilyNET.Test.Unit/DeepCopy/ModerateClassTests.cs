@@ -56,7 +56,10 @@ public class ModerateClassTests
         SimpleClassTests.Assert_AreEqualButNotSame(m.ReadonlySimpleClassField, mCopy.ReadonlySimpleClassField);
 
         // array of subclasses copied well
-        if (m.SimpleClassArray == null) return;
+        if (m.SimpleClassArray == null)
+        {
+            return;
+        }
         Assert.AreEqual(m.SimpleClassArray.Length, mCopy.SimpleClassArray.Length);
         for (var i = 0; i < m.SimpleClassArray.Length; i++)
         {
