@@ -78,7 +78,7 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     {
         ArgumentNullException.ThrowIfNull(value);
         var bytes = Convert.FromHexString(value);
-        this = new(bytes);
+        this = new SnowId((ReadOnlySpan<byte>)bytes);
     }
 
     private SnowId(int a, int b, int c)
