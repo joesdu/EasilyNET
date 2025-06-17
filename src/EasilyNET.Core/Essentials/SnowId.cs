@@ -197,7 +197,7 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
             snowId = new(bytes);
             return true;
         }
-        catch
+        catch (FormatException)
         {
             return false;
         }
