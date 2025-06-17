@@ -13,6 +13,9 @@
         <File Path=".github/workflows/build_test.yml" />
         <File Path=".github/workflows/releaser.yml" />
     </Folder>
+    <Project Path="docs/docs.csproj" Id="2cf4a9d4-7648-44f1-a7b6-015159eb025f">
+        <Build Project="false" />
+    </Project>
     <Folder Name="/sample/">
         <Project Path="sample/WebApi.Test.Unit/WebApi.Test.Unit.csproj" />
     </Folder>
@@ -54,7 +57,4 @@
         <Project Path="test/EasilyNET.Core.Benchmark/EasilyNET.Core.Benchmark.csproj" />
         <Project Path="test/EasilyNET.Test.Unit/EasilyNET.Test.Unit.csproj" />
     </Folder>
-    <Properties Name="ExtensibilityGlobals" Scope="PostLoad">
-        <Property Name="RESX_NeutralResourcesLanguage" Value="zh-Hans" />
-    </Properties>
 </Solution>

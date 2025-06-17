@@ -39,10 +39,7 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
     /// <inheritdoc />
     public void Unregister<TMessage>(object recipient) where TMessage : class
     {
-        if (recipient is null)
-        {
-            throw new ArgumentNullException(nameof(recipient));
-        }
+        ArgumentNullException.ThrowIfNull(recipient, nameof(recipient));
         var messageType = typeof(TMessage);
         lock (_lock)
         {
@@ -72,10 +69,7 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
     /// <inheritdoc />
     public void Send<TMessage>(TMessage message) where TMessage : class
     {
-        if (message is null)
-        {
-            throw new ArgumentNullException(nameof(message));
-        }
+        ArgumentNullException.ThrowIfNull(message, nameof(message));
         var messageType = typeof(TMessage);
         List<Action<TMessage>>? actionsToInvoke = null;
         List<object>? deadKeysToRemove = null; // Stores keys (WeakReference or recipient object) to remove
@@ -174,14 +168,8 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
 
     private void RegisterInternal<TMessage>(object recipient, Action<TMessage> action, bool keepSubscriberReferenceAlive) where TMessage : class
     {
-        if (recipient is null)
-        {
-            throw new ArgumentNullException(nameof(recipient));
-        }
-        if (action is null)
-        {
-            throw new ArgumentNullException(nameof(action));
-        }
+        ArgumentNullException.ThrowIfNull(recipient, nameof(recipient));
+        ArgumentNullException.ThrowIfNull(action, nameof(action));
         var messageType = typeof(TMessage);
         // targetReference is now correctly an object, which can be the recipient itself or a WeakReference
         var targetReference = keepSubscriberReferenceAlive ? recipient : new WeakReference(recipient);
@@ -206,10 +194,7 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
     /// </param>
     public void Unregister(object recipient)
     {
-        if (recipient is null)
-        {
-            throw new ArgumentNullException(nameof(recipient));
-        }
+        ArgumentNullException.ThrowIfNull(recipient, nameof(recipient));
         lock (_lock)
         {
             // Iterate over a copy of keys for safe removal from _recipients
