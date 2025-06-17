@@ -13,8 +13,10 @@
  * limitations under the License.
  */
 
+using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using EasilyNET.Core.Misc;
-using EasilyNET.Core.Misc.Exceptions;
 
 #pragma warning disable IDE0048
 
@@ -34,74 +36,72 @@ namespace EasilyNET.Core.Essentials;
 ///  </code>
 /// </example>
 [Serializable]
-public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
 {
     private static readonly long __random = CalculateRandomValue();
-    private static int __staticIncrement = new Random().Next();
+    private static int __staticIncrement = Random.Shared.Next();
 
-    private readonly int _a;
     private readonly int _b;
     private readonly int _c;
 
     /// <summary>
-    ///     <para xml:lang="en">Initializes a new instance of the <see cref="SnowId" /> class</para>
-    ///     <para xml:lang="zh">初始化 <see cref="SnowId" /> 类的新实例</para>
+    /// 构造函数
     /// </summary>
-    /// <param name="bytes">
-    ///     <para xml:lang="en">The bytes</para>
-    ///     <para xml:lang="zh">字节数组</para>
-    /// </param>
-    public SnowId(byte[] bytes)
+    /// <param name="bytes"></param>
+    /// <exception cref="ArgumentException"></exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public SnowId(ReadOnlySpan<byte> bytes)
     {
-        ArgumentNullException.ThrowIfNull(bytes, nameof(bytes));
-        ArgumentExceptionExtensions.ThrowIf(() => bytes.Length != 12, "Byte array must be 12 bytes long", nameof(bytes));
-        FromByteArray(bytes, 0, out _a, out _b, out _c);
-    }
-
-    internal SnowId(byte[] bytes, int index)
-    {
-        FromByteArray(bytes, index, out _a, out _b, out _c);
+        if (bytes.Length != 12)
+        {
+            throw new ArgumentException("Byte array must be 12 bytes long", nameof(bytes));
+        }
+        Timestamp = BinaryPrimitives.ReadInt32BigEndian(bytes);
+        _b = BinaryPrimitives.ReadInt32BigEndian(bytes[4..]);
+        _c = BinaryPrimitives.ReadInt32BigEndian(bytes[8..]);
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Initializes a new instance of the <see cref="SnowId" /> class</para>
-    ///     <para xml:lang="zh">初始化 <see cref="SnowId" /> 类的新实例</para>
+    /// 构造函数
     /// </summary>
-    /// <param name="value">
-    ///     <para xml:lang="en">The SnowId string</para>
-    ///     <para xml:lang="zh"><see cref="SnowId" /> 字符串</para>
-    /// </param>
+    /// <param name="bytes"></param>
+    public SnowId(byte[] bytes) : this((ReadOnlySpan<byte>)bytes) { }
+
+    internal SnowId(byte[] bytes, int index) : this(bytes.AsSpan(index, 12)) { }
+
+    /// <summary>
+    /// 构造函数
+    /// </summary>
+    /// <param name="value"></param>
     public SnowId(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
         var bytes = Convert.FromHexString(value);
-        FromByteArray(bytes, 0, out _a, out _b, out _c);
+        this = new(bytes);
     }
 
     private SnowId(int a, int b, int c)
     {
-        _a = a;
+        Timestamp = a;
         _b = b;
         _c = c;
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Gets an instance of <see cref="SnowId" /> with an empty value</para>
-    ///     <para xml:lang="zh">获取值为空的 <see cref="SnowId" /> 实例</para>
+    /// Empty
     /// </summary>
     public static SnowId Empty => default;
 
     /// <summary>
-    ///     <para xml:lang="en">Gets the timestamp</para>
-    ///     <para xml:lang="zh">获取时间戳</para>
+    /// Timestamp
     /// </summary>
-    public readonly int Timestamp => _a;
+    public int Timestamp { get; }
 
     /// <summary>
-    ///     <para xml:lang="en">Gets the creation time (derived from the timestamp)</para>
-    ///     <para xml:lang="zh">获取创建时间(从时间戳派生)</para>
+    /// CreationTime
     /// </summary>
-    public readonly DateTime CreationTime => DateTime.UnixEpoch.AddSeconds((uint)Timestamp);
+    public DateTime CreationTime => DateTime.UnixEpoch.AddSeconds((uint)Timestamp);
 
     /// <inheritdoc cref="IComparable" />
     public static bool operator <(SnowId lhs, SnowId rhs) => lhs.CompareTo(rhs) < 0;
@@ -171,29 +171,36 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Attempts to parse a string and create a new <see cref="SnowId" /></para>
-    ///     <para xml:lang="zh">尝试分析字符串并创建新的 <see cref="SnowId" /></para>
+    ///     <para xml:lang="en">Parses a string and creates a new <see cref="SnowId" /></para>
+    ///     <para xml:lang="zh">分析字符串并创建新的 <see cref="SnowId" /></para>
     /// </summary>
     /// <param name="s">
     ///     <para xml:lang="en">The string value</para>
     ///     <para xml:lang="zh">字符串值</para>
     /// </param>
-    /// <param name="snowId">
-    ///     <para xml:lang="en">A new <see cref="SnowId" /></para>
-    ///     <para xml:lang="zh">一个新的 <see cref="SnowId" /></para>
-    /// </param>
+    /// <param name="snowId"></param>
+    // ReSharper disable once OutParameterValueIsAlwaysDiscarded.Global
     public static bool TryParse(string s, out SnowId snowId)
     {
-        if (s is { Length: 24 })
-        {
-            if (s.TryParseHex(out var bytes))
-            {
-                snowId = new(bytes!);
-                return true;
-            }
-        }
         snowId = default;
-        return false;
+        if (string.IsNullOrEmpty(s) || s.Length is not 24)
+        {
+            return false;
+        }
+        try
+        {
+            var bytes = Convert.FromHexString(s);
+            if (bytes.Length is not 12)
+            {
+                return false;
+            }
+            snowId = new(bytes);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static long CalculateRandomValue()
@@ -225,17 +232,6 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
         return secondsSinceEpoch is < uint.MinValue or > uint.MaxValue ? throw new ArgumentOutOfRangeException(nameof(timestamp)) : (int)(uint)secondsSinceEpoch;
     }
 
-    // ReSharper disable once SuggestBaseTypeForParameter
-    private static void FromByteArray(byte[] bytes, int offset, out int a, out int b, out int c)
-    {
-        a = (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
-        b = (bytes[offset + 4] << 24) | (bytes[offset + 5] << 16) | (bytes[offset + 6] << 8) | bytes[offset + 7];
-        c = (bytes[offset + 8] << 24) | (bytes[offset + 9] << 16) | (bytes[offset + 10] << 8) | bytes[offset + 11];
-    }
-
-    // private static char ToHexChar(int value) => Convert.ToChar(value < 10 ? value + 48 : value + 55); // 全大写字符
-    private static char ToHexChar(int value) => Convert.ToChar(value < 10 ? value + 48 : value + 87); // 全小写字符
-
     /// <summary>
     ///     <para xml:lang="en">Compares this <see cref="SnowId" /> to another <see cref="SnowId" /></para>
     ///     <para xml:lang="zh">将此 <see cref="SnowId" /> 与另一个 <see cref="SnowId" /> 进行比较</para>
@@ -244,9 +240,9 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">The other <see cref="SnowId" /></para>
     ///     <para xml:lang="zh">另一个 <see cref="SnowId" /></para>
     /// </param>
-    public readonly int CompareTo(SnowId other)
+    public int CompareTo(SnowId other)
     {
-        var result = ((uint)_a).CompareTo((uint)other._a);
+        var result = ((uint)Timestamp).CompareTo((uint)other.Timestamp);
         if (result != 0)
         {
             return result;
@@ -263,8 +259,8 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">The other <see cref="SnowId" /></para>
     ///     <para xml:lang="zh">另一个 <see cref="SnowId" /></para>
     /// </param>
-    public readonly bool Equals(SnowId rhs) =>
-        _a == rhs._a &&
+    public bool Equals(SnowId rhs) =>
+        Timestamp == rhs.Timestamp &&
         _b == rhs._b &&
         _c == rhs._c;
 
@@ -276,16 +272,16 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">The other object</para>
     ///     <para xml:lang="zh">另一个对象</para>
     /// </param>
-    public readonly override bool Equals(object? obj) => obj is SnowId id && Equals(id);
+    public override bool Equals(object? obj) => obj is SnowId id && Equals(id);
 
     /// <summary>
     ///     <para xml:lang="en">Gets the hash code</para>
     ///     <para xml:lang="zh">获取哈希代码</para>
     /// </summary>
-    public readonly override int GetHashCode()
+    public override int GetHashCode()
     {
         var hash = 17;
-        hash = 37 * hash + _a.GetHashCode();
+        hash = 37 * hash + Timestamp.GetHashCode();
         hash = 37 * hash + _b.GetHashCode();
         hash = 37 * hash + _c.GetHashCode();
         return hash;
@@ -295,7 +291,7 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">Converts the <see cref="SnowId" /> to a byte array</para>
     ///     <para xml:lang="zh">将 <see cref="SnowId" /> 转换为字节数组</para>
     /// </summary>
-    public readonly byte[] ToByteArray()
+    public byte[] ToByteArray()
     {
         var bytes = new byte[12];
         ToByteArray(bytes, 0);
@@ -314,89 +310,71 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
     ///     <para xml:lang="en">The offset</para>
     ///     <para xml:lang="zh">偏移量</para>
     /// </param>
-    public readonly void ToByteArray(byte[] destination, int offset)
+    public void ToByteArray(byte[] destination, int offset)
     {
         ArgumentNullException.ThrowIfNull(destination);
-        ArgumentExceptionExtensions.ThrowIf(() => offset + 12 > destination.Length, "Not enough room in destination buffer.", nameof(offset));
-        //if (offset + 12 > destination.Length)
-        //{
-        //    throw new ArgumentException("Not enough room in destination buffer.", nameof(offset));
-        //}
-        destination[offset + 0] = (byte)(_a >> 24);
-        destination[offset + 1] = (byte)(_a >> 16);
-        destination[offset + 2] = (byte)(_a >> 8);
-        destination[offset + 3] = (byte)_a;
-        destination[offset + 4] = (byte)(_b >> 24);
-        destination[offset + 5] = (byte)(_b >> 16);
-        destination[offset + 6] = (byte)(_b >> 8);
-        destination[offset + 7] = (byte)_b;
-        destination[offset + 8] = (byte)(_c >> 24);
-        destination[offset + 9] = (byte)(_c >> 16);
-        destination[offset + 10] = (byte)(_c >> 8);
-        destination[offset + 11] = (byte)_c;
+        Misc.Exceptions.ArgumentExceptionExtensions.ThrowIf(() => offset + 12 > destination.Length, "Not enough room in destination buffer.", nameof(offset));
+        BinaryPrimitives.WriteInt32BigEndian(destination.AsSpan(offset, 4), Timestamp);
+        BinaryPrimitives.WriteInt32BigEndian(destination.AsSpan(offset + 4, 4), _b);
+        BinaryPrimitives.WriteInt32BigEndian(destination.AsSpan(offset + 8, 4), _c);
+    }
+
+    /// <summary>
+    /// ToByteArray
+    /// </summary>
+    /// <param name="destination"></param>
+    /// <exception cref="ArgumentException"></exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void ToByteArray(Span<byte> destination)
+    {
+        if (destination.Length < 12)
+        {
+            throw new ArgumentException("Not enough room in destination buffer.", nameof(destination));
+        }
+        BinaryPrimitives.WriteInt32BigEndian(destination, Timestamp);
+        BinaryPrimitives.WriteInt32BigEndian(destination[4..], _b);
+        BinaryPrimitives.WriteInt32BigEndian(destination[8..], _c);
     }
 
     /// <summary>
     ///     <para xml:lang="en">Returns a string representation of the value</para>
     ///     <para xml:lang="zh">返回值的字符串表示形式</para>
     /// </summary>
-    public readonly override string ToString()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public override string ToString()
     {
-        var c = new char[24];
-        c[0] = ToHexChar((_a >> 28) & 0x0f);
-        c[1] = ToHexChar((_a >> 24) & 0x0f);
-        c[2] = ToHexChar((_a >> 20) & 0x0f);
-        c[3] = ToHexChar((_a >> 16) & 0x0f);
-        c[4] = ToHexChar((_a >> 12) & 0x0f);
-        c[5] = ToHexChar((_a >> 8) & 0x0f);
-        c[6] = ToHexChar((_a >> 4) & 0x0f);
-        c[7] = ToHexChar(_a & 0x0f);
-        c[8] = ToHexChar((_b >> 28) & 0x0f);
-        c[9] = ToHexChar((_b >> 24) & 0x0f);
-        c[10] = ToHexChar((_b >> 20) & 0x0f);
-        c[11] = ToHexChar((_b >> 16) & 0x0f);
-        c[12] = ToHexChar((_b >> 12) & 0x0f);
-        c[13] = ToHexChar((_b >> 8) & 0x0f);
-        c[14] = ToHexChar((_b >> 4) & 0x0f);
-        c[15] = ToHexChar(_b & 0x0f);
-        c[16] = ToHexChar((_c >> 28) & 0x0f);
-        c[17] = ToHexChar((_c >> 24) & 0x0f);
-        c[18] = ToHexChar((_c >> 20) & 0x0f);
-        c[19] = ToHexChar((_c >> 16) & 0x0f);
-        c[20] = ToHexChar((_c >> 12) & 0x0f);
-        c[21] = ToHexChar((_c >> 8) & 0x0f);
-        c[22] = ToHexChar((_c >> 4) & 0x0f);
-        c[23] = ToHexChar(_c & 0x0f);
-        return new(c);
+        Span<byte> bytes = stackalloc byte[12];
+        ToByteArray(bytes);
+        return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
-    readonly TypeCode IConvertible.GetTypeCode() => TypeCode.Object;
+    TypeCode IConvertible.GetTypeCode() => TypeCode.Object;
 
-    readonly bool IConvertible.ToBoolean(IFormatProvider? provider) => throw new InvalidCastException();
+    bool IConvertible.ToBoolean(IFormatProvider? provider) => throw new InvalidCastException();
 
-    readonly byte IConvertible.ToByte(IFormatProvider? provider) => throw new InvalidCastException();
+    byte IConvertible.ToByte(IFormatProvider? provider) => throw new InvalidCastException();
 
-    readonly char IConvertible.ToChar(IFormatProvider? provider) => throw new InvalidCastException();
+    char IConvertible.ToChar(IFormatProvider? provider) => throw new InvalidCastException();
 
-    readonly DateTime IConvertible.ToDateTime(IFormatProvider? provider) => throw new InvalidCastException();
+    DateTime IConvertible.ToDateTime(IFormatProvider? provider) => throw new InvalidCastException();
 
-    readonly decimal IConvertible.ToDecimal(IFormatProvider? provider) => throw new InvalidCastException();
+    decimal IConvertible.ToDecimal(IFormatProvider? provider) => throw new InvalidCastException();
 
-    readonly double IConvertible.ToDouble(IFormatProvider? provider) => throw new InvalidCastException();
+    double IConvertible.ToDouble(IFormatProvider? provider) => throw new InvalidCastException();
 
-    readonly short IConvertible.ToInt16(IFormatProvider? provider) => throw new InvalidCastException();
+    short IConvertible.ToInt16(IFormatProvider? provider) => throw new InvalidCastException();
 
-    readonly int IConvertible.ToInt32(IFormatProvider? provider) => throw new InvalidCastException();
+    int IConvertible.ToInt32(IFormatProvider? provider) => throw new InvalidCastException();
 
-    readonly long IConvertible.ToInt64(IFormatProvider? provider) => throw new InvalidCastException();
+    long IConvertible.ToInt64(IFormatProvider? provider) => throw new InvalidCastException();
 
-    readonly sbyte IConvertible.ToSByte(IFormatProvider? provider) => throw new InvalidCastException();
+    sbyte IConvertible.ToSByte(IFormatProvider? provider) => throw new InvalidCastException();
 
-    readonly float IConvertible.ToSingle(IFormatProvider? provider) => throw new InvalidCastException();
+    float IConvertible.ToSingle(IFormatProvider? provider) => throw new InvalidCastException();
 
-    readonly string IConvertible.ToString(IFormatProvider? provider) => ToString();
+    string IConvertible.ToString(IFormatProvider? provider) => ToString();
 
-    readonly object IConvertible.ToType(Type conversionType, IFormatProvider? provider)
+    object IConvertible.ToType(Type conversionType, IFormatProvider? provider)
     {
         // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
         switch (Type.GetTypeCode(conversionType))
@@ -413,9 +391,9 @@ public struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
         throw new InvalidCastException();
     }
 
-    readonly ushort IConvertible.ToUInt16(IFormatProvider? provider) => throw new InvalidCastException();
+    ushort IConvertible.ToUInt16(IFormatProvider? provider) => throw new InvalidCastException();
 
-    readonly uint IConvertible.ToUInt32(IFormatProvider? provider) => throw new InvalidCastException();
+    uint IConvertible.ToUInt32(IFormatProvider? provider) => throw new InvalidCastException();
 
-    readonly ulong IConvertible.ToUInt64(IFormatProvider? provider) => throw new InvalidCastException();
+    ulong IConvertible.ToUInt64(IFormatProvider? provider) => throw new InvalidCastException();
 }
