@@ -313,7 +313,7 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     public void ToByteArray(byte[] destination, int offset)
     {
         ArgumentNullException.ThrowIfNull(destination);
-        Misc.Exceptions.ArgumentExceptionExtensions.ThrowIf(() => offset + 12 > destination.Length, "Not enough room in destination buffer.", nameof(offset));
+        ArgumentException.ThrowIf(offset + 12 > destination.Length, "Not enough room in destination buffer.", nameof(offset));
         BinaryPrimitives.WriteInt32BigEndian(destination.AsSpan(offset, 4), Timestamp);
         BinaryPrimitives.WriteInt32BigEndian(destination.AsSpan(offset + 4, 4), _b);
         BinaryPrimitives.WriteInt32BigEndian(destination.AsSpan(offset + 8, 4), _c);
