@@ -125,14 +125,7 @@ internal class ModuleApplicationBase : IModuleApplication
         {
             var module = Expression.Lambda(Expression.New(moduleType)).Compile().DynamicInvoke() as IAppModule;
             ArgumentNullException.ThrowIfNull(module, nameof(moduleType));
-            if (module.GetEnable(new(Services, ServiceProvider)))
-            {
-                return module;
-            }
-#if DEBUG
-            Console.Error.WriteLine($"Module: {moduleType.Name} is disabled");
-#endif
-            return null;
+            return module.GetEnable(new(Services, ServiceProvider)) ? module : null;
         });
     }
 
