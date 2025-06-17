@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using EasilyNET.Core.Essentials;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
@@ -72,5 +73,109 @@ public class SnowIdTest
         var timestamp = snow1.Timestamp;
         var creationTime = snow1.CreationTime;
         creationTime.ShouldBe(DateTime.UnixEpoch.AddSeconds((uint)timestamp));
+    }
+
+    /// <summary>
+    /// 测试 SnowId 的 TryParse 功能和无效输入
+    /// </summary>
+    [TestMethod]
+    public void TestSnowIdTryParseAndInvalidInput()
+    {
+        var valid = SnowId.GenerateNewId().ToString();
+        SnowId.TryParse(valid, out _).ShouldBeTrue();
+        valid.ToUpperInvariant().Length.ShouldBe(24);
+        SnowId.TryParse(valid.ToUpperInvariant(), out _).ShouldBeTrue();
+        SnowId.TryParse("", out _).ShouldBeFalse();
+        SnowId.TryParse("123", out _).ShouldBeFalse();
+        SnowId.TryParse(new('f', 23), out _).ShouldBeFalse();
+        SnowId.TryParse(new('g', 24), out _).ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// 测试 ToString/Parse/Equals/HashCode 的一致性
+    /// </summary>
+    [TestMethod]
+    public void TestSnowIdToStringParseEqualsHashCode()
+    {
+        var snow = SnowId.GenerateNewId();
+        var str = snow.ToString();
+        var parsed = SnowId.Parse(str);
+        snow.ShouldBe(parsed);
+        snow.GetHashCode().ShouldBe(parsed.GetHashCode());
+    }
+
+    /// <summary>
+    /// 测试不同构造方式的等价性
+    /// </summary>
+    [TestMethod]
+    public void TestSnowIdConstructorsEquivalence()
+    {
+        var snow = SnowId.GenerateNewId();
+        var bytes = snow.ToByteArray();
+        var fromBytes = new SnowId(bytes);
+        var fromString = new SnowId(snow.ToString());
+        fromBytes.ShouldBe(snow);
+        fromString.ShouldBe(snow);
+    }
+
+    /// <summary>
+    /// 测试边界值
+    /// </summary>
+    [TestMethod]
+    public void TestSnowIdBoundaryValues()
+    {
+        var zeroBytes = new byte[12];
+        var zeroId = new SnowId(zeroBytes);
+        zeroId.Timestamp.ShouldBe(0);
+        zeroId.CreationTime.ShouldBe(DateTime.UnixEpoch);
+        var maxBytes = new byte[12];
+        for (var i = 0; i < 12; i++)
+            maxBytes[i] = 0xFF;
+        var maxId = new SnowId(maxBytes);
+        maxId.Timestamp.ShouldBe(-1); // 0xFFFFFFFF as int
+    }
+
+    /// <summary>
+    /// 测试 IConvertible 接口实现
+    /// </summary>
+    [TestMethod]
+    public void TestSnowIdIConvertible()
+    {
+        var snow = SnowId.GenerateNewId();
+        IConvertible convertible = snow;
+        convertible.GetTypeCode().ShouldBe(TypeCode.Object);
+        Should.Throw<InvalidCastException>(() => convertible.ToBoolean(null));
+        Should.Throw<InvalidCastException>(() => convertible.ToInt32(null));
+        convertible.ToString(null).ShouldBe(snow.ToString());
+    }
+
+    /// <summary>
+    /// 测试多线程下的唯一性
+    /// </summary>
+    [TestMethod]
+    public void TestSnowIdMultiThreadUniqueness()
+    {
+        var set = new ConcurrentDictionary<string, bool>();
+        Parallel.For(0, 10000, _ =>
+        {
+            var id = SnowId.GenerateNewId().ToString();
+            set.TryAdd(id, true).ShouldBeTrue();
+        });
+        set.Count.ShouldBe(10000);
+    }
+
+    /// <summary>
+    /// 测试序列化/反序列化一致性
+    /// </summary>
+    [TestMethod]
+    public void TestSnowIdSerializationConsistency()
+    {
+        var snow = SnowId.GenerateNewId();
+        var bytes = snow.ToByteArray();
+        var fromBytes = new SnowId(bytes);
+        fromBytes.ShouldBe(snow);
+        var str = snow.ToString();
+        var fromStr = SnowId.Parse(str);
+        fromStr.ShouldBe(snow);
     }
 }
