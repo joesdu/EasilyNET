@@ -253,9 +253,7 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
         {
             throw new ArgumentException("invalid bytes length, length:" + bytes.Length);
         }
-        ref var src = ref MemoryMarshal.GetReference(bytes);
-        Unsafe.WriteUnaligned(ref timestamp0, Unsafe.ReadUnaligned<ulong>(ref src));                     // timestamp0~randomness1
-        Unsafe.WriteUnaligned(ref randomness2, Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref src, 8))); // randomness2~randomness9
+        this = MemoryMarshal.Read<Ulid>(bytes);
     }
 
     internal Ulid(ReadOnlySpan<char> base32)
@@ -561,7 +559,7 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
     public byte[] ToByteArray()
     {
         var bytes = new byte[16];
-        Unsafe.WriteUnaligned(ref bytes[0], this);
+        MemoryMarshal.Write(bytes, in this);
         return bytes;
     }
 
@@ -586,7 +584,7 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
         {
             return false;
         }
-        Unsafe.WriteUnaligned(ref MemoryMarshal.GetReference(destination), this);
+        MemoryMarshal.Write(destination, in this);
         return true;
     }
 
@@ -890,6 +888,14 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool EqualsCore(in Ulid left, in Ulid right)
     {
+#if NET10_0_OR_GREATER
+        if (Vector256.IsHardwareAccelerated)
+        {
+            var vA = Unsafe.As<Ulid, Vector256<byte>>(ref Unsafe.AsRef(in left));
+            var vB = Unsafe.As<Ulid, Vector256<byte>>(ref Unsafe.AsRef(in right));
+            return vA == vB;
+        }
+#endif
         if (Vector128.IsHardwareAccelerated)
         {
             return Unsafe.As<Ulid, Vector128<byte>>(ref Unsafe.AsRef(in left)) == Unsafe.As<Ulid, Vector128<byte>>(ref Unsafe.AsRef(in right));
@@ -1230,47 +1236,14 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
 
 static file class RandomProvider
 {
-    [ThreadStatic]
-    private static Random? random;
+    // 优先使用 Random.Shared (线程安全, .NET 6+)
+    public static Random GetRandom() => Random.Shared;
 
-    [ThreadStatic]
-    private static XorShift64? xorShift;
-
-    // this random is async-unsafe, be careful to use.
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Random GetRandom()
-    {
-        random ??= CreateRandom();
-        return random;
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Random CreateRandom()
-    {
-        using var rng = RandomNumberGenerator.Create();
-        // Span<byte> buffer = stackalloc byte[sizeof(int)];
-        var buffer = new byte[sizeof(int)];
-        rng.GetBytes(buffer);
-        var seed = BitConverter.ToInt32(buffer, 0);
-        return new(seed);
-    }
-
-    // this random is async-unsafe, be careful to use.
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static XorShift64 GetXorShift64()
     {
-        xorShift ??= CreateXorShift64();
-        return xorShift;
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static XorShift64 CreateXorShift64()
-    {
-        using var rng = RandomNumberGenerator.Create();
-        // Span<byte> buffer = stackalloc byte[sizeof(UInt64)];
-        var buffer = new byte[sizeof(ulong)];
-        rng.GetBytes(buffer);
-        var seed = BitConverter.ToUInt64(buffer, 0);
+        Span<byte> buffer = stackalloc byte[sizeof(ulong)];
+        RandomNumberGenerator.Fill(buffer);
+        var seed = BitConverter.ToUInt64(buffer);
         return new(seed);
     }
 }

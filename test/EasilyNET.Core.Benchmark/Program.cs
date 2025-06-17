@@ -3,43 +3,42 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
+using EasilyNET.Core.Essentials;
+
+#pragma warning disable CS1591 // 缺少对公共可见类型或成员的 XML 注释
 
 namespace EasilyNET.Core.Benchmark;
 
-// ReSharper disable ClassNeverInstantiated.Global
-/// <summary>
-/// </summary>
-[Config(typeof(Config))]
-public class AsyncStrictNextBenchmark
+[Config(typeof(UlidBenchmarkConfig))]
+public class UlidBenchmark
 {
-    private readonly Random _random = new();
+    private static readonly string UlidString = Ulid.NewUlid().ToString();
+    private static readonly byte[] UlidBytes = Ulid.NewUlid().ToByteArray();
+    private static readonly Ulid UlidInstance = Ulid.NewUlid();
 
-    private class Config : ManualConfig
+    [Benchmark]
+    public static Ulid NewUlid() => Ulid.NewUlid();
+
+    [Benchmark]
+    public static string UlidToString() => UlidInstance.ToString();
+
+    [Benchmark]
+    public static Ulid ParseFromString() => Ulid.Parse(UlidString);
+
+    [Benchmark]
+    public static byte[] ToByteArray() => UlidInstance.ToByteArray();
+
+    [Benchmark]
+    public static Ulid ParseFromBytes() => new(UlidBytes);
+}
+
+public class UlidBenchmarkConfig : ManualConfig
+{
+    public UlidBenchmarkConfig()
     {
-        public Config()
-        {
-            AddJob(Job.Default);
-            AddDiagnoser(MemoryDiagnoser.Default);
-        }
+        AddJob(Job.Default);
+        AddDiagnoser(MemoryDiagnoser.Default);
     }
-
-    // [Benchmark]
-    // public void TestStrictNext()
-    // {
-    //     for (int i = 0; i < 5000; i++)
-    //     {
-    //         _random.StrictNext();
-    //     }
-    // }
-    //
-    // [Benchmark]
-    // public void TestStrictNext2()
-    // {
-    //     for (int i = 0; i < 5000; i++)
-    //     {
-    //         _random.StrictNext2();
-    //     }
-    // }
 }
 
 /// <summary>
@@ -50,6 +49,6 @@ public static class Program
     /// </summary>
     public static void Main()
     {
-        _ = BenchmarkRunner.Run<AsyncStrictNextBenchmark>();
+        _ = BenchmarkRunner.Run<UlidBenchmark>();
     }
 }
