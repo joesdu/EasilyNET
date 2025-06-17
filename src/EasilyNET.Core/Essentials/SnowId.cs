@@ -78,7 +78,7 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     {
         ArgumentNullException.ThrowIfNull(value);
         var bytes = Convert.FromHexString(value);
-        this = new SnowId((ReadOnlySpan<byte>)bytes);
+        this = new((ReadOnlySpan<byte>)bytes);
     }
 
     private SnowId(int a, int b, int c)
@@ -162,12 +162,7 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     public static SnowId Parse(string s)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(s, nameof(s));
-        if (TryParse(s, out var snowId))
-        {
-            return snowId;
-        }
-        var message = $"'{s}' is not a valid 24 digit hex string.";
-        throw new FormatException(message);
+        return TryParse(s, out var snowId) ? snowId : throw new FormatException($"'{s}' is not a valid 24 digit hex string.");
     }
 
     /// <summary>
@@ -313,7 +308,10 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     public void ToByteArray(byte[] destination, int offset)
     {
         ArgumentNullException.ThrowIfNull(destination);
-        ArgumentException.ThrowIf(offset + 12 > destination.Length, "Not enough room in destination buffer.", nameof(offset));
+        if (offset + 12 > destination.Length)
+        {
+            throw new ArgumentException("Not enough room in destination buffer.", nameof(offset));
+        }
         BinaryPrimitives.WriteInt32BigEndian(destination.AsSpan(offset, 4), Timestamp);
         BinaryPrimitives.WriteInt32BigEndian(destination.AsSpan(offset + 4, 4), _b);
         BinaryPrimitives.WriteInt32BigEndian(destination.AsSpan(offset + 8, 4), _c);
