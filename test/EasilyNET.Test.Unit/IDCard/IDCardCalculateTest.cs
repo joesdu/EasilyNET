@@ -121,10 +121,9 @@ public class IDCardCalculateTests
     }
 
     [TestMethod]
-    [Ignore("由于年龄的计算随时间变化,所以当前时间的年龄和创建测试的时候已经不一致.")]
-    public void CalculateAge_ValidBirthdays_ShouldReturnCorrectAge()
+    public void CalculateAge_ValidBirthdays_ShouldBeConsistentWithCurrentDate()
     {
-        var birthdays = new[]
+        var expectedBirthdays = new[]
         {
             new DateOnly(2021, 08, 04),
             new DateOnly(2012, 09, 09),
@@ -137,20 +136,30 @@ public class IDCardCalculateTests
             new DateOnly(1996, 12, 06),
             new DateOnly(1978, 08, 11)
         };
-        var expectedAges = new[] { 3, 12, 30, 18, 57, 8, 25, 71, 27, 46 };
-        for (var i = 0; i < birthdays.Length; i++)
+        foreach (var birthday in expectedBirthdays)
         {
-            var birthday = birthdays[i];
+            var expectedAge = CalculateExpectedAge(birthday, DateOnly.FromDateTime(DateTime.Today));
             var age = IDCardCalculate.CalculateAge(birthday);
-            Assert.AreEqual(expectedAges[i], age, $"Birthday {birthday:yyyy-MM-dd} should have age {expectedAges[i]}.");
+            Assert.AreEqual(expectedAge, age, $"Birthday {birthday:yyyy-MM-dd} should have age {expectedAge} as of today.");
         }
     }
 
+    private static int CalculateExpectedAge(DateOnly birthday, DateOnly today)
+    {
+        var age = today.Year - birthday.Year;
+        if (today.Month < birthday.Month || (today.Month == birthday.Month && today.Day < birthday.Day))
+        {
+            age--;
+        }
+        return age;
+    }
+
+    private static int CalculateExpectedAge(DateTime birthday, DateOnly today) => CalculateExpectedAge(DateOnly.FromDateTime(birthday), today);
+
     [TestMethod]
-    [Ignore("由于年龄的计算随时间变化,所以当前时间的年龄和创建测试的时候已经不一致.")]
     public void CalculateAge_ValidBirthdayDateTimes_ShouldReturnCorrectAge()
     {
-        var birthdays = new[]
+        var expectedBirthdays = new[]
         {
             new DateTime(2021, 08, 04),
             new DateTime(2012, 09, 09),
@@ -163,12 +172,11 @@ public class IDCardCalculateTests
             new DateTime(1996, 12, 06),
             new DateTime(1978, 08, 11)
         };
-        var expectedAges = new[] { 3, 12, 30, 18, 57, 8, 25, 71, 27, 46 };
-        for (var i = 0; i < birthdays.Length; i++)
+        foreach (var birthday in expectedBirthdays)
         {
-            var birthday = birthdays[i];
+            var expectedAge = CalculateExpectedAge(birthday, DateOnly.FromDateTime(DateTime.Today));
             var age = IDCardCalculate.CalculateAge(birthday);
-            Assert.AreEqual(expectedAges[i], age, $"Birthday {birthday:yyyy-MM-dd} should have age {expectedAges[i]}.");
+            Assert.AreEqual(expectedAge, age, $"Birthday {birthday:yyyy-MM-dd} should have age {expectedAge} as of today.");
         }
     }
 }
