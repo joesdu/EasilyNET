@@ -13,6 +13,7 @@ public static class Program
     public static void Main()
     {
         //BenchmarkRunner.Run<UlidBenchmark>();
-        BenchmarkRunner.Run<PooledMemoryStreamBenchmark>();
+        //BenchmarkRunner.Run<PooledMemoryStreamBenchmark>();
+        BenchmarkRunner.Run<SnowIdBenchmark>();
     }
 }

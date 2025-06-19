@@ -77,8 +77,10 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     public SnowId(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        var bytes = Convert.FromHexString(value);
-        this = new((ReadOnlySpan<byte>)bytes);
+        if (!TryParse(value, out this))
+        {
+            throw new FormatException($"'{value}' is not a valid 24 digit hex string.");
+        }
     }
 
     private SnowId(int a, int b, int c)
@@ -175,28 +177,54 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     /// </param>
     /// <param name="snowId"></param>
     // ReSharper disable once OutParameterValueIsAlwaysDiscarded.Global
-    public static bool TryParse(string s, out SnowId snowId)
+    public static bool TryParse(string? s, out SnowId snowId)
+    {
+        if (s?.Length is 24)
+        {
+            return TryParse(s.AsSpan(), out snowId);
+        }
+        snowId = default;
+        return false;
+    }
+
+    /// <summary>
+    /// TryParse
+    /// </summary>
+    /// <param name="s"></param>
+    /// <param name="snowId"></param>
+    /// <returns></returns>
+    public static bool TryParse(ReadOnlySpan<char> s, out SnowId snowId)
     {
         snowId = default;
-        if (string.IsNullOrEmpty(s) || s.Length is not 24)
+        if (s.Length != 24)
         {
             return false;
         }
-        try
+        Span<byte> bytes = stackalloc byte[12];
+        for (var i = 0; i < 12; i++)
         {
-            var bytes = Convert.FromHexString(s);
-            if (bytes.Length is not 12)
+            var c1 = s[i * 2];
+            var c2 = s[(i * 2) + 1];
+            var v1 = HexCharToVal(c1);
+            var v2 = HexCharToVal(c2);
+            if (v1 == -1 || v2 == -1)
             {
                 return false;
             }
-            snowId = new(bytes);
-            return true;
+            bytes[i] = (byte)((v1 << 4) | v2);
         }
-        catch (FormatException)
-        {
-            return false;
-        }
+        snowId = new(bytes);
+        return true;
     }
+
+    private static int HexCharToVal(char c) =>
+        c switch
+        {
+            >= '0' and <= '9' => c - '0',
+            >= 'a' and <= 'f' => (c - 'a') + 10,
+            >= 'A' and <= 'F' => (c - 'A') + 10,
+            _                 => -1
+        };
 
     private static long CalculateRandomValue()
     {
@@ -276,9 +304,9 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     public override int GetHashCode()
     {
         var hash = 17;
-        hash = 37 * hash + Timestamp.GetHashCode();
-        hash = 37 * hash + _b.GetHashCode();
-        hash = 37 * hash + _c.GetHashCode();
+        hash = (37 * hash) + Timestamp.GetHashCode();
+        hash = (37 * hash) + _b.GetHashCode();
+        hash = (37 * hash) + _c.GetHashCode();
         return hash;
     }
 
@@ -341,9 +369,19 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override string ToString()
     {
-        Span<byte> bytes = stackalloc byte[12];
-        ToByteArray(bytes);
-        return Convert.ToHexString(bytes).ToLowerInvariant();
+        return string.Create(24, this, static (chars, id) =>
+        {
+            ReadOnlySpan<char> hexChars = "0123456789abcdef";
+            Span<byte> bytes = stackalloc byte[12];
+            id.ToByteArray(bytes);
+            for (var i = 0; i < bytes.Length; i++)
+            {
+                var b = bytes[i];
+                var i2 = i * 2;
+                chars[i2] = hexChars[b >> 4];
+                chars[i2 + 1] = hexChars[b & 0x0F];
+            }
+        });
     }
 
     TypeCode IConvertible.GetTypeCode() => TypeCode.Object;
