@@ -10,6 +10,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="BenchmarkDotNet" Version="0.15.2" />
+		<PackageReference Include="MongoDB.Driver" Version="3.4.0" />
 	</ItemGroup>
 
 	<ItemGroup>
