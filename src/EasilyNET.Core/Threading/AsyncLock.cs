@@ -40,7 +40,7 @@ public sealed class AsyncLock : IDisposable
         {
             // This is the critical fix: check _disposed *before* accessing _semaphore.
             ObjectDisposedException.ThrowIf(_disposed, this);
-            return _semaphore.CurrentCount == 0;
+            return _semaphore.CurrentCount is 0;
         }
     }
 
@@ -63,7 +63,7 @@ public sealed class AsyncLock : IDisposable
             {
                 return 0;
             }
-            return _semaphore.CurrentCount == 0 ? 1 : 0; // Simplified, indicates if taken.
+            return _semaphore.CurrentCount is 0 ? 1 : 0; // Simplified, indicates if taken.
         }
     }
 
