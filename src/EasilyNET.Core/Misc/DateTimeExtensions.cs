@@ -43,7 +43,7 @@ public static class DateTimeExtensions
     ///     <para xml:lang="en">The year</para>
     ///     <para xml:lang="zh">年份</para>
     /// </param>
-    public static (DateTime Start, DateTime End) MonthStartEndByMonth(this int month, int year) => month < 1 || month > 12 ? throw new("非法月份") : new DateTime(year, month, 2).MonthStartEnd;
+    public static (DateTime Start, DateTime End) MonthStartEndByMonth(this int month, int year) => month is < 1 or > 12 ? throw new("非法月份") : new DateTime(year, month, 2).MonthStartEnd;
 
     /// <summary>
     ///     <para xml:lang="en">Gets the numeric representation of a day of the week</para>
@@ -74,7 +74,7 @@ public static class DateTimeExtensions
     ///     <para xml:lang="zh">要转换的数字</para>
     /// </param>
     public static DayOfWeek ToDayOfWeek(this int number) =>
-        number > 7 || number < 0
+        number is > 7 or < 0
             ? throw new("please input 0-7")
             : number switch
             {

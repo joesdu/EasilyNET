@@ -2,8 +2,6 @@ using BenchmarkDotNet.Attributes;
 using EasilyNET.Core.Essentials;
 using MongoDB.Bson;
 
-#pragma warning disable CA1822
-
 namespace EasilyNET.Core.Benchmark;
 
 /// <summary>
@@ -19,37 +17,37 @@ public class SnowIdBenchmark
     /// GenerateNewId
     /// </summary>
     [Benchmark]
-    public SnowId GenerateNewSnowId() => SnowId.GenerateNewId();
+    public static SnowId GenerateNewSnowId() => SnowId.GenerateNewId();
 
     /// <summary>
     /// ObjectId
     /// </summary>
     [Benchmark]
-    public ObjectId GenerateNewObjectId() => ObjectId.GenerateNewId();
+    public static ObjectId GenerateNewObjectId() => ObjectId.GenerateNewId();
 
     /// <summary>
     /// SnowIdToString
     /// </summary>
     [Benchmark]
-    public string SnowIdToString() => SnowId.GenerateNewId().ToString();
+    public static string SnowIdToString() => SnowId.GenerateNewId().ToString();
 
     /// <summary>
     /// ObjectIdToString
     /// </summary>
     [Benchmark]
-    public string ObjectIdToString() => ObjectId.GenerateNewId().ToString();
+    public static string ObjectIdToString() => ObjectId.GenerateNewId().ToString();
 
     /// <summary>
     /// StringToSnowId
     /// </summary>
     [Benchmark]
-    public SnowId StringToSnowId() => SnowId.Parse(snowIdString);
+    public static SnowId StringToSnowId() => SnowId.Parse(snowIdString);
 
     /// <summary>
     /// StringToObjectId
     /// </summary>
     [Benchmark]
-    public ObjectId StringToObjectId() => ObjectId.Parse(objectIdString);
+    public static ObjectId StringToObjectId() => ObjectId.Parse(objectIdString);
 }
 
 /*
