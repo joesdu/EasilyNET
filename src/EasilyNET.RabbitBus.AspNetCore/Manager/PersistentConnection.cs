@@ -1,3 +1,4 @@
+using EasilyNET.Core.Threading;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -10,11 +11,11 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <inheritdoc />
 internal sealed class PersistentConnection : IDisposable
 {
+    private readonly AsyncLock _asyncLock = new();
     private readonly IConnectionFactory _connectionFactory;
     private readonly ILogger<PersistentConnection> _logger;
     private readonly IOptionsMonitor<RabbitConfig> _options;
     private readonly ResiliencePipeline _resiliencePipeline;
-    private readonly SemaphoreSlim _semaphore = new(1, 1);
     private volatile IChannel? _currentChannel;
 
     // 使用volatile以确保线程间可见性
@@ -50,7 +51,7 @@ internal sealed class PersistentConnection : IDisposable
             _reconnectCts.Dispose();
             _currentChannel?.Dispose();
             _currentConnection?.Dispose();
-            _semaphore.Dispose();
+            _asyncLock.Dispose();
         }
         catch (Exception ex)
         {
@@ -63,8 +64,7 @@ internal sealed class PersistentConnection : IDisposable
 
     private async ValueTask<IChannel> GetChannelAsync()
     {
-        await _semaphore.WaitAsync();
-        try
+        using (await _asyncLock.LockAsync())
         {
             if (_currentChannel is { IsOpen: true })
             {
@@ -84,10 +84,6 @@ internal sealed class PersistentConnection : IDisposable
             }
             return channel;
         }
-        finally
-        {
-            _semaphore.Release();
-        }
     }
 
     // 事件
@@ -98,8 +94,7 @@ internal sealed class PersistentConnection : IDisposable
     // 初始化连接 - 异步方法
     private async Task InitializeConnectionAsync()
     {
-        await _semaphore.WaitAsync();
-        try
+        using (await _asyncLock.LockAsync())
         {
             if (_currentConnection is { IsOpen: true })
             {
@@ -121,10 +116,6 @@ internal sealed class PersistentConnection : IDisposable
                 StartReconnectProcess();
                 throw;
             }
-        }
-        finally
-        {
-            _semaphore.Release();
         }
     }
 
@@ -182,29 +173,25 @@ internal sealed class PersistentConnection : IDisposable
         {
             return;
         }
-        // 使用同步锁确保只有一个重连任务在运行
-        var lockTaken = false;
-        try
+
+        // 异步启动重连任务，避免阻塞当前线程
+        _ = Task.Run(async () =>
         {
-            Monitor.Enter(_semaphore, ref lockTaken);
-            if (_disposed)
+            using (await _asyncLock.LockAsync())
             {
-                return;
+                if (_disposed)
+                {
+                    return;
+                }
+                // 取消之前的重连任务（如果有）
+                await _reconnectCts.CancelAsync();
+                _reconnectCts.Dispose();
+                _reconnectCts = new();
+
+                // 启动后台任务进行重连
+                _ = Task.Run(async () => await ExecuteReconnectWithContinuousRetryAsync(_reconnectCts.Token), _reconnectCts.Token);
             }
-            // 取消之前的重连任务（如果有）
-            _reconnectCts.Cancel();
-            _reconnectCts.Dispose();
-            _reconnectCts = new();
-            // 启动后台任务进行重连
-            Task.Run(async () => await ExecuteReconnectWithContinuousRetryAsync(_reconnectCts.Token), _reconnectCts.Token);
-        }
-        finally
-        {
-            if (lockTaken)
-            {
-                Monitor.Exit(_semaphore);
-            }
-        }
+        });
     }
 
     /// <summary>
@@ -243,8 +230,7 @@ internal sealed class PersistentConnection : IDisposable
                     }
 
                     // 创建新连接
-                    await _semaphore.WaitAsync(cancellationToken);
-                    try
+                    using (await _asyncLock.LockAsync(cancellationToken))
                     {
                         _currentConnection = await CreateConnectionAsync();
                         RegisterConnectionEvents();
@@ -252,10 +238,6 @@ internal sealed class PersistentConnection : IDisposable
                         _logger.LogInformation("成功重新连接到RabbitMQ");
                         ConnectionReconnected?.Invoke(this, EventArgs.Empty);
                         reconnected = true;
-                    }
-                    finally
-                    {
-                        _semaphore.Release();
                     }
                 }, cancellationToken);
             }
