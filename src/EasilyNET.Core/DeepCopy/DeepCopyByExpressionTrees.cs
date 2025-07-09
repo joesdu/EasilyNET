@@ -355,3 +355,13 @@ public static class DeepCopyByExpressionTrees
         return typesToCheck.Any(typeToCheck => HasInItsHierarchyFieldsWithClasses(typeToCheck, alreadyCheckedTypes));
     }
 }
+
+/// <inheritdoc />
+file class ReferenceEqualityComparer : EqualityComparer<object?>
+{
+    /// <inheritdoc />
+    public override bool Equals(object? x, object? y) => ReferenceEquals(x, y);
+
+    /// <inheritdoc />
+    public override int GetHashCode(object? obj) => obj is null ? 0 : obj.GetHashCode();
+}

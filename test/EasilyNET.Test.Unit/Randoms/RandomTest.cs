@@ -1,5 +1,4 @@
 using EasilyNET.Core.Misc;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace EasilyNET.Test.Unit.Randoms;
 
@@ -17,10 +16,9 @@ public class RandomTest
     }
 
     [TestMethod]
-    [ExpectedException(typeof(ArgumentOutOfRangeException))]
     public void StrictNext2_ShouldThrowArgumentOutOfRangeException_WhenStartIndexIsGreaterThanOrEqualToMaxValue()
     {
         // Act
-        RandomExtensions.StrictNext(10, 5);
+        Assert.Throws<ArgumentOutOfRangeException>(() => RandomExtensions.StrictNext(10, 5));
     }
 }

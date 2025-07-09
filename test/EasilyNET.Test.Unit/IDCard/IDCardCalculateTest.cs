@@ -1,6 +1,5 @@
 using EasilyNET.Core.Enums;
 using EasilyNET.Core.IdCard;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace EasilyNET.Test.Unit.IDCard;
 
@@ -41,11 +40,10 @@ public class IDCardCalculateTests
     }
 
     [TestMethod]
-    [ExpectedException(typeof(ArgumentException))]
     public void ValidateIDCard_InvalidID_ShouldThrowException()
     {
         const string invalidID = "123456789012345";
-        invalidID.ValidateIDCard();
+        Assert.Throws<ArgumentException>(() => invalidID.ValidateIDCard());
     }
 
     [TestMethod]
