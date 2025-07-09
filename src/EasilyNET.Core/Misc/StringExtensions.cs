@@ -8,8 +8,6 @@ using System.Text.RegularExpressions;
 using EasilyNET.Core.Commons;
 using EasilyNET.Core.Enums;
 
-#pragma warning disable IDE0079
-
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global

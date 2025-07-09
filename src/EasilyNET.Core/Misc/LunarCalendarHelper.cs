@@ -144,15 +144,10 @@ public static class LunarCalendarHelper
             return null;
         }
         var year = date.Year;
-        foreach (var term in SolarTerms)
-        {
-            var solarTermDate = GetSolarTermDate(year, term.Index);
-            if (solarTermDate.Date == date.Date)
-            {
-                return term.Name;
-            }
-        }
-        return null;
+        return (from term in SolarTerms
+                let solarTermDate = GetSolarTermDate(year, term.Index)
+                where solarTermDate.Date == date.Date select term.Name)
+            .FirstOrDefault();
     }
 
     /// <summary>
@@ -383,7 +378,7 @@ public static class LunarCalendarHelper
         var ganzhiDay = GetGanzhiDay(date);
         var dayStem = Array.IndexOf(HeavenlyStems, ganzhiDay[..1]);
 #pragma warning disable IDE0047 // 删除不必要的括号
-        var hourBranch = (date.Hour + 1) / 2 % 12;
+        var hourBranch = ((date.Hour + 1) / 2) % 12;
 #pragma warning restore IDE0047 // 删除不必要的括号
         var hourStem = ((dayStem * 2) + hourBranch) % 10;
         if (hourStem < 0)
