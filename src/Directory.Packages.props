@@ -23,10 +23,10 @@
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="9.0.3" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="9.0.3" />
     <!--microsoft asp.net core -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0-preview.5.25277.114" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.0-preview.5.25277.114" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0-preview.5.25277.114" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0-preview.5.25277.114" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0-preview.6.25358.103" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.0-preview.6.25358.103" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0-preview.6.25358.103" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0-preview.6.25358.103" />
     <PackageVersion Include="Microsoft.Extensions.Resilience" Version="9.7.0" />
   </ItemGroup>
   <!-- 自定义任务来检查 TargetFramework -->
