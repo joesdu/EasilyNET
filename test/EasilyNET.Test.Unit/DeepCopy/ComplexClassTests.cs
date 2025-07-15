@@ -1,5 +1,4 @@
 using EasilyNET.Test.Unit.DeepCopy.TestClass;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace EasilyNET.Test.Unit.DeepCopy;
 
@@ -39,11 +38,11 @@ public class ComplexClassTests
         Assert.AreSame(cCopy, cCopy.TupleOfThis.Item3);
 
         // original had nonnull delegates and events but copy has it null (for ExpressionTree copy method)
-        Assert.IsTrue(c.JustDelegate != null);
-        Assert.IsTrue(cCopy.JustDelegate == null);
-        Assert.IsTrue(c.ReadonlyDelegate != null);
-        Assert.IsTrue(cCopy.ReadonlyDelegate == null);
-        Assert.IsTrue(!c.IsJustEventNull);
+        Assert.IsNotNull(c.JustDelegate);
+        Assert.IsNull(cCopy.JustDelegate);
+        Assert.IsNotNull(c.ReadonlyDelegate);
+        Assert.IsNull(cCopy.ReadonlyDelegate);
+        Assert.IsFalse(c.IsJustEventNull);
         Assert.IsTrue(cCopy.IsJustEventNull);
 
         // test of regular dictionary
