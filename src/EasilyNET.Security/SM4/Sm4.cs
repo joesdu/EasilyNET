@@ -376,6 +376,8 @@ internal sealed class Sm4
         var bins = new byte[length];
         input.CopyTo(bins);
         var bousList = new List<byte>();
+        Span<byte> ivBytes = stackalloc byte[16];
+        iv.CopyTo(ivBytes);
         Span<byte> inBytes = stackalloc byte[16];
         Span<byte> outBytes = stackalloc byte[16];
         Span<byte> out1 = stackalloc byte[16];
@@ -387,10 +389,10 @@ internal sealed class Sm4
                 input.Slice(j * 16, length > 16 ? 16 : length).CopyTo(inBytes);
                 for (i = 0; i < 16; i++)
                 {
-                    outBytes[i] = (byte)(inBytes[i] ^ iv[i]);
+                    outBytes[i] = (byte)(inBytes[i] ^ ivBytes[i]);
                 }
                 OneRound(ctx.Key, outBytes, out1);
-                out1.CopyTo(iv.ToArray());
+                out1.CopyTo(ivBytes);
                 for (var k = 0; k < 16; k++)
                 {
                     bousList.Add(out1[k]);
@@ -407,9 +409,10 @@ internal sealed class Sm4
                 OneRound(ctx.Key, inBytes, outBytes);
                 for (i = 0; i < 16; i++)
                 {
-                    out1[i] = (byte)(outBytes[i] ^ iv[i]);
+                    out1[i] = (byte)(outBytes[i] ^ ivBytes[i]);
                 }
-                temp.CopyTo(iv.ToArray());
+                ivBytes.Clear();      // Clear the previous IV
+                temp.CopyTo(ivBytes); // Update IV with the current block's ciphertext
                 for (var k = 0; k < 16; k++)
                 {
                     bousList.Add(out1[k]);
