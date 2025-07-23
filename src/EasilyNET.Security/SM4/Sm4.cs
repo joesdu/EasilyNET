@@ -66,7 +66,7 @@ internal sealed class Sm4
     ///     <para xml:lang="en">Index</para>
     ///     <para xml:lang="zh">索引</para>
     /// </param>
-    private static long GetULongByBe(ReadOnlySpan<byte> b, int i) => ((long)(b[i] & 0xff) << 24) | (uint)((b[i + 1] & 0xff) << 16) | (uint)((b[i + 2] & 0xff) << 8) | b[i + 3] & 0xff & 0xffffffffL;
+    private static long GetULongByBe(ReadOnlySpan<byte> b, int i) => ((long)(b[i] & 0xff) << 24) | (uint)((b[i + 1] & 0xff) << 16) | (uint)((b[i + 2] & 0xff) << 8) | (b[i + 3] & 0xff & 0xffffffffL);
 
     /// <summary>
     ///     <para xml:lang="en">Decrypt nonlinear τ function B=τ(A)</para>
@@ -106,7 +106,7 @@ internal sealed class Sm4
     ///     <para xml:lang="en">Number of bits</para>
     ///     <para xml:lang="zh">位数</para>
     /// </param>
-    private static long RotL(long x, int n) => SHL(x, n) | (x >> 32 - n);
+    private static long RotL(long x, int n) => SHL(x, n) | (x >> (32 - n));
 
     /// <summary>
     ///     <para xml:lang="en">Reverse the key</para>
@@ -284,7 +284,7 @@ internal sealed class Sm4
         byte[] ret;
         if (mode is ESm4Model.Encrypt)
         {
-            var p = 16 - input.Length % 16;
+            var p = 16 - (input.Length % 16);
             ret = new byte[input.Length + p];
             input.CopyTo(ret);
             for (var i = 0; i < p; i++)
@@ -392,8 +392,6 @@ internal sealed class Sm4
                     outBytes[i] = (byte)(inBytes[i] ^ ivBytes[i]);
                 }
                 OneRound(ctx.Key, outBytes, out1);
-                // Ensure `out1` contains the correct ciphertext before updating the IV.
-                Debug.Assert(out1.Length == 16, "out1 must contain the ciphertext of the current block.");
                 out1.CopyTo(ivBytes);
                 for (var k = 0; k < 16; k++)
                 {
@@ -413,7 +411,7 @@ internal sealed class Sm4
                 {
                     out1[i] = (byte)(outBytes[i] ^ ivBytes[i]);
                 }
-                ivBytes.Clear(); // Clear the previous IV
+                ivBytes.Clear();      // Clear the previous IV
                 temp.CopyTo(ivBytes); // Update IV with the current block's ciphertext
                 for (var k = 0; k < 16; k++)
                 {
