@@ -66,7 +66,7 @@ internal sealed class Sm4
     ///     <para xml:lang="en">Index</para>
     ///     <para xml:lang="zh">索引</para>
     /// </param>
-    private static long GetULongByBe(ReadOnlySpan<byte> b, int i) => ((long)(b[i] & 0xff) << 24) | (uint)((b[i + 1] & 0xff) << 16) | (uint)((b[i + 2] & 0xff) << 8) | (b[i + 3] & 0xff & 0xffffffffL);
+    private static long GetULongByBe(ReadOnlySpan<byte> b, int i) => ((long)(b[i] & 0xff) << 24) | (uint)((b[i + 1] & 0xff) << 16) | (uint)((b[i + 2] & 0xff) << 8) | b[i + 3] & 0xff & 0xffffffffL;
 
     /// <summary>
     ///     <para xml:lang="en">Decrypt nonlinear τ function B=τ(A)</para>
@@ -106,7 +106,7 @@ internal sealed class Sm4
     ///     <para xml:lang="en">Number of bits</para>
     ///     <para xml:lang="zh">位数</para>
     /// </param>
-    private static long RotL(long x, int n) => SHL(x, n) | (x >> (32 - n));
+    private static long RotL(long x, int n) => SHL(x, n) | (x >> 32 - n);
 
     /// <summary>
     ///     <para xml:lang="en">Reverse the key</para>
@@ -284,7 +284,7 @@ internal sealed class Sm4
         byte[] ret;
         if (mode is ESm4Model.Encrypt)
         {
-            var p = 16 - (input.Length % 16);
+            var p = 16 - input.Length % 16;
             ret = new byte[input.Length + p];
             input.CopyTo(ret);
             for (var i = 0; i < p; i++)
@@ -376,6 +376,8 @@ internal sealed class Sm4
         var bins = new byte[length];
         input.CopyTo(bins);
         var bousList = new List<byte>();
+        Span<byte> ivBytes = stackalloc byte[16];
+        iv.CopyTo(ivBytes);
         Span<byte> inBytes = stackalloc byte[16];
         Span<byte> outBytes = stackalloc byte[16];
         Span<byte> out1 = stackalloc byte[16];
@@ -387,10 +389,10 @@ internal sealed class Sm4
                 input.Slice(j * 16, length > 16 ? 16 : length).CopyTo(inBytes);
                 for (i = 0; i < 16; i++)
                 {
-                    outBytes[i] = (byte)(inBytes[i] ^ iv[i]);
+                    outBytes[i] = (byte)(inBytes[i] ^ ivBytes[i]);
                 }
                 OneRound(ctx.Key, outBytes, out1);
-                out1.CopyTo(iv.ToArray());
+                out1.CopyTo(ivBytes);
                 for (var k = 0; k < 16; k++)
                 {
                     bousList.Add(out1[k]);
@@ -407,9 +409,9 @@ internal sealed class Sm4
                 OneRound(ctx.Key, inBytes, outBytes);
                 for (i = 0; i < 16; i++)
                 {
-                    out1[i] = (byte)(outBytes[i] ^ iv[i]);
+                    out1[i] = (byte)(outBytes[i] ^ ivBytes[i]);
                 }
-                temp.CopyTo(iv.ToArray());
+                temp.CopyTo(ivBytes);
                 for (var k = 0; k < 16; k++)
                 {
                     bousList.Add(out1[k]);
