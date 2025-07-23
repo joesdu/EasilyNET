@@ -411,7 +411,8 @@ internal sealed class Sm4
                 {
                     out1[i] = (byte)(outBytes[i] ^ ivBytes[i]);
                 }
-                temp.CopyTo(ivBytes);
+                ivBytes.Clear(); // Clear the previous IV
+                temp.CopyTo(ivBytes); // Update IV with the current block's ciphertext
                 for (var k = 0; k < 16; k++)
                 {
                     bousList.Add(out1[k]);
