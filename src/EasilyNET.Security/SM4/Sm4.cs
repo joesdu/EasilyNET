@@ -392,6 +392,8 @@ internal sealed class Sm4
                     outBytes[i] = (byte)(inBytes[i] ^ ivBytes[i]);
                 }
                 OneRound(ctx.Key, outBytes, out1);
+                // Ensure `out1` contains the correct ciphertext before updating the IV.
+                Debug.Assert(out1.Length == 16, "out1 must contain the ciphertext of the current block.");
                 out1.CopyTo(ivBytes);
                 for (var k = 0; k < 16; k++)
                 {
