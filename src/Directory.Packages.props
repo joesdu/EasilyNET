@@ -17,7 +17,7 @@
   <ItemGroup>
     <PackageVersion Include="Backport.System.Threading.Lock" Version="3.1.4" />
     <PackageVersion Include="BouncyCastle.Cryptography" Version="2.6.1" />
-    <PackageVersion Include="MongoDB.Driver" Version="3.4.1" />
+    <PackageVersion Include="MongoDB.Driver" Version="3.4.2" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.1.2" />
     <PackageVersion Include="Spectre.Console.Json" Version="0.50.1-preview.0.22" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="9.0.3" />
