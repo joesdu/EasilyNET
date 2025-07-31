@@ -36,6 +36,7 @@ docker compose -f docker-compose.basic.service.yml up -d
 
 EasilyNET Packages
 
+- IPC通信库,支持跨进程通信,支持多种序列化方式,支持自定义序列化方式(新)
 - AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4 加密,验签等算法
 - 基于 RabbitMQ 的消息总线实现
 - 对 MongoDB 驱动的一些封装,方便使用以及一些常用默认配置,支持通过特性标注索引(新).
@@ -51,6 +52,7 @@ EasilyNET Packages
 <details>
 <summary style="font-size: 14px">English</summary>
 
+- IPC communication library, supporting inter-process communication, multiple serialization methods, and custom serialization methods (new).
 - Encryption and signature algorithms: AES, DES, RC4, TripleDES, RSA, SM2, SM3, SM4.
 - Message bus implementation based on RabbitMQ.
 - Encapsulation and extension for MongoDB driver, with convenient usage and common default configurations. Supports attribute-based index definition (new).
@@ -67,12 +69,12 @@ EasilyNET Packages
 
 #### 近期更新内容(Recent Updates)
 
-- RabbitMQ 消息序列化默认采用 Text.Json, 可通过实现 IBusSerializer 接口自定义序列化方式支持
+- 新增IPC通信库,支持跨进程通信,支持多种序列化方式,支持自定义序列化方式(新)
 
 <details>
 <summary style="font-size: 14px">English</summary>
 
-- RabbitMQ message serialization now uses Text.Json by default. You can customize the serialization method by implementing the IBusSerializer interface.
+- Added IPC communication library, supporting inter-process communication, multiple serialization methods, and custom serialization methods (new).
 
 </details>
 
@@ -89,16 +91,16 @@ EasilyNET Packages
 | NuGet Package                           | Version      | Download     | Document                                                  |
 | --------------------------------------- | ------------ | ------------ | --------------------------------------------------------- |
 | [EasilyNET.AutoDependencyInjection][20] | ![Nuget][21] | ![Nuget][22] | [文档](./src/EasilyNET.AutoDependencyInjection/README.md) |
-| [EasilyNET.Ipc] | ![Nuget] | ![Nuget] | [文档](./src/EasilyNET.Ipc/README.md) |
-| [EasilyNET.RabbitBus.AspNetCore][23]    | ![Nuget][24] | ![Nuget][25] | [文档](./src/EasilyNET.RabbitBus.AspNetCore/README.md)    |
-| [EasilyNET.Security][26]                | ![Nuget][27] | ![Nuget][28] | [文档](./src/EasilyNET.Security/README.md)                |
+| [EasilyNET.Ipc][23]                     | ![Nuget][24] | ![Nuget][25] | [文档](./src/EasilyNET.Ipc/README.md)                     |
+| [EasilyNET.RabbitBus.AspNetCore][26]    | ![Nuget][27] | ![Nuget][28] | [文档](./src/EasilyNET.RabbitBus.AspNetCore/README.md)    |
+| [EasilyNET.Security][29]                | ![Nuget][30] | ![Nuget][31] | [文档](./src/EasilyNET.Security/README.md)                |
 
 #### Mongo
 
 | NuGet Package                      | Version      | Download     | Document                                             |
 | ---------------------------------- | ------------ | ------------ | ---------------------------------------------------- |
-| [EasilyNET.Mongo.AspNetCore][29]   | ![Nuget][30] | ![Nuget][31] | [文档](./src/EasilyNET.Mongo.AspNetCore/README.md)   |
-| [EasilyNET.Mongo.ConsoleDebug][32] | ![Nuget][33] | ![Nuget][34] | [文档](./src/EasilyNET.Mongo.ConsoleDebug/README.md) |
+| [EasilyNET.Mongo.AspNetCore][32]   | ![Nuget][33] | ![Nuget][34] | [文档](./src/EasilyNET.Mongo.AspNetCore/README.md)   |
+| [EasilyNET.Mongo.ConsoleDebug][35] | ![Nuget][36] | ![Nuget][37] | [文档](./src/EasilyNET.Mongo.ConsoleDebug/README.md) |
 
 #### 感谢 [JetBrains](https://www.jetbrains.com/shop/eform/opensource) 对本项目的支持!
 
@@ -146,15 +148,18 @@ EasilyNET Packages
 [20]: https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection
 [21]: https://img.shields.io/nuget/v/EasilyNET.AutoDependencyInjection
 [22]: https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection
-[23]: https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore
-[24]: https://img.shields.io/nuget/v/EasilyNET.RabbitBus.AspNetCore
-[25]: https://img.shields.io/nuget/dt/EasilyNET.RabbitBus.AspNetCore
-[26]: https://www.nuget.org/packages/EasilyNET.Security
-[27]: https://img.shields.io/nuget/v/EasilyNET.Security
-[28]: https://img.shields.io/nuget/dt/EasilyNET.Security
-[29]: https://www.nuget.org/packages/EasilyNET.Mongo.AspNetCore
-[30]: https://img.shields.io/nuget/v/EasilyNET.Mongo.AspNetCore
-[31]: https://img.shields.io/nuget/dt/EasilyNET.Mongo.AspNetCore
-[32]: https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug
-[33]: https://img.shields.io/nuget/v/EasilyNET.Mongo.ConsoleDebug
-[34]: https://img.shields.io/nuget/dt/EasilyNET.Mongo.ConsoleDebug
+[23]: https://www.nuget.org/packages/EasilyNET.Ipc
+[24]: https://img.shields.io/nuget/v/EasilyNET.Ipc
+[25]: https://img.shields.io/nuget/dt/EasilyNET.Ipc
+[26]: https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore
+[27]: https://img.shields.io/nuget/v/EasilyNET.RabbitBus.AspNetCore
+[28]: https://img.shields.io/nuget/dt/EasilyNET.RabbitBus.AspNetCore
+[29]: https://www.nuget.org/packages/EasilyNET.Security
+[30]: https://img.shields.io/nuget/v/EasilyNET.Security
+[31]: https://img.shields.io/nuget/dt/EasilyNET.Security
+[32]: https://www.nuget.org/packages/EasilyNET.Mongo.AspNetCore
+[33]: https://img.shields.io/nuget/v/EasilyNET.Mongo.AspNetCore
+[34]: https://img.shields.io/nuget/dt/EasilyNET.Mongo.AspNetCore
+[35]: https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug
+[36]: https://img.shields.io/nuget/v/EasilyNET.Mongo.ConsoleDebug
+[37]: https://img.shields.io/nuget/dt/EasilyNET.Mongo.ConsoleDebug
