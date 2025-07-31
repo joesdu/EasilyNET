@@ -18,15 +18,13 @@
     <PackageVersion Include="Backport.System.Threading.Lock" Version="3.1.4" />
     <PackageVersion Include="BouncyCastle.Cryptography" Version="2.6.1" />
     <PackageVersion Include="MongoDB.Driver" Version="3.4.2" />
+    <PackageVersion Include="Polly.Core" Version="8.6.2" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.1.2" />
     <PackageVersion Include="Spectre.Console.Json" Version="0.50.1-preview.0.22" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="9.0.3" />
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="9.0.3" />
     <!--microsoft asp.net core -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0-preview.6.25358.103" />
     <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.0-preview.6.25358.103" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0-preview.6.25358.103" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0-preview.6.25358.103" />
     <PackageVersion Include="Microsoft.Extensions.Resilience" Version="9.7.0" />
   </ItemGroup>
   <!-- 自定义任务来检查 TargetFramework -->

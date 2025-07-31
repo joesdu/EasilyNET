@@ -1,27 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <AssemblyTitle>$(PackagePrefix).WebCore.Swagger</AssemblyTitle>
-    <AssemblyName>$(PackagePrefix).WebCore.Swagger</AssemblyName>
-    <PackageId>$(PackagePrefix).WebCore.Swagger</PackageId>
-    <PackageTags>Swagger;HideApi;🔒</PackageTags>
-    <PackageReleaseNotes>
-    </PackageReleaseNotes>
-    <RootNamespace>EasilyNET.WebCore.Swagger</RootNamespace>
-  </PropertyGroup>
+	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).WebCore.Swagger</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).WebCore.Swagger</AssemblyName>
+		<PackageId>$(PackagePrefix).WebCore.Swagger</PackageId>
+		<PackageTags>Swagger;HideApi;🔒</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.WebCore.Swagger</RootNamespace>
+	</PropertyGroup>
 
-  <PropertyGroup>
-    <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.WebCore.Swagger</PackageProjectUrl>
-    <Description>一些Swagger的一些配置.如分组,隐藏接口,Authorize的接口添加🔒,默认值</Description>
-  </PropertyGroup>
+	<PropertyGroup>
+		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.WebCore.Swagger</PackageProjectUrl>
+		<Description>一些Swagger的一些配置.如分组,隐藏接口,Authorize的接口添加🔒,默认值</Description>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" />
+		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
+	</ItemGroup>
 
 </Project>
