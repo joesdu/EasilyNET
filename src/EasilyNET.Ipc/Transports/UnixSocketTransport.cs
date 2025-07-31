@@ -57,7 +57,7 @@ public class UnixSocketTransport : IIpcTransport
             _serverSocket = new(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
             var endpoint = new UnixDomainSocketEndPoint(_socketPath);
             _serverSocket.Bind(endpoint);
-            _serverSocket.Listen(maxServerInstances1);
+            _serverSocket.Listen(maxServerInstances);
         }
         else
         {
@@ -122,7 +122,6 @@ public class UnixSocketTransport : IIpcTransport
         {
             throw new InvalidOperationException("套接字未连接");
         }
-
         var lengthBuffer = BitConverter.GetBytes(data.Length);
         await socket.SendAsync(lengthBuffer, SocketFlags.None, cancellationToken);
         await socket.SendAsync(data, SocketFlags.None, cancellationToken);

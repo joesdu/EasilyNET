@@ -71,7 +71,7 @@ public static class IpcServiceCollectionExtensions
             services.Configure(configureOptions);
         }
         services.AddSingleton<IIpcCommandService, IpcCommandService>();
-        services.AddSingleton(sp =>
+        services.AddSingleton<IIpcSerializer>(sp =>
         {
             var options = sp.GetRequiredService<IOptions<IpcOptions>>().Value;
             return options.Serializer ?? new JsonIpcSerializer();
