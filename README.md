@@ -89,6 +89,7 @@ EasilyNET Packages
 | NuGet Package                           | Version      | Download     | Document                                                  |
 | --------------------------------------- | ------------ | ------------ | --------------------------------------------------------- |
 | [EasilyNET.AutoDependencyInjection][20] | ![Nuget][21] | ![Nuget][22] | [文档](./src/EasilyNET.AutoDependencyInjection/README.md) |
+| [EasilyNET.Ipc] | ![Nuget] | ![Nuget] | [文档](./src/EasilyNET.Ipc/README.md) |
 | [EasilyNET.RabbitBus.AspNetCore][23]    | ![Nuget][24] | ![Nuget][25] | [文档](./src/EasilyNET.RabbitBus.AspNetCore/README.md)    |
 | [EasilyNET.Security][26]                | ![Nuget][27] | ![Nuget][28] | [文档](./src/EasilyNET.Security/README.md)                |
 
