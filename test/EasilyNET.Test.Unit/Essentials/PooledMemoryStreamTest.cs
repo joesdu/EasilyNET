@@ -1,5 +1,4 @@
 using EasilyNET.Core.Essentials;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace EasilyNET.Test.Unit.Essentials;
 
@@ -33,7 +32,7 @@ public class PooledMemoryStreamTest
     {
         using var stream = new PooledMemoryStream();
         stream.SetLength(100);
-        Assert.AreEqual(100, stream.Length);
+        Assert.HasCount(100, stream);
         stream.Seek(10, SeekOrigin.Begin);
         Assert.AreEqual(10, stream.Position);
         stream.Seek(-5, SeekOrigin.Current);
