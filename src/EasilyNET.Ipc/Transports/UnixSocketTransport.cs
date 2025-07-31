@@ -47,7 +47,6 @@ public class UnixSocketTransport : IIpcTransport
     {
         _socketPath = socketPath;
         _isServer = isServer;
-        var maxServerInstances1 = maxServerInstances;
         _logger = logger;
         if (_isServer)
         {
