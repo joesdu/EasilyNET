@@ -124,7 +124,6 @@ public class UnixSocketTransport : IIpcTransport
             throw new InvalidOperationException("套接字未连接");
         }
 
-        // 将 BitConverter.ToBytes(data.Length); 替换为 BitConverter.GetBytes(data.Length);
         var lengthBuffer = BitConverter.GetBytes(data.Length);
         await socket.SendAsync(lengthBuffer, SocketFlags.None, cancellationToken);
         await socket.SendAsync(data, SocketFlags.None, cancellationToken);
