@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).Ipc</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).Ipc</AssemblyName>
+		<PackageId>$(PackagePrefix).Ipc</PackageId>
+		<PackageTags>Ipc</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.Ipc</RootNamespace>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Ipc</PackageProjectUrl>
+		<Description>基于NamedPipeline和Unix Domain Sockets实现的简单的IPC</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Polly.Core" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
+	</ItemGroup>
+
+</Project>

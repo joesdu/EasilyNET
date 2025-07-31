@@ -1,27 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <AssemblyTitle>$(PackagePrefix).AutoDependencyInjection</AssemblyTitle>
-    <AssemblyName>$(PackagePrefix).AutoDependencyInjection</AssemblyName>
-    <PackageId>$(PackagePrefix).AutoDependencyInjection</PackageId>
-    <PackageTags>AutoDependencyInjection</PackageTags>
-    <PackageReleaseNotes>
-    </PackageReleaseNotes>
-    <RootNamespace>EasilyNET.AutoDependencyInjection</RootNamespace>
-  </PropertyGroup>
+	<PropertyGroup>
+		<AssemblyTitle>$(PackagePrefix).AutoDependencyInjection</AssemblyTitle>
+		<AssemblyName>$(PackagePrefix).AutoDependencyInjection</AssemblyName>
+		<PackageId>$(PackagePrefix).AutoDependencyInjection</PackageId>
+		<PackageTags>AutoDependencyInjection</PackageTags>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+		<RootNamespace>EasilyNET.AutoDependencyInjection</RootNamespace>
+	</PropertyGroup>
 
-  <PropertyGroup>
-    <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection</PackageProjectUrl>
-    <Description>服务模块化注入.让服务注入拥有清晰的逻辑和结构</Description>
-  </PropertyGroup>
+	<PropertyGroup>
+		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection</PackageProjectUrl>
+		<Description>服务模块化注入.让服务注入拥有清晰的逻辑和结构</Description>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\EasilyNET.AutoDependencyInjection.Core\EasilyNET.AutoDependencyInjection.Core.csproj" />
-    <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\EasilyNET.AutoDependencyInjection.Core\EasilyNET.AutoDependencyInjection.Core.csproj" />
+		<ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
+	</ItemGroup>
 
 </Project>

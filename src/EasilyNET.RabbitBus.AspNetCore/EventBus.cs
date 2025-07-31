@@ -172,7 +172,7 @@ internal sealed record EventBus : IBus
         foreach (var @event in events)
         {
             var exc = @event.GetCustomAttribute<ExchangeAttribute>();
-            if (exc is null || exc.Enable is false)
+            if (exc is null || !exc.Enable)
             {
                 continue;
             }

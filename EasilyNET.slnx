@@ -44,6 +44,7 @@
     <Folder Name="/src/Framework/">
         <Project Path="src/EasilyNET.AutoDependencyInjection.Core/EasilyNET.AutoDependencyInjection.Core.csproj" />
         <Project Path="src/EasilyNET.AutoDependencyInjection/EasilyNET.AutoDependencyInjection.csproj" />
+        <Project Path="src/EasilyNET.Ipc/EasilyNET.Ipc.csproj" Id="910a38f2-f0e1-4d0f-8724-66f6e4ba0716" />
         <Project Path="src/EasilyNET.RabbitBus.AspNetCore/EasilyNET.RabbitBus.AspNetCore.csproj" />
         <Project Path="src/EasilyNET.RabbitBus.Core/EasilyNET.RabbitBus.Core.csproj" />
         <Project Path="src/EasilyNET.Security/EasilyNET.Security.csproj" />
