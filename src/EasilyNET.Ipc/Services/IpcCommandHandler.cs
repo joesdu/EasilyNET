@@ -179,10 +179,6 @@ public sealed class IpcCommandHandler : IIpcCommandHandler, IIpcLifetime, IDispo
                     var responseData = _serializer.SerializeResponse(response);
                     await transport.WriteAsync(responseData, cancellationToken);
                 }
-                if (transport.IsConnected)
-                {
-                    continue;
-                }
                 transport.Disconnect();
                 await transport.WaitForConnectionAsync(cancellationToken);
             }
