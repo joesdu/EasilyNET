@@ -20,6 +20,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="MessagePack" />
 		<PackageReference Include="Polly.Core" />
 	</ItemGroup>
 
