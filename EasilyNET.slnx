@@ -17,6 +17,8 @@
         <Build Project="false" />
     </Project>
     <Folder Name="/sample/">
+        <Project Path="sample/EasilyNET.Ipc.Client.Sample/EasilyNET.Ipc.Client.Sample.csproj" Id="f43c72a6-cdfb-48d5-b2c2-8d203075308b" />
+        <Project Path="sample/EasilyNET.Ipc.Server.Sample/EasilyNET.Ipc.Server.Sample.csproj" />
         <Project Path="sample/WebApi.Test.Unit/WebApi.Test.Unit.csproj" />
     </Folder>
     <Folder Name="/Solution Items/">
