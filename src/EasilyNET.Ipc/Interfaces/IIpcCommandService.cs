@@ -22,9 +22,9 @@ public interface IIpcCommandService
     /// <param name="command">The IPC command to send. This parameter cannot be null.</param>
     /// <param name="timeout">The maximum amount of time to wait for a response. If not specified, a default timeout is used.</param>
     /// <returns>
-    /// A task that represents the asynchronous operation. The task result is an <see cref="IpcCommandResponse" />
+    /// A task that represents the asynchronous operation. The task result is an <see cref="IpcCommandResponse{TData}" />
     /// containing the response to the command, or <see langword="null" /> if no response is received within the timeout
     /// period.
     /// </returns>
-    Task<IpcCommandResponse?> SendAndReceiveAsync(IpcCommand command, TimeSpan timeout = default);
+    Task<IpcCommandResponse<object>?> SendAndReceiveAsync(IIpcCommand<object> command, TimeSpan timeout = default);
 }

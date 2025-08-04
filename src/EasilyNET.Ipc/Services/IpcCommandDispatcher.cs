@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using EasilyNET.Ipc.Abstractions;
 using EasilyNET.Ipc.Interfaces;
 using EasilyNET.Ipc.Models;
 using Microsoft.Extensions.Logging;
@@ -48,13 +47,13 @@ public class IpcCommandDispatcher
     /// <param name="command">要分发的命令</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>处理结果</returns>
-    public async Task<IpcCommandResponse> DispatchAsync(IIpcCommandBase command, CancellationToken cancellationToken = default)
+    public async Task<IpcCommandResponse<object>> DispatchAsync(IIpcCommandBase command, CancellationToken cancellationToken = default)
     {
         try
         {
             // 获取命令类型名称
             var commandTypeName = GetCommandTypeName(command);
-            if (commandTypeName == null)
+            if (string.IsNullOrWhiteSpace(commandTypeName))
             {
                 var errorMsg = $"无法确定命令类型: {command.GetType().Name}";
                 _logger.LogError(errorMsg);
@@ -91,7 +90,7 @@ public class IpcCommandDispatcher
             {
                 await task;
                 var property = task.GetType().GetProperty("Result");
-                if (property?.GetValue(task) is IpcCommandResponse response)
+                if (property?.GetValue(task) is IpcCommandResponse<object> response)
                 {
                     return response;
                 }
@@ -131,13 +130,7 @@ public class IpcCommandDispatcher
     /// <param name="commandId">命令 ID</param>
     /// <param name="errorMessage">错误消息</param>
     /// <returns>错误响应</returns>
-    private static IpcCommandResponse CreateErrorResponse(string commandId, string errorMessage) =>
-        new()
-        {
-            CommandId = commandId,
-            Success = false,
-            Message = errorMessage
-        };
+    private static IpcCommandResponse<object> CreateErrorResponse(string commandId, string errorMessage) => IpcCommandResponse<object>.CreateFailure(commandId, errorMessage);
 }
 
 /// <summary>

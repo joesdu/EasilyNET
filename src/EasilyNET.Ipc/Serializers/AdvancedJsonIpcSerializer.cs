@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using EasilyNET.Ipc.Abstractions;
 using EasilyNET.Ipc.Interfaces;
 using EasilyNET.Ipc.Services;
 
@@ -48,6 +47,38 @@ public class AdvancedJsonIpcSerializer : IIpcGenericSerializer
     }
 
     /// <inheritdoc />
+    public byte[] SerializeResponse<TData>(TData data) => JsonSerializer.SerializeToUtf8Bytes(data, _options);
+
+    /// <inheritdoc />
+    public TData? DeserializeResponse<TData>(byte[] data)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<TData>(data, _options);
+        }
+        catch (JsonException)
+        {
+            return default;
+        }
+    }
+
+    /// <inheritdoc />
+    public byte[] Serialize<T>(T obj) => JsonSerializer.SerializeToUtf8Bytes(obj, _options);
+
+    /// <inheritdoc />
+    public T? Deserialize<T>(byte[] data)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<T>(data, _options);
+        }
+        catch (JsonException)
+        {
+            return default;
+        }
+    }
+
+    /// <inheritdoc />
     public IIpcCommandBase? DeserializeCommand(byte[] data, IpcCommandRegistry registry)
     {
         try
@@ -81,22 +112,6 @@ public class AdvancedJsonIpcSerializer : IIpcGenericSerializer
         }
     }
 
-    /// <inheritdoc />
-    public byte[] SerializeResponse<TData>(TData data) => JsonSerializer.SerializeToUtf8Bytes(data, _options);
-
-    /// <inheritdoc />
-    public TData? DeserializeResponse<TData>(byte[] data)
-    {
-        try
-        {
-            return JsonSerializer.Deserialize<TData>(data, _options);
-        }
-        catch (JsonException)
-        {
-            return default;
-        }
-    }
-
     /// <summary>
     /// 命令传输包装器
     /// </summary>
@@ -116,25 +131,16 @@ public class AdvancedJsonIpcSerializer : IIpcGenericSerializer
     /// <summary>
     /// 反序列化后的命令实现
     /// </summary>
-    private class DeserializedCommand<TPayload> : IIpcCommand<TPayload>
+    private class DeserializedCommand<TPayload>(string commandId, TPayload payload, string? targetId, DateTime timestamp, string commandTypeName) : IIpcCommand<TPayload>
     {
-        public DeserializedCommand(string commandId, TPayload payload, string? targetId, DateTime timestamp, string commandTypeName)
-        {
-            CommandId = commandId;
-            Payload = payload;
-            TargetId = targetId;
-            Timestamp = timestamp;
-            CommandTypeName = commandTypeName;
-        }
+        public string CommandTypeName { get; } = commandTypeName;
 
-        public string CommandTypeName { get; }
+        public string CommandId { get; } = commandId;
 
-        public string CommandId { get; }
+        public TPayload Payload { get; } = payload;
 
-        public TPayload Payload { get; }
+        public string? TargetId { get; } = targetId;
 
-        public string? TargetId { get; }
-
-        public DateTime Timestamp { get; }
+        public DateTime Timestamp { get; } = timestamp;
     }
 }

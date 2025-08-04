@@ -1,4 +1,3 @@
-using EasilyNET.Ipc.Abstractions;
 using EasilyNET.Ipc.Services;
 
 namespace EasilyNET.Ipc.Interfaces;
@@ -40,4 +39,20 @@ public interface IIpcGenericSerializer
     /// <param name="data">序列化的数据</param>
     /// <returns>反序列化后的响应数据</returns>
     TData? DeserializeResponse<TData>(byte[] data);
+
+    /// <summary>
+    /// 序列化对象
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="obj"></param>
+    /// <returns></returns>
+    byte[] Serialize<T>(T obj);
+
+    /// <summary>
+    /// 反序列化对象
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="data"></param>
+    /// <returns></returns>
+    T? Deserialize<T>(byte[] data);
 }

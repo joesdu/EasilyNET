@@ -17,6 +17,11 @@ public interface IIpcTransport : IDisposable
     bool IsConnected { get; }
 
     /// <summary>
+    /// CommandReceived event
+    /// </summary>
+    event Func<object, byte[], Task> CommandReceived;
+
+    /// <summary>
     /// Waits asynchronously for a connection to be established.(Server)
     /// </summary>
     /// <param name="cancellationToken">A token to monitor for cancellation requests. If the token is canceled, the operation is aborted.</param>
@@ -25,6 +30,13 @@ public interface IIpcTransport : IDisposable
     /// established or the operation is canceled.
     /// </returns>
     Task WaitForConnectionAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Send response async
+    /// </summary>
+    /// <param name="data"></param>
+    /// <returns></returns>
+    Task SendResponseAsync(byte[] data);
 
     /// <summary>
     /// Asynchronously establishes a connection to the server within the specified timeout period.(Client)
@@ -81,4 +93,14 @@ public interface IIpcTransport : IDisposable
     /// method, any operations requiring an active connection will fail  until a new connection is established.
     /// </remarks>
     void Disconnect();
+
+    /// <summary>
+    /// Start
+    /// </summary>
+    void Start();
+
+    /// <summary>
+    /// Stop
+    /// </summary>
+    void Stop();
 }

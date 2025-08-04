@@ -19,6 +19,7 @@ public class UnixSocketTransport : IIpcTransport
     private readonly ILogger? _logger;
     private readonly Socket? _serverSocket;
     private readonly string _socketPath;
+    private CancellationTokenSource? _cancellationTokenSource;
     private Socket? _connectedSocket;
     private bool _disposed;
 
@@ -43,7 +44,7 @@ public class UnixSocketTransport : IIpcTransport
     /// <paramref name="isServer" /> is <see langword="true" />. Defaults to 1.
     /// </param>
     /// <param name="logger">An optional <see cref="ILogger" /> instance for logging diagnostic information. Can be <see langword="null" />.</param>
-    public UnixSocketTransport(string socketPath, bool isServer, int maxServerInstances = 1, ILogger? logger = null)
+    public UnixSocketTransport(string socketPath, bool isServer, ILogger? logger = null, int maxServerInstances = 1)
     {
         _socketPath = socketPath;
         _isServer = isServer;
@@ -66,6 +67,9 @@ public class UnixSocketTransport : IIpcTransport
     }
 
     /// <inheritdoc />
+    public event Func<object, byte[], Task>? CommandReceived;
+
+    /// <inheritdoc />
     public bool IsConnected => _isServer ? _connectedSocket?.Connected ?? false : _clientSocket?.Connected ?? false;
 
     /// <inheritdoc />
@@ -79,6 +83,9 @@ public class UnixSocketTransport : IIpcTransport
         _connectedSocket = await _serverSocket.AcceptAsync(cancellationToken);
         _logger?.LogDebug("Unix 域套接字客户端已连接");
     }
+
+    /// <inheritdoc />
+    public Task SendResponseAsync(byte[] data) => WriteAsync(data, CancellationToken.None);
 
     /// <inheritdoc />
     public async Task ConnectAsync(TimeSpan timeout, CancellationToken cancellationToken)
@@ -146,6 +153,63 @@ public class UnixSocketTransport : IIpcTransport
     }
 
     /// <inheritdoc />
+    public void Start()
+    {
+        if (!_isServer)
+        {
+            throw new InvalidOperationException("仅服务端实例需要启动监听。");
+        }
+        _cancellationTokenSource = new();
+        Task.Run(async () =>
+        {
+            while (!_cancellationTokenSource.Token.IsCancellationRequested)
+            {
+                try
+                {
+                    await WaitForConnectionAsync(_cancellationTokenSource.Token);
+                    // 在新任务中处理客户端通信，以允许接受其他客户端
+#pragma warning disable CS4014
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            while (IsConnected && !_cancellationTokenSource.Token.IsCancellationRequested)
+                            {
+                                var data = await ReadAsync(_cancellationTokenSource.Token);
+                                CommandReceived?.Invoke(this, data);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger?.LogError(ex, "处理客户端通信时出错。");
+                        }
+                        finally
+                        {
+                            Disconnect();
+                        }
+                    }, _cancellationTokenSource.Token);
+#pragma warning restore CS4014
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected on stop
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError(ex, "等待连接时出错。");
+                }
+            }
+        }, _cancellationTokenSource.Token);
+    }
+
+    /// <inheritdoc />
+    public void Stop()
+    {
+        _cancellationTokenSource?.Cancel();
+        Disconnect();
+    }
+
+    /// <inheritdoc />
     public void Dispose()
     {
         if (_disposed)
@@ -155,6 +219,7 @@ public class UnixSocketTransport : IIpcTransport
         _connectedSocket?.Dispose();
         _serverSocket?.Dispose();
         _clientSocket?.Dispose();
+        _cancellationTokenSource?.Dispose();
         if (_isServer && File.Exists(_socketPath))
         {
             File.Delete(_socketPath);

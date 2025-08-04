@@ -27,9 +27,9 @@ public interface IIpcClient : IDisposable
     /// indicates no timeout.
     /// </param>
     /// <returns>
-    /// A task that represents the asynchronous operation. The task result is an <see cref="IpcCommandResponse" />
+    /// A task that represents the asynchronous operation. The task result is an <see cref="IpcCommandResponse{TData}" />
     /// containing the response to the command, or <see langword="null" /> if no response is received within the timeout
     /// period.
     /// </returns>
-    Task<IpcCommandResponse?> SendCommandAsync(IpcCommand command, TimeSpan timeout = default);
+    Task<IpcCommandResponse<object>?> SendCommandAsync(IIpcCommandBase command, TimeSpan timeout = default);
 }

@@ -9,9 +9,7 @@ namespace EasilyNET.Ipc.Services;
 /// </summary>
 /// <remarks>
 /// This service is designed to run in the background, processing IPC commands using the provided
-/// <see
-///     cref="IIpcCommandHandler" />
-/// implementation. It integrates with the ASP.NET Core hosting infrastructure and ensures
+/// command handler implementation. It integrates with the ASP.NET Core hosting infrastructure and ensures
 /// proper initialization and cleanup of the command handler, including support for asynchronous lifecycles if the
 /// handler implements <see cref="IIpcLifetime" />.
 /// </remarks>
@@ -20,7 +18,7 @@ namespace EasilyNET.Ipc.Services;
 /// </remarks>
 /// <param name="commandHandler">The IPC command handler responsible for processing inter-process communication commands.</param>
 /// <param name="logger">The logger used to log diagnostic and operational information for the hosted service.</param>
-public sealed class IpcCommandHandlerHostedService(IIpcCommandHandler commandHandler, ILogger<IpcCommandHandlerHostedService> logger) : BackgroundService
+public sealed class IpcCommandHandlerHostedService(IpcCommandHandler commandHandler, ILogger<IpcCommandHandlerHostedService> logger) : BackgroundService
 {
     private readonly ILogger _logger = logger;
 

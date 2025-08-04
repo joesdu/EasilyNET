@@ -1,120 +1,54 @@
-using System.Text;
-using System.Text.Json;
-
 namespace EasilyNET.Ipc.Models;
 
 /// <summary>
-/// IPC 命令响应
+/// 泛型 IPC 命令响应
 /// </summary>
-public sealed class IpcCommandResponse
+/// <typeparam name="TData">响应数据类型</typeparam>
+/// <param name="commandId">对应的命令 ID</param>
+/// <param name="success">操作是否成功</param>
+/// <param name="data">响应数据</param>
+/// <param name="message">响应消息</param>
+public sealed class IpcCommandResponse<TData>(string commandId, bool success, TData? data = default, string? message = null)
 {
-    private ReadOnlyMemory<byte> _dataBytes;
-    private string? _dataString;
-
     /// <summary>
     /// 对应的命令 ID
     /// </summary>
-    public string CommandId { get; set; } = string.Empty;
+    public string CommandId { get; } = commandId;
 
     /// <summary>
-    /// 响应数据（二进制格式，支持各种序列化器）
+    /// 响应数据
     /// </summary>
-    public ReadOnlyMemory<byte> DataBytes
-    {
-        get => _dataBytes;
-        set
-        {
-            _dataBytes = value;
-            _dataString = null; // 清除字符串缓存
-        }
-    }
-
-    /// <summary>
-    /// 响应数据（字符串格式，用于向后兼容）
-    /// </summary>
-    [Obsolete("请使用 DataBytes 以支持更多序列化格式，此属性将在未来版本中移除")]
-    public string? Data
-    {
-        get
-        {
-            if (_dataString == null && !_dataBytes.IsEmpty)
-            {
-                _dataString = Encoding.UTF8.GetString(_dataBytes.Span);
-            }
-            return _dataString;
-        }
-        set
-        {
-            _dataString = value;
-            _dataBytes = string.IsNullOrEmpty(value)
-                             ? ReadOnlyMemory<byte>.Empty
-                             : Encoding.UTF8.GetBytes(value);
-        }
-    }
+    public TData? Data { get; } = data;
 
     /// <summary>
     /// 响应消息（成功或错误描述）
     /// </summary>
-    public string? Message { get; set; }
+    public string? Message { get; } = message;
 
     /// <summary>
     /// 操作是否成功
     /// </summary>
-    public bool Success { get; set; }
+    public bool Success { get; } = success;
 
     /// <summary>
     /// 响应时间
     /// </summary>
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public DateTime Timestamp { get; } = DateTime.UtcNow;
 
     /// <summary>
-    /// 设置字符串类型的响应数据
+    /// 创建成功响应
     /// </summary>
-    /// <param name="data">字符串数据</param>
-    public void SetData(string data)
-    {
-        Data = data;
-    }
+    /// <param name="commandId">命令 ID</param>
+    /// <param name="data">响应数据</param>
+    /// <param name="message">成功消息</param>
+    /// <returns>成功响应实例</returns>
+    public static IpcCommandResponse<TData> CreateSuccess(string commandId, TData? data = default, string? message = null) => new(commandId, true, data, message);
 
     /// <summary>
-    /// 设置二进制类型的响应数据
+    /// 创建失败响应
     /// </summary>
-    /// <param name="data">二进制数据</param>
-    public void SetData(ReadOnlyMemory<byte> data)
-    {
-        DataBytes = data;
-    }
-
-    /// <summary>
-    /// 设置对象类型的响应数据（使用 JSON 序列化）
-    /// </summary>
-    /// <param name="data">要序列化的对象</param>
-    public void SetData<T>(T data)
-    {
-        var json = JsonSerializer.Serialize(data);
-        Data = json;
-    }
-
-    /// <summary>
-    /// 获取字符串类型的响应数据
-    /// </summary>
-    /// <returns>字符串数据</returns>
-    public string? GetDataAsString() => Data;
-
-    /// <summary>
-    /// 获取二进制类型的响应数据
-    /// </summary>
-    /// <returns>二进制数据</returns>
-    public ReadOnlyMemory<byte> GetDataAsBytes() => DataBytes;
-
-    /// <summary>
-    /// 获取反序列化后的对象（使用 JSON 反序列化）
-    /// </summary>
-    /// <typeparam name="T">目标类型</typeparam>
-    /// <returns>反序列化后的对象</returns>
-    public T? GetDataAs<T>()
-    {
-        var data = GetDataAsString();
-        return string.IsNullOrEmpty(data) ? default : JsonSerializer.Deserialize<T>(data);
-    }
+    /// <param name="commandId">命令 ID</param>
+    /// <param name="message">错误消息</param>
+    /// <returns>失败响应实例</returns>
+    public static IpcCommandResponse<TData> CreateFailure(string commandId, string message) => new(commandId, false, default, message);
 }

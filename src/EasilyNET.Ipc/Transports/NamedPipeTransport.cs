@@ -18,6 +18,7 @@ public class NamedPipeTransport : IIpcTransport
     private readonly bool _isServer;
     private readonly ILogger? _logger;
     private readonly NamedPipeServerStream? _serverStream;
+    private CancellationTokenSource? _cancellationTokenSource;
     private bool _disposed;
 
     /// <summary>
@@ -43,7 +44,7 @@ public class NamedPipeTransport : IIpcTransport
     /// An optional <see cref="ILogger" /> instance for logging diagnostic information. If <see langword="null" />, no
     /// logging will be performed.
     /// </param>
-    public NamedPipeTransport(string pipeName, bool isServer, int maxServerInstances = 1, ILogger? logger = null)
+    public NamedPipeTransport(string pipeName, bool isServer, ILogger? logger = null, int maxServerInstances = 1)
     {
         _isServer = isServer;
         _logger = logger;
@@ -59,6 +60,9 @@ public class NamedPipeTransport : IIpcTransport
     }
 
     /// <inheritdoc />
+    public event Func<object, byte[], Task>? CommandReceived;
+
+    /// <inheritdoc />
     public bool IsConnected => _isServer ? _serverStream?.IsConnected ?? false : _clientStream?.IsConnected ?? false;
 
     /// <inheritdoc />
@@ -71,6 +75,9 @@ public class NamedPipeTransport : IIpcTransport
         await _serverStream.WaitForConnectionAsync(cancellationToken);
         _logger?.LogDebug("命名管道客户端已连接");
     }
+
+    /// <inheritdoc />
+    public Task SendResponseAsync(byte[] data) => WriteAsync(data, CancellationToken.None);
 
     /// <inheritdoc />
     public async Task ConnectAsync(TimeSpan timeout, CancellationToken cancellationToken)
@@ -134,6 +141,63 @@ public class NamedPipeTransport : IIpcTransport
     }
 
     /// <inheritdoc />
+    public void Start()
+    {
+        if (!_isServer)
+        {
+            throw new InvalidOperationException("仅服务端实例需要启动监听。");
+        }
+        _cancellationTokenSource = new();
+        Task.Run(async () =>
+        {
+            while (!_cancellationTokenSource.Token.IsCancellationRequested)
+            {
+                try
+                {
+                    await WaitForConnectionAsync(_cancellationTokenSource.Token);
+                    // 在新任务中处理客户端通信，以允许接受其他客户端
+#pragma warning disable CS4014
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            while (IsConnected && !_cancellationTokenSource.Token.IsCancellationRequested)
+                            {
+                                var data = await ReadAsync(_cancellationTokenSource.Token);
+                                CommandReceived?.Invoke(this, data);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger?.LogError(ex, "处理客户端通信时出错。");
+                        }
+                        finally
+                        {
+                            Disconnect();
+                        }
+                    }, _cancellationTokenSource.Token);
+#pragma warning restore CS4014
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected on stop
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError(ex, "等待连接时出错。");
+                }
+            }
+        }, _cancellationTokenSource.Token);
+    }
+
+    /// <inheritdoc />
+    public void Stop()
+    {
+        _cancellationTokenSource?.Cancel();
+        Disconnect();
+    }
+
+    /// <inheritdoc />
     public void Dispose()
     {
         if (_disposed)
@@ -142,6 +206,7 @@ public class NamedPipeTransport : IIpcTransport
         }
         _serverStream?.Dispose();
         _clientStream?.Dispose();
+        _cancellationTokenSource?.Dispose();
         _disposed = true;
         GC.SuppressFinalize(this);
     }

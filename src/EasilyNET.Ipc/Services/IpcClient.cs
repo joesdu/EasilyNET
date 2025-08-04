@@ -1,3 +1,5 @@
+using System.Text.Json;
+using EasilyNET.Core.Essentials;
 using EasilyNET.Ipc.Interfaces;
 using EasilyNET.Ipc.Models;
 using Microsoft.Extensions.Logging;
@@ -23,6 +25,8 @@ public sealed class IpcClient : IIpcClient
     private readonly ILogger? _logger;
     private readonly IpcOptions _options;
     private readonly ResiliencePipeline _retryPipeline;
+    private readonly IIpcGenericSerializer _serializer;
+    private readonly IIpcCommandRegistry _typeRegistry;
     private bool _disposed;
 
     /// <summary>
@@ -65,10 +69,14 @@ public sealed class IpcClient : IIpcClient
     /// The configuration options for the IPC client, including retry policies, timeouts, and circuit breaker settings.
     /// This parameter cannot be null.
     /// </param>
+    /// <param name="typeRegistry">类型注册表实例</param>
+    /// <param name="serializer"></param>
     /// <param name="logger">An optional logger instance for logging diagnostic and operational information. If null, no logging will occur.</param>
-    public IpcClient(IIpcCommandService commandService, IOptions<IpcOptions> options, ILogger<IpcClient>? logger = null)
+    public IpcClient(IIpcCommandService commandService, IOptions<IpcOptions> options, IIpcCommandRegistry typeRegistry, IIpcGenericSerializer serializer, ILogger<IpcClient>? logger = null)
     {
         _commandService = commandService;
+        _typeRegistry = typeRegistry;
+        _serializer = serializer;
         _logger = logger;
         _options = options.Value;
         var retryOptions = _options.RetryPolicy;
@@ -127,7 +135,17 @@ public sealed class IpcClient : IIpcClient
     }
 
     /// <inheritdoc />
-    public async Task<IpcCommandResponse?> SendCommandAsync(IpcCommand command, TimeSpan timeout = default)
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        _disposed = true;
+    }
+
+    /// <inheritdoc />
+    public async Task<IpcCommandResponse<object>?> SendCommandAsync(IIpcCommandBase command, TimeSpan timeout = default)
     {
         if (timeout == TimeSpan.Zero)
         {
@@ -137,14 +155,16 @@ public sealed class IpcClient : IIpcClient
         {
             return await _circuitBreakerPipeline.ExecuteAsync(async token => await _retryPipeline.ExecuteAsync(async _ =>
             {
-                var response = await _commandService.SendAndReceiveAsync(command, timeout);
+                // 将基础命令包装为泛型命令
+                var wrappedCommand = CreateWrappedCommand(command);
+                var response = await _commandService.SendAndReceiveAsync(wrappedCommand, timeout);
                 if (response is not null)
                 {
                     return response;
                 }
                 if (_logger is not null && _logger.IsEnabled(LogLevel.Error))
                 {
-                    _logger?.LogError("IPC 命令响应为空: {CommandType}, CommandId: {CommandId}", command.CommandType, command.CommandId);
+                    _logger?.LogError("IPC 命令响应为空: CommandId: {CommandId}", command.CommandId);
                 }
                 throw new InvalidOperationException("未收到响应");
             }, token));
@@ -153,19 +173,115 @@ public sealed class IpcClient : IIpcClient
         {
             if (_logger is not null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger?.LogError(ex, "执行 IPC 命令时发生错误: {CommandType}, CommandId: {CommandId}", command.CommandType, command.CommandId);
+                _logger?.LogError(ex, "执行 IPC 命令时发生错误: CommandId: {CommandId}", command.CommandId);
             }
             return null;
         }
     }
 
-    /// <inheritdoc />
-    public void Dispose()
+    /// <summary>
+    /// 发送带响应的强类型命令
+    /// </summary>
+    public async Task<TResponse> SendAsync<TResponse>(IIpcCommand<TResponse> command, TimeSpan timeout = default, CancellationToken cancellationToken = default)
     {
-        if (_disposed)
+        try
         {
-            return;
+            var commandType = command.GetType();
+            var typeHash = _typeRegistry.GetTypeHash(commandType);
+            _logger?.LogDebug("发送强类型命令: {CommandType} (Hash: {TypeHash})", commandType.Name, typeHash);
+
+            // 创建强类型消息
+            var message = new IpcMessage<byte[]>
+            {
+                TypeHash = typeHash,
+                RequiresResponse = true,
+                Payload = JsonSerializer.SerializeToUtf8Bytes(command),
+                TargetId = null
+            };
+
+            // 序列化消息并创建包装命令
+            var wrappedCommand = new WrappedIpcCommand<object>(_serializer.Serialize(message), null);
+
+            // 发送命令
+            var response = await SendCommandAsync(wrappedCommand, timeout);
+            if (response == null)
+            {
+                throw new InvalidOperationException("未收到IPC响应");
+            }
+            if (!response.Success)
+            {
+                throw new InvalidOperationException($"IPC命令执行失败: {response.Message}");
+            }
+
+            // 反序列化强类型响应
+            if (response.Data is byte[] responseBytes)
+            {
+                var typedResponse = _serializer.Deserialize<IpcResponse>(responseBytes);
+                if (typedResponse is null)
+                {
+                    throw new InvalidOperationException("无法反序列化IPC响应");
+                }
+                if (!typedResponse.Success)
+                {
+                    throw new InvalidOperationException($"命令执行失败: {typedResponse.ErrorMessage}");
+                }
+                return JsonSerializer.Deserialize<TResponse>(typedResponse.ResponseData.Span)!;
+            }
+            throw new InvalidOperationException("响应数据格式不正确");
         }
-        _disposed = true;
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "发送强类型命令时发生错误: {CommandType}", command.GetType().Name);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 发送无响应的强类型命令
+    /// </summary>
+    public async Task SendAsync(IIpcCommandBase command, TimeSpan timeout = default, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var commandType = command.GetType();
+            var typeHash = _typeRegistry.GetTypeHash(commandType);
+            _logger?.LogDebug("发送强类型命令（无响应）: {CommandType} (Hash: {TypeHash})", commandType.Name, typeHash);
+            var message = new IpcMessage<byte[]>
+            {
+                TypeHash = typeHash,
+                RequiresResponse = false,
+                Payload = JsonSerializer.SerializeToUtf8Bytes(command)
+            };
+            var wrappedCommand = new WrappedIpcCommand<object>(_serializer.Serialize(message), null);
+            var response = await SendCommandAsync(wrappedCommand, timeout);
+            if (response is { Success: false })
+            {
+                throw new InvalidOperationException($"IPC命令执行失败: {response.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "发送强类型命令时发生错误: {CommandType}", command.GetType().Name);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 创建包装的IPC命令
+    /// </summary>
+    private static IIpcCommand<object> CreateWrappedCommand(IIpcCommandBase command) => new WrappedIpcCommand<object>(command, command.TargetId);
+
+    /// <summary>
+    /// 包装的IPC命令实现
+    /// </summary>
+    private sealed class WrappedIpcCommand<TPayload>(TPayload payload, string? targetId) : IIpcCommand<TPayload>
+    {
+        public TPayload Payload { get; } = payload;
+
+        public string CommandId { get; } = Ulid.NewUlid().ToString();
+
+        public string? TargetId { get; } = targetId;
+
+        public DateTime Timestamp { get; } = DateTime.UtcNow;
     }
 }

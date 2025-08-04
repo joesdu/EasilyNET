@@ -54,6 +54,11 @@ public class IpcOptions
     public int MaxServerInstances { get; set; } = 4;
 
     /// <summary>
+    /// 服务端传输层实例数量
+    /// </summary>
+    public int TransportCount { get; set; } = 1;
+
+    /// <summary>
     /// Gets or sets the maximum number of client pipe connections that can be pooled for reuse.
     /// </summary>
     /// <remarks>
@@ -66,7 +71,7 @@ public class IpcOptions
     /// <summary>
     /// Gets or sets the type of serializer to be used.
     /// </summary>
-    public IIpcSerializer? Serializer { get; set; } = new JsonIpcSerializer();
+    public IIpcGenericSerializer? Serializer { get; set; } = new AdvancedJsonIpcSerializer();
 
     /// <summary>
     /// Gets or sets the retry policy options for handling transient failures during operations.

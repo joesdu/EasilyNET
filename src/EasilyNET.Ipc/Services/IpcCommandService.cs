@@ -19,11 +19,12 @@ namespace EasilyNET.Ipc.Services;
 /// </remarks>
 public sealed class IpcCommandService : IIpcCommandService, IDisposable
 {
+    private readonly IpcCommandRegistry _commandRegistry;
     private readonly CancellationTokenSource _cts = new();
     private readonly ILogger? _logger;
     private readonly IpcOptions _options;
     private readonly ResiliencePipeline _retryPipeline;
-    private readonly IIpcSerializer _serializer;
+    private readonly IIpcGenericSerializer _serializer;
     private readonly ConcurrentBag<IIpcTransport> _transportPool = [];
     private bool _disposed;
 
@@ -45,11 +46,13 @@ public sealed class IpcCommandService : IIpcCommandService, IDisposable
     /// null.
     /// </param>
     /// <param name="serializer">The serializer used for serializing and deserializing IPC messages. Cannot be null.</param>
+    /// <param name="commandRegistry"></param>
     /// <param name="logger">An optional logger instance for logging diagnostic and operational information.</param>
-    public IpcCommandService(IOptions<IpcOptions> options, IIpcSerializer serializer, ILogger<IpcCommandService>? logger = null)
+    public IpcCommandService(IOptions<IpcOptions> options, IIpcGenericSerializer serializer, IpcCommandRegistry commandRegistry, ILogger<IpcCommandService>? logger = null)
     {
         _options = options.Value;
         _serializer = serializer;
+        _commandRegistry = commandRegistry;
         _logger = logger;
         var retryOptions = _options.RetryPolicy;
         _retryPipeline = new ResiliencePipelineBuilder()
@@ -100,8 +103,10 @@ public sealed class IpcCommandService : IIpcCommandService, IDisposable
         _disposed = true;
     }
 
-    /// <inheritdoc />
-    public async Task<IpcCommandResponse?> SendAndReceiveAsync(IpcCommand command, TimeSpan timeout = default)
+    /// <summary>
+    /// 发送IPC命令并接收响应
+    /// </summary>
+    public async Task<IpcCommandResponse<object>?> SendAndReceiveAsync(IIpcCommand<object> command, TimeSpan timeout = default)
     {
         if (timeout == TimeSpan.Zero)
         {
@@ -122,10 +127,10 @@ public sealed class IpcCommandService : IIpcCommandService, IDisposable
                     {
                         await transport.ConnectAsync(timeout, _cts.Token);
                     }
-                    var commandData = _serializer.SerializeCommand(command);
+                    var commandData = _serializer.SerializeCommand(command, _commandRegistry);
                     await transport.WriteAsync(commandData, _cts.Token);
                     var responseData = await transport.ReadAsync(_cts.Token);
-                    var response = _serializer.DeserializeResponse(responseData);
+                    var response = _serializer.DeserializeResponse<IpcCommandResponse<object>>(responseData);
                     if (_logger is not null && _logger.IsEnabled(LogLevel.Debug))
                     {
                         _logger.LogDebug("收到 IPC 响应: {CommandId}", command.CommandId);
@@ -169,8 +174,8 @@ public sealed class IpcCommandService : IIpcCommandService, IDisposable
 
     private IIpcTransport CreateTransport(bool isServer) =>
         OperatingSystem.IsWindows()
-            ? new NamedPipeTransport(_options.PipeName, isServer, _options.MaxServerInstances, _logger)
+            ? new NamedPipeTransport(_options.PipeName, isServer, _logger, _options.MaxServerInstances)
             : OperatingSystem.IsLinux()
-                ? new UnixSocketTransport(_options.UnixSocketPath, isServer, _options.MaxServerInstances, _logger)
+                ? new UnixSocketTransport(_options.UnixSocketPath, isServer, _logger, _options.MaxServerInstances)
                 : throw new PlatformNotSupportedException("仅支持 Windows 和 Linux 平台");
 }
