@@ -36,7 +36,7 @@ public class IpcOptions
     /// <summary>
     /// Gets or sets the name of the pipe used for inter-process communication.
     /// </summary>
-    public string PipeName { get; set; } = "Crazy_EasilyNETIpcPipe";
+    public string PipeName { get; set; } = "EasilyNET_IPC_Pipe";
 
     /// <summary>
     /// Gets or sets the file system path to the Unix domain socket used for inter-process communication.

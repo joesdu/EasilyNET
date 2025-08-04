@@ -32,4 +32,23 @@ public interface IIpcClient : IDisposable
     /// period.
     /// </returns>
     Task<IpcCommandResponse<object>?> SendCommandAsync(IIpcCommandBase command, TimeSpan timeout = default);
+
+    /// <summary>
+    /// 发送带响应的强类型命令
+    /// </summary>
+    /// <typeparam name="TResponse">响应数据类型</typeparam>
+    /// <param name="command">要发送的命令</param>
+    /// <param name="timeout">超时时间</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>强类型响应数据</returns>
+    Task<TResponse> SendAsync<TResponse>(IIpcCommand<TResponse> command, TimeSpan timeout = default, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 发送无响应的强类型命令
+    /// </summary>
+    /// <param name="command">要发送的命令</param>
+    /// <param name="timeout">超时时间</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>任务</returns>
+    Task SendAsync(IIpcCommandBase command, TimeSpan timeout = default, CancellationToken cancellationToken = default);
 }

@@ -172,10 +172,13 @@ public sealed class IpcCommandService : IIpcCommandService, IDisposable
         }
     }
 
-    private IIpcTransport CreateTransport(bool isServer) =>
-        OperatingSystem.IsWindows()
-            ? new NamedPipeTransport(_options.PipeName, isServer, _logger, _options.MaxServerInstances)
-            : OperatingSystem.IsLinux()
-                ? new UnixSocketTransport(_options.UnixSocketPath, isServer, _logger, _options.MaxServerInstances)
-                : throw new PlatformNotSupportedException("仅支持 Windows 和 Linux 平台");
+    private IIpcTransport CreateTransport(bool isServer)
+    {
+        return Environment.OSVersion.Platform switch
+        {
+            PlatformID.Win32NT => new NamedPipeTransport(_options.PipeName, isServer, _logger, _options.MaxServerInstances),
+            PlatformID.Unix    => new UnixSocketTransport(_options.UnixSocketPath, isServer, _logger, _options.MaxServerInstances),
+            _                  => throw new PlatformNotSupportedException($"不支持的操作系统平台: {Environment.OSVersion.Platform}")
+        };
+    }
 }

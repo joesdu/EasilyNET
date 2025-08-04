@@ -93,9 +93,12 @@ public class AdvancedJsonIpcSerializer : IIpcGenericSerializer
             {
                 throw new InvalidOperationException($"未知的命令类型: {envelope.CommandTypeName}");
             }
-
-            // 反序列化负载数据
-            var payload = JsonSerializer.Deserialize(envelope.PayloadJson, metadata.PayloadType, _options);
+            // 反序列化负载数据，处理空 PayloadJson 的情况
+            object? payload = null;
+            if (!string.IsNullOrEmpty(envelope.PayloadJson))
+            {
+                payload = JsonSerializer.Deserialize(envelope.PayloadJson, metadata.PayloadType, _options);
+            }
 
             // 创建泛型命令实例
             var commandType = typeof(DeserializedCommand<>).MakeGenericType(metadata.PayloadType);
@@ -103,12 +106,17 @@ public class AdvancedJsonIpcSerializer : IIpcGenericSerializer
                 envelope.CommandId,
                 payload,
                 envelope.TargetId,
-                envelope.Timestamp,
-                envelope.CommandTypeName);
+                envelope.Timestamp);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            return null;
+            // 记录序列化异常的详细信息以便调试
+            throw new InvalidOperationException($"反序列化命令时发生JSON异常: {ex.Message}", ex);
+        }
+        catch (Exception ex)
+        {
+            // 记录其他异常
+            throw new InvalidOperationException($"反序列化命令时发生未知异常: {ex.Message}", ex);
         }
     }
 
@@ -131,10 +139,8 @@ public class AdvancedJsonIpcSerializer : IIpcGenericSerializer
     /// <summary>
     /// 反序列化后的命令实现
     /// </summary>
-    private class DeserializedCommand<TPayload>(string commandId, TPayload payload, string? targetId, DateTime timestamp, string commandTypeName) : IIpcCommand<TPayload>
+    private class DeserializedCommand<TPayload>(string commandId, TPayload payload, string? targetId, DateTime timestamp) : IIpcCommand<TPayload>
     {
-        public string CommandTypeName { get; } = commandTypeName;
-
         public string CommandId { get; } = commandId;
 
         public TPayload Payload { get; } = payload;

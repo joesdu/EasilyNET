@@ -188,8 +188,8 @@ public sealed class IpcCommandHandler : IIpcLifetime, IDisposable
         IIpcTransport transport = Environment.OSVersion.Platform switch
         {
             PlatformID.Win32NT => new NamedPipeTransport(pipeName, true, _logger),
-            PlatformID.Unix    => new UnixSocketTransport(pipeName, true, _logger),
-            _                  => throw new PlatformNotSupportedException("不支持的操作系统平台")
+            PlatformID.Unix    => new UnixSocketTransport($"{_options.UnixSocketPath}_{transportId}", true, _logger),
+            _                  => throw new PlatformNotSupportedException($"不支持的操作系统平台: {Environment.OSVersion.Platform}")
         };
 
         // 设置命令处理事件

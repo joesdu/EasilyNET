@@ -59,8 +59,9 @@ public static class IpcServiceCollectionExtensions
             options.Timeout.Business = TimeSpan.FromSeconds(30);
             options.DefaultTimeout = TimeSpan.FromSeconds(30);
 
-            // 服务配置
-            options.PipeName = "EasilyNET_IPC";
+            // 服务配置 - 使用更标准的命名
+            options.PipeName = "EasilyNET_IPC_Pipe";
+            options.UnixSocketPath = "/tmp/easilynet_ipc.sock";
             options.TransportCount = 4;
             options.MaxServerInstances = 4;
             options.ClientPipePoolSize = 2;
@@ -78,8 +79,10 @@ public static class IpcServiceCollectionExtensions
             services.Configure(configureOptions);
         }
 
-        // 注册核心服务 - 统一使用 IpcCommandRegistry
+        // 注册核心服务 - 确保正确的接口映射
         services.AddSingleton<IIpcCommandRegistry, IpcCommandRegistry>();
+        services.AddSingleton<IpcCommandRegistry>(provider =>
+            (IpcCommandRegistry)provider.GetRequiredService<IIpcCommandRegistry>());
         services.AddSingleton<IIpcCommandService, IpcCommandService>();
         services.AddSingleton<IIpcGenericSerializer, AdvancedJsonIpcSerializer>();
         return services;
@@ -169,6 +172,10 @@ public static class IpcServiceCollectionExtensions
         services.AddHostedService<IpcCommandHandlerHostedService>();
         return services;
     }
+
+    #endregion
+
+    #region 客户端注册
 
     /// <summary>
     /// Adds the IPC client services to the specified <see cref="IServiceCollection" />.
@@ -272,10 +279,14 @@ public static class IpcServiceCollectionExtensions
         // 注册命令初始化回调
         services.AddSingleton<IHostedService>(provider => new CommandRegistrationService(() =>
         {
-            var commandRegistry = provider.GetRequiredService<IpcCommandRegistry>();
+            var commandRegistry = provider.GetRequiredService<IIpcCommandRegistry>();
 
-            // 注册到 IpcCommandRegistry
-            commandRegistry.RegisterCommand<TCommand, TPayload>(commandTypeName, typeof(TResponse));
+            // 确保 commandRegistry 是 IpcCommandRegistry 类型
+            if (commandRegistry is IpcCommandRegistry registry)
+            {
+                // 注册到 IpcCommandRegistry (使用完整的注册方法)
+                registry.RegisterCommand<TCommand, TPayload>(commandTypeName, typeof(TResponse));
+            }
 
             // 注册到统一的命令注册表
             commandRegistry.Register<TCommand>();
