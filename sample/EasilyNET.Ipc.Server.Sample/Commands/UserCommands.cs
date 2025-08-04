@@ -85,7 +85,7 @@ public class CreateUserHandler : IIpcCommandHandler<CreateUserCommand, CreateUse
         try
         {
             var payload = command.Payload;
-            
+
             _logger.LogInformation("创建用户: {Name}, Email: {Email}", payload.Name, payload.Email);
 
             // 验证输入
@@ -104,9 +104,9 @@ public class CreateUserHandler : IIpcCommandHandler<CreateUserCommand, CreateUse
             };
 
             var createdUser = _userStorage.AddUser(user);
-            
+
             _logger.LogInformation("用户创建成功: {UserId}", createdUser.Id);
-            
+
             return await Task.FromResult(IpcCommandResponse<User>.CreateSuccess(command.CommandId, createdUser, "用户创建成功"));
         }
         catch (Exception ex)
@@ -136,14 +136,14 @@ public class GetUserHandler : IIpcCommandHandler<GetUserCommand, GetUserPayload,
         try
         {
             var payload = command.Payload;
-            
+
             _logger.LogInformation("获取用户: {UserId}", payload.UserId);
 
             if (payload.UserId <= 0)
                 throw new ArgumentException("用户ID必须大于0", nameof(payload.UserId));
 
             var user = _userStorage.GetUser(payload.UserId);
-            
+
             if (user == null)
             {
                 _logger.LogWarning("用户不存在: {UserId}", payload.UserId);
@@ -182,7 +182,7 @@ public class UpdateUserHandler : IIpcCommandHandler<UpdateUserCommand, UpdateUse
         try
         {
             var payload = command.Payload;
-            
+
             _logger.LogInformation("更新用户: {UserId}", payload.UserId);
 
             if (payload.UserId <= 0)
@@ -198,17 +198,17 @@ public class UpdateUserHandler : IIpcCommandHandler<UpdateUserCommand, UpdateUse
             // 更新字段
             if (!string.IsNullOrWhiteSpace(payload.Name))
                 existingUser.Name = payload.Name;
-            
+
             if (!string.IsNullOrWhiteSpace(payload.Email))
                 existingUser.Email = payload.Email;
-            
+
             if (!string.IsNullOrWhiteSpace(payload.Phone))
                 existingUser.Phone = payload.Phone;
 
             var updatedUser = _userStorage.UpdateUser(existingUser);
-            
+
             _logger.LogInformation("用户更新成功: {UserId}", payload.UserId);
-            
+
             return await Task.FromResult(IpcCommandResponse<User?>.CreateSuccess(command.CommandId, updatedUser, "用户更新成功"));
         }
         catch (Exception ex)
@@ -238,14 +238,14 @@ public class DeleteUserHandler : IIpcCommandHandler<DeleteUserCommand, DeleteUse
         try
         {
             var payload = command.Payload;
-            
+
             _logger.LogInformation("删除用户: {UserId}, 原因: {Reason}", payload.UserId, payload.Reason);
 
             if (payload.UserId <= 0)
                 throw new ArgumentException("用户ID必须大于0", nameof(payload.UserId));
 
             var result = _userStorage.DeleteUser(payload.UserId);
-            
+
             if (result)
             {
                 _logger.LogInformation("用户删除成功: {UserId}", payload.UserId);
@@ -286,9 +286,9 @@ public class GetAllUsersHandler : IIpcCommandHandler<GetAllUsersCommand, GetAllU
             _logger.LogInformation("获取所有用户列表");
 
             var users = _userStorage.GetAllUsers();
-            
+
             _logger.LogInformation("获取到 {Count} 个用户", users.Count);
-            
+
             return await Task.FromResult(IpcCommandResponse<List<User>>.CreateSuccess(command.CommandId, users, $"获取到 {users.Count} 个用户"));
         }
         catch (Exception ex)

@@ -13,35 +13,35 @@ public interface IUserStorage
     /// </summary>
     /// <returns></returns>
     List<User> GetAllUsers();
-    
+
     /// <summary>
     /// 根据ID获取用户
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
     User? GetUser(int id);
-    
+
     /// <summary>
     /// 添加用户
     /// </summary>
     /// <param name="user"></param>
     /// <returns></returns>
     User AddUser(User user);
-    
+
     /// <summary>
     /// 更新用户
     /// </summary>
     /// <param name="user"></param>
     /// <returns></returns>
     User? UpdateUser(User user);
-    
+
     /// <summary>
     /// 删除用户
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
     bool DeleteUser(int id);
-    
+
     /// <summary>
     /// 获取下一个ID
     /// </summary>
@@ -73,7 +73,7 @@ public class UserStorage : IUserStorage
         AddUser(new User
         {
             Id = GetNextId(),
-            Name = "测试用户2", 
+            Name = "测试用户2",
             Email = "test2@example.com",
             Phone = "13800138002",
             CreatedAt = DateTime.Now,
@@ -100,7 +100,7 @@ public class UserStorage : IUserStorage
         }
         user.CreatedAt = DateTime.Now;
         user.IsActive = true;
-        
+
         _users.TryAdd(user.Id, user);
         return user;
     }

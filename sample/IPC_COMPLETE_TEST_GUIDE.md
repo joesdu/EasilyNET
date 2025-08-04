@@ -28,31 +28,37 @@ sample/
 ## 测试功能
 
 ### ✅ 基础功能测试
+
 - **Echo 命令测试**: 测试基本的消息回显功能
 - **连接稳定性测试**: 验证客户端与服务端的连接是否稳定
 
 ### ✅ 用户管理功能测试
+
 - **创建用户**: 测试用户创建功能
-- **获取用户**: 测试根据ID获取用户信息
+- **获取用户**: 测试根据 ID 获取用户信息
 - **更新用户**: 测试用户信息更新功能
 - **删除用户**: 测试用户删除功能（软删除和硬删除）
 - **获取所有用户**: 测试批量获取用户列表
 
 ### ✅ 数学计算测试
+
 - **四则运算**: 测试加、减、乘、除运算
 - **异常处理**: 测试除零等异常情况
 
 ### ✅ 性能与并发测试
+
 - **延时命令**: 测试长时间运行的命令处理
 - **并发性能测试**: 测试多个并发请求的处理能力
 - **超时处理**: 测试命令超时机制
 
 ### ✅ 错误处理测试
+
 - **异常传播**: 测试服务端异常如何传播到客户端
 - **重试机制**: 测试失败重试功能
 - **熔断器**: 测试熔断器保护机制
 
 ### ✅ 系统功能测试
+
 - **服务器状态查询**: 获取服务器运行状态和统计信息
 - **资源管理**: 测试连接池和资源释放
 
@@ -68,6 +74,7 @@ dotnet run
 ```
 
 服务端将显示以下信息：
+
 - ✅ 支持的所有命令类型
 - 🌐 IPC 通信配置信息
 - 📍 管道名称和套接字路径
@@ -90,19 +97,21 @@ dotnet run
 ```json
 {
   "Ipc": {
-    "PipeName": "EasilyNET_IPC_Test",           // Windows 命名管道名称
+    "PipeName": "EasilyNET_IPC_Test", // Windows 命名管道名称
     "UnixSocketPath": "/tmp/easilynet_ipc_test.sock", // Linux Unix Socket 路径
-    "TransportCount": 4,                        // 传输层实例数
-    "MaxServerInstances": 4,                    // 服务端最大实例数
-    "ClientPipePoolSize": 2,                    // 客户端连接池大小
-    "DefaultTimeout": "00:00:30",               // 默认超时时间
-    "RetryPolicy": {                            // 重试策略配置
+    "TransportCount": 4, // 传输层实例数
+    "MaxServerInstances": 4, // 服务端最大实例数
+    "ClientPipePoolSize": 2, // 客户端连接池大小
+    "DefaultTimeout": "00:00:30", // 默认超时时间
+    "RetryPolicy": {
+      // 重试策略配置
       "MaxAttempts": 5,
       "InitialDelay": "00:00:01",
       "BackoffType": "Exponential",
       "UseJitter": true
     },
-    "CircuitBreaker": {                         // 熔断器配置
+    "CircuitBreaker": {
+      // 熔断器配置
       "FailureRatio": 0.5,
       "MinimumThroughput": 5,
       "BreakDuration": "00:00:30"
@@ -175,13 +184,15 @@ dotnet run
 ### 常见问题
 
 1. **连接失败**
+
    - 确保服务端已启动并正在监听
    - 检查防火墙设置
    - 验证管道名称/套接字路径配置一致
 
 2. **权限问题**
+
    - Windows: 确保有访问命名管道的权限
-   - Linux: 确保有访问Unix套接字文件的权限
+   - Linux: 确保有访问 Unix 套接字文件的权限
 
 3. **超时问题**
    - 调整配置文件中的超时设置
