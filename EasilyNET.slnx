@@ -13,12 +13,7 @@
         <File Path=".github/workflows/build_test.yml" />
         <File Path=".github/workflows/releaser.yml" />
     </Folder>
-    <Project Path="docs/docs.csproj" Id="2cf4a9d4-7648-44f1-a7b6-015159eb025f">
-        <Build Project="false" />
-    </Project>
     <Folder Name="/sample/">
-        <Project Path="sample/EasilyNET.Ipc.Client.Sample/EasilyNET.Ipc.Client.Sample.csproj" Id="f43c72a6-cdfb-48d5-b2c2-8d203075308b" />
-        <Project Path="sample/EasilyNET.Ipc.Server.Sample/EasilyNET.Ipc.Server.Sample.csproj" />
         <Project Path="sample/WebApi.Test.Unit/WebApi.Test.Unit.csproj" />
     </Folder>
     <Folder Name="/Solution Items/">
@@ -46,7 +41,6 @@
     <Folder Name="/src/Framework/">
         <Project Path="src/EasilyNET.AutoDependencyInjection.Core/EasilyNET.AutoDependencyInjection.Core.csproj" />
         <Project Path="src/EasilyNET.AutoDependencyInjection/EasilyNET.AutoDependencyInjection.csproj" />
-        <Project Path="src/EasilyNET.Ipc/EasilyNET.Ipc.csproj" Id="910a38f2-f0e1-4d0f-8724-66f6e4ba0716" />
         <Project Path="src/EasilyNET.RabbitBus.AspNetCore/EasilyNET.RabbitBus.AspNetCore.csproj" />
         <Project Path="src/EasilyNET.RabbitBus.Core/EasilyNET.RabbitBus.Core.csproj" />
         <Project Path="src/EasilyNET.Security/EasilyNET.Security.csproj" />

@@ -36,7 +36,6 @@ docker compose -f docker-compose.basic.service.yml up -d
 
 EasilyNET Packages
 
-- IPC通信库,支持跨进程通信,支持多种序列化方式,支持自定义序列化方式(新)
 - AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4 加密,验签等算法
 - 基于 RabbitMQ 的消息总线实现
 - 对 MongoDB 驱动的一些封装,方便使用以及一些常用默认配置,支持通过特性标注索引(新).
@@ -69,12 +68,9 @@ EasilyNET Packages
 
 #### 近期更新内容(Recent Updates)
 
-- 新增IPC通信库,支持跨进程通信,支持多种序列化方式,支持自定义序列化方式(新)
-
 <details>
 <summary style="font-size: 14px">English</summary>
 
-- Added IPC communication library, supporting inter-process communication, multiple serialization methods, and custom serialization methods (new).
 
 </details>
 
@@ -91,7 +87,6 @@ EasilyNET Packages
 | NuGet Package                           | Version      | Download     | Document                                                  |
 | --------------------------------------- | ------------ | ------------ | --------------------------------------------------------- |
 | [EasilyNET.AutoDependencyInjection][20] | ![Nuget][21] | ![Nuget][22] | [文档](./src/EasilyNET.AutoDependencyInjection/README.md) |
-| [EasilyNET.Ipc][23]                     | ![Nuget][24] | ![Nuget][25] | [文档](./src/EasilyNET.Ipc/README.md)                     |
 | [EasilyNET.RabbitBus.AspNetCore][26]    | ![Nuget][27] | ![Nuget][28] | [文档](./src/EasilyNET.RabbitBus.AspNetCore/README.md)    |
 | [EasilyNET.Security][29]                | ![Nuget][30] | ![Nuget][31] | [文档](./src/EasilyNET.Security/README.md)                |
 
@@ -148,9 +143,6 @@ EasilyNET Packages
 [20]: https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection
 [21]: https://img.shields.io/nuget/v/EasilyNET.AutoDependencyInjection
 [22]: https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection
-[23]: https://www.nuget.org/packages/EasilyNET.Ipc
-[24]: https://img.shields.io/nuget/v/EasilyNET.Ipc
-[25]: https://img.shields.io/nuget/dt/EasilyNET.Ipc
 [26]: https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore
 [27]: https://img.shields.io/nuget/v/EasilyNET.RabbitBus.AspNetCore
 [28]: https://img.shields.io/nuget/dt/EasilyNET.RabbitBus.AspNetCore
