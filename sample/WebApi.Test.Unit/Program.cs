@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using EasilyNET.Core.Misc;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
@@ -80,10 +82,154 @@ return;
 void OnStarted()
 {
     var appComplete = Stopwatch.GetTimestamp();
-    Log.Information("Operating System: {OS}", RuntimeInformation.OSDescription);
-    Log.Information("Application started in {Elapsed} ms", Stopwatch.GetElapsedTime(appInitial, appComplete).TotalMilliseconds);
+    var startupTime = Stopwatch.GetElapsedTime(appInitial, appComplete);
+
+    // 获取服务器监听地址
+    var serverAddressesFeature = app.Services.GetRequiredService<IServer>()
+                                    .Features.Get<IServerAddressesFeature>();
+    var addresses = serverAddressesFeature?.Addresses ?? [];
+    var listeningOn = addresses.Count > 0 ? string.Join(", ", addresses) : "未知地址";
+    
+    // 检查是否支持UTF-8字符
+    var supportsEmoji = TextWriterExtensions.IsUtf8Supported() && !Console.IsOutputRedirected;
+    
+    // 根据支持情况选择字符
+    var (rocket, computer, lightning, globe, network, calendar, wrench, house, checkmark, party) = supportsEmoji 
+        ? ("🚀", "🖥️", "⚡", "🌍", "🌐", "📅", "🔧", "🏠", "✅", "🎉")
+        : (">", "[PC]", "*", "[ENV]", "[NET]", "[TIME]", "[.NET]", "[PID]", "[OK]", "!");
+    
+    var borderChar = supportsEmoji ? "─" : "-";
+    var verticalChar = supportsEmoji ? "│" : "|";
+    var topLeft = supportsEmoji ? "┌" : "+";
+    var topRight = supportsEmoji ? "┐" : "+";
+    var bottomLeft = supportsEmoji ? "└" : "+";
+    var bottomRight = supportsEmoji ? "┘" : "+";
+    var leftTee = supportsEmoji ? "├" : "+";
+    var rightTee = supportsEmoji ? "┤" : "+";
+    
+    // 动态计算最大内容宽度
+    var infoLines = new[]
+    {
+        $" {rocket} {Constant.InstanceName} Application Started Successfully!",
+        $" {computer}  Operating System: {RuntimeInformation.OSDescription.Trim()}",
+        $" {lightning} Startup Time: {startupTime.TotalMilliseconds:F2} ms",
+        $" {globe} Environment: {app.Environment.EnvironmentName}",
+        $" {network} Listening On: {listeningOn}",
+        $" {calendar} Started At: {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
+        $" {wrench} .NET Version: {RuntimeInformation.FrameworkDescription}",
+        $" {house} Process ID: {Environment.ProcessId}"
+    };
+    
+    // 计算显示宽度(考虑emoji占用2个字符位置的情况)
+    static int GetDisplayWidth(string text, bool hasEmoji)
+    {
+        if (!hasEmoji) return text.Length;
+        
+        // 简单的emoji宽度估算：大多数emoji占用2个字符位置
+        var emojiCount = 0;
+        foreach (var c in text)
+        {
+            if (c > 127 && char.IsSymbol(c)) // 简单的emoji检测
+                emojiCount++;
+        }
+        return text.Length + emojiCount; // emoji额外占用1个字符位置
+    }
+    
+    var maxContentWidth = infoLines.Max(line => GetDisplayWidth(line, supportsEmoji));
+    var totalWidth = Math.Max(maxContentWidth + 2, 65); // 最小宽度65，+2为左右边框
+    var borderLength = totalWidth - 2; // 减去左右边框字符
+    
+    var topBorder = topLeft + new string(borderChar[0], borderLength) + topRight;
+    var middleBorder = leftTee + new string(borderChar[0], borderLength) + rightTee;
+    var bottomBorder = bottomLeft + new string(borderChar[0], borderLength) + bottomRight;
+    
+    // 输出格式化的信息
+    Log.Information(topBorder);
+    
+    foreach (var line in infoLines)
+    {
+        var displayWidth = GetDisplayWidth(line, supportsEmoji);
+        var padding = new string(' ', Math.Max(0, borderLength - displayWidth));
+        Log.Information($"{verticalChar}{line}{padding} {verticalChar}");
+        
+        if (line == infoLines[0]) // 第一行后添加分隔线
+        {
+            Log.Information(middleBorder);
+        }
+    }
+    
+    Log.Information(bottomBorder);
+    Log.Information("{Checkmark} {ApplicationName} is ready to serve requests! {Party}", checkmark, Constant.InstanceName, party);
 }
 
-#pragma warning disable IDE0062
-void OnShutdown() => Log.Information("Application shutdown");
-#pragma warning restore IDE0062
+void OnShutdown()
+{
+    var appShutdown = Stopwatch.GetTimestamp();
+    var appUptime = Stopwatch.GetElapsedTime(appInitial, appShutdown);
+    
+    // 检查是否支持UTF-8字符
+    var supportsEmoji = TextWriterExtensions.IsUtf8Supported() && !Console.IsOutputRedirected;
+    
+    // 根据支持情况选择字符
+    var (stop, calendar, clock, wave, sparkle) = supportsEmoji 
+        ? ("🛑", "📅", "⏱️", "👋", "💫")
+        : ("[STOP]", "[TIME]", "[UPTIME]", "[BYE]", "*");
+    
+    var borderChar = supportsEmoji ? "─" : "-";
+    var verticalChar = supportsEmoji ? "│" : "|";
+    var topLeft = supportsEmoji ? "┌" : "+";
+    var topRight = supportsEmoji ? "┐" : "+";
+    var bottomLeft = supportsEmoji ? "└" : "+";
+    var bottomRight = supportsEmoji ? "┘" : "+";
+    var leftTee = supportsEmoji ? "├" : "+";
+    var rightTee = supportsEmoji ? "┤" : "+";
+    
+    // 动态计算最大内容宽度
+    var infoLines = new[]
+    {
+        $" {stop} {Constant.InstanceName} Application Shutdown Initiated",
+        $" {calendar} Shutdown Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
+        $" {clock} Total Uptime: {appUptime.TotalSeconds:F2} seconds"
+    };
+    
+    // 计算显示宽度(考虑emoji占用2个字符位置的情况)
+    static int GetDisplayWidth(string text, bool hasEmoji)
+    {
+        if (!hasEmoji) return text.Length;
+        
+        // 简单的emoji宽度估算：大部分emoji占用2个字符位置
+        var emojiCount = 0;
+        foreach (var c in text)
+        {
+            if (c > 127 && char.IsSymbol(c)) // 简单的emoji检测
+                emojiCount++;
+        }
+        return text.Length + emojiCount; // emoji额外占用1个字符位置
+    }
+    
+    var maxContentWidth = infoLines.Max(line => GetDisplayWidth(line, supportsEmoji));
+    var totalWidth = Math.Max(maxContentWidth + 2, 65); // 最小宽度65，+2为左右边框
+    var borderLength = totalWidth - 2; // 减去左右边框字符
+    
+    var topBorder = topLeft + new string(borderChar[0], borderLength) + topRight;
+    var middleBorder = leftTee + new string(borderChar[0], borderLength) + rightTee;
+    var bottomBorder = bottomLeft + new string(borderChar[0], borderLength) + bottomRight;
+    
+    // 输出格式化的信息
+    Log.Information(topBorder);
+    
+    foreach (var line in infoLines)
+    {
+        var displayWidth = GetDisplayWidth(line, supportsEmoji);
+        var padding = new string(' ', Math.Max(0, borderLength - displayWidth));
+        Log.Information($"{verticalChar}{line}{padding} {verticalChar}");
+        
+        if (line == infoLines[0]) // 第一行后添加分隔线
+        {
+            Log.Information(middleBorder);
+        }
+    }
+    
+    Log.Information(bottomBorder);
+    Log.Information("{Wave} {ApplicationName} shutdown completed gracefully! Goodbye! {Sparkle}", wave, Constant.InstanceName, sparkle);
+}
