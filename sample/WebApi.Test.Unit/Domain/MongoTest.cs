@@ -34,6 +34,11 @@ public class MongoTest
     public DateTime DateTime { get; set; }
 
     /// <summary>
+    /// 测试UTC时间
+    /// </summary>
+    public DateTime DateTimeUtc { get; set; }
+
+    /// <summary>
     /// TimeSpan类型
     /// </summary>
     public TimeSpan TimeSpan { get; set; }
