@@ -71,7 +71,7 @@ internal sealed class MongoModule : AppModule
                     {
                         s.Subscribe(new ActivityEventConsoleDebugSubscriber(new()
                         {
-                            Enable = true
+                            Enable = false
                         }));
                     }
                     s.Subscribe(new ActivityEventDiagnosticsSubscriber(new()

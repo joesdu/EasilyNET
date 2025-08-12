@@ -99,6 +99,7 @@ public class MongoTestController(DbContext db) : ControllerBase
         var o = new MongoTest
         {
             DateTime = DateTime.Now,
+            DateTimeUtc = DateTime.UtcNow.AddHours(7),
             TimeSpan = TimeSpan.FromMilliseconds(50000d),
             DateOnly = DateOnly.FromDateTime(DateTime.Now),
             TimeOnly = TimeOnly.FromDateTime(DateTime.Now),

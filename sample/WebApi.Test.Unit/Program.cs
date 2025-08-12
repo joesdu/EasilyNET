@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using EasilyNET.Core.Misc;
 using Serilog;
@@ -39,8 +40,9 @@ builder.Host.UseSerilog((hbc, lc) =>
           if (hbc.HostingEnvironment.IsProduction())
           {
               wt.Map(le => (le.Timestamp.DateTime, le.Level), (key, log) =>
-                  log.Async(o => o.File($"logs{Path.DirectorySeparatorChar}{key.Level}{Path.DirectorySeparatorChar}.log",
-                      shared: true,
+                  log.Async(o => o.File(Path.Combine(AppContext.BaseDirectory, "logs", key.Level.ToString(), ".log"),
+                      shared: true, formatProvider: CultureInfo.CurrentCulture, retainedFileTimeLimit: TimeSpan.FromDays(7),
+                      outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}",
                       rollingInterval: RollingInterval.Day)));
           }
           wt.Console(theme: AnsiConsoleTheme.Code);
@@ -80,10 +82,18 @@ return;
 void OnStarted()
 {
     var appComplete = Stopwatch.GetTimestamp();
+    var startupTime = Stopwatch.GetElapsedTime(appInitial, appComplete);
+    _ = TextWriterExtensions.IsUtf8Supported();
     Log.Information("Operating System: {OS}", RuntimeInformation.OSDescription);
-    Log.Information("Application started in {Elapsed} ms", Stopwatch.GetElapsedTime(appInitial, appComplete).TotalMilliseconds);
+    Log.Information("Started in {Elapsed} ms", startupTime.TotalMilliseconds);
+    Log.Information(".NET version: {FrameworkDescription}", RuntimeInformation.FrameworkDescription);
+    Log.Information("Process ID: {ProcessId}", Environment.ProcessId);
+    Log.Information("Application is ready to serve requests! 🎉");
 }
 
-#pragma warning disable IDE0062
-void OnShutdown() => Log.Information("Application shutdown");
-#pragma warning restore IDE0062
+void OnShutdown()
+{
+    // 检查是否支持UTF-8字符
+    _ = TextWriterExtensions.IsUtf8Supported();
+    Log.Information("👋 {InstanceName} shutdown completed gracefully! Goodbye! 💫", Constant.InstanceName);
+}
