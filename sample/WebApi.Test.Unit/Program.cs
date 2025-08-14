@@ -11,10 +11,11 @@ using WebApi.Test.Unit.Common;
 
 #pragma warning disable CS1591 // 缺少对公共可见类型或成员的 XML 注释
 
-AssemblyHelper.LoadFromAllDll = false;
 // App init start time
 var appInitial = Stopwatch.GetTimestamp();
-Console.Title = $"❤️ {Constant.InstanceName}";
+AssemblyHelper.LoadFromAllDll = false;
+// Enable UTF-8 support in console
+_ = TextWriterExtensions.IsUtf8Supported();
 var builder = WebApplication.CreateBuilder(args);
 
 // 添加Serilog配置
@@ -83,7 +84,6 @@ void OnStarted()
 {
     var appComplete = Stopwatch.GetTimestamp();
     var startupTime = Stopwatch.GetElapsedTime(appInitial, appComplete);
-    _ = TextWriterExtensions.IsUtf8Supported();
     Log.Information("Operating System: {OS}", RuntimeInformation.OSDescription);
     Log.Information("Started in {Elapsed} ms", startupTime.TotalMilliseconds);
     Log.Information(".NET version: {FrameworkDescription}", RuntimeInformation.FrameworkDescription);
@@ -91,9 +91,7 @@ void OnStarted()
     Log.Information("Application is ready to serve requests! 🎉");
 }
 
-void OnShutdown()
+static void OnShutdown()
 {
-    // 检查是否支持UTF-8字符
-    _ = TextWriterExtensions.IsUtf8Supported();
     Log.Information("👋 {InstanceName} shutdown completed gracefully! Goodbye! 💫", Constant.InstanceName);
 }
