@@ -16,7 +16,7 @@ namespace EasilyNET.Core.Benchmark;
 public class ObjectIdCompatBenchmark
 {
     private static readonly ObjectIdCompat compatSample = ObjectIdCompat.GenerateNewId();
-    private static ObjectId mongoSample = ObjectId.GenerateNewId();
+    private static readonly ObjectId mongoSample = ObjectId.GenerateNewId();
 
     private static readonly string compatString = compatSample.ToString();
     private static readonly string mongoString = mongoSample.ToString();
