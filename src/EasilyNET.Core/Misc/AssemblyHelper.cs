@@ -79,7 +79,7 @@ public static class AssemblyHelper
         return LoadAssembliesInternal(Options).ToArray();
     });
 
-    private static Lazy<Type[]> _lazyAllTypes = new(static () => LoadTypesInternal(_lazyAllAssemblies.Value).ToArray());
+    private static Lazy<Type[]> _lazyAllTypes = new(static () => LoadTypesInternal(_lazyAllAssemblies.Value));
 
     // Bump when options/caches are reset to invalidate attr caches
     private static volatile int _version;
@@ -239,7 +239,7 @@ public static class AssemblyHelper
     ///     <para xml:lang="zh">程序集名称,支持通配符匹配,如: EasilyNET* </para>
     /// </param>
     [RequiresUnreferencedCode("This method uses reflection and may not be compatible with AOT.")]
-    public static IEnumerable<Assembly> GetAssembliesByName(params IEnumerable<string> assemblyNames)
+    public static IEnumerable<Assembly?> GetAssembliesByName(params IEnumerable<string> assemblyNames)
     {
         var patterns = CompileWildcardPatterns(assemblyNames);
         // Prefer already loaded assemblies
@@ -331,36 +331,43 @@ public static class AssemblyHelper
     /// </param>
     public static IEnumerable<Assembly> FindAllItems(Func<Assembly, bool> predicate) => AllAssemblies.Where(predicate);
 
-    // Internal: load all types with resilience
-    private static ConcurrentBag<Type> LoadTypesInternal(IEnumerable<Assembly> assemblies)
+    // Internal: load all types with better performance and stable assembly order
+    private static Type[] LoadTypesInternal(IEnumerable<Assembly> assemblies)
     {
-        var types = new ConcurrentBag<Type>();
-        Parallel.ForEach(assemblies, assembly =>
+        var asmArray = assemblies as Assembly[] ?? assemblies.ToArray();
+        var perAsm = new List<Type>[asmArray.Length];
+        Parallel.For(0, asmArray.Length, i =>
         {
+            var list = new List<Type>(128);
+            var assembly = asmArray[i];
             try
             {
                 var typesInAssembly = assembly.GetTypes();
-                foreach (var t in typesInAssembly)
-                {
-                    types.Add(t);
-                }
+                list.AddRange(typesInAssembly);
             }
             catch (ReflectionTypeLoadException rtle)
             {
-                foreach (var t in rtle.Types)
-                {
-                    if (t is not null)
-                    {
-                        types.Add(t);
-                    }
-                }
+                list.AddRange(rtle.Types.OfType<Type>());
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to load types from assembly: {assembly.FullName}, error: {ex.Message}");
             }
+            perAsm[i] = list;
         });
-        return types;
+        var total = perAsm.Sum(t => t.Count);
+        var result = new Type[total];
+        var offset = 0;
+        foreach (var list in perAsm)
+        {
+            if (list.Count == 0)
+            {
+                continue;
+            }
+            list.CopyTo(result, offset);
+            offset += list.Count;
+        }
+        return result;
     }
 
     // Internal: load assemblies based on options
@@ -404,7 +411,7 @@ public static class AssemblyHelper
             {
                 return;
             }
-            if (asm.FullName.IsNotNullOrWhiteSpace())
+            if (asm is not null && asm.FullName.IsNotNullOrWhiteSpace())
             {
                 result.TryAdd(asm.FullName, asm);
             }
@@ -426,8 +433,6 @@ public static class AssemblyHelper
     }
 
     [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Assembly))]
-    private static bool TryLoadByName(AssemblyName assemblyName, out Assembly asm)
-    {
     private static bool TryLoadByName(AssemblyName assemblyName, out Assembly? asm)
     {
         asm = null;
