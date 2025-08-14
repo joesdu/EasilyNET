@@ -137,7 +137,7 @@ public sealed class AsyncLock : IDisposable
         {
             waiter.CancellationRegistration = cancellationToken.Register(static s =>
             {
-                var w = (Waiter)s!;
+            waiter.CancellationRegistration = cancellationToken.UnsafeRegister(static s =>
                 w.TryCancel();
             }, waiter);
             if (cancellationToken.IsCancellationRequested)
