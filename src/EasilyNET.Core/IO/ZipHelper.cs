@@ -307,7 +307,11 @@ public static class ZipHelper
                 var fi = new FileInfo(file);
                 if (fi is { Exists: true, Length: > 0 } && fi.Length <= preloadThresholdBytes)
                 {
-                    await using var buffer = new PooledMemoryStream(ArrayPool<byte>.Shared, (int)Math.Min(int.MaxValue, fi.Length));
+                    if (fi.Length > int.MaxValue)
+                    {
+                        throw new IOException($"File '{file}' is too large to preload into memory (size: {fi.Length} bytes).");
+                    }
+                    await using var buffer = new PooledMemoryStream(ArrayPool<byte>.Shared, (int)fi.Length);
                     await using (var input = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan))
                     {
                         await input.CopyToAsync(buffer, ct);
