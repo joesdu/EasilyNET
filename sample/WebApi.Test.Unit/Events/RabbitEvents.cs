@@ -25,7 +25,7 @@ public class HelloWorldEvent : IEvent
     /// <summary>
     /// 消息ID
     /// </summary>
-    public string EventId => SnowId.GenerateNewId().ToString();
+    public string EventId => ObjectIdCompat.GenerateNewId().ToString();
 }
 
 /// <summary>

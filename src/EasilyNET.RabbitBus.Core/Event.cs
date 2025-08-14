@@ -15,5 +15,5 @@ public class Event : IEvent
     ///     <para xml:lang="zh">事件Id</para>
     /// </summary>
     [JsonInclude]
-    public string EventId { get; } = SnowId.GenerateNewId().ToString();
+    public string EventId { get; } = ObjectIdCompat.GenerateNewId().ToString();
 }

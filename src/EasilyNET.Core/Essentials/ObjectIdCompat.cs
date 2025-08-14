@@ -25,19 +25,19 @@ using EasilyNET.Core.Misc;
 namespace EasilyNET.Core.Essentials;
 
 /// <summary>
-///     <para xml:lang="en">SnowId algorithm compatible with MongoDB's ObjectId, so they can be cast to each other</para>
-///     <para xml:lang="zh">SnowId 算法兼容MongoDB的 ObjectId, 因此他们可以互相强制转换</para>
+///     <para xml:lang="en">ObjectIdCompat algorithm compatible with MongoDB's ObjectId, so they can be cast to each other</para>
+///     <para xml:lang="zh">ObjectIdCompat 算法兼容MongoDB的 ObjectId, 因此他们可以互相强制转换</para>
 /// </summary>
 /// <example>
 ///     <code>
 /// <![CDATA[
-/// var snow_id = SnowId.GenerateNewId();
+/// var snow_id = ObjectIdCompat.GenerateNewId();
 ///   ]]>
 ///  </code>
 /// </example>
 [Serializable]
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConvertible
+public readonly struct ObjectIdCompat : IComparable<ObjectIdCompat>, IEquatable<ObjectIdCompat>, IConvertible
 {
     private static readonly long __random = CalculateRandomValue();
     private static int __staticIncrement = Random.Shared.Next();
@@ -51,7 +51,7 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     /// <param name="bytes"></param>
     /// <exception cref="ArgumentException"></exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public SnowId(ReadOnlySpan<byte> bytes)
+    public ObjectIdCompat(ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length != 12)
         {
@@ -66,15 +66,15 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     /// 构造函数
     /// </summary>
     /// <param name="bytes"></param>
-    public SnowId(byte[] bytes) : this((ReadOnlySpan<byte>)bytes) { }
+    public ObjectIdCompat(byte[] bytes) : this((ReadOnlySpan<byte>)bytes) { }
 
-    internal SnowId(byte[] bytes, int index) : this(bytes.AsSpan(index, 12)) { }
+    internal ObjectIdCompat(byte[] bytes, int index) : this(bytes.AsSpan(index, 12)) { }
 
     /// <summary>
     /// 构造函数
     /// </summary>
     /// <param name="value"></param>
-    public SnowId(string value)
+    public ObjectIdCompat(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
         if (!TryParse(value, out this))
@@ -83,7 +83,7 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
         }
     }
 
-    private SnowId(int a, int b, int c)
+    private ObjectIdCompat(int a, int b, int c)
     {
         Timestamp = a;
         _b = b;
@@ -93,7 +93,7 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     /// <summary>
     /// Empty
     /// </summary>
-    public static SnowId Empty => default;
+    public static ObjectIdCompat Empty => default;
 
     /// <summary>
     /// Timestamp
@@ -106,70 +106,70 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     public DateTime CreationTime => DateTime.UnixEpoch.AddSeconds((uint)Timestamp);
 
     /// <inheritdoc cref="IComparable" />
-    public static bool operator <(SnowId lhs, SnowId rhs) => lhs.CompareTo(rhs) < 0;
+    public static bool operator <(ObjectIdCompat lhs, ObjectIdCompat rhs) => lhs.CompareTo(rhs) < 0;
 
     /// <inheritdoc cref="IComparable" />
-    public static bool operator <=(SnowId lhs, SnowId rhs) => lhs.CompareTo(rhs) <= 0;
+    public static bool operator <=(ObjectIdCompat lhs, ObjectIdCompat rhs) => lhs.CompareTo(rhs) <= 0;
 
     /// <inheritdoc cref="IComparable" />
-    public static bool operator ==(SnowId lhs, SnowId rhs) => lhs.Equals(rhs);
+    public static bool operator ==(ObjectIdCompat lhs, ObjectIdCompat rhs) => lhs.Equals(rhs);
 
     /// <inheritdoc cref="IComparable" />
-    public static bool operator !=(SnowId lhs, SnowId rhs) => !(lhs == rhs);
+    public static bool operator !=(ObjectIdCompat lhs, ObjectIdCompat rhs) => !(lhs == rhs);
 
     /// <inheritdoc cref="IComparable" />
-    public static bool operator >=(SnowId lhs, SnowId rhs) => lhs.CompareTo(rhs) >= 0;
+    public static bool operator >=(ObjectIdCompat lhs, ObjectIdCompat rhs) => lhs.CompareTo(rhs) >= 0;
 
     /// <inheritdoc cref="IComparable" />
-    public static bool operator >(SnowId lhs, SnowId rhs) => lhs.CompareTo(rhs) > 0;
+    public static bool operator >(ObjectIdCompat lhs, ObjectIdCompat rhs) => lhs.CompareTo(rhs) > 0;
 
     /// <summary>
-    ///     <para xml:lang="en">Generates a new <see cref="SnowId" /> with a unique value</para>
-    ///     <para xml:lang="zh">生成具有唯一值的新 <see cref="SnowId" /></para>
+    ///     <para xml:lang="en">Generates a new <see cref="ObjectIdCompat" /> with a unique value</para>
+    ///     <para xml:lang="zh">生成具有唯一值的新 <see cref="ObjectIdCompat" /></para>
     /// </summary>
-    public static SnowId GenerateNewId() => GenerateNewId(GetTimestampFromDateTime(DateTime.UtcNow));
+    public static ObjectIdCompat GenerateNewId() => GenerateNewId(GetTimestampFromDateTime(DateTime.UtcNow));
 
     /// <summary>
-    ///     <para xml:lang="en">Generates a new <see cref="SnowId" /> with a unique value (timestamp component based on the given date and time)</para>
-    ///     <para xml:lang="zh">生成具有唯一值的新 <see cref="SnowId" /> (时间戳组件基于给定的日期时间)</para>
+    ///     <para xml:lang="en">Generates a new <see cref="ObjectIdCompat" /> with a unique value (timestamp component based on the given date and time)</para>
+    ///     <para xml:lang="zh">生成具有唯一值的新 <see cref="ObjectIdCompat" /> (时间戳组件基于给定的日期时间)</para>
     /// </summary>
     /// <param name="timestamp">
     ///     <para xml:lang="en">The timestamp (expressed as a date and time)</para>
     ///     <para xml:lang="zh">时间戳 (表示为日期时间)</para>
     /// </param>
-    public static SnowId GenerateNewId(DateTime timestamp) => GenerateNewId(GetTimestampFromDateTime(timestamp));
+    public static ObjectIdCompat GenerateNewId(DateTime timestamp) => GenerateNewId(GetTimestampFromDateTime(timestamp));
 
     /// <summary>
-    ///     <para xml:lang="en">Generates a new <see cref="SnowId" /> with a unique value (with the given timestamp)</para>
-    ///     <para xml:lang="zh">生成具有唯一值(具有给定时间戳)的新 <see cref="SnowId" /></para>
+    ///     <para xml:lang="en">Generates a new <see cref="ObjectIdCompat" /> with a unique value (with the given timestamp)</para>
+    ///     <para xml:lang="zh">生成具有唯一值(具有给定时间戳)的新 <see cref="ObjectIdCompat" /></para>
     /// </summary>
     /// <param name="timestamp">
     ///     <para xml:lang="en">The timestamp</para>
     ///     <para xml:lang="zh">时间戳</para>
     /// </param>
-    public static SnowId GenerateNewId(int timestamp)
+    public static ObjectIdCompat GenerateNewId(int timestamp)
     {
         var increment = Interlocked.Increment(ref __staticIncrement) & 0x00ffffff; // only use low order 3 bytes
         return Create(timestamp, __random, increment);
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Parses a string and creates a new <see cref="SnowId" /></para>
-    ///     <para xml:lang="zh">分析字符串并创建新的 <see cref="SnowId" /></para>
+    ///     <para xml:lang="en">Parses a string and creates a new <see cref="ObjectIdCompat" /></para>
+    ///     <para xml:lang="zh">分析字符串并创建新的 <see cref="ObjectIdCompat" /></para>
     /// </summary>
     /// <param name="s">
     ///     <para xml:lang="en">The string value</para>
     ///     <para xml:lang="zh">字符串值</para>
     /// </param>
-    public static SnowId Parse(string s)
+    public static ObjectIdCompat Parse(string s)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(s, nameof(s));
         return TryParse(s, out var snowId) ? snowId : throw new FormatException($"'{s}' is not a valid 24 digit hex string.");
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Parses a string and creates a new <see cref="SnowId" /></para>
-    ///     <para xml:lang="zh">分析字符串并创建新的 <see cref="SnowId" /></para>
+    ///     <para xml:lang="en">Parses a string and creates a new <see cref="ObjectIdCompat" /></para>
+    ///     <para xml:lang="zh">分析字符串并创建新的 <see cref="ObjectIdCompat" /></para>
     /// </summary>
     /// <param name="s">
     ///     <para xml:lang="en">The string value</para>
@@ -177,7 +177,7 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     /// </param>
     /// <param name="snowId"></param>
     // ReSharper disable once OutParameterValueIsAlwaysDiscarded.Global
-    public static bool TryParse(string? s, out SnowId snowId)
+    public static bool TryParse(string? s, out ObjectIdCompat snowId)
     {
         if (s?.Length is 24)
         {
@@ -193,7 +193,7 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     /// <param name="s"></param>
     /// <param name="snowId"></param>
     /// <returns></returns>
-    public static bool TryParse(ReadOnlySpan<char> s, out SnowId snowId)
+    public static bool TryParse(ReadOnlySpan<char> s, out ObjectIdCompat snowId)
     {
         snowId = default;
         if (s.Length != 24)
@@ -234,7 +234,7 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
         return combined & 0xffffffffff; // low order 5 bytes
     }
 
-    private static SnowId Create(int timestamp, long random, int increment)
+    private static ObjectIdCompat Create(int timestamp, long random, int increment)
     {
         if (random is < 0 or > 0xffffffffff)
         {
@@ -256,14 +256,14 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Compares this <see cref="SnowId" /> to another <see cref="SnowId" /></para>
-    ///     <para xml:lang="zh">将此 <see cref="SnowId" /> 与另一个 <see cref="SnowId" /> 进行比较</para>
+    ///     <para xml:lang="en">Compares this <see cref="ObjectIdCompat" /> to another <see cref="ObjectIdCompat" /></para>
+    ///     <para xml:lang="zh">将此 <see cref="ObjectIdCompat" /> 与另一个 <see cref="ObjectIdCompat" /> 进行比较</para>
     /// </summary>
     /// <param name="other">
-    ///     <para xml:lang="en">The other <see cref="SnowId" /></para>
-    ///     <para xml:lang="zh">另一个 <see cref="SnowId" /></para>
+    ///     <para xml:lang="en">The other <see cref="ObjectIdCompat" /></para>
+    ///     <para xml:lang="zh">另一个 <see cref="ObjectIdCompat" /></para>
     /// </param>
-    public int CompareTo(SnowId other)
+    public int CompareTo(ObjectIdCompat other)
     {
         var result = ((uint)Timestamp).CompareTo((uint)other.Timestamp);
         if (result != 0)
@@ -275,27 +275,27 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Compares this <see cref="SnowId" /> to another <see cref="SnowId" /></para>
-    ///     <para xml:lang="zh">将此 <see cref="SnowId" /> 与另一个 <see cref="SnowId" /> 进行比较</para>
+    ///     <para xml:lang="en">Compares this <see cref="ObjectIdCompat" /> to another <see cref="ObjectIdCompat" /></para>
+    ///     <para xml:lang="zh">将此 <see cref="ObjectIdCompat" /> 与另一个 <see cref="ObjectIdCompat" /> 进行比较</para>
     /// </summary>
     /// <param name="rhs">
-    ///     <para xml:lang="en">The other <see cref="SnowId" /></para>
-    ///     <para xml:lang="zh">另一个 <see cref="SnowId" /></para>
+    ///     <para xml:lang="en">The other <see cref="ObjectIdCompat" /></para>
+    ///     <para xml:lang="zh">另一个 <see cref="ObjectIdCompat" /></para>
     /// </param>
-    public bool Equals(SnowId rhs) =>
+    public bool Equals(ObjectIdCompat rhs) =>
         Timestamp == rhs.Timestamp &&
         _b == rhs._b &&
         _c == rhs._c;
 
     /// <summary>
-    ///     <para xml:lang="en">Compares this <see cref="SnowId" /> to another object</para>
-    ///     <para xml:lang="zh">将此 <see cref="SnowId" /> 与另一个对象进行比较</para>
+    ///     <para xml:lang="en">Compares this <see cref="ObjectIdCompat" /> to another object</para>
+    ///     <para xml:lang="zh">将此 <see cref="ObjectIdCompat" /> 与另一个对象进行比较</para>
     /// </summary>
     /// <param name="obj">
     ///     <para xml:lang="en">The other object</para>
     ///     <para xml:lang="zh">另一个对象</para>
     /// </param>
-    public override bool Equals(object? obj) => obj is SnowId id && Equals(id);
+    public override bool Equals(object? obj) => obj is ObjectIdCompat id && Equals(id);
 
     /// <summary>
     ///     <para xml:lang="en">Gets the hash code</para>
@@ -311,8 +311,8 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Converts the <see cref="SnowId" /> to a byte array</para>
-    ///     <para xml:lang="zh">将 <see cref="SnowId" /> 转换为字节数组</para>
+    ///     <para xml:lang="en">Converts the <see cref="ObjectIdCompat" /> to a byte array</para>
+    ///     <para xml:lang="zh">将 <see cref="ObjectIdCompat" /> 转换为字节数组</para>
     /// </summary>
     public byte[] ToByteArray()
     {
@@ -322,8 +322,8 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Converts the <see cref="SnowId" /> to a byte array</para>
-    ///     <para xml:lang="zh">将 <see cref="SnowId" /> 转换为字节数组</para>
+    ///     <para xml:lang="en">Converts the <see cref="ObjectIdCompat" /> to a byte array</para>
+    ///     <para xml:lang="zh">将 <see cref="ObjectIdCompat" /> 转换为字节数组</para>
     /// </summary>
     /// <param name="destination">
     ///     <para xml:lang="en">The destination array</para>
@@ -418,7 +418,7 @@ public readonly struct SnowId : IComparable<SnowId>, IEquatable<SnowId>, IConver
             case TypeCode.String:
                 return ((IConvertible)this).ToString(provider);
             case TypeCode.Object:
-                if (conversionType == typeof(object) || conversionType == typeof(SnowId))
+                if (conversionType == typeof(object) || conversionType == typeof(ObjectIdCompat))
                 {
                     return this;
                 }
