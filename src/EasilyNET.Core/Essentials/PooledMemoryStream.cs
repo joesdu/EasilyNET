@@ -161,7 +161,6 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     public override int Read(byte[] buffer, int offset, int count)
     {
         AssertNotDisposed();
-        ArgumentNullException.ThrowIfNull(buffer);
         if ((uint)offset > (uint)buffer.Length)
         {
             throw new ArgumentOutOfRangeException(nameof(offset));
