@@ -12,7 +12,7 @@ public interface IEvent
     /// <summary>
     ///     <para xml:lang="en">Event ID, using Snowflake ID algorithm</para>
     ///     <para xml:lang="zh">事件ID，使用雪花ID算法</para>
-    ///     <see cref="SnowId" />
+    ///     <see cref="ObjectIdCompat" />
     /// </summary>
     string EventId { get; }
 }
