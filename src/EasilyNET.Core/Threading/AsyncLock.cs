@@ -1,5 +1,3 @@
-// ReSharper disable UnusedMember.Global
-
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
