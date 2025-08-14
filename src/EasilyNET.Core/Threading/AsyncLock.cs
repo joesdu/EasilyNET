@@ -268,7 +268,8 @@ public sealed class AsyncLock : IDisposable
         {
             _asyncLockToRelease?.ReleaseInternal();
         }
-    }
+            var asyncLock = Interlocked.Exchange(ref _asyncLockToRelease, null);
+            asyncLock?.ReleaseInternal();
 
     private sealed class Waiter
     {
