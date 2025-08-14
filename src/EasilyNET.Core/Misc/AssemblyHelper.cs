@@ -17,28 +17,50 @@ namespace EasilyNET.Core.Misc;
 ///     <para xml:lang="zh">程序集帮助类</para>
 /// </summary>
 /// <remarks>
-///     <para xml:lang="en">
-///     Overview:
-///     - Fast assembly discovery with include/exclude wildcard patterns (*, ?) and caching.
-///     - Prefer already loaded assemblies and DependencyContext, optionally probe disk.
-///     - Resilient type loading (handles ReflectionTypeLoadException).
-///     - Cached queries for attributes and assignable types.
-///     - Configurable via Configure and helper methods (AddIncludePatterns / AddExcludePatterns).
-///     - Back-compat: LoadFromAllDll (obsolete) maps to Options.ScanAllRuntimeLibraries.
-///     </para>
-///     <para xml:lang="zh">
-///     用法概览：
-///     - 通过包含/排除通配符（*, ?）与缓存实现快速装配发现。
-///     - 优先使用已加载装配与 DependencyContext，可选磁盘探测。
-///     - 类型加载具备容错（处理 ReflectionTypeLoadException）。
-///     - 针对“特性查询/可赋值类型查询”提供结果缓存。
-///     - 通过 Configure 及 AddIncludePatterns / AddExcludePatterns 等方法进行配置。
-///     - 向后兼容：LoadFromAllDll（已标记过时）映射到 Options.ScanAllRuntimeLibraries。
-///     </para>
+///     <para xml:lang="en">Overview:</para>
+///     <para xml:lang="zh">用法概览:</para>
+///     <list type="number">
+///         <item>
+///             <description>
+///                 <para xml:lang="en">Fast assembly discovery with include/exclude wildcard patterns (*, ?) and caching.</para>
+///                 <para xml:lang="zh">通过包含/排除通配符(*, ?)与缓存实现快速装配发现.</para>
+///             </description>
+///         </item>
+///         <item>
+///             <description>
+///                 <para xml:lang="en">Prefer already loaded assemblies and DependencyContext, optionally probe disk.</para>
+///                 <para xml:lang="zh">优先使用已加载装配与 DependencyContext,可选磁盘探测.</para>
+///             </description>
+///         </item>
+///         <item>
+///             <description>
+///                 <para xml:lang="en">Resilient type loading (handles ReflectionTypeLoadException).</para>
+///                 <para xml:lang="zh">类型加载具备容错(处理 ReflectionTypeLoadException).</para>
+///             </description>
+///         </item>
+///         <item>
+///             <description>
+///                 <para xml:lang="en">Cached queries for attributes and assignable types.</para>
+///                 <para xml:lang="zh">针对"特性查询/可赋值类型查询"提供结果缓存.</para>
+///             </description>
+///         </item>
+///         <item>
+///             <description>
+///                 <para xml:lang="en">Configurable via Configure and helper methods (AddIncludePatterns / AddExcludePatterns).</para>
+///                 <para xml:lang="zh">通过 Configure 及 AddIncludePatterns / AddExcludePatterns 等方法进行配置.</para>
+///             </description>
+///         </item>
+///         <item>
+///             <description>
+///                 <para xml:lang="en">Back-compat: LoadFromAllDll (obsolete) maps to Options.ScanAllRuntimeLibraries.</para>
+///                 <para xml:lang="zh">LoadFromAllDll(已标记过时未来版本删除)映射到 Options.ScanAllRuntimeLibraries.</para>
+///             </description>
+///         </item>
+///     </list>
 /// </remarks>
 /// <example>
-///     <para xml:lang="zh">常见示例：</para>
-///     <code><![CDATA[
+///     <code>
+/// <![CDATA[
 /// // 1) 默认：全量扫描（默认排除 System.* / Microsoft.* 等），直接取结果
 /// var assemblies = AssemblyHelper.AllAssemblies;
 /// var types = AssemblyHelper.AllTypes;
@@ -62,7 +84,8 @@ namespace EasilyNET.Core.Misc;
 /// 
 /// // 6) 修改配置后，如需强制重新计算，清理缓存
 /// AssemblyHelper.ClearCaches();
-/// ]]></code>
+/// ]]>
+/// </code>
 /// </example>
 public static class AssemblyHelper
 {
@@ -149,8 +172,11 @@ public static class AssemblyHelper
     private static AssemblyScanOptions Options { get; } = new();
 
     /// <summary>
-    ///     <para xml:lang="en">Adds assembly names to be loaded when <see cref="LoadFromAllDll" /> is set to <see langword="false" />.</para>
-    ///     <para xml:lang="zh">当 <see cref="LoadFromAllDll" /> 设置为 <see langword="false" /> 时，添加要加载的程序集名称。</para>
+    ///     <para xml:lang="en">
+    ///     Adds assembly names to be loaded when <see cref="AssemblyScanOptions.ScanAllRuntimeLibraries" /> is set to
+    ///     <see langword="false" />.
+    ///     </para>
+    ///     <para xml:lang="zh">当 <see cref="AssemblyScanOptions.ScanAllRuntimeLibraries" /> 设置为 <see langword="false" /> 时，添加要加载的程序集名称。</para>
     /// </summary>
     /// <param name="names">
     ///     <para xml:lang="en">The names of the assemblies to add.</para>
@@ -158,6 +184,7 @@ public static class AssemblyHelper
     /// </param>
     public static void AddAssemblyNames(params IEnumerable<string> names)
     {
+        ArgumentNullException.ThrowIfNull(names);
         foreach (var n in names)
         {
             if (string.IsNullOrWhiteSpace(n))
@@ -175,6 +202,7 @@ public static class AssemblyHelper
     /// </summary>
     public static void Configure(Action<AssemblyScanOptions> configure)
     {
+        ArgumentNullException.ThrowIfNull(configure);
         lock (_optionsLock)
         {
             configure(Options);
