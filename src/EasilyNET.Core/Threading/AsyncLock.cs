@@ -98,7 +98,7 @@ public sealed class AsyncLock : IDisposable
         foreach (var w in toCancel)
         {
             w.CancellationRegistration.Dispose();
-            w.Tcs.TrySetException(new ObjectDisposedException(nameof(AsyncLock)));
+            w.Tcs.TrySetException(new ObjectDisposedException(nameof(AsyncLock), "AsyncLock has been disposed"));
         }
     }
 
@@ -135,10 +135,11 @@ public sealed class AsyncLock : IDisposable
         // Cancellation registration (installed before enqueue to avoid missed cancellation windows).
         if (cancellationToken.CanBeCanceled)
         {
-            waiter.CancellationRegistration = cancellationToken.Register(static s =>
+            // 使用 UnsafeRegister，避免流动 ExecutionContext，提高性能
+            waiter.CancellationRegistration = cancellationToken.UnsafeRegister(static s =>
             {
-                var w = (Waiter)s!;
-                w.TryCancel();
+                var w = s as Waiter;
+                w?.TryCancel();
             }, waiter);
             if (cancellationToken.IsCancellationRequested)
             {
@@ -151,6 +152,11 @@ public sealed class AsyncLock : IDisposable
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
+            // 若在此之前回调已触发并使 Tcs 完成（取消），则避免入队
+            if (waiter.Tcs.Task.IsCompleted)
+            {
+                return waiter.Tcs.Task;
+            }
             waiter.Node = _waiters.AddLast(waiter);
             _waiterCount++;
         }
