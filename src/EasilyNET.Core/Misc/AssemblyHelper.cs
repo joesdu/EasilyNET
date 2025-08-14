@@ -16,31 +16,91 @@ namespace EasilyNET.Core.Misc;
 ///     <para xml:lang="en">Assembly helper class</para>
 ///     <para xml:lang="zh">程序集帮助类</para>
 /// </summary>
+/// <remarks>
+///     <para xml:lang="en">
+///     Overview:
+///     - Fast assembly discovery with include/exclude wildcard patterns (*, ?) and caching.
+///     - Prefer already loaded assemblies and DependencyContext, optionally probe disk.
+///     - Resilient type loading (handles ReflectionTypeLoadException).
+///     - Cached queries for attributes and assignable types.
+///     - Configurable via Configure and helper methods (AddIncludePatterns / AddExcludePatterns).
+///     - Back-compat: LoadFromAllDll (obsolete) maps to Options.ScanAllRuntimeLibraries.
+///     </para>
+///     <para xml:lang="zh">
+///     用法概览：
+///     - 通过包含/排除通配符（*, ?）与缓存实现快速装配发现。
+///     - 优先使用已加载装配与 DependencyContext，可选磁盘探测。
+///     - 类型加载具备容错（处理 ReflectionTypeLoadException）。
+///     - 针对“特性查询/可赋值类型查询”提供结果缓存。
+///     - 通过 Configure 及 AddIncludePatterns / AddExcludePatterns 等方法进行配置。
+///     - 向后兼容：LoadFromAllDll（已标记过时）映射到 Options.ScanAllRuntimeLibraries。
+///     </para>
+/// </remarks>
+/// <example>
+///     <para xml:lang="zh">常见示例：</para>
+///     <code><![CDATA[
+/// // 1) 默认：全量扫描（默认排除 System.* / Microsoft.* 等），直接取结果
+/// var assemblies = AssemblyHelper.AllAssemblies;
+/// var types = AssemblyHelper.AllTypes;
+/// 
+/// // 2) 推荐：限制扫描范围，提高速度（关闭全量扫描与磁盘探测，添加自定义包含前缀）
+/// AssemblyHelper.Configure(o =>
+/// {
+///     o.ScanAllRuntimeLibraries = false;
+///     o.AllowDirectoryProbe = false;
+/// });
+/// AssemblyHelper.AddIncludePatterns("EasilyNET.*", "MyCompany.*");
+/// 
+/// // 3) 查找具有指定特性的类型（如在 Swagger 中按特性分组）
+/// var grouped = AssemblyHelper.FindTypesByAttribute<ApiGroupAttribute>();
+/// 
+/// // 4) 查找可赋值类型（接口/基类的实现）
+/// var handlers = AssemblyHelper.FindTypesAssignableTo<IMyHandler>();
+/// 
+/// // 5) 按名称获取程序集（支持通配符）
+/// var pluginAssemblies = AssemblyHelper.GetAssembliesByName(new[] { "Plugin.*" });
+/// 
+/// // 6) 修改配置后，如需强制重新计算，清理缓存
+/// AssemblyHelper.ClearCaches();
+/// ]]></code>
+/// </example>
 public static class AssemblyHelper
 {
+    // Cache: assembly full name -> Assembly (or null when failed to load)
     private static readonly ConcurrentDictionary<string, Assembly?> AssemblyCache = new();
-    private static readonly Lazy<IEnumerable<Assembly>> LazyAllAssemblies = new(static () => LoadAssemblies(LoadFromAllDll));
-    private static readonly Lazy<IEnumerable<Type>> LazyAllTypes = new(static () => LoadTypes(LazyAllAssemblies.Value));
+
+    // Attribute results cache: (attrType, inherit, version) -> types
+    private static readonly ConcurrentDictionary<(Type attrType, bool inherit, int version), Lazy<IReadOnlyList<Type>>> AttributeTypeCache = new();
+
+    // Lazily computed snapshots. We recreate these when options change.
+    private static Lazy<Assembly[]> _lazyAllAssemblies = new(static () =>
+    {
+        ArgumentNullException.ThrowIfNull(Options);
+        return LoadAssembliesInternal(Options).ToArray();
+    });
+
+    private static Lazy<Type[]> _lazyAllTypes = new(static () => LoadTypesInternal(_lazyAllAssemblies.Value));
+
+    // Bump when options/caches are reset to invalidate attr caches
+    private static volatile int _version;
+
+    // Options to control scanning behavior
+    private static readonly Lock _optionsLock = new();
 
     static AssemblyHelper()
     {
+        // Initialize default include patterns
         var entryAssembly = Assembly.GetEntryAssembly();
-        if (entryAssembly is null)
-        {
-            return;
-        }
-        var entryAssemblyName = entryAssembly.GetName().Name;
+        var entryAssemblyName = entryAssembly?.GetName().Name;
         if (!entryAssemblyName.IsNotNullOrWhiteSpace())
         {
             return;
         }
-        AssemblyNames.Add(entryAssemblyName);
-        // 大部分.NET自定义的程序集名称都是以 XXX.XXX.XXX 的格式命名,所以可以通过 . 进行拆分获取程序集前面的部分用于匹配
-        var entryAssemblyPrefix = entryAssemblyName.Split('.').FirstOrDefault() ?? string.Empty;
-        if (entryAssemblyPrefix.IsNotNullOrWhiteSpace())
+        Options.IncludePatterns.Add(entryAssemblyName);
+        var prefix = entryAssemblyName.Split('.').FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(prefix))
         {
-            // 添加通配符匹配,如: EasilyNET.* 这样可以匹配 EasilyNET.Core, EasilyNET.Web 等程序集
-            AssemblyNames.Add($"{entryAssemblyPrefix}.*");
+            Options.IncludePatterns.Add($"{prefix}.*");
         }
     }
 
@@ -48,13 +108,13 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">Gets all assemblies that match the criteria</para>
     ///     <para xml:lang="zh">获取所有符合条件的程序集</para>
     /// </summary>
-    public static IEnumerable<Assembly> AllAssemblies => LazyAllAssemblies.Value;
+    public static IEnumerable<Assembly> AllAssemblies => _lazyAllAssemblies.Value;
 
     /// <summary>
     ///     <para xml:lang="en">Gets all types from the assemblies that match the criteria</para>
     ///     <para xml:lang="zh">从符合条件的程序集获取所有类型</para>
     /// </summary>
-    public static IEnumerable<Type> AllTypes => LazyAllTypes.Value;
+    public static IEnumerable<Type> AllTypes => _lazyAllTypes.Value;
 
     /// <summary>
     ///     <para xml:lang="en">
@@ -67,9 +127,26 @@ public static class AssemblyHelper
     ///     <see cref="AddAssemblyNames" /> 指定需要加载的程序集。
     ///     </para>
     /// </summary>
-    public static bool LoadFromAllDll { get; set; } = true;
+    [Obsolete("Use Configure(options => options.ScanAllRuntimeLibraries = ...) instead.")]
+    public static bool LoadFromAllDll
+    {
+        get => Options.ScanAllRuntimeLibraries;
+        set
+        {
+            if (Options.ScanAllRuntimeLibraries == value)
+            {
+                return;
+            }
+            Options.ScanAllRuntimeLibraries = value;
+            Reset();
+        }
+    }
 
-    private static List<string> AssemblyNames { get; } = ["EasilyNET*"];
+    // Options holder and helpers
+    /// <summary>
+    /// Options for assembly scanning.
+    /// </summary>
+    private static AssemblyScanOptions Options { get; } = new();
 
     /// <summary>
     ///     <para xml:lang="en">Adds assembly names to be loaded when <see cref="LoadFromAllDll" /> is set to <see langword="false" />.</para>
@@ -79,7 +156,79 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">The names of the assemblies to add.</para>
     ///     <para xml:lang="zh">要添加的程序集名称。</para>
     /// </param>
-    public static void AddAssemblyNames(params IEnumerable<string> names) => AssemblyNames.AddRange(names);
+    public static void AddAssemblyNames(params IEnumerable<string> names)
+    {
+        foreach (var n in names)
+        {
+            if (string.IsNullOrWhiteSpace(n))
+            {
+                continue;
+            }
+            Options.IncludePatterns.Add(n);
+        }
+        Reset();
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Configures assembly scan options</para>
+    ///     <para xml:lang="zh">配置程序集扫描选项</para>
+    /// </summary>
+    public static void Configure(Action<AssemblyScanOptions> configure)
+    {
+        lock (_optionsLock)
+        {
+            configure(Options);
+            Reset();
+        }
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Clears internal caches and recomputes assemblies/types on next access</para>
+    ///     <para xml:lang="zh">清除内部缓存并在下次访问时重新计算程序集/类型</para>
+    /// </summary>
+    public static void ClearCaches() => Reset();
+
+    /// <summary>
+    ///     <para xml:lang="en">Adds include patterns</para>
+    ///     <para xml:lang="zh">添加包含模式</para>
+    /// </summary>
+    public static void AddIncludePatterns(params string[]? patterns)
+    {
+        if (patterns is null || patterns.Length == 0)
+        {
+            return;
+        }
+        foreach (var p in patterns)
+        {
+            if (string.IsNullOrWhiteSpace(p))
+            {
+                continue;
+            }
+            Options.IncludePatterns.Add(p);
+        }
+        Reset();
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Adds exclude patterns</para>
+    ///     <para xml:lang="zh">添加排除模式</para>
+    /// </summary>
+    public static void AddExcludePatterns(params string[]? patterns)
+    {
+        if (patterns is null || patterns.Length == 0)
+        {
+            return;
+        }
+        foreach (var p in patterns)
+        {
+            if (string.IsNullOrWhiteSpace(p))
+            {
+                continue;
+            }
+            Options.ExcludePatterns.Add(p);
+        }
+        Reset();
+    }
 
     /// <summary>
     ///     <para xml:lang="en">Gets assemblies by their names</para>
@@ -90,30 +239,42 @@ public static class AssemblyHelper
     ///     <para xml:lang="zh">程序集名称,支持通配符匹配,如: EasilyNET* </para>
     /// </param>
     [RequiresUnreferencedCode("This method uses reflection and may not be compatible with AOT.")]
-    public static IEnumerable<Assembly> GetAssembliesByName(params IEnumerable<string> assemblyNames)
+    public static IEnumerable<Assembly?> GetAssembliesByName(params IEnumerable<string> assemblyNames)
     {
-        var regexPatterns = assemblyNames.Select(name =>
-                                             new Regex($"^{Regex.Escape(name)
-                                                                .Replace("\\*", ".*", StringComparison.OrdinalIgnoreCase)
-                                                                .Replace("\\?", ".", StringComparison.OrdinalIgnoreCase)}$", RegexOptions.IgnoreCase))
-                                         .ToFrozenSet();
-        var allAssemblyFiles = Directory.GetFiles(AppContext.BaseDirectory, "*.dll", SearchOption.AllDirectories);
-        var matchingAssemblies = allAssemblyFiles.Where(file =>
+        var patterns = CompileWildcardPatterns(assemblyNames);
+        // Prefer already loaded assemblies
+        var loaded = AssemblyLoadContext.Default.Assemblies;
+        foreach (var asm in loaded)
         {
-            var fileName = Path.GetFileNameWithoutExtension(file);
-            return regexPatterns.Any(pattern => pattern.IsMatch(fileName));
-        });
-        return matchingAssemblies.Select(file =>
-        {
-            var assemblyName = AssemblyLoadContext.GetAssemblyName(file);
-            if (AssemblyCache.TryGetValue(assemblyName.FullName, out var assembly) && assembly is not null)
+            var name = asm.GetName().Name ?? string.Empty;
+            if (patterns.Any(p => p.IsMatch(name)))
             {
-                return assembly;
+                yield return asm;
             }
-            var loadedAssembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(file);
-            AssemblyCache[assemblyName.FullName] = loadedAssembly;
-            return loadedAssembly;
-        });
+        }
+        // Use DependencyContext for known assemblies in the app
+        var dcNames = DependencyContext.Default?.GetDefaultAssemblyNames() ?? [];
+        foreach (var name in dcNames)
+        {
+            var simpleName = name.Name ?? string.Empty;
+            if (!patterns.Any(p => p.IsMatch(simpleName)))
+            {
+                continue;
+            }
+            if (TryLoadByName(name, out var asm))
+            {
+                yield return asm;
+            }
+        }
+        // As a last resort, probe disk if allowed
+        if (!Options.AllowDirectoryProbe)
+        {
+            yield break;
+        }
+        foreach (var asm in ProbeAssembliesFromDisk(patterns))
+        {
+            yield return asm;
+        }
     }
 
     /// <summary>
@@ -130,47 +291,35 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">Finds all types marked with the specified attribute</para>
     ///     <para xml:lang="zh">查找所有标有指定属性的类型</para>
     /// </summary>
-    /// <typeparam name="TAttribute">
-    ///     <para xml:lang="en">The attribute type</para>
-    ///     <para xml:lang="zh">属性类型</para>
-    /// </typeparam>
-    /// <param name="inherit">
-    ///     <para xml:lang="en">When true, look for the attribute in the inheritance chain</para>
-    ///     <para xml:lang="zh">为true时，在继承链中查找该属性</para>
-    /// </param>
     public static IEnumerable<Type> FindTypesByAttribute<TAttribute>(bool inherit = true) where TAttribute : Attribute => FindTypesByAttribute(typeof(TAttribute), inherit);
 
     /// <summary>
     ///     <para xml:lang="en">Finds all types marked with the specified attribute</para>
     ///     <para xml:lang="zh">查找所有标有指定属性的类型</para>
     /// </summary>
-    /// <typeparam name="TAttribute">
-    ///     <para xml:lang="en">The attribute type</para>
-    ///     <para xml:lang="zh">属性类型</para>
-    /// </typeparam>
-    /// <param name="predicate">
-    ///     <para xml:lang="en">The predicate to match types</para>
-    ///     <para xml:lang="zh">匹配类型的谓词</para>
-    /// </param>
-    /// <param name="inherit">
-    ///     <para xml:lang="en">When true, look for the attribute in the inheritance chain</para>
-    ///     <para xml:lang="zh">为true时，在继承链中查找该属性</para>
-    /// </param>
     public static IEnumerable<Type> FindTypesByAttribute<TAttribute>(Func<Type, bool> predicate, bool inherit = true) where TAttribute : Attribute => FindTypesByAttribute<TAttribute>(inherit).Where(predicate);
 
     /// <summary>
     ///     <para xml:lang="en">Finds all types marked with the specified attribute</para>
     ///     <para xml:lang="zh">查找所有标有指定属性的类型</para>
     /// </summary>
-    /// <param name="type">
-    ///     <para xml:lang="en">The attribute type</para>
-    ///     <para xml:lang="zh">属性类型</para>
-    /// </param>
-    /// <param name="inherit">
-    ///     <para xml:lang="en">When true, look for the attribute in the inheritance chain</para>
-    ///     <para xml:lang="zh">为true时，在继承链中查找该属性</para>
-    /// </param>
-    public static IEnumerable<Type> FindTypesByAttribute(Type type, bool inherit = true) => AllTypes.Where(a => a.IsDefined(type, inherit)).Distinct();
+    public static IEnumerable<Type> FindTypesByAttribute(Type type, bool inherit = true)
+    {
+        var key = (type, inherit, _version);
+        var cached = AttributeTypeCache.GetOrAdd(key, k =>
+            new(() => AllTypes.Where(a => SafeIsDefined(a, k.attrType, k.inherit)).Distinct().ToArray(), true));
+        return cached.Value;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Finds types assignable to TBase (classes or interfaces)</para>
+    ///     <para xml:lang="zh">查找可分配给 TBase 的类型（类或接口）</para>
+    /// </summary>
+    public static IEnumerable<Type> FindTypesAssignableTo<TBase>()
+    {
+        var baseType = typeof(TBase);
+        return AllTypes.Where(t => baseType.IsAssignableFrom(t) && t != baseType);
+    }
 
     /// <summary>
     ///     <para xml:lang="en">Finds assemblies that match the specified predicate</para>
@@ -182,63 +331,287 @@ public static class AssemblyHelper
     /// </param>
     public static IEnumerable<Assembly> FindAllItems(Func<Assembly, bool> predicate) => AllAssemblies.Where(predicate);
 
-    private static IEnumerable<Type> LoadTypes(IEnumerable<Assembly> assemblies)
+    // Internal: load all types with better performance and stable assembly order
+    private static Type[] LoadTypesInternal(IEnumerable<Assembly> assemblies)
     {
-        var types = new ConcurrentBag<Type>();
-        Parallel.ForEach(assemblies, assembly =>
+        var asmArray = assemblies as Assembly[] ?? assemblies.ToArray();
+        var perAsm = new List<Type>[asmArray.Length];
+        Parallel.For(0, asmArray.Length, i =>
         {
+            var list = new List<Type>(128);
+            var assembly = asmArray[i];
             try
             {
                 var typesInAssembly = assembly.GetTypes();
-                types.AddRange(typesInAssembly);
+                list.AddRange(typesInAssembly);
+            }
+            catch (ReflectionTypeLoadException rtle)
+            {
+                list.AddRange(rtle.Types.OfType<Type>());
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to load types from assembly: {assembly.FullName}, error: {ex.Message}");
             }
+            perAsm[i] = list;
         });
-        foreach (var item in types)
+        var total = perAsm.Sum(t => t.Count);
+        var result = new Type[total];
+        var offset = 0;
+        foreach (var list in perAsm)
         {
-            yield return item;
-        }
-    }
-
-    private static IEnumerable<Assembly> LoadAssemblies(bool fromAll)
-    {
-        var assemblies = fromAll ? DependencyContext.Default?.GetRuntimeAssemblyNames(AppContext.BaseDirectory) ?? [] : GetAssembliesByName(AssemblyNames).Select(c => c.GetName());
-        var loadedAssemblies = new ConcurrentBag<Assembly>();
-        Parallel.ForEach(assemblies, assembly => LoadAssembly(assembly, ref loadedAssemblies));
-        foreach (var item in loadedAssemblies)
-        {
-            yield return item;
-        }
-    }
-
-    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Assembly))]
-    private static void LoadAssembly(AssemblyName assemblyName, ref ConcurrentBag<Assembly> loadedAssemblies)
-    {
-        if (AssemblyCache.TryGetValue(assemblyName.FullName, out var cachedAssembly))
-        {
-            if (cachedAssembly is not null)
+            if (list.Count == 0)
             {
-                loadedAssemblies.Add(cachedAssembly);
+                continue;
             }
-            return;
+            list.CopyTo(result, offset);
+            offset += list.Count;
         }
+        return result;
+    }
+
+    // Internal: load assemblies based on options
+    private static IEnumerable<Assembly> LoadAssembliesInternal(AssemblyScanOptions options)
+    {
+        var result = new ConcurrentDictionary<string, Assembly>(StringComparer.OrdinalIgnoreCase);
+        // 1) Already loaded assemblies
+        foreach (var asm in AssemblyLoadContext.Default.Assemblies)
+        {
+            if (!MatchAssembly(asm.GetName(), options))
+            {
+                continue;
+            }
+            if (asm.FullName.IsNotNullOrWhiteSpace())
+            {
+                _ = result.TryAdd(asm.FullName, asm);
+            }
+        }
+        // 2) Assemblies from DependencyContext (fast path)
+        IEnumerable<AssemblyName> candidateNames = [];
         try
         {
-            var assembly = Assembly.Load(assemblyName);
-            if (loadedAssemblies.Contains(assembly))
+            var dc = DependencyContext.Default;
+            if (dc is not null)
+            {
+                // Correct usage: GetDefaultAssemblyNames()
+                candidateNames = dc.GetDefaultAssemblyNames();
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+        Parallel.ForEach(candidateNames, name =>
+        {
+            if (!MatchAssembly(name, options))
             {
                 return;
             }
-            AssemblyCache[assemblyName.FullName] = assembly;
-            loadedAssemblies.Add(assembly);
+            if (!TryLoadByName(name, out var asm))
+            {
+                return;
+            }
+            if (asm is not null && asm.FullName.IsNotNullOrWhiteSpace())
+            {
+                result.TryAdd(asm.FullName, asm);
+            }
+        });
+        // 3) Optionally probe disk
+        if (!options.AllowDirectoryProbe)
+        {
+            return result.Values;
+        }
+        var patterns = CompileWildcardPatterns(options.IncludePatterns);
+        foreach (var asm in ProbeAssembliesFromDisk(patterns))
+        {
+            if (asm.FullName.IsNotNullOrWhiteSpace())
+            {
+                result.TryAdd(asm.FullName, asm);
+            }
+        }
+        return result.Values;
+    }
+
+    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Assembly))]
+    private static bool TryLoadByName(AssemblyName assemblyName, out Assembly? asm)
+    {
+        asm = null;
+        // Check cache
+        if (AssemblyCache.TryGetValue(assemblyName.FullName, out var cached))
+        {
+            if (cached is null)
+            {
+                return false;
+            }
+            asm = cached;
+            return true;
+        }
+        try
+        {
+            var loaded = Assembly.Load(assemblyName);
+            AssemblyCache[assemblyName.FullName] = loaded;
+            asm = loaded;
+            return true;
         }
         catch (Exception ex)
         {
             AssemblyCache[assemblyName.FullName] = null;
             Debug.WriteLine($"Failed to load assembly: {assemblyName.Name}, error: {ex.Message}");
+            return false;
         }
+    }
+
+    private static bool MatchAssembly(AssemblyName name, AssemblyScanOptions options)
+    {
+        var simple = name.Name ?? string.Empty;
+        if (options.IncludePatterns.Count == 0 && options.ExcludePatterns.Count == 0)
+        {
+            return options.ScanAllRuntimeLibraries;
+        }
+        // Exclude first
+        if (options.CompiledExcludePatterns.Value.Any(pattern => pattern.IsMatch(simple)))
+        {
+            return false;
+        }
+        // Then include
+        return options.IncludePatterns.Count == 0 || options.CompiledIncludePatterns.Value.Any(pattern => pattern.IsMatch(simple));
+    }
+
+    private static FrozenSet<Regex> CompileWildcardPatterns(IEnumerable<string> patterns)
+    {
+        var list = (from raw in patterns
+                    where raw.IsNotNullOrWhiteSpace()
+                    select new Regex($"^{Regex.Escape(raw)
+                                              .Replace("\\*", ".*", StringComparison.Ordinal)
+                                              .Replace("\\?", ".", StringComparison.Ordinal)}$",
+                        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            .ToList();
+        return list.ToFrozenSet();
+    }
+
+    private static IEnumerable<Assembly> ProbeAssembliesFromDisk(FrozenSet<Regex> patterns)
+    {
+        IEnumerable<string> files = [];
+        try
+        {
+            files = Directory.GetFiles(AppContext.BaseDirectory, "*.dll", SearchOption.AllDirectories);
+        }
+        catch
+        {
+            // ignore
+        }
+        foreach (var file in files)
+        {
+            var fileName = Path.GetFileNameWithoutExtension(file);
+            if (!patterns.Any(p => p.IsMatch(fileName)))
+            {
+                continue;
+            }
+            AssemblyName? asmName;
+            try
+            {
+                asmName = AssemblyLoadContext.GetAssemblyName(file);
+            }
+            catch
+            {
+                continue;
+            }
+            if (AssemblyCache.TryGetValue(asmName.FullName, out var cached) && cached is not null)
+            {
+                yield return cached;
+                continue;
+            }
+            Assembly? loaded = null;
+            try
+            {
+                loaded = AssemblyLoadContext.Default.LoadFromAssemblyPath(file);
+                AssemblyCache[asmName.FullName] = loaded;
+            }
+            catch (Exception ex)
+            {
+                AssemblyCache[asmName.FullName] = null;
+                Debug.WriteLine($"Failed to load assembly from path: {file}, error: {ex.Message}");
+            }
+            if (loaded is not null)
+            {
+                yield return loaded;
+            }
+        }
+    }
+
+    private static bool SafeIsDefined(Type t, Type attr, bool inherit)
+    {
+        try
+        {
+            return t.IsDefined(attr, inherit);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static void Reset()
+    {
+        // Invalidate snapshots and attribute caches
+        Interlocked.Increment(ref _version);
+        AttributeTypeCache.Clear();
+        _lazyAllAssemblies = new(static () => LoadAssembliesInternal(Options).ToArray());
+        _lazyAllTypes = new(static () => LoadTypesInternal(_lazyAllAssemblies.Value).ToArray());
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Scanning options</para>
+    ///     <para xml:lang="zh">扫描选项</para>
+    /// </summary>
+    public sealed class AssemblyScanOptions
+    {
+        internal AssemblyScanOptions()
+        {
+            // Reasonable defaults
+            ScanAllRuntimeLibraries = true;
+            AllowDirectoryProbe = true;
+            // Exclude common framework assemblies by default to improve speed
+            ExcludePatterns = new(StringComparer.OrdinalIgnoreCase)
+            {
+                "System.*",
+                "Microsoft.*",
+                "netstandard",
+                "mscorlib"
+            };
+            IncludePatterns = new(StringComparer.OrdinalIgnoreCase)
+            {
+                "EasilyNET*"
+            };
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Scan all runtime libraries reported by DependencyContext</para>
+        ///     <para xml:lang="zh">扫描 DependencyContext 报告的所有运行时程序集</para>
+        /// </summary>
+        public bool ScanAllRuntimeLibraries { get; set; }
+
+        /// <summary>
+        ///     <para xml:lang="en">Allow probing the app directory for additional DLLs when not found</para>
+        ///     <para xml:lang="zh">允许在未找到时从应用程序目录探测 DLL</para>
+        /// </summary>
+        // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
+        public bool AllowDirectoryProbe { get; set; }
+
+        internal Lazy<FrozenSet<Regex>> CompiledIncludePatterns => new(() => CompileWildcardPatterns(IncludePatterns));
+
+        internal Lazy<FrozenSet<Regex>> CompiledExcludePatterns => new(() => CompileWildcardPatterns(ExcludePatterns));
+
+        /// <summary>
+        ///     <para xml:lang="en">Include patterns, e.g. "EasilyNET.*"</para>
+        ///     <para xml:lang="zh">包含模式，例如 "EasilyNET.*"</para>
+        /// </summary>
+        public HashSet<string> IncludePatterns { get; }
+
+        /// <summary>
+        ///     <para xml:lang="en">Exclude patterns, e.g. "System.*"</para>
+        ///     <para xml:lang="zh">排除模式，例如 "System.*"</para>
+        /// </summary>
+        public HashSet<string> ExcludePatterns { get; }
     }
 }

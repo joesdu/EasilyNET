@@ -13,7 +13,11 @@ using WebApi.Test.Unit.Common;
 
 // App init start time
 var appInitial = Stopwatch.GetTimestamp();
-AssemblyHelper.LoadFromAllDll = false;
+AssemblyHelper.Configure(o =>
+{
+    o.ScanAllRuntimeLibraries = false;
+    o.AllowDirectoryProbe = false;
+});
 // Enable UTF-8 support in console
 _ = TextWriterExtensions.IsUtf8Supported();
 var builder = WebApplication.CreateBuilder(args);
