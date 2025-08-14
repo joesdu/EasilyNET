@@ -322,7 +322,7 @@ public static class ZipHelper
                     {
                         var entry = archive.CreateEntry(relative, compressionLevel);
                         await using var entryStream = entry.Open();
-                        await buffer.WriteToAsync(entryStream, ct);
+                        await buffer.CopyToAsync(entryStream, ct);
                     }
                     finally
                     {
