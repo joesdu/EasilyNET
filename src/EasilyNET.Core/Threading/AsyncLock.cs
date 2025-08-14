@@ -277,7 +277,10 @@ public sealed class AsyncLock : IDisposable
         internal readonly TaskCompletionSource<Release> Tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal CancellationTokenRegistration CancellationRegistration;
         internal LinkedListNode<Waiter>? Node;
+        private readonly TaskCompletionSource<Release> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal CancellationTokenRegistration CancellationRegistration;
 
+        internal TaskCompletionSource<Release> Tcs => _tcs;
         internal Waiter(AsyncLock owner)
         {
             _owner = owner;
