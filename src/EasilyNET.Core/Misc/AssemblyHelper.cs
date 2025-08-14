@@ -428,7 +428,9 @@ public static class AssemblyHelper
     [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Assembly))]
     private static bool TryLoadByName(AssemblyName assemblyName, out Assembly asm)
     {
-        asm = null!;
+    private static bool TryLoadByName(AssemblyName assemblyName, out Assembly? asm)
+    {
+        asm = null;
         // Check cache
         if (AssemblyCache.TryGetValue(assemblyName.FullName, out var cached))
         {
