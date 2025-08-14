@@ -19,7 +19,7 @@ public class DateTimeExtensionTest
         // Act
         var dayStart1 = dateTime1.DayStart;
         // Assert
-        Assert.AreEqual<DateTime>(new(2022, 1, 1, 0, 0, 0), dayStart1);
+        Assert.AreEqual(new(2022, 1, 1, 0, 0, 0), dayStart1);
 
         // Arrange
         var dateTime2 = new DateTime(2022, 1, 1, 12, 30, 0);
@@ -31,7 +31,7 @@ public class DateTimeExtensionTest
         // Arrange
         var dateTime3 = new DateTime(2024, 2, 29, 12, 30, 0);
         var dayStart3 = dateTime3.DayStart;
-        Assert.AreEqual<DateTime>(new(2024, 2, 29, 0, 0, 0), dayStart3);
+        Assert.AreEqual(new(2024, 2, 29, 0, 0, 0), dayStart3);
     }
 
     /// <summary>

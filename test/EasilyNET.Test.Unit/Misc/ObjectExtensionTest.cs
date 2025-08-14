@@ -1,5 +1,4 @@
 using EasilyNET.Core.Misc;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
 namespace EasilyNET.Test.Unit.Misc;

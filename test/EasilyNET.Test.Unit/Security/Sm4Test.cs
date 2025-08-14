@@ -1,6 +1,5 @@
 using System.Text;
 using EasilyNET.Security;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
 namespace EasilyNET.Test.Unit.Security;

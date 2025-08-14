@@ -1,5 +1,4 @@
 using EasilyNET.Core.Threading;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
 namespace EasilyNET.Test.Unit.Threading;
@@ -137,7 +136,7 @@ public class AsyncLockTests
     public async Task LockAsync_WithFunc_ShouldExecuteFuncUnderLockAndReturnResult()
     {
         using var asyncLock = new AsyncLock();
-        var expectedResult = "test_result";
+        const string expectedResult = "test_result";
         var lockHeldDuringFunc = false;
         var result = await asyncLock.LockAsync(async () =>
         {
@@ -163,7 +162,7 @@ public class AsyncLockTests
         var releaser = await asyncLock.LockAsync(cts.Token); // Pass token here as well
         var lockTask = asyncLock.LockAsync(cts.Token);
         await cts.CancelAsync(); // Use CancelAsync for async operations
-        await Assert.ThrowsExactlyAsync<OperationCanceledException>(async () => await lockTask);
+        await Assert.ThrowsExactlyAsync<TaskCanceledException>(async () => await lockTask);
         releaser.Dispose(); // Release the initially acquired lock
         asyncLock.IsHeld.ShouldBeFalse();
     }
@@ -186,7 +185,7 @@ public class AsyncLockTests
             await Task.CompletedTask;
         }, cts.Token);
         await cts.CancelAsync(); // Use CancelAsync
-        await Assert.ThrowsExactlyAsync<OperationCanceledException>(async () => await lockActionTask);
+        await Assert.ThrowsExactlyAsync<TaskCanceledException>(async () => await lockActionTask);
         actionExecuted.ShouldBeFalse(); // Action should not have been executed
         releaser.Dispose();             // Release the initially acquired lock
         asyncLock.IsHeld.ShouldBeFalse();
@@ -211,7 +210,7 @@ public class AsyncLockTests
             return "done";
         }, cts.Token);
         await cts.CancelAsync(); // Use CancelAsync
-        await Assert.ThrowsExactlyAsync<OperationCanceledException>(async () => await lockFuncTask);
+        await Assert.ThrowsExactlyAsync<TaskCanceledException>(async () => await lockFuncTask);
         funcExecuted.ShouldBeFalse(); // Func should not have been executed
         releaser.Dispose();           // Release the initially acquired lock
         asyncLock.IsHeld.ShouldBeFalse();
@@ -229,7 +228,7 @@ public class AsyncLockTests
         await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() => asyncLock.LockAsync(async () => await Task.CompletedTask));
         await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() => asyncLock.LockAsync(async () => await Task.FromResult(true)));
 
-        // IsHeld on a disposed AsyncLock will throw ObjectDisposedException because SemaphoreSlim.CurrentCount throws.
+        // IsHeld on a disposed AsyncLock throws ObjectDisposedException.
         Assert.ThrowsExactly<ObjectDisposedException>(() => { _ = asyncLock.IsHeld; });
     }
 
@@ -269,29 +268,31 @@ public class AsyncLockTests
     }
 
     /// <summary>
-    /// Tests that the WaitingCount property reflects tasks waiting for the lock.
-    /// Note: SemaphoreSlim does not directly expose a waiter count.
-    /// The current AsyncLock.WaitingCount is a simplification based on whether the lock is held.
-    /// This test verifies its current behavior.
+    /// Tests that the WaitingCount property reflects the actual number of queued waiters.
     /// </summary>
     [TestMethod]
     public async Task WaitingCount_ShouldReflectWaitingTasks()
     {
         using var asyncLock = new AsyncLock();
         asyncLock.WaitingCount.ShouldBe(0);
-        var releaser1 = await asyncLock.LockAsync(); // Lock is now held
+
+        // Acquire lock; no waiters yet.
+        var releaser1 = await asyncLock.LockAsync();
         asyncLock.IsHeld.ShouldBeTrue();
-        // WaitingCount is 1 if held, 0 otherwise, according to current AsyncLock implementation.
+        asyncLock.WaitingCount.ShouldBe(0);
+
+        // Start a waiter; it should now be queued.
+        var waitingTask = asyncLock.LockAsync();
         asyncLock.WaitingCount.ShouldBe(1);
-        var waitingTask = asyncLock.LockAsync(); // This task will wait
-        // At this point, one task holds the lock, another is (conceptually) waiting.
-        // The current simplified WaitingCount will still be 1 because IsHeld is true.
-        asyncLock.WaitingCount.ShouldBe(1); // Still 1 as it's based on IsHeld
-        releaser1.Dispose();                // Release the first lock
-        var releaser2 = await waitingTask;  // The waiting task should now acquire the lock
-        asyncLock.IsHeld.ShouldBeTrue();    // Held by the task that was waiting
-        asyncLock.WaitingCount.ShouldBe(1);
-        releaser2.Dispose(); // Release the second lock
+
+        // Release first holder; waiting task should acquire and queue becomes empty.
+        releaser1.Dispose();
+        var releaser2 = await waitingTask;
+        asyncLock.IsHeld.ShouldBeTrue();
+        asyncLock.WaitingCount.ShouldBe(0);
+
+        // Release second holder; lock is free and no waiters.
+        releaser2.Dispose();
         asyncLock.IsHeld.ShouldBeFalse();
         asyncLock.WaitingCount.ShouldBe(0);
     }
