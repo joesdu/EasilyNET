@@ -1,25 +1,34 @@
 // ReSharper disable UnusedMember.Global
 
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace EasilyNET.Core.Threading;
 
 /// <summary>
 ///     <para xml:lang="en">
 ///     Provides an asynchronous mutual exclusion lock. This lock is non-reentrant.
-///     It utilizes <see cref="SemaphoreSlim" /> internally to manage asynchronous access.
+///     It uses a custom lightweight FIFO waiter queue and a fast path via Interlocked for high performance.
 ///     </para>
 ///     <para xml:lang="zh">
 ///     提供一个异步互斥锁。此锁不可重入。
-///     它内部利用 <see cref="SemaphoreSlim" /> 来管理异步访问。
+///     通过 Interlocked 快路径与自定义的 FIFO 等待队列实现高性能异步锁。
 ///     </para>
 /// </summary>
 [DebuggerDisplay("IsHeld = {IsHeld}, Waiting = {WaitingCount}")]
 public sealed class AsyncLock : IDisposable
 {
     private readonly Task<Release> _cachedReleaseTask;
-    private readonly SemaphoreSlim _semaphore = new(1, 1); // Initial count 1, max count 1
+
+    // Waiters are stored in a linked list to support O(1) removal on cancellation.
+    private readonly Lock _sync = new();
+    private readonly LinkedList<Waiter> _waiters = [];
+
     private bool _disposed;
+
+    // 0 = free, 1 = held
+    private int _state;
+    private int _waiterCount; // updated under lock and read using Volatile.Read
 
     /// <summary>
     ///     <para xml:lang="en">Initializes a new instance of the <see cref="AsyncLock" /> class.</para>
@@ -38,9 +47,8 @@ public sealed class AsyncLock : IDisposable
     {
         get
         {
-            // This is the critical fix: check _disposed *before* accessing _semaphore.
             ObjectDisposedException.ThrowIf(_disposed, this);
-            return _semaphore.CurrentCount is 0;
+            return Volatile.Read(ref _state) != 0;
         }
     }
 
@@ -52,20 +60,7 @@ public sealed class AsyncLock : IDisposable
     ///     <para xml:lang="en">This is an approximation as the count can change.</para>
     ///     <para xml:lang="zh">这是一个近似值，因为计数可能会发生变化。</para>
     /// </remarks>
-    public int WaitingCount
-    {
-        get
-        {
-            // Check _disposed here as well for consistency, though IsHeld is the one failing in the test.
-            // Depending on desired behavior, this could throw or return a default.
-            // Returning 0 if disposed is reasonable for a "count".
-            if (_disposed)
-            {
-                return 0;
-            }
-            return _semaphore.CurrentCount is 0 ? 1 : 0; // Simplified, indicates if taken.
-        }
-    }
+    public int WaitingCount => _disposed ? 0 : Volatile.Read(ref _waiterCount);
 
     /// <summary>
     ///     <para xml:lang="en">Releases the resources used by the <see cref="AsyncLock" />.</para>
@@ -73,7 +68,40 @@ public sealed class AsyncLock : IDisposable
     /// </summary>
     public void Dispose()
     {
-        Dispose(true);
+        if (_disposed)
+        {
+            return;
+        }
+        List<Waiter>? toCancel = null;
+        lock (_sync)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+            _disposed = true;
+            if (_waiters.Count > 0)
+            {
+                toCancel = new(_waiters.Count);
+                for (var node = _waiters.First; node is not null; node = node.Next)
+                {
+                    toCancel.Add(node.Value);
+                }
+                _waiters.Clear();
+                _waiterCount = 0;
+            }
+            // Mark as not held to allow GC; current holder can still call Release which will be a no-op for waiters.
+            Volatile.Write(ref _state, 0);
+        }
+        if (toCancel is null)
+        {
+            return;
+        }
+        foreach (var w in toCancel)
+        {
+            w.CancellationRegistration.Dispose();
+            w.Tcs.TrySetException(new ObjectDisposedException(nameof(AsyncLock)));
+        }
     }
 
     /// <summary>
@@ -96,24 +124,39 @@ public sealed class AsyncLock : IDisposable
     public Task<Release> LockAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        var waitTask = _semaphore.WaitAsync(cancellationToken);
-        // If the wait completed synchronously (i.e., the semaphore was available immediately)
-        // and the cancellation token was not already canceled, we can return the cached task.
-        return waitTask.IsCompletedSuccessfully
-                   // Ensure not cancelled, WaitAsync would throw if it was already cancelled and completed synchronously due to that.
-                   // If it completed successfully, it means the lock was acquired.
-                   ? _cachedReleaseTask
-                   // If the wait did not complete synchronously, we need to await it asynchronously.
-                   : LockAsyncInternal(waitTask);
-    }
 
-    private async Task<Release> LockAsyncInternal(Task waitTask)
-    {
-        await waitTask.ConfigureAwait(false);
-        // We create a new Release struct here because the _cachedReleaseTask is specifically for synchronous completions.
-        // While it might seem okay to return _cachedReleaseTask, it's cleaner to distinguish.
-        // However, for struct Release, it's fine as it's just a holder for 'this'.
-        return new(this);
+        // Fast uncontended path: try to set state from 0 -> 1.
+        if (Interlocked.CompareExchange(ref _state, 1, 0) == 0)
+        {
+            return _cachedReleaseTask;
+        }
+
+        // Contended path: enqueue a waiter.
+        var waiter = new Waiter(this);
+
+        // Cancellation registration (installed before enqueue to avoid missed cancellation windows).
+        if (cancellationToken.CanBeCanceled)
+        {
+            waiter.CancellationRegistration = cancellationToken.Register(static s =>
+            {
+                var w = (Waiter)s!;
+                w.TryCancel();
+            }, waiter);
+            if (cancellationToken.IsCancellationRequested)
+            {
+                // Ensure immediate cancellation observes the token properly.
+                waiter.CancellationRegistration.Dispose();
+                waiter.TryCancel();
+                return waiter.Tcs.Task;
+            }
+        }
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            waiter.Node = _waiters.AddLast(waiter);
+            _waiterCount++;
+        }
+        return waiter.Tcs.Task;
     }
 
     /// <summary>
@@ -133,16 +176,10 @@ public sealed class AsyncLock : IDisposable
     /// <exception cref="ObjectDisposedException">The <see cref="AsyncLock" /> has been disposed。</exception>
     public async Task LockAsync(Func<Task> action, CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(action);
-        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
+        using (await LockAsync(cancellationToken).ConfigureAwait(false))
         {
             await action().ConfigureAwait(false);
-        }
-        finally
-        {
-            _semaphore.Release();
         }
     }
 
@@ -171,30 +208,45 @@ public sealed class AsyncLock : IDisposable
     /// <exception cref="ObjectDisposedException">The <see cref="AsyncLock" /> has been disposed。</exception>
     public async Task<TResult> LockAsync<TResult>(Func<Task<TResult>> func, CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(func);
-        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
+        using (await LockAsync(cancellationToken).ConfigureAwait(false))
         {
             return await func().ConfigureAwait(false);
         }
-        finally
-        {
-            _semaphore.Release();
-        }
     }
 
-    private void Dispose(bool disposing)
+    private void ReleaseInternal()
     {
-        if (_disposed)
+        Waiter? next = null;
+        lock (_sync)
+        {
+            if (_disposed)
+            {
+                // If disposed, just mark as not held.
+                Volatile.Write(ref _state, 0);
+                return;
+            }
+            if (_waiters.Count > 0)
+            {
+                next = _waiters.First!.Value;
+                _waiters.RemoveFirst();
+                next.Node = null;
+                _waiterCount--;
+                // Keep _state held (1) since ownership transfers to the next waiter.
+            }
+            else
+            {
+                // No one waiting, mark free.
+                Volatile.Write(ref _state, 0);
+            }
+        }
+        if (next is null)
         {
             return;
         }
-        if (disposing)
-        {
-            _semaphore.Dispose();
-        }
-        _disposed = true;
+        next.CancellationRegistration.Dispose();
+        // Continue with a fresh Release instance for the next owner.
+        next.Tcs.TrySetResult(new(this));
     }
 
     /// <summary>
@@ -216,10 +268,40 @@ public sealed class AsyncLock : IDisposable
         /// </summary>
         public void Dispose()
         {
-            // Only release if the lock instance is valid and not disposed.
-            if (_asyncLockToRelease is not null && !_asyncLockToRelease._disposed)
+            _asyncLockToRelease?.ReleaseInternal();
+        }
+    }
+
+    private sealed class Waiter
+    {
+        private readonly AsyncLock _owner;
+        internal readonly TaskCompletionSource<Release> Tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal CancellationTokenRegistration CancellationRegistration;
+        internal LinkedListNode<Waiter>? Node;
+
+        internal Waiter(AsyncLock owner)
+        {
+            _owner = owner;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void TryCancel()
+        {
+            var removed = false;
+            lock (_owner._sync)
             {
-                _asyncLockToRelease._semaphore.Release();
+                if (Node is not null)
+                {
+                    _owner._waiters.Remove(Node);
+                    Node = null;
+                    _owner._waiterCount--;
+                    removed = true;
+                }
+            }
+            if (removed)
+            {
+                // Propagate cancellation
+                Tcs.TrySetCanceled();
             }
         }
     }
