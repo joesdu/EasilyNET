@@ -100,7 +100,7 @@ public sealed class AsyncLock : IDisposable
             w.CancellationRegistration.Dispose();
             w.Tcs.TrySetException(new ObjectDisposedException(nameof(AsyncLock)));
         }
-            w.Tcs.TrySetException(new ObjectDisposedException(nameof(AsyncLock), "AsyncLock has been disposed"));
+    }
 
     /// <summary>
     ///     <para xml:lang="en">Asynchronously acquires the lock.</para>
@@ -137,7 +137,7 @@ public sealed class AsyncLock : IDisposable
         {
             waiter.CancellationRegistration = cancellationToken.Register(static s =>
             {
-            waiter.CancellationRegistration = cancellationToken.UnsafeRegister(static s =>
+                var w = (Waiter)s!;
                 w.TryCancel();
             }, waiter);
             if (cancellationToken.IsCancellationRequested)
@@ -268,8 +268,7 @@ public sealed class AsyncLock : IDisposable
         {
             _asyncLockToRelease?.ReleaseInternal();
         }
-            var asyncLock = Interlocked.Exchange(ref _asyncLockToRelease, null);
-            asyncLock?.ReleaseInternal();
+    }
 
     private sealed class Waiter
     {
@@ -277,10 +276,7 @@ public sealed class AsyncLock : IDisposable
         internal readonly TaskCompletionSource<Release> Tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal CancellationTokenRegistration CancellationRegistration;
         internal LinkedListNode<Waiter>? Node;
-        private readonly TaskCompletionSource<Release> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        internal CancellationTokenRegistration CancellationRegistration;
 
-        internal TaskCompletionSource<Release> Tcs => _tcs;
         internal Waiter(AsyncLock owner)
         {
             _owner = owner;
