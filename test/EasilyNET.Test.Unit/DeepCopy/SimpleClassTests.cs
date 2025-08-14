@@ -1,5 +1,4 @@
 using EasilyNET.Test.Unit.DeepCopy.TestClass;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace EasilyNET.Test.Unit.DeepCopy;
 

@@ -1,5 +1,4 @@
 using EasilyNET.Core.Threading;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 // ReSharper disable MethodSupportsCancellation
 

@@ -1,6 +1,5 @@
 using System.Text;
 using EasilyNET.Security;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
 // ReSharper disable StringLiteralTypo

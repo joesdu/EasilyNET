@@ -190,7 +190,7 @@ public static class Sm2Crypt
     /// </param>
     private static byte[] C123ToC132(ReadOnlySpan<byte> c1c2c3)
     {
-        var c1Len = ((x9.Curve.FieldSize + 7) >> 3 << 1) + 1; //sm2p256v1的这个固定65。可看GMNamedCurves、ECCurve代码。
+        var c1Len = (((x9.Curve.FieldSize + 7) >> 3) << 1) + 1; //sm2p256v1的这个固定65。可看GMNamedCurves、ECCurve代码。
         const int c3Len = 32;
         var result = new byte[c1c2c3.Length];
         c1c2c3[..c1Len].CopyTo(result);
@@ -209,7 +209,7 @@ public static class Sm2Crypt
     /// </param>
     private static byte[] C132ToC123(ReadOnlySpan<byte> c1c3c2)
     {
-        var c1Len = ((x9.Curve.FieldSize + 7) >> 3 << 1) + 1;
+        var c1Len = (((x9.Curve.FieldSize + 7) >> 3) << 1) + 1;
         const int c3Len = 32;
         var result = new byte[c1c3c2.Length];
         c1c3c2[..c1Len].CopyTo(result);

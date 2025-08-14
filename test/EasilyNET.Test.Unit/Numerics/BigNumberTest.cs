@@ -1,6 +1,5 @@
 using System.Numerics;
 using EasilyNET.Core.Numerics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
 namespace EasilyNET.Test.Unit.Numerics;

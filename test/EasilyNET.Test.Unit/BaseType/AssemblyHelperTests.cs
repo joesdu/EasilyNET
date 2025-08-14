@@ -1,7 +1,6 @@
 using System.Runtime.Loader;
 using EasilyNET.Core.Attributes;
 using EasilyNET.Core.Misc;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 // ReSharper disable UnusedMember.Local
 
