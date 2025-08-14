@@ -26,12 +26,12 @@ internal sealed class MongoModule : AppModule
         //{
         //    // 配置数据库名称,覆盖掉连接字符串中的数据库名称
         //    c.DatabaseName = "test23";
-        //    // 配置不需要将Id字段存储为ObjectID的类型.使用$unwind操作符的时候,ObjectId在转换上会有一些问题,所以需要将其调整为字符串.
+        //    // 配置不需要将Id字段存储为ObjectID的类型,会存储为字符串类型
         //    c.ObjectIdToStringTypes = new()
         //    {
         //        typeof(MongoTest2)
         //    };
-        //    // 是否使用HoyoMongo的一些默认转换配置.包含如下内容:
+        //    // 是否使用一些默认转换配置.包含如下内容:
         //    // 1.小驼峰字段名称 如: pageSize ,linkPhone
         //    // 2.忽略代码中未定义的字段
         //    // 3.将ObjectID字段 _id 映射到实体中的ID或者Id字段,反之亦然.在存入数据的时候将Id或者ID映射为 _id

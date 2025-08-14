@@ -12,6 +12,6 @@ public static class Program
     {
         //BenchmarkRunner.Run<UlidBenchmark>();
         //BenchmarkRunner.Run<PooledMemoryStreamBenchmark>();
-        BenchmarkRunner.Run<SnowIdBenchmark>();
+        BenchmarkRunner.Run<ObjectIdCompatBenchmark>();
     }
 }

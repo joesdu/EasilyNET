@@ -52,7 +52,10 @@ internal sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<Erro
 
     private Task HandleExceptionAsync(HttpContext context, Exception ex)
     {
-        logger.LogError("发生未处理异常: {Ex}", ex.ToString());
+        if (logger.IsEnabled(LogLevel.Error))
+        {
+            logger.LogError("发生未处理异常: {Ex}", ex.ToString());
+        }
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
         options.Converters.Add(new JsonStringEnumConverter());

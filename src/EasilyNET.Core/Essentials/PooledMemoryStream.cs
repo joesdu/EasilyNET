@@ -9,8 +9,8 @@ using System.Runtime.CompilerServices;
 namespace EasilyNET.Core.Essentials;
 
 /// <summary>
-///     <para xml:lang="en">Pooled memory stream</para>
-///     <para xml:lang="zh">池化内存流</para>
+///     <para xml:lang="en">Pooled memory stream, not thread-safe, please use locks or per-thread instances.</para>
+///     <para xml:lang="zh">池化内存流,并非线程安全,请调用侧加锁或每线程独立实例</para>
 /// </summary>
 public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
 {
@@ -161,6 +161,14 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     public override int Read(byte[] buffer, int offset, int count)
     {
         AssertNotDisposed();
+        if ((uint)offset > (uint)buffer.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(offset));
+        }
+        if ((uint)count > (uint)(buffer.Length - offset))
+        {
+            throw new ArgumentOutOfRangeException(nameof(count));
+        }
         if (count == 0)
         {
             return 0;
@@ -194,6 +202,22 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
         _data.AsSpan((int)Position, available).CopyTo(buffer);
         Position += available;
         return available;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Reads a single byte from the stream</para>
+    ///     <para xml:lang="zh">读取一个字节</para>
+    /// </summary>
+    public override int ReadByte()
+    {
+        AssertNotDisposed();
+        if (Position >= _length)
+        {
+            return -1;
+        }
+        var b = _data[(int)Position];
+        Position++;
+        return b;
     }
 
     /// <summary>
@@ -281,6 +305,14 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     public override void Write(byte[] buffer, int offset, int count)
     {
         AssertNotDisposed();
+        if ((uint)offset > (uint)buffer.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(offset));
+        }
+        if ((uint)count > (uint)(buffer.Length - offset))
+        {
+            throw new ArgumentOutOfRangeException(nameof(count));
+        }
         if (count == 0)
         {
             return;
@@ -316,6 +348,76 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     }
 
     /// <summary>
+    ///     <para xml:lang="en">Writes a single byte to the stream</para>
+    ///     <para xml:lang="zh">写入一个字节</para>
+    /// </summary>
+    public override void WriteByte(byte value)
+    {
+        AssertNotDisposed();
+        EnsureCapacity(Position + 1);
+        _data[(int)Position] = value;
+        Position++;
+        if (Position > _length)
+        {
+            _length = (int)Position;
+        }
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Writes the stream to another stream</para>
+    ///     <para xml:lang="zh">写入到另一个流</para>
+    /// </summary>
+    /// <param name="stream">
+    ///     <para xml:lang="en">The stream to write to</para>
+    ///     <para xml:lang="zh">要写入的流</para>
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     <para xml:lang="en">Thrown when the stream is null</para>
+    ///     <para xml:lang="zh">当流为空时抛出</para>
+    /// </exception>
+    public async Task WriteToAsync(Stream stream)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        AssertNotDisposed();
+        // Write from current position to end, do not mutate Position
+        var remaining = _length - (int)Position;
+        if (remaining <= 0)
+        {
+            return;
+        }
+        await stream.WriteAsync(_data.AsMemory((int)Position, remaining));
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Writes the stream to another stream</para>
+    ///     <para xml:lang="zh">写入到另一个流</para>
+    /// </summary>
+    /// <param name="stream">
+    ///     <para xml:lang="en">The stream to write to</para>
+    ///     <para xml:lang="zh">要写入的流</para>
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     <para xml:lang="en">Cancellation token</para>
+    ///     <para xml:lang="zh">取消标记</para>
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     <para xml:lang="en">Thrown when the stream is null</para>
+    ///     <para xml:lang="zh">当流为空时抛出</para>
+    /// </exception>
+    public async Task WriteToAsync(Stream stream, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        AssertNotDisposed();
+        cancellationToken.ThrowIfCancellationRequested();
+        var remaining = _length - (int)Position;
+        if (remaining <= 0)
+        {
+            return;
+        }
+        await stream.WriteAsync(_data.AsMemory((int)Position, remaining), cancellationToken);
+    }
+
+    /// <summary>
     ///     <para xml:lang="en">Writes the stream to another stream</para>
     ///     <para xml:lang="zh">写入到另一个流</para>
     /// </summary>
@@ -331,7 +433,12 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     {
         ArgumentNullException.ThrowIfNull(stream);
         AssertNotDisposed();
-        stream.Write(_data, 0, _length);
+        var remaining = _length - (int)Position;
+        if (remaining <= 0)
+        {
+            return;
+        }
+        stream.Write(_data, (int)Position, remaining);
     }
 
     /// <summary>
@@ -355,6 +462,66 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     ///     <para xml:lang="zh">获取流的字节数组</para>
     /// </summary>
     public byte[] ToArray() => GetBuffer();
+
+    /// <summary>
+    ///     <para xml:lang="en">Asynchronous read into a byte array</para>
+    ///     <para xml:lang="zh">异步读取到字节数组</para>
+    /// </summary>
+    public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+        // Delegate to Memory-based overload for optimal behavior
+        ReadAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
+
+    /// <summary>
+    ///     <para xml:lang="en">Asynchronous read into a memory buffer</para>
+    ///     <para xml:lang="zh">异步读取到内存缓冲区</para>
+    /// </summary>
+    public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+    {
+        AssertNotDisposed();
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return ValueTask.FromCanceled<int>(cancellationToken);
+        }
+        var available = Math.Min(buffer.Length, _length - (int)Position);
+        if (available <= 0)
+        {
+            return ValueTask.FromResult(0);
+        }
+        _data.AsMemory((int)Position, available).CopyTo(buffer);
+        Position += available;
+        return ValueTask.FromResult(available);
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Asynchronous write from a byte array</para>
+    ///     <para xml:lang="zh">从字节数组异步写入</para>
+    /// </summary>
+    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => WriteAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
+
+    /// <summary>
+    ///     <para xml:lang="en">Asynchronous write from a memory buffer</para>
+    ///     <para xml:lang="zh">从内存缓冲区异步写入</para>
+    /// </summary>
+    public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+    {
+        AssertNotDisposed();
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return ValueTask.FromCanceled(cancellationToken);
+        }
+        if (buffer.Length == 0)
+        {
+            return ValueTask.CompletedTask;
+        }
+        EnsureCapacity(Position + buffer.Length);
+        buffer.CopyTo(_data.AsMemory((int)Position));
+        Position += buffer.Length;
+        if (Position > _length)
+        {
+            _length = (int)Position;
+        }
+        return ValueTask.CompletedTask;
+    }
 
     /// <summary>
     ///     <para xml:lang="en">Disposes the stream</para>
@@ -418,4 +585,16 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     ///     <para xml:lang="zh">获取 Memory&lt;<see cref="byte" />&gt;</para>
     /// </summary>
     public Memory<byte> GetMemory() => _data.AsMemory(0, _length);
+
+    /// <summary>
+    ///     <para xml:lang="en">Gets a read-only span of bytes</para>
+    ///     <para xml:lang="zh">获取只读 Span</para>
+    /// </summary>
+    public ReadOnlySpan<byte> GetReadOnlySpan() => _data.AsSpan(0, _length);
+
+    /// <summary>
+    ///     <para xml:lang="en">Gets a read-only memory of bytes</para>
+    ///     <para xml:lang="zh">获取只读 Memory</para>
+    /// </summary>
+    public ReadOnlyMemory<byte> GetReadOnlyMemory() => _data.AsMemory(0, _length);
 }
