@@ -100,7 +100,7 @@ public sealed class AsyncLock : IDisposable
             w.CancellationRegistration.Dispose();
             w.Tcs.TrySetException(new ObjectDisposedException(nameof(AsyncLock)));
         }
-    }
+            w.Tcs.TrySetException(new ObjectDisposedException(nameof(AsyncLock), "AsyncLock has been disposed"));
 
     /// <summary>
     ///     <para xml:lang="en">Asynchronously acquires the lock.</para>
