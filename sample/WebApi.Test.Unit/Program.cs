@@ -5,7 +5,6 @@ using EasilyNET.Core.Misc;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
-using Serilog.Sinks.SystemConsole.Themes;
 using WebApi.Test.Unit;
 using WebApi.Test.Unit.Common;
 
@@ -50,7 +49,7 @@ builder.Host.UseSerilog((hbc, lc) =>
                       outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}",
                       rollingInterval: RollingInterval.Day)));
           }
-          wt.Console(theme: AnsiConsoleTheme.Code);
+          wt.Console(theme: DraculaConsoleTheme.Dark);
           var otel = hbc.Configuration.GetSection("OpenTelemetry");
           wt.OpenTelemetry(c =>
           {
