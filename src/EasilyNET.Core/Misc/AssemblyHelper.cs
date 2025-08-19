@@ -50,12 +50,6 @@ namespace EasilyNET.Core.Misc;
 ///                 <para xml:lang="zh">通过 Configure 及 AddIncludePatterns / AddExcludePatterns 等方法进行配置.</para>
 ///             </description>
 ///         </item>
-///         <item>
-///             <description>
-///                 <para xml:lang="en">Back-compat: LoadFromAllDll (obsolete) maps to Options.ScanAllRuntimeLibraries.</para>
-///                 <para xml:lang="zh">LoadFromAllDll(已标记过时未来版本删除)映射到 Options.ScanAllRuntimeLibraries.</para>
-///             </description>
-///         </item>
 ///     </list>
 /// </remarks>
 /// <example>
@@ -138,32 +132,6 @@ public static class AssemblyHelper
     ///     <para xml:lang="zh">从符合条件的程序集获取所有类型</para>
     /// </summary>
     public static IEnumerable<Type> AllTypes => _lazyAllTypes.Value;
-
-    /// <summary>
-    ///     <para xml:lang="en">
-    ///     Indicates whether to load all assemblies. Loading all assemblies may be slow. For general use, it defaults to
-    ///     <see langword="true" />. It is recommended to set it to <see langword="false" /> and manually specify the assemblies to load using
-    ///     <see cref="AddAssemblyNames" />.
-    ///     </para>
-    ///     <para xml:lang="zh">
-    ///     是否获取所有的程序集。加载所有程序集可能会比较慢。为保持通用性，默认为 <see langword="true" />。推荐设置为 <see langword="false" /> 并手动通过
-    ///     <see cref="AddAssemblyNames" /> 指定需要加载的程序集。
-    ///     </para>
-    /// </summary>
-    [Obsolete("Use Configure(options => options.ScanAllRuntimeLibraries = ...) instead.")]
-    public static bool LoadFromAllDll
-    {
-        get => Options.ScanAllRuntimeLibraries;
-        set
-        {
-            if (Options.ScanAllRuntimeLibraries == value)
-            {
-                return;
-            }
-            Options.ScanAllRuntimeLibraries = value;
-            Reset();
-        }
-    }
 
     // Options holder and helpers
     /// <summary>
