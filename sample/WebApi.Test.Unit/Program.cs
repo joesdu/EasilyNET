@@ -5,7 +5,6 @@ using EasilyNET.Core.Misc;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
-using Serilog.Sinks.SystemConsole.Themes;
 using WebApi.Test.Unit;
 using WebApi.Test.Unit.Common;
 
@@ -38,6 +37,7 @@ builder.Host.UseSerilog((hbc, lc) =>
       .Enrich.FromLogContext()
       .WriteTo.Async(wt =>
       {
+          wt.Console(theme: DraculaConsoleTheme.Dark);
           if (hbc.HostingEnvironment.IsDevelopment())
           {
               wt.Debug();
@@ -50,7 +50,6 @@ builder.Host.UseSerilog((hbc, lc) =>
                       outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}",
                       rollingInterval: RollingInterval.Day)));
           }
-          wt.Console(theme: AnsiConsoleTheme.Code);
           var otel = hbc.Configuration.GetSection("OpenTelemetry");
           wt.OpenTelemetry(c =>
           {
@@ -80,7 +79,7 @@ app.MapControllers();
 app.Lifetime.ApplicationStopping.Register(OnShutdown);
 app.Lifetime.ApplicationStarted.Register(OnStarted);
 
-// .NET·启动
+// .NET 启动
 app.Run();
 return;
 
