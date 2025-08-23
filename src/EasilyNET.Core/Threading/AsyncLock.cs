@@ -197,9 +197,7 @@ public sealed class AsyncLock : IDisposable
     ///     <para xml:lang="zh">在指定超时时间内尝试同步获取锁。</para>
     /// </summary>
     // ReSharper disable once MemberCanBePrivate.Global
-    public bool TryLock(TimeSpan timeout, out Release releaser, CancellationToken cancellationToken = default) => TryLockWithCancellation(timeout, out releaser, cancellationToken);
-
-    private bool TryLockWithCancellation(TimeSpan timeout, out Release releaser, CancellationToken cancellationToken)
+    public bool TryLockWithCancellation(TimeSpan timeout, out Release releaser, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         // If caller already canceled, honor it.
