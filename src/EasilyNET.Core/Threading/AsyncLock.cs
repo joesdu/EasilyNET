@@ -138,7 +138,7 @@ public sealed class AsyncLock : IDisposable
             // 使用 UnsafeRegister，避免流动 ExecutionContext，提高性能
             waiter.CancellationRegistration = cancellationToken.UnsafeRegister(static s =>
             {
-                var w = s as Waiter;
+                var w = (Waiter?)s;
                 w?.TryCancel();
             }, waiter);
             if (cancellationToken.IsCancellationRequested)
@@ -152,10 +152,19 @@ public sealed class AsyncLock : IDisposable
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            // 若在此之前回调已触发并使 Tcs 完成（取消），则避免入队
+
+            // If already canceled, avoid enqueue
             if (waiter.Tcs.Task.IsCompleted)
             {
                 return waiter.Tcs.Task;
+            }
+
+            // Re-check state under lock; if the lock became free between fast path and now, try to acquire atomically
+            if (Interlocked.CompareExchange(ref _state, 1, 0) == 0)
+            {
+                // cleanup registration to avoid leaks since we won't use this waiter
+                waiter.CancellationRegistration.Dispose();
+                return _cachedReleaseTask;
             }
             waiter.Node = _waiters.AddLast(waiter);
             _waiterCount++;
@@ -221,36 +230,41 @@ public sealed class AsyncLock : IDisposable
 
     private void ReleaseInternal()
     {
-        Waiter? next = null;
-        lock (_sync)
+        while (true)
         {
-            if (_disposed)
+            Waiter? next;
+            lock (_sync)
             {
-                // If disposed, just mark as not held.
-                Volatile.Write(ref _state, 0);
+                if (_disposed)
+                {
+                    // If disposed, just mark as not held.
+                    Volatile.Write(ref _state, 0);
+                    return;
+                }
+                if (_waiters.Count > 0)
+                {
+                    next = _waiters.First!.Value;
+                    _waiters.RemoveFirst();
+                    next.Node = null;
+                    _waiterCount--;
+                    // Keep _state held (1) since ownership transfers to the next waiter.
+                }
+                else
+                {
+                    // No one waiting, mark free and finish.
+                    Volatile.Write(ref _state, 0);
+                    return;
+                }
+            }
+            // Hand off to the selected waiter outside of the lock.
+            next.CancellationRegistration.Dispose();
+            // If the waiter was canceled concurrently, TrySetResult will fail; retry with the next waiter.
+            if (next.Tcs.TrySetResult(new(this)))
+            {
                 return;
             }
-            if (_waiters.Count > 0)
-            {
-                next = _waiters.First!.Value;
-                _waiters.RemoveFirst();
-                next.Node = null;
-                _waiterCount--;
-                // Keep _state held (1) since ownership transfers to the next waiter.
-            }
-            else
-            {
-                // No one waiting, mark free.
-                Volatile.Write(ref _state, 0);
-            }
+            // Otherwise, loop to pick another waiter or release if none.
         }
-        if (next is null)
-        {
-            return;
-        }
-        next.CancellationRegistration.Dispose();
-        // Continue with a fresh Release instance for the next owner.
-        next.Tcs.TrySetResult(new(this));
     }
 
     /// <summary>
@@ -291,7 +305,6 @@ public sealed class AsyncLock : IDisposable
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void TryCancel()
         {
-            var removed = false;
             lock (_owner._sync)
             {
                 if (Node is not null)
@@ -299,14 +312,10 @@ public sealed class AsyncLock : IDisposable
                     _owner._waiters.Remove(Node);
                     Node = null;
                     _owner._waiterCount--;
-                    removed = true;
                 }
             }
-            if (removed)
-            {
-                // Propagate cancellation
-                Tcs.TrySetCanceled();
-            }
+            // Always complete as canceled so producers can observe and avoid enqueuing or awaiting forever.
+            Tcs.TrySetCanceled();
         }
     }
 }
