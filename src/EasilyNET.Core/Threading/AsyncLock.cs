@@ -18,8 +18,6 @@ namespace EasilyNET.Core.Threading;
 [DebuggerDisplay("IsHeld = {IsHeld}, Waiting = {WaitingCount}")]
 public sealed class AsyncLock : IDisposable
 {
-    // Expose a WaitHandle similar to SemaphoreSlim.AvailableWaitHandle: signaled when lock is free.
-    private readonly ManualResetEventSlim _available = new(true);
     private readonly Task<Release> _cachedReleaseTask;
 
     // Waiters are stored in a linked list to support O(1) removal on cancellation.
@@ -51,19 +49,6 @@ public sealed class AsyncLock : IDisposable
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             return Volatile.Read(ref _state) != 0;
-        }
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Gets a wait handle that is signaled when the lock is free and reset when it's held.</para>
-    ///     <para xml:lang="zh">获取一个等待句柄：当锁空闲时为有信号，持有时为无信号。</para>
-    /// </summary>
-    public WaitHandle AvailableWaitHandle
-    {
-        get
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            return _available.WaitHandle;
         }
     }
 
@@ -107,7 +92,6 @@ public sealed class AsyncLock : IDisposable
             }
             // Mark as not held to allow GC; current holder can still call Release which will be a no-op for waiters.
             Volatile.Write(ref _state, 0);
-            _available.Set();
         }
         if (toCancel is not null)
         {
@@ -117,34 +101,7 @@ public sealed class AsyncLock : IDisposable
                 w.Tcs.TrySetException(new ObjectDisposedException(nameof(AsyncLock), "AsyncLock has been disposed"));
             }
         }
-        _available.Dispose();
     }
-
-    // -------------------------- SemaphoreSlim-like API --------------------------
-
-    /// <summary>
-    ///     <para xml:lang="en">Synchronously acquires the lock. Throws if canceled.</para>
-    ///     <para xml:lang="zh">同步获取锁，若被取消则抛出异常。</para>
-    /// </summary>
-    public Release Wait() => Lock();
-
-    /// <summary>
-    ///     <para xml:lang="en">Synchronously acquires the lock. Throws if canceled.</para>
-    ///     <para xml:lang="zh">同步获取锁（可取消）。</para>
-    /// </summary>
-    public Release Wait(CancellationToken cancellationToken) => Lock(cancellationToken);
-
-    /// <summary>
-    ///     <para xml:lang="en">Tries to synchronously acquire the lock within the specified timeout.</para>
-    ///     <para xml:lang="zh">在指定超时时间内尝试同步获取锁。</para>
-    /// </summary>
-    public bool Wait(int millisecondsTimeout, out Release releaser) => TryLock(TimeSpan.FromMilliseconds(millisecondsTimeout), out releaser);
-
-    /// <summary>
-    ///     <para xml:lang="en">Tries to synchronously acquire the lock within the specified timeout.</para>
-    ///     <para xml:lang="zh">在指定超时时间内尝试同步获取锁。</para>
-    /// </summary>
-    public bool Wait(TimeSpan timeout, out Release releaser) => TryLock(timeout, out releaser);
 
     /// <summary>
     ///     <para xml:lang="en">Tries to synchronously acquire the lock immediately.</para>
@@ -184,20 +141,13 @@ public sealed class AsyncLock : IDisposable
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Synchronously acquires the lock. Throws if canceled.</para>
-    ///     <para xml:lang="zh">同步获取锁，若被取消则抛出异常。</para>
-    /// </summary>
-    // ReSharper disable once MemberCanBePrivate.Global
-    public Release Lock(CancellationToken cancellationToken = default) =>
-        // Use the async core to share correctness and cancellation handling, then block synchronously.
-        LockAsync(cancellationToken).GetAwaiter().GetResult();
-
-    /// <summary>
     ///     <para xml:lang="en">Tries to synchronously acquire the lock within the specified timeout.</para>
     ///     <para xml:lang="zh">在指定超时时间内尝试同步获取锁。</para>
     /// </summary>
     // ReSharper disable once MemberCanBePrivate.Global
-    public bool TryLockWithCancellation(TimeSpan timeout, out Release releaser, CancellationToken cancellationToken = default)
+    public bool TryLock(TimeSpan timeout, out Release releaser, CancellationToken cancellationToken = default) => TryLockWithCancellation(timeout, out releaser, cancellationToken);
+
+    private bool TryLockWithCancellation(TimeSpan timeout, out Release releaser, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         // If caller already canceled, honor it.
@@ -245,7 +195,6 @@ public sealed class AsyncLock : IDisposable
         // Fast uncontended path: try to set state from 0 -> 1.
         if (Interlocked.CompareExchange(ref _state, 1, 0) == 0)
         {
-            _available.Reset();
             return _cachedReleaseTask;
         }
 
@@ -284,7 +233,6 @@ public sealed class AsyncLock : IDisposable
             {
                 // cleanup registration to avoid leaks since we won't use this waiter
                 waiter.CancellationRegistration.Dispose();
-                _available.Reset();
                 return _cachedReleaseTask;
             }
             waiter.Node = _waiters.AddLast(waiter);
@@ -332,7 +280,6 @@ public sealed class AsyncLock : IDisposable
                 if (_disposed)
                 {
                     Volatile.Write(ref _state, 0);
-                    _available.Set();
                     return;
                 }
                 if (_waiters.Count > 0)
@@ -346,7 +293,6 @@ public sealed class AsyncLock : IDisposable
                 else
                 {
                     Volatile.Write(ref _state, 0);
-                    _available.Set();
                     return;
                 }
             }
