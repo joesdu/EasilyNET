@@ -166,7 +166,6 @@ public sealed class AsyncLock : IDisposable
                 waiter.CancellationRegistration.Dispose();
                 return _cachedReleaseTask;
             }
-
             waiter.Node = _waiters.AddLast(waiter);
             _waiterCount++;
         }
