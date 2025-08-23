@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
+// ReSharper disable UnusedMember.Global
+
 namespace EasilyNET.Core.Threading;
 
 /// <summary>
@@ -91,14 +93,81 @@ public sealed class AsyncLock : IDisposable
             // Mark as not held to allow GC; current holder can still call Release which will be a no-op for waiters.
             Volatile.Write(ref _state, 0);
         }
-        if (toCancel is null)
+        if (toCancel is not null)
         {
-            return;
+            foreach (var w in toCancel)
+            {
+                w.CancellationRegistration.Dispose();
+                w.Tcs.TrySetException(new ObjectDisposedException(nameof(AsyncLock), "AsyncLock has been disposed"));
+            }
         }
-        foreach (var w in toCancel)
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Tries to synchronously acquire the lock immediately.</para>
+    ///     <para xml:lang="zh">立即尝试同步获取锁。</para>
+    /// </summary>
+    public bool TryWait(out Release releaser) => TryLock(TimeSpan.Zero, out releaser);
+
+    /// <summary>
+    ///     <para xml:lang="en">Tries to synchronously acquire the lock within the specified timeout and observes cancellation.</para>
+    ///     <para xml:lang="zh">在指定超时时间内尝试同步获取锁（可取消）。</para>
+    /// </summary>
+    public bool TryWait(TimeSpan timeout, out Release releaser, CancellationToken cancellationToken) => TryLockWithCancellation(timeout, out releaser, cancellationToken);
+
+    /// <summary>
+    ///     <para xml:lang="en">Asynchronously waits to acquire the lock (alias of LockAsync).</para>
+    ///     <para xml:lang="zh">异步等待获取锁（LockAsync 的别名）。</para>
+    /// </summary>
+    public Task<Release> WaitAsync(CancellationToken cancellationToken = default) => LockAsync(cancellationToken);
+
+    /// <summary>
+    ///     <para xml:lang="en">Asynchronously waits to acquire the lock with timeout.</para>
+    ///     <para xml:lang="zh">带超时的异步等待获取锁。</para>
+    /// </summary>
+    public async Task<(bool Acquired, Release Releaser)> WaitAsync(TimeSpan timeout, CancellationToken cancellationToken = default)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(timeout);
+        try
         {
-            w.CancellationRegistration.Dispose();
-            w.Tcs.TrySetException(new ObjectDisposedException(nameof(AsyncLock), "AsyncLock has been disposed"));
+            var r = await LockAsync(cts.Token).ConfigureAwait(false);
+            return (true, r);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return (false, default);
+        }
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Tries to synchronously acquire the lock within the specified timeout.</para>
+    ///     <para xml:lang="zh">在指定超时时间内尝试同步获取锁。</para>
+    /// </summary>
+    // ReSharper disable once MemberCanBePrivate.Global
+    public bool TryLock(TimeSpan timeout, out Release releaser, CancellationToken cancellationToken = default) => TryLockWithCancellation(timeout, out releaser, cancellationToken);
+
+    private bool TryLockWithCancellation(TimeSpan timeout, out Release releaser, CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        // If caller already canceled, honor it.
+        cancellationToken.ThrowIfCancellationRequested();
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(timeout);
+        try
+        {
+            releaser = LockAsync(cts.Token).GetAwaiter().GetResult();
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            // Distinguish external cancellation from timeout.
+            if (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            releaser = default;
+            return false; // timeout
         }
     }
 
@@ -176,17 +245,6 @@ public sealed class AsyncLock : IDisposable
     ///     <para xml:lang="en">Asynchronously acquires the lock, executes an asynchronous action, and then releases the lock.</para>
     ///     <para xml:lang="zh">异步获取锁，执行一个异步操作，然后释放锁。</para>
     /// </summary>
-    /// <param name="action">
-    ///     <para xml:lang="en">The asynchronous action to perform while holding the lock。</para>
-    ///     <para xml:lang="zh">持有锁时要执行的异步操作。</para>
-    /// </param>
-    /// <param name="cancellationToken">
-    ///     <para xml:lang="en">A <see cref="CancellationToken" /> to observe while waiting for the lock and executing the action.</para>
-    ///     <para xml:lang="zh">在等待锁和执行操作时要观察的 <see cref="CancellationToken" />。</para>
-    /// </param>
-    /// <exception cref="ArgumentNullException"><paramref name="action" /> is <see langword="null" />。</exception>
-    /// <exception cref="OperationCanceledException">The <paramref name="cancellationToken" /> was canceled.</exception>
-    /// <exception cref="ObjectDisposedException">The <see cref="AsyncLock" /> has been disposed。</exception>
     public async Task LockAsync(Func<Task> action, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(action);
@@ -203,22 +261,6 @@ public sealed class AsyncLock : IDisposable
     ///     </para>
     ///     <para xml:lang="zh">异步获取锁，执行一个异步函数，释放锁，并返回函数的结果。</para>
     /// </summary>
-    /// <typeparam name="TResult">The type of the result returned by the function.</typeparam>
-    /// <param name="func">
-    ///     <para xml:lang="en">The asynchronous function to perform while holding the lock.</para>
-    ///     <para xml:lang="zh">持有锁时要执行的异步函数。</para>
-    /// </param>
-    /// <param name="cancellationToken">
-    ///     <para xml:lang="en">A <see cref="CancellationToken" /> to observe while waiting for the lock and executing the function.</para>
-    ///     <para xml:lang="zh">在等待锁和执行函数时要观察的 <see cref="CancellationToken" />。</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A task that represents the asynchronous operation and contains the result of the <paramref name="func" />。</para>
-    ///     <para xml:lang="zh">一个表示异步操作的任务，并包含 <paramref name="func" /> 的结果。</para>
-    /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="func" /> is <see langword="null" />。</exception>
-    /// <exception cref="OperationCanceledException">The <paramref name="cancellationToken" /> was canceled。</exception>
-    /// <exception cref="ObjectDisposedException">The <see cref="AsyncLock" /> has been disposed。</exception>
     public async Task<TResult> LockAsync<TResult>(Func<Task<TResult>> func, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(func);
@@ -237,7 +279,6 @@ public sealed class AsyncLock : IDisposable
             {
                 if (_disposed)
                 {
-                    // If disposed, just mark as not held.
                     Volatile.Write(ref _state, 0);
                     return;
                 }
@@ -251,19 +292,18 @@ public sealed class AsyncLock : IDisposable
                 }
                 else
                 {
-                    // No one waiting, mark free and finish.
                     Volatile.Write(ref _state, 0);
                     return;
                 }
             }
-            // Hand off to the selected waiter outside of the lock.
             next.CancellationRegistration.Dispose();
-            // If the waiter was canceled concurrently, TrySetResult will fail; retry with the next waiter.
             if (next.Tcs.TrySetResult(new(this)))
             {
+                // Ownership transferred to next waiter, availability stays reset.
                 return;
             }
             // Otherwise, loop to pick another waiter or release if none.
+            // If the selected waiter was already canceled/completed, retry the handoff.
         }
     }
 
