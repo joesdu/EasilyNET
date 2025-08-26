@@ -33,7 +33,7 @@ internal sealed class Resolver(IServiceProvider provider, IServiceScope? scope =
             return Resolve(serviceType);
         }
         // 使用参数覆盖创建实例：必须找到实现类型
-        var implType = GetImplementationType(serviceType) ?? throw new InvalidOperationException($"Unable to determine implementation type for '{serviceType}'. Ensure it is registered or specify DependencyInjectionAttribute correctly.");
+        var implType = GetImplementationType(serviceType) ?? throw new InvalidOperationException($"Unable to determine implementation type for '{serviceType}'. If '{serviceType}' is an abstract class or interface, it must be registered via DependencyInjectionAttribute or manual service registration.");
         var ctor = SelectConstructor(implType, parameters, CanResolve);
         var args = BuildArguments(ctor, parameters);
         return ctor.Invoke(args);
