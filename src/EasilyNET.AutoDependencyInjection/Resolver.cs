@@ -14,7 +14,6 @@ internal sealed class Resolver(IServiceProvider provider, IServiceScope? scope =
     public void Dispose()
     {
         scope?.Dispose();
-        GC.SuppressFinalize(this);
     }
 
     public T Resolve<T>() => (T)Resolve(typeof(T));
@@ -90,11 +89,6 @@ internal sealed class Resolver(IServiceProvider provider, IServiceScope? scope =
         var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
         var serviceScope = scopeFactory.CreateScope();
         return new Resolver(serviceScope.ServiceProvider, serviceScope);
-    }
-
-    ~Resolver()
-    {
-        Dispose();
     }
 
     private static ConstructorInfo SelectConstructor(Type implType, Parameter[] parameters, Func<Type, bool> canResolve)
