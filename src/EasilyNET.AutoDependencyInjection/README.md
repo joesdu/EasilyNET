@@ -25,7 +25,7 @@
 
 ```csharp
 var resolver = provider.CreateResolver(); 
-var service = resolver.ResolveKeyed<IMyService>("MyKey", new NamedParameter("param1", value1));
+var service = resolver.ResolveKeyed<IMyService>("MyKey", new NamedParameter("param1", "example"));
 ```
 
 - 支持通过参数名和实例动态注入构造参数,适合无默认构造函数或需要运行时参数的服务.
