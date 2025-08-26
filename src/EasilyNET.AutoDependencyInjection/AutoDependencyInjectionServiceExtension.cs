@@ -10,7 +10,6 @@ using Microsoft.Extensions.Hosting;
 
 #pragma warning disable IDE0130 // 命名空间与文件夹结构不匹配
 
-// ReSharper disable once CheckNamespace
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
@@ -45,6 +44,9 @@ public static class AutoDependencyInjectionServiceExtension
     {
         ArgumentNullException.ThrowIfNull(services, nameof(services));
         services.AddSingleton<IObjectAccessor<IHost>>(new ObjectAccessor<IHost>());
+        // dynamic resolution helpers
+        services.AddScoped<IResolver>(sp => new Resolver(sp.CreateScope().ServiceProvider));
+        services.AddSingleton(typeof(INamedServiceFactory<>), typeof(NamedServiceFactory<>));
         ApplicationFactory.Create<T>(services);
     }
 
@@ -77,7 +79,7 @@ public static class AutoDependencyInjectionServiceExtension
     internal static void AddNamedService(this IServiceCollection services, Type serviceType, object key, Type implementationType, ServiceLifetime lifetime)
     {
         var descriptor = new NamedServiceDescriptor(serviceType, implementationType, lifetime);
-        ServiceProviderExtension.NamedServices[key.ToString() ?? throw new ArgumentNullException(nameof(key))] = descriptor;
+        ServiceProviderExtension.NamedServices[(key, serviceType)] = descriptor;
         switch (lifetime)
         {
             case ServiceLifetime.Singleton:
