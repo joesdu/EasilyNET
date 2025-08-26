@@ -1,8 +1,6 @@
 using EasilyNET.AutoDependencyInjection;
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
-using EasilyNET.Core.Misc;
 using Microsoft.AspNetCore.Mvc;
-using WebApi.Test.Unit.Decorators;
 
 namespace WebApi.Test.Unit.Controllers;
 
@@ -10,10 +8,9 @@ namespace WebApi.Test.Unit.Controllers;
 /// test controller without default constructor
 /// </summary>
 /// <param name="provider"></param>
-/// <param name="jc"></param>
 [Route("api/[controller]")]
 [ApiController]
-public class ResolveAndDecoratorController(IServiceProvider provider, [FromKeyedServices(nameof(FooService))] FooService jc) : ControllerBase
+public class ResolveAndDecoratorController(IServiceProvider provider) : ControllerBase
 {
     /// <summary>
     /// Get
@@ -23,36 +20,26 @@ public class ResolveAndDecoratorController(IServiceProvider provider, [FromKeyed
     public string Get()
     {
         var resolver = provider.CreateResolver();
-        var test = resolver.ResolveKeyed<IFooService>(nameof(TestNoDefaultConstructor), new NamedParameter("jc", jc), new NamedParameter("str", "EasilyNET"), new NamedParameter("str2", "World"));
-        return test.SayHello();
-    }
-
-    /// <summary>
-    /// 测试装饰器
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("TestDecorator")]
-    public string GetDecorator()
-    {
-        var resolver = provider.CreateResolver();
-        var test = resolver.Resolve<TestNoDefaultDecorator>(new NamedParameter("jc", jc), new NamedParameter("str", "Rose"));
-        return test.SayHello();
+        var service = resolver.Resolve<IFooService>(new NamedParameter("str", "Rose"));
+        return service.SayHello();
     }
 }
 
 /// <summary>
-/// Test class without default constructor
+/// Base service used for demonstration (keyed registration)
 /// </summary>
-[DependencyInjection(ServiceLifetime.Singleton, ServiceKey = nameof(FooService))]
+[DependencyInjection(ServiceLifetime.Transient)]
 // ReSharper disable once ClassNeverInstantiated.Global
-public sealed class FooService
+public sealed class FooService(string str) : IFooService
 {
+    private string Name { get; } = str;
+
     /// <summary>
-    /// get hello
+    /// SayHello
     /// </summary>
     /// <returns></returns>
     // ReSharper disable once MemberCanBeMadeStatic.Global
-    public string GetHello(params IEnumerable<string> str) => $"Hello, {str.Join()}";
+    public string SayHello() => $"Hello, {Name}";
 }
 
 /// <summary>
@@ -64,18 +51,4 @@ public interface IFooService
     /// say hello
     /// </summary>
     string SayHello();
-}
-
-/// <summary>
-/// Test class without default constructor
-/// </summary>
-[DependencyInjection(ServiceLifetime.Transient, ServiceKey = nameof(TestNoDefaultConstructor))]
-// ReSharper disable once ClassNeverInstantiated.Global
-public sealed class TestNoDefaultConstructor(FooService jc, string str, string str2) : IFooService
-{
-    /// <summary>
-    /// Say hello
-    /// </summary>
-    /// <returns></returns>
-    public string SayHello() => jc.GetHello(str, str2);
 }

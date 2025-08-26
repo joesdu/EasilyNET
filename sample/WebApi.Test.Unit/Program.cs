@@ -7,8 +7,6 @@ using Serilog.Events;
 using Serilog.Sinks.OpenTelemetry;
 using WebApi.Test.Unit;
 using WebApi.Test.Unit.Common;
-using WebApi.Test.Unit.Controllers;
-using WebApi.Test.Unit.Decorators;
 
 #pragma warning disable CS1591 // 缺少对公共可见类型或成员的 XML 注释
 
@@ -67,8 +65,6 @@ builder.Host.UseSerilog((hbc, lc) =>
 
 // Automatically inject service modules
 builder.Services.AddApplicationModules<AppWebModule>();
-// Register Decorators
-builder.Services.Decorate<IFooService, TestNoDefaultDecorator>();
 var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {

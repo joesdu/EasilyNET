@@ -5,8 +5,7 @@
 - 经测试是支持 WinUI 3 类型的项目的,但是需要注意的是,WinUI 3 项目的启动方式和 WPF 项目不一样,需要自行调整.
 - [WPF 例子](https://github.com/joesdu/WpfAutoDISample) 已同步到最新代码.
 - [WinForms 例子](https://github.com/joesdu/WinFormAutoDISample) 已同步到最新代码.
-- [WinUI3 例子](https://github.com/joesdu/WinUIAutoDISample) 暂时没同步到最新版本,可以自己更新一下,目前暂时没有 WinUI
-  环境所以没更新.
+- [WinUI3 例子](https://github.com/joesdu/WinUIAutoDISample) 暂时没同步到最新版本,可以自己更新一下,目前暂时没有 WinUI 环境所以没更新.
 
 ##### 新增特性
 
@@ -18,6 +17,26 @@
 #### 中断性变更
 
 - 调整 `ConfigureServices` 和 `ApplicationInitialization` 为异步方式,便于在某些时候初始化服务的时候使用异步版本.
+
+##### Resolver 使用说明
+
+- 通过 `IResolver` 或 `IServiceProvider.CreateResolver()` 可获得更灵活的服务解析能力,支持 KeyedService、带参数构造等高级场景.
+- 典型用法：
+
+```csharp
+var resolver = provider.CreateResolver(); 
+var service = resolver.ResolveKeyed<IMyService>("MyKey", new NamedParameter("param1", value1));
+```
+
+- 支持通过参数名和实例动态注入构造参数,适合无默认构造函数或需要运行时参数的服务.
+
+---
+
+##### 注意事项
+
+- Resolver 支持 KeyedService 及参数注入,适合复杂依赖场景.
+
+---
 
 ##### WPF 中的使用
 

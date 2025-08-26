@@ -32,8 +32,8 @@ internal sealed class Resolver(IServiceProvider provider, IServiceScope? scope =
         {
             return Resolve(serviceType);
         }
-        // create with parameter overrides
-        var implType = GetImplementationType(serviceType) ?? serviceType;
+        // 使用参数覆盖创建实例：必须找到实现类型
+        var implType = GetImplementationType(serviceType) ?? throw new InvalidOperationException($"Unable to determine implementation type for '{serviceType}'. Ensure it is registered or specify DependencyInjectionAttribute correctly.");
         var ctor = SelectConstructor(implType, parameters, CanResolve);
         var args = BuildArguments(ctor, parameters);
         return ctor.Invoke(args);
@@ -142,6 +142,9 @@ internal sealed class Resolver(IServiceProvider provider, IServiceScope? scope =
     private bool CanResolve(Type t) => provider.GetService(t) is not null;
 
     private static Type? GetImplementationType(Type serviceType) =>
-        // Best-effort: if serviceType is concrete just return it, otherwise cannot know implementation from provider.
-        serviceType is { IsAbstract: false, IsInterface: false } ? serviceType : null;
+        serviceType is { IsAbstract: false, IsInterface: false }
+            ? serviceType
+            : ServiceProviderExtension.ServiceImplementations.TryGetValue(serviceType, out var impl)
+                ? impl
+                : null;
 }
