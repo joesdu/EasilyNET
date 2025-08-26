@@ -30,12 +30,10 @@ public sealed class DependencyAppModule : AppModule
             var attr = impl.GetCustomAttribute<DependencyInjectionAttribute>();
             var lifetime = attr?.Lifetime;
             if (lifetime is null)
-            {
                 continue;
-            }
             if (attr?.AsType is not null)
             {
-                // 若实现类,不是注册类型的派生类,则跳过
+                // 若实现类不是注册类型的派生类，则跳过
                 if (impl.IsBaseOn(attr.AsType))
                 {
                     if (attr.ServiceKey is not null)
@@ -44,6 +42,8 @@ public sealed class DependencyAppModule : AppModule
                     }
                     else
                     {
+                        // 记录服务类型 -> 实现类型映射
+                        ServiceProviderExtension.ServiceImplementations[attr.AsType] = impl;
                         services.Add(new(attr.AsType, p => p.CreateInstance(impl), lifetime.Value));
                     }
                 }
@@ -58,12 +58,12 @@ public sealed class DependencyAppModule : AppModule
                 }
                 else
                 {
+                    // 自身注册也记录映射
+                    ServiceProviderExtension.ServiceImplementations[impl] = impl;
                     services.Add(new(impl, p => p.CreateInstance(impl), lifetime.Value));
                 }
                 if (attr?.SelfOnly is true || serviceTypes.Count is 0)
-                {
                     continue;
-                }
             }
             foreach (var serviceType in serviceTypes)
             {
@@ -73,6 +73,8 @@ public sealed class DependencyAppModule : AppModule
                 }
                 else
                 {
+                    // 记录接口/抽象 -> 实现 类型映射
+                    ServiceProviderExtension.ServiceImplementations[serviceType] = impl;
                     services.Add(new(serviceType, p => p.CreateInstance(impl), lifetime.Value));
                 }
             }

@@ -16,9 +16,12 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static class ServiceProviderExtension
 {
     // Keyed by (key, service type) to avoid collisions when the same key is used for multiple service types
-    internal static readonly ConcurrentDictionary<(object Key, Type ServiceType), NamedServiceDescriptor> NamedServices = new();
+    internal static readonly ConcurrentDictionary<(object Key, Type ServiceType), NamedServiceDescriptor> NamedServices = [];
 
-    private static readonly ConcurrentDictionary<Type, ConstructorInfo> ConstructorCache = new();
+    // 新增：非 Keyed 的服务类型到实现类型的映射，用于解析带参数覆盖时确定实现类型
+    internal static readonly ConcurrentDictionary<Type, Type> ServiceImplementations = [];
+
+    private static readonly ConcurrentDictionary<Type, ConstructorInfo> ConstructorCache = [];
 
     internal static object CreateInstance(this IServiceProvider provider, Type implementationType)
     {
