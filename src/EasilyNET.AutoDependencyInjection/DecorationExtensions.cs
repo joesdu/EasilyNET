@@ -163,8 +163,8 @@ public static class DecorationExtensions
                          .ToArray();
             foreach (var c in ctors)
             {
-                var parameters = c.GetParameters();
-                if (parameters.Any(p => p.ParameterType.IsAssignableTo(k.Service)))
+                var ctorParameters = c.GetParameters();
+                if (ctorParameters.Any(p => p.ParameterType.IsAssignableTo(k.Service)))
                 {
                     return c;
                 }
