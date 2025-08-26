@@ -26,16 +26,16 @@ public interface IResolver : IDisposable
     bool TryResolve<T>([MaybeNullWhen(false)] out T instance);
 
     /// <summary>Try resolve service by type.</summary>
-    bool TryResolve(Type serviceType, [MaybeNullWhen(false)] out object? instance);
+    bool TryResolve(Type serviceType, out object? instance);
 
     /// <summary>Resolve if present, otherwise return default.</summary>
     T? ResolveOptional<T>();
 
     /// <summary>Resolve named registration.</summary>
-    T ResolveNamed<T>(string name, params Parameter[] parameters);
+    T ResolveNamed<T>(string name, params Parameter[]? parameters);
 
     /// <summary>Resolve keyed registration.</summary>
-    T ResolveKeyed<T>(object key, params Parameter[] parameters);
+    T ResolveKeyed<T>(object key, params Parameter[]? parameters);
 
     /// <summary>Create a child scope.</summary>
     IResolver BeginScope();

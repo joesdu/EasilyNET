@@ -1,5 +1,50 @@
+/*
+ * 装饰器扩展（DecorationExtensions）使用说明
+ * ------------------------------------------------
+ * 该扩展用于在依赖注入容器中批量为某一服务类型添加装饰器（Decorator），
+ * 适用于日志、缓存、权限、异常处理等横切关注点的解耦与复用。
+ *
+ * 典型使用场景：
+ * 1. 定义服务接口与实现：
+ *    public interface IFooService { void DoWork(); }
+ *    public class FooService : IFooService { public void DoWork() { ... } }
+ *
+ * 2. 定义装饰器（需实现同一接口，并在构造函数中注入被装饰服务）：
+ *    public class FooServiceLoggingDecorator : IFooService
+ *    {
+ *        private readonly IFooService _inner;
+ *        private readonly ILogger<FooServiceLoggingDecorator> _logger;
+ *        public FooServiceLoggingDecorator(IFooService inner, ILogger<FooServiceLoggingDecorator> logger)
+ *        {
+ *            _inner = inner;
+ *            _logger = logger;
+ *        }
+ *        public void DoWork()
+ *        {
+ *            _logger.LogInformation("Before DoWork");
+ *            _inner.DoWork();
+ *            _logger.LogInformation("After DoWork");
+ *        }
+ *    }
+ *
+ * 3. 注册服务与应用装饰器：
+ *    services.AddTransient<IFooService, FooService>();
+ *    services.Decorate<IFooService, FooServiceLoggingDecorator>();
+ *
+ * 4. 结果：
+ *    通过依赖注入获取 IFooService 时，实际获得的是装饰器实例，
+ *    装饰器会自动调用原始服务并附加横切逻辑。
+ *
+ * 注意事项：
+ * - 装饰器必须实现被装饰的服务接口，并在构造函数中接收该接口类型参数。
+ * - 支持多种注册方式（类型、工厂、实例），支持依赖注入特性（如 FromKeyedServices）。
+ * - 可多次调用 Decorate 方法形成装饰器链。
+ */
+
 using System.Collections.Concurrent;
 using System.Reflection;
+
+// ReSharper disable UnusedMember.Global
 
 #pragma warning disable IDE0130
 
@@ -57,7 +102,8 @@ public static class DecorationExtensions
         return ServiceDescriptor.Describe(serviceType,
             provider =>
             {
-                var inner = descriptor.ImplementationFactory!(provider)!;
+                var factory = descriptor.ImplementationFactory ?? throw new InvalidOperationException("ImplementationFactory is null.");
+                var inner = factory(provider);
                 return CreateDecorator(provider, decoratorType, serviceType, inner);
             },
             descriptor.Lifetime);
@@ -71,8 +117,7 @@ public static class DecorationExtensions
             return CreateFromFactory(descriptor, serviceType, decoratorType);
         }
         IServiceProvider? rootProvider = null;
-        var lazy = new Lazy<object?>(() => CreateDecorator(rootProvider!, decoratorType, serviceType, descriptor.ImplementationInstance!),
-            true);
+        var lazy = new Lazy<object?>(() => CreateDecorator(rootProvider!, decoratorType, serviceType, descriptor.ImplementationInstance!), true);
         return ServiceDescriptor.Singleton(serviceType, sp =>
         {
             // capture once
@@ -96,12 +141,12 @@ public static class DecorationExtensions
                    throw new InvalidOperationException($"No public constructor found for type {implType}.");
         var args = ctor.GetParameters().Select(p =>
         {
-            var keyed = p.GetCustomAttributes().FirstOrDefault(a => a.GetType().Name == "FromKeyedServicesAttribute");
+            var keyed = p.GetCustomAttributes<FromKeyedServicesAttribute>().FirstOrDefault();
             if (keyed is null)
             {
                 return provider.GetRequiredService(p.ParameterType);
             }
-            var keyProp = keyed.GetType().GetProperty("Key");
+            var keyProp = keyed.GetType().GetProperty(nameof(FromKeyedServicesAttribute.Key));
             var key = keyProp?.GetValue(keyed)!;
             return provider.GetRequiredKeyedService(p.ParameterType, key);
         }).ToArray();
@@ -132,12 +177,12 @@ public static class DecorationExtensions
             {
                 return inner;
             }
-            var keyed = p.GetCustomAttributes().FirstOrDefault(a => a.GetType().Name == "FromKeyedServicesAttribute");
+            var keyed = p.GetCustomAttributes<FromKeyedServicesAttribute>().FirstOrDefault();
             if (keyed is null)
             {
                 return provider.GetRequiredService(p.ParameterType);
             }
-            var keyProp = keyed.GetType().GetProperty("Key");
+            var keyProp = keyed.GetType().GetProperty(nameof(FromKeyedServicesAttribute.Key));
             var keyVal = keyProp?.GetValue(keyed)!;
             return provider.GetRequiredKeyedService(p.ParameterType, keyVal);
         }).ToArray();

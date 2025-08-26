@@ -3,9 +3,10 @@ using System.Reflection;
 using EasilyNET.AutoDependencyInjection;
 using EasilyNET.AutoDependencyInjection.Abstractions;
 
+// ReSharper disable UnusedMember.Global
+
 #pragma warning disable IDE0130 // 命名空间与文件夹结构不匹配
 
-// ReSharper disable once CheckNamespace
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
@@ -37,34 +38,52 @@ public static class ServiceProviderExtension
     }
 
     // Dynamic resolve helpers
-
+    /// <summary>
+    /// Create a resolver from the service provider
+    /// </summary>
+    /// <param name="provider"></param>
+    /// <returns></returns>
     public static IResolver CreateResolver(this IServiceProvider provider) => new Resolver(provider);
 
+    /// <summary>
+    /// Resolve a service of type T
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="provider"></param>
+    /// <returns></returns>
     public static T Resolve<T>(this IServiceProvider provider) => provider.CreateResolver().Resolve<T>();
 
+    /// <summary>
+    /// Resolve a service of the specified type
+    /// </summary>
+    /// <param name="provider"></param>
+    /// <param name="serviceType"></param>
+    /// <returns></returns>
     public static object Resolve(this IServiceProvider provider, Type serviceType) => provider.CreateResolver().Resolve(serviceType);
 
+    /// <summary>
+    /// Resolve an optional service of type T, returning null if not registered
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="provider"></param>
+    /// <returns></returns>
     public static T? ResolveOptional<T>(this IServiceProvider provider) => provider.CreateResolver().ResolveOptional<T>();
 
-    public static bool TryResolve<T>(this IServiceProvider provider, out T instance) => provider.CreateResolver().TryResolve(out instance);
+    /// <summary>
+    /// Try to resolve a service of type T
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="provider"></param>
+    /// <param name="instance"></param>
+    /// <returns></returns>
+    public static bool TryResolve<T>(this IServiceProvider provider, out T? instance) => provider.CreateResolver().TryResolve(out instance);
 
+    /// <summary>
+    /// Try to resolve a service of the specified type
+    /// </summary>
+    /// <param name="provider"></param>
+    /// <param name="serviceType"></param>
+    /// <param name="instance"></param>
+    /// <returns></returns>
     public static bool TryResolve(this IServiceProvider provider, Type serviceType, out object? instance) => provider.CreateResolver().TryResolve(serviceType, out instance);
-
-    // Keep only dictionary overloads to avoid ambiguity with target-typed new()
-    public static T ResolveNamed<T>(this IServiceProvider provider, string name, Dictionary<string, object?>? parameters) => provider.CreateResolver().ResolveKeyed<T>(name, ToParameters(parameters));
-
-    public static T ResolveKeyed<T>(this IServiceProvider provider, object key, Dictionary<string, object?>? parameters) => provider.CreateResolver().ResolveKeyed<T>(key, ToParameters(parameters));
-
-    private static Parameter[] ToParameters(Dictionary<string, object?>? dict)
-    {
-        if (dict is null || dict.Count == 0)
-            return [];
-        var arr = new Parameter[dict.Count];
-        var i = 0;
-        foreach (var kv in dict)
-        {
-            arr[i++] = new NamedParameter(kv.Key, kv.Value);
-        }
-        return arr;
-    }
 }
