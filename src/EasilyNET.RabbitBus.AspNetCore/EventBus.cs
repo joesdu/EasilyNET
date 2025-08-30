@@ -449,6 +449,10 @@ internal sealed record EventBus : IBus
         return async @event =>
         {
             var task = compiledDelegate(handler, @event);
+            if (task is null)
+            {
+                throw new InvalidOperationException($"Handler method '{method.Name}' for event type '{eventType.Name}' returned null Task.");
+            }
             await task.ConfigureAwait(false);
         };
     }
