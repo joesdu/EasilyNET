@@ -73,7 +73,7 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     [HttpPost]
     public async Task DirectQueue2()
     {
-        await ibus.Publish(new DirectEventOne(), "direct.queue2");
+        await ibus.Publish(new DirectEventTwo(), "direct.queue2");
     }
 
     /// <summary>

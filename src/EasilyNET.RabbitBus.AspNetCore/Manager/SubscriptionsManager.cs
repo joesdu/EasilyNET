@@ -9,8 +9,8 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <inheritdoc />
 internal sealed class SubscriptionsManager : ISubscriptionsManager
 {
-    private readonly ConcurrentDictionary<string, HashSet<Type>> _delayedHandlers = new();
-    private readonly ConcurrentDictionary<string, HashSet<Type>> _normalHandlers = new();
+    private readonly ConcurrentDictionary<string, HashSet<Type>> _delayedHandlers = [];
+    private readonly ConcurrentDictionary<string, HashSet<Type>> _normalHandlers = [];
 
     public void AddSubscription(Type eventType, EKindOfHandler handleKind, IList<TypeInfo> handlerTypes)
     {
@@ -54,12 +54,8 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
             _                      => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
         };
         handlersDict.AddOrUpdate(name, _ => [.. handlerTypes], (_, existingHandlers) =>
-        {
-            if (handlerTypes.Any(handlerType => !existingHandlers.Add(handlerType)))
-            {
-                throw new InvalidOperationException($"Handler type already registered for '{name}'");
-            }
-            return existingHandlers;
-        });
+            handlerTypes.Any(handlerType => !existingHandlers.Add(handlerType))
+                ? throw new InvalidOperationException($"Handler type already registered for '{name}'")
+                : existingHandlers);
     }
 }

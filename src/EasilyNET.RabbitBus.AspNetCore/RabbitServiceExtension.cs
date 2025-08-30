@@ -3,11 +3,10 @@ using System.Net.Sockets;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
+using EasilyNET.RabbitBus.AspNetCore.Builder;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Manager;
 using EasilyNET.RabbitBus.Core.Abstraction;
-using EasilyNET.RabbitBus.Core.Attributes;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
@@ -28,51 +27,45 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static class RabbitServiceExtension
 {
     /// <summary>
-    ///     <para xml:lang="en">Adds RabbitMQ message bus service</para>
-    ///     <para xml:lang="zh">添加消息总线RabbitMQ服务</para>
+    ///     <para xml:lang="en">Adds RabbitMQ message bus service using fluent builder</para>
+    ///     <para xml:lang="zh">使用流畅构建器添加RabbitMQ消息总线服务</para>
     /// </summary>
     /// <param name="services">
     ///     <para xml:lang="en">The service collection</para>
     ///     <para xml:lang="zh">服务集合</para>
     /// </param>
-    /// <param name="action">
-    ///     <para xml:lang="en">The configuration action</para>
-    ///     <para xml:lang="zh">配置操作</para>
+    /// <param name="configure">
+    ///     <para xml:lang="en">The fluent builder configuration action</para>
+    ///     <para xml:lang="zh">流畅构建器配置操作</para>
     /// </param>
-    public static void AddRabbitBus(this IServiceCollection services, Action<RabbitConfig>? action = null) => services.RabbitPersistentConnection(config => action?.Invoke(config)).AddEventBus();
-
-    /// <summary>
-    ///     <para xml:lang="en">Adds RabbitMQ message bus service</para>
-    ///     <para xml:lang="zh">添加消息总线RabbitMQ服务</para>
-    /// </summary>
-    /// <param name="services">
-    ///     <para xml:lang="en">The service collection</para>
-    ///     <para xml:lang="zh">服务集合</para>
-    /// </param>
-    /// <param name="configuration">
-    ///     <para xml:lang="en">The configuration</para>
-    ///     <para xml:lang="zh">配置</para>
-    /// </param>
-    /// <param name="action">
-    ///     <para xml:lang="en">The configuration action</para>
-    ///     <para xml:lang="zh">配置操作</para>
-    /// </param>
-    /// <exception cref="InvalidOperationException">
-    ///     <para xml:lang="en">Thrown when the connection string is missing</para>
-    ///     <para xml:lang="zh">当连接字符串缺失时抛出</para>
-    /// </exception>
-    public static void AddRabbitBus(this IServiceCollection services, IConfiguration configuration, Action<RabbitConfig>? action = null)
+    public static void AddRabbitBus(this IServiceCollection services, Action<RabbitBusBuilder> configure)
     {
-        var connStr = configuration.GetConnectionString("Rabbit") ?? Environment.GetEnvironmentVariable("CONNECTIONSTRINGS_RABBIT");
-        if (string.IsNullOrWhiteSpace(connStr))
-        {
-            throw new InvalidOperationException("Configuration error: Missing 'ConnectionStrings.Rabbit' in appsettings.json or 'CONNECTIONSTRINGS_RABBIT' environment variable.");
-        }
+        var builder = new RabbitBusBuilder();
+        configure(builder);
+        var (config, registry) = builder.Build();
         services.RabbitPersistentConnection(options =>
         {
-            action?.Invoke(options);
-            options.ConnectionString = connStr;
+            // Copy configuration from builder to RabbitConfig
+            options.ConnectionString = config.ConnectionString;
+            options.Host = config.Host;
+            options.UserName = config.UserName;
+            options.PassWord = config.PassWord;
+            options.VirtualHost = config.VirtualHost;
+            options.Port = config.Port;
+            options.RetryCount = config.RetryCount;
+            options.PublisherConfirms = config.PublisherConfirms;
+            options.MaxConnections = config.MaxConnections;
+            options.MaxChannelsPerConnection = config.MaxChannelsPerConnection;
+            options.ConsumerDispatchConcurrency = config.ConsumerDispatchConcurrency;
+            options.DefaultPrefetchCount = config.DefaultPrefetchCount;
+            options.DefaultPrefetchSize = config.DefaultPrefetchSize;
+            options.QosGlobal = config.QosGlobal;
+            options.ApplicationName = config.ApplicationName;
+            options.BusSerializer = config.BusSerializer;
         }).AddEventBus();
+
+        // Register the event configuration registry
+        services.AddSingleton(registry);
     }
 
     private static void InjectHandler(this IServiceCollection services)
@@ -83,8 +76,7 @@ public static class RabbitServiceExtension
                 IsClass: true,
                 IsAbstract: false
             } &&
-            o.IsBaseOn(typeof(IEventHandler<>)) &&
-            !o.HasAttribute<IgnoreHandlerAttribute>());
+            o.IsBaseOn(typeof(IEventHandler<>)));
         foreach (var handler in handlers)
         {
             services.AddSingleton(handler);
@@ -130,9 +122,9 @@ public static class RabbitServiceExtension
     [SuppressMessage("Style", "IDE0046:转换为条件表达式", Justification = "<挂起>")]
     private static ConnectionFactory CreateConnectionFactory(RabbitConfig config)
     {
-        if (config.ConnectionString.IsNotNullOrWhiteSpace())
+        if (config.ConnectionString is not null)
         {
-            return new() { Uri = new(config.ConnectionString) };
+            return new() { Uri = config.ConnectionString };
         }
         if (config.AmqpTcpEndpoints?.Count > 0)
         {

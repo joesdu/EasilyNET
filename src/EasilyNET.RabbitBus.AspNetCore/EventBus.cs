@@ -1,12 +1,12 @@
 using System.Collections.Concurrent;
+using System.Linq.Expressions;
 using System.Reflection;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
+using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Enums;
-using EasilyNET.RabbitBus.AspNetCore.Extensions;
 using EasilyNET.RabbitBus.AspNetCore.Manager;
 using EasilyNET.RabbitBus.Core.Abstraction;
-using EasilyNET.RabbitBus.Core.Attributes;
 using EasilyNET.RabbitBus.Core.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -19,7 +19,9 @@ namespace EasilyNET.RabbitBus.AspNetCore;
 internal sealed record EventBus : IBus
 {
     private const string HandleName = nameof(IEventHandler<>.HandleAsync);
+
     private readonly PersistentConnection _conn;
+    private readonly EventConfigurationRegistry _eventRegistry;
     private readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Func<object, Task>?> _handleAsyncDelegateCache = [];
     private readonly ILogger<EventBus> _logger;
     private readonly ResiliencePipelineProvider<string> _pipelineProvider;
@@ -29,7 +31,7 @@ internal sealed record EventBus : IBus
 
     private CancellationTokenSource _cancellationTokenSource = new();
 
-    public EventBus(PersistentConnection conn, ISubscriptionsManager sm, IBusSerializer ser, IServiceProvider sp, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pp)
+    public EventBus(PersistentConnection conn, ISubscriptionsManager sm, IBusSerializer ser, IServiceProvider sp, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pp, EventConfigurationRegistry eventRegistry)
     {
         _conn = conn;
         _subsManager = sm;
@@ -37,6 +39,7 @@ internal sealed record EventBus : IBus
         _sp = sp;
         _logger = logger;
         _pipelineProvider = pp;
+        _eventRegistry = eventRegistry;
         // 订阅 PersistentConnection 的重连事件
         _conn.ConnectionReconnected += async (_, _) =>
         {
@@ -63,10 +66,8 @@ internal sealed record EventBus : IBus
 
     public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
     {
-        var type = @event.GetType();
-        var exc = type.GetCustomAttribute<ExchangeAttribute>() ??
-                  throw new InvalidOperationException($"The event '{@event.GetType().Name}' is missing the required ExchangeAttribute. Unable to create the message.");
-        if (!exc.Enable)
+        var config = _eventRegistry.GetConfiguration<T>();
+        if (config is null || !config.Enabled)
         {
             return;
         }
@@ -77,15 +78,17 @@ internal sealed record EventBus : IBus
             DeliveryMode = DeliveryModes.Persistent,
             Priority = priority.GetValueOrDefault()
         };
-        var headers = @event.GetHeaderAttributes();
-        if (headers is not null && headers.Count is not 0)
+
+        // Use headers from configuration
+        if (config.Headers.Count > 0)
         {
-            properties.Headers = headers;
+            properties.Headers = config.Headers;
         }
-        if (exc is not { WorkModel: EModel.None })
+
+        // Declare exchange if needed
+        if (config.Exchange.Type != EModel.None)
         {
-            var exchangeArgs = @event.GetExchangeArgAttributes();
-            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.Description, true, arguments: exchangeArgs, cancellationToken: cancellationToken);
+            await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, config.Exchange.Arguments, cancellationToken: cancellationToken);
         }
         var body = _serializer.Serialize(@event, @event.GetType());
         var pipeline = _pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
@@ -95,20 +98,18 @@ internal sealed record EventBus : IBus
             {
                 _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}", @event.GetType().Name, @event.EventId);
             }
-            await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
+            await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
         }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
     {
-        var type = @event.GetType();
-        var exc = type.GetCustomAttribute<ExchangeAttribute>() ??
-                  throw new InvalidOperationException($"The event '{@event.GetType().Name}' is missing the required ExchangeAttribute. Unable to create the message.");
-        if (!exc.Enable)
+        var config = _eventRegistry.GetConfiguration<T>();
+        if (config is null || !config.Enabled)
         {
             return;
         }
-        if (exc is not { WorkModel: EModel.Delayed })
+        if (config.Exchange.Type != EModel.Delayed)
         {
             throw new InvalidOperationException($"The exchange type for the delayed queue must be '{nameof(EModel.Delayed)}'. Event: '{@event.GetType().Name}'");
         }
@@ -119,27 +120,20 @@ internal sealed record EventBus : IBus
             DeliveryMode = DeliveryModes.Persistent,
             Priority = priority.GetValueOrDefault()
         };
-        //延时时间从header赋值
-        var headers = @event.GetHeaderAttributes();
-        if (headers is not null)
-        {
-            var xDelay = headers.TryGetValue("x-delay", out var delay);
-            headers["x-delay"] = xDelay && ttl == 0 && delay is not null ? delay : ttl;
-            properties.Headers = headers;
-        }
-        else
-        {
-            properties.Headers = new Dictionary<string, object?> { { "x-delay", ttl } };
-        }
-        // x-delayed-type 必须加
-        var excArgs = @event.GetExchangeArgAttributes();
-        if (excArgs is not null)
-        {
-            var xDelayedType = excArgs.TryGetValue("x-delayed-type", out var delayedType);
-            excArgs["x-delayed-type"] = !xDelayedType || delayedType is null ? "direct" : delayedType;
-        }
-        //创建延时交换机,type类型为x-delayed-message
-        await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.Description, true, false, excArgs, cancellationToken: cancellationToken);
+
+        // Handle headers with x-delay
+        var headers = new Dictionary<string, object?>(config.Headers);
+        var xDelay = headers.TryGetValue("x-delay", out var delay);
+        headers["x-delay"] = xDelay && ttl == 0 && delay is not null ? delay : ttl;
+        properties.Headers = headers;
+
+        // Ensure x-delayed-type is set
+        var exchangeArgs = new Dictionary<string, object?>(config.Exchange.Arguments);
+        var xDelayedType = exchangeArgs.TryGetValue("x-delayed-type", out var delayedType);
+        exchangeArgs["x-delayed-type"] = !xDelayedType || delayedType is null ? "direct" : delayedType;
+
+        // Declare delayed exchange
+        await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, exchangeArgs, cancellationToken: cancellationToken);
         var body = _serializer.Serialize(@event, @event.GetType());
         var pipeline = _pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
         await pipeline.ExecuteAsync(async ct =>
@@ -148,7 +142,7 @@ internal sealed record EventBus : IBus
             {
                 _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}", @event.GetType().Name, @event.EventId);
             }
-            await channel.BasicPublishAsync(exc.ExchangeName, routingKey ?? exc.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
+            await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
         }, cancellationToken).ConfigureAwait(false);
     }
 
@@ -165,50 +159,56 @@ internal sealed record EventBus : IBus
 
     private async Task InitialRabbit()
     {
-        var events = AssemblyHelper.FindTypes(o => o is { IsClass: true, IsAbstract: false } && o.IsBaseOn(typeof(IEvent)) && o.HasAttribute<ExchangeAttribute>());
+        var events = AssemblyHelper.FindTypes(o => o is { IsClass: true, IsAbstract: false } && o.IsBaseOn(typeof(IEvent)));
         var handlers = AssemblyHelper.FindTypes(o => o is { IsClass: true, IsAbstract: false } &&
-                                                     o.IsBaseOn(typeof(IEventHandler<>)) &&
-                                                     !o.HasAttribute<IgnoreHandlerAttribute>()).Select(s => s.GetTypeInfo()).ToList();
+                                                     o.IsBaseOn(typeof(IEventHandler<>))).Select(s => s.GetTypeInfo()).ToList();
         foreach (var @event in events)
         {
-            var exc = @event.GetCustomAttribute<ExchangeAttribute>();
-            if (exc is null || !exc.Enable)
+            var config = _eventRegistry.GetConfiguration(@event);
+            if (config is null || !config.Enabled)
             {
                 continue;
             }
             var handler = handlers.FindAll(o => o.ImplementedInterfaces.Any(s => s.GenericTypeArguments.Contains(@event)));
             if (handler.Count is not 0)
             {
-                await Task.Factory.StartNew(async () =>
+                // Filter out ignored handlers
+                if (config.IgnoredHandlers.Count > 0)
                 {
-                    var ct = _cancellationTokenSource.Token;
-                    await using var channel = await CreateConsumerChannel(exc, @event, ct);
-                    var handleKind = exc.WorkModel is EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
-                    if (exc is not { WorkModel: EModel.None })
+                    handler = handler.Where(h => !config.IgnoredHandlers.Contains(h.AsType())).ToList();
+                }
+                if (handler.Count > 0)
+                {
+                    await Task.Factory.StartNew(async () =>
                     {
-                        if (_subsManager.HasSubscriptionsForEvent(@event.Name, handleKind))
+                        var ct = _cancellationTokenSource.Token;
+                        await using var channel = await CreateConsumerChannel(config, ct);
+                        var handleKind = config.Exchange.Type is EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
+                        if (config.Exchange.Type != EModel.None)
                         {
-                            return;
+                            if (_subsManager.HasSubscriptionsForEvent(@event.Name, handleKind))
+                            {
+                                return;
+                            }
+                            await channel.QueueBindAsync(config.Queue.Name, config.Exchange.Name, config.Exchange.RoutingKey, cancellationToken: ct);
                         }
-                        await channel.QueueBindAsync(exc.Queue, exc.ExchangeName, exc.RoutingKey, cancellationToken: ct);
-                    }
-                    _subsManager.AddSubscription(@event, handleKind, handler);
-                    await StartBasicConsume(@event, exc, channel, ct);
-                }, _cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                        _subsManager.AddSubscription(@event, handleKind, handler);
+                        await StartBasicConsume(@event, config, channel, ct);
+                    }, _cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                }
             }
         }
     }
 
-    private async Task<IChannel> CreateConsumerChannel(ExchangeAttribute exc, Type @event, CancellationToken ct)
+    private async Task<IChannel> CreateConsumerChannel(EventConfiguration config, CancellationToken ct)
     {
         if (_logger.IsEnabled(LogLevel.Trace))
         {
             _logger.LogTrace("Creating consumer channel");
         }
         var channel = _conn.Channel;
-        var queueArgs = @event.GetQueueArgAttributes();
-        await DeclareExchangeIfNeeded(exc, @event, channel, ct);
-        await channel.QueueDeclareAsync(exc.Queue, true, false, false, queueArgs, cancellationToken: ct);
+        await DeclareExchangeIfNeeded(config, channel, ct);
+        await channel.QueueDeclareAsync(config.Queue.Name, config.Queue.Durable, config.Queue.Exclusive, config.Queue.AutoDelete, config.Queue.Arguments, cancellationToken: ct);
         channel.CallbackExceptionAsync += async (_, ea) =>
         {
             if (_logger.IsEnabled(LogLevel.Warning))
@@ -222,28 +222,28 @@ internal sealed record EventBus : IBus
         return channel;
     }
 
-    private static async Task DeclareExchangeIfNeeded(ExchangeAttribute exc, Type @event, IChannel channel, CancellationToken ct)
+    private static async Task DeclareExchangeIfNeeded(EventConfiguration config, IChannel channel, CancellationToken ct)
     {
-        if (exc is not { WorkModel: EModel.None })
+        if (config.Exchange.Type != EModel.None)
         {
-            var exchangeArgs = @event.GetExchangeArgAttributes();
-            if (exchangeArgs is not null && exc.WorkModel == EModel.Delayed)
+            var exchangeArgs = new Dictionary<string, object?>(config.Exchange.Arguments);
+            if (config.Exchange.Type == EModel.Delayed)
             {
                 exchangeArgs.TryAdd("x-delayed-type", "direct");
             }
-            await channel.ExchangeDeclareAsync(exc.ExchangeName, exc.WorkModel.Description, true, false, exchangeArgs, cancellationToken: ct);
+            await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, exchangeArgs, cancellationToken: ct);
         }
     }
 
-    private async Task StartBasicConsume(Type eventType, ExchangeAttribute exc, IChannel channel, CancellationToken ct)
+    private async Task StartBasicConsume(Type eventType, EventConfiguration config, IChannel channel, CancellationToken ct)
     {
-        var handleKind = GetHandleKind(exc);
+        var handleKind = GetHandleKind(config);
         if (_subsManager.HasSubscriptionsForEvent(eventType.Name, handleKind))
         {
-            await ConfigureQosIfNeeded(eventType, handleKind, channel, ct);
+            await ConfigureQosIfNeeded(config, channel, ct);
         }
         var consumer = new AsyncEventingBasicConsumer(channel);
-        await channel.BasicConsumeAsync(exc.Queue, false, consumer, ct);
+        await channel.BasicConsumeAsync(config.Queue.Name, false, consumer, ct);
         consumer.ReceivedAsync += async (_, ea) => await HandleReceivedEvent(eventType, ea, handleKind, channel, ct);
         while (!channel.IsClosed)
         {
@@ -251,15 +251,13 @@ internal sealed record EventBus : IBus
         }
     }
 
-    private static EKindOfHandler GetHandleKind(ExchangeAttribute exc) => exc.WorkModel == EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
+    private static EKindOfHandler GetHandleKind(EventConfiguration config) => config.Exchange.Type == EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
 
-    private async Task ConfigureQosIfNeeded(Type eventType, EKindOfHandler handleKind, IChannel channel, CancellationToken ct)
+    private static async Task ConfigureQosIfNeeded(EventConfiguration config, IChannel channel, CancellationToken ct)
     {
-        var handlerType = _subsManager.GetHandlersForEvent(eventType.Name, handleKind).FirstOrDefault(c => c.HasAttribute<QosAttribute>());
-        var qos = handlerType?.GetCustomAttribute<QosAttribute>();
-        if (qos is not null)
+        if (config.Qos.PrefetchCount > 0)
         {
-            await channel.BasicQosAsync(qos.PrefetchSize, qos.PrefetchCount, qos.Global, ct);
+            await channel.BasicQosAsync(config.Qos.PrefetchSize, config.Qos.PrefetchCount, config.Qos.Global, ct);
         }
     }
 
@@ -316,19 +314,66 @@ internal sealed record EventBus : IBus
         }
         var handlerTypes = _subsManager.GetHandlersForEvent(eventType.Name, handleKind);
         using var scope = _sp.GetService<IServiceScopeFactory>()?.CreateScope();
-        var pipeline = _pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
-        foreach (var handlerType in handlerTypes)
+        var config = _eventRegistry.GetConfiguration(eventType);
+        var sequentialExecution = config?.SequentialHandlerExecution ?? false;
+        if (sequentialExecution)
         {
-            var cachedDelegate = GetOrCreateHandlerDelegate(handlerType, eventType, scope);
-            if (cachedDelegate is not null)
+            // Execute handlers sequentially to maintain order
+            foreach (var handlerType in handlerTypes)
             {
-                await pipeline.ExecuteAsync(async _ =>
+                var cachedDelegate = GetOrCreateHandlerDelegate(handlerType, eventType, scope);
+                if (cachedDelegate is null)
                 {
-                    await cachedDelegate(@event);
-                    await ack.Invoke();
-                }, ct).ConfigureAwait(false);
+                    continue;
+                }
+                var pipeline = _pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
+                try
+                {
+                    await pipeline.ExecuteAsync(async _ => { await cachedDelegate(@event); }, ct);
+                }
+                catch (Exception ex)
+                {
+                    if (_logger.IsEnabled(LogLevel.Error))
+                    {
+                        _logger.LogError(ex, "Error executing handler {HandlerType} for event: {EventName}", handlerType.Name, eventType.Name);
+                    }
+                    throw; // Re-throw to prevent ACK
+                }
             }
         }
+        else
+        {
+            // Process all handlers concurrently for better performance
+            var handlerTasks = new List<Task>();
+            foreach (var handlerType in handlerTypes)
+            {
+                var cachedDelegate = GetOrCreateHandlerDelegate(handlerType, eventType, scope);
+                if (cachedDelegate is null)
+                {
+                    continue;
+                }
+                // Execute handler with resilience pipeline for individual handler retries
+                var pipeline = _pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
+                handlerTasks.Add(pipeline.ExecuteAsync(async _ => { await cachedDelegate(@event); }, ct).AsTask());
+            }
+
+            // Wait for all handlers to complete successfully
+            try
+            {
+                await Task.WhenAll(handlerTasks);
+            }
+            catch (Exception ex)
+            {
+                if (_logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.LogError(ex, "Error processing handlers for event: {EventName}", eventType.Name);
+                }
+                throw;
+            }
+        }
+
+        // Only ACK if all handlers completed successfully
+        await ack.Invoke();
     }
 
     private Func<object, Task>? GetOrCreateHandlerDelegate(Type handlerType, Type eventType, IServiceScope? scope)
@@ -359,14 +404,19 @@ internal sealed record EventBus : IBus
 
     private static Func<object, Task> CreateHandleAsyncDelegate(object handler, MethodInfo method, Type eventType)
     {
-        var delegateType = typeof(Func<,>).MakeGenericType(eventType, typeof(Task));
-        var handleAsyncDelegate = Delegate.CreateDelegate(delegateType, handler, method);
+        // Use compiled lambda for better performance instead of DynamicInvoke
+        // Parameter names are only used for debugging and have no runtime impact
+        var handlerParam = Expression.Parameter(typeof(object), "handler");
+        var eventParam = Expression.Parameter(typeof(object), "event");
+        var convertedHandler = Expression.Convert(handlerParam, handler.GetType());
+        var convertedEvent = Expression.Convert(eventParam, eventType);
+        var methodCall = Expression.Call(convertedHandler, method, convertedEvent);
+        var lambda = Expression.Lambda<Func<object, object, Task>>(methodCall, handlerParam, eventParam);
+        var compiledDelegate = lambda.Compile();
         return async @event =>
         {
-            if (handleAsyncDelegate.DynamicInvoke(@event) is Task task)
-            {
-                await task.ConfigureAwait(false);
-            }
+            var task = compiledDelegate(handler, @event);
+            await task.ConfigureAwait(false);
         };
     }
 }
