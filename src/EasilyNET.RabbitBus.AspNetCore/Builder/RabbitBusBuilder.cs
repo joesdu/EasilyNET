@@ -1,0 +1,454 @@
+using EasilyNET.RabbitBus.AspNetCore.Configs;
+using EasilyNET.RabbitBus.Core.Abstraction;
+using EasilyNET.RabbitBus.Core.Enums;
+using RabbitMQ.Client;
+
+// ReSharper disable UnusedMember.Global
+
+namespace EasilyNET.RabbitBus.AspNetCore.Builder;
+
+/// <summary>
+///     <para xml:lang="en">Fluent builder for RabbitMQ configuration</para>
+///     <para xml:lang="zh">RabbitMQ配置的流畅构建器</para>
+/// </summary>
+public sealed class RabbitBusBuilder
+{
+    private readonly RabbitConfig _config = new();
+    private readonly EventConfigurationRegistry _eventRegistry = new();
+
+    /// <summary>
+    ///     <para xml:lang="en">Configure RabbitMQ connection</para>
+    ///     <para xml:lang="zh">配置RabbitMQ连接</para>
+    /// </summary>
+    /// <param name="configure">
+    ///     <para xml:lang="en">Connection configuration action</para>
+    ///     <para xml:lang="zh">连接配置操作</para>
+    /// </param>
+    public RabbitBusBuilder WithConnection(Action<ConnectionFactory> configure)
+    {
+        var factory = new ConnectionFactory();
+        configure(factory);
+
+        // 从ConnectionFactory复制配置到RabbitConfig
+        _config.Host = factory.HostName;
+        _config.UserName = factory.UserName;
+        _config.PassWord = factory.Password;
+        _config.VirtualHost = factory.VirtualHost;
+        _config.Port = factory.Port;
+        _config.ConnectionString = factory.Uri;
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Configure consumer settings</para>
+    ///     <para xml:lang="zh">配置消费者设置</para>
+    /// </summary>
+    /// <param name="dispatchConcurrency">
+    ///     <para xml:lang="en">Consumer dispatch concurrency</para>
+    ///     <para xml:lang="zh">消费者调度并发数</para>
+    /// </param>
+    /// <param name="prefetchCount">
+    ///     <para xml:lang="en">QoS prefetch count</para>
+    ///     <para xml:lang="zh">QoS预取计数</para>
+    /// </param>
+    /// <param name="prefetchSize">
+    ///     <para xml:lang="en">QoS prefetch size</para>
+    ///     <para xml:lang="zh">QoS预取大小</para>
+    /// </param>
+    /// <param name="global">
+    ///     <para xml:lang="en">Whether QoS is global</para>
+    ///     <para xml:lang="zh">QoS是否全局</para>
+    /// </param>
+    public RabbitBusBuilder WithConsumerSettings(ushort dispatchConcurrency = 10, ushort prefetchCount = 100, uint prefetchSize = 0, bool global = false)
+    {
+        _config.ConsumerDispatchConcurrency = dispatchConcurrency;
+        _config.Qos.PrefetchCount = prefetchCount;
+        _config.Qos.PrefetchSize = prefetchSize;
+        _config.Qos.Global = global;
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Configure retry and resilience settings</para>
+    ///     <para xml:lang="zh">配置重试和弹性设置</para>
+    /// </summary>
+    /// <param name="retryCount">
+    ///     <para xml:lang="en">Number of retry attempts</para>
+    ///     <para xml:lang="zh">重试次数</para>
+    /// </param>
+    /// <param name="publisherConfirms">
+    ///     <para xml:lang="en">Enable publisher confirms</para>
+    ///     <para xml:lang="zh">启用发布者确认</para>
+    /// </param>
+    public RabbitBusBuilder WithResilience(int retryCount = 5, bool publisherConfirms = true)
+    {
+        _config.RetryCount = retryCount;
+        _config.PublisherConfirms = publisherConfirms;
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Configure handler concurrency settings</para>
+    ///     <para xml:lang="zh">配置处理器并发设置</para>
+    /// </summary>
+    /// <param name="handlerMaxDegreeOfParallelism">
+    ///     <para xml:lang="en">Maximum degree of parallelism for event handler execution</para>
+    ///     <para xml:lang="zh">事件处理器执行的最大并行度</para>
+    /// </param>
+    public RabbitBusBuilder WithHandlerConcurrency(int handlerMaxDegreeOfParallelism = 4)
+    {
+        _config.HandlerMaxDegreeOfParallelism = handlerMaxDegreeOfParallelism;
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Configure application identification</para>
+    ///     <para xml:lang="zh">配置应用程序标识</para>
+    /// </summary>
+    /// <param name="applicationName">
+    ///     <para xml:lang="en">Application name</para>
+    ///     <para xml:lang="zh">应用程序名称</para>
+    /// </param>
+    public RabbitBusBuilder WithApplication(string applicationName)
+    {
+        _config.ApplicationName = applicationName;
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Use custom serializer</para>
+    ///     <para xml:lang="zh">使用自定义序列化器</para>
+    /// </summary>
+    /// <typeparam name="TSerializer">
+    ///     <para xml:lang="en">Serializer type</para>
+    ///     <para xml:lang="zh">序列化器类型</para>
+    /// </typeparam>
+    public RabbitBusBuilder WithSerializer<TSerializer>() where TSerializer : class, IBusSerializer, new()
+    {
+        _config.BusSerializer = new TSerializer();
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Configure event with fluent API</para>
+    ///     <para xml:lang="zh">使用流畅API配置事件</para>
+    /// </summary>
+    /// <typeparam name="TEvent">
+    ///     <para xml:lang="en">Event type</para>
+    ///     <para xml:lang="zh">事件类型</para>
+    /// </typeparam>
+    /// <param name="configure">
+    ///     <para xml:lang="en">Event configuration action</para>
+    ///     <para xml:lang="zh">事件配置操作</para>
+    /// </param>
+    public RabbitBusBuilder ConfigureEvent<TEvent>(Action<EventConfiguration> configure) where TEvent : IEvent
+    {
+        _eventRegistry.Configure<TEvent>(configure);
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Configure event with exchange settings and return configurator for chaining</para>
+    ///     <para xml:lang="zh">配置带有交换机设置的事件并返回配置器以进行链式调用</para>
+    /// </summary>
+    /// <typeparam name="TEvent">
+    ///     <para xml:lang="en">Event type</para>
+    ///     <para xml:lang="zh">事件类型</para>
+    /// </typeparam>
+    /// <param name="exchangeType">
+    ///     <para xml:lang="en">Exchange type</para>
+    ///     <para xml:lang="zh">交换机类型</para>
+    /// </param>
+    /// <param name="exchangeName">
+    ///     <para xml:lang="en">Exchange name</para>
+    ///     <para xml:lang="zh">交换机名称</para>
+    /// </param>
+    /// <param name="routingKey">
+    ///     <para xml:lang="en">Routing key</para>
+    ///     <para xml:lang="zh">路由键</para>
+    /// </param>
+    /// <param name="queueName">
+    ///     <para xml:lang="en">Queue name</para>
+    ///     <para xml:lang="zh">队列名称</para>
+    /// </param>
+    public EventConfigurator<TEvent> AddEvent<TEvent>(EModel exchangeType = EModel.None, string? exchangeName = null, string? routingKey = null, string? queueName = null) where TEvent : IEvent
+    {
+        _eventRegistry.Configure<TEvent>(config =>
+        {
+            config.Exchange.Type = exchangeType;
+            config.Exchange.Name = exchangeName ?? GetDefaultExchangeName(exchangeType);
+            config.Exchange.RoutingKey = exchangeType switch
+            {
+                EModel.PublishSubscribe => string.Empty,
+                EModel.None => queueName ?? typeof(TEvent).Name, // For direct queue publishing, routing key should be queue name
+                _ => routingKey ?? typeof(TEvent).Name
+            };
+            config.Queue.Name = queueName ?? typeof(TEvent).Name;
+            config.Enabled = true;
+        });
+        return new(this);
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Configure QoS for specific event</para>
+    ///     <para xml:lang="zh">为特定事件配置QoS</para>
+    /// </summary>
+    /// <typeparam name="TEvent">
+    ///     <para xml:lang="en">Event type</para>
+    ///     <para xml:lang="zh">事件类型</para>
+    /// </typeparam>
+    /// <param name="prefetchCount">
+    ///     <para xml:lang="en">Prefetch count</para>
+    ///     <para xml:lang="zh">预取数量</para>
+    /// </param>
+    /// <param name="prefetchSize">
+    ///     <para xml:lang="en">Prefetch size</para>
+    ///     <para xml:lang="zh">预取大小</para>
+    /// </param>
+    /// <param name="global">
+    ///     <para xml:lang="en">Whether QoS is global</para>
+    ///     <para xml:lang="zh">QoS是否全局</para>
+    /// </param>
+    public RabbitBusBuilder WithEventQos<TEvent>(ushort prefetchCount = 1, uint prefetchSize = 0, bool global = false) where TEvent : IEvent
+    {
+        _eventRegistry.Configure<TEvent>(config =>
+        {
+            config.Qos.PrefetchCount = prefetchCount;
+            config.Qos.PrefetchSize = prefetchSize;
+            config.Qos.Global = global;
+        });
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Add headers for specific event</para>
+    ///     <para xml:lang="zh">为特定事件添加头部</para>
+    /// </summary>
+    /// <typeparam name="TEvent">
+    ///     <para xml:lang="en">Event type</para>
+    ///     <para xml:lang="zh">事件类型</para>
+    /// </typeparam>
+    /// <param name="headers">
+    ///     <para xml:lang="en">Headers dictionary</para>
+    ///     <para xml:lang="zh">头部字典</para>
+    /// </param>
+    public RabbitBusBuilder WithEventHeaders<TEvent>(Dictionary<string, object?> headers) where TEvent : IEvent
+    {
+        _eventRegistry.Configure<TEvent>(config =>
+        {
+            foreach (var (key, value) in headers)
+            {
+                config.Headers[key] = value;
+            }
+        });
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Add exchange arguments for specific event</para>
+    ///     <para xml:lang="zh">为特定事件添加交换机参数</para>
+    /// </summary>
+    /// <typeparam name="TEvent">
+    ///     <para xml:lang="en">Event type</para>
+    ///     <para xml:lang="zh">事件类型</para>
+    /// </typeparam>
+    /// <param name="arguments">
+    ///     <para xml:lang="en">Exchange arguments</para>
+    ///     <para xml:lang="zh">交换机参数</para>
+    /// </param>
+    public RabbitBusBuilder WithEventExchangeArgs<TEvent>(Dictionary<string, object?> arguments) where TEvent : IEvent
+    {
+        _eventRegistry.Configure<TEvent>(config =>
+        {
+            foreach (var (key, value) in arguments)
+            {
+                config.Exchange.Arguments[key] = value;
+            }
+        });
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Add queue arguments for specific event</para>
+    ///     <para xml:lang="zh">为特定事件添加队列参数</para>
+    /// </summary>
+    /// <typeparam name="TEvent">
+    ///     <para xml:lang="en">Event type</para>
+    ///     <para xml:lang="zh">事件类型</para>
+    /// </typeparam>
+    /// <param name="arguments">
+    ///     <para xml:lang="en">Queue arguments</para>
+    ///     <para xml:lang="zh">队列参数</para>
+    /// </param>
+    public RabbitBusBuilder WithEventQueueArgs<TEvent>(Dictionary<string, object?> arguments) where TEvent : IEvent
+    {
+        _eventRegistry.Configure<TEvent>(config =>
+        {
+            foreach (var (key, value) in arguments)
+            {
+                config.Queue.Arguments[key] = value;
+            }
+        });
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Ignore specific handler for an event</para>
+    ///     <para xml:lang="zh">忽略特定事件的处理器</para>
+    /// </summary>
+    /// <typeparam name="TEvent">
+    ///     <para xml:lang="en">Event type</para>
+    ///     <para xml:lang="zh">事件类型</para>
+    /// </typeparam>
+    /// <typeparam name="THandler">
+    ///     <para xml:lang="en">Handler type to ignore</para>
+    ///     <para xml:lang="zh">要忽略的处理器类型</para>
+    /// </typeparam>
+    public RabbitBusBuilder IgnoreHandler<TEvent, THandler>() where TEvent : IEvent where THandler : IEventHandler<TEvent>
+    {
+        _eventRegistry.Configure<TEvent>(config => config.IgnoredHandlers.Add(typeof(THandler)));
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Build the configuration and registry</para>
+    ///     <para xml:lang="zh">构建配置和注册器</para>
+    /// </summary>
+    public (RabbitConfig Config, EventConfigurationRegistry Registry) Build() => (_config, _eventRegistry);
+
+    private static string GetDefaultExchangeName(EModel exchangeType) =>
+        exchangeType switch
+        {
+            EModel.PublishSubscribe => "amq.fanout",
+            EModel.Routing => "amq.direct",
+            EModel.Topics => "amq.topic",
+            EModel.Delayed => "amq.delayed",
+            EModel.None => "",
+            _ => throw new ArgumentOutOfRangeException(nameof(exchangeType), exchangeType, null)
+        };
+
+    /// <summary>
+    ///     <para xml:lang="en">Generic event configurator for fluent API chaining</para>
+    ///     <para xml:lang="zh">泛型事件配置器，用于流畅API链式调用</para>
+    /// </summary>
+    /// <typeparam name="TEvent">
+    ///     <para xml:lang="en">Event type</para>
+    ///     <para xml:lang="zh">事件类型</para>
+    /// </typeparam>
+    public sealed class EventConfigurator<TEvent> where TEvent : IEvent
+    {
+        private readonly RabbitBusBuilder _builder;
+
+        internal EventConfigurator(RabbitBusBuilder builder)
+        {
+            _builder = builder;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Configure QoS for the event</para>
+        ///     <para xml:lang="zh">为事件配置QoS</para>
+        /// </summary>
+        /// <param name="prefetchCount">
+        ///     <para xml:lang="en">Prefetch count</para>
+        ///     <para xml:lang="zh">预取数量</para>
+        /// </param>
+        /// <param name="prefetchSize">
+        ///     <para xml:lang="en">Prefetch size</para>
+        ///     <para xml:lang="zh">预取大小</para>
+        /// </param>
+        /// <param name="global">
+        ///     <para xml:lang="en">Whether QoS is global</para>
+        ///     <para xml:lang="zh">QoS是否全局</para>
+        /// </param>
+        public EventConfigurator<TEvent> WithEventQos(ushort prefetchCount = 1, uint prefetchSize = 0, bool global = false)
+        {
+            _builder._eventRegistry.Configure<TEvent>(config =>
+            {
+                config.Qos.PrefetchCount = prefetchCount;
+                config.Qos.PrefetchSize = prefetchSize;
+                config.Qos.Global = global;
+            });
+            return this;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Add headers for the event</para>
+        ///     <para xml:lang="zh">为事件添加头部</para>
+        /// </summary>
+        /// <param name="headers">
+        ///     <para xml:lang="en">Headers dictionary</para>
+        ///     <para xml:lang="zh">头部字典</para>
+        /// </param>
+        public EventConfigurator<TEvent> WithEventHeaders(Dictionary<string, object?> headers)
+        {
+            _builder._eventRegistry.Configure<TEvent>(config =>
+            {
+                foreach (var (key, value) in headers)
+                {
+                    config.Headers[key] = value;
+                }
+            });
+            return this;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Add exchange arguments for the event</para>
+        ///     <para xml:lang="zh">为事件添加交换机参数</para>
+        /// </summary>
+        /// <param name="arguments">
+        ///     <para xml:lang="en">Exchange arguments</para>
+        ///     <para xml:lang="zh">交换机参数</para>
+        /// </param>
+        public EventConfigurator<TEvent> WithEventExchangeArgs(Dictionary<string, object?> arguments)
+        {
+            _builder._eventRegistry.Configure<TEvent>(config =>
+            {
+                foreach (var (key, value) in arguments)
+                {
+                    config.Exchange.Arguments[key] = value;
+                }
+            });
+            return this;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Add queue arguments for the event</para>
+        ///     <para xml:lang="zh">为事件添加队列参数</para>
+        /// </summary>
+        /// <param name="arguments">
+        ///     <para xml:lang="en">Queue arguments</para>
+        ///     <para xml:lang="zh">队列参数</para>
+        /// </param>
+        public EventConfigurator<TEvent> WithEventQueueArgs(Dictionary<string, object?> arguments)
+        {
+            _builder._eventRegistry.Configure<TEvent>(config =>
+            {
+                foreach (var (key, value) in arguments)
+                {
+                    config.Queue.Arguments[key] = value;
+                }
+            });
+            return this;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Configure the event with custom settings</para>
+        ///     <para xml:lang="zh">使用自定义设置配置事件</para>
+        /// </summary>
+        /// <param name="configure">
+        ///     <para xml:lang="en">Event configuration action</para>
+        ///     <para xml:lang="zh">事件配置操作</para>
+        /// </param>
+        public EventConfigurator<TEvent> ConfigureEvent(Action<EventConfiguration> configure)
+        {
+            _builder._eventRegistry.Configure<TEvent>(configure);
+            return this;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Return to the main builder</para>
+        ///     <para xml:lang="zh">返回主构建器</para>
+        /// </summary>
+        public RabbitBusBuilder And() => _builder;
+    }
+}

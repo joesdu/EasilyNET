@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using EasilyNET.RabbitBus.AspNetCore.Enums;
@@ -9,8 +8,8 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <inheritdoc />
 internal sealed class SubscriptionsManager : ISubscriptionsManager
 {
-    private readonly ConcurrentDictionary<string, HashSet<Type>> _delayedHandlers = new();
-    private readonly ConcurrentDictionary<string, HashSet<Type>> _normalHandlers = new();
+    private readonly ConcurrentDictionary<string, HashSet<Type>> _delayedHandlers = [];
+    private readonly ConcurrentDictionary<string, HashSet<Type>> _normalHandlers = [];
 
     public void AddSubscription(Type eventType, EKindOfHandler handleKind, IList<TypeInfo> handlerTypes)
     {
@@ -44,7 +43,6 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
         _delayedHandlers.Clear();
     }
 
-    [SuppressMessage("Style", "IDE0046:转换为条件表达式", Justification = "<挂起>")]
     private void DoAddSubscription(string name, EKindOfHandler handleKind, IList<Type> handlerTypes)
     {
         var handlersDict = handleKind switch
@@ -54,12 +52,8 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
             _                      => throw new ArgumentOutOfRangeException(nameof(handleKind), handleKind, null)
         };
         handlersDict.AddOrUpdate(name, _ => [.. handlerTypes], (_, existingHandlers) =>
-        {
-            if (handlerTypes.Any(handlerType => !existingHandlers.Add(handlerType)))
-            {
-                throw new InvalidOperationException($"Handler type already registered for '{name}'");
-            }
-            return existingHandlers;
-        });
+            handlerTypes.Any(handlerType => !existingHandlers.Add(handlerType))
+                ? throw new InvalidOperationException($"Handler type already registered for '{name}'")
+                : existingHandlers);
     }
 }

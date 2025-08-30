@@ -30,9 +30,8 @@ internal sealed class PersistentConnection : IDisposable
         _logger = logger;
         _connectionFactory = connFactory;
         _options = options;
-        // 初始化连接 - 异步操作在构造函数中需要特殊处理
         var task = Task.Run(InitializeConnectionAsync);
-        task.Wait(); // 构造函数中异步转同步是必要的
+        task.Wait();
     }
 
     // 为了兼容现有代码，保留同步属性，但内部使用异步实现
@@ -123,8 +122,8 @@ internal sealed class PersistentConnection : IDisposable
     {
         var _config = _options.Get(Constant.OptionName);
         var conn = _config.AmqpTcpEndpoints is not null && _config.AmqpTcpEndpoints.Count > 0
-                       ? await _connectionFactory.CreateConnectionAsync(_config.AmqpTcpEndpoints)
-                       : await _connectionFactory.CreateConnectionAsync();
+                       ? await _connectionFactory.CreateConnectionAsync(_config.AmqpTcpEndpoints, _config.ApplicationName)
+                       : await _connectionFactory.CreateConnectionAsync(_config.ApplicationName);
         if (conn.IsOpen && _logger.IsEnabled(LogLevel.Information))
         {
             _logger.LogInformation("已成功连接到RabbitMQ服务器");
@@ -132,10 +131,16 @@ internal sealed class PersistentConnection : IDisposable
         return conn;
     }
 
-    private async Task<IChannel> CreateChannelAsync() =>
-        _currentConnection is not { IsOpen: true }
-            ? throw new InvalidOperationException("无法在没有有效连接的情况下创建通道")
-            : await _currentConnection.CreateChannelAsync();
+    private async Task<IChannel> CreateChannelAsync()
+    {
+        if (_currentConnection is not { IsOpen: true })
+        {
+            throw new InvalidOperationException("无法在没有有效连接的情况下创建通道");
+        }
+        var config = _options.Get(Constant.OptionName);
+        var channelOptions = new CreateChannelOptions(config.PublisherConfirms, config.PublisherConfirms);
+        return await _currentConnection.CreateChannelAsync(channelOptions);
+    }
 
     private void RegisterConnectionEvents()
     {

@@ -1,3 +1,10 @@
 {
-  "dotnet.defaultSolution": "EasilyNET.slnx"
+  "dotnet.defaultSolution": "EasilyNET.slnx",
+  "csharp.debug.logging.moduleLoad": false,
+  "csharp.debug.logging.exceptions": true,
+  "csharp.debug.logging.programOutput": true,
+  "csharp.debug.logging.diagnosticsLog.protocolMessages": false,
+  "csharp.debug.logging.browserStdOut": false,
+  "csharp.debug.logging.evaluation": false,
+  "csharp.debug.logging.stepping": false
 }

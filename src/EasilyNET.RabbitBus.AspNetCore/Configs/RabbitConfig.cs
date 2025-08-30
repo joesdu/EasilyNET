@@ -17,7 +17,7 @@ public sealed class RabbitConfig
     ///     <para xml:lang="en">The connection string</para>
     ///     <para xml:lang="zh">连接字符串</para>
     /// </summary>
-    public string? ConnectionString { get; set; }
+    public Uri? ConnectionString { get; set; }
 
     /// <summary>
     ///     <para xml:lang="en">Configuration for multiple endpoints. If set, the <see cref="Host" /> configuration is ignored</para>
@@ -29,7 +29,7 @@ public sealed class RabbitConfig
     ///     <para xml:lang="en">The hostname or IP address</para>
     ///     <para xml:lang="zh">主机名或 IP 地址</para>
     /// </summary>
-    public string? Host { get; set; } = null;
+    public string? Host { get; set; }
 
     /// <summary>
     ///     <para xml:lang="en">The password</para>
@@ -62,8 +62,41 @@ public sealed class RabbitConfig
     public int RetryCount { get; set; } = 5;
 
     /// <summary>
+    ///     <para xml:lang="en">The consumer dispatch concurrency. Default is 10</para>
+    ///     <para xml:lang="zh">消费者调度并发数。默认是 10</para>
+    /// </summary>
+    public ushort ConsumerDispatchConcurrency { get; set; } = 10;
+
+    /// <summary>
+    ///     <para xml:lang="en">Maximum degree of parallelism for event handler execution. Default is 4</para>
+    ///     <para xml:lang="zh">事件处理器执行的最大并行度。默认是 4</para>
+    /// </summary>
+    public int HandlerMaxDegreeOfParallelism { get; set; } = 4;
+
+    /// <summary>
+    ///     <para xml:lang="en">Whether to enable publisher confirms. Default is true</para>
+    ///     <para xml:lang="zh">是否启用发布者确认。默认是 true</para>
+    /// </summary>
+    public bool PublisherConfirms { get; set; } = true;
+
+    /// <summary>
     ///     <para xml:lang="en">Custom serializer</para>
     ///     <para xml:lang="zh">自定义序列化器</para>
     /// </summary>
     public IBusSerializer BusSerializer { get; set; } = new TextJsonSerializer();
+
+    /// <summary>
+    ///     <para xml:lang="en">QoS configuration</para>
+    ///     <para xml:lang="zh">QoS配置</para>
+    /// </summary>
+    public QosConfig Qos { get; } = new()
+    {
+        PrefetchCount = 100
+    };
+
+    /// <summary>
+    ///     <para xml:lang="en">Application name for identification</para>
+    ///     <para xml:lang="zh">应用程序名称用于标识</para>
+    /// </summary>
+    public string ApplicationName { get; set; } = "EasilyNET.RabbitBus";
 }

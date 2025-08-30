@@ -1,8 +1,6 @@
 using EasilyNET.Core.Essentials;
 using EasilyNET.RabbitBus.Core;
 using EasilyNET.RabbitBus.Core.Abstraction;
-using EasilyNET.RabbitBus.Core.Attributes;
-using EasilyNET.RabbitBus.Core.Enums;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable ClassNeverInstantiated.Global
@@ -12,9 +10,8 @@ namespace WebApi.Test.Unit.Events;
 /// <summary>
 /// 测试HelloWorld模式消息类型
 /// </summary>
-//[Exchange(EModel.None, queue: "hello.world")]
-[Exchange(EModel.Delayed, "delayed.hello", queue: "delayed.hello.world")]
-[QueueArg("x-message-ttl", 5000)]
+// 现代配置方式：所有配置都在RabbitModule.cs中通过流畅API配置
+// 不再需要 [Exchange], [Queue], [Qos] 等属性
 public class HelloWorldEvent : IEvent
 {
     /// <summary>
@@ -31,7 +28,6 @@ public class HelloWorldEvent : IEvent
 /// <summary>
 /// 测试WorkQueues模式消息类型
 /// </summary>
-[Exchange(EModel.None, queue: "work.queue")]
 public class WorkQueuesEvent : Event
 {
     /// <summary>
@@ -45,7 +41,6 @@ public class WorkQueuesEvent : Event
 /// <summary>
 /// 测试发布/订阅(Publish)模式消息类型
 /// </summary>
-[Exchange(EModel.PublishSubscribe, "fanout_exchange", queue: "fanout_queue1")]
 public class FanoutEventOne : Event
 {
     /// <summary>
@@ -62,7 +57,6 @@ public class FanoutEventOne : Event
 /// <summary>
 /// 测试发布/订阅(Publish)模式消息类型
 /// </summary>
-[Exchange(EModel.PublishSubscribe, "fanout_exchange", queue: "fanout_queue2")]
 // ReSharper disable once ClassNeverInstantiated.Global
 public class FanoutEventTwo : Event
 {
@@ -79,7 +73,6 @@ public class FanoutEventTwo : Event
 /// <summary>
 /// 测试路由(Routing)模式消息类型
 /// </summary>
-[Exchange(EModel.Routing, "direct_exchange", "direct.queue1", "direct_queue1")]
 public class DirectEventOne : Event
 {
     /// <summary>
@@ -91,7 +84,6 @@ public class DirectEventOne : Event
 /// <summary>
 /// 测试路由(Routing)模式消息类型
 /// </summary>
-[Exchange(EModel.Routing, "direct_exchange", "direct.queue2", "direct_queue2")]
 // ReSharper disable once ClassNeverInstantiated.Global
 public class DirectEventTwo : Event
 {
@@ -108,7 +100,6 @@ public class DirectEventTwo : Event
 /// <summary>
 /// 测试主题(Topic)模式消息类型
 /// </summary>
-[Exchange(EModel.Topics, "topic_exchange", "topic.queue.*", "topic_queue1")]
 public class TopicEventOne : Event
 {
     /// <summary>
@@ -120,7 +111,6 @@ public class TopicEventOne : Event
 /// <summary>
 /// 测试主题(Topic)模式消息类型
 /// </summary>
-[Exchange(EModel.Topics, "topic_exchange", "topic.queue.1", "topic_queue2")]
 // ReSharper disable once ClassNeverInstantiated.Global
 public class TopicEventTwo : Event
 {

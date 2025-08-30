@@ -1,6 +1,5 @@
 using System.Text.Json;
 using EasilyNET.RabbitBus.Core.Abstraction;
-using EasilyNET.RabbitBus.Core.Attributes;
 using WebApi.Test.Unit.Events;
 
 // ReSharper disable UnusedType.Global
@@ -19,7 +18,8 @@ public class HelloWorldEventHandlers(ILogger<HelloWorldEventHandlers> logger) : 
 }
 
 /// <inheritdoc />
-[IgnoreHandler]
+// 现代配置方式：忽略处理器配置通过RabbitModule.cs中的流畅API配置
+// 不再需要 [IgnoreHandler] 属性
 public class DelayedEventHandlers : IEventHandler<HelloWorldEvent>
 {
     /// <inheritdoc />
@@ -31,7 +31,8 @@ public class DelayedEventHandlers : IEventHandler<HelloWorldEvent>
 }
 
 /// <inheritdoc />
-[Qos(0, 20)]
+// 现代配置方式：QoS配置通过RabbitModule.cs中的流畅API配置
+// 不再需要 [Qos(0, 20)] 属性
 public class WorkQueuesEventOneHandlers : IEventHandler<WorkQueuesEvent>
 {
     /// <inheritdoc />
