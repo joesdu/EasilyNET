@@ -10,6 +10,7 @@ using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Polly.Registry;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -24,6 +25,7 @@ internal sealed record EventBus : IBus
     private readonly EventConfigurationRegistry _eventRegistry;
     private readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Func<object, Task>?> _handleAsyncDelegateCache = [];
     private readonly ILogger<EventBus> _logger;
+    private readonly IOptionsMonitor<RabbitConfig> _options;
     private readonly ResiliencePipelineProvider<string> _pipelineProvider;
     private readonly IBusSerializer _serializer;
     private readonly IServiceProvider _sp;
@@ -31,7 +33,7 @@ internal sealed record EventBus : IBus
 
     private CancellationTokenSource _cancellationTokenSource = new();
 
-    public EventBus(PersistentConnection conn, ISubscriptionsManager sm, IBusSerializer ser, IServiceProvider sp, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pp, EventConfigurationRegistry eventRegistry)
+    public EventBus(PersistentConnection conn, ISubscriptionsManager sm, IBusSerializer ser, IServiceProvider sp, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pp, EventConfigurationRegistry eventRegistry, IOptionsMonitor<RabbitConfig> options)
     {
         _conn = conn;
         _subsManager = sm;
@@ -40,6 +42,18 @@ internal sealed record EventBus : IBus
         _logger = logger;
         _pipelineProvider = pp;
         _eventRegistry = eventRegistry;
+        _options = options;
+
+        // 订阅 PersistentConnection 的断开连接事件
+        _conn.ConnectionDisconnected += (_, _) =>
+        {
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning("RabbitMQ connection disconnected. Stopping consumers...");
+            }
+            _cancellationTokenSource.Cancel(); // 取消消费者线程
+        };
+
         // 订阅 PersistentConnection 的重连事件
         _conn.ConnectionReconnected += async (_, _) =>
         {
@@ -51,16 +65,6 @@ internal sealed record EventBus : IBus
             _cancellationTokenSource.Dispose();
             _cancellationTokenSource = new();
             await RunRabbit(); // 重新初始化消费者
-        };
-
-        // 订阅 PersistentConnection 的断开连接事件
-        _conn.ConnectionDisconnected += (_, _) =>
-        {
-            if (_logger.IsEnabled(LogLevel.Warning))
-            {
-                _logger.LogWarning("RabbitMQ connection disconnected. Stopping consumers...");
-            }
-            _cancellationTokenSource.Cancel(); // 取消消费者线程
         };
     }
 
@@ -170,32 +174,33 @@ internal sealed record EventBus : IBus
                 continue;
             }
             var handler = handlers.FindAll(o => o.ImplementedInterfaces.Any(s => s.GenericTypeArguments.Contains(@event)));
-            if (handler.Count is not 0)
+            if (handler.Count is 0)
             {
-                // Filter out ignored handlers
-                if (config.IgnoredHandlers.Count > 0)
+                continue;
+            }
+            // Filter out ignored handlers
+            if (config.IgnoredHandlers.Count > 0)
+            {
+                handler = [.. handler.Where(h => !config.IgnoredHandlers.Contains(h.AsType()))];
+            }
+            if (handler.Count > 0)
+            {
+                await Task.Factory.StartNew(async () =>
                 {
-                    handler = handler.Where(h => !config.IgnoredHandlers.Contains(h.AsType())).ToList();
-                }
-                if (handler.Count > 0)
-                {
-                    await Task.Factory.StartNew(async () =>
+                    var ct = _cancellationTokenSource.Token;
+                    await using var channel = await CreateConsumerChannel(config, ct);
+                    var handleKind = config.Exchange.Type is EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
+                    if (config.Exchange.Type != EModel.None)
                     {
-                        var ct = _cancellationTokenSource.Token;
-                        await using var channel = await CreateConsumerChannel(config, ct);
-                        var handleKind = config.Exchange.Type is EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
-                        if (config.Exchange.Type != EModel.None)
+                        if (_subsManager.HasSubscriptionsForEvent(@event.Name, handleKind))
                         {
-                            if (_subsManager.HasSubscriptionsForEvent(@event.Name, handleKind))
-                            {
-                                return;
-                            }
-                            await channel.QueueBindAsync(config.Queue.Name, config.Exchange.Name, config.Exchange.RoutingKey, cancellationToken: ct);
+                            return;
                         }
-                        _subsManager.AddSubscription(@event, handleKind, handler);
-                        await StartBasicConsume(@event, config, channel, ct);
-                    }, _cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-                }
+                        await channel.QueueBindAsync(config.Queue.Name, config.Exchange.Name, config.Exchange.RoutingKey, cancellationToken: ct);
+                    }
+                    _subsManager.AddSubscription(@event, handleKind, handler);
+                    await StartBasicConsume(@event, config, channel, ct);
+                }, _cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
             }
         }
     }
@@ -240,7 +245,8 @@ internal sealed record EventBus : IBus
         var handleKind = GetHandleKind(config);
         if (_subsManager.HasSubscriptionsForEvent(eventType.Name, handleKind))
         {
-            await ConfigureQosIfNeeded(config, channel, ct);
+            var rabbitConfig = _options.Get(Constant.OptionName);
+            await ConfigureQosIfNeeded(config, channel, rabbitConfig.Qos, ct);
         }
         var consumer = new AsyncEventingBasicConsumer(channel);
         await channel.BasicConsumeAsync(config.Queue.Name, false, consumer, ct);
@@ -253,11 +259,13 @@ internal sealed record EventBus : IBus
 
     private static EKindOfHandler GetHandleKind(EventConfiguration config) => config.Exchange.Type == EModel.Delayed ? EKindOfHandler.Delayed : EKindOfHandler.Normal;
 
-    private static async Task ConfigureQosIfNeeded(EventConfiguration config, IChannel channel, CancellationToken ct)
+    private static async Task ConfigureQosIfNeeded(EventConfiguration config, IChannel channel, QosConfig defaultQos, CancellationToken ct)
     {
-        if (config.Qos.PrefetchCount > 0)
+        // Use event-specific QoS if configured, otherwise use default from RabbitConfig
+        var qosToUse = config.Qos.PrefetchCount > 0 ? config.Qos : defaultQos;
+        if (qosToUse.PrefetchCount > 0)
         {
-            await channel.BasicQosAsync(config.Qos.PrefetchSize, config.Qos.PrefetchCount, config.Qos.Global, ct);
+            await channel.BasicQosAsync(qosToUse.PrefetchSize, qosToUse.PrefetchCount, qosToUse.Global, ct);
         }
     }
 
@@ -329,7 +337,7 @@ internal sealed record EventBus : IBus
                 var pipeline = _pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
                 try
                 {
-                    await pipeline.ExecuteAsync(async _ => { await cachedDelegate(@event); }, ct);
+                    await pipeline.ExecuteAsync(async _ => await cachedDelegate(@event), ct);
                 }
                 catch (Exception ex)
                 {
@@ -343,8 +351,12 @@ internal sealed record EventBus : IBus
         }
         else
         {
-            // Process all handlers concurrently for better performance
-            var handlerTasks = new List<Task>();
+            // Process handlers with controlled parallelism to prevent CPU overload
+            var rabbitConfig = _options.Get(Constant.OptionName);
+            var maxDegreeOfParallelism = rabbitConfig.HandlerMaxDegreeOfParallelism;
+
+            // Create handler execution tasks
+            var handlerExecutions = new List<(Type HandlerType, Func<Task> ExecutionTask)>();
             foreach (var handlerType in handlerTypes)
             {
                 var cachedDelegate = GetOrCreateHandlerDelegate(handlerType, eventType, scope);
@@ -352,23 +364,45 @@ internal sealed record EventBus : IBus
                 {
                     continue;
                 }
-                // Execute handler with resilience pipeline for individual handler retries
+
+                // Create execution task with resilience pipeline
                 var pipeline = _pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
-                handlerTasks.Add(pipeline.ExecuteAsync(async _ => { await cachedDelegate(@event); }, ct).AsTask());
+                handlerExecutions.Add((handlerType, executionTask));
+                continue;
+                async Task executionTask() => await pipeline.ExecuteAsync(async _ => await cachedDelegate(@event), ct);
             }
 
-            // Wait for all handlers to complete successfully
-            try
+            // Execute handlers with controlled parallelism
+            var parallelOptions = new ParallelOptions
             {
-                await Task.WhenAll(handlerTasks);
-            }
-            catch (Exception ex)
+                MaxDegreeOfParallelism = maxDegreeOfParallelism,
+                CancellationToken = ct
+            };
+            var exceptions = new ConcurrentBag<Exception>();
+            await Parallel.ForEachAsync(handlerExecutions, parallelOptions, async (handlerExecution, _) =>
+            {
+                try
+                {
+                    await handlerExecution.ExecutionTask();
+                }
+                catch (Exception ex)
+                {
+                    if (_logger.IsEnabled(LogLevel.Error))
+                    {
+                        _logger.LogError(ex, "Error executing handler {HandlerType} for event: {EventName}", handlerExecution.HandlerType.Name, eventType.Name);
+                    }
+                    exceptions.Add(ex);
+                }
+            });
+
+            // If any handler failed, throw aggregate exception to prevent ACK
+            if (!exceptions.IsEmpty)
             {
                 if (_logger.IsEnabled(LogLevel.Error))
                 {
-                    _logger.LogError(ex, "Error processing handlers for event: {EventName}", eventType.Name);
+                    _logger.LogError("Error processing handlers for event: {EventName}. Total errors: {ErrorCount}", eventType.Name, exceptions.Count);
                 }
-                throw;
+                throw new AggregateException("One or more event handlers failed", exceptions);
             }
         }
 

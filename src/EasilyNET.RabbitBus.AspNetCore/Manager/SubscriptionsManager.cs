@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using EasilyNET.RabbitBus.AspNetCore.Abstraction;
 using EasilyNET.RabbitBus.AspNetCore.Enums;
@@ -44,7 +43,6 @@ internal sealed class SubscriptionsManager : ISubscriptionsManager
         _delayedHandlers.Clear();
     }
 
-    [SuppressMessage("Style", "IDE0046:转换为条件表达式", Justification = "<挂起>")]
     private void DoAddSubscription(string name, EKindOfHandler handleKind, IList<Type> handlerTypes)
     {
         var handlersDict = handleKind switch

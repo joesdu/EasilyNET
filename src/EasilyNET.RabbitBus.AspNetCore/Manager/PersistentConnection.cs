@@ -131,10 +131,16 @@ internal sealed class PersistentConnection : IDisposable
         return conn;
     }
 
-    private async Task<IChannel> CreateChannelAsync() =>
-        _currentConnection is not { IsOpen: true }
-            ? throw new InvalidOperationException("无法在没有有效连接的情况下创建通道")
-            : await _currentConnection.CreateChannelAsync();
+    private async Task<IChannel> CreateChannelAsync()
+    {
+        if (_currentConnection is not { IsOpen: true })
+        {
+            throw new InvalidOperationException("无法在没有有效连接的情况下创建通道");
+        }
+        var config = _options.Get(Constant.OptionName);
+        var channelOptions = new CreateChannelOptions(config.PublisherConfirms, config.PublisherConfirms);
+        return await _currentConnection.CreateChannelAsync(channelOptions);
+    }
 
     private void RegisterConnectionEvents()
     {

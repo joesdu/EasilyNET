@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore;
@@ -54,12 +53,10 @@ public static class RabbitServiceExtension
             options.Port = config.Port;
             options.RetryCount = config.RetryCount;
             options.PublisherConfirms = config.PublisherConfirms;
-            options.MaxConnections = config.MaxConnections;
-            options.MaxChannelsPerConnection = config.MaxChannelsPerConnection;
             options.ConsumerDispatchConcurrency = config.ConsumerDispatchConcurrency;
-            options.DefaultPrefetchCount = config.DefaultPrefetchCount;
-            options.DefaultPrefetchSize = config.DefaultPrefetchSize;
-            options.QosGlobal = config.QosGlobal;
+            options.Qos.PrefetchCount = config.Qos.PrefetchCount;
+            options.Qos.PrefetchSize = config.Qos.PrefetchSize;
+            options.Qos.Global = config.Qos.Global;
             options.ApplicationName = config.ApplicationName;
             options.BusSerializer = config.BusSerializer;
         }).AddEventBus();
@@ -119,29 +116,24 @@ public static class RabbitServiceExtension
         return services;
     }
 
-    [SuppressMessage("Style", "IDE0046:转换为条件表达式", Justification = "<挂起>")]
     private static ConnectionFactory CreateConnectionFactory(RabbitConfig config)
     {
-        if (config.ConnectionString is not null)
-        {
-            return new() { Uri = config.ConnectionString };
-        }
-        if (config.AmqpTcpEndpoints?.Count > 0)
-        {
-            return new() { UserName = config.UserName, Password = config.PassWord, VirtualHost = config.VirtualHost };
-        }
-        if (config.Host.IsNotNullOrWhiteSpace())
-        {
-            return new()
-            {
-                HostName = config.Host,
-                UserName = config.UserName,
-                Password = config.PassWord,
-                Port = config.Port,
-                VirtualHost = config.VirtualHost
-            };
-        }
-        throw new InvalidOperationException("Configuration error: Unable to create a connection from the provided configuration.");
+        var factory = config.ConnectionString is not null
+                          ? new() { Uri = config.ConnectionString }
+                          : (ConnectionFactory)(config.AmqpTcpEndpoints?.Count > 0
+                                                    ? new() { UserName = config.UserName, Password = config.PassWord, VirtualHost = config.VirtualHost }
+                                                    : config.Host.IsNotNullOrWhiteSpace()
+                                                        ? new()
+                                                        {
+                                                            HostName = config.Host,
+                                                            UserName = config.UserName,
+                                                            Password = config.PassWord,
+                                                            Port = config.Port,
+                                                            VirtualHost = config.VirtualHost
+                                                        }
+                                                        : throw new InvalidOperationException("Configuration error: Unable to create a connection from the provided configuration."));
+        factory.ConsumerDispatchConcurrency = config.ConsumerDispatchConcurrency;
+        return factory;
     }
 
     private static void AddEventBus(this IServiceCollection services)

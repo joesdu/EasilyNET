@@ -62,22 +62,16 @@ public sealed class RabbitConfig
     public int RetryCount { get; set; } = 5;
 
     /// <summary>
-    ///     <para xml:lang="en">The maximum number of connections in the pool. Default is 10</para>
-    ///     <para xml:lang="zh">连接池中的最大连接数。默认是 10</para>
-    /// </summary>
-    public int MaxConnections { get; set; } = 10;
-
-    /// <summary>
-    ///     <para xml:lang="en">The maximum number of channels per connection. Default is 100</para>
-    ///     <para xml:lang="zh">每个连接的最大通道数。默认是 100</para>
-    /// </summary>
-    public int MaxChannelsPerConnection { get; set; } = 100;
-
-    /// <summary>
     ///     <para xml:lang="en">The consumer dispatch concurrency. Default is 10</para>
     ///     <para xml:lang="zh">消费者调度并发数。默认是 10</para>
     /// </summary>
-    public int ConsumerDispatchConcurrency { get; set; } = 10;
+    public ushort ConsumerDispatchConcurrency { get; set; } = 10;
+
+    /// <summary>
+    ///     <para xml:lang="en">Maximum degree of parallelism for event handler execution. Default is 4</para>
+    ///     <para xml:lang="zh">事件处理器执行的最大并行度。默认是 4</para>
+    /// </summary>
+    public int HandlerMaxDegreeOfParallelism { get; set; } = 4;
 
     /// <summary>
     ///     <para xml:lang="en">Whether to enable publisher confirms. Default is true</para>
@@ -92,22 +86,13 @@ public sealed class RabbitConfig
     public IBusSerializer BusSerializer { get; set; } = new TextJsonSerializer();
 
     /// <summary>
-    ///     <para xml:lang="en">Default QoS prefetch count. Default is 100</para>
-    ///     <para xml:lang="zh">默认QoS预取计数。默认是 100</para>
+    ///     <para xml:lang="en">QoS configuration</para>
+    ///     <para xml:lang="zh">QoS配置</para>
     /// </summary>
-    public ushort DefaultPrefetchCount { get; set; } = 100;
-
-    /// <summary>
-    ///     <para xml:lang="en">Default QoS prefetch size. Default is 0</para>
-    ///     <para xml:lang="zh">默认QoS预取大小。默认是 0</para>
-    /// </summary>
-    public uint DefaultPrefetchSize { get; set; }
-
-    /// <summary>
-    ///     <para xml:lang="en">Whether QoS is global. Default is false</para>
-    ///     <para xml:lang="zh">QoS是否全局。默认是 false</para>
-    /// </summary>
-    public bool QosGlobal { get; set; }
+    public QosConfig Qos { get; } = new()
+    {
+        PrefetchCount = 100
+    };
 
     /// <summary>
     ///     <para xml:lang="en">Application name for identification</para>

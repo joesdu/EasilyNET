@@ -40,25 +40,6 @@ public sealed class RabbitBusBuilder
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Configure connection pool settings</para>
-    ///     <para xml:lang="zh">配置连接池设置</para>
-    /// </summary>
-    /// <param name="maxConnections">
-    ///     <para xml:lang="en">Maximum number of connections</para>
-    ///     <para xml:lang="zh">最大连接数</para>
-    /// </param>
-    /// <param name="maxChannelsPerConnection">
-    ///     <para xml:lang="en">Maximum channels per connection</para>
-    ///     <para xml:lang="zh">每个连接的最大通道数</para>
-    /// </param>
-    public RabbitBusBuilder WithConnectionPool(int maxConnections = 10, int maxChannelsPerConnection = 100)
-    {
-        _config.MaxConnections = maxConnections;
-        _config.MaxChannelsPerConnection = maxChannelsPerConnection;
-        return this;
-    }
-
-    /// <summary>
     ///     <para xml:lang="en">Configure consumer settings</para>
     ///     <para xml:lang="zh">配置消费者设置</para>
     /// </summary>
@@ -78,12 +59,12 @@ public sealed class RabbitBusBuilder
     ///     <para xml:lang="en">Whether QoS is global</para>
     ///     <para xml:lang="zh">QoS是否全局</para>
     /// </param>
-    public RabbitBusBuilder WithConsumerSettings(int dispatchConcurrency = 10, ushort prefetchCount = 100, uint prefetchSize = 0, bool global = false)
+    public RabbitBusBuilder WithConsumerSettings(ushort dispatchConcurrency = 10, ushort prefetchCount = 100, uint prefetchSize = 0, bool global = false)
     {
         _config.ConsumerDispatchConcurrency = dispatchConcurrency;
-        _config.DefaultPrefetchCount = prefetchCount;
-        _config.DefaultPrefetchSize = prefetchSize;
-        _config.QosGlobal = global;
+        _config.Qos.PrefetchCount = prefetchCount;
+        _config.Qos.PrefetchSize = prefetchSize;
+        _config.Qos.Global = global;
         return this;
     }
 
@@ -103,6 +84,20 @@ public sealed class RabbitBusBuilder
     {
         _config.RetryCount = retryCount;
         _config.PublisherConfirms = publisherConfirms;
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Configure handler concurrency settings</para>
+    ///     <para xml:lang="zh">配置处理器并发设置</para>
+    /// </summary>
+    /// <param name="handlerMaxDegreeOfParallelism">
+    ///     <para xml:lang="en">Maximum degree of parallelism for event handler execution</para>
+    ///     <para xml:lang="zh">事件处理器执行的最大并行度</para>
+    /// </param>
+    public RabbitBusBuilder WithHandlerConcurrency(int handlerMaxDegreeOfParallelism = 4)
+    {
+        _config.HandlerMaxDegreeOfParallelism = handlerMaxDegreeOfParallelism;
         return this;
     }
 
@@ -185,8 +180,8 @@ public sealed class RabbitBusBuilder
             config.Exchange.RoutingKey = exchangeType switch
             {
                 EModel.PublishSubscribe => string.Empty,
-                EModel.None             => queueName ?? typeof(TEvent).Name, // For direct queue publishing, routing key should be queue name
-                _                       => routingKey ?? typeof(TEvent).Name
+                EModel.None => queueName ?? typeof(TEvent).Name, // For direct queue publishing, routing key should be queue name
+                _ => routingKey ?? typeof(TEvent).Name
             };
             config.Queue.Name = queueName ?? typeof(TEvent).Name;
             config.Enabled = true;
@@ -325,11 +320,11 @@ public sealed class RabbitBusBuilder
         exchangeType switch
         {
             EModel.PublishSubscribe => "amq.fanout",
-            EModel.Routing          => "amq.direct",
-            EModel.Topics           => "amq.topic",
-            EModel.Delayed          => "amq.delayed",
-            EModel.None             => "",
-            _                       => throw new ArgumentOutOfRangeException(nameof(exchangeType), exchangeType, null)
+            EModel.Routing => "amq.direct",
+            EModel.Topics => "amq.topic",
+            EModel.Delayed => "amq.delayed",
+            EModel.None => "",
+            _ => throw new ArgumentOutOfRangeException(nameof(exchangeType), exchangeType, null)
         };
 
     /// <summary>

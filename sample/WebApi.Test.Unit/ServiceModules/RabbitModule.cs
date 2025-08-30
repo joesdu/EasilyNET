@@ -22,8 +22,8 @@ internal sealed class RabbitModule : AppModule
             // 配置RabbitMQ连接
             c.WithConnection(f => f.Uri = new(config.GetConnectionString("Rabbit") ?? string.Empty));
 
-            // 配置连接池和消费者设置
-            c.WithConnectionPool().WithConsumerSettings();
+            // 配置消费者设置
+            c.WithConsumerSettings();
 
             // 配置重试和弹性策略
             c.WithResilience();
