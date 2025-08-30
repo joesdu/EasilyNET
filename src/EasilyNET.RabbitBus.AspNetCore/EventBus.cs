@@ -438,8 +438,7 @@ internal sealed record EventBus : IBus
 
     private static Func<object, Task> CreateHandleAsyncDelegate(object handler, MethodInfo method, Type eventType)
     {
-        // Use compiled lambda for better performance instead of DynamicInvoke
-        // Parameter names are only used for debugging and have no runtime impact
+        // Parameter names do not affect runtime performance, but are used in debugging, reflection, and tooling scenarios
         var handlerParam = Expression.Parameter(typeof(object), "handler");
         var eventParam = Expression.Parameter(typeof(object), "event");
         var convertedHandler = Expression.Convert(handlerParam, handler.GetType());
