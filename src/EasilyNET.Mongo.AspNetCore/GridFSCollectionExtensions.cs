@@ -1,6 +1,9 @@
 using EasilyNET.Mongo.AspNetCore.Abstraction;
 using EasilyNET.Mongo.AspNetCore.Common;
+using EasilyNET.Mongo.AspNetCore.Encryption;
 using EasilyNET.Mongo.AspNetCore.Factories;
+using EasilyNET.Mongo.AspNetCore.Security;
+using EasilyNET.Mongo.AspNetCore.Versioning;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
@@ -156,6 +159,27 @@ public static class GridFSCollectionExtensions
         services.Configure(name, configure);
         services.TryAddSingleton<IGridFSBucketFactory, GridFSBucketFactory>();
         services.TryAddSingleton(sp => sp.GetRequiredService<IGridFSBucketFactory>().CreateBucket(db));
+        services.TryAddSingleton<IObjectStorage, GridFSObjectStorage>();
+
+        // Register security and encryption services
+        services.TryAddSingleton<S3IamPolicyManager>();
+        services.TryAddSingleton<S3ObjectVersioningManager>();
+        services.TryAddSingleton<S3ServerSideEncryptionManager>(sp =>
+        {
+            // Get master key from configuration or environment variable
+            var configuration = sp.GetRequiredService<IConfiguration>();
+            var masterKey = configuration["EasilyNET:MasterKey"] ??
+                           Environment.GetEnvironmentVariable("EASILYNET_MASTER_KEY") ??
+                           "DefaultMasterKey12345678901234567890123456789012"; // 32 bytes for AES-256
+
+            // Validate master key length (must be 32 bytes for AES-256)
+            if (masterKey.Length != 32)
+            {
+                throw new InvalidOperationException("Master key must be exactly 32 characters (256 bits) for AES-256 encryption");
+            }
+
+            return new S3ServerSideEncryptionManager(masterKey);
+        });
         return services;
     }
 }
