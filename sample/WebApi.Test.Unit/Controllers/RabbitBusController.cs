@@ -1,5 +1,4 @@
 using EasilyNET.Core.Attributes;
-using EasilyNET.Core.Language;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Test.Unit.Events;
@@ -42,13 +41,11 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     {
         await Task.Factory.StartNew(async () =>
         {
-            foreach (var i in ..10_0000)
+            var events = Enumerable.Range(0, 10_0000).Select(x => new WorkQueuesEvent
             {
-                await ibus.Publish(new WorkQueuesEvent
-                {
-                    Summary = $"WorkQueuesEvent:{i}"
-                });
-            }
+                Summary = $"WorkQueuesEvent:{x}"
+            }).ToList();
+            await ibus.PublishBatch(events);
         });
     }
 

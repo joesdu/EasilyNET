@@ -7,6 +7,7 @@
 - 支持事件级 QoS、Headers、交换机/队列参数、优先级队列
 - 支持处理器并发控制或顺序执行,内置重试与超时弹性策略
 - 支持发布确认(Publisher Confirms)确保消息可靠性投递
+- 支持批量发布消息提高吞吐量
 - 现代配置: 使用流畅 API 完成所有配置,无需在事件或处理器上标注特性
 
 ##### 如何使用
@@ -30,7 +31,10 @@ builder.Services.AddRabbitBus(c =>
 
     // 3) 弹性与发布确认
     // PublisherConfirms: 启用发布确认模式,确保消息可靠投递(默认: false)
-    c.WithResilience(retryCount: 5, publisherConfirms: true);
+    // MaxOutstandingConfirms: 最大未确认发布数量(默认: 1000)
+    // BatchSize: 批量发布大小(默认: 100)
+    // ConfirmTimeoutMs: 发布确认超时时间(毫秒,默认: 30000)
+    c.WithResilience(retryCount: 5, publisherConfirms: true, maxOutstandingConfirms: 1000, batchSize: 100, confirmTimeoutMs: 30000);
 
     // 4) 应用标识(可选)
     c.WithApplication("YourAppName");
@@ -120,6 +124,13 @@ public async Task Send()
     // 使用优先级(需为队列设置 x-max-priority)
     await _bus.Publish(new TestEvent { Message = "priority" }, priority: 5);
 
+    // 批量发布消息(提高吞吐量)
+    var events = Enumerable.Range(1, 100).Select(i => new TestEvent { Message = $"batch-{i}" });
+    await _bus.PublishBatch(events);
+
+    // 批量发布带自定义路由键
+    await _bus.PublishBatch(events, routingKey: "batch.topic");
+
     // 延迟消息(毫秒)
     await _bus.Publish(new DelayedMessageEvent { Message = "delay-5s" }, ttl: 5000);
 }
@@ -175,6 +186,9 @@ builder.Services.AddRabbitBus(c =>
 - **顺序执行**: 可通过 ConfigureEvent(ec => ec.SequentialHandlerExecution = true) 开启同一事件多个处理器的顺序执行
 - **并发控制**: HandlerMaxDegreeOfParallelism 用于控制单个事件处理器的最大并发度,防止 CPU 过载(默认值: 4)
 - **发布确认**: PublisherConfirms 启用后会影响发布性能,但能确保消息可靠投递
+- **批量发布**: 使用 PublishBatch 方法减少网络往返次数
+- **调整 BatchSize**: 根据消息大小和网络延迟调整批量大小 (默认: 100, 建议: 50-500)
+- **禁用 PublisherConfirms**: 生产环境如不需要绝对可靠性可禁用以提升性能
 - **QoS 设置**: PrefetchCount 限制未确认消息的数量,ConsumerDispatchConcurrency 控制消费者调度并发数
 - **错误处理**: 框架内置重试机制和超时策略,失败的消息会根据配置进行重试
 
@@ -313,6 +327,9 @@ builder.Services.AddRabbitBus(c =>
 |                          | `prefetchCount`                 | 50               | QoS 预取计数,限制未确认消息的数量     |
 | `WithResilience`         | `retryCount`                    | 3                | 消息处理失败时的重试次数              |
 |                          | `publisherConfirms`             | false            | 是否启用发布确认模式                  |
+|                          | `maxOutstandingConfirms`        | 1000             | 最大未确认发布数量                    |
+|                          | `batchSize`                     | 100              | 批量发布大小                          |
+|                          | `confirmTimeoutMs`              | 30000            | 发布确认超时时间(毫秒)                |
 | `WithApplication`        | `appName`                       | -                | 应用标识,用于日志和监控               |
 | `WithHandlerConcurrency` | `handlerMaxDegreeOfParallelism` | 4                | 单个事件处理器最大并发度              |
 | `WithEventQos`           | `prefetchCount`                 | -                | 事件级 QoS 设置(覆盖全局设置)         |
@@ -331,12 +348,14 @@ builder.Services.AddRabbitBus(c =>
    - 根据业务场景调整并发参数
    - 监控系统资源使用率
    - 设置合理的重试次数和超时时间
+   - 使用批量发布提高高吞吐量场景性能
 
 2. **开发环境建议**
 
    - 使用较低的并发设置便于调试
    - 启用详细日志记录
    - 使用默认序列化器简化开发
+   - 测试批量发布功能
 
 3. **性能监控**
 
@@ -344,6 +363,7 @@ builder.Services.AddRabbitBus(c =>
    - 跟踪消费者连接状态
    - 观察内存和 CPU 使用率
    - 定期检查队列积压情况
+   - 监控发布确认的成功率
 
 4. **错误处理**
    - 实现全局异常处理器
