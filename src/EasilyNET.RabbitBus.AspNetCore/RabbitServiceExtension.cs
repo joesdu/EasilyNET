@@ -1,7 +1,7 @@
 using System.Net.Sockets;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore;
-using EasilyNET.RabbitBus.AspNetCore.Abstraction;
+using EasilyNET.RabbitBus.AspNetCore.Abstractions;
 using EasilyNET.RabbitBus.AspNetCore.Builder;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Manager;

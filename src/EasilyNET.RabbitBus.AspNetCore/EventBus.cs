@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
 using EasilyNET.Core.Misc;
-using EasilyNET.RabbitBus.AspNetCore.Abstraction;
+using EasilyNET.RabbitBus.AspNetCore.Abstractions;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Enums;
 using EasilyNET.RabbitBus.AspNetCore.Manager;
@@ -247,8 +247,8 @@ internal sealed record EventBus : IBus
         {
             await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, config.Exchange.Arguments, cancellationToken: cancellationToken);
         }
-        var batchSize = Math.Min(_options.Get(Constant.OptionName).BatchSize, eventsList.Count);
-        var batches = eventsList.Chunk(batchSize);
+        var effectiveBatchSize = Math.Min(_options.Get(Constant.OptionName).BatchSize, eventsList.Count);
+        var batches = eventsList.Chunk(effectiveBatchSize);
         foreach (var batch in batches)
         {
             await PublishBatchInternal(channel, config, batch, properties, routingKey, cancellationToken);
@@ -598,11 +598,7 @@ internal sealed record EventBus : IBus
         var compiledDelegate = lambda.Compile();
         return async @event =>
         {
-            var task = compiledDelegate(handler, @event);
-            if (task is null)
-            {
-                throw new InvalidOperationException($"Handler method '{method.Name}' for event type '{eventType.Name}' returned null Task.");
-            }
+            var task = compiledDelegate(handler, @event) ?? throw new InvalidOperationException($"Handler method '{method.Name}' for event type '{eventType.Name}' returned null Task.");
             await task.ConfigureAwait(false);
         };
     }
@@ -622,7 +618,7 @@ internal sealed record EventBus : IBus
             {
                 _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, sequenceNumber);
             }
-            await pipeline.ExecuteAsync(async ct => { await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false); }, cancellationToken).ConfigureAwait(false);
+            await pipeline.ExecuteAsync(async ct => await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
             confirmTasks.Add(tcs.Task);
         }
 
@@ -656,7 +652,7 @@ internal sealed record EventBus : IBus
             {
                 _logger.LogTrace("Publishing delayed event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, sequenceNumber);
             }
-            await pipeline.ExecuteAsync(async ct => { await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false); }, cancellationToken).ConfigureAwait(false);
+            await pipeline.ExecuteAsync(async ct => await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
             confirmTasks.Add(tcs.Task);
         }
 
@@ -719,7 +715,7 @@ internal sealed record EventBus : IBus
                         continue;
                     }
                     // Add to retry queue with exponential backoff
-                    var nextRetryTime = DateTime.UtcNow.AddMilliseconds(Math.Pow(2, messageInfo.RetryCount) * 1000);
+                    var nextRetryTime = DateTime.UtcNow.AddMilliseconds(Math.Min(Math.Pow(2, messageInfo.RetryCount) * 1000, 30000));
                     _nackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
                 }
             }
@@ -732,7 +728,7 @@ internal sealed record EventBus : IBus
                     if (nack && _outstandingMessages.TryRemove(deliveryTag, out var messageInfo))
                     {
                         // Add to retry queue with exponential backoff
-                        var nextRetryTime = DateTime.UtcNow.AddMilliseconds(Math.Pow(2, messageInfo.RetryCount) * 1000);
+                        var nextRetryTime = DateTime.UtcNow.AddMilliseconds(Math.Min(Math.Pow(2, messageInfo.RetryCount) * 1000, 30000));
                         _nackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
                     }
                 }
@@ -782,7 +778,7 @@ internal sealed record EventBus : IBus
                         var publishDelegate = _publishDelegateCache.GetOrAdd(eventType, CreatePublishDelegate);
                         if (publishDelegate is not null)
                         {
-                            await pipeline.ExecuteAsync(async ct => { await publishDelegate(this, nackedMessage.Event, nackedMessage.RoutingKey, nackedMessage.Priority, ct); }, _cancellationTokenSource.Token);
+                            await pipeline.ExecuteAsync(async ct => await publishDelegate(this, nackedMessage.Event, nackedMessage.RoutingKey, nackedMessage.Priority, ct), _cancellationTokenSource.Token);
                         }
                         else
                         {
@@ -801,7 +797,10 @@ internal sealed record EventBus : IBus
                         }
 
                         // Re-queue the message with increased retry count and new backoff time
-                        var nextRetryTime = DateTime.UtcNow.AddMilliseconds(Math.Pow(2, nackedMessage.RetryCount) * 1000);
+                        const double MaxBackoffMilliseconds = 30000; // 30 seconds max backoff
+                        var backoff = Math.Pow(2, nackedMessage.RetryCount) * 1000;
+                        var cappedBackoff = Math.Min(backoff, MaxBackoffMilliseconds);
+                        var nextRetryTime = DateTime.UtcNow.AddMilliseconds(cappedBackoff);
                         _nackedMessages.Enqueue((nackedMessage.Event, nackedMessage.RoutingKey, nackedMessage.Priority, nackedMessage.RetryCount + 1, nextRetryTime));
                     }
                 }
@@ -830,7 +829,7 @@ internal sealed record EventBus : IBus
         try
         {
             var method = _publishMethodCache.GetOrAdd(eventType, et =>
-                typeof(EventBus).GetMethod(nameof(IBus.Publish), [et, typeof(string), typeof(byte), typeof(CancellationToken)]));
+                typeof(EventBus).GetMethod(nameof(IBus.Publish), [et, typeof(string), typeof(byte?), typeof(CancellationToken)]));
             if (method is null)
             {
                 return null;

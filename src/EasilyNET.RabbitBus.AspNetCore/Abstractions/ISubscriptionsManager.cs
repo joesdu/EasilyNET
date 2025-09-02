@@ -1,7 +1,7 @@
 using System.Reflection;
 using EasilyNET.RabbitBus.AspNetCore.Enums;
 
-namespace EasilyNET.RabbitBus.AspNetCore.Abstraction;
+namespace EasilyNET.RabbitBus.AspNetCore.Abstractions;
 
 /// <summary>
 ///     <para xml:lang="en">Interface for managing subscriptions</para>
