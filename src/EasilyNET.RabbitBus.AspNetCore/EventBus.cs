@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
 using EasilyNET.Core.Misc;
-using EasilyNET.RabbitBus.AspNetCore.Abstraction;
+using EasilyNET.RabbitBus.AspNetCore.Abstractions;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Enums;
 using EasilyNET.RabbitBus.AspNetCore.Manager;
@@ -598,11 +598,7 @@ internal sealed record EventBus : IBus
         var compiledDelegate = lambda.Compile();
         return async @event =>
         {
-            var task = compiledDelegate(handler, @event);
-            if (task is null)
-            {
-                throw new InvalidOperationException($"Handler method '{method.Name}' for event type '{eventType.Name}' returned null Task.");
-            }
+            var task = compiledDelegate(handler, @event) ?? throw new InvalidOperationException($"Handler method '{method.Name}' for event type '{eventType.Name}' returned null Task.");
             await task.ConfigureAwait(false);
         };
     }
@@ -622,7 +618,7 @@ internal sealed record EventBus : IBus
             {
                 _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, sequenceNumber);
             }
-            await pipeline.ExecuteAsync(async ct => { await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false); }, cancellationToken).ConfigureAwait(false);
+            await pipeline.ExecuteAsync(async ct => await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
             confirmTasks.Add(tcs.Task);
         }
 
@@ -656,7 +652,7 @@ internal sealed record EventBus : IBus
             {
                 _logger.LogTrace("Publishing delayed event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, sequenceNumber);
             }
-            await pipeline.ExecuteAsync(async ct => { await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false); }, cancellationToken).ConfigureAwait(false);
+            await pipeline.ExecuteAsync(async ct => await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
             confirmTasks.Add(tcs.Task);
         }
 
@@ -782,7 +778,7 @@ internal sealed record EventBus : IBus
                         var publishDelegate = _publishDelegateCache.GetOrAdd(eventType, CreatePublishDelegate);
                         if (publishDelegate is not null)
                         {
-                            await pipeline.ExecuteAsync(async ct => { await publishDelegate(this, nackedMessage.Event, nackedMessage.RoutingKey, nackedMessage.Priority, ct); }, _cancellationTokenSource.Token);
+                            await pipeline.ExecuteAsync(async ct => await publishDelegate(this, nackedMessage.Event, nackedMessage.RoutingKey, nackedMessage.Priority, ct), _cancellationTokenSource.Token);
                         }
                         else
                         {
