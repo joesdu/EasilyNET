@@ -87,7 +87,9 @@ public class S3AuthenticationMiddleware(RequestDelegate next, ILogger<S3Authenti
         {
             var kvp = part.Split('=');
             if (kvp.Length != 2)
+            {
                 continue;
+            }
             switch (kvp[0])
             {
                 case "Credential":
@@ -167,13 +169,13 @@ public class S3AuthenticationMiddleware(RequestDelegate next, ILogger<S3Authenti
         // For simplicity, we'll use SHA256 of empty string for GET requests
         // In production, you should hash the actual request body
         var hash = SHA256.HashData(context.Request.Body);
-        return Convert.ToHexStringLower(hash);
+        return Convert.ToHexString(hash).ToLower();
     }
 
     private static string BuildStringToSign(string canonicalRequest, string date, string region, string service)
     {
         var canonicalRequestHash = SHA256.HashData(Encoding.UTF8.GetBytes(canonicalRequest));
-        var canonicalRequestHashString = Convert.ToHexStringLower(canonicalRequestHash);
+        var canonicalRequestHashString = Convert.ToHexString(canonicalRequestHash).ToLower();
         return $"AWS4-HMAC-SHA256\n{date}T000000Z\n{date}/{region}/{service}/aws4_request\n{canonicalRequestHashString}";
     }
 
@@ -185,7 +187,7 @@ public class S3AuthenticationMiddleware(RequestDelegate next, ILogger<S3Authenti
         var kService = HmacSha256(kRegion, Encoding.UTF8.GetBytes(service));
         var kSigning = HmacSha256(kService, "aws4_request"u8.ToArray());
         var signature = HmacSha256(kSigning, Encoding.UTF8.GetBytes(stringToSign));
-        return Convert.ToHexStringLower(signature);
+        return Convert.ToHexString(signature).ToLower();
     }
 
     private static byte[] HmacSha256(byte[] key, byte[] data)
