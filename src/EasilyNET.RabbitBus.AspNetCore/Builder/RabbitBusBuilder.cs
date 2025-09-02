@@ -80,10 +80,25 @@ public sealed class RabbitBusBuilder
     ///     <para xml:lang="en">Enable publisher confirms</para>
     ///     <para xml:lang="zh">启用发布者确认</para>
     /// </param>
-    public RabbitBusBuilder WithResilience(int retryCount = 5, bool publisherConfirms = true)
+    /// <param name="maxOutstandingConfirms">
+    ///     <para xml:lang="en">Maximum number of outstanding publisher confirms</para>
+    ///     <para xml:lang="zh">最大未确认发布数量</para>
+    /// </param>
+    /// <param name="batchSize">
+    ///     <para xml:lang="en">Batch size for batch publishing</para>
+    ///     <para xml:lang="zh">批量发布大小</para>
+    /// </param>
+    /// <param name="confirmTimeoutMs">
+    ///     <para xml:lang="en">Timeout for publisher confirms in milliseconds</para>
+    ///     <para xml:lang="zh">发布确认超时时间（毫秒）</para>
+    /// </param>
+    public RabbitBusBuilder WithResilience(int retryCount = 5, bool publisherConfirms = true, int maxOutstandingConfirms = 1000, int batchSize = 100, int confirmTimeoutMs = 30000)
     {
         _config.RetryCount = retryCount;
         _config.PublisherConfirms = publisherConfirms;
+        _config.MaxOutstandingConfirms = maxOutstandingConfirms;
+        _config.BatchSize = batchSize;
+        _config.ConfirmTimeoutMs = confirmTimeoutMs;
         return this;
     }
 
@@ -180,8 +195,8 @@ public sealed class RabbitBusBuilder
             config.Exchange.RoutingKey = exchangeType switch
             {
                 EModel.PublishSubscribe => string.Empty,
-                EModel.None => queueName ?? typeof(TEvent).Name, // For direct queue publishing, routing key should be queue name
-                _ => routingKey ?? typeof(TEvent).Name
+                EModel.None             => queueName ?? typeof(TEvent).Name, // For direct queue publishing, routing key should be queue name
+                _                       => routingKey ?? typeof(TEvent).Name
             };
             config.Queue.Name = queueName ?? typeof(TEvent).Name;
             config.Enabled = true;
@@ -320,11 +335,11 @@ public sealed class RabbitBusBuilder
         exchangeType switch
         {
             EModel.PublishSubscribe => "amq.fanout",
-            EModel.Routing => "amq.direct",
-            EModel.Topics => "amq.topic",
-            EModel.Delayed => "amq.delayed",
-            EModel.None => "",
-            _ => throw new ArgumentOutOfRangeException(nameof(exchangeType), exchangeType, null)
+            EModel.Routing          => "amq.direct",
+            EModel.Topics           => "amq.topic",
+            EModel.Delayed          => "amq.delayed",
+            EModel.None             => "",
+            _                       => throw new ArgumentOutOfRangeException(nameof(exchangeType), exchangeType, null)
         };
 
     /// <summary>

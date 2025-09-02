@@ -20,13 +20,21 @@ namespace EasilyNET.RabbitBus.AspNetCore;
 internal sealed record EventBus : IBus
 {
     private const string HandleName = nameof(IEventHandler<>.HandleAsync);
+    private readonly SemaphoreSlim _confirmSemaphore = new(1, 1);
 
     private readonly PersistentConnection _conn;
     private readonly EventConfigurationRegistry _eventRegistry;
     private readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Func<object, Task>?> _handleAsyncDelegateCache = [];
     private readonly ILogger<EventBus> _logger;
+    private readonly ConcurrentQueue<(IEvent Event, string? RoutingKey, byte? Priority, int RetryCount, DateTime NextRetryTime)> _nackedMessages = [];
     private readonly IOptionsMonitor<RabbitConfig> _options;
+
+    private readonly ConcurrentDictionary<ulong, TaskCompletionSource<bool>> _outstandingConfirms = [];
+    private readonly ConcurrentDictionary<ulong, (IEvent Event, string? RoutingKey, byte? Priority, int RetryCount)> _outstandingMessages = [];
     private readonly ResiliencePipelineProvider<string> _pipelineProvider;
+    private readonly ConcurrentDictionary<Type, Func<EventBus, IEvent, string?, byte?, CancellationToken, Task>?> _publishDelegateCache = [];
+
+    private readonly ConcurrentDictionary<Type, MethodInfo?> _publishMethodCache = [];
     private readonly IBusSerializer _serializer;
     private readonly IServiceProvider _sp;
     private readonly ISubscriptionsManager _subsManager;
@@ -66,6 +74,14 @@ internal sealed record EventBus : IBus
             _cancellationTokenSource = new();
             await RunRabbit(); // 重新初始化消费者
         };
+
+        // Register publisher confirm callbacks
+        _conn.Channel.BasicAcksAsync += OnBasicAcks;
+        _conn.Channel.BasicNacksAsync += OnBasicNacks;
+        _conn.Channel.BasicReturnAsync += OnBasicReturn;
+
+        // Start nacked message retry task
+        _ = Task.Run(StartNackedMessageRetryTask, _cancellationTokenSource.Token);
     }
 
     public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
@@ -94,16 +110,38 @@ internal sealed record EventBus : IBus
         {
             await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, config.Exchange.Arguments, cancellationToken: cancellationToken);
         }
+        var sequenceNumber = await channel.GetNextPublishSequenceNumberAsync(cancellationToken);
+        var tcs = new TaskCompletionSource<bool>();
+        _outstandingConfirms[sequenceNumber] = tcs;
+        _outstandingMessages[sequenceNumber] = (@event, routingKey, priority.GetValueOrDefault(), 0);
         var body = _serializer.Serialize(@event, @event.GetType());
         var pipeline = _pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
         await pipeline.ExecuteAsync(async ct =>
         {
             if (_logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}", @event.GetType().Name, @event.EventId);
+                _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, sequenceNumber);
             }
             await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
         }, cancellationToken).ConfigureAwait(false);
+
+        // Wait for confirmation
+        var rabbitConfig = _options.Get(Constant.OptionName);
+        if (rabbitConfig.PublisherConfirms)
+        {
+            try
+            {
+                await tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(rabbitConfig.ConfirmTimeoutMs), cancellationToken);
+            }
+            catch (TimeoutException)
+            {
+                if (_logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning("Timeout waiting for publisher confirm for event: {EventName} with ID: {EventId}", @event.GetType().Name, @event.EventId);
+                }
+                throw;
+            }
+        }
     }
 
     public async Task Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
@@ -138,22 +176,134 @@ internal sealed record EventBus : IBus
 
         // Declare delayed exchange
         await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, exchangeArgs, cancellationToken: cancellationToken);
+        var sequenceNumber = await channel.GetNextPublishSequenceNumberAsync(cancellationToken);
+        var tcs = new TaskCompletionSource<bool>();
+        _outstandingConfirms[sequenceNumber] = tcs;
+        _outstandingMessages[sequenceNumber] = (@event, routingKey, priority.GetValueOrDefault(), 0);
         var body = _serializer.Serialize(@event, @event.GetType());
         var pipeline = _pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
         await pipeline.ExecuteAsync(async ct =>
         {
             if (_logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}", @event.GetType().Name, @event.EventId);
+                _logger.LogTrace("Publishing delayed event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, sequenceNumber);
             }
             await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
         }, cancellationToken).ConfigureAwait(false);
+
+        // Wait for confirmation
+        var rabbitConfig = _options.Get(Constant.OptionName);
+        if (rabbitConfig.PublisherConfirms)
+        {
+            try
+            {
+                await tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(rabbitConfig.ConfirmTimeoutMs), cancellationToken);
+            }
+            catch (TimeoutException)
+            {
+                if (_logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning("Timeout waiting for publisher confirm for delayed event: {EventName} with ID: {EventId}", @event.GetType().Name, @event.EventId);
+                }
+                throw;
+            }
+        }
     }
 
     public async Task Publish<T>(T @event, TimeSpan ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
     {
         var realTtl = ttl.TotalMilliseconds.ConvertTo<uint>();
         await Publish(@event, realTtl, routingKey, priority, cancellationToken);
+    }
+
+    public async Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
+    {
+        var config = _eventRegistry.GetConfiguration<T>();
+        if (config is null || !config.Enabled)
+        {
+            return;
+        }
+        var eventsList = events.ToList();
+        if (eventsList.Count is 0)
+        {
+            return;
+        }
+        var channel = _conn.Channel;
+        var properties = new BasicProperties
+        {
+            Persistent = true,
+            DeliveryMode = DeliveryModes.Persistent,
+            Priority = priority.GetValueOrDefault()
+        };
+
+        // Use headers from configuration
+        if (config.Headers.Count > 0)
+        {
+            properties.Headers = config.Headers;
+        }
+
+        // Declare exchange if needed
+        if (config.Exchange.Type != EModel.None)
+        {
+            await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, config.Exchange.Arguments, cancellationToken: cancellationToken);
+        }
+        var batchSize = Math.Min(_options.Get(Constant.OptionName).BatchSize, eventsList.Count);
+        var batches = eventsList.Chunk(batchSize);
+        foreach (var batch in batches)
+        {
+            await PublishBatchInternal(channel, config, batch, properties, routingKey, cancellationToken);
+        }
+    }
+
+    public async Task PublishBatch<T>(IEnumerable<T> events, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
+    {
+        var config = _eventRegistry.GetConfiguration<T>();
+        if (config is null || !config.Enabled)
+        {
+            return;
+        }
+        if (config.Exchange.Type != EModel.Delayed)
+        {
+            throw new InvalidOperationException($"The exchange type for the delayed queue must be '{nameof(EModel.Delayed)}'. Event: '{events.FirstOrDefault()?.GetType().Name ?? typeof(T).Name}'");
+        }
+        var eventsList = events.ToList();
+        if (eventsList.Count is 0)
+        {
+            return;
+        }
+        var channel = _conn.Channel;
+        var properties = new BasicProperties
+        {
+            Persistent = true,
+            DeliveryMode = DeliveryModes.Persistent,
+            Priority = priority.GetValueOrDefault()
+        };
+
+        // Handle headers with x-delay
+        var headers = new Dictionary<string, object?>(config.Headers);
+        var xDelay = headers.TryGetValue("x-delay", out var delay);
+        headers["x-delay"] = xDelay && ttl is 0 && delay is not null ? delay : ttl;
+        properties.Headers = headers;
+
+        // Ensure x-delayed-type is set
+        var exchangeArgs = new Dictionary<string, object?>(config.Exchange.Arguments);
+        var xDelayedType = exchangeArgs.TryGetValue("x-delayed-type", out var delayedType);
+        exchangeArgs["x-delayed-type"] = !xDelayedType || delayedType is null ? "direct" : delayedType;
+
+        // Declare delayed exchange
+        await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, exchangeArgs, cancellationToken: cancellationToken);
+        var batchSize = Math.Min(_options.Get(Constant.OptionName).BatchSize, eventsList.Count);
+        var batches = eventsList.Chunk(batchSize);
+        foreach (var batch in batches)
+        {
+            await PublishBatchDelayedInternal(channel, config, batch, properties, routingKey, cancellationToken);
+        }
+    }
+
+    public async Task PublishBatch<T>(IEnumerable<T> events, TimeSpan ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
+    {
+        var realTtl = ttl.TotalMilliseconds.ConvertTo<uint>();
+        await PublishBatch(events, realTtl, routingKey, priority, cancellationToken);
     }
 
     internal async Task RunRabbit()
@@ -455,5 +605,263 @@ internal sealed record EventBus : IBus
             }
             await task.ConfigureAwait(false);
         };
+    }
+
+    private async Task PublishBatchInternal<T>(IChannel channel, EventConfiguration config, T[] batch, BasicProperties properties, string? routingKey, CancellationToken cancellationToken) where T : IEvent
+    {
+        var pipeline = _pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
+        var confirmTasks = new List<Task>();
+        foreach (var @event in batch)
+        {
+            var sequenceNumber = await channel.GetNextPublishSequenceNumberAsync(cancellationToken);
+            var tcs = new TaskCompletionSource<bool>();
+            _outstandingConfirms[sequenceNumber] = tcs;
+            _outstandingMessages[sequenceNumber] = (@event, routingKey, properties.Priority, 0);
+            var body = _serializer.Serialize(@event, @event.GetType());
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, sequenceNumber);
+            }
+            await pipeline.ExecuteAsync(async ct => { await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false); }, cancellationToken).ConfigureAwait(false);
+            confirmTasks.Add(tcs.Task);
+        }
+
+        // Wait for all confirms in this batch
+        try
+        {
+            await Task.WhenAll(confirmTasks).WaitAsync(TimeSpan.FromMilliseconds(_options.Get(Constant.OptionName).ConfirmTimeoutMs), cancellationToken);
+        }
+        catch (TimeoutException)
+        {
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning("Timeout waiting for publisher confirms for batch of {Count} messages", batch.Length);
+            }
+            throw;
+        }
+    }
+
+    private async Task PublishBatchDelayedInternal<T>(IChannel channel, EventConfiguration config, T[] batch, BasicProperties properties, string? routingKey, CancellationToken cancellationToken) where T : IEvent
+    {
+        var pipeline = _pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
+        var confirmTasks = new List<Task>();
+        foreach (var @event in batch)
+        {
+            var sequenceNumber = await channel.GetNextPublishSequenceNumberAsync(cancellationToken);
+            var tcs = new TaskCompletionSource<bool>();
+            _outstandingConfirms[sequenceNumber] = tcs;
+            _outstandingMessages[sequenceNumber] = (@event, routingKey, properties.Priority, 0);
+            var body = _serializer.Serialize(@event, @event.GetType());
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace("Publishing delayed event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, sequenceNumber);
+            }
+            await pipeline.ExecuteAsync(async ct => { await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false); }, cancellationToken).ConfigureAwait(false);
+            confirmTasks.Add(tcs.Task);
+        }
+
+        // Wait for all confirms in this batch
+        try
+        {
+            await Task.WhenAll(confirmTasks).WaitAsync(TimeSpan.FromMilliseconds(_options.Get(Constant.OptionName).ConfirmTimeoutMs), cancellationToken);
+        }
+        catch (TimeoutException)
+        {
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning("Timeout waiting for publisher confirms for batch of {Count} delayed messages", batch.Length);
+            }
+            throw;
+        }
+    }
+
+    private async Task OnBasicAcks(object sender, BasicAckEventArgs ea)
+    {
+        await CleanOutstandingConfirms(ea.DeliveryTag, ea.Multiple);
+    }
+
+    private async Task OnBasicNacks(object sender, BasicNackEventArgs ea)
+    {
+        if (_logger.IsEnabled(LogLevel.Warning))
+        {
+            _logger.LogWarning("Message nack-ed: DeliveryTag={DeliveryTag}, Multiple={Multiple}", ea.DeliveryTag, ea.Multiple);
+        }
+        await CleanOutstandingConfirms(ea.DeliveryTag, ea.Multiple, true);
+    }
+
+    private async Task OnBasicReturn(object sender, BasicReturnEventArgs ea)
+    {
+        if (_logger.IsEnabled(LogLevel.Warning))
+        {
+            _logger.LogWarning("Message returned: ReplyCode={ReplyCode}, ReplyText={ReplyText}", ea.ReplyCode, ea.ReplyText);
+        }
+        await Task.Yield();
+    }
+
+    private async Task CleanOutstandingConfirms(ulong deliveryTag, bool multiple, bool nack = false)
+    {
+        await _confirmSemaphore.WaitAsync();
+        try
+        {
+            if (multiple)
+            {
+                // Clean all confirms with delivery tag <= the given tag
+                var toRemove = _outstandingConfirms.Keys.Where(k => k <= deliveryTag).ToList();
+                foreach (var seqNo in toRemove)
+                {
+                    if (!_outstandingConfirms.TryRemove(seqNo, out var tcs))
+                    {
+                        continue;
+                    }
+                    tcs.SetResult(!nack);
+                    if (!nack || !_outstandingMessages.TryRemove(seqNo, out var messageInfo))
+                    {
+                        continue;
+                    }
+                    // Add to retry queue with exponential backoff
+                    var nextRetryTime = DateTime.UtcNow.AddMilliseconds(Math.Pow(2, messageInfo.RetryCount) * 1000);
+                    _nackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
+                }
+            }
+            else
+            {
+                // Clean single confirm
+                if (_outstandingConfirms.TryRemove(deliveryTag, out var tcs))
+                {
+                    tcs.SetResult(!nack);
+                    if (nack && _outstandingMessages.TryRemove(deliveryTag, out var messageInfo))
+                    {
+                        // Add to retry queue with exponential backoff
+                        var nextRetryTime = DateTime.UtcNow.AddMilliseconds(Math.Pow(2, messageInfo.RetryCount) * 1000);
+                        _nackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
+                    }
+                }
+            }
+        }
+        finally
+        {
+            _confirmSemaphore.Release();
+        }
+    }
+
+    private async Task StartNackedMessageRetryTask()
+    {
+        var pipeline = _pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
+        while (!_cancellationTokenSource.IsCancellationRequested)
+        {
+            try
+            {
+                // Check if there are messages to retry
+                if (_nackedMessages.TryPeek(out var nackedMessage) && nackedMessage.NextRetryTime <= DateTime.UtcNow)
+                {
+                    if (!_nackedMessages.TryDequeue(out nackedMessage))
+                    {
+                        continue;
+                    }
+                    // Check retry limit
+                    var rabbitConfig = _options.Get(Constant.OptionName);
+                    var maxRetries = rabbitConfig.RetryCount;
+                    if (nackedMessage.RetryCount > maxRetries)
+                    {
+                        if (_logger.IsEnabled(LogLevel.Warning))
+                        {
+                            _logger.LogWarning("Message {EventType} with ID {EventId} exceeded maximum retry attempts ({MaxRetries}), giving up",
+                                nackedMessage.Event.GetType().Name, nackedMessage.Event.EventId, maxRetries);
+                        }
+                        continue;
+                    }
+                    if (_logger.IsEnabled(LogLevel.Information))
+                    {
+                        _logger.LogInformation("Retrying nacked message {EventType} with ID {EventId}, attempt {RetryCount}/{MaxRetries}",
+                            nackedMessage.Event.GetType().Name, nackedMessage.Event.EventId, nackedMessage.RetryCount, maxRetries);
+                    }
+                    try
+                    {
+                        // Retry the message using ResiliencePipeline with compiled delegate
+                        var eventType = nackedMessage.Event.GetType();
+                        var publishDelegate = _publishDelegateCache.GetOrAdd(eventType, CreatePublishDelegate);
+                        if (publishDelegate is not null)
+                        {
+                            await pipeline.ExecuteAsync(async ct => { await publishDelegate(this, nackedMessage.Event, nackedMessage.RoutingKey, nackedMessage.Priority, ct); }, _cancellationTokenSource.Token);
+                        }
+                        else
+                        {
+                            if (_logger.IsEnabled(LogLevel.Error))
+                            {
+                                _logger.LogError("Unable to create publish delegate for event type {EventType}", eventType.Name);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        if (_logger.IsEnabled(LogLevel.Error))
+                        {
+                            _logger.LogError(ex, "Failed to retry message {EventType} with ID {EventId} after ResiliencePipeline retries, will retry later",
+                                nackedMessage.Event.GetType().Name, nackedMessage.Event.EventId);
+                        }
+
+                        // Re-queue the message with increased retry count and new backoff time
+                        var nextRetryTime = DateTime.UtcNow.AddMilliseconds(Math.Pow(2, nackedMessage.RetryCount) * 1000);
+                        _nackedMessages.Enqueue((nackedMessage.Event, nackedMessage.RoutingKey, nackedMessage.Priority, nackedMessage.RetryCount + 1, nextRetryTime));
+                    }
+                }
+                else
+                {
+                    // Wait before checking again
+                    await Task.Delay(1000, _cancellationTokenSource.Token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                if (_logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.LogError(ex, "Error in nacked message retry task");
+                }
+            }
+        }
+    }
+
+    private Func<EventBus, IEvent, string?, byte?, CancellationToken, Task>? CreatePublishDelegate(Type eventType)
+    {
+        try
+        {
+            var method = _publishMethodCache.GetOrAdd(eventType, et =>
+                typeof(EventBus).GetMethod(nameof(IBus.Publish), [et, typeof(string), typeof(byte), typeof(CancellationToken)]));
+            if (method is null)
+            {
+                return null;
+            }
+
+            // Parameters for the delegate: (EventBus instance, IEvent event, string? routingKey, byte? priority, CancellationToken cancellationToken)
+            var instanceParam = Expression.Parameter(typeof(EventBus), "instance");
+            var eventParam = Expression.Parameter(typeof(IEvent), "event");
+            var routingKeyParam = Expression.Parameter(typeof(string), "routingKey");
+            var priorityParam = Expression.Parameter(typeof(byte?), "priority");
+            var cancellationTokenParam = Expression.Parameter(typeof(CancellationToken), "cancellationToken");
+
+            // Convert IEvent to the specific event type
+            var convertedEvent = Expression.Convert(eventParam, eventType);
+
+            // Create method call expression
+            var methodCall = Expression.Call(instanceParam, method, convertedEvent, routingKeyParam, priorityParam, cancellationTokenParam);
+
+            // Create lambda expression
+            var lambda = Expression.Lambda<Func<EventBus, IEvent, string?, byte?, CancellationToken, Task>>(methodCall, instanceParam, eventParam, routingKeyParam, priorityParam, cancellationTokenParam);
+
+            // Compile the expression to a delegate
+            return lambda.Compile();
+        }
+        catch (Exception ex)
+        {
+            if (_logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, "Failed to create publish delegate for event type {EventType}", eventType.Name);
+            }
+            return null;
+        }
     }
 }

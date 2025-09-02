@@ -80,6 +80,24 @@ public sealed class RabbitConfig
     public bool PublisherConfirms { get; set; } = true;
 
     /// <summary>
+    ///     <para xml:lang="en">Maximum number of outstanding publisher confirms. Default is 1000</para>
+    ///     <para xml:lang="zh">最大未确认发布者确认数量。默认是 1000</para>
+    /// </summary>
+    public int MaxOutstandingConfirms { get; set; } = 1000;
+
+    /// <summary>
+    ///     <para xml:lang="en">Batch size for batch publishing. Default is 100</para>
+    ///     <para xml:lang="zh">批量发布的批次大小。默认是 100</para>
+    /// </summary>
+    public int BatchSize { get; set; } = 100;
+
+    /// <summary>
+    ///     <para xml:lang="en">Timeout for waiting publisher confirms in milliseconds. Default is 30000 (30 seconds)</para>
+    ///     <para xml:lang="zh">等待发布者确认的超时时间（毫秒）。默认是 30000（30秒）</para>
+    /// </summary>
+    public int ConfirmTimeoutMs { get; set; } = 30000;
+
+    /// <summary>
     ///     <para xml:lang="en">Custom serializer</para>
     ///     <para xml:lang="zh">自定义序列化器</para>
     /// </summary>

@@ -53,6 +53,9 @@ public static class RabbitServiceExtension
             options.Port = config.Port;
             options.RetryCount = config.RetryCount;
             options.PublisherConfirms = config.PublisherConfirms;
+            options.MaxOutstandingConfirms = config.MaxOutstandingConfirms;
+            options.BatchSize = config.BatchSize;
+            options.ConfirmTimeoutMs = config.ConfirmTimeoutMs;
             options.ConsumerDispatchConcurrency = config.ConsumerDispatchConcurrency;
             options.Qos.PrefetchCount = config.Qos.PrefetchCount;
             options.Qos.PrefetchSize = config.Qos.PrefetchSize;
