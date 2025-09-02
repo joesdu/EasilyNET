@@ -715,7 +715,7 @@ internal sealed record EventBus : IBus
                         continue;
                     }
                     // Add to retry queue with exponential backoff
-                    var nextRetryTime = DateTime.UtcNow.AddMilliseconds(Math.Min(Math.Pow(2, messageInfo.RetryCount) * 1000, 300000));
+                    var nextRetryTime = DateTime.UtcNow.AddMilliseconds(Math.Min(Math.Pow(2, messageInfo.RetryCount) * 1000, 30000));
                     _nackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
                 }
             }
@@ -728,7 +728,7 @@ internal sealed record EventBus : IBus
                     if (nack && _outstandingMessages.TryRemove(deliveryTag, out var messageInfo))
                     {
                         // Add to retry queue with exponential backoff
-                        var nextRetryTime = DateTime.UtcNow.AddMilliseconds(Math.Pow(2, messageInfo.RetryCount) * 1000);
+                        var nextRetryTime = DateTime.UtcNow.AddMilliseconds(Math.Min(Math.Pow(2, messageInfo.RetryCount) * 1000, 30000));
                         _nackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
                     }
                 }
