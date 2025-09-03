@@ -49,6 +49,7 @@
         <Project Path="src/EasilyNET.Mongo.AspNetCore/EasilyNET.Mongo.AspNetCore.csproj" />
         <Project Path="src/EasilyNET.Mongo.ConsoleDebug/EasilyNET.Mongo.ConsoleDebug.csproj" />
         <Project Path="src/EasilyNET.Mongo.Core/EasilyNET.Mongo.Core.csproj" />
+		<Project Path="src/EasilyNET.Mongo.GridFS.S3/EasilyNET.Mongo.GridFS.S3.csproj" />
     </Folder>
     <Folder Name="/test/">
         <Project Path="test/EasilyNET.Core.Benchmark/EasilyNET.Core.Benchmark.csproj" />

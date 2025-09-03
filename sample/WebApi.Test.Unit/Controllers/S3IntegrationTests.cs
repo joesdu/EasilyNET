@@ -1,6 +1,6 @@
 using System.Text;
-using EasilyNET.Mongo.AspNetCore.Abstraction;
-using EasilyNET.Mongo.AspNetCore.Encryption;
+using EasilyNET.Mongo.GridFS.S3.Abstraction;
+using EasilyNET.Mongo.GridFS.S3.Encryption;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Test.Unit.Controllers;
@@ -628,37 +628,59 @@ public class S3IntegrationTestController : ControllerBase
         // Run all individual tests
         var putObjectResult = (await TestPutObject() as OkObjectResult)?.Value as TestResult;
         if (putObjectResult != null)
+        {
             results.Add(putObjectResult);
+        }
         var getObjectResult = (await TestGetObject() as OkObjectResult)?.Value as TestResult;
         if (getObjectResult != null)
+        {
             results.Add(getObjectResult);
+        }
         var headObjectResult = (await TestHeadObject() as OkObjectResult)?.Value as TestResult;
         if (headObjectResult != null)
+        {
             results.Add(headObjectResult);
+        }
         var listObjectsResult = (await TestListObjectsV2() as OkObjectResult)?.Value as TestResult;
         if (listObjectsResult != null)
+        {
             results.Add(listObjectsResult);
+        }
         var createBucketResult = (await TestCreateBucket() as OkObjectResult)?.Value as TestResult;
         if (createBucketResult != null)
+        {
             results.Add(createBucketResult);
+        }
         var deleteObjectResult = (await TestDeleteObject() as OkObjectResult)?.Value as TestResult;
         if (deleteObjectResult != null)
+        {
             results.Add(deleteObjectResult);
+        }
         var putEncryptedResult = (await TestPutEncryptedObject() as OkObjectResult)?.Value as TestResult;
         if (putEncryptedResult != null)
+        {
             results.Add(putEncryptedResult);
+        }
         var getVersionResult = (await TestGetObjectVersion() as OkObjectResult)?.Value as TestResult;
         if (getVersionResult != null)
+        {
             results.Add(getVersionResult);
+        }
         var listVersionsResult = (await TestListObjectVersions() as OkObjectResult)?.Value as TestResult;
         if (listVersionsResult != null)
+        {
             results.Add(listVersionsResult);
+        }
         var rangeRequestResult = (await TestRangeRequest() as OkObjectResult)?.Value as TestResult;
         if (rangeRequestResult != null)
+        {
             results.Add(rangeRequestResult);
+        }
         var multipartResult = (await TestMultipartUpload() as OkObjectResult)?.Value as TestResult;
         if (multipartResult != null)
+        {
             results.Add(multipartResult);
+        }
         var passedTests = results.Count(r => r.Success);
         var failedTests = results.Count(r => !r.Success);
         return Ok(new TestSuiteResult

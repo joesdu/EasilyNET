@@ -40,14 +40,12 @@ exec { & dotnet test -c Release --no-build -l trx --verbosity=normal }
 
 # Core
 exec { & dotnet pack .\src\EasilyNET.Core\EasilyNET.Core.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
-# exec { & dotnet pack .\src\EasilyNET.Core.SourceGenerator\EasilyNET.Core.SourceGenerator.csproj -c Release -o $ARTIFACTS --no-build }
 exec { & dotnet pack .\src\EasilyNET.WebCore\EasilyNET.WebCore.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.WebCore.Swagger\EasilyNET.WebCore.Swagger.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 
 # Framework
 exec { & dotnet pack .\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.AutoDependencyInjection.Core\EasilyNET.AutoDependencyInjection.Core.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
-#exec { & dotnet pack .\src\EasilyNET.Ipc\EasilyNET.Ipc.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.RabbitBus.AspNetCore\EasilyNET.RabbitBus.AspNetCore.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.RabbitBus.Core\EasilyNET.RabbitBus.Core.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.Security\EasilyNET.Security.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
@@ -56,3 +54,4 @@ exec { & dotnet pack .\src\EasilyNET.Security\EasilyNET.Security.csproj -c Relea
 exec { & dotnet pack .\src\EasilyNET.Mongo.AspNetCore\EasilyNET.Mongo.AspNetCore.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.Mongo.ConsoleDebug\EasilyNET.Mongo.ConsoleDebug.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.Mongo.Core\EasilyNET.Mongo.Core.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
+exec { & dotnet pack .\src\EasilyNET.Mongo.GridFS.S3\EasilyNET.Mongo.GridFS.S3.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
