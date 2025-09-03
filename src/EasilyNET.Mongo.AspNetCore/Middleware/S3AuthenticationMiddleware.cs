@@ -1,8 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -43,7 +43,7 @@ public class S3AuthenticationMiddleware(RequestDelegate next, ILogger<S3Authenti
             await next(context);
             return;
         }
-        if (!authorization.StartsWith("AWS4-HMAC-SHA256"))
+        if (!authorization.StartsWith("AWS4-HMAC-SHA256", StringComparison.Ordinal))
         {
             context.Response.StatusCode = 400;
             await context.Response.WriteAsync("Invalid authentication method");
@@ -51,7 +51,7 @@ public class S3AuthenticationMiddleware(RequestDelegate next, ILogger<S3Authenti
         }
         try
         {
-            if (ValidateSignature(context, authorization))
+            if (await ValidateSignatureAsync(context, authorization))
             {
                 logger.LogInformation("S3 Authentication successful for request: {Method} {Path}", context.Request.Method, context.Request.Path);
                 await next(context);
@@ -70,113 +70,205 @@ public class S3AuthenticationMiddleware(RequestDelegate next, ILogger<S3Authenti
         }
     }
 
-    private bool ValidateSignature(HttpContext context, string authorization)
+    private async Task<bool> ValidateSignatureAsync(HttpContext context, string authorization)
     {
         // Parse authorization header
-        // Format: AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20130524/us-east-1/s3/aws4_request, SignedHeaders=host;range;x-amz-date, Signature=fe5f80f77d5fa3beca038a248ff027d0445342fe2855ddc963176630326f1024
-        var authParts = authorization.Split(' ');
-        if (authParts is not ["AWS4-HMAC-SHA256", _])
+        // Format: AWS4-HMAC-SHA256 Credential=AKID/DATE/REGION/SERVICE/aws4_request, SignedHeaders=host;range;x-amz-date, Signature=...
+        var authParts = authorization.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (authParts.Length < 2 || !string.Equals(authParts[0], "AWS4-HMAC-SHA256", StringComparison.Ordinal))
         {
             return false;
         }
-        var credentialParts = authParts[1].Split(',');
         var credential = "";
         var signedHeaders = "";
         var signature = "";
-        foreach (var part in credentialParts)
+        foreach (var rawPart in authParts[1].Split(',', StringSplitOptions.RemoveEmptyEntries))
         {
-            var kvp = part.Split('=');
-            if (kvp.Length != 2)
+            var idx = rawPart.IndexOf('=');
+            if (idx <= 0)
             {
                 continue;
             }
-            switch (kvp[0])
+            var key = rawPart[..idx].Trim();
+            var value = rawPart[(idx + 1)..].Trim();
+            switch (key)
             {
                 case "Credential":
-                    credential = kvp[1];
+                    credential = value;
                     break;
                 case "SignedHeaders":
-                    signedHeaders = kvp[1];
+                    signedHeaders = value;
                     break;
                 case "Signature":
-                    signature = kvp[1];
+                    signature = value;
                     break;
             }
         }
+        if (string.IsNullOrEmpty(credential) || string.IsNullOrEmpty(signedHeaders) || string.IsNullOrEmpty(signature))
+        {
+            return false;
+        }
 
-        // Parse credential: AKIAIOSFODNN7EXAMPLE/20130524/us-east-1/s3/aws4_request
-        var credParts = credential.Split('/');
+        // Parse credential: AKID/yyyymmdd/region/service/aws4_request
+        var credParts = credential.Split('/', StringSplitOptions.RemoveEmptyEntries);
         if (credParts.Length != 5)
         {
             return false;
         }
         var accessKey = credParts[0];
-        var date = credParts[1];
+        var dateScope = credParts[1];
         var region = credParts[2];
         var service = credParts[3];
 
+        // Get x-amz-date (full timestamp) from headers
+        var amzDate = context.Request.Headers["x-amz-date"].ToString();
+        if (string.IsNullOrEmpty(amzDate))
+        {
+            // Some clients may send 'X-Amz-Date'
+            amzDate = context.Request.Headers["X-Amz-Date"].ToString();
+        }
+        if (string.IsNullOrEmpty(amzDate) || amzDate.Length < 16)
+        {
+            return false;
+        }
+
         // Get secret key for access key
-        if (!_options.AccessKeys.TryGetValue(accessKey, out var secretKey))
+        if (!_options.AccessKeys.TryGetValue(accessKey, out var secretKey) || string.IsNullOrEmpty(secretKey))
         {
             return false;
         }
 
         // Reconstruct canonical request
-        var canonicalRequest = BuildCanonicalRequest(context, signedHeaders);
+        var canonicalRequest = await BuildCanonicalRequestAsync(context, signedHeaders);
 
         // Build string to sign
-        var stringToSign = BuildStringToSign(canonicalRequest, date, region, service);
+        var stringToSign = BuildStringToSign(canonicalRequest, amzDate, dateScope, region, service);
 
         // Calculate signature
-        var calculatedSignature = CalculateSignature(stringToSign, secretKey, date, region, service);
+        var calculatedSignature = CalculateSignature(stringToSign, secretKey, dateScope, region, service);
         return string.Equals(calculatedSignature, signature, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string BuildCanonicalRequest(HttpContext context, string signedHeaders)
+    private static async Task<string> BuildCanonicalRequestAsync(HttpContext context, string signedHeaders)
     {
-        var method = context.Request.Method;
-        var canonicalUri = context.Request.Path.Value ?? "/";
+        var method = context.Request.Method.ToUpperInvariant();
+        var canonicalUri = BuildCanonicalUri(context.Request.Path);
         var canonicalQueryString = BuildCanonicalQueryString(context.Request.Query);
-        var canonicalHeaders = BuildCanonicalHeaders(context.Request.Headers, signedHeaders);
-        var payloadHash = CalculatePayloadHash(context);
-        return $"{method}\n{canonicalUri}\n{canonicalQueryString}\n{canonicalHeaders}\n{signedHeaders}\n{payloadHash}";
+        var canonicalHeaders = await BuildCanonicalHeadersAsync(context, signedHeaders);
+        var payloadHash = await CalculatePayloadHashAsync(context);
+        return $"{method}\n{canonicalUri}\n{canonicalQueryString}\n{canonicalHeaders}\n{signedHeaders.ToLowerInvariant()}\n{payloadHash}";
+    }
+
+    private static string BuildCanonicalUri(PathString path)
+    {
+        var p = path.HasValue ? path.Value! : "/";
+        if (string.IsNullOrEmpty(p))
+        {
+            p = "/";
+        }
+        // Normalize each segment per RFC 3986
+        var segments = p.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var encoded = segments.Select(s => Uri.EscapeDataString(s).Replace("%7E", "~"));
+        return "/" + string.Join('/', encoded);
     }
 
     private static string BuildCanonicalQueryString(IQueryCollection query)
     {
-        var sortedParams = query.OrderBy(p => p.Key).Select(p => $"{Uri.EscapeDataString(p.Key)}={Uri.EscapeDataString(p.Value.ToString())}");
-        return string.Join("&", sortedParams);
+        var items = new List<(string Key, string Value)>();
+        foreach (var kvp in query)
+        {
+            var key = Uri.EscapeDataString(kvp.Key).Replace("%7E", "~");
+            foreach (var v in kvp.Value.OrderBy(v => v, StringComparer.Ordinal))
+            {
+                var val = Uri.EscapeDataString(v ?? string.Empty).Replace("%7E", "~");
+                items.Add((key, val));
+            }
+        }
+        return string.Join("&", items.OrderBy(i => i.Key, StringComparer.Ordinal).ThenBy(i => i.Value, StringComparer.Ordinal).Select(i => $"{i.Key}={i.Value}"));
     }
 
-    private static string BuildCanonicalHeaders(IHeaderDictionary headers, string signedHeaders)
+    private static async Task<string> BuildCanonicalHeadersAsync(HttpContext context, string signedHeaders)
     {
-        var signedHeaderList = signedHeaders.Split(';');
-        var canonicalHeaders = new StringBuilder();
-        foreach (var headerName in signedHeaderList.OrderBy(h => h))
+        var headerNames = signedHeaders.Split(';', StringSplitOptions.RemoveEmptyEntries).Select(h => h.Trim().ToLowerInvariant()).OrderBy(h => h, StringComparer.Ordinal).ToList();
+        var headers = new StringBuilder();
+
+        // Ensure host header availability
+        var hostValue = context.Request.Headers.Host.ToString();
+        if (string.IsNullOrEmpty(hostValue))
         {
-            if (!headers.TryGetValue(headerName, out var values))
+            hostValue = context.Request.Host.Value;
+        }
+        var headerLookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrEmpty(hostValue))
+        {
+            headerLookup["host"] = hostValue;
+        }
+        foreach (var h in context.Request.Headers)
+        {
+            headerLookup[h.Key.ToLowerInvariant()] = string.Join(",", h.Value.Where(v => v != null));
+        }
+        foreach (var name in headerNames)
+        {
+            if (!headerLookup.TryGetValue(name, out var rawValue))
             {
+                // If a signed header is missing, canonical request will not match
                 continue;
             }
-            var headerValue = string.Join(",", values.Where(v => v != null)).Trim();
-            canonicalHeaders.Append($"{headerName.ToLower()}:{headerValue}\n");
+            var value = NormalizeHeaderValue(rawValue);
+            headers.Append($"{name}:{value}\n");
         }
-        return canonicalHeaders.ToString();
+
+        // Some frameworks need body buffering to compute hash; ensure it's enabled when requested later
+        if (context.Request.Body.CanSeek)
+        {
+            context.Request.Body.Position = 0;
+        }
+        else
+        {
+            context.Request.EnableBuffering();
+            context.Request.Body.Position = 0;
+        }
+        await Task.Yield();
+        return headers.ToString();
     }
 
-    private static string CalculatePayloadHash(HttpContext context)
+    private static string NormalizeHeaderValue(string value)
     {
-        // For simplicity, we'll use SHA256 of empty string for GET requests
-        // In production, you should hash the actual request body
-        var hash = SHA256.HashData(context.Request.Body);
-        return Convert.ToHexString(hash).ToLower();
+        // Trim and collapse sequential spaces per AWS spec
+        var trimmed = value.Trim();
+        return Regex.Replace(trimmed, "\\s+", " ");
     }
 
-    private static string BuildStringToSign(string canonicalRequest, string date, string region, string service)
+    private static async Task<string> CalculatePayloadHashAsync(HttpContext context)
+    {
+        var headerValue = context.Request.Headers["x-amz-content-sha256"].ToString();
+        if (!string.IsNullOrEmpty(headerValue))
+        {
+            // Support UNSIGNED-PAYLOAD and streaming payloads
+            if (string.Equals(headerValue, "UNSIGNED-PAYLOAD", StringComparison.Ordinal) || headerValue.StartsWith("STREAMING-AWS4-HMAC-SHA256", StringComparison.Ordinal))
+            {
+                return headerValue;
+            }
+            return headerValue.ToLowerInvariant();
+        }
+
+        // Fallback: hash the actual body (enable buffering to avoid consuming the stream)
+        if (!context.Request.Body.CanSeek)
+        {
+            context.Request.EnableBuffering();
+        }
+        context.Request.Body.Position = 0;
+        using var sha = SHA256.Create();
+        var hash = await sha.ComputeHashAsync(context.Request.Body);
+        context.Request.Body.Position = 0;
+        return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    private static string BuildStringToSign(string canonicalRequest, string amzDate, string dateScope, string region, string service)
     {
         var canonicalRequestHash = SHA256.HashData(Encoding.UTF8.GetBytes(canonicalRequest));
-        var canonicalRequestHashString = Convert.ToHexString(canonicalRequestHash).ToLower();
-        return $"AWS4-HMAC-SHA256\n{date}T000000Z\n{date}/{region}/{service}/aws4_request\n{canonicalRequestHashString}";
+        var canonicalRequestHashString = Convert.ToHexString(canonicalRequestHash).ToLowerInvariant();
+        return $"AWS4-HMAC-SHA256\n{amzDate}\n{dateScope}/{region}/{service}/aws4_request\n{canonicalRequestHashString}";
     }
 
     private static string CalculateSignature(string stringToSign, string secretKey, string date, string region, string service)
@@ -187,7 +279,7 @@ public class S3AuthenticationMiddleware(RequestDelegate next, ILogger<S3Authenti
         var kService = HmacSha256(kRegion, Encoding.UTF8.GetBytes(service));
         var kSigning = HmacSha256(kService, "aws4_request"u8.ToArray());
         var signature = HmacSha256(kSigning, Encoding.UTF8.GetBytes(stringToSign));
-        return Convert.ToHexString(signature).ToLower();
+        return Convert.ToHexString(signature).ToLowerInvariant();
     }
 
     private static byte[] HmacSha256(byte[] key, byte[] data)
@@ -244,15 +336,9 @@ public static class S3AuthenticationMiddlewareExtensions
     // ReSharper disable once UnusedMember.Global
     public static IApplicationBuilder UseS3Authentication(this IApplicationBuilder builder, Action<S3AuthenticationOptions> configureOptions)
     {
-        var options = new S3AuthenticationOptions();
-        configureOptions(options);
-
-        // Create a service collection to configure the options
-        var services = new ServiceCollection();
-        services.AddSingleton(options);
-        var serviceProvider = services.BuildServiceProvider();
-
-        // Use middleware with configured options
-        return builder.UseMiddleware<S3AuthenticationMiddleware>(serviceProvider.GetRequiredService<S3AuthenticationOptions>());
+        var opts = new S3AuthenticationOptions();
+        configureOptions(opts);
+        // Pass options to middleware using IOptions without creating a new service provider
+        return builder.UseMiddleware<S3AuthenticationMiddleware>(Microsoft.Extensions.Options.Options.Create(opts));
     }
 }

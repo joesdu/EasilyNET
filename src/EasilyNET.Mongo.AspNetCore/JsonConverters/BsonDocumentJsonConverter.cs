@@ -5,7 +5,7 @@ using MongoDB.Bson;
 // ReSharper disable UnusedType.Global
 
 #pragma warning disable IDE0130 // 命名空间与文件夹结构不匹配
-namespace EasilyNET.WebCore.JsonConverters;
+namespace EasilyNET.Mongo.AspNetCore.JsonConverters;
 
 /// <summary>
 ///     <para xml:lang="en">

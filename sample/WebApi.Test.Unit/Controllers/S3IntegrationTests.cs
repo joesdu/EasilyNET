@@ -1,11 +1,7 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Security.Cryptography;
 using System.Text;
 using EasilyNET.Mongo.AspNetCore.Abstraction;
+using EasilyNET.Mongo.AspNetCore.Encryption;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Driver;
 
 namespace WebApi.Test.Unit.Controllers;
 
@@ -50,7 +46,6 @@ public class S3IntegrationTestController : ControllerBase
             // Put object
             using var contentStream = new MemoryStream(contentBytes);
             await _objectStorage.PutObjectAsync(bucketName, key, contentStream, "text/plain");
-
             return Ok(new TestResult
             {
                 TestName = "TestPutObject",
@@ -103,9 +98,7 @@ public class S3IntegrationTestController : ControllerBase
             using var getStream = await _objectStorage.GetObjectAsync(bucketName, key);
             using var reader = new StreamReader(getStream);
             var retrievedContent = await reader.ReadToEndAsync();
-
             var success = retrievedContent == content;
-
             return Ok(new TestResult
             {
                 TestName = "TestGetObject",
@@ -157,7 +150,6 @@ public class S3IntegrationTestController : ControllerBase
 
             // Get object metadata
             var metadata = await _objectStorage.GetObjectMetadataAsync(bucketName, key);
-
             return Ok(new TestResult
             {
                 TestName = "TestHeadObject",
@@ -167,10 +159,10 @@ public class S3IntegrationTestController : ControllerBase
                 {
                     BucketName = bucketName,
                     Key = key,
-                    ContentType = metadata.ContentType,
-                    ContentLength = metadata.ContentLength,
-                    LastModified = metadata.LastModified,
-                    ETag = metadata.ETag
+                    metadata.ContentType,
+                    metadata.ContentLength,
+                    metadata.LastModified,
+                    metadata.ETag
                 }
             });
         }
@@ -211,7 +203,6 @@ public class S3IntegrationTestController : ControllerBase
 
             // List objects
             var result = await _objectStorage.ListObjectsV2Async(bucketName);
-
             return Ok(new TestResult
             {
                 TestName = "TestListObjectsV2",
@@ -221,7 +212,7 @@ public class S3IntegrationTestController : ControllerBase
                 {
                     BucketName = bucketName,
                     ObjectCount = result.Objects.Count,
-                    IsTruncated = result.IsTruncated,
+                    result.IsTruncated,
                     Objects = result.Objects.Select(obj => new
                     {
                         obj.Key,
@@ -261,7 +252,6 @@ public class S3IntegrationTestController : ControllerBase
 
             // Verify bucket exists
             var exists = await _objectStorage.BucketExistsAsync(bucketName);
-
             return Ok(new TestResult
             {
                 TestName = "TestCreateBucket",
@@ -313,7 +303,6 @@ public class S3IntegrationTestController : ControllerBase
 
             // Verify object is deleted
             var exists = await _objectStorage.ObjectExistsAsync(bucketName, key);
-
             return Ok(new TestResult
             {
                 TestName = "TestDeleteObject",
@@ -353,7 +342,6 @@ public class S3IntegrationTestController : ControllerBase
             const string key = "test-encrypted-object.txt";
             const string content = "This is encrypted content";
             var contentBytes = Encoding.UTF8.GetBytes(content);
-
             await _objectStorage.CreateBucketAsync(bucketName);
 
             // Put encrypted object
@@ -363,9 +351,7 @@ public class S3IntegrationTestController : ControllerBase
                 Enabled = true,
                 Algorithm = "AES256"
             };
-
             var result = await _objectStorage.PutEncryptedObjectAsync(bucketName, key, contentStream, "text/plain", null, encryptionConfig);
-
             return Ok(new TestResult
             {
                 TestName = "TestPutEncryptedObject",
@@ -376,8 +362,8 @@ public class S3IntegrationTestController : ControllerBase
                     BucketName = bucketName,
                     Key = key,
                     EncryptionAlgorithm = result.ServerSideEncryption,
-                    EncryptionKeyId = result.EncryptionKeyId,
-                    ETag = result.ETag
+                    result.EncryptionKeyId,
+                    result.ETag
                 }
             });
         }
@@ -417,7 +403,6 @@ public class S3IntegrationTestController : ControllerBase
 
             // Get object version
             var version = await _objectStorage.GetObjectVersionAsync(bucketName, key);
-
             return Ok(new TestResult
             {
                 TestName = "TestGetObjectVersion",
@@ -427,11 +412,11 @@ public class S3IntegrationTestController : ControllerBase
                 {
                     BucketName = bucketName,
                     Key = key,
-                    VersionId = version.VersionId,
-                    Size = version.Size,
-                    LastModified = version.LastModified,
-                    IsLatest = version.IsLatest,
-                    ETag = version.ETag
+                    version.VersionId,
+                    version.Size,
+                    version.LastModified,
+                    version.IsLatest,
+                    version.ETag
                 }
             });
         }
@@ -472,7 +457,6 @@ public class S3IntegrationTestController : ControllerBase
 
             // List object versions
             var result = await _objectStorage.ListObjectVersionsAsync(bucketName);
-
             return Ok(new TestResult
             {
                 TestName = "TestListObjectVersions",
@@ -532,10 +516,8 @@ public class S3IntegrationTestController : ControllerBase
             using var rangeStream = await _objectStorage.GetObjectAsync(bucketName, key, "bytes=5-14");
             using var reader = new StreamReader(rangeStream);
             var rangeContent = await reader.ReadToEndAsync();
-
             var expectedRange = "56789ABCDE";
             var success = rangeContent == expectedRange;
-
             return Ok(new TestResult
             {
                 TestName = "TestRangeRequest",
@@ -578,7 +560,6 @@ public class S3IntegrationTestController : ControllerBase
             const string key = "test-multipart-object.txt";
             const string content = "This is a test for multipart upload functionality.";
             var contentBytes = Encoding.UTF8.GetBytes(content);
-
             await _objectStorage.CreateBucketAsync(bucketName);
 
             // Initiate multipart upload
@@ -591,10 +572,9 @@ public class S3IntegrationTestController : ControllerBase
             {
                 var partNumber = (i / partSize) + 1;
                 var partData = contentBytes.Skip(i).Take(partSize).ToArray();
-
                 using var partStream = new MemoryStream(partData);
                 var uploadResult = await _objectStorage.UploadPartAsync(bucketName, key, initiateResult.UploadId, partNumber, partStream);
-                parts.Add(new PartETag { PartNumber = partNumber, ETag = uploadResult.ETag.Trim('"') });
+                parts.Add(new() { PartNumber = partNumber, ETag = uploadResult.ETag.Trim('"') });
             }
 
             // Complete multipart upload
@@ -604,9 +584,7 @@ public class S3IntegrationTestController : ControllerBase
             using var getStream = await _objectStorage.GetObjectAsync(bucketName, key);
             using var reader = new StreamReader(getStream);
             var retrievedContent = await reader.ReadToEndAsync();
-
             var success = retrievedContent == content;
-
             return Ok(new TestResult
             {
                 TestName = "TestMultipartUpload",
@@ -616,10 +594,10 @@ public class S3IntegrationTestController : ControllerBase
                 {
                     BucketName = bucketName,
                     Key = key,
-                    UploadId = initiateResult.UploadId,
+                    initiateResult.UploadId,
                     PartCount = parts.Count,
                     TotalSize = content.Length,
-                    ETag = completeResult.ETag,
+                    completeResult.ETag,
                     ExpectedContent = content,
                     RetrievedContent = retrievedContent
                 }
@@ -649,48 +627,47 @@ public class S3IntegrationTestController : ControllerBase
 
         // Run all individual tests
         var putObjectResult = (await TestPutObject() as OkObjectResult)?.Value as TestResult;
-        if (putObjectResult != null) results.Add(putObjectResult);
-
+        if (putObjectResult != null)
+            results.Add(putObjectResult);
         var getObjectResult = (await TestGetObject() as OkObjectResult)?.Value as TestResult;
-        if (getObjectResult != null) results.Add(getObjectResult);
-
+        if (getObjectResult != null)
+            results.Add(getObjectResult);
         var headObjectResult = (await TestHeadObject() as OkObjectResult)?.Value as TestResult;
-        if (headObjectResult != null) results.Add(headObjectResult);
-
+        if (headObjectResult != null)
+            results.Add(headObjectResult);
         var listObjectsResult = (await TestListObjectsV2() as OkObjectResult)?.Value as TestResult;
-        if (listObjectsResult != null) results.Add(listObjectsResult);
-
+        if (listObjectsResult != null)
+            results.Add(listObjectsResult);
         var createBucketResult = (await TestCreateBucket() as OkObjectResult)?.Value as TestResult;
-        if (createBucketResult != null) results.Add(createBucketResult);
-
+        if (createBucketResult != null)
+            results.Add(createBucketResult);
         var deleteObjectResult = (await TestDeleteObject() as OkObjectResult)?.Value as TestResult;
-        if (deleteObjectResult != null) results.Add(deleteObjectResult);
-
+        if (deleteObjectResult != null)
+            results.Add(deleteObjectResult);
         var putEncryptedResult = (await TestPutEncryptedObject() as OkObjectResult)?.Value as TestResult;
-        if (putEncryptedResult != null) results.Add(putEncryptedResult);
-
+        if (putEncryptedResult != null)
+            results.Add(putEncryptedResult);
         var getVersionResult = (await TestGetObjectVersion() as OkObjectResult)?.Value as TestResult;
-        if (getVersionResult != null) results.Add(getVersionResult);
-
+        if (getVersionResult != null)
+            results.Add(getVersionResult);
         var listVersionsResult = (await TestListObjectVersions() as OkObjectResult)?.Value as TestResult;
-        if (listVersionsResult != null) results.Add(listVersionsResult);
-
+        if (listVersionsResult != null)
+            results.Add(listVersionsResult);
         var rangeRequestResult = (await TestRangeRequest() as OkObjectResult)?.Value as TestResult;
-        if (rangeRequestResult != null) results.Add(rangeRequestResult);
-
+        if (rangeRequestResult != null)
+            results.Add(rangeRequestResult);
         var multipartResult = (await TestMultipartUpload() as OkObjectResult)?.Value as TestResult;
-        if (multipartResult != null) results.Add(multipartResult);
-
+        if (multipartResult != null)
+            results.Add(multipartResult);
         var passedTests = results.Count(r => r.Success);
         var failedTests = results.Count(r => !r.Success);
-
         return Ok(new TestSuiteResult
         {
             SuiteName = "S3 Compatible API Integration Tests",
             TotalTests = results.Count,
             PassedTests = passedTests,
             FailedTests = failedTests,
-            SuccessRate = results.Count > 0 ? (double)passedTests / results.Count * 100 : 0,
+            SuccessRate = results.Count > 0 ? ((double)passedTests / results.Count) * 100 : 0,
             Results = results,
             Timestamp = DateTime.UtcNow
         });

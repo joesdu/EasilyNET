@@ -1,4 +1,5 @@
 using EasilyNET.Mongo.AspNetCore.Abstraction;
+using EasilyNET.Mongo.AspNetCore.Encryption;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EasilyNET.Mongo.AspNetCore.Controllers;
@@ -15,12 +16,11 @@ namespace EasilyNET.Mongo.AspNetCore.Controllers;
 [Route("s3/{bucketName}")]
 public sealed class S3CompatibleController(IObjectStorage objectStorage) : ControllerBase
 {
-
     /// <summary>
     ///     <para xml:lang="en">Put Object (S3 Compatible)</para>
     ///     <para xml:lang="zh">上传对象（S3兼容）</para>
     /// </summary>
-    [HttpPut("{key}")]
+    [HttpPut("{**key}")]
     public async Task<IActionResult> PutObject(string bucketName, string key)
     {
         try
@@ -39,6 +39,20 @@ public sealed class S3CompatibleController(IObjectStorage objectStorage) : Contr
                 metadata[metaKey] = header.Value.ToString();
             }
             await objectStorage.PutObjectAsync(bucketName, key, Request.Body, contentType, metadata);
+
+            // Try to get metadata to form ETag-like header
+            try
+            {
+                var objMeta = await objectStorage.GetObjectMetadataAsync(bucketName, key);
+                if (!string.IsNullOrEmpty(objMeta.ETag))
+                {
+                    Response.Headers.ETag = $"\"{objMeta.ETag}\"";
+                }
+            }
+            catch
+            {
+                // ignore if cannot fetch metadata immediately
+            }
             return Ok();
         }
         catch (Exception ex)
@@ -51,7 +65,7 @@ public sealed class S3CompatibleController(IObjectStorage objectStorage) : Contr
     ///     <para xml:lang="en">Get Object (S3 Compatible)</para>
     ///     <para xml:lang="zh">下载对象（S3兼容）</para>
     /// </summary>
-    [HttpGet("{key}")]
+    [HttpGet("{**key}")]
     public async Task<IActionResult> GetObject(string bucketName, string key)
     {
         try
@@ -117,7 +131,7 @@ public sealed class S3CompatibleController(IObjectStorage objectStorage) : Contr
     ///     <para xml:lang="en">Delete Object (S3 Compatible)</para>
     ///     <para xml:lang="zh">删除对象（S3兼容）</para>
     /// </summary>
-    [HttpDelete("{key}")]
+    [HttpDelete("{**key}")]
     public async Task<IActionResult> DeleteObject(string bucketName, string key)
     {
         try
@@ -135,7 +149,7 @@ public sealed class S3CompatibleController(IObjectStorage objectStorage) : Contr
     ///     <para xml:lang="en">Head Object (S3 Compatible)</para>
     ///     <para xml:lang="zh">获取对象元数据（S3兼容）</para>
     /// </summary>
-    [HttpHead("{key}")]
+    [HttpHead("{**key}")]
     public async Task<IActionResult> HeadObject(string bucketName, string key)
     {
         try
@@ -170,7 +184,7 @@ public sealed class S3CompatibleController(IObjectStorage objectStorage) : Contr
     ///     <para xml:lang="en">Copy Object (S3 Compatible)</para>
     ///     <para xml:lang="zh">复制对象（S3兼容）</para>
     /// </summary>
-    [HttpPut("copy/{key}")]
+    [HttpPut("copy/{**key}")]
     public async Task<IActionResult> CopyObject(string bucketName, string key, [FromHeader(Name = "x-amz-copy-source")] string copySource)
     {
         try
@@ -181,7 +195,8 @@ public sealed class S3CompatibleController(IObjectStorage objectStorage) : Contr
             }
 
             // Parse copy source (format: /bucket/key)
-            var sourceParts = copySource.TrimStart('/').Split('/', 2);
+            var decoded = Uri.UnescapeDataString(copySource);
+            var sourceParts = decoded.TrimStart('/').Split('/', 2);
             if (sourceParts.Length != 2)
             {
                 return BadRequest(new { error = "InvalidCopySource", message = "The copy source format is invalid." });
@@ -255,7 +270,7 @@ public sealed class S3CompatibleController(IObjectStorage objectStorage) : Contr
     ///     <para xml:lang="en">Initiate Multipart Upload (S3 Compatible)</para>
     ///     <para xml:lang="zh">初始化多部分上传（S3兼容）</para>
     /// </summary>
-    [HttpPost("upload/{key}")]
+    [HttpPost("upload/{**key}")]
     public async Task<IActionResult> InitiateMultipartUpload(string bucketName, string key, [FromQuery] string uploads)
     {
         try
@@ -296,7 +311,7 @@ public sealed class S3CompatibleController(IObjectStorage objectStorage) : Contr
     ///     <para xml:lang="en">Upload Part (S3 Compatible)</para>
     ///     <para xml:lang="zh">上传部分（S3兼容）</para>
     /// </summary>
-    [HttpPut("part/{key}")]
+    [HttpPut("part/{**key}")]
     public async Task<IActionResult> UploadPart(string bucketName, string key, [FromQuery] string uploadId, [FromQuery] int partNumber)
     {
         try
@@ -315,7 +330,7 @@ public sealed class S3CompatibleController(IObjectStorage objectStorage) : Contr
     ///     <para xml:lang="en">Complete Multipart Upload (S3 Compatible)</para>
     ///     <para xml:lang="zh">完成多部分上传（S3兼容）</para>
     /// </summary>
-    [HttpPost("complete/{key}")]
+    [HttpPost("complete/{**key}")]
     public async Task<IActionResult> CompleteMultipartUpload(string bucketName, string key, [FromQuery] string uploadId, [FromBody] CompleteMultipartUploadRequest request)
     {
         try
@@ -341,7 +356,7 @@ public sealed class S3CompatibleController(IObjectStorage objectStorage) : Contr
     ///     <para xml:lang="en">Abort Multipart Upload (S3 Compatible)</para>
     ///     <para xml:lang="zh">中止多部分上传（S3兼容）</para>
     /// </summary>
-    [HttpDelete("abort/{key}")]
+    [HttpDelete("abort/{**key}")]
     public async Task<IActionResult> AbortMultipartUpload(string bucketName, string key, [FromQuery] string uploadId)
     {
         try
@@ -573,7 +588,7 @@ public sealed class S3CompatibleController(IObjectStorage objectStorage) : Contr
     ///     <para xml:lang="en">Put Encrypted Object (S3 Compatible)</para>
     ///     <para xml:lang="zh">上传加密对象（S3兼容）</para>
     /// </summary>
-    [HttpPut("encrypted/{key}")]
+    [HttpPut("encrypted/{**key}")]
     public async Task<IActionResult> PutEncryptedObject(string bucketName, string key)
     {
         try
@@ -601,7 +616,6 @@ public sealed class S3CompatibleController(IObjectStorage objectStorage) : Contr
                 encryptionConfig.Algorithm = sseHeader;
                 encryptionConfig.KmsKeyId = Request.Headers["x-amz-server-side-encryption-aws-kms-key-id"].ToString();
             }
-
             var result = await objectStorage.PutEncryptedObjectAsync(bucketName, key, Request.Body, contentType, metadata, encryptionConfig);
 
             // Set encryption headers in response
@@ -613,7 +627,6 @@ public sealed class S3CompatibleController(IObjectStorage objectStorage) : Contr
             {
                 Response.Headers["x-amz-server-side-encryption-aws-kms-key-id"] = result.EncryptionKeyId;
             }
-
             Response.Headers.ETag = $"\"{result.ETag}\"";
             return Ok();
         }
@@ -627,7 +640,7 @@ public sealed class S3CompatibleController(IObjectStorage objectStorage) : Contr
     ///     <para xml:lang="en">Get Encrypted Object (S3 Compatible)</para>
     ///     <para xml:lang="zh">获取加密对象（S3兼容）</para>
     /// </summary>
-    [HttpGet("encrypted/{key}")]
+    [HttpGet("encrypted/{**key}")]
     public async Task<IActionResult> GetEncryptedObject(string bucketName, string key)
     {
         try
@@ -703,7 +716,7 @@ public sealed class S3CompatibleController(IObjectStorage objectStorage) : Contr
     ///     <para xml:lang="en">Get Object Version (S3 Compatible)</para>
     ///     <para xml:lang="zh">获取对象版本（S3兼容）</para>
     /// </summary>
-    [HttpGet("version/{key}")]
+    [HttpGet("version/{**key}")]
     public async Task<IActionResult> GetObjectVersion(string bucketName, string key, [FromQuery] string? versionId)
     {
         try

@@ -1,12 +1,14 @@
 using System.Text.RegularExpressions;
+using EasilyNET.Mongo.AspNetCore.Abstraction;
+using EasilyNET.Mongo.AspNetCore.Encryption;
+using EasilyNET.Mongo.AspNetCore.ObjectResults;
+using EasilyNET.Mongo.AspNetCore.Security;
+using EasilyNET.Mongo.AspNetCore.Versioning;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
-using EasilyNET.Mongo.AspNetCore.Encryption;
-using EasilyNET.Mongo.AspNetCore.Security;
-using EasilyNET.Mongo.AspNetCore.Versioning;
 
-namespace EasilyNET.Mongo.AspNetCore.Abstraction;
+namespace EasilyNET.Mongo.AspNetCore;
 
 /// <summary>
 ///     <para xml:lang="en">GridFS object storage implementation</para>
@@ -34,6 +36,7 @@ public class GridFSObjectStorage : IObjectStorage
     /// <inheritdoc />
     public async Task PutObjectAsync(string bucketName, string key, Stream stream, string? contentType = null, Dictionary<string, string>? metadata = null)
     {
+        var storageKey = ComposeStorageKey(bucketName, key);
         var options = new GridFSUploadOptions
         {
             Metadata = []
@@ -49,23 +52,21 @@ public class GridFSObjectStorage : IObjectStorage
                 options.Metadata[kvp.Key] = kvp.Value;
             }
         }
-        await _bucket.UploadFromStreamAsync(key, stream, options);
+        await _bucket.UploadFromStreamAsync(storageKey, stream, options);
 
         // Invalidate cache
-        _metadataCache.Remove(key);
+        _metadataCache.Remove(storageKey);
     }
 
     /// <inheritdoc />
     public async Task<Stream> GetObjectAsync(string bucketName, string key, string? range = null)
     {
-        var id = await GetObjectIdAsync(key);
+        var storageKey = ComposeStorageKey(bucketName, key);
+        var id = await GetObjectIdAsync(storageKey);
         if (id == ObjectId.Empty)
         {
             throw new FileNotFoundException($"Object {key} not found");
         }
-
-        // For range requests, we still need to load the full file and extract the range
-        // For full file requests, return a streaming GridFS download stream
         if (!string.IsNullOrEmpty(range))
         {
             var memoryStream = new MemoryStream();
@@ -74,7 +75,6 @@ public class GridFSObjectStorage : IObjectStorage
             var rangeStream = await ProcessRangeRequestAsync(memoryStream, range);
             return rangeStream;
         }
-        // Return GridFS download stream directly for better memory efficiency
         var downloadStream = await _bucket.OpenDownloadStreamAsync(id);
         return downloadStream;
     }
@@ -82,7 +82,8 @@ public class GridFSObjectStorage : IObjectStorage
     /// <inheritdoc />
     public async Task CopyObjectAsync(string sourceBucket, string sourceKey, string destinationBucket, string destinationKey, Dictionary<string, string>? metadata = null)
     {
-        var sourceId = await GetObjectIdAsync(sourceKey);
+        var sourceStorageKey = ComposeStorageKey(sourceBucket, sourceKey);
+        var sourceId = await GetObjectIdAsync(sourceStorageKey);
         if (sourceId == ObjectId.Empty)
         {
             throw new FileNotFoundException($"Source object {sourceKey} not found");
@@ -113,7 +114,8 @@ public class GridFSObjectStorage : IObjectStorage
         {
             try
             {
-                var id = await GetObjectIdAsync(key);
+                var storageKey = ComposeStorageKey(bucketName, key);
+                var id = await GetObjectIdAsync(storageKey);
                 if (id != ObjectId.Empty)
                 {
                     await _bucket.DeleteAsync(id);
@@ -145,19 +147,20 @@ public class GridFSObjectStorage : IObjectStorage
     /// <inheritdoc />
     public async Task<ListObjectsResult> ListObjectsAsync(string bucketName, string? prefix = null, string? marker = null, int? maxKeys = null)
     {
-        var filter = Builders<GridFSFileInfo>.Filter.Empty;
-        if (!string.IsNullOrEmpty(prefix))
-        {
-            filter = Builders<GridFSFileInfo>.Filter.Regex(x => x.Filename, new($"^{Regex.Escape(prefix)}"));
-        }
+        var basePrefix = ComposeStorageKey(bucketName, "");
+        var regex = string.IsNullOrEmpty(prefix)
+                        ? $"^{Regex.Escape(basePrefix)}"
+                        : $"^{Regex.Escape(basePrefix + prefix)}";
+        var filter = Builders<GridFSFileInfo>.Filter.Regex(x => x.Filename, new(regex));
         var files = await (await _bucket.FindAsync(filter)).ToListAsync();
-        var sortedFiles = files.OrderBy(f => f.Filename).ToList();
+        var sortedFiles = files.OrderBy(f => f.Filename, StringComparer.Ordinal).ToList();
 
-        // Apply pagination
+        // Apply pagination marker (relative to bucket)
         var startIndex = 0;
         if (!string.IsNullOrEmpty(marker))
         {
-            var markerIndex = sortedFiles.FindIndex(f => f.Filename == marker);
+            var absMarker = ComposeStorageKey(bucketName, marker);
+            var markerIndex = sortedFiles.FindIndex(f => string.Equals(f.Filename, absMarker, StringComparison.Ordinal));
             if (markerIndex >= 0)
             {
                 startIndex = markerIndex + 1;
@@ -173,15 +176,15 @@ public class GridFSObjectStorage : IObjectStorage
             MaxKeys = pageSize,
             IsTruncated = startIndex + pageSize < sortedFiles.Count
         };
-        if (result.IsTruncated)
+        if (result.IsTruncated && paginatedFiles.Count > 0)
         {
-            result.NextMarker = paginatedFiles.Last().Filename;
+            result.NextMarker = StripBucketPrefix(bucketName, paginatedFiles.Last().Filename);
         }
         foreach (var file in paginatedFiles)
         {
             result.Objects.Add(new()
             {
-                Key = file.Filename,
+                Key = StripBucketPrefix(bucketName, file.Filename),
                 LastModified = file.UploadDateTime,
                 Size = file.Length,
                 ETag = $"\"{file.Id}\"",
@@ -194,25 +197,27 @@ public class GridFSObjectStorage : IObjectStorage
     /// <inheritdoc />
     public async Task<ListObjectsV2Result> ListObjectsV2Async(string bucketName, string? prefix = null, string? continuationToken = null, int? maxKeys = null, string? startAfter = null)
     {
-        var filter = Builders<GridFSFileInfo>.Filter.Empty;
-        if (!string.IsNullOrEmpty(prefix))
-        {
-            filter = Builders<GridFSFileInfo>.Filter.Regex(x => x.Filename, new($"^{Regex.Escape(prefix)}"));
-        }
+        var basePrefix = ComposeStorageKey(bucketName, "");
+        var regex = string.IsNullOrEmpty(prefix)
+                        ? $"^{Regex.Escape(basePrefix)}"
+                        : $"^{Regex.Escape(basePrefix + prefix)}";
+        var filter = Builders<GridFSFileInfo>.Filter.Regex(x => x.Filename, new(regex));
         var files = await (await _bucket.FindAsync(filter)).ToListAsync();
-        var sortedFiles = files.OrderBy(f => f.Filename).ToList();
+        var sortedFiles = files.OrderBy(f => f.Filename, StringComparer.Ordinal).ToList();
 
-        // Apply startAfter filter
+        // Apply startAfter (relative key)
         if (!string.IsNullOrEmpty(startAfter))
         {
-            sortedFiles = sortedFiles.Where(f => string.Compare(f.Filename, startAfter, StringComparison.Ordinal) > 0).ToList();
+            var absStartAfter = ComposeStorageKey(bucketName, startAfter);
+            sortedFiles = sortedFiles.Where(f => string.Compare(f.Filename, absStartAfter, StringComparison.Ordinal) > 0).ToList();
         }
 
-        // Apply continuation token (simplified as marker)
+        // Apply continuation token (relative key)
         var startIndex = 0;
         if (!string.IsNullOrEmpty(continuationToken))
         {
-            var markerIndex = sortedFiles.FindIndex(f => f.Filename == continuationToken);
+            var absToken = ComposeStorageKey(bucketName, continuationToken);
+            var markerIndex = sortedFiles.FindIndex(f => string.Equals(f.Filename, absToken, StringComparison.Ordinal));
             if (markerIndex >= 0)
             {
                 startIndex = markerIndex + 1;
@@ -229,18 +234,16 @@ public class GridFSObjectStorage : IObjectStorage
             MaxKeys = pageSize,
             IsTruncated = paginatedFiles.Count > pageSize
         };
-
-        // Set next continuation token if truncated
         if (result.IsTruncated)
         {
-            result.NextContinuationToken = paginatedFiles[pageSize - 1].Filename;
+            result.NextContinuationToken = StripBucketPrefix(bucketName, paginatedFiles[pageSize].Filename);
             paginatedFiles = paginatedFiles.Take(pageSize).ToList();
         }
         foreach (var file in paginatedFiles)
         {
             result.Objects.Add(new()
             {
-                Key = file.Filename,
+                Key = StripBucketPrefix(bucketName, file.Filename),
                 LastModified = file.UploadDateTime,
                 Size = file.Length,
                 ETag = $"\"{file.Id}\"",
@@ -253,11 +256,7 @@ public class GridFSObjectStorage : IObjectStorage
     /// <inheritdoc />
     public async Task<InitiateMultipartUploadResult> InitiateMultipartUploadAsync(string bucketName, string key, string? contentType = null, Dictionary<string, string>? metadata = null)
     {
-        // For GridFS, we'll simulate multipart upload by storing parts as separate files
-        // and combining them when complete
         var uploadId = Guid.NewGuid().ToString();
-
-        // Store upload metadata
         var uploadMetadata = new BsonDocument
         {
             ["uploadId"] = uploadId,
@@ -285,17 +284,10 @@ public class GridFSObjectStorage : IObjectStorage
     public async Task<UploadPartResult> UploadPartAsync(string bucketName, string key, string uploadId, int partNumber, Stream stream)
     {
         var partKey = $"__multipart__/{uploadId}/part-{partNumber}";
-        var partData = new byte[stream.Length];
-        var totalBytesRead = 0;
-        while (totalBytesRead < stream.Length)
-        {
-            var bytesRead = await stream.ReadAsync(partData.AsMemory(totalBytesRead, (int)(stream.Length - totalBytesRead)));
-            if (bytesRead == 0)
-            {
-                break;
-            }
-            totalBytesRead += bytesRead;
-        }
+        // Read stream fully into buffer
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        var partData = ms.ToArray();
         var partMetadata = new BsonDocument
         {
             ["uploadId"] = uploadId,
@@ -316,10 +308,7 @@ public class GridFSObjectStorage : IObjectStorage
     /// <inheritdoc />
     public async Task<CompleteMultipartUploadResult> CompleteMultipartUploadAsync(string bucketName, string key, string uploadId, IEnumerable<PartETag> parts)
     {
-        // Get all parts
         var partsList = parts.OrderBy(p => p.PartNumber).ToList();
-
-        // Use GridFS upload stream for better memory efficiency
         var uploadOptions = new GridFSUploadOptions
         {
             Metadata = []
@@ -345,9 +334,8 @@ public class GridFSObjectStorage : IObjectStorage
                 }
             }
         }
-
-        // Upload combined file using streaming approach
-        await using (var uploadStream = await _bucket.OpenUploadStreamAsync(key, uploadOptions))
+        var storageKey = ComposeStorageKey(bucketName, key);
+        await using (var uploadStream = await _bucket.OpenUploadStreamAsync(storageKey, uploadOptions))
         {
             foreach (var partKey in partsList.Select(part => $"__multipart__/{uploadId}/part-{part.PartNumber}"))
             {
@@ -380,20 +368,20 @@ public class GridFSObjectStorage : IObjectStorage
     /// <inheritdoc />
     public async Task DeleteObjectAsync(string bucketName, string key)
     {
-        var id = await GetObjectIdAsync(key);
+        var storageKey = ComposeStorageKey(bucketName, key);
+        var id = await GetObjectIdAsync(storageKey);
         if (id != ObjectId.Empty)
         {
             await _bucket.DeleteAsync(id);
         }
-
-        // Invalidate cache
-        _metadataCache.Remove(key);
+        _metadataCache.Remove(storageKey);
     }
 
     /// <inheritdoc />
     public async Task<bool> ObjectExistsAsync(string bucketName, string key)
     {
-        var filter = Builders<GridFSFileInfo>.Filter.Eq(x => x.Filename, key);
+        var storageKey = ComposeStorageKey(bucketName, key);
+        var filter = Builders<GridFSFileInfo>.Filter.Eq(x => x.Filename, storageKey);
         var files = await (await _bucket.FindAsync(filter)).ToListAsync();
         return files.Count > 0;
     }
@@ -401,13 +389,13 @@ public class GridFSObjectStorage : IObjectStorage
     /// <inheritdoc />
     public async Task<ObjectMetadata> GetObjectMetadataAsync(string bucketName, string key)
     {
-        // Check cache first
-        if (_metadataCache.TryGetValue(key, out var cached) &&
+        var storageKey = ComposeStorageKey(bucketName, key);
+        if (_metadataCache.TryGetValue(storageKey, out var cached) &&
             DateTime.UtcNow - cached.CacheTime < _cacheDuration)
         {
             return cached.Metadata;
         }
-        var filter = Builders<GridFSFileInfo>.Filter.Eq(x => x.Filename, key);
+        var filter = Builders<GridFSFileInfo>.Filter.Eq(x => x.Filename, storageKey);
         var fileInfo = await (await _bucket.FindAsync(filter)).FirstOrDefaultAsync();
         if (fileInfo == null)
         {
@@ -433,16 +421,13 @@ public class GridFSObjectStorage : IObjectStorage
                 }
             }
         }
-
-        // Cache the metadata
-        _metadataCache[key] = (metadata, DateTime.UtcNow);
+        _metadataCache[storageKey] = (metadata, DateTime.UtcNow);
         return metadata;
     }
 
     /// <inheritdoc />
     public async Task CreateBucketAsync(string bucketName)
     {
-        // For GridFS, buckets are logical - we just track them in a special metadata file
         var bucketKey = $"__bucket__/{bucketName}";
         var bucketMetadata = new BsonDocument
         {
@@ -456,15 +441,12 @@ public class GridFSObjectStorage : IObjectStorage
     /// <inheritdoc />
     public async Task DeleteBucketAsync(string bucketName)
     {
-        // Delete all objects in the bucket first
-        var filter = Builders<GridFSFileInfo>.Filter.Regex(x => x.Filename, new($"^{Regex.Escape(bucketName)}/"));
+        var filter = Builders<GridFSFileInfo>.Filter.Regex(x => x.Filename, new($"^{Regex.Escape(bucketName.Trim('/') + "/")}"));
         var files = await (await _bucket.FindAsync(filter)).ToListAsync();
         foreach (var file in files)
         {
             await _bucket.DeleteAsync(file.Id);
         }
-
-        // Delete bucket metadata
         var bucketKey = $"__bucket__/{bucketName}";
         var bucketId = await GetObjectIdAsync(bucketKey);
         if (bucketId != ObjectId.Empty)
@@ -505,74 +487,24 @@ public class GridFSObjectStorage : IObjectStorage
     /// <inheritdoc />
     public async Task<bool> CheckPermissionAsync(string bucketName, string key, string operation, string accessKey)
     {
-        // In a real implementation, this would check against IAM policies
-        // For now, we'll use a basic policy manager
         var policyManager = new S3IamPolicyManager();
-
-        // Create a default admin policy for demo purposes
         var adminPolicy = S3IamPolicyManager.CreateAdminPolicy();
         policyManager.AddPolicy("AdminPolicy", adminPolicy);
-
-        // Create a demo user with admin permissions
         policyManager.AddUser("demo-user", accessKey, "demo-secret", ["AdminPolicy"]);
-
-        // Check permission using the policy manager
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield();
         return policyManager.HasPermission(accessKey, operation, $"arn:aws:s3:::{bucketName}/{key}", bucketName, key);
-    }
-
-    /// <inheritdoc />
-    public async Task<ObjectVersion> GetObjectVersionAsync(string bucketName, string key, string? versionId = null)
-    {
-        // GridFS doesn't natively support versioning, so we'll simulate it using versioning manager
-        var versioningManager = new S3ObjectVersioningManager();
-
-        // Get version using the versioning manager
-        var version = versioningManager.GetVersion(bucketName, key, versionId);
-        if (version != null)
-        {
-            await Task.Yield(); // Ensure async behavior
-            // Convert from Versioning.ObjectVersion to Abstraction.ObjectVersion
-            return new()
-            {
-                VersionId = version.VersionId,
-                Key = version.Key,
-                LastModified = version.LastModified,
-                Size = version.Size,
-                ETag = version.ETag,
-                IsLatest = version.IsLatest,
-                IsDeleteMarker = false // Versioning manager doesn't support delete markers yet
-            };
-        }
-
-        // Fallback to current version if no versioned data exists
-        var metadata = await GetObjectMetadataAsync(bucketName, key);
-        return new()
-        {
-            VersionId = versionId ?? "current",
-            Key = key,
-            LastModified = metadata.LastModified,
-            Size = metadata.ContentLength,
-            ETag = metadata.ETag,
-            IsLatest = true,
-            IsDeleteMarker = false
-        };
     }
 
     /// <inheritdoc />
     public async Task<ListObjectVersionsResult> ListObjectVersionsAsync(string bucketName, string? prefix = null)
     {
-        // Use versioning manager to list versions
         var versioningManager = new S3ObjectVersioningManager();
         var versions = versioningManager.ListVersions(bucketName, prefix);
-
         var result = new ListObjectVersionsResult
         {
             BucketName = bucketName,
             Prefix = prefix
         };
-
-        // Convert from Versioning.ObjectVersion to Abstraction.ObjectVersion
         foreach (var version in versions)
         {
             result.Versions.Add(new()
@@ -583,11 +515,9 @@ public class GridFSObjectStorage : IObjectStorage
                 Size = version.Size,
                 ETag = version.ETag,
                 IsLatest = version.IsLatest,
-                IsDeleteMarker = false // Versioning manager doesn't support delete markers yet
+                IsDeleteMarker = false
             });
         }
-
-        // If no versioned data exists, fall back to current versions
         if (result.Versions.Count == 0)
         {
             var listResult = await ListObjectsAsync(bucketName, prefix);
@@ -605,8 +535,7 @@ public class GridFSObjectStorage : IObjectStorage
                 });
             }
         }
-
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield();
         return result;
     }
 
@@ -637,7 +566,6 @@ public class GridFSObjectStorage : IObjectStorage
             // Store the encrypted data
             encryptedStream.Position = 0;
             await PutObjectAsync(bucketName, key, encryptedStream, contentType, finalMetadata);
-
             return new()
             {
                 BucketName = bucketName,
@@ -690,7 +618,6 @@ public class GridFSObjectStorage : IObjectStorage
 
         // Create encryption manager and decrypt the stream
         var encryptionManager = new S3ServerSideEncryptionManager(masterKey);
-
         try
         {
             return await encryptionManager.DecryptAsync(encryptedStream, keyId);
@@ -699,6 +626,52 @@ public class GridFSObjectStorage : IObjectStorage
         {
             throw new InvalidOperationException($"Failed to decrypt object {key}: {ex.Message}", ex);
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<ObjectVersion> GetObjectVersionAsync(string bucketName, string key, string? versionId = null)
+    {
+        var versioningManager = new S3ObjectVersioningManager();
+        var version = versioningManager.GetVersion(bucketName, key, versionId);
+        if (version != null)
+        {
+            await Task.Yield();
+            return new()
+            {
+                VersionId = version.VersionId,
+                Key = version.Key,
+                LastModified = version.LastModified,
+                Size = version.Size,
+                ETag = version.ETag,
+                IsLatest = version.IsLatest,
+                IsDeleteMarker = false
+            };
+        }
+        var metadata = await GetObjectMetadataAsync(bucketName, key);
+        return new()
+        {
+            VersionId = versionId ?? "current",
+            Key = key,
+            LastModified = metadata.LastModified,
+            Size = metadata.ContentLength,
+            ETag = metadata.ETag,
+            IsLatest = true,
+            IsDeleteMarker = false
+        };
+    }
+
+    private static string ComposeStorageKey(string bucketName, string key)
+    {
+        // Normalize to bucketName/key without duplicate slashes
+        bucketName = bucketName.Trim('/');
+        key = key.Trim('/');
+        return string.IsNullOrEmpty(bucketName) ? key : $"{bucketName}/{key}";
+    }
+
+    private static string StripBucketPrefix(string bucketName, string storageKey)
+    {
+        var prefix = bucketName.Trim('/') + "/";
+        return storageKey.StartsWith(prefix, StringComparison.Ordinal) ? storageKey[prefix.Length..] : storageKey;
     }
 
     /// <summary>
@@ -818,10 +791,22 @@ public class GridFSObjectStorage : IObjectStorage
             throw new ArgumentException("Invalid range");
         }
         var length = (end - start) + 1;
-        var rangeStream = new MemoryStream((int)length);
         fullStream.Position = start;
-        await fullStream.CopyToAsync(rangeStream, (int)length);
-        rangeStream.Position = 0;
-        return rangeStream;
+        var buffer = new byte[81920];
+        var remaining = length;
+        var outStream = new MemoryStream((int)Math.Min(length, int.MaxValue));
+        while (remaining > 0)
+        {
+            var toRead = (int)Math.Min(remaining, buffer.Length);
+            var read = await fullStream.ReadAsync(buffer.AsMemory(0, toRead));
+            if (read <= 0)
+            {
+                break;
+            }
+            await outStream.WriteAsync(buffer.AsMemory(0, read));
+            remaining -= read;
+        }
+        outStream.Position = 0;
+        return outStream;
     }
 }
