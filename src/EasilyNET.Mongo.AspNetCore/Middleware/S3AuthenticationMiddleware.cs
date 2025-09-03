@@ -1,8 +1,10 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using EasilyNET.Mongo.AspNetCore.Security;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -16,7 +18,7 @@ namespace EasilyNET.Mongo.AspNetCore.Middleware;
 ///     <para xml:lang="en">Constructor</para>
 ///     <para xml:lang="zh">构造函数</para>
 /// </remarks>
-public class S3AuthenticationMiddleware(RequestDelegate next, ILogger<S3AuthenticationMiddleware> logger, IOptions<S3AuthenticationOptions> options)
+public partial class S3AuthenticationMiddleware(RequestDelegate next, ILogger<S3AuthenticationMiddleware> logger, IOptions<S3AuthenticationOptions> options, MongoS3IamPolicyManager iamManager)
 {
     private readonly S3AuthenticationOptions _options = options.Value;
 
@@ -133,10 +135,15 @@ public class S3AuthenticationMiddleware(RequestDelegate next, ILogger<S3Authenti
         }
 
         // Get secret key for access key
-        if (!_options.AccessKeys.TryGetValue(accessKey, out var secretKey) || string.IsNullOrEmpty(secretKey))
+        var user = await iamManager.GetUserByAccessKeyAsync(accessKey);
+        if (user == null || string.IsNullOrEmpty(user.SecretKey))
         {
             return false;
         }
+        var secretKey = user.SecretKey;
+
+        // Update last used time
+        await iamManager.UpdateAccessKeyLastUsedAsync(accessKey);
 
         // Reconstruct canonical request
         var canonicalRequest = await BuildCanonicalRequestAsync(context, signedHeaders);
@@ -178,11 +185,10 @@ public class S3AuthenticationMiddleware(RequestDelegate next, ILogger<S3Authenti
         foreach (var kvp in query)
         {
             var key = Uri.EscapeDataString(kvp.Key).Replace("%7E", "~");
-            foreach (var v in kvp.Value.OrderBy(v => v, StringComparer.Ordinal))
-            {
-                var val = Uri.EscapeDataString(v ?? string.Empty).Replace("%7E", "~");
-                items.Add((key, val));
-            }
+            items.AddRange(kvp.Value
+                              .OrderBy(v => v, StringComparer.Ordinal)
+                              .Select(v => Uri.EscapeDataString(v ?? string.Empty)
+                                              .Replace("%7E", "~")).Select(val => (key, val)));
         }
         return string.Join("&", items.OrderBy(i => i.Key, StringComparer.Ordinal).ThenBy(i => i.Value, StringComparer.Ordinal).Select(i => $"{i.Key}={i.Value}"));
     }
@@ -219,15 +225,11 @@ public class S3AuthenticationMiddleware(RequestDelegate next, ILogger<S3Authenti
         }
 
         // Some frameworks need body buffering to compute hash; ensure it's enabled when requested later
-        if (context.Request.Body.CanSeek)
-        {
-            context.Request.Body.Position = 0;
-        }
-        else
+        if (!context.Request.Body.CanSeek)
         {
             context.Request.EnableBuffering();
-            context.Request.Body.Position = 0;
         }
+        context.Request.Body.Position = 0;
         await Task.Yield();
         return headers.ToString();
     }
@@ -236,7 +238,7 @@ public class S3AuthenticationMiddleware(RequestDelegate next, ILogger<S3Authenti
     {
         // Trim and collapse sequential spaces per AWS spec
         var trimmed = value.Trim();
-        return Regex.Replace(trimmed, "\\s+", " ");
+        return WhitespaceRegex().Replace(trimmed, " ");
     }
 
     private static async Task<string> CalculatePayloadHashAsync(HttpContext context)
@@ -287,6 +289,9 @@ public class S3AuthenticationMiddleware(RequestDelegate next, ILogger<S3Authenti
         using var hmac = new HMACSHA256(key);
         return hmac.ComputeHash(data);
     }
+
+    [GeneratedRegex("\\s+")]
+    private static partial Regex WhitespaceRegex();
 }
 
 /// <summary>
@@ -306,13 +311,6 @@ public class S3AuthenticationOptions
     ///     <para xml:lang="zh">是否要求认证</para>
     /// </summary>
     public bool RequireAuthentication { get; set; } = false;
-
-    /// <summary>
-    ///     <para xml:lang="en">Access keys and secret keys mapping</para>
-    ///     <para xml:lang="zh">访问密钥和秘密密钥映射</para>
-    /// </summary>
-    // ReSharper disable once CollectionNeverUpdated.Global
-    public Dictionary<string, string> AccessKeys { get; set; } = new();
 }
 
 /// <summary>
@@ -338,7 +336,8 @@ public static class S3AuthenticationMiddlewareExtensions
     {
         var opts = new S3AuthenticationOptions();
         configureOptions(opts);
-        // Pass options to middleware using IOptions without creating a new service provider
-        return builder.UseMiddleware<S3AuthenticationMiddleware>(Microsoft.Extensions.Options.Options.Create(opts));
+        // Get IAM manager from services
+        var iamManager = builder.ApplicationServices.GetRequiredService<MongoS3IamPolicyManager>();
+        return builder.UseMiddleware<S3AuthenticationMiddleware>(Microsoft.Extensions.Options.Options.Create(opts), iamManager);
     }
 }
