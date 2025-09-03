@@ -169,11 +169,11 @@ public static class GridFSCollectionExtensions
         {
             // Get master key from configuration or environment variable
             var configuration = sp.GetRequiredService<IConfiguration>();
-            var masterKey = configuration["EasilyNET:MasterKey"] ??
-                            Environment.GetEnvironmentVariable("EASILYNET_MASTER_KEY") ??
-                            "DefaultMasterKey12345678901234567890123456789012"; // 32 bytes for AES-256
+            var masterKey = Environment.GetEnvironmentVariable("EASILYNET_MASTER_KEY") ?? configuration["EasilyNET:MasterKey"]; // 32 bytes for AES-256
             // Validate master key length (must be 32 bytes for AES-256)
-            return masterKey.Length != 32 ? throw new InvalidOperationException("Master key must be exactly 32 characters (256 bits) for AES-256 encryption") : new(masterKey);
+            return string.IsNullOrWhiteSpace(masterKey) || masterKey.Length != 32
+                       ? throw new InvalidOperationException("Master key must be exactly 32 characters (256 bits) for AES-256 encryption")
+                       : new(masterKey);
         });
         return services;
     }
