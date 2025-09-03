@@ -2,7 +2,6 @@ using EasilyNET.Core.Misc;
 using EasilyNET.Mongo.AspNetCore.Common;
 using EasilyNET.Mongo.AspNetCore.Conventions;
 using EasilyNET.Mongo.AspNetCore.Options;
-using EasilyNET.Mongo.AspNetCore.Security;
 using EasilyNET.Mongo.Core;
 using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
@@ -169,37 +168,5 @@ public static class MongoServiceExtensions
         }, x => !options.ObjectIdToStringTypes.Contains(x));
         // 确保全局序列化器只注册一次
         _ = FirstInitialization.Value;
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Add MongoDB-based S3 IAM Policy Manager</para>
-    ///     <para xml:lang="zh">添加基于MongoDB的S3 IAM策略管理器</para>
-    /// </summary>
-    /// <param name="services">
-    ///     <see cref="IServiceCollection" />
-    /// </param>
-    /// <param name="database">
-    ///     <para xml:lang="en">MongoDB database instance</para>
-    ///     <para xml:lang="zh">MongoDB数据库实例</para>
-    /// </param>
-    public static void AddMongoS3IamPolicyManager(this IServiceCollection services, IMongoDatabase database)
-    {
-        services.AddSingleton(new MongoS3IamPolicyManager(database));
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Add MongoDB-based S3 IAM Policy Manager using service provider</para>
-    ///     <para xml:lang="zh">使用服务提供程序添加基于MongoDB的S3 IAM策略管理器</para>
-    /// </summary>
-    /// <param name="services">
-    ///     <see cref="IServiceCollection" />
-    /// </param>
-    public static void AddMongoS3IamPolicyManager(this IServiceCollection services)
-    {
-        services.AddSingleton<MongoS3IamPolicyManager>(sp =>
-        {
-            var database = sp.GetRequiredService<IMongoDatabase>();
-            return new(database);
-        });
     }
 }

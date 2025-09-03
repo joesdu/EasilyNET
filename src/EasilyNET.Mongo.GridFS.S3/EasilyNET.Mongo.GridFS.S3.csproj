@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyTitle>$(PackagePrefix).Mongo.GridFS.S3</AssemblyTitle>
+    <AssemblyName>$(PackagePrefix).Mongo.GridFS.S3</AssemblyName>
+    <PackageId>$(PackagePrefix).Mongo.GridFS.S3</PackageId>
+    <PackageTags>MongoDB S3 GridFS</PackageTags>
+    <PackageReleaseNotes>
+    </PackageReleaseNotes>
+    <RootNamespace>EasilyNET.Mongo.GridFS.S3</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Mongo.GridFS.S3</PackageProjectUrl>
+    <Description>MongoDB GridFS S3兼容API实现，提供完整的S3 REST API接口，支持多部分上传、加密、版本控制等高级功能.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MongoDB.Driver" />
+	</ItemGroup>
+
+</Project>
