@@ -54,4 +54,3 @@ exec { & dotnet pack .\src\EasilyNET.Security\EasilyNET.Security.csproj -c Relea
 exec { & dotnet pack .\src\EasilyNET.Mongo.AspNetCore\EasilyNET.Mongo.AspNetCore.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.Mongo.ConsoleDebug\EasilyNET.Mongo.ConsoleDebug.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
 exec { & dotnet pack .\src\EasilyNET.Mongo.Core\EasilyNET.Mongo.Core.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }
-exec { & dotnet pack .\src\EasilyNET.Mongo.GridFS.S3\EasilyNET.Mongo.GridFS.S3.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }

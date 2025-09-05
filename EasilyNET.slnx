@@ -41,7 +41,6 @@
     <Folder Name="/src/Framework/">
         <Project Path="src/EasilyNET.AutoDependencyInjection.Core/EasilyNET.AutoDependencyInjection.Core.csproj" />
         <Project Path="src/EasilyNET.AutoDependencyInjection/EasilyNET.AutoDependencyInjection.csproj" />
-        <Project Path="src/EasilyNET.Consensus.Raft/EasilyNET.Consensus.Raft.csproj" />
         <Project Path="src/EasilyNET.RabbitBus.AspNetCore/EasilyNET.RabbitBus.AspNetCore.csproj" />
         <Project Path="src/EasilyNET.RabbitBus.Core/EasilyNET.RabbitBus.Core.csproj" />
         <Project Path="src/EasilyNET.Security/EasilyNET.Security.csproj" />
@@ -50,7 +49,6 @@
         <Project Path="src/EasilyNET.Mongo.AspNetCore/EasilyNET.Mongo.AspNetCore.csproj" />
         <Project Path="src/EasilyNET.Mongo.ConsoleDebug/EasilyNET.Mongo.ConsoleDebug.csproj" />
         <Project Path="src/EasilyNET.Mongo.Core/EasilyNET.Mongo.Core.csproj" />
-		<Project Path="src/EasilyNET.Mongo.GridFS.S3/EasilyNET.Mongo.GridFS.S3.csproj" />
     </Folder>
     <Folder Name="/test/">
         <Project Path="test/EasilyNET.Core.Benchmark/EasilyNET.Core.Benchmark.csproj" />
