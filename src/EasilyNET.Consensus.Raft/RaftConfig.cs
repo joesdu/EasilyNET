@@ -66,7 +66,7 @@ public class RaftConfig
     /// </summary>
     /// <param name="nodeId">节点ID</param>
     /// <returns>节点地址信息，如果不存在则返回null</returns>
-    public NodeAddress? GetNodeAddress(string nodeId) => NodeAddresses.TryGetValue(nodeId, out var address) ? address : null;
+    public NodeAddress? GetNodeAddress(string nodeId) => NodeAddresses.GetValueOrDefault(nodeId);
 
     /// <summary>
     /// 设置节点的地址信息
