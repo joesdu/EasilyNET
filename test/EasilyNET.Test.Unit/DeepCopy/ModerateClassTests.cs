@@ -59,7 +59,7 @@ public class ModerateClassTests
         {
             return;
         }
-        Assert.HasCount(m.SimpleClassArray.Length, mCopy.SimpleClassArray);
+        Assert.HasCount(mCopy.SimpleClassArray, m.SimpleClassArray.Length);
         for (var i = 0; i < m.SimpleClassArray.Length; i++)
         {
             SimpleClassTests.Assert_AreEqualButNotSame(m.SimpleClassArray[i], mCopy.SimpleClassArray[i]);
