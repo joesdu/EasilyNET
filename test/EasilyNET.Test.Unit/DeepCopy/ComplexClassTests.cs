@@ -98,7 +98,7 @@ public class ComplexClassTests
                 {
                     continue;
                 }
-                Assert.HasCount(subSubArray.Length, subSubArrayCopy);
+                Assert.HasCount(subSubArrayCopy, subSubArray.Length);
                 for (var k = 0; k < subSubArray.Length; k++)
                 {
                     var item = subSubArray[k];
