@@ -80,7 +80,7 @@ public class ComplexClassTests
         {
             return;
         }
-        Assert.HasCount(c.SimpleMultiDimArray.Length, cCopy.SimpleMultiDimArray);
+        Assert.HasCount(cCopy.SimpleMultiDimArray, c.SimpleMultiDimArray.Length);
         for (var i = 0; i < c.SimpleMultiDimArray.Length; i++)
         {
             var subArray = c.SimpleMultiDimArray[i];
