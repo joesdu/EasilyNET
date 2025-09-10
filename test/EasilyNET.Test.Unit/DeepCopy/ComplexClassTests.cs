@@ -46,7 +46,7 @@ public class ComplexClassTests
         Assert.IsTrue(cCopy.IsJustEventNull);
 
         // test of regular dictionary
-        Assert.AreEqual(c.SampleDictionary.Count, cCopy.SampleDictionary.Count);
+        Assert.HasCount(c.SampleDictionary.Count, cCopy.SampleDictionary);
         foreach (var pair in c.SampleDictionary.Zip(cCopy.SampleDictionary, (item, itemCopy) => new { item, itemCopy }))
         {
             Assert.AreEqual(pair.item.Key, pair.itemCopy.Key);
@@ -54,7 +54,7 @@ public class ComplexClassTests
         }
 
         // test of dictionary of interfaces
-        Assert.AreEqual(c.ISampleDictionary.Count, cCopy.ISampleDictionary.Count);
+        Assert.HasCount(c.ISampleDictionary.Count, cCopy.ISampleDictionary);
         foreach (var pair in c.ISampleDictionary.Zip(cCopy.ISampleDictionary, (item, itemCopy) => new { item, itemCopy }))
         {
             Assert.AreEqual(pair.item.Key, pair.itemCopy.Key);
@@ -80,7 +80,7 @@ public class ComplexClassTests
         {
             return;
         }
-        Assert.AreEqual(c.SimpleMultiDimArray.Length, cCopy.SimpleMultiDimArray.Length);
+        Assert.HasCount(c.SimpleMultiDimArray.Length, cCopy.SimpleMultiDimArray);
         for (var i = 0; i < c.SimpleMultiDimArray.Length; i++)
         {
             var subArray = c.SimpleMultiDimArray[i];
@@ -89,7 +89,7 @@ public class ComplexClassTests
             {
                 continue;
             }
-            Assert.AreEqual(subArray.Length, subArrayCopy.Length);
+            Assert.HasCount(subArray.Length, subArrayCopy);
             for (var j = 0; j < subArray.Length; j++)
             {
                 var subSubArray = subArray[j];
@@ -98,7 +98,7 @@ public class ComplexClassTests
                 {
                     continue;
                 }
-                Assert.AreEqual(subSubArray.Length, subSubArrayCopy.Length);
+                Assert.HasCount(subSubArray.Length, subSubArrayCopy);
                 for (var k = 0; k < subSubArray.Length; k++)
                 {
                     var item = subSubArray[k];

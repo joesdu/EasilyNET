@@ -88,24 +88,22 @@ public class AsyncLockTests
     [TestMethod]
     public async Task LockAsync_ConcurrentAccessToSharedResource_ShouldSerializeAccess()
     {
-        var asyncLock = new AsyncLock();
-        var tasks = new List<Task>();
-        const int numTasks = 100;
-        for (var i = 0; i < numTasks; i++)
+        var lockObj = new AsyncLock();
+        var shared = 0;
+
+        async Task AccessShared()
         {
-            var k = i;
-            tasks.Add(Task.Run(async () =>
+            using (await lockObj.LockAsync())
             {
-                using (await asyncLock.LockAsync())
-                {
-                    // Simulate some work
-                    await Task.Delay(1);
-                    _dictionary.Add(k.ToString(), k.ToString());
-                }
-            }));
+                var initial = shared;
+                await Task.Delay(50); // Simulate work
+                shared = initial + 1;
+            }
         }
+
+        var tasks = Enumerable.Range(0, 10).Select(_ => AccessShared()).ToArray();
         await Task.WhenAll(tasks);
-        _dictionary.Count.ShouldBe(numTasks);
+        Assert.AreEqual(10, shared); // Ensure increments are serialized
         TestContext?.WriteLine($"Dictionary count after concurrent adds: {_dictionary.Count}");
     }
 

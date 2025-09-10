@@ -15,24 +15,6 @@ public static class EnumExtensions
     private static readonly ConcurrentDictionary<Enum, string> DescriptionCache = [];
 
     /// <summary>
-    ///     <para xml:lang="en">Gets all enum values, excluding the specified values</para>
-    ///     <para xml:lang="zh">获取枚举的所有值，排除指定的值</para>
-    /// </summary>
-    /// <typeparam name="T">
-    ///     <para xml:lang="en">The enum type</para>
-    ///     <para xml:lang="zh">枚举类型</para>
-    /// </typeparam>
-    /// <param name="exclude">
-    ///     <para xml:lang="en">The enum values to exclude</para>
-    ///     <para xml:lang="zh">要排除的枚举值</para>
-    /// </param>
-    public static IEnumerable<T> GetValues<T>(params T[] exclude) where T : Enum
-    {
-        var allValues = Enum.GetValues(typeof(T)).Cast<T>();
-        return exclude.Length == 0 ? allValues : allValues.Except(exclude);
-    }
-
-    /// <summary>
     ///     <para xml:lang="en">Enum extensions</para>
     ///     <para xml:lang="zh">扩展枚举</para>
     /// </summary>
@@ -48,5 +30,23 @@ public static class EnumExtensions
             var descriptionAttribute = fieldInfo?.GetCustomAttributes(typeof(DescriptionAttribute), false).FirstOrDefault() as DescriptionAttribute;
             return descriptionAttribute?.Description ?? enumValue.ToString();
         });
+
+        /// <summary>
+        ///     <para xml:lang="en">Gets all enum values, excluding the specified values</para>
+        ///     <para xml:lang="zh">获取枚举的所有值，排除指定的值</para>
+        /// </summary>
+        /// <typeparam name="T">
+        ///     <para xml:lang="en">The enum type</para>
+        ///     <para xml:lang="zh">枚举类型</para>
+        /// </typeparam>
+        /// <param name="exclude">
+        ///     <para xml:lang="en">The enum values to exclude</para>
+        ///     <para xml:lang="zh">要排除的枚举值</para>
+        /// </param>
+        public static IEnumerable<T> GetValues<T>(params T[] exclude) where T : Enum
+        {
+            var allValues = Enum.GetValues(typeof(T)).Cast<T>();
+            return exclude.Length is 0 ? allValues : allValues.Except(exclude);
+        }
     }
 }
