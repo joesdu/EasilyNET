@@ -14,7 +14,7 @@ public class PooledMemoryStreamTest
         stream.Position = 0;
         var read = new byte[data.Length];
         var bytesRead = stream.Read(read, 0, read.Length);
-        Assert.HasCount(data, bytesRead);
+        Assert.HasCount(bytesRead, data);
         CollectionAssert.AreEqual(data, read);
     }
 
@@ -69,7 +69,7 @@ public class PooledMemoryStreamTest
         stream.Position = 0;
         var read = new byte[data.Length];
         var bytesRead = stream.Read(read);
-        Assert.HasCount(data, bytesRead);
+        Assert.HasCount(bytesRead, data);
         CollectionAssert.AreEqual(data, read);
     }
 }
