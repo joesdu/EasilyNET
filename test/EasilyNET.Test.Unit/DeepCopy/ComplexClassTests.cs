@@ -46,7 +46,7 @@ public class ComplexClassTests
         Assert.IsTrue(cCopy.IsJustEventNull);
 
         // test of regular dictionary
-        Assert.HasCount(c.SampleDictionary.Count, cCopy.SampleDictionary);
+        Assert.HasCount(cCopy.SampleDictionary, c.SampleDictionary.Count);
         foreach (var pair in c.SampleDictionary.Zip(cCopy.SampleDictionary, (item, itemCopy) => new { item, itemCopy }))
         {
             Assert.AreEqual(pair.item.Key, pair.itemCopy.Key);
