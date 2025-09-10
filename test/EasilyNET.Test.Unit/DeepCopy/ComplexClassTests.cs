@@ -54,7 +54,7 @@ public class ComplexClassTests
         }
 
         // test of dictionary of interfaces
-        Assert.HasCount(c.ISampleDictionary.Count, cCopy.ISampleDictionary);
+        Assert.HasCount(cCopy.ISampleDictionary, c.ISampleDictionary.Count);
         foreach (var pair in c.ISampleDictionary.Zip(cCopy.ISampleDictionary, (item, itemCopy) => new { item, itemCopy }))
         {
             Assert.AreEqual(pair.item.Key, pair.itemCopy.Key);
