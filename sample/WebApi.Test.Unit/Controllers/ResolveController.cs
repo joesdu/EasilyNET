@@ -10,7 +10,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// <param name="provider"></param>
 [Route("api/[controller]")]
 [ApiController]
-public class ResolveAndDecoratorController(IServiceProvider provider) : ControllerBase
+public class ResolveController(IServiceProvider provider) : ControllerBase
 {
     /// <summary>
     /// Get
