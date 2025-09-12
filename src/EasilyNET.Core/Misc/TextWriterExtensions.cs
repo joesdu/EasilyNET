@@ -491,7 +491,10 @@ public static partial class TextWriterExtensions
                 Task.Delay(delay, cancellationToken).Wait(cancellationToken);
             }
         }
-        catch (TaskCanceledException) { }
+        catch (TaskCanceledException)
+        {
+            // Cancellation is expected; ignore the exception to allow graceful exit.
+        }
         finally
         {
             writer.Write(IsAnsiSupported() ? "\r\e[2K" : "\r ");
