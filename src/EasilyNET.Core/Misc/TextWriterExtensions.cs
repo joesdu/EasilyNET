@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using EasilyNET.Core.Commons;
 using EasilyNET.Core.Threading;
 
@@ -13,11 +14,16 @@ namespace EasilyNET.Core.Misc;
 ///     <para xml:lang="en">TextWriter Extensions</para>
 ///     <para xml:lang="zh"><see cref="Console.Out" /> 扩展方法</para>
 /// </summary>
-public static class TextWriterExtensions
+public static partial class TextWriterExtensions
 {
+    private const int DefaultProgressBarWidth = 30; // 固定模式下默认进度条宽度
     private static readonly AsyncLock _asyncLock = new();
     private static readonly Lock _syncLock = new();
+
     private static string _lastOutput = string.Empty;
+
+    // 记录显示宽度(去 ANSI, 大致处理全角双宽字符)
+    private static int _lastOutputLength;
     private static readonly char[] _loadingFrames;
     private static bool? _ansiSupported;
     private static bool? _cursorPosSupported;
@@ -26,195 +32,38 @@ public static class TextWriterExtensions
 
     static TextWriterExtensions()
     {
-        // 检查平台是否支持 UTF-8 编码
-        if (!Console.IsOutputRedirected && IsUtf8Supported())
+        try
         {
-            // 启用 UTF-8 支持
-            Console.OutputEncoding = Encoding.UTF8;
-            // ⣿
+            // 检查平台是否支持 UTF-8 编码
+            if (!Console.IsOutputRedirected && IsUtf8Supported() && !Console.OutputEncoding.Equals(Encoding.UTF8))
+            {
+                Console.OutputEncoding = Encoding.UTF8; // 启用 UTF-8 支持
+            }
+        }
+        catch (Exception)
+        {
+            // 忽略设置编码时的异常(受限宿主等场景)
+        }
+        if (Console.OutputEncoding.Equals(Encoding.UTF8))
+        {
+            // ⣿ 等 braille 动画字符
             _loadingFrames = ['⣾', '⣷', '⣯', '⣟', '⡿', '⢿', '⣻', '⣽'];
         }
-        // 当不支持 UTF-8 编码时,使用默认编码,并使用简单的字符
         else
         {
-            //Console.OutputEncoding = Encoding.Default;
             _loadingFrames = ['-', '\\', '|', '/'];
         }
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Thread-safe output message on the same line in the console, and wrap</para>
-    ///     <para xml:lang="zh">线程安全的在控制台同一行输出消息,并换行</para>
-    /// </summary>
-    /// <remarks>
-    ///     <para>Usage:</para>
-    ///     <code>
-    ///   <![CDATA[
-    ///  await Console.Out.SafeWriteLineAsync("Hello World!");
-    /// ]]>
-    /// </code>
-    /// </remarks>
-    /// <param name="writer">
-    /// <see cref="TextWriter" />>
-    /// </param>
-    /// <param name="msg">
-    ///     <para xml:lang="en">Message</para>
-    ///     <para xml:lang="zh">消息</para>
-    /// </param>
-    public static async Task SafeWriteLineAsync(this TextWriter writer, string msg)
-    {
-        using (await _asyncLock.LockAsync())
-        {
-            if (_lastOutput != msg)
-            {
-                if (IsAnsiSupported())
-                {
-                    await writer.WriteLineAsync($"\e[1A\e[2K\e[1G{msg}");
-                }
-                else
-                {
-                    await writer.ClearPreviousLineAsync();
-                    await writer.WriteLineAsync(msg);
-                }
-                _lastOutput = msg;
-            }
-        }
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Thread-safe output message on the same line in the console, and wrap</para>
-    ///     <para xml:lang="zh">线程安全的在控制台同一行输出消息,并换行</para>
-    /// </summary>
-    /// <remarks>
-    ///     <para>Usage:</para>
-    ///     <code>
-    ///   <![CDATA[
-    ///  Console.Out.SafeWriteLine("Hello World!");
-    /// ]]>
-    /// </code>
-    /// </remarks>
-    /// <param name="writer">
-    /// <see cref="TextWriter" />>
-    /// </param>
-    /// <param name="msg">
-    ///     <para xml:lang="en">Message</para>
-    ///     <para xml:lang="zh">消息</para>
-    /// </param>
-    public static void SafeWriteLine(this TextWriter writer, string msg)
-    {
-        lock (_syncLock)
-        {
-            if (_lastOutput == msg)
-            {
-                return;
-            }
-            if (IsAnsiSupported())
-            {
-                writer.WriteLine($"\e[1A\e[2K\e[1G{msg}");
-            }
-            else
-            {
-                writer.ClearPreviousLine();
-                writer.WriteLine(msg);
-            }
-            _lastOutput = msg;
-        }
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Thread-safe output message on the same line in the console</para>
-    ///     <para xml:lang="zh">线程安全的在控制台同一行输出消息</para>
-    /// </summary>
-    /// <remarks>
-    ///     <para>Usage:</para>
-    ///     <code>
-    ///   <![CDATA[
-    ///  await Console.Out.SafeWriteAsync("Hello World!");
-    /// ]]>
-    /// </code>
-    /// </remarks>
-    /// <param name="writer">
-    /// <see cref="TextWriter" />>
-    /// </param>
-    /// <param name="msg">
-    ///     <para xml:lang="en">Message</para>
-    ///     <para xml:lang="zh">消息</para>
-    /// </param>
-    public static async Task SafeWriteAsync(this TextWriter writer, string msg)
-    {
-        using (await _asyncLock.LockAsync())
-        {
-            if (_lastOutput != msg)
-            {
-                if (IsAnsiSupported())
-                {
-                    await writer.WriteAsync($"\e[2K\e[1G{msg}");
-                }
-                else
-                {
-                    await writer.ClearCurrentLineAsync();
-                    await writer.WriteAsync(msg);
-                }
-                _lastOutput = msg;
-            }
-        }
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Thread-safe output message on the same line in the console</para>
-    ///     <para xml:lang="zh">线程安全的在控制台同一行输出消息</para>
-    /// </summary>
-    /// <remarks>
-    ///     <para>Usage:</para>
-    ///     <code>
-    ///   <![CDATA[
-    ///  Console.Out.SafeWrite("Hello World!");
-    /// ]]>
-    /// </code>
-    /// </remarks>
-    /// <param name="writer">
-    /// <see cref="TextWriter" />>
-    /// </param>
-    /// <param name="msg">
-    ///     <para xml:lang="en">Message</para>
-    ///     <para xml:lang="zh">消息</para>
-    /// </param>
-    public static void SafeWrite(this TextWriter writer, string msg)
-    {
-        lock (_syncLock)
-        {
-            if (_lastOutput == msg)
-            {
-                return;
-            }
-            if (IsAnsiSupported())
-            {
-                writer.Write($"\e[2K\e[1G{msg}");
-            }
-            else
-            {
-                writer.ClearCurrentLine();
-                writer.Write(msg);
-            }
-            _lastOutput = msg;
-        }
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Thread-safe clear current line</para>
+    ///     <para xml:lang="en">Thread-safe clear current line.</para>
     ///     <para xml:lang="zh">线程安全的清除当前行</para>
     /// </summary>
     /// <remarks>
-    ///     <para>Usage:</para>
-    ///     <code>
-    ///   <![CDATA[
-    ///  await Console.Out.SafeClearCurrentLineAsync();
-    /// ]]>
-    /// </code>
+    ///     <code><![CDATA[
+    /// await Console.Out.SafeClearCurrentLineAsync();
+    /// ]]></code>
     /// </remarks>
-    /// <param name="writer">
-    /// <see cref="TextWriter" />>
-    /// </param>
     public static async Task SafeClearCurrentLineAsync(this TextWriter writer)
     {
         using (await _asyncLock.LockAsync())
@@ -224,20 +73,14 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Thread-safe clear current line</para>
+    ///     <para xml:lang="en">Thread-safe clear current line.</para>
     ///     <para xml:lang="zh">线程安全的清除当前行</para>
     /// </summary>
     /// <remarks>
-    ///     <para>Usage:</para>
-    ///     <code>
-    ///   <![CDATA[
-    ///  Console.Out.SafeClearCurrentLine();
-    /// ]]>
-    /// </code>
+    ///     <code><![CDATA[
+    /// Console.Out.SafeClearCurrentLine();
+    /// ]]></code>
     /// </remarks>
-    /// <param name="writer">
-    /// <see cref="TextWriter" />>
-    /// </param>
     public static void SafeClearCurrentLine(this TextWriter writer)
     {
         lock (_syncLock)
@@ -247,20 +90,9 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Thread-safe clear previous line and move cursor to the beginning of the line</para>
+    ///     <para xml:lang="en">Thread-safe clear previous line and move cursor to line start.</para>
     ///     <para xml:lang="zh">线程安全的清除上一行,并将光标移动到该行行首</para>
     /// </summary>
-    /// <remarks>
-    ///     <para>Usage:</para>
-    ///     <code>
-    ///   <![CDATA[
-    ///  await Console.Out.SafeClearPreviousLineAsync();
-    /// ]]>
-    /// </code>
-    /// </remarks>
-    /// <param name="writer">
-    /// <see cref="TextWriter" />>
-    /// </param>
     public static async Task SafeClearPreviousLineAsync(this TextWriter writer)
     {
         using (await _asyncLock.LockAsync())
@@ -270,20 +102,9 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Thread-safe clear previous line and move cursor to the beginning of the line</para>
+    ///     <para xml:lang="en">Thread-safe clear previous line and move cursor to line start.</para>
     ///     <para xml:lang="zh">线程安全的清除上一行,并将光标移动到该行行首</para>
     /// </summary>
-    /// <remarks>
-    ///     <para>Usage:</para>
-    ///     <code>
-    ///   <![CDATA[
-    ///  Console.Out.SafeClearPreviousLine();
-    /// ]]>
-    /// </code>
-    /// </remarks>
-    /// <param name="writer">
-    /// <see cref="TextWriter" />>
-    /// </param>
     public static void SafeClearPreviousLine(this TextWriter writer)
     {
         lock (_syncLock)
@@ -293,39 +114,15 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Output clickable path in the console, use [<see langword="Ctrl + Left Click" />] to open the path</para>
-    ///     <para xml:lang="zh">在控制台输出可点击的路径,使用 [<see langword="Ctrl + 鼠标左键" />] 即可打开路径</para>
+    ///     <para xml:lang="en">Output clickable path (Ctrl+Click in supporting terminals).</para>
+    ///     <para xml:lang="zh">输出可点击路径(支持终端中 Ctrl+Left Click 打开)</para>
     /// </summary>
     /// <remarks>
-    ///     <para>Usage:</para>
-    ///     <code>
-    ///   <![CDATA[
-    /// var path = @"F:\tools\test\test\bin\Release\net9.0\win-x64\publish";
-    ///   Console.Out.WriteClickablePath(path, true, 5, true);
-    /// Output:
-    ///   bin\Release\net9.0\win-x64\publish
-    /// ]]>
-    /// </code>
+    ///     <code><![CDATA[
+    /// var path = @"F:\tools\test\publish";
+    /// Console.Out.WriteClickablePath(path, true, 5, true);
+    /// ]]></code>
     /// </remarks>
-    /// <param name="writer">
-    /// <see cref="TextWriter" />>
-    /// </param>
-    /// <param name="path">
-    ///     <para xml:lang="en">Full path to process</para>
-    ///     <para xml:lang="zh">需要处理的完整路径</para>
-    /// </param>
-    /// <param name="relative">
-    ///     <para xml:lang="en">Whether to output relative path, default: <see langword="false" /></para>
-    ///     <para xml:lang="zh">是否输出相对路径,默认: <see langword="false" /></para>
-    /// </param>
-    /// <param name="deep">
-    ///     <para xml:lang="en">When it is a relative path, configure the directory depth, only keep the last N levels of directories</para>
-    ///     <para xml:lang="zh">当为相对路径的时候配置目录深度,仅保留最后 N 层目录</para>
-    /// </param>
-    /// <param name="newLine">
-    ///     <para xml:lang="en">Whether to wrap, default: <see langword="false" />, behavior is the same as Console.Write()</para>
-    ///     <para xml:lang="zh">是否换行,默认: <see langword="false" />,行为同: Console.Write()</para>
-    /// </param>
     public static void WriteClickablePath(this TextWriter writer, string path, bool relative = false, int deep = 5, bool newLine = false)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -344,16 +141,11 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Move the cursor X positions in the current line</para>
+    ///     <para xml:lang="en">Move the cursor X positions in the current line.</para>
     ///     <para xml:lang="zh">在当前行中将光标移动 X 个位置</para>
     /// </summary>
-    /// <param name="writer">
-    /// <see cref="TextWriter" />>
-    /// </param>
-    /// <param name="positions">
-    ///     <para xml:lang="en">The number of cursor positions to move, can be positive (right) or negative (left)</para>
-    ///     <para xml:lang="zh">要移动的光标位置数，可以为正数(右移)或负数(左移)</para>
-    /// </param>
+    /// <param name="writer"></param>
+    /// <param name="positions">正数右移,负数左移 / positive: right, negative: left</param>
     public static void MoveCursorInCurrentLine(this TextWriter writer, int positions)
     {
         if (positions == 0)
@@ -365,39 +157,30 @@ public static class TextWriterExtensions
             var direction = positions > 0 ? 'C' : 'D'; // 'C' 表示向右移动，'D' 表示向左移动
             writer.Write($"\e[{Math.Abs(positions)}{direction}");
         }
+        else if (IsCursorPosSupported())
+        {
+            try
+            {
+                var newLeft = Math.Max(0, Console.CursorLeft + positions);
+                Console.SetCursorPosition(newLeft, Console.CursorTop);
+            }
+            catch (IOException ex)
+            {
+                writer.WriteLine($"IOException: {ex.Message}");
+            }
+        }
         else
         {
-            if (IsCursorPosSupported())
-            {
-                try
-                {
-                    var newLeft = Math.Max(0, Console.CursorLeft + positions);
-                    Console.SetCursorPosition(newLeft, Console.CursorTop);
-                }
-                catch (IOException ex)
-                {
-                    // 记录异常或根据需要进行处理
-                    writer.WriteLine($"IOException: {ex.Message}");
-                }
-            }
-            else
-            {
-                Console.WriteLine();
-            }
+            Console.WriteLine();
         }
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Move the cursor X positions in the current line</para>
+    ///     <para xml:lang="en">Move the cursor X positions in the current line.</para>
     ///     <para xml:lang="zh">在当前行中将光标移动 X 个位置</para>
     /// </summary>
-    /// <param name="writer">
-    /// <see cref="TextWriter" />>
-    /// </param>
-    /// <param name="positions">
-    ///     <para xml:lang="en">The number of cursor positions to move, can be positive (right) or negative (left)</para>
-    ///     <para xml:lang="zh">要移动的光标位置数，可以为正数(右移)或负数(左移)</para>
-    /// </param>
+    /// <param name="writer"></param>
+    /// <param name="positions">正数右移,负数左移 / positive: right, negative: left</param>
     public static async Task MoveCursorInCurrentLineAsync(this TextWriter writer, int positions)
     {
         if (positions == 0)
@@ -409,54 +192,47 @@ public static class TextWriterExtensions
             var direction = positions > 0 ? 'C' : 'D'; // 'C' 表示向右移动，'D' 表示向左移动
             await writer.WriteAsync($"\e[{Math.Abs(positions)}{direction}");
         }
+        else if (IsCursorPosSupported())
+        {
+            try
+            {
+                var newLeft = Math.Max(0, Console.CursorLeft + positions);
+                Console.SetCursorPosition(newLeft, Console.CursorTop);
+            }
+            catch (IOException ex)
+            {
+                await writer.WriteLineAsync($"IOException: {ex.Message}");
+            }
+        }
         else
         {
-            if (IsCursorPosSupported())
-            {
-                try
-                {
-                    var newLeft = Math.Max(0, Console.CursorLeft + positions);
-                    Console.SetCursorPosition(newLeft, Console.CursorTop);
-                }
-                catch (IOException ex)
-                {
-                    // 记录异常或根据需要进行处理
-                    await writer.WriteLineAsync($"IOException: {ex.Message}");
-                }
-            }
-            else
-            {
-                Console.WriteLine();
-            }
+            Console.WriteLine();
         }
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Whether UTF-8 encoding is supported</para>
+    ///     <para xml:lang="en">Whether UTF-8 encoding is supported.</para>
     ///     <para xml:lang="zh">是否支持 UTF-8 编码</para>
     /// </summary>
-    /// <returns></returns>
     public static bool IsUtf8Supported()
     {
-        // 检查当前平台是否支持 UTF-8 编码
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             var osVersion = Environment.OSVersion.Version;
             // Windows 10 (10.0) 和 Windows Server 2016 (10.0) 及以上版本支持 UTF-8
             return osVersion.Major >= 10;
         }
-        // ReSharper disable once InvertIf
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && !RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
-            var term = Environment.GetEnvironmentVariable("TERM");
-            return !string.IsNullOrWhiteSpace(term) && term != "dumb";
+            return false;
         }
-        return false;
+        var term = Environment.GetEnvironmentVariable("TERM");
+        return !string.IsNullOrWhiteSpace(term) && term != "dumb";
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Determine whether the current terminal environment supports ANSI escape sequences</para>
-    ///     <para xml:lang="zh">判断当前环境终端是否支持 ANSI 转义序列</para>
+    ///     <para xml:lang="en">Determine whether ANSI escape sequences are supported.</para>
+    ///     <para xml:lang="zh">判断当前环境是否支持 ANSI 转义序列</para>
     /// </summary>
     public static bool IsAnsiSupported()
     {
@@ -469,8 +245,8 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Determine whether the current terminal environment supports console cursor movement</para>
-    ///     <para xml:lang="zh">判断当前环境终端是否支持控制台光标移动</para>
+    ///     <para xml:lang="en">Determine whether console cursor movement is supported.</para>
+    ///     <para xml:lang="zh">判断当前环境是否支持光标移动</para>
     /// </summary>
     public static bool IsCursorPosSupported()
     {
@@ -491,19 +267,16 @@ public static class TextWriterExtensions
         {
             try
             {
-                // 其他系统通过尝试设置光标位置,并捕获异常来判断是否支持光标移动
                 var (Left, Top) = Console.GetCursorPosition();
                 Console.SetCursorPosition(Left, Top);
                 _cursorPosSupported = true;
             }
             catch (IOException)
             {
-                // 捕获到 IOException，说明不支持
                 _cursorPosSupported = false;
             }
             catch (PlatformNotSupportedException)
             {
-                // 捕获到 PlatformNotSupportedException，说明不支持
                 _cursorPosSupported = false;
             }
         }
@@ -511,8 +284,8 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Determine whether the current terminal environment supports getting console window size</para>
-    ///     <para xml:lang="zh">判断当前环境终端是否支持获取控制台窗口大小</para>
+    ///     <para xml:lang="en">Determine whether retrieving console window size is supported.</para>
+    ///     <para xml:lang="zh">判断是否支持获取控制台窗口大小</para>
     /// </summary>
     public static bool IsWindowSizeSupported()
     {
@@ -525,49 +298,16 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Output progress bar in the console, used in scenarios where progress needs to be displayed</para>
-    ///     <para xml:lang="zh">在控制台输出进度条,用于某些时候需要显示进度的场景</para>
+    ///     <para xml:lang="en">Show progress bar (async).</para>
+    ///     <para xml:lang="zh">异步显示进度条</para>
     /// </summary>
-    /// <param name="writer">
-    /// <see cref="TextWriter" />Writer
-    /// </param>
-    /// <param name="percentage">
-    ///     <para xml:lang="en">Progress</para>
-    ///     <para xml:lang="zh">进度</para>
-    /// </param>
-    /// <param name="message">
-    ///     <para xml:lang="en">Message</para>
-    ///     <para xml:lang="zh">消息</para>
-    /// </param>
-    /// <param name="width">
-    ///     <para xml:lang="en">Overall width of the progress bar, excluding the message part</para>
-    ///     <para xml:lang="zh">进度条整体宽度,不包含消息部分</para>
-    /// </param>
-    /// <param name="completedChar">
-    ///     <para xml:lang="en">Character to fill the completed part</para>
-    ///     <para xml:lang="zh">完成部分填充字符</para>
-    /// </param>
-    /// <param name="incompleteChar">
-    ///     <para xml:lang="en">Character to fill the incomplete part</para>
-    ///     <para xml:lang="zh">未完成部分填充字符</para>
-    /// </param>
-    /// <param name="isFixedBarWidth">
-    ///     <para xml:lang="en"><see langword="true" />: Fixed progress bar width, <see langword="false" />: Fixed overall width</para>
-    ///     <para xml:lang="zh"><see langword="true" />: 固定进度条宽度,<see langword="false" />: 固定整体宽度</para>
-    /// </param>
     /// <remarks>
-    ///     <para>Usage:</para>
-    ///     <code>
-    ///   <![CDATA[
-    /// for (var progress = 0d; progress <= 100.00; progress += 0.1)
-    ///   {
-    ///      await Console.Out.ShowProgressBarAsync(progress, "Processing...", Console.WindowWidth);
-    ///      await Task.Delay(100);
-    ///   }
-    /// Output:
-    ///   [==========---------------------] 5.1% Processing...
-    /// ]]>
-    /// </code>
+    ///     <code><![CDATA[
+    /// for (var p=0d; p<=100; p+=0.5) {
+    ///     await Console.Out.ShowProgressBarAsync(p, "Processing...", Console.WindowWidth);
+    ///     await Task.Delay(50);
+    /// }
+    /// ]]></code>
     /// </remarks>
     public static async Task ShowProgressBarAsync(this TextWriter writer, double percentage, string message = "", int width = -1, char completedChar = '=', char incompleteChar = '-', bool isFixedBarWidth = true)
     {
@@ -588,49 +328,16 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Output progress bar in the console, used in scenarios where progress needs to be displayed</para>
-    ///     <para xml:lang="zh">在控制台输出进度条,用于某些时候需要显示进度的场景</para>
+    ///     <para xml:lang="en">Show progress bar.</para>
+    ///     <para xml:lang="zh">显示进度条</para>
     /// </summary>
-    /// <param name="writer">
-    /// <see cref="TextWriter" />Writer
-    /// </param>
-    /// <param name="percentage">
-    ///     <para xml:lang="en">Progress</para>
-    ///     <para xml:lang="zh">进度</para>
-    /// </param>
-    /// <param name="message">
-    ///     <para xml:lang="en">Message</para>
-    ///     <para xml:lang="zh">消息</para>
-    /// </param>
-    /// <param name="width">
-    ///     <para xml:lang="en">Width</para>
-    ///     <para xml:lang="zh">宽度</para>
-    /// </param>
-    /// <param name="completedChar">
-    ///     <para xml:lang="en">Character to fill the completed part</para>
-    ///     <para xml:lang="zh">完成部分填充字符</para>
-    /// </param>
-    /// <param name="incompleteChar">
-    ///     <para xml:lang="en">Character to fill the incomplete part</para>
-    ///     <para xml:lang="zh">未完成部分填充字符</para>
-    /// </param>
-    /// <param name="isFixedBarWidth">
-    ///     <para xml:lang="en"><see langword="true" />: Fixed progress bar width, <see langword="false" />: Fixed overall width</para>
-    ///     <para xml:lang="zh"><see langword="true" />: 固定进度条宽度,<see langword="false" />: 固定整体宽度</para>
-    /// </param>
     /// <remarks>
-    ///     <para>Usage:</para>
-    ///     <code>
-    ///   <![CDATA[
-    /// for (var progress = 0d; progress <= 100.00; progress += 0.1)
-    ///   {
-    ///      Console.Out.ShowProgressBar(progress, "Processing...", Console.WindowWidth);
-    ///      await Task.Delay(100);
-    ///   }
-    /// Output:
-    ///   [==========---------------------] 5.1% Processing...
-    /// ]]>
-    /// </code>
+    ///     <code><![CDATA[
+    /// for (var p=0d; p<=100; p+=0.5) {
+    ///     Console.Out.ShowProgressBar(p, "Processing...", Console.WindowWidth);
+    ///     Thread.Sleep(50);
+    /// }
+    /// ]]></code>
     /// </remarks>
     public static void ShowProgressBar(this TextWriter writer, double percentage, string message = "", int width = -1, char completedChar = '=', char incompleteChar = '-', bool isFixedBarWidth = true)
     {
@@ -651,16 +358,9 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Control the visibility of the console cursor, no effect if the platform is not supported</para>
-    ///     <para xml:lang="zh">控制控制台光标可见性,若平台不受支持则无效果</para>
+    ///     <para xml:lang="en">Set console cursor visibility (async).</para>
+    ///     <para xml:lang="zh">异步设置控制台光标可见性</para>
     /// </summary>
-    /// <param name="writer">
-    ///     <see cref="TextWriter" />
-    /// </param>
-    /// <param name="visible">
-    ///     <para xml:lang="en"><see langword="true" />: Show cursor, <see langword="false" />: Hide cursor</para>
-    ///     <para xml:lang="zh"><see langword="true" />: 显示光标, <see langword="false" />: 隐藏光标</para>
-    /// </param>
     public static async Task SetCursorVisibilityAsync(this TextWriter writer, bool visible)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -669,9 +369,9 @@ public static class TextWriterExtensions
             {
                 Console.CursorVisible = visible;
             }
-            catch (Exception)
+            catch
             {
-                // Ignore
+                // ignored
             }
         }
         else if (IsAnsiSupported())
@@ -681,16 +381,9 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Control the visibility of the console cursor, no effect if the platform is not supported</para>
-    ///     <para xml:lang="zh">控制控制台光标可见性,若平台不受支持则无效果</para>
+    ///     <para xml:lang="en">Set console cursor visibility.</para>
+    ///     <para xml:lang="zh">设置控制台光标可见性</para>
     /// </summary>
-    /// <param name="writer">
-    ///     <see cref="TextWriter" />
-    /// </param>
-    /// <param name="visible">
-    ///     <para xml:lang="en"><see langword="true" />: Show cursor, <see langword="false" />: Hide cursor</para>
-    ///     <para xml:lang="zh"><see langword="true" />: 显示光标, <see langword="false" />: 隐藏光标</para>
-    /// </param>
     public static void SetCursorVisibility(this TextWriter writer, bool visible)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -699,9 +392,9 @@ public static class TextWriterExtensions
             {
                 Console.CursorVisible = visible;
             }
-            catch (Exception)
+            catch
             {
-                // Ignore
+                // ignored
             }
         }
         else if (IsAnsiSupported())
@@ -711,114 +404,71 @@ public static class TextWriterExtensions
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Output loading animation in the console</para>
-    ///     <para xml:lang="zh">在控制台输出加载动画</para>
+    ///     <para xml:lang="en">Show loading spinner (async).</para>
+    ///     <para xml:lang="zh">异步显示加载动画</para>
     /// </summary>
-    /// <param name="writer">
-    ///     <see cref="TextWriter" />
-    /// </param>
-    /// <param name="cancellationToken">
-    ///     <para xml:lang="en">Cancellation token</para>
-    ///     <para xml:lang="zh">取消令牌</para>
-    /// </param>
-    /// <param name="delay">
-    ///     <para xml:lang="en">Refresh interval</para>
-    ///     <para xml:lang="zh">刷新间隔</para>
-    /// </param>
-    /// <param name="color">
-    ///     <para xml:lang="en">Character color</para>
-    ///     <para xml:lang="zh">字符颜色</para>
-    /// </param>
     /// <remarks>
-    ///     <para>Usage:</para>
-    ///     <code>
-    ///   <![CDATA[
-    /// var cts = new CancellationTokenSource();
-    ///   // 启动加载动画
-    ///   var loading = Console.Out.ShowLoadingAsync(cts.Token);
-    ///   await Task.Run(async () =>
-    ///   {
-    ///       await Task.Delay(3000, token);
-    ///       await cts.CancelAsync();
-    ///   }, token);
-    ///   await loading;
-    /// ]]>
-    /// </code>
+    ///     <code><![CDATA[
+    /// using var cts = new CancellationTokenSource();
+    /// var task = Console.Out.ShowLoadingAsync(cts.Token);
+    /// await Task.Delay(3000);
+    /// cts.Cancel();
+    /// await task;
+    /// ]]></code>
     /// </remarks>
     public static async Task ShowLoadingAsync(this TextWriter writer, CancellationToken cancellationToken, int delay = 100, ConsoleColor color = ConsoleColor.Green)
     {
         var frameIndex = 0;
-        // 隐藏光标
         await writer.SetCursorVisibilityAsync(false);
         try
         {
             while (!cancellationToken.IsCancellationRequested)
             {
+                if (Console.IsOutputRedirected)
+                {
+                    await Task.Delay(delay, cancellationToken); // 重定向环境不画动画
+                    continue;
+                }
                 Console.ForegroundColor = color;
-                await writer.WriteAsync(_loadingFrames[frameIndex]);
+                await writer.WriteAsync($"\r{_loadingFrames[frameIndex]}");
                 Console.ResetColor();
                 await writer.FlushAsync(cancellationToken);
                 frameIndex = (frameIndex + 1) % _loadingFrames.Length;
                 await Task.Delay(delay, cancellationToken);
-                await writer.WriteAsync('\b');
             }
         }
         catch (TaskCanceledException)
         {
-            // 清除已经输出的字符
-            if (IsAnsiSupported())
-            {
-                await writer.WriteAsync("\b \b"); // 使用 ANSI 转义序列清除字符
-            }
-            else
-            {
-                await writer.WriteAsync(' '); // 使用空格覆盖字符
-                await writer.FlushAsync(cancellationToken);
-            }
-            // 恢复光标可见性
-            await writer.SetCursorVisibilityAsync(true);
-            Console.ResetColor();
+            // Cancellation is expected when stopping the loading spinner; exception is intentionally ignored.
         }
         finally
         {
-            // 恢复光标可见性
+            // 清理: 清除该行上的 spinner 字符
+            if (IsAnsiSupported())
+            {
+                await writer.WriteAsync("\r\e[2K");
+            }
+            else
+            {
+                await writer.WriteAsync("\r ");
+            }
             await writer.SetCursorVisibilityAsync(true);
             Console.ResetColor();
         }
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Output loading animation in the console</para>
-    ///     <para xml:lang="zh">在控制台输出加载动画</para>
+    ///     <para xml:lang="en">Show loading spinner.</para>
+    ///     <para xml:lang="zh">显示加载动画</para>
     /// </summary>
-    /// <param name="writer">
-    ///     <see cref="TextWriter" />
-    /// </param>
-    /// <param name="cancellationToken">
-    ///     <para xml:lang="en">Cancellation token</para>
-    ///     <para xml:lang="zh">取消令牌</para>
-    /// </param>
-    /// <param name="delay">
-    ///     <para xml:lang="en">Refresh interval</para>
-    ///     <para xml:lang="zh">刷新间隔</para>
-    /// </param>
-    /// <param name="color">
-    ///     <para xml:lang="en">Character color</para>
-    ///     <para xml:lang="zh">字符颜色</para>
-    /// </param>
     /// <remarks>
-    ///     <para>Usage:</para>
-    ///     <code>
-    ///   <![CDATA[
-    ///   var cts = new CancellationTokenSource();
-    ///   // 启动加载动画
-    ///   var task = Task.Factory.StartNew(() => Console.Out.ShowLoading(cts.Token), token);
-    ///   // 模拟3秒后取消加载动画
-    ///   Task.Delay(3000, token).ContinueWith(_ => cts.Cancel(), token);
-    ///   // 等待加载动画任务完成
-    ///   task.Wait(token);
-    ///   ]]>
-    /// </code>
+    ///     <code><![CDATA[
+    /// using var cts = new CancellationTokenSource();
+    /// var t = Task.Run(() => Console.Out.ShowLoading(cts.Token));
+    /// Thread.Sleep(3000);
+    /// cts.Cancel();
+    /// t.Wait();
+    /// ]]></code>
     /// </remarks>
     public static void ShowLoading(this TextWriter writer, CancellationToken cancellationToken, int delay = 100, ConsoleColor color = ConsoleColor.Green)
     {
@@ -828,32 +478,26 @@ public static class TextWriterExtensions
         {
             while (!cancellationToken.IsCancellationRequested)
             {
+                if (Console.IsOutputRedirected)
+                {
+                    Task.Delay(delay, cancellationToken).Wait(cancellationToken);
+                    continue;
+                }
                 Console.ForegroundColor = color;
-                writer.Write(_loadingFrames[frameIndex]);
+                writer.Write($"\r{_loadingFrames[frameIndex]}");
                 Console.ResetColor();
                 writer.Flush();
                 frameIndex = (frameIndex + 1) % _loadingFrames.Length;
-                Task.Delay(delay, cancellationToken).Wait(cancellationToken); // 使用 Task.Delay 替代 Thread.Sleep
-                writer.Write('\b');
+                Task.Delay(delay, cancellationToken).Wait(cancellationToken);
             }
         }
         catch (TaskCanceledException)
         {
-            // 清除已经输出的字符
-            if (IsAnsiSupported())
-            {
-                writer.Write("\b \b"); // 使用 ANSI 转义序列清除字符
-            }
-            else
-            {
-                writer.Write(' '); // 使用空格覆盖字符
-                writer.Flush();
-            }
-            writer.SetCursorVisibility(true);
-            Console.ResetColor();
+            // Cancellation is expected; ignore the exception to allow graceful exit.
         }
         finally
         {
+            writer.Write(IsAnsiSupported() ? "\r\e[2K" : "\r ");
             writer.SetCursorVisibility(true);
             Console.ResetColor();
         }
@@ -877,7 +521,6 @@ public static class TextWriterExtensions
         }
         if (IsAnsiSupported())
         {
-            // 合并多次 Write 调用为一次
             await writer.WriteAsync("\e[1A\e[2K\e[1G"); // 光标上移一行，清除整行，光标移动至行首
         }
         else
@@ -889,13 +532,12 @@ public static class TextWriterExtensions
                     return;
                 }
                 Console.SetCursorPosition(0, Console.CursorTop - 1);
-                ClearBuffer(_lastOutput.Length);
-                Console.Write(_clearBuffer, 0, _lastOutput.Length);
+                ClearBuffer(_lastOutputLength);
+                Console.Write(_clearBuffer, 0, _lastOutputLength);
                 Console.SetCursorPosition(0, Console.CursorTop);
             }
             catch (IOException ex)
             {
-                // 记录异常或根据需要进行处理
                 await writer.WriteLineAsync($"IOException: {ex.Message}");
             }
         }
@@ -910,7 +552,6 @@ public static class TextWriterExtensions
         }
         if (IsAnsiSupported())
         {
-            // 合并多次 Write 调用为一次
             writer.Write("\e[1A\e[2K\e[1G"); // 光标上移一行，清除整行，光标移动至行首
         }
         else
@@ -922,13 +563,12 @@ public static class TextWriterExtensions
                     return;
                 }
                 Console.SetCursorPosition(0, Console.CursorTop - 1);
-                ClearBuffer(_lastOutput.Length);
-                Console.Write(_clearBuffer, 0, _lastOutput.Length);
+                ClearBuffer(_lastOutputLength);
+                Console.Write(_clearBuffer, 0, _lastOutputLength);
                 Console.SetCursorPosition(0, Console.CursorTop);
             }
             catch (IOException ex)
             {
-                // 记录异常或根据需要进行处理
                 writer.WriteLine($"IOException: {ex.Message}");
             }
         }
@@ -943,20 +583,19 @@ public static class TextWriterExtensions
         }
         if (IsAnsiSupported())
         {
-            await writer.WriteAsync("\e[2K\e[1G"); // 清除整行，光标移动至行首
+            await writer.WriteAsync("\e[2K\e[1G"); // 清除当前行并将光标移动至行首
         }
         else
         {
             try
             {
                 Console.SetCursorPosition(0, Console.CursorTop);
-                ClearBuffer(_lastOutput.Length);
-                Console.Write(_clearBuffer, 0, _lastOutput.Length);
+                ClearBuffer(_lastOutputLength);
+                Console.Write(_clearBuffer, 0, _lastOutputLength);
                 Console.SetCursorPosition(0, Console.CursorTop);
             }
             catch (IOException ex)
             {
-                // 记录异常或根据需要进行处理
                 await writer.WriteLineAsync($"IOException: {ex.Message}");
             }
         }
@@ -971,20 +610,19 @@ public static class TextWriterExtensions
         }
         if (IsAnsiSupported())
         {
-            writer.Write("\e[2K\e[1G"); // 清除整行，光标移动至行首
+            writer.Write("\e[2K\e[1G"); // 清除当前行并将光标移动至行首
         }
         else
         {
             try
             {
                 Console.SetCursorPosition(0, Console.CursorTop);
-                ClearBuffer(_lastOutput.Length);
-                Console.Write(_clearBuffer, 0, _lastOutput.Length);
+                ClearBuffer(_lastOutputLength);
+                Console.Write(_clearBuffer, 0, _lastOutputLength);
                 Console.SetCursorPosition(0, Console.CursorTop);
             }
             catch (IOException ex)
             {
-                // 记录异常或根据需要进行处理
                 writer.WriteLine($"IOException: {ex.Message}");
             }
         }
@@ -992,20 +630,23 @@ public static class TextWriterExtensions
 
     private static string GenerateProgressBarOutput(double percentage, string message, int width, char completedChar, char incompleteChar, bool isFixedBarWidth = true)
     {
-        if (percentage < 0)
+        percentage = percentage switch
         {
-            percentage = 0;
-        }
-        if (percentage > 100)
+            < 0   => 0,
+            > 100 => 100,
+            _     => percentage
+        };
+        if (isFixedBarWidth)
         {
-            percentage = 100;
+            if (width < 0)
+            {
+                width = DefaultProgressBarWidth; // 修复默认 -1 时未设置宽度
+            }
         }
-        var progressText = $"{percentage / 100.0:P1}".PadLeft(7, (char)32);
-        // 使用 UTF-8 编码计算消息的字节长度
+        var progressText = $"{percentage / 100.0:P1}".PadLeft(7, ' ');
         var messageBytes = Encoding.UTF8.GetBytes(message);
         var progressTextBytes = Encoding.UTF8.GetBytes(progressText);
-        var extraWidth = progressTextBytes.Length + messageBytes.Length + 5; // 计算额外字符的宽度，包括边界和百分比信息
-        // 当width表示非固定Bar长度时，根据窗口宽度计算Bar长度
+        var extraWidth = progressTextBytes.Length + messageBytes.Length + 5;
         if (!isFixedBarWidth)
         {
             if (IsCursorPosSupported())
@@ -1021,32 +662,260 @@ public static class TextWriterExtensions
             }
             else
             {
-                // 当不支持检测的时候,则默认宽度设置为20
-                width = 20 - extraWidth;
+                width = Math.Max(10, 20 - extraWidth); // 确保不为负
             }
         }
-        var completedWidth = (int)(percentage * width) / 100;
+        if (width < 0)
+        {
+            width = 0;
+        }
+        var completedWidth = (int)(width * (percentage / 100.0));
         if (percentage.AreAlmostEqual(100d))
         {
-            completedWidth = width; // 确保在 100% 时填满进度条
+            completedWidth = width;
         }
         var outputLength = width + extraWidth;
+        if (outputLength < extraWidth)
+        {
+            outputLength = extraWidth; // 保护
+        }
         var outputBytes = outputLength <= 256 ? stackalloc byte[outputLength] : new byte[outputLength];
         outputBytes[0] = 91; // ASCII for '['
-        for (var i = 1; i <= completedWidth; i++)
-        {
+        for (var i = 1; i <= completedWidth && i <= width; i++)
             outputBytes[i] = (byte)completedChar;
-        }
         for (var i = completedWidth + 1; i <= width; i++)
-        {
             outputBytes[i] = (byte)incompleteChar;
-        }
-        // ReSharper disable once GrammarMistakeInComment
-        outputBytes[width + 1] = 93; // ASCII for ']'
-        outputBytes[width + 2] = 32; // ASCII for ' '
-        progressTextBytes.CopyTo(outputBytes[(width + 3)..]);
-        outputBytes[width + 3 + progressTextBytes.Length] = 32; // ASCII for ' '
-        messageBytes.CopyTo(outputBytes[(width + 4 + progressTextBytes.Length)..]);
+        var barCloseIndex = width + 1;
+        outputBytes[barCloseIndex] = 93;     // ASCII for ']'
+        outputBytes[barCloseIndex + 1] = 32; // ASCII for ' '
+        progressTextBytes.CopyTo(outputBytes[(barCloseIndex + 2)..]);
+        outputBytes[barCloseIndex + 2 + progressTextBytes.Length] = 32; // ASCII for ' '
+        messageBytes.CopyTo(outputBytes[(barCloseIndex + 3 + progressTextBytes.Length)..]);
         return Encoding.UTF8.GetString(outputBytes);
     }
+
+    #region SafeWriteLine / SafeWrite (force overload)
+
+    /// <summary>
+    ///     <para xml:lang="en">Thread-safe output message on the same line in the console, and wrap (distinct output).</para>
+    ///     <para xml:lang="zh">线程安全的在控制台同一行输出消息,并换行(相同文本将被忽略)</para>
+    /// </summary>
+    /// <remarks>
+    /// Usage:
+    /// <code><![CDATA[
+    /// await Console.Out.SafeWriteLineAsync("Hello World!");
+    /// ]]></code>
+    /// </remarks>
+    /// <param name="writer">
+    ///     <see cref="TextWriter" />
+    /// </param>
+    /// <param name="msg">消息 / Message</param>
+    public static async Task SafeWriteLineAsync(this TextWriter writer, string msg) => await SafeWriteLineAsync(writer, msg, false);
+
+    /// <summary>
+    ///     <para xml:lang="en">Same as SafeWriteLineAsync, force write even if text equals previous.</para>
+    ///     <para xml:lang="zh">同 SafeWriteLineAsync, 即使与上次输出相同也强制输出</para>
+    /// </summary>
+    /// <param name="writer">
+    ///     <see cref="TextWriter" />
+    /// </param>
+    /// <param name="msg">消息 / Message</param>
+    /// <param name="force">true: 强制输出 / force output</param>
+    public static async Task SafeWriteLineAsync(this TextWriter writer, string msg, bool force)
+    {
+        using (await _asyncLock.LockAsync())
+        {
+            if (!force && _lastOutput == msg)
+            {
+                return;
+            }
+            if (IsAnsiSupported())
+            {
+                await writer.WriteLineAsync($"\e[1A\e[2K\e[1G{msg}");
+            }
+            else
+            {
+                await writer.ClearPreviousLineAsync();
+                await writer.WriteLineAsync(msg);
+            }
+            UpdateLastOutput(msg);
+        }
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Thread-safe output message on the same line in the console, and wrap (distinct output).</para>
+    ///     <para xml:lang="zh">线程安全的在控制台同一行输出消息,并换行(相同文本将被忽略)</para>
+    /// </summary>
+    /// <remarks>
+    /// Usage:
+    /// <code><![CDATA[
+    /// Console.Out.SafeWriteLine("Hello World!");
+    /// ]]></code>
+    /// </remarks>
+    /// <param name="writer">
+    ///     <see cref="TextWriter" />
+    /// </param>
+    /// <param name="msg">消息 / Message</param>
+    public static void SafeWriteLine(this TextWriter writer, string msg) => SafeWriteLine(writer, msg, false);
+
+    /// <summary>
+    ///     <para xml:lang="en">Same as SafeWriteLine, force write even if text equals previous.</para>
+    ///     <para xml:lang="zh">同 SafeWriteLine, 即使与上次输出相同也强制输出</para>
+    /// </summary>
+    /// <param name="writer">
+    ///     <see cref="TextWriter" />
+    /// </param>
+    /// <param name="msg">消息 / Message</param>
+    /// <param name="force">true: 强制输出 / force output</param>
+    public static void SafeWriteLine(this TextWriter writer, string msg, bool force)
+    {
+        lock (_syncLock)
+        {
+            if (!force && _lastOutput == msg)
+            {
+                return;
+            }
+            if (IsAnsiSupported())
+            {
+                writer.WriteLine($"\e[1A\e[2K\e[1G{msg}");
+            }
+            else
+            {
+                writer.ClearPreviousLine();
+                writer.WriteLine(msg);
+            }
+            UpdateLastOutput(msg);
+        }
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Thread-safe output message on the same line (distinct output).</para>
+    ///     <para xml:lang="zh">线程安全的在控制台同一行输出消息(相同文本将被忽略)</para>
+    /// </summary>
+    /// <remarks>
+    /// Usage:
+    /// <code><![CDATA[
+    /// await Console.Out.SafeWriteAsync("Processing...");
+    /// ]]></code>
+    /// </remarks>
+    /// <param name="writer">
+    ///     <see cref="TextWriter" />
+    /// </param>
+    /// <param name="msg">消息 / Message</param>
+    public static async Task SafeWriteAsync(this TextWriter writer, string msg) => await SafeWriteAsync(writer, msg, false);
+
+    /// <summary>
+    ///     <para xml:lang="en">Same as SafeWriteAsync, force write even if text equals previous.</para>
+    ///     <para xml:lang="zh">同 SafeWriteAsync, 即使与上次输出相同也强制输出</para>
+    /// </summary>
+    /// <param name="writer">
+    ///     <see cref="TextWriter" />
+    /// </param>
+    /// <param name="msg">消息 / Message</param>
+    /// <param name="force">true: 强制输出 / force output</param>
+    public static async Task SafeWriteAsync(this TextWriter writer, string msg, bool force)
+    {
+        using (await _asyncLock.LockAsync())
+        {
+            if (!force && _lastOutput == msg)
+            {
+                return;
+            }
+            if (IsAnsiSupported())
+            {
+                await writer.WriteAsync($"\e[2K\e[1G{msg}");
+            }
+            else
+            {
+                await writer.ClearCurrentLineAsync();
+                await writer.WriteAsync(msg);
+            }
+            UpdateLastOutput(msg);
+        }
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Thread-safe output message on the same line (distinct output).</para>
+    ///     <para xml:lang="zh">线程安全的在控制台同一行输出消息(相同文本将被忽略)</para>
+    /// </summary>
+    /// <remarks>
+    /// Usage:
+    /// <code><![CDATA[
+    /// Console.Out.SafeWrite("Processing...");
+    /// ]]></code>
+    /// </remarks>
+    /// <param name="writer">
+    ///     <see cref="TextWriter" />
+    /// </param>
+    /// <param name="msg">消息 / Message</param>
+    public static void SafeWrite(this TextWriter writer, string msg) => SafeWrite(writer, msg, false);
+
+    /// <summary>
+    ///     <para xml:lang="en">Same as SafeWrite, force write even if text equals previous.</para>
+    ///     <para xml:lang="zh">同 SafeWrite, 即使与上次输出相同也强制输出</para>
+    /// </summary>
+    /// <param name="writer">
+    ///     <see cref="TextWriter" />
+    /// </param>
+    /// <param name="msg">消息 / Message</param>
+    /// <param name="force">true: 强制输出 / force output</param>
+    public static void SafeWrite(this TextWriter writer, string msg, bool force)
+    {
+        lock (_syncLock)
+        {
+            if (!force && _lastOutput == msg)
+            {
+                return;
+            }
+            if (IsAnsiSupported())
+            {
+                writer.Write($"\e[2K\e[1G{msg}");
+            }
+            else
+            {
+                writer.ClearCurrentLine();
+                writer.Write(msg);
+            }
+            UpdateLastOutput(msg);
+        }
+    }
+
+    #endregion
+
+    #region Helpers
+
+    private static void UpdateLastOutput(string msg)
+    {
+        _lastOutput = msg;
+        _lastOutputLength = CalculateDisplayWidth(msg);
+    }
+
+    // 去除 ANSI 序列并估算显示宽度(简单 East Asian 宽字符视为 2)
+    private static readonly Regex _ansiRegex = AnsiEscapeSequenceRegex();
+
+    private static int CalculateDisplayWidth(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return 0;
+        }
+        var noAnsi = _ansiRegex.Replace(text, "");
+        return noAnsi.EnumerateRunes().Sum(rune => IsWideRune(rune) ? 2 : 1);
+    }
+
+    private static bool IsWideRune(Rune rune) =>
+        // 简单判定: 中日韩统一表意等常见宽字符范围
+        rune.Value is >= 0x1100 and <= 0x115F // Hangul Jamo
+            or >= 0x2E80 and <= 0xA4CF
+            or >= 0xAC00 and <= 0xD7A3 // Hangul Syllables
+            or >= 0xF900 and <= 0xFAFF // CJK Compatibility Ideographs
+            or >= 0xFE10 and <= 0xFE19
+            or >= 0xFE30 and <= 0xFE6F
+            or >= 0xFF00 and <= 0xFF60
+            or >= 0xFFE0 and <= 0xFFE6;
+
+    [GeneratedRegex("\e\\[[0-9;]*[A-Za-z]", RegexOptions.Compiled)]
+    private static partial Regex AnsiEscapeSequenceRegex();
+
+    #endregion
 }
