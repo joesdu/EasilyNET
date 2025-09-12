@@ -437,7 +437,10 @@ public static partial class TextWriterExtensions
                 await Task.Delay(delay, cancellationToken);
             }
         }
-        catch (TaskCanceledException) { }
+        catch (TaskCanceledException)
+        {
+            // Cancellation is expected when stopping the loading spinner; exception is intentionally ignored.
+        }
         finally
         {
             // 清理: 清除该行上的 spinner 字符
