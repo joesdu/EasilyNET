@@ -109,7 +109,7 @@ public class AsyncLockBenchmark
     [Benchmark]
     public async Task AsyncLock_Cancellation()
     {
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50)); // 修改：更短取消时间
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50)); // Change: shorter cancellation time
         var counter = 0L;
         var canceledCount = 0L;
         var mutex = new AsyncLock();
