@@ -2,6 +2,7 @@ using System.Text.Json;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using WebApi.Test.Unit.Events;
 
+// ReSharper disable ClassNeverInstantiated.Global
 // ReSharper disable UnusedType.Global
 
 namespace WebApi.Test.Unit.EventHandlers;
@@ -36,10 +37,11 @@ public class DelayedEventHandlers : IEventHandler<HelloWorldEvent>
 public class WorkQueuesEventOneHandlers : IEventHandler<WorkQueuesEvent>
 {
     /// <inheritdoc />
-    public Task HandleAsync(WorkQueuesEvent @event)
+    public async Task HandleAsync(WorkQueuesEvent @event)
     {
-        Console.WriteLine($"[消息处理自:{nameof(WorkQueuesEventOneHandlers)}]-{JsonSerializer.Serialize(@event)}");
-        return Task.CompletedTask;
+        var threadId = Environment.CurrentManagedThreadId;
+        Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [Thread-{threadId}] 处理消息: {@event.Summary}");
+        await Task.CompletedTask;
     }
 }
 

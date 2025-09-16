@@ -1,7 +1,6 @@
 using System.Net.Sockets;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore;
-using EasilyNET.RabbitBus.AspNetCore.Abstractions;
 using EasilyNET.RabbitBus.AspNetCore.Builder;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Manager;
@@ -12,8 +11,6 @@ using Polly;
 using Polly.Timeout;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
-
-// ReSharper disable UnusedMember.Global
 
 #pragma warning disable IDE0130 // 命名空间与文件夹结构不匹配
 
@@ -42,54 +39,79 @@ public static class RabbitServiceExtension
         var builder = new RabbitBusBuilder();
         configure(builder);
         var (config, registry) = builder.Build();
-        services.RabbitPersistentConnection(options =>
+        services.RabbitPersistentConnection(o =>
         {
-            // Copy configuration from builder to RabbitConfig
-            options.ConnectionString = config.ConnectionString;
-            options.Host = config.Host;
-            options.UserName = config.UserName;
-            options.PassWord = config.PassWord;
-            options.VirtualHost = config.VirtualHost;
-            options.Port = config.Port;
-            options.RetryCount = config.RetryCount;
-            options.PublisherConfirms = config.PublisherConfirms;
-            options.MaxOutstandingConfirms = config.MaxOutstandingConfirms;
-            options.BatchSize = config.BatchSize;
-            options.ConfirmTimeoutMs = config.ConfirmTimeoutMs;
-            options.ConsumerDispatchConcurrency = config.ConsumerDispatchConcurrency;
-            options.Qos.PrefetchCount = config.Qos.PrefetchCount;
-            options.Qos.PrefetchSize = config.Qos.PrefetchSize;
-            options.Qos.Global = config.Qos.Global;
-            options.ApplicationName = config.ApplicationName;
-            options.BusSerializer = config.BusSerializer;
-        }).AddEventBus();
-
-        // Register the event configuration registry
+            o.ConnectionString = config.ConnectionString;
+            o.Host = config.Host;
+            o.UserName = config.UserName;
+            o.PassWord = config.PassWord;
+            o.VirtualHost = config.VirtualHost;
+            o.Port = config.Port;
+            o.RetryCount = config.RetryCount;
+            o.PublisherConfirms = config.PublisherConfirms;
+            o.MaxOutstandingConfirms = config.MaxOutstandingConfirms;
+            o.BatchSize = config.BatchSize;
+            o.ConfirmTimeoutMs = config.ConfirmTimeoutMs;
+            o.ConsumerDispatchConcurrency = config.ConsumerDispatchConcurrency;
+            o.Qos.PrefetchCount = config.Qos.PrefetchCount;
+            o.Qos.PrefetchSize = config.Qos.PrefetchSize;
+            o.Qos.Global = config.Qos.Global;
+            o.ApplicationName = config.ApplicationName;
+            o.BusSerializer = config.BusSerializer;
+        });
+        // 先注册配置注册表
         services.AddSingleton(registry);
+        // 仅注册被显式配置的处理器
+        services.InjectConfiguredHandlers(registry);
+        // 序列化器
+        services.AddSingleton(sp => sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>().Get(Constant.OptionName).BusSerializer);
+        services.AddSingleton<IBus, EventBus>();
+        services.AddHostedService<SubscribeService>();
     }
 
-    private static void InjectHandler(this IServiceCollection services)
+    private static void InjectConfiguredHandlers(this IServiceCollection services, EventConfigurationRegistry registry)
     {
-        var handlers = AssemblyHelper.FindTypes(o =>
-            o is
-            {
-                IsClass: true,
-                IsAbstract: false
-            } &&
-            o.IsBaseOn(typeof(IEventHandler<>)));
-        foreach (var handler in handlers)
+        var handlerTypes = registry.GetAllConfigurations()
+                                   .Where(c => c.Enabled)
+                                   .SelectMany(c => c.Handlers.Where(h => !c.IgnoredHandlers.Contains(h)))
+                                   .Distinct();
+        foreach (var ht in handlerTypes)
         {
-            services.AddSingleton(handler);
+            // 若外部已注册可跳过, 这里默认单例(根据你原有逻辑)
+            services.AddSingleton(ht);
         }
     }
 
-    private static IServiceCollection RabbitPersistentConnection(this IServiceCollection services, Action<RabbitConfig> options)
+    private static void RabbitPersistentConnection(this IServiceCollection services, Action<RabbitConfig> options)
     {
         services.Configure(Constant.OptionName, options);
         services.AddSingleton<IConnectionFactory, ConnectionFactory>(sp =>
         {
             var config = sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>().Get(Constant.OptionName);
-            return CreateConnectionFactory(config);
+            var factory = config.ConnectionString is not null
+                              ? new()
+                              {
+                                  Uri = config.ConnectionString
+                              }
+                              : (ConnectionFactory)(config.AmqpTcpEndpoints?.Count > 0
+                                                        ? new()
+                                                        {
+                                                            UserName = config.UserName,
+                                                            Password = config.PassWord,
+                                                            VirtualHost = config.VirtualHost
+                                                        }
+                                                        : config.Host.IsNotNullOrWhiteSpace()
+                                                            ? new()
+                                                            {
+                                                                HostName = config.Host,
+                                                                UserName = config.UserName,
+                                                                Password = config.PassWord,
+                                                                Port = config.Port,
+                                                                VirtualHost = config.VirtualHost
+                                                            }
+                                                            : throw new InvalidOperationException("Configuration error: Unable to create a connection from the provided configuration."));
+            factory.ConsumerDispatchConcurrency = config.ConsumerDispatchConcurrency;
+            return factory;
         });
         services.AddResiliencePipeline(Constant.ResiliencePipelineName, (builder, context) =>
         {
@@ -116,39 +138,5 @@ public static class RabbitServiceExtension
             builder.AddTimeout(TimeSpan.FromMinutes(1));
         });
         services.AddSingleton<PersistentConnection>();
-        return services;
-    }
-
-    private static ConnectionFactory CreateConnectionFactory(RabbitConfig config)
-    {
-        var factory = config.ConnectionString is not null
-                          ? new() { Uri = config.ConnectionString }
-                          : (ConnectionFactory)(config.AmqpTcpEndpoints?.Count > 0
-                                                    ? new() { UserName = config.UserName, Password = config.PassWord, VirtualHost = config.VirtualHost }
-                                                    : config.Host.IsNotNullOrWhiteSpace()
-                                                        ? new()
-                                                        {
-                                                            HostName = config.Host,
-                                                            UserName = config.UserName,
-                                                            Password = config.PassWord,
-                                                            Port = config.Port,
-                                                            VirtualHost = config.VirtualHost
-                                                        }
-                                                        : throw new InvalidOperationException("Configuration error: Unable to create a connection from the provided configuration."));
-        factory.ConsumerDispatchConcurrency = config.ConsumerDispatchConcurrency;
-        return factory;
-    }
-
-    private static void AddEventBus(this IServiceCollection services)
-    {
-        services.InjectHandler();
-        services.AddSingleton(sp =>
-        {
-            var config = sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>().Get(Constant.OptionName);
-            return config.BusSerializer;
-        });
-        services.AddSingleton<ISubscriptionsManager, SubscriptionsManager>();
-        services.AddSingleton<IBus, EventBus>();
-        services.AddHostedService<SubscribeService>();
     }
 }

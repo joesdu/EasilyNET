@@ -14,54 +14,51 @@ internal sealed class RabbitModule : AppModule
     /// <inheritdoc />
     public override async Task ConfigureServices(ConfigureServicesContext context)
     {
-        // 现代配置方式：使用流畅的RabbitBusBuilder API
-        // 所有配置都在一个地方集中管理，无需在事件类和处理器上添加属性
         var config = context.ServiceProvider.GetConfiguration();
         context.Services.AddRabbitBus(c =>
         {
-            // 配置RabbitMQ连接
             c.WithConnection(f => f.Uri = new(config.GetConnectionString("Rabbit") ?? string.Empty));
-
-            // 配置消费者设置
             c.WithConsumerSettings();
-
-            // 配置重试和弹性策略
             c.WithResilience();
-
-            // 配置应用程序标识
             c.WithApplication("WebApi.Test.Unit");
 
-            // ========== 事件配置 ==========
-            // HelloWorldEvent - 延迟交换机配置
+            // Delayed exchange example with two handlers, one ignored later
             c.AddEvent<HelloWorldEvent>(EModel.Delayed, "delayed.hello", "hello.world")
              .WithEventQos()
              .WithEventQueueArgs(new()
              {
                  ["x-message-ttl"] = 5000
              })
+             .WithHandler<HelloWorldEventHandlers>()
+             .WithHandler<DelayedEventHandlers>() // will be ignored via IgnoreHandler below
              .And();
             c.AddEvent<WorkQueuesEvent>(queueName: "work.queue")
-             .WithEventQos(1000) // 增加预取数量以处理大量消息
-             .ConfigureEvent(ec => ec.SequentialHandlerExecution = false)
+             .ConfigureEvent(ec =>
+             {
+                 ec.SequentialHandlerExecution = false;
+             })
+             .WithEventQos(1000)
+             .WithHandlerThreadCount(5)
+             .WithHandler<WorkQueuesEventOneHandlers>()
              .And();
-
-            // FanoutEventOne - 发布订阅模式配置
-            c.AddEvent<FanoutEventOne>(EModel.PublishSubscribe, "fanout_exchange", queueName: "fanout_queue1");
-
-            // FanoutEventTwo - 发布订阅模式配置
-            c.AddEvent<FanoutEventTwo>(EModel.PublishSubscribe, "fanout_exchange", queueName: "fanout_queue2");
-
-            // DirectEventOne - 路由模式配置
-            c.AddEvent<DirectEventOne>(EModel.Routing, "direct_exchange", "direct.queue1", "direct_queue1");
-
-            // DirectEventTwo - 路由模式配置
-            c.AddEvent<DirectEventTwo>(EModel.Routing, "direct_exchange", "direct.queue2", "direct_queue2");
-
-            // TopicEventOne - 主题模式配置
-            c.AddEvent<TopicEventOne>(EModel.Topics, "topic_exchange", "topic.queue.*", "topic_queue1");
-
-            // TopicEventTwo - 主题模式配置
-            c.AddEvent<TopicEventTwo>(EModel.Topics, "topic_exchange", "topic.queue.1", "topic_queue2");
+            c.AddEvent<FanoutEventOne>(EModel.PublishSubscribe, "fanout_exchange", queueName: "fanout_queue1")
+             .WithHandler<FanoutEventOneHandlers>()
+             .And();
+            c.AddEvent<FanoutEventTwo>(EModel.PublishSubscribe, "fanout_exchange", queueName: "fanout_queue2")
+             .WithHandler<FanoutEventTwoHandlers>()
+             .And();
+            c.AddEvent<DirectEventOne>(EModel.Routing, "direct_exchange", "direct.queue1", "direct_queue1")
+             .WithHandler<DirectEventOneHandlers>()
+             .And();
+            c.AddEvent<DirectEventTwo>(EModel.Routing, "direct_exchange", "direct.queue2", "direct_queue2")
+             .WithHandler<DirectEventTwoHandlers>()
+             .And();
+            c.AddEvent<TopicEventOne>(EModel.Topics, "topic_exchange", "topic.queue.*", "topic_queue1")
+             .WithHandler<TopicEventOneHandlers>()
+             .And();
+            c.AddEvent<TopicEventTwo>(EModel.Topics, "topic_exchange", "topic.queue.1", "topic_queue2")
+             .WithHandler<TopicEventTwoHandlers>()
+             .And();
             c.IgnoreHandler<HelloWorldEvent, DelayedEventHandlers>();
         });
         await Task.CompletedTask;
