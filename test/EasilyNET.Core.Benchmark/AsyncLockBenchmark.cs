@@ -33,7 +33,7 @@ public class AsyncLockBenchmark
     [Params(1, 2, 4, 8, 16, 32)]
     public int Concurrency { get; set; }
 
-    [Params(50, 200)] // 修改：减少 IterationsPerWorker 以降低测试时间
+    [Params(50, 200)] // Modification: reduced IterationsPerWorker to decrease test time
     public int IterationsPerWorker { get; set; }
 
     private TimeSpan Timeout => TimeSpan.FromMilliseconds(500 + (0.1 * Concurrency * IterationsPerWorker)); // 新增：动态超时
