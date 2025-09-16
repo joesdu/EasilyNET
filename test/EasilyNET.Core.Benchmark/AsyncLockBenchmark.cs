@@ -113,7 +113,7 @@ public class AsyncLockBenchmark
         var counter = 0L;
         var canceledCount = 0L; // 新增：统计取消次数
         var expected = (long)Concurrency * IterationsPerWorker;
-        var mutex = new AsyncLock(true);
+        var mutex = new AsyncLock();
         var tasks = new Task[Concurrency];
         var exceptions = new List<Exception>();
         for (var i = 0; i < tasks.Length; i++)

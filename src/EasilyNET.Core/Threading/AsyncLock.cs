@@ -1,8 +1,5 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-
-// ReSharper disable MemberCanBePrivate.Global
 
 // ReSharper disable UnusedMember.Global
 
@@ -10,23 +7,23 @@ namespace EasilyNET.Core.Threading;
 
 /// <summary>
 ///     <para xml:lang="en">
-///     Provides an asynchronous mutual exclusion lock with optional reentrancy.
-///     Uses a lightweight FIFO waiter queue and Interlocked fast path for high performance.
+///     Provides an asynchronous mutual exclusion lock. This lock is non-reentrant.
+///     It uses a custom lightweight FIFO waiter queue and a fast path via Interlocked for high performance.
 ///     </para>
 ///     <para xml:lang="zh">
-///     提供一个支持可选重入的异步互斥锁，
-///     通过轻量级 FIFO 等待队列和 Interlocked 快路径实现高性能。
+///     提供一个异步互斥锁。此锁不可重入。
+///     通过 Interlocked 快路径与自定义的 FIFO 等待队列实现高性能异步锁。
 ///     </para>
 /// </summary>
 [DebuggerDisplay("IsHeld = {IsHeld}, Waiting = {WaitingCount}")]
 public sealed class AsyncLock : IDisposable
 {
-    private readonly bool _allowReentrancy;
     private readonly Task<Release> _cachedReleaseTask;
-    private readonly AsyncLocal<Guid> _ownerContext = new();
+
+    // Waiters are stored in a linked list to support O(1) removal on cancellation.
     private readonly Lock _sync = new();
-    private readonly SimpleObjectPool<TaskCompletionSource<Release>> _tcsPool;
     private readonly LinkedList<Waiter> _waiters = [];
+
     private bool _disposed;
 
     // 0 = free, 1 = held
@@ -37,15 +34,9 @@ public sealed class AsyncLock : IDisposable
     ///     <para xml:lang="en">Initializes a new instance of the <see cref="AsyncLock" /> class.</para>
     ///     <para xml:lang="zh">初始化 <see cref="AsyncLock" /> 类的新实例。</para>
     /// </summary>
-    /// <param name="allowReentrancy">
-    ///     <para xml:lang="en">Whether the lock allows reentrancy for the same context. Defaults to false (non-reentrant).</para>
-    ///     <para xml:lang="zh">是否允许同一上下文重入锁。默认为 false（不可重入）。</para>
-    /// </param>
-    public AsyncLock(bool allowReentrancy = false)
+    public AsyncLock()
     {
-        _allowReentrancy = allowReentrancy;
         _cachedReleaseTask = Task.FromResult(new Release(this));
-        _tcsPool = new(() => new(TaskCreationOptions.RunContinuationsAsynchronously));
     }
 
     /// <summary>
@@ -99,8 +90,8 @@ public sealed class AsyncLock : IDisposable
                 _waiters.Clear();
                 _waiterCount = 0;
             }
+            // Mark as not held to allow GC; current holder can still call Release which will be a no-op for waiters.
             Volatile.Write(ref _state, 0);
-            _ownerContext.Value = Guid.Empty;
         }
         if (toCancel is not null)
         {
@@ -108,7 +99,6 @@ public sealed class AsyncLock : IDisposable
             {
                 w.CancellationRegistration.Dispose();
                 w.Tcs.TrySetException(new ObjectDisposedException(nameof(AsyncLock), "AsyncLock has been disposed"));
-                _tcsPool.Return(w.Tcs);
             }
         }
     }
@@ -154,6 +144,7 @@ public sealed class AsyncLock : IDisposable
     ///     <para xml:lang="en">Tries to synchronously acquire the lock within the specified timeout.</para>
     ///     <para xml:lang="zh">在指定超时时间内尝试同步获取锁。</para>
     /// </summary>
+    // ReSharper disable once MemberCanBePrivate.Global
     public bool TryLock(TimeSpan timeout, out Release releaser, CancellationToken cancellationToken = default) => TryLockWithCancellation(timeout, out releaser, cancellationToken);
 
     private bool TryLockWithCancellation(TimeSpan timeout, out Release releaser, CancellationToken cancellationToken)
@@ -170,6 +161,7 @@ public sealed class AsyncLock : IDisposable
         }
         catch (OperationCanceledException)
         {
+            // Distinguish external cancellation from timeout.
             if (cancellationToken.IsCancellationRequested)
             {
                 throw;
@@ -188,29 +180,31 @@ public sealed class AsyncLock : IDisposable
     ///     <para xml:lang="zh">在等待获取锁时要观察的 <see cref="CancellationToken" />。</para>
     /// </param>
     /// <returns>
-    ///     <para xml:lang="en">A <see cref="Task{Release}" /> that completes when the lock is acquired.</para>
-    ///     <para xml:lang="zh">一个 <see cref="Task{Release}" />，当获取锁时完成。</para>
+    ///     <para xml:lang="en">
+    ///     A <see cref="Task{Release}" /> that completes when the lock is acquired. The <see cref="Release" /> value should be disposed
+    ///     to release the lock.
+    ///     </para>
+    ///     <para xml:lang="zh">一个 <see cref="Task{Release}" />，当获取锁时完成。应释放 <see cref="Release" /> 值以解除锁定。</para>
     /// </returns>
+    /// <exception cref="OperationCanceledException">The <paramref name="cancellationToken" /> was canceled.</exception>
+    /// <exception cref="ObjectDisposedException">The <see cref="AsyncLock" /> has been disposed。</exception>
     public Task<Release> LockAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_allowReentrancy && _ownerContext.Value != Guid.Empty && Volatile.Read(ref _state) == 1)
-        {
-            if (_ownerContext.Value != GetCurrentOwnerId())
-            {
-                throw new InvalidOperationException("尝试重入锁，但持有者不匹配");
-            }
-            cancellationToken.ThrowIfCancellationRequested(); // 新增：检查重入时取消状态
-            return Task.FromResult(new Release(this, true));
-        }
+
+        // Fast uncontended path: try to set state from 0 -> 1.
         if (Interlocked.CompareExchange(ref _state, 1, 0) == 0)
         {
-            _ownerContext.Value = Guid.NewGuid();
             return _cachedReleaseTask;
         }
-        var waiter = new Waiter(this, _tcsPool.Get());
+
+        // Contended path: enqueue a waiter.
+        var waiter = new Waiter(this);
+
+        // Cancellation registration (installed before enqueue to avoid missed cancellation windows).
         if (cancellationToken.CanBeCanceled)
         {
+            // 使用 UnsafeRegister，避免流动 ExecutionContext，提高性能
             waiter.CancellationRegistration = cancellationToken.UnsafeRegister(static s =>
             {
                 var w = (Waiter?)s;
@@ -227,28 +221,29 @@ public sealed class AsyncLock : IDisposable
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
+
+            // If already canceled, avoid enqueue
             if (waiter.Tcs.Task.IsCompleted)
             {
-                _tcsPool.Return(waiter.Tcs);
                 return waiter.Tcs.Task;
             }
+
+            // Re-check state under lock; if the lock became free between fast path and now, try to acquire atomically
             if (Interlocked.CompareExchange(ref _state, 1, 0) == 0)
             {
+                // cleanup registration to avoid leaks since we won't use this waiter
                 waiter.CancellationRegistration.Dispose();
-                _ownerContext.Value = Guid.NewGuid();
-                _tcsPool.Return(waiter.Tcs);
                 return _cachedReleaseTask;
             }
             waiter.Node = _waiters.AddLast(waiter);
             _waiterCount++;
-            Debug.Assert(_waiterCount == _waiters.Count, "Waiter count mismatch in LockAsync");
         }
         return waiter.Tcs.Task;
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Asynchronously acquires the lock, executes an action, and releases the lock.</para>
-    ///     <para xml:lang="zh">异步获取锁，执行操作，然后释放锁。</para>
+    ///     <para xml:lang="en">Asynchronously acquires the lock, executes an asynchronous action, and then releases the lock.</para>
+    ///     <para xml:lang="zh">异步获取锁，执行一个异步操作，然后释放锁。</para>
     /// </summary>
     public async Task LockAsync(Func<Task> action, CancellationToken cancellationToken = default)
     {
@@ -260,8 +255,11 @@ public sealed class AsyncLock : IDisposable
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Asynchronously acquires the lock, executes a function, and returns its result.</para>
-    ///     <para xml:lang="zh">异步获取锁，执行函数，并返回其结果。</para>
+    ///     <para xml:lang="en">
+    ///     Asynchronously acquires the lock, executes an asynchronous function, releases the lock, and returns the result of the
+    ///     function.
+    ///     </para>
+    ///     <para xml:lang="zh">异步获取锁，执行一个异步函数，释放锁，并返回函数的结果。</para>
     /// </summary>
     public async Task<TResult> LockAsync<TResult>(Func<Task<TResult>> func, CancellationToken cancellationToken = default)
     {
@@ -282,7 +280,6 @@ public sealed class AsyncLock : IDisposable
                 if (_disposed)
                 {
                     Volatile.Write(ref _state, 0);
-                    _ownerContext.Value = Guid.Empty;
                     return;
                 }
                 if (_waiters.Count > 0)
@@ -291,34 +288,24 @@ public sealed class AsyncLock : IDisposable
                     _waiters.RemoveFirst();
                     next.Node = null;
                     _waiterCount--;
-                    _ownerContext.Value = Guid.NewGuid();
-                    Debug.Assert(_waiterCount == _waiters.Count, "Waiter count mismatch in ReleaseInternal");
+                    // Keep _state held (1) since ownership transfers to the next waiter.
                 }
                 else
                 {
                     Volatile.Write(ref _state, 0);
-                    _ownerContext.Value = Guid.Empty;
                     return;
                 }
             }
             next.CancellationRegistration.Dispose();
             if (next.Tcs.TrySetResult(new(this)))
             {
-                _tcsPool.Return(next.Tcs);
+                // Ownership transferred to next waiter, availability stays reset.
                 return;
             }
-            if (next.Tcs.Task.IsCanceled)
-            {
-                _tcsPool.Return(next.Tcs);
-            }
+            // Otherwise, loop to pick another waiter or release if none.
+            // If the selected waiter was already canceled/completed, retry the handoff.
         }
     }
-
-    /// <summary>
-    ///     <para xml:lang="en">Gets the current owner ID for the lock context.</para>
-    ///     <para xml:lang="zh">获取当前锁上下文的持有者 ID。</para>
-    /// </summary>
-    private Guid GetCurrentOwnerId() => _ownerContext.Value;
 
     /// <summary>
     ///     <para xml:lang="en">A disposable structure that releases the <see cref="AsyncLock" /> when disposed.</para>
@@ -327,24 +314,18 @@ public sealed class AsyncLock : IDisposable
     public readonly struct Release : IDisposable
     {
         private readonly AsyncLock? _asyncLockToRelease;
-        private readonly bool _isReentrant;
 
-        internal Release(AsyncLock? asyncLockToRelease, bool isReentrant = false)
+        internal Release(AsyncLock? asyncLockToRelease)
         {
             _asyncLockToRelease = asyncLockToRelease;
-            _isReentrant = isReentrant;
         }
 
         /// <summary>
-        ///     <para xml:lang="en">Releases the <see cref="AsyncLock" />.</para>
+        ///     <para xml:lang="en">Releases the <see cref="AsyncLock" />。</para>
         ///     <para xml:lang="zh">释放 <see cref="AsyncLock" />。</para>
         /// </summary>
         public void Dispose()
         {
-            if (_isReentrant)
-            {
-                return;
-            }
             _asyncLockToRelease?.ReleaseInternal();
         }
     }
@@ -352,14 +333,13 @@ public sealed class AsyncLock : IDisposable
     private sealed class Waiter
     {
         private readonly AsyncLock _owner;
-        internal readonly TaskCompletionSource<Release> Tcs;
+        internal readonly TaskCompletionSource<Release> Tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal CancellationTokenRegistration CancellationRegistration;
         internal LinkedListNode<Waiter>? Node;
 
-        internal Waiter(AsyncLock owner, TaskCompletionSource<Release> tcs)
+        internal Waiter(AsyncLock owner)
         {
             _owner = owner;
-            Tcs = tcs;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -367,39 +347,15 @@ public sealed class AsyncLock : IDisposable
         {
             lock (_owner._sync)
             {
-                if (Node is null)
+                if (Node is not null)
                 {
-                    return;
+                    _owner._waiters.Remove(Node);
+                    Node = null;
+                    _owner._waiterCount--;
                 }
-                _owner._waiters.Remove(Node);
-                Node = null;
-                _owner._waiterCount--;
-                Debug.Assert(_owner._waiterCount == _owner._waiters.Count, "Waiter count mismatch in TryCancel");
-                Tcs.TrySetCanceled();
-                _owner._tcsPool.Return(Tcs);
             }
-        }
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">A thread-safe object pool for reusing objects, optimized for high-concurrency.</para>
-    ///     <para xml:lang="zh">一个线程安全对象池，用于重用对象，优化高并发场景。</para>
-    /// </summary>
-    private sealed class SimpleObjectPool<T>(Func<T> factory) where T : class
-    {
-        private readonly Func<T> _factory = factory ?? throw new ArgumentNullException(nameof(factory));
-        private readonly ConcurrentBag<T> _pool = [];
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T Get() => _pool.TryTake(out var item) ? item : _factory();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Return(T? item)
-        {
-            if (item != null)
-            {
-                _pool.Add(item);
-            }
+            // Always complete as canceled so producers can observe and avoid enqueuing or awaiting forever.
+            Tcs.TrySetCanceled();
         }
     }
 }
