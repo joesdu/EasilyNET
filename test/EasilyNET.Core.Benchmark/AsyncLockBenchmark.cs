@@ -64,7 +64,7 @@ public class AsyncLockBenchmark
                         }
                         catch (OperationCanceledException)
                         {
-                            // 预期取消，允许继续下一次循环
+                            // Expected cancellation, allow to continue to next iteration
                         }
                     }
                 }
