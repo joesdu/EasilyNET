@@ -371,10 +371,7 @@ internal sealed class PersistentConnection : IDisposable, IAsyncDisposable
                     }
                     try
                     {
-                        if (!ReferenceEquals(oldConn, newConnection) && oldConn is not null)
-                        {
-                            await oldConn.DisposeAsync().ConfigureAwait(false);
-                        }
+                        oldConn?.Dispose();
                     }
                     catch (Exception ex)
                     {
