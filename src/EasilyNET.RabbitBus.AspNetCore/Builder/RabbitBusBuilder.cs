@@ -348,7 +348,6 @@ public sealed class RabbitBusBuilder
     ///     <para xml:lang="en">Build the configuration and registry</para>
     ///     <para xml:lang="zh">构建配置和注册器</para>
     /// </summary>
-    /// W
     public (RabbitConfig Config, EventConfigurationRegistry Registry) Build() => (Config, EventRegistry);
 
     private static string GetDefaultExchangeName(EModel exchangeType) =>
