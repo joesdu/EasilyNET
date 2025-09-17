@@ -62,6 +62,12 @@ public sealed class RabbitConfig
     public int RetryCount { get; set; } = 5;
 
     /// <summary>
+    ///     <para xml:lang="en">Reconnection interval in seconds. Default is 15</para>
+    ///     <para xml:lang="zh">重连间隔（秒）。默认是 15</para>
+    /// </summary>
+    public int ReconnectIntervalSeconds { get; set; } = 15;
+
+    /// <summary>
     ///     <para xml:lang="en">The consumer dispatch concurrency. Default is 10</para>
     ///     <para xml:lang="zh">消费者调度并发数。默认是 10</para>
     /// </summary>

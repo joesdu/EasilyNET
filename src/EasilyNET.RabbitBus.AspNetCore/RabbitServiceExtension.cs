@@ -1,10 +1,9 @@
 using System.Net.Sockets;
 using EasilyNET.Core.Misc;
-using EasilyNET.RabbitBus.AspNetCore;
 using EasilyNET.RabbitBus.AspNetCore.Builder;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
-using EasilyNET.RabbitBus.AspNetCore.Manager;
 using EasilyNET.RabbitBus.Core.Abstraction;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
@@ -14,7 +13,7 @@ using RabbitMQ.Client.Exceptions;
 
 #pragma warning disable IDE0130 // 命名空间与文件夹结构不匹配
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 
 /// <summary>
 ///     <para xml:lang="en">RabbitMQ ServiceCollection</para>
@@ -65,6 +64,11 @@ public static class RabbitServiceExtension
         services.InjectConfiguredHandlers(registry);
         // 序列化器
         services.AddSingleton(sp => sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>().Get(Constant.OptionName).BusSerializer);
+        services.AddSingleton<CacheManager>();
+        services.AddSingleton<ConsumerManager>();
+        services.AddSingleton<EventPublisher>();
+        services.AddSingleton<EventHandlerInvoker>();
+        services.AddSingleton<MessageConfirmManager>();
         services.AddSingleton<IBus, EventBus>();
         services.AddHostedService<SubscribeService>();
     }
