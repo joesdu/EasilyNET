@@ -191,7 +191,7 @@ internal sealed record EventBus : IBus
 
     public async Task Publish<T>(T @event, TimeSpan ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await Publish(@event, (uint)ttl.TotalMilliseconds, routingKey, priority, cancellationToken);
 
-    public async Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
+    public async Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent
     {
         var config = _eventRegistry.GetConfiguration<T>();
         if (config is null || !config.Enabled)
@@ -223,11 +223,11 @@ internal sealed record EventBus : IBus
         var effectiveBatchSize = Math.Min(_options.Get(Constant.OptionName).BatchSize, list.Count);
         foreach (var batch in list.Chunk(effectiveBatchSize))
         {
-            await PublishBatchInternal(channel, config, batch, properties, routingKey, cancellationToken);
+            await PublishBatchInternal(channel, config, batch, properties, routingKey, multiThread, cancellationToken);
         }
     }
 
-    public async Task PublishBatch<T>(IEnumerable<T> events, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
+    public async Task PublishBatch<T>(IEnumerable<T> events, uint ttl, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent
     {
         var config = _eventRegistry.GetConfiguration<T>();
         if (config is null || !config.Enabled)
@@ -263,11 +263,11 @@ internal sealed record EventBus : IBus
         var batchSize = Math.Min(_options.Get(Constant.OptionName).BatchSize, list.Count);
         foreach (var batch in list.Chunk(batchSize))
         {
-            await PublishBatchInternal(channel, config, batch, properties, routingKey, cancellationToken);
+            await PublishBatchInternal(channel, config, batch, properties, routingKey, multiThread, cancellationToken);
         }
     }
 
-    public async Task PublishBatch<T>(IEnumerable<T> events, TimeSpan ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatch(events, (uint)ttl.TotalMilliseconds, routingKey, priority, cancellationToken);
+    public async Task PublishBatch<T>(IEnumerable<T> events, TimeSpan ttl, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatch(events, (uint)ttl.TotalMilliseconds, routingKey, priority, multiThread, cancellationToken);
 
     internal async Task RunRabbit() => await InitialRabbit();
 
@@ -501,7 +501,7 @@ internal sealed record EventBus : IBus
         };
     }
 
-    private async Task PublishBatchInternal<T>(IChannel channel, EventConfiguration config, T[] batch, BasicProperties properties, string? routingKey, CancellationToken cancellationToken) where T : IEvent
+    private async Task PublishBatchInternal<T>(IChannel channel, EventConfiguration config, T[] batch, BasicProperties properties, string? routingKey, bool? multiThread, CancellationToken cancellationToken) where T : IEvent
     {
         var pipeline = _pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
         // 使用并行发送提高性能
@@ -510,7 +510,20 @@ internal sealed record EventBus : IBus
             MaxDegreeOfParallelism = Math.Min(Environment.ProcessorCount / 2, batch.Length), // 限制并行度，避免过载
             CancellationToken = cancellationToken
         };
-        await Parallel.ForEachAsync(batch, parallelOptions, async (@event, ct) =>
+        if (multiThread is true)
+        {
+            await Parallel.ForEachAsync(batch, parallelOptions, async (@event, ct) => await BasicPublish(@event, ct).ConfigureAwait(false));
+        }
+        else
+        {
+            foreach (var @event in batch)
+            {
+                await BasicPublish(@event, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        return;
+
+        async Task BasicPublish(IEvent @event, CancellationToken ct)
         {
             var sequenceNumber = await channel.GetNextPublishSequenceNumberAsync(ct);
             var tcs = new TaskCompletionSource<bool>();
@@ -524,7 +537,7 @@ internal sealed record EventBus : IBus
             await pipeline.ExecuteAsync(async innerCt =>
                     await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, innerCt).ConfigureAwait(false),
                 ct).ConfigureAwait(false);
-        });
+        }
     }
 
     private async Task OnBasicAcks(object sender, BasicAckEventArgs ea) => await CleanOutstandingConfirms(ea.DeliveryTag, ea.Multiple);

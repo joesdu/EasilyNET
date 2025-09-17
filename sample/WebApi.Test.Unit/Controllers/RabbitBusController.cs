@@ -45,7 +45,7 @@ public class RabbitBusController(IBus ibus) : ControllerBase
             {
                 Summary = $"WorkQueuesEvent:{x}"
             }).ToList();
-            await ibus.PublishBatch(events);
+            await ibus.PublishBatch(events, multiThread: false);
         });
     }
 
