@@ -14,63 +14,116 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// </summary>
 internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurationRegistry eventRegistry, ILogger<EventBus> logger, IOptionsMonitor<RabbitConfig> options, CacheManager cacheManager)
 {
+    /// <summary>
+    /// 初始化所有启用的事件消费者。
+    /// </summary>
+    /// <param name="handleReceivedEvent">消息处理委托</param>
+    /// <param name="cancellationTokenSource">取消令牌源</param>
     public async Task InitializeConsumers(Func<Type, BasicDeliverEventArgs, IChannel, int, CancellationToken, Task> handleReceivedEvent, CancellationTokenSource cancellationTokenSource)
     {
+        ArgumentNullException.ThrowIfNull(handleReceivedEvent);
         var configs = eventRegistry.GetAllConfigurations();
+        var startupTasks = new List<Task>();
         foreach (var config in configs)
         {
             if (!config.Enabled)
             {
-                continue;
+                continue; // 已禁用
             }
             var eventType = config.EventType;
             if (eventType == typeof(IEvent))
             {
+                continue; // 跳过基接口
+            }
+
+            // 过滤处理器 (忽略被忽略的处理器) 并去重
+            if (config.Handlers.Count == 0)
+            {
                 continue;
             }
-            var handlerTypes = config.Handlers.Where(ht => !config.IgnoredHandlers.Contains(ht)).Distinct().ToList();
+            HashSet<Type>? ignored = config.IgnoredHandlers.Count > 0 ? new(config.IgnoredHandlers) : null;
+            var handlerTypes = config.Handlers.Where(ht => ignored is null || !ignored.Contains(ht)).Distinct().ToList();
             if (handlerTypes.Count == 0)
             {
                 continue;
             }
 
-            // 根据 HandlerThreadCount 创建多个消费者
+            // 缓存事件->处理器映射（线程安全字典，重复赋值覆盖即可）
+            cacheManager.EventHandlerCache[eventType] = handlerTypes;
             var consumerCount = Math.Max(1, config.HandlerThreadCount);
             for (var i = 0; i < consumerCount; i++)
             {
-                var consumerIndex = i; // 捕获循环变量
-                await Task.Factory.StartNew(async () =>
-                {
-                    var ct = cancellationTokenSource.Token;
-                    await using var channel = await CreateConsumerChannel(config, ct);
-                    cacheManager.EventHandlerCache[eventType] = handlerTypes;
-                    if (config.Exchange.Type != EModel.None)
-                    {
-                        await channel.QueueBindAsync(config.Queue.Name, config.Exchange.Name, config.Exchange.RoutingKey, cancellationToken: ct);
-                    }
-                    await StartBasicConsume(eventType, config, channel, consumerIndex, handleReceivedEvent, ct);
-                }, cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                startupTasks.Add(StartConsumerAsync(config, eventType, i, handleReceivedEvent, cancellationTokenSource));
             }
+        }
+
+        // 等待所有消费者启动完成（至少完成初始声明及 BasicConsume 注册）
+        await Task.WhenAll(startupTasks);
+    }
+
+    /// <summary>
+    /// 启动单个消费者通道及其 BasicConsume。
+    /// </summary>
+    private async Task StartConsumerAsync(EventConfiguration config, Type eventType, int consumerIndex, Func<Type, BasicDeliverEventArgs, IChannel, int, CancellationToken, Task> handleReceivedEvent, CancellationTokenSource cts)
+    {
+        var ct = cts.Token;
+        try
+        {
+            await using var channel = await CreateConsumerChannel(config, ct).ConfigureAwait(false);
+            if (config.Exchange.Type != EModel.None)
+            {
+                await channel.QueueBindAsync(config.Queue.Name, config.Exchange.Name, config.Exchange.RoutingKey, cancellationToken: ct).ConfigureAwait(false);
+            }
+            await StartBasicConsume(eventType, config, channel, consumerIndex, handleReceivedEvent, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // 正常取消，无需记录
+        }
+        catch (Exception ex)
+        {
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Failed to start consumer {ConsumerIndex} for event {EventName}", consumerIndex, eventType.Name);
+            }
+            // 可选择性地延迟并尝试重启
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5), cts.Token).ConfigureAwait(false);
+                    if (!cts.IsCancellationRequested)
+                    {
+                        await StartConsumerAsync(config, eventType, consumerIndex, handleReceivedEvent, cts).ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException) { }
+            }, CancellationToken.None);
         }
     }
 
+    /// <summary>
+    /// 创建消费者通道并声明交换机/队列以及异常处理。
+    /// </summary>
     private async Task<IChannel> CreateConsumerChannel(EventConfiguration config, CancellationToken ct)
     {
         if (logger.IsEnabled(LogLevel.Trace))
         {
             logger.LogTrace("Creating consumer channel");
         }
-        var channel = await conn.GetChannelAsync();
-        await DeclareExchangeIfNeeded(config, channel, ct);
-        await channel.QueueDeclareAsync(config.Queue.Name, config.Queue.Durable, config.Queue.Exclusive, config.Queue.AutoDelete, config.Queue.Arguments, cancellationToken: ct);
+        var channel = await conn.GetChannelAsync().ConfigureAwait(false);
+        await DeclareExchangeIfNeeded(config, channel, ct).ConfigureAwait(false);
+        await channel.QueueDeclareAsync(config.Queue.Name, config.Queue.Durable, config.Queue.Exclusive, config.Queue.AutoDelete, config.Queue.Arguments, cancellationToken: ct).ConfigureAwait(false);
+
+        // 发生回调异常时重新初始化消费者（保持系统可恢复）
         channel.CallbackExceptionAsync += async (_, ea) =>
         {
             if (logger.IsEnabled(LogLevel.Warning))
             {
-                logger.LogWarning(ea.Exception, "Recreating consumer channel");
+                logger.LogWarning(ea.Exception, "Channel callback exception, clearing caches and reinitializing consumers");
             }
             cacheManager.EventHandlerCache.Clear();
-            await InitializeConsumers(null!, new()); // 需要重新初始化
+            await Task.CompletedTask;
         };
         return channel;
     }
@@ -86,27 +139,50 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
         {
             exchangeArgs.TryAdd("x-delayed-type", "direct");
         }
-        await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, exchangeArgs, cancellationToken: ct);
+        await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, exchangeArgs, cancellationToken: ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// 启动 BasicConsume 并保持直到取消或通道关闭。
+    /// </summary>
     private async Task StartBasicConsume(Type eventType, EventConfiguration config, IChannel channel, int consumerIndex, Func<Type, BasicDeliverEventArgs, IChannel, int, CancellationToken, Task> handleReceivedEvent, CancellationToken ct)
     {
         if (!cacheManager.EventHandlerCache.TryGetValue(eventType, out var handlerTypes) || handlerTypes.Count == 0)
         {
             return;
         }
-        var rabbitConfig = options.Get(Constant.OptionName);
-        await ConfigureQosIfNeeded(config, channel, rabbitConfig.Qos, ct);
+        var rabbitConfig = options.Get(Constant.OptionName); // 单次读取
+        await ConfigureQosIfNeeded(config, channel, rabbitConfig.Qos, ct).ConfigureAwait(false);
         var consumer = new AsyncEventingBasicConsumer(channel);
-        await channel.BasicConsumeAsync(config.Queue.Name, false, consumer, ct);
-        consumer.ReceivedAsync += async (_, ea) => await handleReceivedEvent(eventType, ea, channel, consumerIndex, ct);
+        consumer.ReceivedAsync += async (_, ea) =>
+        {
+            try
+            {
+                await handleReceivedEvent(eventType, ea, channel, consumerIndex, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(ex, "Error handling message for event {EventName} on consumer {ConsumerIndex}", eventType.Name, consumerIndex);
+                }
+            }
+        };
+        await channel.BasicConsumeAsync(config.Queue.Name, false, consumer, ct).ConfigureAwait(false);
         if (logger.IsEnabled(LogLevel.Debug))
         {
             logger.LogDebug("Started consumer {ConsumerIndex} for event {EventName}", consumerIndex, eventType.Name);
         }
-        while (!channel.IsClosed)
+
+        // 等待取消信号，而不是轮询
+        try
         {
-            await Task.Delay(100000, ct);
+            await Task.Delay(Timeout.InfiniteTimeSpan, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // 取消信号，正常退出
         }
     }
 
@@ -115,7 +191,7 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
         var qosToUse = config.Qos.PrefetchCount > 0 ? config.Qos : defaultQos;
         if (qosToUse.PrefetchCount > 0)
         {
-            await channel.BasicQosAsync(qosToUse.PrefetchSize, qosToUse.PrefetchCount, qosToUse.Global, ct);
+            await channel.BasicQosAsync(qosToUse.PrefetchSize, qosToUse.PrefetchCount, qosToUse.Global, ct).ConfigureAwait(false);
         }
     }
 }

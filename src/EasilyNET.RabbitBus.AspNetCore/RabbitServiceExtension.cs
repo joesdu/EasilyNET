@@ -1,9 +1,12 @@
 using System.Net.Sockets;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore;
+using EasilyNET.RabbitBus.AspNetCore.Abstractions;
 using EasilyNET.RabbitBus.AspNetCore.Builder;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
+using EasilyNET.RabbitBus.AspNetCore.Health;
 using EasilyNET.RabbitBus.AspNetCore.Manager;
+using EasilyNET.RabbitBus.AspNetCore.Stores;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -71,9 +74,13 @@ public static class RabbitServiceExtension
         services.AddSingleton<ConsumerManager>();
         services.AddSingleton<EventPublisher>();
         services.AddSingleton<EventHandlerInvoker>();
-        services.AddSingleton<MessageConfirmManager>();
+        services.AddSingleton<IDeadLetterStore, InMemoryDeadLetterStore>();
+        // 后台消息确认/重试服务
         services.AddSingleton<IBus, EventBus>();
+        services.AddHostedService<MessageConfirmManager>();
         services.AddHostedService<SubscribeService>();
+        // 健康检查(若用户在外部已 AddHealthChecks 可复用)
+        services.AddHealthChecks().AddRabbitBusHealthCheck();
     }
 
     private static void InjectConfiguredHandlers(this IServiceCollection services, EventConfigurationRegistry registry)

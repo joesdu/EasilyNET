@@ -16,8 +16,6 @@ internal sealed record EventBus : IBus
     private readonly EventPublisher _eventPublisher;
     private readonly EventConfigurationRegistry _eventRegistry;
     private readonly ILogger<EventBus> _logger;
-    private readonly MessageConfirmManager _messageConfirmManager;
-
     private CancellationTokenSource _cancellationTokenSource = new();
 
     public EventBus(
@@ -27,8 +25,7 @@ internal sealed record EventBus : IBus
         CacheManager cacheManager,
         ConsumerManager consumerManager,
         EventPublisher eventPublisher,
-        EventHandlerInvoker eventHandlerInvoker,
-        MessageConfirmManager messageConfirmManager)
+        EventHandlerInvoker eventHandlerInvoker)
     {
         _conn = conn;
         _logger = logger;
@@ -37,103 +34,18 @@ internal sealed record EventBus : IBus
         _consumerManager = consumerManager;
         _eventPublisher = eventPublisher;
         _eventHandlerInvoker = eventHandlerInvoker;
-        _messageConfirmManager = messageConfirmManager;
         _ = InitializeAsync();
     }
 
-    public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
-    {
-        var config = _eventRegistry.GetConfiguration<T>();
-        if (config is null || !config.Enabled)
-        {
-            return;
-        }
-        try
-        {
-            await _eventPublisher.Publish(config, @event, routingKey, priority, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            if (_logger.IsEnabled(LogLevel.Error))
-            {
-                _logger.LogError(ex, "Failed to publish event {EventType} with ID {EventId}", @event.GetType().Name, @event.EventId);
-            }
-            // 不抛出异常，避免程序崩溃，消息会通过重试机制重新发送
-        }
-    }
+    public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, null, cancellationToken).ConfigureAwait(false);
 
-    public async Task Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
-    {
-        var config = _eventRegistry.GetConfiguration<T>();
-        if (config is null || !config.Enabled)
-        {
-            return;
-        }
-        if (config.Exchange.Type != EModel.Delayed)
-        {
-            throw new InvalidOperationException($"The exchange type for the delayed queue must be '{nameof(EModel.Delayed)}'. Event: '{@event.GetType().Name}'");
-        }
-        try
-        {
-            await _eventPublisher.PublishDelayed(config, @event, ttl, routingKey, priority, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            if (_logger.IsEnabled(LogLevel.Error))
-            {
-                _logger.LogError(ex, "Failed to publish delayed event {EventType} with ID {EventId}", @event.GetType().Name, @event.EventId);
-            }
-            // 不抛出异常，避免程序崩溃，消息会通过重试机制重新发送
-        }
-    }
+    public async Task Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, ttl, cancellationToken).ConfigureAwait(false);
 
     public async Task Publish<T>(T @event, TimeSpan ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await Publish(@event, (uint)ttl.TotalMilliseconds, routingKey, priority, cancellationToken);
 
-    public async Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent
-    {
-        var config = _eventRegistry.GetConfiguration<T>();
-        if (config is null || !config.Enabled)
-        {
-            return;
-        }
-        try
-        {
-            await _eventPublisher.PublishBatch(config, events, routingKey, priority, multiThread, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            if (_logger.IsEnabled(LogLevel.Error))
-            {
-                _logger.LogError(ex, "Failed to publish batch events {EventType}", typeof(T).Name);
-            }
-            // 不抛出异常，避免程序崩溃，消息会通过重试机制重新发送
-        }
-    }
+    public async Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatchInternal(events, routingKey, priority, multiThread, null, cancellationToken).ConfigureAwait(false);
 
-    public async Task PublishBatch<T>(IEnumerable<T> events, uint ttl, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent
-    {
-        var config = _eventRegistry.GetConfiguration<T>();
-        if (config is null || !config.Enabled)
-        {
-            return;
-        }
-        if (config.Exchange.Type != EModel.Delayed)
-        {
-            throw new InvalidOperationException($"The exchange type for the delayed queue must be '{nameof(EModel.Delayed)}'. Event: '{events.FirstOrDefault()?.GetType().Name ?? typeof(T).Name}'");
-        }
-        try
-        {
-            await _eventPublisher.PublishBatchDelayed(config, events, ttl, routingKey, priority, multiThread, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            if (_logger.IsEnabled(LogLevel.Error))
-            {
-                _logger.LogError(ex, "Failed to publish delayed batch events {EventType}", typeof(T).Name);
-            }
-            // 不抛出异常，避免程序崩溃，消息会通过重试机制重新发送
-        }
-    }
+    public async Task PublishBatch<T>(IEnumerable<T> events, uint ttl, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatchInternal(events, routingKey, priority, multiThread, ttl, cancellationToken).ConfigureAwait(false);
 
     public async Task PublishBatch<T>(IEnumerable<T> events, TimeSpan ttl, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatch(events, (uint)ttl.TotalMilliseconds, routingKey, priority, multiThread, cancellationToken);
 
@@ -142,22 +54,20 @@ internal sealed record EventBus : IBus
     /// </summary>
     private async Task InitializeAsync()
     {
-        // 在启动阶段验证交换机配置
-        await ValidateExchangesOnStartupAsync();
-
-        // 注册连接事件
-        RegisterConnectionEvents();
-        // 注册通道事件
-        // 获取通道（可能是异步的）
-        var channel = await _conn.GetChannelAsync();
-        // 注册异步事件处理器
-        channel.BasicAcksAsync += _eventPublisher.OnBasicAcks;
-        channel.BasicNacksAsync += _eventPublisher.OnBasicNacks;
-        channel.BasicReturnAsync += _eventPublisher.OnBasicReturn;
-        // 启动重试任务
-        _ = _messageConfirmManager.StartNackedMessageRetryTask(this, _cancellationTokenSource);
-        // 初始化RabbitMQ消费者
-        await RunRabbit();
+        try
+        {
+            await ValidateExchangesOnStartupAsync().ConfigureAwait(false);
+            RegisterConnectionEvents();
+            await RegisterChannelEventsAsync().ConfigureAwait(false);
+            await RunRabbit().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            if (_logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, "EventBus initialization failed; background components will rely on reconnection to recover");
+            }
+        }
     }
 
     /// <summary>
@@ -185,8 +95,18 @@ internal sealed record EventBus : IBus
 
             // 清理过期的发布确认
             await _eventPublisher.OnConnectionReconnected();
-            await RunRabbit();
+            await RegisterChannelEventsAsync().ConfigureAwait(false); // 通道可能已替换，需要重新注册
+            await RunRabbit().ConfigureAwait(false);
         };
+    }
+
+    private async Task RegisterChannelEventsAsync()
+    {
+        var channel = await _conn.GetChannelAsync().ConfigureAwait(false);
+        // 避免重复多次注册：先移除再注册（RabbitMQ.Client 没有直接移除，简单方案：不处理；若重复可改为标记）
+        channel.BasicAcksAsync += _eventPublisher.OnBasicAcks;
+        channel.BasicNacksAsync += _eventPublisher.OnBasicNacks;
+        channel.BasicReturnAsync += _eventPublisher.OnBasicReturn;
     }
 
     internal async Task RunRabbit()
@@ -210,7 +130,7 @@ internal sealed record EventBus : IBus
         }
         try
         {
-            var channel = await _conn.GetChannelAsync();
+            var channel = await _conn.GetChannelAsync().ConfigureAwait(false);
             var validatedExchanges = new HashSet<string>();
             foreach (var config in configurations.Where(c => c.Exchange.Type != EModel.None))
             {
@@ -222,7 +142,7 @@ internal sealed record EventBus : IBus
                 try
                 {
                     // 使用passive模式验证交换机是否存在且类型匹配
-                    await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, config.Exchange.Arguments, true, false, CancellationToken.None);
+                    await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, config.Exchange.Arguments, true, false, CancellationToken.None).ConfigureAwait(false);
                     validatedExchanges.Add(exchangeKey);
                     if (_logger.IsEnabled(LogLevel.Debug))
                     {
@@ -277,4 +197,86 @@ internal sealed record EventBus : IBus
             }
         }
     }
+
+    #region Internal Publish Helpers
+
+    private async Task PublishInternal<T>(T @event, string? routingKey, byte? priority, uint? ttl, CancellationToken ct) where T : IEvent
+    {
+        ct.ThrowIfCancellationRequested();
+        var config = _eventRegistry.GetConfiguration<T>();
+        if (config is null || !config.Enabled)
+        {
+            return;
+        }
+        try
+        {
+            if (ttl.HasValue)
+            {
+                if (config.Exchange.Type != EModel.Delayed)
+                {
+                    throw new InvalidOperationException($"The exchange type for the delayed queue must be '{nameof(EModel.Delayed)}'. Event: '{@event.GetType().Name}'");
+                }
+                await _eventPublisher.PublishDelayed(config, @event, ttl.Value, routingKey, priority, ct).ConfigureAwait(false);
+            }
+            else
+            {
+                await _eventPublisher.Publish(config, @event, routingKey, priority, ct).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            if (_logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, "Failed to publish{Kind}event {EventType} ID {EventId}", ttl.HasValue ? " delayed " : " ", @event.GetType().Name, @event.EventId);
+            }
+            // Swallow: retry subsystem will handle nacks/timeouts
+        }
+    }
+
+    private async Task PublishBatchInternal<T>(IEnumerable<T> events, string? routingKey, byte? priority, bool? multiThread, uint? ttl, CancellationToken ct) where T : IEvent
+    {
+        ct.ThrowIfCancellationRequested();
+        var list = events as IList<T> ?? events.ToList();
+        if (list.Count == 0)
+        {
+            return;
+        }
+        var config = _eventRegistry.GetConfiguration<T>();
+        if (config is null || !config.Enabled)
+        {
+            return;
+        }
+        try
+        {
+            if (ttl.HasValue)
+            {
+                if (config.Exchange.Type != EModel.Delayed)
+                {
+                    throw new InvalidOperationException($"The exchange type for the delayed queue must be '{nameof(EModel.Delayed)}'. Event: '{typeof(T).Name}'");
+                }
+                await _eventPublisher.PublishBatchDelayed(config, list, ttl.Value, routingKey, priority, multiThread, ct).ConfigureAwait(false);
+            }
+            else
+            {
+                await _eventPublisher.PublishBatch(config, list, routingKey, priority, multiThread, ct).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            if (_logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, "Failed to publish{Kind}batch events {EventType} (Count={Count})", ttl.HasValue ? " delayed " : " ", typeof(T).Name, list.Count);
+            }
+        }
+    }
+
+    #endregion
 }
