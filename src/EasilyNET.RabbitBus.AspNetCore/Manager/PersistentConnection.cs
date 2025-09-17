@@ -315,8 +315,7 @@ internal sealed class PersistentConnection : IDisposable
                     }
                     try
                     {
-                        if (!ReferenceEquals(oldConn, newConnection))
-                            oldConn?.Dispose();
+                        oldConn?.Dispose();
                     }
                     catch
                     {
