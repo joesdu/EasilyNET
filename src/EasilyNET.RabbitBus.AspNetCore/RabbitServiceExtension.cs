@@ -58,6 +58,8 @@ public static class RabbitServiceExtension
             o.Qos.Global = config.Qos.Global;
             o.ApplicationName = config.ApplicationName;
             o.BusSerializer = config.BusSerializer;
+            o.SkipExchangeDeclare = config.SkipExchangeDeclare;
+            o.ValidateExchangesOnStartup = config.ValidateExchangesOnStartup;
         });
         // 先注册配置注册表
         services.AddSingleton(registry);

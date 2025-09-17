@@ -37,7 +37,8 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         }
         if (config.Exchange.Type != EModel.None)
         {
-            await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, config.Exchange.Arguments, cancellationToken: cancellationToken);
+            await DeclareExchangeSafelyAsync(channel, config.Exchange.Name, config.Exchange.Type.Description,
+                config.Exchange.Durable, config.Exchange.AutoDelete, config.Exchange.Arguments, cancellationToken);
         }
         var sequenceNumber = await channel.GetNextPublishSequenceNumberAsync(cancellationToken);
         var tcs = new TaskCompletionSource<bool>();
@@ -89,7 +90,8 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         var exchangeArgs = new Dictionary<string, object?>(config.Exchange.Arguments);
         var xDelayedType = exchangeArgs.TryGetValue("x-delayed-type", out var delayedType);
         exchangeArgs["x-delayed-type"] = !xDelayedType || delayedType is null ? "direct" : delayedType;
-        await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, exchangeArgs, cancellationToken: cancellationToken);
+        await DeclareExchangeSafelyAsync(channel, config.Exchange.Name, config.Exchange.Type.Description,
+            config.Exchange.Durable, config.Exchange.AutoDelete, exchangeArgs, cancellationToken);
         var sequenceNumber = await channel.GetNextPublishSequenceNumberAsync(cancellationToken);
         var tcs = new TaskCompletionSource<bool>();
         _outstandingConfirms[sequenceNumber] = tcs;
@@ -144,7 +146,8 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         }
         if (config.Exchange.Type != EModel.None)
         {
-            await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, config.Exchange.Arguments, cancellationToken: cancellationToken);
+            await DeclareExchangeSafelyAsync(channel, config.Exchange.Name, config.Exchange.Type.Description,
+                config.Exchange.Durable, config.Exchange.AutoDelete, config.Exchange.Arguments, cancellationToken);
         }
         var effectiveBatchSize = Math.Min(options.Get(Constant.OptionName).BatchSize, list.Count);
         foreach (var batch in list.Chunk(effectiveBatchSize))
@@ -176,7 +179,8 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         var exchangeArgs = new Dictionary<string, object?>(config.Exchange.Arguments);
         var xDelayedType = exchangeArgs.TryGetValue("x-delayed-type", out var delayedType);
         exchangeArgs["x-delayed-type"] = !xDelayedType || delayedType is null ? "direct" : delayedType;
-        await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, exchangeArgs, cancellationToken: cancellationToken);
+        await DeclareExchangeSafelyAsync(channel, config.Exchange.Name, config.Exchange.Type.Description,
+            config.Exchange.Durable, config.Exchange.AutoDelete, exchangeArgs, cancellationToken);
         var batchSize = Math.Min(options.Get(Constant.OptionName).BatchSize, list.Count);
         foreach (var batch in list.Chunk(batchSize))
         {
@@ -238,9 +242,51 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
     {
         if (logger.IsEnabled(LogLevel.Warning))
         {
-            logger.LogWarning("Message returned: ReplyCode={ReplyCode}, ReplyText={ReplyText}", ea.ReplyCode, ea.ReplyText);
+            logger.LogWarning("Message returned: ReplyCode={ReplyCode}, ReplyText={ReplyText}, Exchange={Exchange}, RoutingKey={RoutingKey}", ea.ReplyCode, ea.ReplyText, ea.Exchange, ea.RoutingKey);
         }
+        // 当消息无法路由到队列时，RabbitMQ会返回消息
+        // 这里可以选择重新发布或记录错误
         await Task.Yield();
+    }
+
+    public async Task OnConnectionReconnected()
+    {
+        // 清理所有未完成的确认，因为重连后这些确认不再有效
+        await CleanExpiredConfirms();
+    }
+
+    private async Task CleanExpiredConfirms()
+    {
+        await _confirmSemaphore.WaitAsync();
+        try
+        {
+            var expiredConfirms = _outstandingConfirms.ToList();
+            foreach (var (sequenceNumber, tcs) in expiredConfirms)
+            {
+                if (!_outstandingConfirms.TryRemove(sequenceNumber, out _))
+                {
+                    continue;
+                }
+                // 设置为false表示确认失败
+                tcs.TrySetResult(false);
+
+                // 如果有对应的消息，将其加入重试队列
+                if (!_outstandingMessages.TryRemove(sequenceNumber, out var messageInfo))
+                {
+                    continue;
+                }
+                var nextRetryTime = DateTime.UtcNow.AddMilliseconds(1000); // 1秒后重试
+                NackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
+            }
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Cleaned {Count} expired publisher confirms after reconnection", expiredConfirms.Count);
+            }
+        }
+        finally
+        {
+            _confirmSemaphore.Release();
+        }
     }
 
     private async Task CleanOutstandingConfirms(ulong deliveryTag, bool multiple, bool nack = false)
@@ -279,6 +325,46 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         finally
         {
             _confirmSemaphore.Release();
+        }
+    }
+
+    private async Task DeclareExchangeSafelyAsync(IChannel channel, string exchangeName, string exchangeType, bool durable, bool autoDelete, IDictionary<string, object?>? arguments, CancellationToken cancellationToken)
+    {
+        var rabbitConfig = options.Get(Constant.OptionName);
+
+        // 如果配置为跳过交换机声明，直接返回
+        if (rabbitConfig.SkipExchangeDeclare)
+        {
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Skipping exchange declaration for {ExchangeName} as SkipExchangeDeclare is enabled", exchangeName);
+            }
+            return;
+        }
+        try
+        {
+            // 使用 passive=true 先检查交换机是否存在，避免类型冲突
+            await channel.ExchangeDeclareAsync(exchangeName, exchangeType, durable, autoDelete, arguments, true, false, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // 检查是否是类型不匹配错误
+            if (ex.Message.Contains("inequivalent arg 'type'", StringComparison.OrdinalIgnoreCase))
+            {
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(ex, "Exchange {ExchangeName} type mismatch detected. Expected: {ExpectedType}. This may cause connection closures. Consider setting SkipExchangeDeclare=true or fixing the exchange type configuration", exchangeName, exchangeType);
+                }
+                // 对于类型不匹配，不再尝试重新声明，避免触发406错误和连接关闭
+                // 只记录错误，让用户知道需要手动修复配置
+                throw new InvalidOperationException($"Exchange '{exchangeName}' type mismatch. Expected: {exchangeType}. Please fix the exchange configuration or set SkipExchangeDeclare=true", ex);
+            }
+            // 如果交换机不存在或其他错误，尝试重新声明
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning(ex, "Exchange {ExchangeName} not found or other error, declaring with type {Type}", exchangeName, exchangeType);
+            }
+            await channel.ExchangeDeclareAsync(exchangeName, exchangeType, durable, autoDelete, arguments, false, false, cancellationToken);
         }
     }
 }

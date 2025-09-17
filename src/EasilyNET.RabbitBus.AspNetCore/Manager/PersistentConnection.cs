@@ -10,6 +10,7 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 
 internal sealed class PersistentConnection : IAsyncDisposable
 {
+    private const int MinReconnectIntervalMs = 5000; // 最短重连间隔5秒
     private readonly AsyncLock _asyncLock = new();
     private readonly IConnectionFactory _connectionFactory;
     private readonly ILogger<PersistentConnection> _logger;
@@ -26,6 +27,9 @@ internal sealed class PersistentConnection : IAsyncDisposable
     private volatile IConnection? _currentConnection;
 
     private bool _disposed;
+
+    // 新增: 重连冷却时间，避免频繁重连
+    private DateTime _lastReconnectAttempt = DateTime.MinValue;
 
     // 新增: 确保仅存在一个重连任务
     private Task? _reconnectTask;
@@ -279,6 +283,19 @@ internal sealed class PersistentConnection : IAsyncDisposable
             {
                 return;
             }
+
+            // 检查重连冷却时间，避免频繁重连
+            var timeSinceLastAttempt = DateTime.UtcNow - _lastReconnectAttempt;
+            if (timeSinceLastAttempt.TotalMilliseconds < MinReconnectIntervalMs)
+            {
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug("Reconnect attempt too frequent, waiting {RemainingMs}ms",
+                        MinReconnectIntervalMs - (int)timeSinceLastAttempt.TotalMilliseconds);
+                }
+                return;
+            }
+            _lastReconnectAttempt = DateTime.UtcNow;
 
             // 使用异步锁保护重连状态
             using (await _reconnectAsyncLock.LockAsync().ConfigureAwait(false))

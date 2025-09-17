@@ -20,16 +20,48 @@ internal sealed class MessageConfirmManager(EventPublisher eventPublisher, ILogg
     public async Task StartNackedMessageRetryTask(EventBus eventBus, CancellationTokenSource cancellationTokenSource)
     {
         var pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
+        const int maxQueueSize = 10000; // 限制重试队列最大大小
+        const int batchSize = 10;       // 每次处理的消息数量
         while (!cancellationTokenSource.IsCancellationRequested)
         {
             try
             {
-                if (eventPublisher.NackedMessages.TryPeek(out var nackedMessage) && nackedMessage.NextRetryTime <= DateTime.UtcNow)
+                // 检查重试队列大小，避免内存溢出
+                if (eventPublisher.NackedMessages.Count > maxQueueSize)
                 {
-                    if (!eventPublisher.NackedMessages.TryDequeue(out nackedMessage))
+                    if (logger.IsEnabled(LogLevel.Error))
                     {
-                        continue;
+                        logger.LogError("Nacked message queue size exceeded {MaxQueueSize}, clearing old messages", maxQueueSize);
                     }
+                    // 清理最旧的消息
+                    while (eventPublisher.NackedMessages.Count > maxQueueSize / 2 && eventPublisher.NackedMessages.TryDequeue(out _))
+                    {
+                        // 丢弃旧消息
+                    }
+                    await Task.Delay(5000, cancellationTokenSource.Token); // 等待5秒后再继续
+                    continue;
+                }
+
+                // 批量处理重试消息，避免高频场景下的性能问题
+                var messagesToRetry = new List<(IEvent Event, string? RoutingKey, byte? Priority, int RetryCount, DateTime NextRetryTime)>();
+                while (messagesToRetry.Count < batchSize && eventPublisher.NackedMessages.TryPeek(out var nackedMessage))
+                {
+                    if (nackedMessage.NextRetryTime <= DateTime.UtcNow)
+                    {
+                        if (eventPublisher.NackedMessages.TryDequeue(out nackedMessage))
+                        {
+                            messagesToRetry.Add(nackedMessage);
+                        }
+                    }
+                    else
+                    {
+                        break; // 消息还未到重试时间
+                    }
+                }
+
+                // 处理这批消息
+                foreach (var nackedMessage in messagesToRetry)
+                {
                     var rabbitConfig = options.Get(Constant.OptionName);
                     var maxRetries = rabbitConfig.RetryCount;
                     if (nackedMessage.RetryCount > maxRetries)
@@ -68,7 +100,9 @@ internal sealed class MessageConfirmManager(EventPublisher eventPublisher, ILogg
                         eventPublisher.NackedMessages.Enqueue((nackedMessage.Event, nackedMessage.RoutingKey, nackedMessage.Priority, nackedMessage.RetryCount + 1, nextRetryTime));
                     }
                 }
-                else
+
+                // 如果没有消息需要处理，等待一段时间
+                if (messagesToRetry.Count == 0)
                 {
                     await Task.Delay(1000, cancellationTokenSource.Token);
                 }

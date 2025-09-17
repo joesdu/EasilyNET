@@ -123,4 +123,16 @@ public sealed class RabbitConfig
     ///     <para xml:lang="zh">应用程序名称用于标识</para>
     /// </summary>
     public string ApplicationName { get; set; } = "EasilyNET.RabbitBus";
+
+    /// <summary>
+    ///     <para xml:lang="en">Whether to skip exchange declaration. When true, assumes exchanges already exist with correct types. Default is false</para>
+    ///     <para xml:lang="zh">是否跳过交换机声明。当为true时，假设交换机已存在且类型正确。默认是false</para>
+    /// </summary>
+    public bool SkipExchangeDeclare { get; set; } = false;
+
+    /// <summary>
+    ///     <para xml:lang="en">Whether to validate exchange types on startup. When true, validates all configured exchanges exist with correct types. Default is true</para>
+    ///     <para xml:lang="zh">是否在启动时验证交换机类型。当为true时，验证所有配置的交换机是否存在且类型正确。默认是true</para>
+    /// </summary>
+    public bool ValidateExchangesOnStartup { get; set; } = true;
 }
