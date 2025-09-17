@@ -8,7 +8,7 @@ using RabbitMQ.Client;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 
-internal sealed class PersistentConnection : IDisposable, IAsyncDisposable
+internal sealed class PersistentConnection : IAsyncDisposable
 {
     private readonly AsyncLock _asyncLock = new();
     private readonly IConnectionFactory _connectionFactory;
@@ -65,7 +65,10 @@ internal sealed class PersistentConnection : IDisposable, IAsyncDisposable
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "等待重连任务完成时发生错误");
+                    if (_logger.IsEnabled(LogLevel.Warning))
+                    {
+                        _logger.LogWarning(ex, "等待重连任务完成时发生错误");
+                    }
                 }
             }
 
@@ -78,7 +81,10 @@ internal sealed class PersistentConnection : IDisposable, IAsyncDisposable
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "清理RabbitMQ通道时发生错误");
+                    if (_logger.IsEnabled(LogLevel.Warning))
+                    {
+                        _logger.LogWarning(ex, "清理RabbitMQ通道时发生错误");
+                    }
                 }
             }
             if (_currentConnection is not null)
@@ -89,7 +95,10 @@ internal sealed class PersistentConnection : IDisposable, IAsyncDisposable
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "清理RabbitMQ连接时发生错误");
+                    if (_logger.IsEnabled(LogLevel.Warning))
+                    {
+                        _logger.LogWarning(ex, "清理RabbitMQ连接时发生错误");
+                    }
                 }
             }
             _asyncLock.Dispose();
@@ -103,11 +112,6 @@ internal sealed class PersistentConnection : IDisposable, IAsyncDisposable
                 _logger.LogCritical("Error disposing RabbitMQ connection: {Message}", ex.Message);
             }
         }
-    }
-
-    public void Dispose()
-    {
-        DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
 
     /// <summary>
@@ -161,7 +165,10 @@ internal sealed class PersistentConnection : IDisposable, IAsyncDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "创建 RabbitMQ 通道失败，将重新进入重连流程");
+                if (_logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.LogError(ex, "创建 RabbitMQ 通道失败，将重新进入重连流程");
+                }
                 // 连接可能又掉了，重新触发重连（如果还没有）
                 if (_currentConnection is not { IsOpen: true })
                 {
@@ -199,7 +206,10 @@ internal sealed class PersistentConnection : IDisposable, IAsyncDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "初始化RabbitMQ连接失败，进入后台重连");
+                if (_logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.LogError(ex, "初始化RabbitMQ连接失败，进入后台重连");
+                }
                 StartReconnectProcess();
                 // 不在此处重置 _connectionReadyTcs（保持未完成状态，后续重连成功设为完成）
                 throw;
@@ -319,7 +329,10 @@ internal sealed class PersistentConnection : IDisposable, IAsyncDisposable
                     {
                         return;
                     }
-                    _logger.LogInformation("尝试重新连接到RabbitMQ...");
+                    if (_logger.IsEnabled(LogLevel.Information))
+                    {
+                        _logger.LogInformation("尝试重新连接到RabbitMQ...");
+                    }
                     IConnection? oldConn;
                     IChannel? oldCh;
 
@@ -333,7 +346,10 @@ internal sealed class PersistentConnection : IDisposable, IAsyncDisposable
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "创建RabbitMQ通道失败，清理新连接");
+                        if (_logger.IsEnabled(LogLevel.Error))
+                        {
+                            _logger.LogError(ex, "创建RabbitMQ通道失败，清理新连接");
+                        }
                         // 如果创建通道失败，关闭新连接并抛出
                         try
                         {
@@ -341,7 +357,10 @@ internal sealed class PersistentConnection : IDisposable, IAsyncDisposable
                         }
                         catch (Exception disposeEx)
                         {
-                            _logger.LogWarning(disposeEx, "清理新连接时发生错误");
+                            if (_logger.IsEnabled(LogLevel.Warning))
+                            {
+                                _logger.LogWarning(disposeEx, "清理新连接时发生错误");
+                            }
                         }
                         throw;
                     }
@@ -367,15 +386,28 @@ internal sealed class PersistentConnection : IDisposable, IAsyncDisposable
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "释放旧RabbitMQ通道时发生错误");
+                        if (_logger.IsEnabled(LogLevel.Warning))
+                        {
+                            _logger.LogWarning(ex, "释放旧RabbitMQ通道时发生错误");
+                        }
                     }
                     try
                     {
-                        oldConn?.Dispose();
+                        if (oldConn is IAsyncDisposable asyncDisposableConn)
+                        {
+                            await asyncDisposableConn.DisposeAsync().ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            oldConn?.Dispose();
+                        }
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "释放旧RabbitMQ连接时发生错误");
+                        if (_logger.IsEnabled(LogLevel.Warning))
+                        {
+                            _logger.LogWarning(ex, "释放旧RabbitMQ连接时发生错误");
+                        }
                     }
                     _logger.LogInformation("成功重新连接到RabbitMQ");
                     _connectionReadyTcs.TrySetResult(true);
@@ -387,7 +419,10 @@ internal sealed class PersistentConnection : IDisposable, IAsyncDisposable
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                _logger.LogInformation("RabbitMQ重连操作已取消");
+                if (_logger.IsEnabled(LogLevel.Information))
+                {
+                    _logger.LogInformation("RabbitMQ重连操作已取消");
+                }
                 break;
             }
             catch (Exception ex)

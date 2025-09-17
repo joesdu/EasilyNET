@@ -12,11 +12,7 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <summary>
 /// 消息确认管理器，负责消息确认和重试逻辑
 /// </summary>
-internal sealed class MessageConfirmManager(
-    EventPublisher eventPublisher,
-    ILogger<EventBus> logger,
-    ResiliencePipelineProvider<string> pipelineProvider,
-    IOptionsMonitor<RabbitConfig> options)
+internal sealed class MessageConfirmManager(EventPublisher eventPublisher, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pipelineProvider, IOptionsMonitor<RabbitConfig> options)
 {
     private readonly ConcurrentDictionary<Type, Func<EventBus, IEvent, string?, byte?, CancellationToken, Task>?> _publishDelegateCache = [];
     private readonly ConcurrentDictionary<Type, MethodInfo?> _publishMethodCache = [];
