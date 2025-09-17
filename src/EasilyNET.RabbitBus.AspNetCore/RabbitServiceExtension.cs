@@ -1,21 +1,19 @@
 using System.Net.Sockets;
 using EasilyNET.Core.Misc;
-using EasilyNET.RabbitBus.AspNetCore;
 using EasilyNET.RabbitBus.AspNetCore.Builder;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
-using EasilyNET.RabbitBus.AspNetCore.Manager;
 using EasilyNET.RabbitBus.Core.Abstraction;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
-using Polly.Registry;
 using Polly.Timeout;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
 
 #pragma warning disable IDE0130 // 命名空间与文件夹结构不匹配
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 
 /// <summary>
 ///     <para xml:lang="en">RabbitMQ ServiceCollection</para>
@@ -66,19 +64,12 @@ public static class RabbitServiceExtension
         services.InjectConfiguredHandlers(registry);
         // 序列化器
         services.AddSingleton(sp => sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>().Get(Constant.OptionName).BusSerializer);
-        // 注册EventBus工厂
-        services.AddSingleton<IBus>(sp =>
-        {
-            var conn = sp.GetRequiredService<PersistentConnection>();
-            var ser = sp.GetRequiredService<IBusSerializer>();
-            var logger = sp.GetRequiredService<ILogger<EventBus>>();
-            var pp = sp.GetRequiredService<ResiliencePipelineProvider<string>>();
-            var eventRegistry = sp.GetRequiredService<EventConfigurationRegistry>();
-            var options = sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>();
-
-            // 使用异步工厂方法创建EventBus
-            return Task.Run(async () => await EventBus.CreateAsync(conn, ser, sp, logger, pp, eventRegistry, options)).GetAwaiter().GetResult();
-        });
+        services.AddSingleton<CacheManager>();
+        services.AddSingleton<ConsumerManager>();
+        services.AddSingleton<EventPublisher>();
+        services.AddSingleton<EventHandlerInvoker>();
+        services.AddSingleton<MessageConfirmManager>();
+        services.AddSingleton<IBus, EventBus>();
         services.AddHostedService<SubscribeService>();
     }
 

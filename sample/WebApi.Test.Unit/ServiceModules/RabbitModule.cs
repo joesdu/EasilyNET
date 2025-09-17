@@ -1,5 +1,6 @@
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
+using EasilyNET.RabbitBus.AspNetCore.Manager;
 using EasilyNET.RabbitBus.Core.Enums;
 using WebApi.Test.Unit.EventHandlers;
 using WebApi.Test.Unit.Events;
