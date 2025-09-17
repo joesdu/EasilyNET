@@ -45,6 +45,12 @@ public sealed class EventConfiguration
     public List<Type> IgnoredHandlers { get; } = [];
 
     /// <summary>
+    ///     <para xml:lang="en">Explicitly registered handler types for this event (order preserved as added)</para>
+    ///     <para xml:lang="zh">为该事件显式注册的处理器类型(按添加顺序保留)</para>
+    /// </summary>
+    public List<Type> Handlers { get; } = [];
+
+    /// <summary>
     ///     <para xml:lang="en">Whether to enable this event</para>
     ///     <para xml:lang="zh">是否启用此事件</para>
     /// </summary>
@@ -55,4 +61,10 @@ public sealed class EventConfiguration
     ///     <para xml:lang="zh">是否按顺序执行处理器以保持顺序</para>
     /// </summary>
     public bool SequentialHandlerExecution { get; set; }
+
+    /// <summary>
+    ///     <para xml:lang="en">Number of threads to use for processing event handlers. 1 or less means single-threaded, greater than 1 means multi-threaded</para>
+    ///     <para xml:lang="zh">用于处理事件处理器的线程数。1或小于1表示单线程，大于1表示多线程</para>
+    /// </summary>
+    public int HandlerThreadCount { get; set; } = 1;
 }

@@ -136,11 +136,15 @@ public interface IBus
     ///     </para>
     ///     <para xml:lang="zh">优先级。使用优先级需要先使用事件配置为队列声明"x-max-priority"参数否则也不会生效,推荐设置0-9之间的数值</para>
     /// </param>
+    /// <param name="multiThread">
+    ///     <para xml:lang="en">Whether to publish events in parallel(Default:true, when using multi-threading for event publishing, order cannot be guaranteed)</para>
+    ///     <para xml:lang="zh">是否并行发布事件(默认为:true,当使用多线程进行事件发布时无法保证顺序)</para>
+    /// </param>
     /// <param name="cancellationToken">
     ///     <para xml:lang="en">CancellationToken</para>
     ///     <para xml:lang="zh">取消令牌</para>
     /// </param>
-    Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent;
+    Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent;
 
     /// <summary>
     ///     <para xml:lang="en">Publishes multiple delayed events in batch</para>
@@ -172,11 +176,15 @@ public interface IBus
     ///     </para>
     ///     <para xml:lang="zh">优先级。使用优先级需要先使用事件配置为队列声明"x-max-priority"参数否则也不会生效,推荐设置0-9之间的数值</para>
     /// </param>
+    /// <param name="multiThread">
+    ///     <para xml:lang="en">Whether to publish events in parallel(Default:true, when using multi-threading for event publishing, order cannot be guaranteed)</para>
+    ///     <para xml:lang="zh">是否并行发布事件(默认为:true,当使用多线程进行事件发布时无法保证顺序)</para>
+    /// </param>
     /// <param name="cancellationToken">
     ///     <para xml:lang="en">CancellationToken</para>
     ///     <para xml:lang="zh">取消令牌</para>
     /// </param>
-    Task PublishBatch<T>(IEnumerable<T> events, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent;
+    Task PublishBatch<T>(IEnumerable<T> events, uint ttl, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent;
 
     /// <summary>
     ///     <para xml:lang="en">Publishes multiple delayed events in batch</para>
@@ -208,9 +216,13 @@ public interface IBus
     ///     </para>
     ///     <para xml:lang="zh">优先级。使用优先级需要先使用事件配置为队列声明"x-max-priority"参数否则也不会生效,推荐设置0-9之间的数值</para>
     /// </param>
+    /// <param name="multiThread">
+    ///     <para xml:lang="en">Whether to publish events in parallel(Default:true, when using multi-threading for event publishing, order cannot be guaranteed)</para>
+    ///     <para xml:lang="zh">是否并行发布事件(默认为:true,当使用多线程进行事件发布时无法保证顺序)</para>
+    /// </param>
     /// <param name="cancellationToken">
     ///     <para xml:lang="en">CancellationToken</para>
     ///     <para xml:lang="zh">取消令牌</para>
     /// </param>
-    Task PublishBatch<T>(IEnumerable<T> events, TimeSpan ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent;
+    Task PublishBatch<T>(IEnumerable<T> events, TimeSpan ttl, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent;
 }

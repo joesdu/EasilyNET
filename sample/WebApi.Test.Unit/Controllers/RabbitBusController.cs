@@ -41,11 +41,11 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     {
         await Task.Factory.StartNew(async () =>
         {
-            var events = Enumerable.Range(0, 10_0000).Select(x => new WorkQueuesEvent
+            var events = Enumerable.Range(0, 30).Select(x => new WorkQueuesEvent
             {
                 Summary = $"WorkQueuesEvent:{x}"
             }).ToList();
-            await ibus.PublishBatch(events);
+            await ibus.PublishBatch(events, multiThread: false);
         });
     }
 

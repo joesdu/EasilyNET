@@ -13,8 +13,9 @@ namespace EasilyNET.RabbitBus.AspNetCore.Builder;
 /// </summary>
 public sealed class RabbitBusBuilder
 {
-    private readonly RabbitConfig _config = new();
-    private readonly EventConfigurationRegistry _eventRegistry = new();
+    private RabbitConfig Config { get; } = new();
+
+    private EventConfigurationRegistry EventRegistry { get; } = new();
 
     /// <summary>
     ///     <para xml:lang="en">Configure RabbitMQ connection</para>
@@ -30,12 +31,12 @@ public sealed class RabbitBusBuilder
         configure(factory);
 
         // 从ConnectionFactory复制配置到RabbitConfig
-        _config.Host = factory.HostName;
-        _config.UserName = factory.UserName;
-        _config.PassWord = factory.Password;
-        _config.VirtualHost = factory.VirtualHost;
-        _config.Port = factory.Port;
-        _config.ConnectionString = factory.Uri;
+        Config.Host = factory.HostName;
+        Config.UserName = factory.UserName;
+        Config.PassWord = factory.Password;
+        Config.VirtualHost = factory.VirtualHost;
+        Config.Port = factory.Port;
+        Config.ConnectionString = factory.Uri;
         return this;
     }
 
@@ -61,10 +62,10 @@ public sealed class RabbitBusBuilder
     /// </param>
     public RabbitBusBuilder WithConsumerSettings(ushort dispatchConcurrency = 10, ushort prefetchCount = 100, uint prefetchSize = 0, bool global = false)
     {
-        _config.ConsumerDispatchConcurrency = dispatchConcurrency;
-        _config.Qos.PrefetchCount = prefetchCount;
-        _config.Qos.PrefetchSize = prefetchSize;
-        _config.Qos.Global = global;
+        Config.ConsumerDispatchConcurrency = dispatchConcurrency;
+        Config.Qos.PrefetchCount = prefetchCount;
+        Config.Qos.PrefetchSize = prefetchSize;
+        Config.Qos.Global = global;
         return this;
     }
 
@@ -94,11 +95,11 @@ public sealed class RabbitBusBuilder
     /// </param>
     public RabbitBusBuilder WithResilience(int retryCount = 5, bool publisherConfirms = true, int maxOutstandingConfirms = 1000, int batchSize = 100, int confirmTimeoutMs = 30000)
     {
-        _config.RetryCount = retryCount;
-        _config.PublisherConfirms = publisherConfirms;
-        _config.MaxOutstandingConfirms = maxOutstandingConfirms;
-        _config.BatchSize = batchSize;
-        _config.ConfirmTimeoutMs = confirmTimeoutMs;
+        Config.RetryCount = retryCount;
+        Config.PublisherConfirms = publisherConfirms;
+        Config.MaxOutstandingConfirms = maxOutstandingConfirms;
+        Config.BatchSize = batchSize;
+        Config.ConfirmTimeoutMs = confirmTimeoutMs;
         return this;
     }
 
@@ -112,7 +113,7 @@ public sealed class RabbitBusBuilder
     /// </param>
     public RabbitBusBuilder WithHandlerConcurrency(int handlerMaxDegreeOfParallelism = 4)
     {
-        _config.HandlerMaxDegreeOfParallelism = handlerMaxDegreeOfParallelism;
+        Config.HandlerMaxDegreeOfParallelism = handlerMaxDegreeOfParallelism;
         return this;
     }
 
@@ -126,7 +127,7 @@ public sealed class RabbitBusBuilder
     /// </param>
     public RabbitBusBuilder WithApplication(string applicationName)
     {
-        _config.ApplicationName = applicationName;
+        Config.ApplicationName = applicationName;
         return this;
     }
 
@@ -140,7 +141,7 @@ public sealed class RabbitBusBuilder
     /// </typeparam>
     public RabbitBusBuilder WithSerializer<TSerializer>() where TSerializer : class, IBusSerializer, new()
     {
-        _config.BusSerializer = new TSerializer();
+        Config.BusSerializer = new TSerializer();
         return this;
     }
 
@@ -158,7 +159,7 @@ public sealed class RabbitBusBuilder
     /// </param>
     public RabbitBusBuilder ConfigureEvent<TEvent>(Action<EventConfiguration> configure) where TEvent : IEvent
     {
-        _eventRegistry.Configure<TEvent>(configure);
+        EventRegistry.Configure<TEvent>(configure);
         return this;
     }
 
@@ -188,7 +189,7 @@ public sealed class RabbitBusBuilder
     /// </param>
     public EventConfigurator<TEvent> AddEvent<TEvent>(EModel exchangeType = EModel.None, string? exchangeName = null, string? routingKey = null, string? queueName = null) where TEvent : IEvent
     {
-        _eventRegistry.Configure<TEvent>(config =>
+        EventRegistry.Configure<TEvent>(config =>
         {
             config.Exchange.Type = exchangeType;
             config.Exchange.Name = exchangeName ?? GetDefaultExchangeName(exchangeType);
@@ -226,7 +227,7 @@ public sealed class RabbitBusBuilder
     /// </param>
     public RabbitBusBuilder WithEventQos<TEvent>(ushort prefetchCount = 1, uint prefetchSize = 0, bool global = false) where TEvent : IEvent
     {
-        _eventRegistry.Configure<TEvent>(config =>
+        EventRegistry.Configure<TEvent>(config =>
         {
             config.Qos.PrefetchCount = prefetchCount;
             config.Qos.PrefetchSize = prefetchSize;
@@ -249,7 +250,7 @@ public sealed class RabbitBusBuilder
     /// </param>
     public RabbitBusBuilder WithEventHeaders<TEvent>(Dictionary<string, object?> headers) where TEvent : IEvent
     {
-        _eventRegistry.Configure<TEvent>(config =>
+        EventRegistry.Configure<TEvent>(config =>
         {
             foreach (var (key, value) in headers)
             {
@@ -273,7 +274,7 @@ public sealed class RabbitBusBuilder
     /// </param>
     public RabbitBusBuilder WithEventExchangeArgs<TEvent>(Dictionary<string, object?> arguments) where TEvent : IEvent
     {
-        _eventRegistry.Configure<TEvent>(config =>
+        EventRegistry.Configure<TEvent>(config =>
         {
             foreach (var (key, value) in arguments)
             {
@@ -297,13 +298,31 @@ public sealed class RabbitBusBuilder
     /// </param>
     public RabbitBusBuilder WithEventQueueArgs<TEvent>(Dictionary<string, object?> arguments) where TEvent : IEvent
     {
-        _eventRegistry.Configure<TEvent>(config =>
+        EventRegistry.Configure<TEvent>(config =>
         {
             foreach (var (key, value) in arguments)
             {
                 config.Queue.Arguments[key] = value;
             }
         });
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Configure handler thread count for specific event</para>
+    ///     <para xml:lang="zh">为特定事件配置处理器线程数</para>
+    /// </summary>
+    /// <typeparam name="TEvent">
+    ///     <para xml:lang="en">Event type</para>
+    ///     <para xml:lang="zh">事件类型</para>
+    /// </typeparam>
+    /// <param name="threadCount">
+    ///     <para xml:lang="en">Number of threads to use for processing handlers. 1 or less means single-threaded, greater than 1 means multi-threaded</para>
+    ///     <para xml:lang="zh">用于处理处理器的线程数。1或小于1表示单线程，大于1表示多线程</para>
+    /// </param>
+    public RabbitBusBuilder WithEventHandlerThreadCount<TEvent>(int threadCount) where TEvent : IEvent
+    {
+        EventRegistry.Configure<TEvent>(config => config.HandlerThreadCount = threadCount);
         return this;
     }
 
@@ -321,7 +340,7 @@ public sealed class RabbitBusBuilder
     /// </typeparam>
     public RabbitBusBuilder IgnoreHandler<TEvent, THandler>() where TEvent : IEvent where THandler : IEventHandler<TEvent>
     {
-        _eventRegistry.Configure<TEvent>(config => config.IgnoredHandlers.Add(typeof(THandler)));
+        EventRegistry.Configure<TEvent>(config => config.IgnoredHandlers.Add(typeof(THandler)));
         return this;
     }
 
@@ -329,7 +348,7 @@ public sealed class RabbitBusBuilder
     ///     <para xml:lang="en">Build the configuration and registry</para>
     ///     <para xml:lang="zh">构建配置和注册器</para>
     /// </summary>
-    public (RabbitConfig Config, EventConfigurationRegistry Registry) Build() => (_config, _eventRegistry);
+    public (RabbitConfig Config, EventConfigurationRegistry Registry) Build() => (Config, EventRegistry);
 
     private static string GetDefaultExchangeName(EModel exchangeType) =>
         exchangeType switch
@@ -377,7 +396,7 @@ public sealed class RabbitBusBuilder
         /// </param>
         public EventConfigurator<TEvent> WithEventQos(ushort prefetchCount = 1, uint prefetchSize = 0, bool global = false)
         {
-            _builder._eventRegistry.Configure<TEvent>(config =>
+            _builder.EventRegistry.Configure<TEvent>(config =>
             {
                 config.Qos.PrefetchCount = prefetchCount;
                 config.Qos.PrefetchSize = prefetchSize;
@@ -396,7 +415,7 @@ public sealed class RabbitBusBuilder
         /// </param>
         public EventConfigurator<TEvent> WithEventHeaders(Dictionary<string, object?> headers)
         {
-            _builder._eventRegistry.Configure<TEvent>(config =>
+            _builder.EventRegistry.Configure<TEvent>(config =>
             {
                 foreach (var (key, value) in headers)
                 {
@@ -416,7 +435,7 @@ public sealed class RabbitBusBuilder
         /// </param>
         public EventConfigurator<TEvent> WithEventExchangeArgs(Dictionary<string, object?> arguments)
         {
-            _builder._eventRegistry.Configure<TEvent>(config =>
+            _builder.EventRegistry.Configure<TEvent>(config =>
             {
                 foreach (var (key, value) in arguments)
                 {
@@ -436,7 +455,7 @@ public sealed class RabbitBusBuilder
         /// </param>
         public EventConfigurator<TEvent> WithEventQueueArgs(Dictionary<string, object?> arguments)
         {
-            _builder._eventRegistry.Configure<TEvent>(config =>
+            _builder.EventRegistry.Configure<TEvent>(config =>
             {
                 foreach (var (key, value) in arguments)
                 {
@@ -456,7 +475,7 @@ public sealed class RabbitBusBuilder
         /// </param>
         public EventConfigurator<TEvent> ConfigureEvent(Action<EventConfiguration> configure)
         {
-            _builder._eventRegistry.Configure<TEvent>(configure);
+            _builder.EventRegistry.Configure<TEvent>(configure);
             return this;
         }
 
@@ -465,5 +484,54 @@ public sealed class RabbitBusBuilder
         ///     <para xml:lang="zh">返回主构建器</para>
         /// </summary>
         public RabbitBusBuilder And() => _builder;
+
+        /// <summary>
+        ///     <para xml:lang="en">Register a specific handler for the event</para>
+        ///     <para xml:lang="zh">为事件注册特定处理器</para>
+        /// </summary>
+        /// <typeparam name="THandler">
+        ///     <para xml:lang="en">Handler type</para>
+        ///     <para xml:lang="zh">处理器类型</para>
+        /// </typeparam>
+        public EventConfigurator<TEvent> WithHandler<THandler>() where THandler : class, IEventHandler<TEvent>
+        {
+            _builder.EventRegistry.Configure<TEvent>(config =>
+            {
+                var handlerType = typeof(THandler);
+                if (!config.Handlers.Contains(handlerType) && !config.IgnoredHandlers.Contains(handlerType))
+                {
+                    config.Handlers.Add(handlerType);
+                }
+            });
+            return this;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Configure handler thread count for the event</para>
+        ///     <para xml:lang="zh">为事件配置处理器线程数</para>
+        /// </summary>
+        /// <param name="threadCount">
+        ///     <para xml:lang="en">Number of threads to use for processing handlers. 1 or less means single-threaded, greater than 1 means multi-threaded</para>
+        ///     <para xml:lang="zh">用于处理处理器的线程数。1或小于1表示单线程，大于1表示多线程</para>
+        /// </param>
+        public EventConfigurator<TEvent> WithHandlerThreadCount(int threadCount = 1)
+        {
+            _builder.EventRegistry.Configure<TEvent>(config => config.HandlerThreadCount = threadCount);
+            return this;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Ignore specific handler for the event</para>
+        ///     <para xml:lang="zh">忽略事件的特定处理器</para>
+        /// </summary>
+        /// <typeparam name="THandler">
+        ///     <para xml:lang="en">Handler type to ignore</para>
+        ///     <para xml:lang="zh">要忽略的处理器类型</para>
+        /// </typeparam>
+        public EventConfigurator<TEvent> IgnoreHandler<THandler>() where THandler : IEventHandler<TEvent>
+        {
+            _builder.EventRegistry.Configure<TEvent>(config => config.IgnoredHandlers.Add(typeof(THandler)));
+            return this;
+        }
     }
 }
