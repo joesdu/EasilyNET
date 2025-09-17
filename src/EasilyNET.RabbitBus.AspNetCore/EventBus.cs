@@ -608,7 +608,7 @@ internal sealed record EventBus : IBus
             {
                 if (_nackedMessages.TryPeek(out var nackedMessage) && nackedMessage.NextRetryTime <= DateTime.UtcNow)
                 {
-                    if (!_nackedMessages.TryDequeue(out nackedMessage!))
+                    if (!_nackedMessages.TryDequeue(out nackedMessage))
                     {
                         continue;
                     }
