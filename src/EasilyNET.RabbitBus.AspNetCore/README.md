@@ -9,6 +9,10 @@
 - 支持发布确认(Publisher Confirms)确保消息可靠性投递
 - 支持批量发布消息提高吞吐量
 - 现代配置: 使用流畅 API 完成所有配置,无需在事件或处理器上标注特性
+- 内建发布失败重试(Nack/Confirm 超时)的后台调度器,指数退避 + 抖动
+- 发布背压: 启用 PublisherConfirms 时,对最大未确认发布数进行限流(可配置)
+- 死信存储: 超过最大重试后写入死信存储(默认内存实现,可替换)
+- 健康检查与可观测性: 暴露连接/发布/重试等指标,并提供健康检查
 
 ##### 如何使用
 
@@ -25,12 +29,12 @@ builder.Services.AddRabbitBus(c =>
     c.WithConnection(f => f.Uri = new(builder.Configuration.GetConnectionString("Rabbit")!));
 
     // 2) 消费者默认设置
-    // ConsumerDispatchConcurrency: 消费者调度并发数,控制同时处理的消息数(默认: 1)
-    // PrefetchCount: QoS预取计数,限制未确认消息的数量(默认: 50)
+    // ConsumerDispatchConcurrency: 消费者调度并发数,控制同时处理的消息数(默认: 10)
+    // PrefetchCount: QoS预取计数,限制未确认消息的数量(默认: 100)
     c.WithConsumerSettings(dispatchConcurrency: 10, prefetchCount: 100);
 
     // 3) 弹性与发布确认
-    // PublisherConfirms: 启用发布确认模式,确保消息可靠投递(默认: false)
+    // PublisherConfirms: 启用发布确认模式,确保消息可靠投递(默认: true)
     // MaxOutstandingConfirms: 最大未确认发布数量(默认: 1000)
     // BatchSize: 批量发布大小(默认: 100)
     // ConfirmTimeoutMs: 发布确认超时时间(毫秒,默认: 30000)
@@ -191,6 +195,11 @@ builder.Services.AddRabbitBus(c =>
 - **禁用 PublisherConfirms**: 生产环境如不需要绝对可靠性可禁用以提升性能
 - **QoS 设置**: PrefetchCount 限制未确认消息的数量,ConsumerDispatchConcurrency 控制消费者调度并发数
 - **错误处理**: 框架内置重试机制和超时策略,失败的消息会根据配置进行重试
+- **交换机验证**: 默认在启动阶段验证交换机存在且类型匹配(ValidateExchangesOnStartup=true); 若外部统一声明交换机,可设置 SkipExchangeDeclare=true 跳过声明;
+  若类型不匹配,会 fail fast 并给出清晰日志(inequivalent arg 'type').
+- **发布背压**: 当启用发布确认时,若未确认数量达到 MaxOutstandingConfirms 将主动等待(微短延迟)以保护内存与确认队列。
+  可按吞吐与内存权衡合理调整该阈值(默认 1000)。
+- **重试与死信**: 发布确认 Nack 或确认超时的消息将进入后台重试,采用指数退避(+抖动)。超过最大重试次数后将写入死信存储(默认内存)。
 
 #### 高级配置示例
 
@@ -258,6 +267,74 @@ builder.Services.AddRabbitBus(c =>
         f.UserName = "user";
         f.Password = "password";
         f.Port = 5672;
+        f.VirtualHost = "/";
+        // 如使用 AmqpTcpEndpoints, 可在 builder 中提供多个节点
+    });
+
+    // 其他配置...
+});
+```
+
+#### 健康检查与可观测性
+
+- 健康检查
+
+  - 已自动注册 `RabbitBusHealthCheck`。若你启用了 ASP.NET Core 健康检查端点,只需在管道中映射:
+
+  ```csharp
+  // Program.cs
+  builder.Services.AddHealthChecks(); // 若外部未调用,库内部也会注册
+  var app = builder.Build();
+  app.MapHealthChecks("/health");
+  ```
+
+- 指标(基于 System.Diagnostics.Metrics)
+
+  - Meter 名称: `EasilyNET.RabbitBus`
+  - 关键指标:
+
+    - 发布: `rabbitmq_published_normal_total`, `rabbitmq_published_delayed_total`, `rabbitmq_published_batch_events_total`
+    - 确认: `rabbitmq_publisher_ack_total`, `rabbitmq_publisher_nack_total`, `rabbitmq_publisher_confirm_timeout_total`, `rabbitmq_outstanding_confirms`
+    - 重试: `rabbitmq_retry_enqueued_total`, `rabbitmq_retry_attempt_total`, `rabbitmq_retry_discarded_total`, `rabbitmq_retry_rescheduled_total`
+    - 连接: `rabbitmq_connection_reconnect_total`
+    - 死信: `rabbitmq_deadletter_total`
+
+  - 快速观察(开发):
+
+  ```bash
+  dotnet-counters monitor --process <your-app-pid> --counters EasilyNET.RabbitBus
+  ```
+
+  - OpenTelemetry: 按常规方式接入 OTLP/Prometheus 导出器即可收集上述指标。
+
+| `WithConnection` | - | - | RabbitMQ 连接配置(主机、端口、认证等) |
+| `WithConsumerSettings` | `dispatchConcurrency` | 10 | 消费者调度并发数,控制同时处理的消息数 |
+| | `prefetchCount` | 100 | QoS 预取计数,限制未确认消息的数量 |
+| `WithResilience` | `retryCount` | 5 | 消息处理失败时的重试次数 |
+| | `publisherConfirms` | true | 是否启用发布确认模式 |
+
+#### 发布限流/背压
+
+- 当启用发布确认(PublisherConfirms=true)时,框架会以 `MaxOutstandingConfirms` 为阈值控制未确认发布数量。
+- 若达到阈值,发布线程将进行短暂等待,直到确认数下降,以防止内存暴涨或确认集合过大。
+- 建议根据发布速率与确认延迟进行压测,选择合适的阈值(默认 1000, 常见范围 500~5000)。
+
+#### 交换机声明与验证
+
+- `SkipExchangeDeclare=true` 时,框架不会主动声明交换机,仅在需要时进行被动验证或直接发布(取决于场景)。
+- `ValidateExchangesOnStartup=true` 时,启动阶段会被动(passive)验证交换机是否存在且类型匹配; 若类型不一致,会明确报错并终止启动(避免运行期频繁连接被关闭)。
+- 若你在外部工具或基础设施层统一声明交换机,建议开启 `SkipExchangeDeclare` 以减少不必要的声明开销。
+
+```csharp
+builder.Services.AddRabbitBus(c =>
+{
+    // 集群连接(多个节点)
+    c.WithConnection(f =>
+    {
+        f.HostName = "rabbitmq-cluster";
+        f.UserName = "user";
+        f.Password = "password";
+        f.Port = 5672;
         // 集群节点
         f.VirtualHost = "/";
     });
@@ -270,8 +347,8 @@ builder.Services.AddRabbitBus(c =>
 
 ##### 吞吐量优化
 
-- **增加 ConsumerDispatchConcurrency**: 提高消费者调度并发数 (默认: 1, 建议: 10-50)
-- **调整 PrefetchCount**: 根据消息处理速度调整预取数量 (默认: 50, 建议: 50-200)
+- **增加 ConsumerDispatchConcurrency**: 提高消费者调度并发数 (默认: 10, 建议: 10-50)
+- **调整 PrefetchCount**: 根据消息处理速度调整预取数量 (默认: 100, 建议: 50-200)
 - **HandlerMaxDegreeOfParallelism**: 提高处理器并发度 (默认: 4, 建议: 4-16)
 - **禁用 PublisherConfirms**: 生产环境如不需要绝对可靠性可禁用以提升性能
 
@@ -323,13 +400,14 @@ builder.Services.AddRabbitBus(c =>
 | 配置方法                 | 参数                            | 默认值           | 说明                                  |
 | ------------------------ | ------------------------------- | ---------------- | ------------------------------------- |
 | `WithConnection`         | -                               | -                | RabbitMQ 连接配置(主机、端口、认证等) |
-| `WithConsumerSettings`   | `dispatchConcurrency`           | 1                | 消费者调度并发数,控制同时处理的消息数 |
-|                          | `prefetchCount`                 | 50               | QoS 预取计数,限制未确认消息的数量     |
-| `WithResilience`         | `retryCount`                    | 3                | 消息处理失败时的重试次数              |
-|                          | `publisherConfirms`             | false            | 是否启用发布确认模式                  |
+| `WithConsumerSettings`   | `dispatchConcurrency`           | 10               | 消费者调度并发数,控制同时处理的消息数 |
+|                          | `prefetchCount`                 | 100              | QoS 预取计数,限制未确认消息的数量     |
+| `WithResilience`         | `retryCount`                    | 5                | 消息处理失败时的重试次数              |
+|                          | `publisherConfirms`             | true             | 是否启用发布确认模式                  |
 |                          | `maxOutstandingConfirms`        | 1000             | 最大未确认发布数量                    |
 |                          | `batchSize`                     | 100              | 批量发布大小                          |
 |                          | `confirmTimeoutMs`              | 30000            | 发布确认超时时间(毫秒)                |
+| `WithConnection`/全局    | `ReconnectIntervalSeconds`      | 15               | 基础重连间隔(指数退避 + 抖动)         |
 | `WithApplication`        | `appName`                       | -                | 应用标识,用于日志和监控               |
 | `WithHandlerConcurrency` | `handlerMaxDegreeOfParallelism` | 4                | 单个事件处理器最大并发度              |
 | `WithEventQos`           | `prefetchCount`                 | -                | 事件级 QoS 设置(覆盖全局设置)         |
@@ -339,6 +417,8 @@ builder.Services.AddRabbitBus(c =>
 | `ConfigureEvent`         | `SequentialHandlerExecution`    | false            | 是否顺序执行同一事件的多个处理器      |
 | `IgnoreHandler`          | -                               | -                | 忽略指定的处理器                      |
 | `WithSerializer`         | -                               | System.Text.Json | 自定义消息序列化器                    |
+| 全局                     | `SkipExchangeDeclare`           | false            | 跳过交换机声明(外部已声明时可启用)    |
+| 全局                     | `ValidateExchangesOnStartup`    | true             | 启动阶段验证交换机类型与存在性        |
 
 #### 最佳实践
 
@@ -367,6 +447,6 @@ builder.Services.AddRabbitBus(c =>
 
 4. **错误处理**
    - 实现全局异常处理器
-   - 配置死信队列处理失败消息
+   - 配置死信存储/队列处理失败消息
    - 设置监控告警机制
    - 记录详细的错误日志

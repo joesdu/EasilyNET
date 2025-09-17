@@ -1,5 +1,7 @@
 using EasilyNET.Core.Threading;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
+using EasilyNET.RabbitBus.AspNetCore.Metrics;
+using EasilyNET.RabbitBus.AspNetCore.Utilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
@@ -10,6 +12,14 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 
 internal sealed class PersistentConnection : IAsyncDisposable
 {
+    /// <summary>
+    /// The minimum interval (in milliseconds) between reconnect attempts.
+    /// Set to 5000ms (5 seconds) to avoid excessive reconnection attempts that could
+    /// overwhelm the RabbitMQ server or cause resource exhaustion. This value balances
+    /// responsiveness with system stability.
+    /// </summary>
+    private const int MinReconnectIntervalMs = 5000; // 最短重连间隔5秒
+
     private readonly AsyncLock _asyncLock = new();
     private readonly IConnectionFactory _connectionFactory;
     private readonly ILogger<PersistentConnection> _logger;
@@ -27,6 +37,9 @@ internal sealed class PersistentConnection : IAsyncDisposable
 
     private bool _disposed;
 
+    // 新增: 重连冷却时间，避免频繁重连
+    private DateTime _lastReconnectAttempt = DateTime.MinValue;
+
     // 新增: 确保仅存在一个重连任务
     private Task? _reconnectTask;
 
@@ -38,10 +51,21 @@ internal sealed class PersistentConnection : IAsyncDisposable
         _connectionFactory = connFactory;
         _options = options;
 
-        // 初始化连接（保持同步等待以兼容现有使用方式）
-        var initTask = InitializeConnectionAsync();
-        _reconnectTask = initTask; // 视为当前的“连接任务”
-        initTask.Wait();
+        // 异步初始化：不再阻塞构造函数，调用方通过 GetChannelAsync/事件感知就绪
+        _reconnectTask = Task.Run(async () =>
+        {
+            try
+            {
+                await InitializeConnectionAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                if (_logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning(ex, "初始连接失败，将进入后台重连");
+                }
+            }
+        });
     }
 
     public async ValueTask DisposeAsync()
@@ -203,6 +227,8 @@ internal sealed class PersistentConnection : IAsyncDisposable
                     _currentChannel = await CreateChannelAsync().ConfigureAwait(false);
                 }).ConfigureAwait(false);
                 _connectionReadyTcs.TrySetResult(true);
+                RabbitBusMetrics.ConnectionReconnects.Add(1); // 初次连接也计一次成功连接
+                RabbitBusMetrics.SetConnectionState(true);
             }
             catch (Exception ex)
             {
@@ -210,6 +236,7 @@ internal sealed class PersistentConnection : IAsyncDisposable
                 {
                     _logger.LogError(ex, "初始化RabbitMQ连接失败，进入后台重连");
                 }
+                RabbitBusMetrics.SetConnectionState(false);
                 StartReconnectProcess();
                 // 不在此处重置 _connectionReadyTcs（保持未完成状态，后续重连成功设为完成）
                 throw;
@@ -219,13 +246,13 @@ internal sealed class PersistentConnection : IAsyncDisposable
 
     private async Task<IConnection> CreateConnectionAsync()
     {
-        var _config = _options.Get(Constant.OptionName);
-        var conn = _config.AmqpTcpEndpoints is not null && _config.AmqpTcpEndpoints.Count > 0
-                       ? await _connectionFactory.CreateConnectionAsync(_config.AmqpTcpEndpoints, _config.ApplicationName).ConfigureAwait(false)
-                       : await _connectionFactory.CreateConnectionAsync(_config.ApplicationName).ConfigureAwait(false);
+        var cfg = GetConfig();
+        var conn = cfg.AmqpTcpEndpoints is not null && cfg.AmqpTcpEndpoints.Count > 0
+                       ? await _connectionFactory.CreateConnectionAsync(cfg.AmqpTcpEndpoints, cfg.ApplicationName).ConfigureAwait(false)
+                       : await _connectionFactory.CreateConnectionAsync(cfg.ApplicationName).ConfigureAwait(false);
         if (conn.IsOpen && _logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation("已成功连接到RabbitMQ服务器");
+            _logger.LogInformation("已成功连接到RabbitMQ服务器: {App}", cfg.ApplicationName);
         }
         return conn;
     }
@@ -236,7 +263,7 @@ internal sealed class PersistentConnection : IAsyncDisposable
         {
             throw new InvalidOperationException("无法在没有有效连接的情况下创建通道");
         }
-        var config = _options.Get(Constant.OptionName);
+        var config = GetConfig();
         var channelOptions = new CreateChannelOptions(config.PublisherConfirms, config.PublisherConfirms);
         return await _currentConnection.CreateChannelAsync(channelOptions).ConfigureAwait(false);
     }
@@ -253,6 +280,7 @@ internal sealed class PersistentConnection : IAsyncDisposable
             {
                 _logger.LogWarning("RabbitMQ connection shutdown, reason: {Reason}", args.ReplyText);
             }
+            RabbitBusMetrics.SetConnectionState(false);
             ConnectionDisconnected?.Invoke(this, EventArgs.Empty); // 触发断开事件
             StartReconnectProcess();                               // 启动重连流程
             return Task.CompletedTask;
@@ -263,6 +291,7 @@ internal sealed class PersistentConnection : IAsyncDisposable
             {
                 _logger.LogWarning("RabbitMQ connection blocked: {Reason}", args.Reason);
             }
+            RabbitBusMetrics.SetConnectionState(false);
             ConnectionDisconnected?.Invoke(this, EventArgs.Empty); // 触发断开事件
             return Task.CompletedTask;
         };
@@ -279,6 +308,19 @@ internal sealed class PersistentConnection : IAsyncDisposable
             {
                 return;
             }
+
+            // 检查重连冷却时间，避免频繁重连
+            var timeSinceLastAttempt = DateTime.UtcNow - _lastReconnectAttempt;
+            if (timeSinceLastAttempt.TotalMilliseconds < MinReconnectIntervalMs)
+            {
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug("Reconnect attempt too frequent, waiting {RemainingMs}ms",
+                        MinReconnectIntervalMs - (int)timeSinceLastAttempt.TotalMilliseconds);
+                }
+                return;
+            }
+            _lastReconnectAttempt = DateTime.UtcNow;
 
             // 使用异步锁保护重连状态
             using (await _reconnectAsyncLock.LockAsync().ConfigureAwait(false))
@@ -319,6 +361,9 @@ internal sealed class PersistentConnection : IAsyncDisposable
             _connectionReadyTcs.TrySetResult(true);
             return;
         }
+        var cfg = GetConfig();
+        var baseInterval = TimeSpan.FromSeconds(Math.Max(1, cfg.ReconnectIntervalSeconds));
+        var attempt = 0;
         while (!cancellationToken.IsCancellationRequested && !_disposed)
         {
             try
@@ -412,6 +457,8 @@ internal sealed class PersistentConnection : IAsyncDisposable
                     _logger.LogInformation("成功重新连接到RabbitMQ");
                     _connectionReadyTcs.TrySetResult(true);
                     ConnectionReconnected?.Invoke(this, EventArgs.Empty);
+                    RabbitBusMetrics.ConnectionReconnects.Add(1);
+                    RabbitBusMetrics.SetConnectionState(true);
                 }, cancellationToken).ConfigureAwait(false);
 
                 // 成功则退出循环
@@ -427,18 +474,24 @@ internal sealed class PersistentConnection : IAsyncDisposable
             }
             catch (Exception ex)
             {
-                // 失败后等待再试
+                // 失败退避等待
+                attempt++;
+                var backoff = BackoffUtility.Exponential(Math.Min(6, attempt), baseInterval, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30));
+                var delay = backoff; // 已包含抖动
                 if (_logger.IsEnabled(LogLevel.Warning))
                 {
-                    _logger.LogWarning(ex, "重连 RabbitMQ 失败，将在一段时间后继续尝试");
+                    _logger.LogWarning(ex, "重连 RabbitMQ 失败，将在 {Delay} 后继续尝试 (attempt={Attempt})", delay, attempt);
                 }
                 try
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(_options.Get(Constant.OptionName).ReconnectIntervalSeconds), cancellationToken).ConfigureAwait(false);
+                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    _logger.LogInformation("RabbitMQ重连等待被取消");
+                    if (_logger.IsEnabled(LogLevel.Information))
+                    {
+                        _logger.LogInformation("RabbitMQ重连等待被取消");
+                    }
                     break;
                 }
             }
@@ -459,4 +512,6 @@ internal sealed class PersistentConnection : IAsyncDisposable
             }
         }
     }
+
+    private RabbitConfig GetConfig() => _options.Get(Constant.OptionName);
 }

@@ -28,7 +28,7 @@ public sealed class RabbitBusBuilder
     public RabbitBusBuilder WithConnection(Action<ConnectionFactory> configure)
     {
         var factory = new ConnectionFactory();
-        configure(factory);
+        configure.Invoke(factory);
 
         // 从ConnectionFactory复制配置到RabbitConfig
         Config.Host = factory.HostName;
@@ -142,6 +142,39 @@ public sealed class RabbitBusBuilder
     public RabbitBusBuilder WithSerializer<TSerializer>() where TSerializer : class, IBusSerializer, new()
     {
         Config.BusSerializer = new TSerializer();
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Use custom serializer instance</para>
+    ///     <para xml:lang="zh">使用自定义序列化器实例</para>
+    /// </summary>
+    /// <param name="serializer">
+    ///     <para xml:lang="en">Serializer instance</para>
+    ///     <para xml:lang="zh">序列化器实例</para>
+    /// </param>
+    public RabbitBusBuilder WithSerializer(IBusSerializer serializer)
+    {
+        Config.BusSerializer = serializer;
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Configure exchange declaration settings</para>
+    ///     <para xml:lang="zh">配置交换机声明设置</para>
+    /// </summary>
+    /// <param name="skipExchangeDeclare">
+    ///     <para xml:lang="en">Whether to skip exchange declaration. When true, assumes exchanges already exist with correct types</para>
+    ///     <para xml:lang="zh">是否跳过交换机声明。当为true时，假设交换机已存在且类型正确</para>
+    /// </param>
+    /// <param name="validateExchangesOnStartup">
+    ///     <para xml:lang="en">Whether to validate exchange types on startup. When true, validates all configured exchanges exist with correct types</para>
+    ///     <para xml:lang="zh">是否在启动时验证交换机类型。当为true时，验证所有配置的交换机是否存在且类型正确</para>
+    /// </param>
+    public RabbitBusBuilder WithExchangeSettings(bool skipExchangeDeclare = false, bool validateExchangesOnStartup = false)
+    {
+        Config.SkipExchangeDeclare = skipExchangeDeclare;
+        Config.ValidateExchangesOnStartup = validateExchangesOnStartup;
         return this;
     }
 
@@ -521,16 +554,21 @@ public sealed class RabbitBusBuilder
         }
 
         /// <summary>
-        ///     <para xml:lang="en">Ignore specific handler for the event</para>
-        ///     <para xml:lang="zh">忽略事件的特定处理器</para>
+        ///     <para xml:lang="en">Configure exchange settings for the event</para>
+        ///     <para xml:lang="zh">为事件配置交换机设置</para>
         /// </summary>
-        /// <typeparam name="THandler">
-        ///     <para xml:lang="en">Handler type to ignore</para>
-        ///     <para xml:lang="zh">要忽略的处理器类型</para>
-        /// </typeparam>
-        public EventConfigurator<TEvent> IgnoreHandler<THandler>() where THandler : IEventHandler<TEvent>
+        /// <param name="skipExchangeDeclare">
+        ///     <para xml:lang="en">Whether to skip exchange declaration for this event</para>
+        ///     <para xml:lang="zh">是否为此事件跳过交换机声明</para>
+        /// </param>
+        /// <param name="validateExchangeOnStartup">
+        ///     <para xml:lang="en">Whether to validate exchange type on startup for this event</para>
+        ///     <para xml:lang="zh">是否在启动时为此事件验证交换机类型</para>
+        /// </param>
+        public EventConfigurator<TEvent> WithExchangeSettings(bool skipExchangeDeclare = false, bool validateExchangeOnStartup = false)
         {
-            _builder.EventRegistry.Configure<TEvent>(config => config.IgnoredHandlers.Add(typeof(THandler)));
+            _builder.Config.SkipExchangeDeclare = skipExchangeDeclare;
+            _builder.Config.ValidateExchangesOnStartup = validateExchangeOnStartup;
             return this;
         }
     }
