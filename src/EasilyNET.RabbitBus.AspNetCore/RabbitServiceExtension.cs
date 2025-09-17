@@ -8,6 +8,7 @@ using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
+using Polly.Registry;
 using Polly.Timeout;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
@@ -65,7 +66,19 @@ public static class RabbitServiceExtension
         services.InjectConfiguredHandlers(registry);
         // 序列化器
         services.AddSingleton(sp => sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>().Get(Constant.OptionName).BusSerializer);
-        services.AddSingleton<IBus, EventBus>();
+        // 注册EventBus工厂
+        services.AddSingleton<IBus>(sp =>
+        {
+            var conn = sp.GetRequiredService<PersistentConnection>();
+            var ser = sp.GetRequiredService<IBusSerializer>();
+            var logger = sp.GetRequiredService<ILogger<EventBus>>();
+            var pp = sp.GetRequiredService<ResiliencePipelineProvider<string>>();
+            var eventRegistry = sp.GetRequiredService<EventConfigurationRegistry>();
+            var options = sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>();
+
+            // 使用异步工厂方法创建EventBus
+            return Task.Run(async () => await EventBus.CreateAsync(conn, ser, sp, logger, pp, eventRegistry, options)).GetAwaiter().GetResult();
+        });
         services.AddHostedService<SubscribeService>();
     }
 

@@ -40,7 +40,7 @@ internal sealed record EventBus : IBus
 
     private CancellationTokenSource _cancellationTokenSource = new();
 
-    public EventBus(PersistentConnection conn, IBusSerializer ser, IServiceProvider sp, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pp, EventConfigurationRegistry eventRegistry, IOptionsMonitor<RabbitConfig> options)
+    private EventBus(PersistentConnection conn, IBusSerializer ser, IServiceProvider sp, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pp, EventConfigurationRegistry eventRegistry, IOptionsMonitor<RabbitConfig> options)
     {
         _conn = conn;
         _serializer = ser;
@@ -49,30 +49,6 @@ internal sealed record EventBus : IBus
         _pipelineProvider = pp;
         _eventRegistry = eventRegistry;
         _options = options;
-        _conn.ConnectionDisconnected += (_, _) =>
-        {
-            if (_logger.IsEnabled(LogLevel.Warning))
-            {
-                _logger.LogWarning("RabbitMQ connection disconnected. Stopping consumers...");
-            }
-            _cancellationTokenSource.Cancel();
-        };
-        _conn.ConnectionReconnected += async (_, _) =>
-        {
-            if (_logger.IsEnabled(LogLevel.Information))
-            {
-                _logger.LogInformation("RabbitMQ connection reconnected. Reinitializing consumers...");
-            }
-            _eventHandlerCache.Clear();
-            _handleAsyncDelegateCache.Clear();
-            _cancellationTokenSource.Dispose();
-            _cancellationTokenSource = new();
-            await RunRabbit();
-        };
-        _conn.Channel.BasicAcksAsync += OnBasicAcks;
-        _conn.Channel.BasicNacksAsync += OnBasicNacks;
-        _conn.Channel.BasicReturnAsync += OnBasicReturn;
-        _ = Task.Run(StartNackedMessageRetryTask, _cancellationTokenSource.Token);
     }
 
     public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
@@ -82,7 +58,7 @@ internal sealed record EventBus : IBus
         {
             return;
         }
-        var channel = _conn.Channel;
+        var channel = await _conn.GetChannelAsync();
         var properties = new BasicProperties
         {
             Persistent = true,
@@ -140,7 +116,7 @@ internal sealed record EventBus : IBus
         {
             throw new InvalidOperationException($"The exchange type for the delayed queue must be '{nameof(EModel.Delayed)}'. Event: '{@event.GetType().Name}'");
         }
-        var channel = _conn.Channel;
+        var channel = await _conn.GetChannelAsync();
         var properties = new BasicProperties
         {
             Persistent = true,
@@ -203,7 +179,7 @@ internal sealed record EventBus : IBus
         {
             return;
         }
-        var channel = _conn.Channel;
+        var channel = await _conn.GetChannelAsync();
         var properties = new BasicProperties
         {
             Persistent = true,
@@ -243,7 +219,7 @@ internal sealed record EventBus : IBus
         {
             return;
         }
-        var channel = _conn.Channel;
+        var channel = await _conn.GetChannelAsync();
         var properties = new BasicProperties
         {
             Persistent = true,
@@ -268,6 +244,79 @@ internal sealed record EventBus : IBus
     }
 
     public async Task PublishBatch<T>(IEnumerable<T> events, TimeSpan ttl, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatch(events, (uint)ttl.TotalMilliseconds, routingKey, priority, multiThread, cancellationToken);
+
+    /// <summary>
+    /// 异步创建EventBus实例
+    /// </summary>
+    /// <param name="conn">持久连接</param>
+    /// <param name="ser">序列化器</param>
+    /// <param name="sp">服务提供者</param>
+    /// <param name="logger">日志记录器</param>
+    /// <param name="pp">弹性管道提供者</param>
+    /// <param name="eventRegistry">事件配置注册表</param>
+    /// <param name="options">RabbitMQ配置选项</param>
+    /// <returns>初始化的EventBus实例</returns>
+    public static async Task<EventBus> CreateAsync(PersistentConnection conn, IBusSerializer ser, IServiceProvider sp, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pp, EventConfigurationRegistry eventRegistry, IOptionsMonitor<RabbitConfig> options)
+    {
+        var eventBus = new EventBus(conn, ser, sp, logger, pp, eventRegistry, options);
+        await eventBus.InitializeAsync();
+        return eventBus;
+    }
+
+    /// <summary>
+    /// 异步初始化EventBus
+    /// </summary>
+    private async Task InitializeAsync()
+    {
+        // 注册连接事件
+        RegisterConnectionEvents();
+        // 注册通道事件
+        await RegisterChannelEventsAsync();
+        // 启动重试任务
+        _ = Task.Run(StartNackedMessageRetryTask, _cancellationTokenSource.Token);
+        // 初始化RabbitMQ消费者
+        await RunRabbit();
+    }
+
+    /// <summary>
+    /// 注册连接事件
+    /// </summary>
+    private void RegisterConnectionEvents()
+    {
+        _conn.ConnectionDisconnected += (_, _) =>
+        {
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning("RabbitMQ connection disconnected. Stopping consumers...");
+            }
+            _cancellationTokenSource.Cancel();
+        };
+        _conn.ConnectionReconnected += async (_, _) =>
+        {
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("RabbitMQ connection reconnected. Reinitializing consumers...");
+            }
+            _eventHandlerCache.Clear();
+            _handleAsyncDelegateCache.Clear();
+            _cancellationTokenSource.Dispose();
+            _cancellationTokenSource = new();
+            await RunRabbit();
+        };
+    }
+
+    /// <summary>
+    /// 异步注册通道事件
+    /// </summary>
+    private async Task RegisterChannelEventsAsync()
+    {
+        // 获取通道（可能是异步的）
+        var channel = await _conn.GetChannelAsync();
+        // 注册异步事件处理器
+        channel.BasicAcksAsync += OnBasicAcks;
+        channel.BasicNacksAsync += OnBasicNacks;
+        channel.BasicReturnAsync += OnBasicReturn;
+    }
 
     internal async Task RunRabbit() => await InitialRabbit();
 
@@ -317,7 +366,7 @@ internal sealed record EventBus : IBus
         {
             _logger.LogTrace("Creating consumer channel");
         }
-        var channel = _conn.Channel;
+        var channel = await _conn.GetChannelAsync();
         await DeclareExchangeIfNeeded(config, channel, ct);
         await channel.QueueDeclareAsync(config.Queue.Name, config.Queue.Durable, config.Queue.Exclusive, config.Queue.AutoDelete, config.Queue.Arguments, cancellationToken: ct);
         channel.CallbackExceptionAsync += async (_, ea) =>
