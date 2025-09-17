@@ -131,7 +131,10 @@ public sealed class RabbitConfig
     public bool SkipExchangeDeclare { get; set; } = false;
 
     /// <summary>
-    ///     <para xml:lang="en">Whether to validate exchange types on startup. When true, validates all configured exchanges exist with correct types. Default is true</para>
+    ///     <para xml:lang="en">
+    ///     Whether to validate exchange types on startup. When true, validates all configured exchanges exist with correct types.
+    ///     Default is true
+    ///     </para>
     ///     <para xml:lang="zh">是否在启动时验证交换机类型。当为true时，验证所有配置的交换机是否存在且类型正确。默认是true</para>
     /// </summary>
     public bool ValidateExchangesOnStartup { get; set; } = true;

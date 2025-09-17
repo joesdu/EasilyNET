@@ -229,8 +229,8 @@ public sealed class RabbitBusBuilder
             config.Exchange.RoutingKey = exchangeType switch
             {
                 EModel.PublishSubscribe => string.Empty,
-                EModel.None => queueName ?? typeof(TEvent).Name, // For direct queue publishing, routing key should be queue name
-                _ => routingKey ?? typeof(TEvent).Name
+                EModel.None             => queueName ?? typeof(TEvent).Name, // For direct queue publishing, routing key should be queue name
+                _                       => routingKey ?? typeof(TEvent).Name
             };
             config.Queue.Name = queueName ?? typeof(TEvent).Name;
             config.Enabled = true;
@@ -387,11 +387,11 @@ public sealed class RabbitBusBuilder
         exchangeType switch
         {
             EModel.PublishSubscribe => "amq.fanout",
-            EModel.Routing => "amq.direct",
-            EModel.Topics => "amq.topic",
-            EModel.Delayed => "amq.delayed",
-            EModel.None => "",
-            _ => throw new ArgumentOutOfRangeException(nameof(exchangeType), exchangeType, null)
+            EModel.Routing          => "amq.direct",
+            EModel.Topics           => "amq.topic",
+            EModel.Delayed          => "amq.delayed",
+            EModel.None             => "",
+            _                       => throw new ArgumentOutOfRangeException(nameof(exchangeType), exchangeType, null)
         };
 
     /// <summary>

@@ -16,9 +16,13 @@ internal interface IDeadLetterStore
 internal interface IDeadLetterMessage
 {
     string EventType { get; }
+
     string EventId { get; }
+
     DateTime CreatedUtc { get; }
+
     int RetryCount { get; }
+
     IEvent OriginalEvent { get; }
 }
 

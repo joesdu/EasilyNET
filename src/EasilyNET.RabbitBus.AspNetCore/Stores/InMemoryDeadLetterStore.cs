@@ -9,6 +9,7 @@ namespace EasilyNET.RabbitBus.AspNetCore.Stores;
 internal sealed class InMemoryDeadLetterStore : IDeadLetterStore
 {
     private readonly ConcurrentQueue<IDeadLetterMessage> _queue = new();
+
     public ValueTask StoreAsync(IDeadLetterMessage message, CancellationToken cancellationToken = default)
     {
         _queue.Enqueue(message);

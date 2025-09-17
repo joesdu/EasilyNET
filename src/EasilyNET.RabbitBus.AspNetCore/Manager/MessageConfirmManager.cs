@@ -24,6 +24,7 @@ internal sealed class MessageConfirmManager(
     IOptionsMonitor<RabbitConfig> options,
     IDeadLetterStore deadLetterStore) : BackgroundService
 {
+    private const double DropTargetRatio = 0.5;
     private readonly ConcurrentDictionary<Type, Func<IBus, IEvent, string?, byte?, CancellationToken, Task>?> _publishDelegateCache = [];
     private readonly ConcurrentDictionary<Type, MethodInfo?> _publishMethodCache = [];
 
@@ -39,7 +40,7 @@ internal sealed class MessageConfirmManager(
                 // 队列长度保护
                 if (eventPublisher.NackedMessages.Count > maxQueueSize)
                 {
-                    const int dropTarget = maxQueueSize / 2;
+                    const int dropTarget = (int)(maxQueueSize * DropTargetRatio);
                     var dropped = 0;
                     while (eventPublisher.NackedMessages.Count > dropTarget && eventPublisher.NackedMessages.TryDequeue(out _))
                     {

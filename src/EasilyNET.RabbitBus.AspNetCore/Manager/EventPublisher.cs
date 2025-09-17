@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Metrics;
+using EasilyNET.RabbitBus.AspNetCore.Utilities;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Enums;
 using Microsoft.Extensions.Logging;
@@ -9,7 +10,6 @@ using Microsoft.Extensions.Options;
 using Polly.Registry;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using EasilyNET.RabbitBus.AspNetCore.Utilities;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 
@@ -27,7 +27,7 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
     public ConcurrentQueue<(IEvent Event, string? RoutingKey, byte? Priority, int RetryCount, DateTime NextRetryTime)> NackedMessages { get; } = [];
 
     // 计算指数退避时间 2^n * 1s 带上限
-    private static TimeSpan CalcBackoff(int retryCount) => BackoffUtility.Exponential(retryCount, MinRetryDelay, MinRetryDelay, MaxRetryDelay, "partial");
+    private static TimeSpan CalcBackoff(int retryCount) => BackoffUtility.Exponential(retryCount, MinRetryDelay, MinRetryDelay, MaxRetryDelay);
 
     private static BasicProperties BuildBasicProperties(EventConfiguration config, byte priority, bool delayed = false, uint? ttl = null)
     {
@@ -296,7 +296,7 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
 
     public async Task OnConnectionReconnected()
     {
-        // 重连后所有旧的确认失效
+        // 重连后所有旧确认失效
         await CleanExpiredConfirms();
     }
 
@@ -357,7 +357,14 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
                     RabbitBusMetrics.RetryEnqueued.Add(1);
                 }
                 RabbitBusMetrics.OutstandingConfirms.Add(-toRemove.Count);
-                if (nack) RabbitBusMetrics.ConfirmNack.Add(toRemove.Count); else RabbitBusMetrics.ConfirmAck.Add(toRemove.Count);
+                if (nack)
+                {
+                    RabbitBusMetrics.ConfirmNack.Add(toRemove.Count);
+                }
+                else
+                {
+                    RabbitBusMetrics.ConfirmAck.Add(toRemove.Count);
+                }
             }
             else if (_outstandingConfirms.TryRemove(deliveryTag, out var tcs))
             {
@@ -369,7 +376,14 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
                     RabbitBusMetrics.RetryEnqueued.Add(1);
                 }
                 RabbitBusMetrics.OutstandingConfirms.Add(-1);
-                if (nack) RabbitBusMetrics.ConfirmNack.Add(1); else RabbitBusMetrics.ConfirmAck.Add(1);
+                if (nack)
+                {
+                    RabbitBusMetrics.ConfirmNack.Add(1);
+                }
+                else
+                {
+                    RabbitBusMetrics.ConfirmAck.Add(1);
+                }
             }
         }
         finally

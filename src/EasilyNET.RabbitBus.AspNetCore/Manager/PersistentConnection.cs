@@ -1,18 +1,25 @@
 using EasilyNET.Core.Threading;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
+using EasilyNET.RabbitBus.AspNetCore.Metrics;
+using EasilyNET.RabbitBus.AspNetCore.Utilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Registry;
 using RabbitMQ.Client;
-using EasilyNET.RabbitBus.AspNetCore.Utilities;
-using EasilyNET.RabbitBus.AspNetCore.Metrics;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 
 internal sealed class PersistentConnection : IAsyncDisposable
 {
+    /// <summary>
+    /// The minimum interval (in milliseconds) between reconnect attempts.
+    /// Set to 5000ms (5 seconds) to avoid excessive reconnection attempts that could
+    /// overwhelm the RabbitMQ server or cause resource exhaustion. This value balances
+    /// responsiveness with system stability.
+    /// </summary>
     private const int MinReconnectIntervalMs = 5000; // 最短重连间隔5秒
+
     private readonly AsyncLock _asyncLock = new();
     private readonly IConnectionFactory _connectionFactory;
     private readonly ILogger<PersistentConnection> _logger;
@@ -469,7 +476,7 @@ internal sealed class PersistentConnection : IAsyncDisposable
             {
                 // 失败退避等待
                 attempt++;
-                var backoff = BackoffUtility.Exponential(Math.Min(6, attempt), baseInterval, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30), "partial");
+                var backoff = BackoffUtility.Exponential(Math.Min(6, attempt), baseInterval, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30));
                 var delay = backoff; // 已包含抖动
                 if (_logger.IsEnabled(LogLevel.Warning))
                 {
