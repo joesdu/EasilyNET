@@ -73,7 +73,7 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         for (var attempt = 1; attempt <= LocalDeclareMaxAttempts; attempt++)
         {
             ct.ThrowIfCancellationRequested();
-            var channel = await conn.GetChannelAsync().ConfigureAwait(false);
+            var channel = await conn.GetChannelAsync(ct).ConfigureAwait(false);
             try
             {
                 await DeclareExchangeSafelyAsync(channel, config.Exchange.Name, config.Exchange.Type.Description,
@@ -90,7 +90,7 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
             }
         }
         // 多次尝试后仍失败，最后一次再拿到一个通道抛出 Declare 的异常，由调用方处理（入队重试）
-        var lastChannel = await conn.GetChannelAsync().ConfigureAwait(false);
+        var lastChannel = await conn.GetChannelAsync(ct).ConfigureAwait(false);
         await DeclareExchangeSafelyAsync(lastChannel, config.Exchange.Name, config.Exchange.Type.Description,
             config.Exchange.Durable, config.Exchange.AutoDelete, args, ct, passive).ConfigureAwait(false);
         return lastChannel;
@@ -159,7 +159,7 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         {
             channel = config.Exchange.Type != EModel.None
                           ? await GetChannelAndEnsureExchangeAsync(config, args, false, cancellationToken).ConfigureAwait(false)
-                          : await conn.GetChannelAsync().ConfigureAwait(false);
+                          : await conn.GetChannelAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -325,7 +325,7 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         }
         else
         {
-            channel = await conn.GetChannelAsync().ConfigureAwait(false);
+            channel = await conn.GetChannelAsync(cancellationToken).ConfigureAwait(false);
         }
         var properties = BuildBasicProperties(config, priority.GetValueOrDefault());
         var rabbitCfg = options.Get(Constant.OptionName);

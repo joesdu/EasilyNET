@@ -93,6 +93,7 @@ public sealed class AsyncLock : IDisposable
             // Mark as not held to allow GC; current holder can still call Release which will be a no-op for waiters.
             Volatile.Write(ref _state, 0);
         }
+        // ReSharper disable once InvertIf
         if (toCancel is not null)
         {
             foreach (var w in toCancel)

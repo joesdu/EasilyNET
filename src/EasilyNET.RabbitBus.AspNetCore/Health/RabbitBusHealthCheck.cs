@@ -13,7 +13,7 @@ internal sealed class RabbitBusHealthCheck(PersistentConnection connection) : IH
     {
         try
         {
-            var channel = await connection.GetChannelAsync().ConfigureAwait(false);
+            var channel = await connection.GetChannelAsync(cancellationToken).ConfigureAwait(false);
             return channel is { IsOpen: true }
                        ? HealthCheckResult.Healthy("RabbitMQ channel is open")
                        : HealthCheckResult.Degraded("RabbitMQ channel not open");

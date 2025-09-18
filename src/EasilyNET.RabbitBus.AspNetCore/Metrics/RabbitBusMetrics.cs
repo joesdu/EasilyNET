@@ -29,6 +29,8 @@ internal static class RabbitBusMetrics
 
     // 连接相关
     public static readonly Counter<long> ConnectionReconnects = Meter.CreateCounter<long>("rabbitmq_connection_reconnect_total", description: "Total successful reconnections to RabbitMQ");
+    public static readonly UpDownCounter<long> ActiveConnections = Meter.CreateUpDownCounter<long>("rabbitmq_active_connections", description: "Current active RabbitMQ connections count");
+    public static readonly UpDownCounter<long> ActiveChannels = Meter.CreateUpDownCounter<long>("rabbitmq_active_channels", description: "Current active RabbitMQ channels count");
 
     // 死信消息计数
     public static readonly Counter<long> DeadLettered = Meter.CreateCounter<long>("rabbitmq_deadletter_total", description: "Total messages dead-lettered after exceeding retry policy");
@@ -53,7 +55,7 @@ internal static class RabbitBusMetrics
                 return file;
             }
             var ver = asm.GetName().Version?.ToString();
-            return string.IsNullOrWhiteSpace(ver) ? "0.0.0" : ver!;
+            return string.IsNullOrWhiteSpace(ver) ? "0.0.0" : ver;
         }
         catch
         {
