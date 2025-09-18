@@ -103,7 +103,11 @@ internal sealed record EventBus : IBus
     private async Task RegisterChannelEventsAsync()
     {
         var channel = await _conn.GetChannelAsync().ConfigureAwait(false);
-        // 避免重复多次注册：先移除再注册（RabbitMQ.Client 没有直接移除，简单方案：不处理；若重复可改为标记）
+        // 先移除现有的事件处理器，避免重复注册
+        channel.BasicAcksAsync -= _eventPublisher.OnBasicAcks;
+        channel.BasicNacksAsync -= _eventPublisher.OnBasicNacks;
+        channel.BasicReturnAsync -= _eventPublisher.OnBasicReturn;
+        // 然后重新注册
         channel.BasicAcksAsync += _eventPublisher.OnBasicAcks;
         channel.BasicNacksAsync += _eventPublisher.OnBasicNacks;
         channel.BasicReturnAsync += _eventPublisher.OnBasicReturn;

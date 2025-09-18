@@ -93,13 +93,14 @@ public sealed class AsyncLock : IDisposable
             // Mark as not held to allow GC; current holder can still call Release which will be a no-op for waiters.
             Volatile.Write(ref _state, 0);
         }
-        if (toCancel is not null)
+        if (toCancel is null)
         {
-            foreach (var w in toCancel)
-            {
-                w.CancellationRegistration.Dispose();
-                w.Tcs.TrySetException(new ObjectDisposedException(nameof(AsyncLock), "AsyncLock has been disposed"));
-            }
+            return;
+        }
+        foreach (var w in toCancel)
+        {
+            w.CancellationRegistration.Dispose();
+            w.Tcs.TrySetException(new ObjectDisposedException(nameof(AsyncLock), "AsyncLock has been disposed"));
         }
     }
 
