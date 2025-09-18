@@ -240,7 +240,6 @@ internal sealed class PersistentConnection : IAsyncDisposable
             RabbitBusMetrics.SetConnectionState(false);
             ConnectionDisconnected?.Invoke(this, EventArgs.Empty); // 触发断开事件
             StartReconnectProcess(ct);                             // 启动重连流程
-            await Task.CompletedTask;
         };
         _currentConnection.ConnectionBlockedAsync += async (_, args) =>
         {
