@@ -12,14 +12,14 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <summary>
 /// 消费者管理器，负责消费者初始化和管理
 /// </summary>
-internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurationRegistry eventRegistry, ILogger<EventBus> logger, IOptionsMonitor<RabbitConfig> options, CacheManager cacheManager)
+internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurationRegistry eventRegistry, EventHandlerInvoker handlerInvoker, ILogger<EventBus> logger, IOptionsMonitor<RabbitConfig> options)
 {
     /// <summary>
     /// 初始化所有启用的事件消费者。
     /// </summary>
     /// <param name="handleReceivedEvent">消息处理委托</param>
-    /// <param name="cancellationTokenSource">取消令牌源</param>
-    public async Task InitializeConsumers(Func<Type, BasicDeliverEventArgs, IChannel, int, CancellationToken, Task> handleReceivedEvent, CancellationTokenSource cancellationTokenSource)
+    /// <param name="cancellationToken">取消令牌源</param>
+    public async Task InitializeConsumers(Func<Type, BasicDeliverEventArgs, IChannel, int, CancellationToken, Task> handleReceivedEvent, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handleReceivedEvent);
         var configs = eventRegistry.GetAllConfigurations();
@@ -49,11 +49,11 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
             }
 
             // 缓存事件->处理器映射（线程安全字典，重复赋值覆盖即可）
-            cacheManager.EventHandlerCache[eventType] = handlerTypes;
+            handlerInvoker.EventHandlerCache[eventType] = handlerTypes;
             var consumerCount = Math.Max(1, config.HandlerThreadCount);
             for (var i = 0; i < consumerCount; i++)
             {
-                startupTasks.Add(StartConsumerAsync(config, eventType, i, handleReceivedEvent, cancellationTokenSource));
+                startupTasks.Add(StartConsumerAsync(config, eventType, i, handleReceivedEvent, cancellationToken));
             }
         }
 
@@ -64,11 +64,8 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
     /// <summary>
     /// 启动单个消费者通道及其 BasicConsume。
     /// </summary>
-    private async Task StartConsumerAsync(EventConfiguration config, Type eventType, int consumerIndex, Func<Type, BasicDeliverEventArgs, IChannel, int, CancellationToken, Task> handleReceivedEvent, CancellationTokenSource cts)
+    private async Task StartConsumerAsync(EventConfiguration config, Type eventType, int consumerIndex, Func<Type, BasicDeliverEventArgs, IChannel, int, CancellationToken, Task> handleReceivedEvent, CancellationToken ct)
     {
-        var outerCt = cts.Token;
-        using var localCts = CancellationTokenSource.CreateLinkedTokenSource(outerCt);
-        var ct = localCts.Token;
         try
         {
             await using var channel = await conn.GetChannelAsync(ct).ConfigureAwait(false);
@@ -91,11 +88,9 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
                 }
                 try
                 {
-                    // ReSharper disable once AccessToDisposedClosure
-                    await localCts.CancelAsync();
-                    if (!cts.IsCancellationRequested)
+                    if (!ct.IsCancellationRequested)
                     {
-                        await StartConsumerAsync(config, eventType, consumerIndex, handleReceivedEvent, cts).ConfigureAwait(false);
+                        await StartConsumerAsync(config, eventType, consumerIndex, handleReceivedEvent, ct).ConfigureAwait(false);
                     }
                 }
                 catch
@@ -111,11 +106,9 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
                 }
                 try
                 {
-                    // ReSharper disable once AccessToDisposedClosure
-                    await localCts.CancelAsync();
-                    if (!cts.IsCancellationRequested)
+                    if (!ct.IsCancellationRequested)
                     {
-                        await StartConsumerAsync(config, eventType, consumerIndex, handleReceivedEvent, cts).ConfigureAwait(false);
+                        await StartConsumerAsync(config, eventType, consumerIndex, handleReceivedEvent, ct).ConfigureAwait(false);
                     }
                 }
                 catch
@@ -145,18 +138,22 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
                 logger.LogError(ex, "Failed to start consumer {ConsumerIndex} for event {EventName}", consumerIndex, eventType.Name);
             }
             // 可选择性地延迟并尝试重启
-            _ = Task.Run(async () =>
+            try
             {
-                try
+                await Task.Delay(TimeSpan.FromMilliseconds(200), ct).ConfigureAwait(false);
+                if (!ct.IsCancellationRequested)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(5), ct).ConfigureAwait(false);
-                    if (!cts.IsCancellationRequested)
-                    {
-                        await StartConsumerAsync(config, eventType, consumerIndex, handleReceivedEvent, cts).ConfigureAwait(false);
-                    }
+                    await StartConsumerAsync(config, eventType, consumerIndex, handleReceivedEvent, ct).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException) { }
-            }, CancellationToken.None);
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception oex)
+            {
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(oex, "Failed to restart consumer {ConsumerIndex} for event {EventName}", consumerIndex, eventType.Name);
+                }
+            }
         }
     }
 
@@ -179,7 +176,7 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
     /// </summary>
     private async Task StartBasicConsume(Type eventType, EventConfiguration config, IChannel channel, int consumerIndex, Func<Type, BasicDeliverEventArgs, IChannel, int, CancellationToken, Task> handleReceivedEvent, CancellationToken ct)
     {
-        if (!cacheManager.EventHandlerCache.TryGetValue(eventType, out var handlerTypes) || handlerTypes.Count == 0)
+        if (!handlerInvoker.EventHandlerCache.TryGetValue(eventType, out var handlerTypes) || handlerTypes.Count == 0)
         {
             return;
         }

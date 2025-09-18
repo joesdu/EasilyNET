@@ -7,36 +7,14 @@ using Microsoft.Extensions.Logging;
 
 namespace EasilyNET.RabbitBus.AspNetCore;
 
-internal sealed record EventBus : IBus
+internal sealed class EventBus(
+    PersistentConnection conn,
+    EventConfigurationRegistry eventRegistry,
+    ConsumerManager consumerManager,
+    EventPublisher eventPublisher,
+    EventHandlerInvoker handlerInvoker,
+    ILogger<EventBus> logger) : IBus
 {
-    private readonly CacheManager _cacheManager;
-    private readonly PersistentConnection _conn;
-    private readonly ConsumerManager _consumerManager;
-    private readonly EventHandlerInvoker _eventHandlerInvoker;
-    private readonly EventPublisher _eventPublisher;
-    private readonly EventConfigurationRegistry _eventRegistry;
-    private readonly ILogger<EventBus> _logger;
-    private CancellationTokenSource _cancellationTokenSource = new();
-
-    public EventBus(
-        PersistentConnection conn,
-        ILogger<EventBus> logger,
-        EventConfigurationRegistry eventRegistry,
-        CacheManager cacheManager,
-        ConsumerManager consumerManager,
-        EventPublisher eventPublisher,
-        EventHandlerInvoker eventHandlerInvoker)
-    {
-        _conn = conn;
-        _logger = logger;
-        _eventRegistry = eventRegistry;
-        _cacheManager = cacheManager;
-        _consumerManager = consumerManager;
-        _eventPublisher = eventPublisher;
-        _eventHandlerInvoker = eventHandlerInvoker;
-        _ = InitializeAsync(_cancellationTokenSource.Token);
-    }
-
     public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, null, cancellationToken).ConfigureAwait(false);
 
     public async Task Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, ttl, cancellationToken).ConfigureAwait(false);
@@ -59,13 +37,13 @@ internal sealed record EventBus : IBus
             await ValidateExchangesOnStartupAsync(ct).ConfigureAwait(false);
             RegisterConnectionEvents(ct);
             await RegisterChannelEventsAsync(ct).ConfigureAwait(false);
-            await RunRabbit().ConfigureAwait(false);
+            await RestartRabbit(ct).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            if (_logger.IsEnabled(LogLevel.Error))
+            if (logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, "EventBus initialization failed; background components will rely on reconnection to recover");
+                logger.LogError(ex, "EventBus initialization failed; background components will rely on reconnection to recover");
             }
         }
     }
@@ -75,48 +53,50 @@ internal sealed record EventBus : IBus
     /// </summary>
     private void RegisterConnectionEvents(CancellationToken ct)
     {
-        _conn.ConnectionDisconnected += (_, _) =>
+        conn.ConnectionDisconnected += (_, _) =>
         {
-            if (_logger.IsEnabled(LogLevel.Warning))
+            if (logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning("RabbitMQ connection disconnected. Stopping consumers...");
+                logger.LogWarning("RabbitMQ connection disconnected. Stopping consumers...");
             }
-            _cancellationTokenSource.Cancel();
         };
-        _conn.ConnectionReconnected += async (_, _) =>
+        conn.ConnectionReconnected += async (_, _) =>
         {
-            if (_logger.IsEnabled(LogLevel.Information))
+            if (logger.IsEnabled(LogLevel.Information))
             {
-                _logger.LogInformation("RabbitMQ connection reconnected. Reinitializing consumers...");
+                logger.LogInformation("RabbitMQ connection reconnected. Reinitializing consumers...");
             }
-            _cacheManager.ClearEventHandlerCaches();
-            _cancellationTokenSource.Dispose();
-            _cancellationTokenSource = new();
+            handlerInvoker.ClearEventHandlerCaches();
 
             // 清理过期的发布确认
-            await _eventPublisher.OnConnectionReconnected();
+            await eventPublisher.OnConnectionReconnected();
             await RegisterChannelEventsAsync(ct).ConfigureAwait(false); // 通道可能已替换，需要重新注册
-            await RunRabbit().ConfigureAwait(false);
+            await RestartRabbit(ct).ConfigureAwait(false);
         };
     }
 
     private async Task RegisterChannelEventsAsync(CancellationToken ct)
     {
-        var channel = await _conn.GetChannelAsync(ct).ConfigureAwait(false);
+        var channel = await conn.GetChannelAsync(ct).ConfigureAwait(false);
         // 先移除现有的事件处理器，避免重复注册
-        channel.BasicAcksAsync -= _eventPublisher.OnBasicAcks;
-        channel.BasicNacksAsync -= _eventPublisher.OnBasicNacks;
-        channel.BasicReturnAsync -= _eventPublisher.OnBasicReturn;
+        channel.BasicAcksAsync -= eventPublisher.OnBasicAcks;
+        channel.BasicNacksAsync -= eventPublisher.OnBasicNacks;
+        channel.BasicReturnAsync -= eventPublisher.OnBasicReturn;
         // 然后重新注册
-        channel.BasicAcksAsync += _eventPublisher.OnBasicAcks;
-        channel.BasicNacksAsync += _eventPublisher.OnBasicNacks;
-        channel.BasicReturnAsync += _eventPublisher.OnBasicReturn;
+        channel.BasicAcksAsync += eventPublisher.OnBasicAcks;
+        channel.BasicNacksAsync += eventPublisher.OnBasicNacks;
+        channel.BasicReturnAsync += eventPublisher.OnBasicReturn;
     }
 
-    internal async Task RunRabbit()
+    private async Task RestartRabbit(CancellationToken cancellationToken)
     {
-        await _consumerManager.InitializeConsumers((eventType, ea, channel, consumerIndex, ct) =>
-            _eventHandlerInvoker.HandleReceivedEvent(eventType, ea, channel, consumerIndex, _cacheManager.EventHandlerCache, ct), _cancellationTokenSource);
+        await consumerManager.InitializeConsumers((eventType, ea, channel, consumerIndex, ct) =>
+            handlerInvoker.HandleReceivedEvent(eventType, ea, channel, consumerIndex, handlerInvoker.EventHandlerCache, ct), cancellationToken);
+    }
+
+    internal async Task RunRabbit(CancellationToken cancellationToken)
+    {
+        await InitializeAsync(cancellationToken);
     }
 
     /// <summary>
@@ -127,14 +107,14 @@ internal sealed record EventBus : IBus
         // 这里需要访问RabbitConfig来检查ValidateExchangesOnStartup设置
         // 但是EventBus没有直接访问配置的途径，我们可以通过依赖注入或者其他方式获取
         // 暂时先实现基本的校验逻辑，之后可以优化
-        var configurations = _eventRegistry.GetAllConfigurations().ToList();
+        var configurations = eventRegistry.GetAllConfigurations().ToList();
         if (configurations.Count == 0)
         {
             return;
         }
         try
         {
-            var channel = await _conn.GetChannelAsync(ct).ConfigureAwait(false);
+            var channel = await conn.GetChannelAsync(ct).ConfigureAwait(false);
             var validatedExchanges = new HashSet<string>();
             foreach (var config in configurations.Where(c => c.Exchange.Type != EModel.None))
             {
@@ -148,9 +128,9 @@ internal sealed record EventBus : IBus
                     // 使用passive模式验证交换机是否存在且类型匹配
                     await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, config.Exchange.Arguments, true, false, CancellationToken.None).ConfigureAwait(false);
                     validatedExchanges.Add(exchangeKey);
-                    if (_logger.IsEnabled(LogLevel.Debug))
+                    if (logger.IsEnabled(LogLevel.Debug))
                     {
-                        _logger.LogDebug("Exchange {ExchangeName} validated successfully with type {Type}", config.Exchange.Name, config.Exchange.Type.Description);
+                        logger.LogDebug("Exchange {ExchangeName} validated successfully with type {Type}", config.Exchange.Name, config.Exchange.Type.Description);
                     }
                 }
                 catch (Exception ex)
@@ -163,9 +143,9 @@ internal sealed record EventBus : IBus
                                             This will cause connection closures during runtime. 
                                             Please fix the exchange configuration or set SkipExchangeDeclare=true.
                                             """;
-                        if (_logger.IsEnabled(LogLevel.Error))
+                        if (logger.IsEnabled(LogLevel.Error))
                         {
-                            _logger.LogError(ex, "{ErrorMessage}", errorMessage);
+                            logger.LogError(ex, "{ErrorMessage}", errorMessage);
                         }
 
                         // 在启动阶段发现类型不匹配时，抛出异常让应用fail fast
@@ -173,16 +153,16 @@ internal sealed record EventBus : IBus
                     }
                     if (ex.Message.Contains("NOT_FOUND", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (_logger.IsEnabled(LogLevel.Warning))
+                        if (logger.IsEnabled(LogLevel.Warning))
                         {
-                            _logger.LogWarning("Exchange {ExchangeName} does not exist. It will be created during first publish operation.", config.Exchange.Name);
+                            logger.LogWarning("Exchange {ExchangeName} does not exist. It will be created during first publish operation.", config.Exchange.Name);
                         }
                     }
                     else
                     {
-                        if (_logger.IsEnabled(LogLevel.Warning))
+                        if (logger.IsEnabled(LogLevel.Warning))
                         {
-                            _logger.LogWarning(ex, "Failed to validate exchange {ExchangeName}", config.Exchange.Name);
+                            logger.LogWarning(ex, "Failed to validate exchange {ExchangeName}", config.Exchange.Name);
                         }
                     }
                 }
@@ -190,9 +170,9 @@ internal sealed record EventBus : IBus
         }
         catch (Exception ex)
         {
-            if (_logger.IsEnabled(LogLevel.Error))
+            if (logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, "Failed to validate exchanges on startup");
+                logger.LogError(ex, "Failed to validate exchanges on startup");
             }
             // 如果是类型不匹配错误，让它继续抛出；其他错误则记录但不阻止启动
             if (ex.Message.Contains("type mismatch", StringComparison.OrdinalIgnoreCase))
@@ -207,7 +187,7 @@ internal sealed record EventBus : IBus
     private async Task PublishInternal<T>(T @event, string? routingKey, byte? priority, uint? ttl, CancellationToken ct) where T : IEvent
     {
         ct.ThrowIfCancellationRequested();
-        var config = _eventRegistry.GetConfiguration<T>();
+        var config = eventRegistry.GetConfiguration<T>();
         if (config is null || !config.Enabled)
         {
             return;
@@ -220,11 +200,11 @@ internal sealed record EventBus : IBus
                 {
                     throw new InvalidOperationException($"The exchange type for the delayed queue must be '{nameof(EModel.Delayed)}'. Event: '{@event.GetType().Name}'");
                 }
-                await _eventPublisher.PublishDelayed(config, @event, ttl.Value, routingKey, priority, ct).ConfigureAwait(false);
+                await eventPublisher.PublishDelayed(config, @event, ttl.Value, routingKey, priority, ct).ConfigureAwait(false);
             }
             else
             {
-                await _eventPublisher.Publish(config, @event, routingKey, priority, ct).ConfigureAwait(false);
+                await eventPublisher.Publish(config, @event, routingKey, priority, ct).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -233,9 +213,9 @@ internal sealed record EventBus : IBus
         }
         catch (Exception ex)
         {
-            if (_logger.IsEnabled(LogLevel.Error))
+            if (logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, "Failed to publish{Kind}event {EventType} ID {EventId}", ttl.HasValue ? " delayed " : " ", @event.GetType().Name, @event.EventId);
+                logger.LogError(ex, "Failed to publish{Kind}event {EventType} ID {EventId}", ttl.HasValue ? " delayed " : " ", @event.GetType().Name, @event.EventId);
             }
             // Swallow: retry subsystem will handle nacks/timeouts
         }
@@ -249,7 +229,7 @@ internal sealed record EventBus : IBus
         {
             return;
         }
-        var config = _eventRegistry.GetConfiguration<T>();
+        var config = eventRegistry.GetConfiguration<T>();
         if (config is null || !config.Enabled)
         {
             return;
@@ -262,11 +242,11 @@ internal sealed record EventBus : IBus
                 {
                     throw new InvalidOperationException($"The exchange type for the delayed queue must be '{nameof(EModel.Delayed)}'. Event: '{typeof(T).Name}'");
                 }
-                await _eventPublisher.PublishBatchDelayed(config, list, ttl.Value, routingKey, priority, multiThread, ct).ConfigureAwait(false);
+                await eventPublisher.PublishBatchDelayed(config, list, ttl.Value, routingKey, priority, multiThread, ct).ConfigureAwait(false);
             }
             else
             {
-                await _eventPublisher.PublishBatch(config, list, routingKey, priority, multiThread, ct).ConfigureAwait(false);
+                await eventPublisher.PublishBatch(config, list, routingKey, priority, multiThread, ct).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -275,9 +255,9 @@ internal sealed record EventBus : IBus
         }
         catch (Exception ex)
         {
-            if (_logger.IsEnabled(LogLevel.Error))
+            if (logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, "Failed to publish{Kind}batch events {EventType} (Count={Count})", ttl.HasValue ? " delayed " : " ", typeof(T).Name, list.Count);
+                logger.LogError(ex, "Failed to publish{Kind}batch events {EventType} (Count={Count})", ttl.HasValue ? " delayed " : " ", typeof(T).Name, list.Count);
             }
         }
     }

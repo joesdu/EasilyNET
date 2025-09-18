@@ -17,7 +17,7 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <summary>
 /// 事件发布器，负责处理所有事件发布相关逻辑
 /// </summary>
-internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer serializer, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pipelineProvider, IOptionsMonitor<RabbitConfig> options)
+internal sealed class EventPublisher(PersistentConnection conn, ResiliencePipelineProvider<string> pipelineProvider, IBusSerializer serializer, ILogger<EventBus> logger, IOptionsMonitor<RabbitConfig> options)
 {
     private const int LocalDeclareMaxAttempts = 5;
     private static readonly TimeSpan MinRetryDelay = TimeSpan.FromSeconds(1);
@@ -128,7 +128,12 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         }
         try
         {
-            await tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(cfg.ConfirmTimeoutMs), ct).ConfigureAwait(false);
+            var completed = await tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(cfg.ConfirmTimeoutMs), ct).ConfigureAwait(false);
+            if (!completed)
+            {
+                // This case happens if the TCS was marked as failed from another thread, e.g. due to connection loss.
+                throw new TimeoutException($"Publisher confirm was cancelled for {eventName} with ID: {eventId}. This may be due to a connection loss.");
+            }
         }
         catch (TimeoutException)
         {
@@ -203,6 +208,12 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         catch (TimeoutException)
         {
             RabbitBusMetrics.ConfirmTimeout.Add(1);
+            // When a timeout occurs, we should remove the outstanding confirm to prevent memory leaks.
+            if (_outstandingConfirms.TryRemove(sequenceNumber, out _))
+            {
+                RabbitBusMetrics.OutstandingConfirms.Add(-1);
+            }
+            _outstandingMessages.TryRemove(sequenceNumber, out _);
             throw;
         }
     }
@@ -270,6 +281,12 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         catch (TimeoutException)
         {
             RabbitBusMetrics.ConfirmTimeout.Add(1);
+            // When a timeout occurs, we should remove the outstanding confirm to prevent memory leaks.
+            if (_outstandingConfirms.TryRemove(sequenceNumber, out _))
+            {
+                RabbitBusMetrics.OutstandingConfirms.Add(-1);
+            }
+            _outstandingMessages.TryRemove(sequenceNumber, out _);
             throw;
         }
     }
@@ -418,24 +435,23 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         await _confirmSemaphore.WaitAsync();
         try
         {
-            var expiredConfirms = _outstandingConfirms.ToList();
-            foreach (var (sequenceNumber, tcs) in expiredConfirms)
+            var expiredConfirms = _outstandingConfirms.Keys.ToList();
+            foreach (var sequenceNumber in expiredConfirms)
             {
-                if (!_outstandingConfirms.TryRemove(sequenceNumber, out _))
+                if (!_outstandingConfirms.TryRemove(sequenceNumber, out var tcs))
                 {
                     continue;
                 }
                 tcs.TrySetResult(false); // 标记失败
-                if (!_outstandingMessages.TryRemove(sequenceNumber, out var messageInfo))
+                if (_outstandingMessages.TryRemove(sequenceNumber, out var messageInfo))
                 {
-                    continue;
+                    var nextRetryTime = DateTime.UtcNow + MinRetryDelay; // 1 秒后重试
+                    NackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
+                    RabbitBusMetrics.RetryEnqueued.Add(1);
                 }
-                var nextRetryTime = DateTime.UtcNow + MinRetryDelay; // 1 秒后重试
-                NackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
-                RabbitBusMetrics.RetryEnqueued.Add(1);
                 RabbitBusMetrics.OutstandingConfirms.Add(-1);
             }
-            if (logger.IsEnabled(LogLevel.Information))
+            if (logger.IsEnabled(LogLevel.Information) && expiredConfirms.Count > 0)
             {
                 logger.LogInformation("Cleaned {Count} expired publisher confirms after reconnection", expiredConfirms.Count);
             }

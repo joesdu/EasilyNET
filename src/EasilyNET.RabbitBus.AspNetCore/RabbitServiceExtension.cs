@@ -6,10 +6,10 @@ using EasilyNET.RabbitBus.AspNetCore.Builder;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Health;
 using EasilyNET.RabbitBus.AspNetCore.Manager;
+using EasilyNET.RabbitBus.AspNetCore.Services;
 using EasilyNET.RabbitBus.AspNetCore.Stores;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Timeout;
 using RabbitMQ.Client;
@@ -40,7 +40,7 @@ public static class RabbitServiceExtension
     public static void AddRabbitBus(this IServiceCollection services, Action<RabbitBusBuilder> configure)
     {
         var builder = new RabbitBusBuilder();
-        configure(builder);
+        configure.Invoke(builder);
         var (config, registry) = builder.Build();
         services.RabbitPersistentConnection(o =>
         {
@@ -64,16 +64,14 @@ public static class RabbitServiceExtension
             o.SkipExchangeDeclare = config.SkipExchangeDeclare;
             o.ValidateExchangesOnStartup = config.ValidateExchangesOnStartup;
         });
-        // 先注册配置注册表
         services.AddSingleton(registry);
         // 仅注册被显式配置的处理器
         services.InjectConfiguredHandlers(registry);
         // 序列化器
-        services.AddSingleton(sp => sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>().Get(Constant.OptionName).BusSerializer);
-        services.AddSingleton<CacheManager>();
-        services.AddSingleton<ConsumerManager>();
-        services.AddSingleton<EventPublisher>();
+        services.AddSingleton(config.BusSerializer);
         services.AddSingleton<EventHandlerInvoker>();
+        services.AddSingleton<EventPublisher>();
+        services.AddSingleton<ConsumerManager>();
         services.AddSingleton<IDeadLetterStore, InMemoryDeadLetterStore>();
         // 后台消息确认/重试服务
         services.AddSingleton<IBus, EventBus>();
@@ -91,7 +89,6 @@ public static class RabbitServiceExtension
                                    .Distinct();
         foreach (var ht in handlerTypes)
         {
-            // 若外部已注册可跳过, 这里默认单例(根据你原有逻辑)
             services.AddSingleton(ht);
         }
     }
@@ -99,9 +96,10 @@ public static class RabbitServiceExtension
     private static void RabbitPersistentConnection(this IServiceCollection services, Action<RabbitConfig> options)
     {
         services.Configure(Constant.OptionName, options);
-        services.AddSingleton<IConnectionFactory, ConnectionFactory>(sp =>
+        var config = new RabbitConfig();
+        options.Invoke(config);
+        services.AddSingleton<IConnectionFactory, ConnectionFactory>(_ =>
         {
-            var config = sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>().Get(Constant.OptionName);
             var factory = config.ConnectionString is not null
                               ? new()
                               {
@@ -127,11 +125,11 @@ public static class RabbitServiceExtension
                                                             }
                                                             : throw new InvalidOperationException("Configuration error: Unable to create a connection from the provided configuration."));
             factory.ConsumerDispatchConcurrency = config.ConsumerDispatchConcurrency;
+            factory.RequestedHeartbeat = TimeSpan.FromSeconds(30);
             return factory;
         });
         services.AddResiliencePipeline(Constant.ResiliencePipelineName, (builder, context) =>
         {
-            var config = context.ServiceProvider.GetRequiredService<IOptionsMonitor<RabbitConfig>>().Get(Constant.OptionName);
             var logger = context.ServiceProvider.GetRequiredService<ILogger<PersistentConnection>>();
             builder.AddRetry(new()
             {

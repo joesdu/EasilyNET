@@ -11,7 +11,7 @@ namespace WebApi.Test.Unit.Controllers;
 [ApiController]
 [Route("api/[controller]/[action]")]
 [ApiGroup("RabbitBus", "RabbitBus Test")]
-public class RabbitBusController(IBus ibus) : ControllerBase
+public class RabbitBusController(IBus ibus,IServiceProvider sp) : ControllerBase
 {
     /// <summary>
     /// 发送HelloWorld消息
@@ -101,5 +101,15 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     public async Task TopicTo3()
     {
         await ibus.Publish(new TopicEventOne(), "topic.queue.3");
+    }
+
+    /// <summary>
+    /// 测试
+    /// </summary>
+    [HttpGet]
+    public void ProviderTest()
+    {
+        var log = sp.GetRequiredService<ILogger<RabbitBusController>>();
+        log.LogInformation("This is a test log from ProviderTest method.");
     }
 }
