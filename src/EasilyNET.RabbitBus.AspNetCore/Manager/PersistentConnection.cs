@@ -233,7 +233,14 @@ internal sealed class PersistentConnection : IAsyncDisposable
             }
 
             // 小退避，避免紧密循环
-            await Task.Delay(200).ConfigureAwait(false);
+            // Exponential backoff with jitter
+            var initialDelay = _options.RetryInitialDelayMs;
+            var maxDelay = _options.RetryMaxDelayMs;
+            var attempt = 1;
+            var delay = Math.Min(initialDelay * (1 << (attempt - 1)), maxDelay);
+            var jitter = new Random().Next(0, 100); // up to 100ms jitter
+            await Task.Delay(delay + jitter).ConfigureAwait(false);
+            attempt++;
         }
     }
 
