@@ -1,14 +1,15 @@
+using EasilyNET.RabbitBus.AspNetCore.Manager;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace EasilyNET.RabbitBus.AspNetCore.Manager;
+namespace EasilyNET.RabbitBus.AspNetCore.Services;
 
 /// <summary>
 ///     <para xml:lang="en">Background service for event subscription</para>
 ///     <para xml:lang="zh">用于事件订阅的后台服务</para>
 /// </summary>
-internal sealed class SubscribeService(IServiceProvider serviceProvider) : BackgroundService
+internal sealed class SubscribeService(IServiceProvider sp, PersistentConnection connection) : BackgroundService
 {
     /// <summary>
     ///     <para xml:lang="en">Executes the background service to subscribe to events</para>
@@ -20,12 +21,11 @@ internal sealed class SubscribeService(IServiceProvider serviceProvider) : Backg
     /// </param>
     protected override async Task ExecuteAsync(CancellationToken cancelToken)
     {
-        using var scope = serviceProvider.CreateScope();
-        var bus = scope.ServiceProvider.GetRequiredService<IBus>() as EventBus ?? throw new InvalidOperationException("IBus service is not registered.");
-        await bus.RunRabbit();
-        while (!cancelToken.IsCancellationRequested)
+        if (!cancelToken.IsCancellationRequested)
         {
-            await Task.Delay(5000, cancelToken);
+            await connection.InitializeAsync(cancelToken);
+            var ibus = sp.GetService<IBus>() as EventBus ?? throw new InvalidOperationException("IBus service is not registered.");
+            await ibus.RunRabbit(cancelToken);
         }
     }
 }

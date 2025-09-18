@@ -74,8 +74,6 @@ internal sealed class TextJsonSerializer : IBusSerializer
             NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
-        //opts.Converters.Add(new JsonStringEnumConverter());
-        // 冻结配置对象 (仅 .NET 8+ 支持). 若未来目标框架低于 8 可移除此行
         try
         {
             opts.MakeReadOnly();

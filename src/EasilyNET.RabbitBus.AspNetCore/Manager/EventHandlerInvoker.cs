@@ -25,6 +25,16 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
     // 作用域工厂与管道缓存，减少每次消息的服务解析开销
     private readonly IServiceScopeFactory? _scopeFactory = sp.GetService<IServiceScopeFactory>();
 
+    public ConcurrentDictionary<Type, List<Type>> EventHandlerCache { get; } = [];
+
+    /// <summary>
+    /// 清除事件处理器相关缓存
+    /// </summary>
+    public void ClearEventHandlerCaches()
+    {
+        EventHandlerCache.Clear();
+    }
+
     /// <summary>
     /// 顶层入口: 收到消息 -> 反序列化 -> 逐个 Handler 处理 -> Ack
     /// </summary>
