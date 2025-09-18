@@ -39,7 +39,7 @@ internal sealed class PersistentConnection : IAsyncDisposable
         _connectionFactory = connFactory;
         _options = options;
         var task = Task.Run(() => InitializeConnectionAsync(_reconnectCts.Token));
-        task.Wait();
+        task.GetAwaiter().GetResult();
     }
 
     public async ValueTask DisposeAsync()
