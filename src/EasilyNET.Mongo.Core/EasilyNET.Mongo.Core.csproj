@@ -16,6 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MongoDB.Analyzer" />
     <PackageReference Include="MongoDB.Driver" />
   </ItemGroup>
 </Project>
