@@ -34,7 +34,7 @@ internal sealed record EventBus : IBus
         _consumerManager = consumerManager;
         _eventPublisher = eventPublisher;
         _eventHandlerInvoker = eventHandlerInvoker;
-        _ = InitializeAsync();
+        _ = InitializeAsync(_cancellationTokenSource.Token);
     }
 
     public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, null, cancellationToken).ConfigureAwait(false);
@@ -52,13 +52,13 @@ internal sealed record EventBus : IBus
     /// <summary>
     /// 异步初始化EventBus
     /// </summary>
-    private async Task InitializeAsync()
+    private async Task InitializeAsync(CancellationToken ct)
     {
         try
         {
-            await ValidateExchangesOnStartupAsync().ConfigureAwait(false);
-            RegisterConnectionEvents();
-            await RegisterChannelEventsAsync().ConfigureAwait(false);
+            await ValidateExchangesOnStartupAsync(ct).ConfigureAwait(false);
+            RegisterConnectionEvents(ct);
+            await RegisterChannelEventsAsync(ct).ConfigureAwait(false);
             await RunRabbit().ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -73,7 +73,7 @@ internal sealed record EventBus : IBus
     /// <summary>
     /// 注册连接事件
     /// </summary>
-    private void RegisterConnectionEvents()
+    private void RegisterConnectionEvents(CancellationToken ct)
     {
         _conn.ConnectionDisconnected += (_, _) =>
         {
@@ -95,14 +95,14 @@ internal sealed record EventBus : IBus
 
             // 清理过期的发布确认
             await _eventPublisher.OnConnectionReconnected();
-            await RegisterChannelEventsAsync().ConfigureAwait(false); // 通道可能已替换，需要重新注册
+            await RegisterChannelEventsAsync(ct).ConfigureAwait(false); // 通道可能已替换，需要重新注册
             await RunRabbit().ConfigureAwait(false);
         };
     }
 
-    private async Task RegisterChannelEventsAsync()
+    private async Task RegisterChannelEventsAsync(CancellationToken ct)
     {
-        var channel = await _conn.GetChannelAsync().ConfigureAwait(false);
+        var channel = await _conn.GetChannelAsync(ct).ConfigureAwait(false);
         // 先移除现有的事件处理器，避免重复注册
         channel.BasicAcksAsync -= _eventPublisher.OnBasicAcks;
         channel.BasicNacksAsync -= _eventPublisher.OnBasicNacks;
@@ -122,7 +122,7 @@ internal sealed record EventBus : IBus
     /// <summary>
     /// 在启动阶段验证所有配置的交换机
     /// </summary>
-    private async Task ValidateExchangesOnStartupAsync()
+    private async Task ValidateExchangesOnStartupAsync(CancellationToken ct)
     {
         // 这里需要访问RabbitConfig来检查ValidateExchangesOnStartup设置
         // 但是EventBus没有直接访问配置的途径，我们可以通过依赖注入或者其他方式获取
@@ -134,7 +134,7 @@ internal sealed record EventBus : IBus
         }
         try
         {
-            var channel = await _conn.GetChannelAsync().ConfigureAwait(false);
+            var channel = await _conn.GetChannelAsync(ct).ConfigureAwait(false);
             var validatedExchanges = new HashSet<string>();
             foreach (var config in configurations.Where(c => c.Exchange.Type != EModel.None))
             {

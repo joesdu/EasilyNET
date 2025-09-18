@@ -24,7 +24,6 @@ internal sealed class PersistentConnection : IAsyncDisposable
     private readonly ILogger<PersistentConnection> _logger;
     private readonly IOptionsMonitor<RabbitConfig> _options;
     private readonly AsyncLock _reconnectAsyncLock = new();
-    private readonly CancellationTokenSource _reconnectCts = new();
     private readonly ResiliencePipeline _resiliencePipeline;
 
     // 用于让并发调用等待连接就绪，避免频繁抛出异常
@@ -38,6 +37,7 @@ internal sealed class PersistentConnection : IAsyncDisposable
 
     // 重连冷却时间，避免频繁重连
     private DateTime _lastReconnectAttempt = DateTime.MinValue;
+    private CancellationTokenSource _reconnectCts = new();
 
     // 确保仅存在一个重连任务
     private Task? _reconnectTask;
@@ -55,7 +55,7 @@ internal sealed class PersistentConnection : IAsyncDisposable
         {
             try
             {
-                await InitializeConnectionAsync().ConfigureAwait(false);
+                await InitializeConnectionAsync(_reconnectCts.Token).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -121,9 +121,9 @@ internal sealed class PersistentConnection : IAsyncDisposable
     /// <summary>
     /// 异步获取RabbitMQ通道（共享发布者通道）
     /// </summary>
-    public async ValueTask<IChannel> GetChannelAsync() => await GetChannelInternalAsync().ConfigureAwait(false);
+    public async ValueTask<IChannel> GetChannelAsync(CancellationToken ct) => await GetChannelInternalAsync(ct).ConfigureAwait(false);
 
-    public async ValueTask<IChannel> CreateDedicatedChannelAsync(CancellationToken ct = default)
+    public async ValueTask<IChannel> CreateDedicatedChannelAsync(CancellationToken ct)
     {
         // 确保连接可用
         if (!IsConnectionHealthy())
@@ -143,12 +143,12 @@ internal sealed class PersistentConnection : IAsyncDisposable
         using (await _asyncLock.LockAsync(ct).ConfigureAwait(false))
         {
             return IsConnectionHealthy()
-                       ? await CreateChannelAsync(_currentConnection!).ConfigureAwait(false)
+                       ? await CreateChannelAsync(_currentConnection!, ct).ConfigureAwait(false)
                        : throw new InvalidOperationException("无法在没有有效连接的情况下创建通道");
         }
     }
 
-    private async ValueTask<IChannel> GetChannelInternalAsync()
+    private async ValueTask<IChannel> GetChannelInternalAsync(CancellationToken cancellationToken)
     {
         while (true)
         {
@@ -181,7 +181,7 @@ internal sealed class PersistentConnection : IAsyncDisposable
             }
 
             // 4. 创建新通道
-            using (await _asyncLock.LockAsync().ConfigureAwait(false))
+            using (await _asyncLock.LockAsync(cancellationToken).ConfigureAwait(false))
             {
                 if (IsChannelHealthy())
                 {
@@ -189,7 +189,7 @@ internal sealed class PersistentConnection : IAsyncDisposable
                 }
                 try
                 {
-                    var channel = await CreateChannelAsync().ConfigureAwait(false);
+                    var channel = await CreateChannelAsync(cancellationToken).ConfigureAwait(false);
                     _currentChannel = channel;
                     return channel;
                 }
@@ -204,7 +204,7 @@ internal sealed class PersistentConnection : IAsyncDisposable
             }
 
             // 小退避，避免紧密循环
-            await Task.Delay(200).ConfigureAwait(false);
+            await Task.Delay(200, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -213,9 +213,9 @@ internal sealed class PersistentConnection : IAsyncDisposable
 
     public event EventHandler? ConnectionReconnected;
 
-    private async Task InitializeConnectionAsync()
+    private async Task InitializeConnectionAsync(CancellationToken cancellationToken)
     {
-        using (await _asyncLock.LockAsync().ConfigureAwait(false))
+        using (await _asyncLock.LockAsync(cancellationToken).ConfigureAwait(false))
         {
             if (IsConnectionHealthy())
             {
@@ -224,12 +224,12 @@ internal sealed class PersistentConnection : IAsyncDisposable
             }
             try
             {
-                await _resiliencePipeline.ExecuteAsync(async _ =>
+                await _resiliencePipeline.ExecuteAsync(async (_, ct) =>
                 {
-                    _currentConnection = await CreateConnectionAsync().ConfigureAwait(false);
+                    _currentConnection = await CreateConnectionAsync(ct).ConfigureAwait(false);
                     RegisterConnectionEvents();
-                    _currentChannel = await CreateChannelAsync().ConfigureAwait(false);
-                }).ConfigureAwait(false);
+                    _currentChannel = await CreateChannelAsync(ct).ConfigureAwait(false);
+                }, cancellationToken, cancellationToken).ConfigureAwait(false);
                 _connectionReadyTcs.TrySetResult(true);
                 RabbitBusMetrics.ConnectionReconnects.Add(1);
                 RabbitBusMetrics.ActiveConnections.Add(1);
@@ -245,12 +245,12 @@ internal sealed class PersistentConnection : IAsyncDisposable
         }
     }
 
-    private async Task<IConnection> CreateConnectionAsync()
+    private async Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
     {
         var cfg = GetConfig();
         var conn = cfg.AmqpTcpEndpoints is not null && cfg.AmqpTcpEndpoints.Count > 0
-                       ? await _connectionFactory.CreateConnectionAsync(cfg.AmqpTcpEndpoints, cfg.ApplicationName, CancellationToken.None).ConfigureAwait(false)
-                       : await _connectionFactory.CreateConnectionAsync(cfg.ApplicationName, CancellationToken.None).ConfigureAwait(false);
+                       ? await _connectionFactory.CreateConnectionAsync(cfg.AmqpTcpEndpoints, cfg.ApplicationName, cancellationToken).ConfigureAwait(false)
+                       : await _connectionFactory.CreateConnectionAsync(cfg.ApplicationName, cancellationToken).ConfigureAwait(false);
         if (conn.IsOpen && _logger.IsEnabled(LogLevel.Information))
         {
             _logger.LogInformation("已成功连接到RabbitMQ服务器: {Host}", cfg.Host);
@@ -258,16 +258,16 @@ internal sealed class PersistentConnection : IAsyncDisposable
         return conn;
     }
 
-    private async Task<IChannel> CreateChannelAsync() =>
+    private async Task<IChannel> CreateChannelAsync(CancellationToken cancellationToken) =>
         IsConnectionHealthy()
-            ? await CreateChannelAsync(_currentConnection!).ConfigureAwait(false)
+            ? await CreateChannelAsync(_currentConnection!, cancellationToken).ConfigureAwait(false)
             : throw new InvalidOperationException("无法在没有有效连接的情况下创建通道");
 
-    private async Task<IChannel> CreateChannelAsync(IConnection connection)
+    private async Task<IChannel> CreateChannelAsync(IConnection connection, CancellationToken cancellationToken)
     {
         var config = GetConfig();
         var channelOptions = new CreateChannelOptions(config.PublisherConfirms, config.PublisherConfirms);
-        return await connection.CreateChannelAsync(channelOptions, CancellationToken.None).ConfigureAwait(false);
+        return await connection.CreateChannelAsync(channelOptions, cancellationToken).ConfigureAwait(false);
     }
 
     private void RegisterConnectionEvents()
@@ -353,9 +353,14 @@ internal sealed class PersistentConnection : IAsyncDisposable
                             _logger.LogWarning(ex, "取消之前的重连任务时发生错误");
                         }
                     }
+                    finally
+                    {
+                        _reconnectCts.Dispose();
+                    }
                 }
 
-                // 不频繁取消/创建 CTS，除非真正需要；保持一个长期 token（Dispose 时取消）
+                // 创建新的 CancellationTokenSource 用于新任务
+                _reconnectCts = new();
                 _reconnectTask = Task.Run(() => ExecuteReconnectWithContinuousRetryAsync(_reconnectCts.Token));
             }
         }
@@ -397,11 +402,11 @@ internal sealed class PersistentConnection : IAsyncDisposable
                     }
 
                     // 先建立新连接与通道
-                    var newConnection = await CreateConnectionAsync().ConfigureAwait(false);
+                    var newConnection = await CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
                     IChannel newChannel;
                     try
                     {
-                        newChannel = await CreateChannelAsync(newConnection).ConfigureAwait(false);
+                        newChannel = await CreateChannelAsync(newConnection, cancellationToken).ConfigureAwait(false);
                     }
                     catch (Exception ex) when (_logger.IsEnabled(LogLevel.Error))
                     {
