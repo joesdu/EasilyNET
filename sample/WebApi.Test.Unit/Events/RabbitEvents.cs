@@ -1,3 +1,4 @@
+using EasilyNET.Core.Enums;
 using EasilyNET.Core.Essentials;
 using EasilyNET.RabbitBus.Core;
 using EasilyNET.RabbitBus.Core.Abstraction;
@@ -18,6 +19,11 @@ public class HelloWorldEvent : IEvent
     /// 摘要
     /// </summary>
     public string Summary { get; set; } = "hello_world";
+
+    /// <summary>
+    /// 用于测试枚举
+    /// </summary>
+    public EGender Gender { get; set; } = EGender.男;
 
     /// <summary>
     /// 消息ID
