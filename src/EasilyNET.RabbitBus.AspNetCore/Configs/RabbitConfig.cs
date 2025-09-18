@@ -122,13 +122,13 @@ public sealed class RabbitConfig
     ///     <para xml:lang="en">Application name for identification</para>
     ///     <para xml:lang="zh">应用程序名称用于标识</para>
     /// </summary>
-    public string ApplicationName { get; set; } = "EasilyNET.RabbitBus";
+    public string ApplicationName { get; set; } = $"{Environment.MachineName},EasilyNET";
 
     /// <summary>
     ///     <para xml:lang="en">Whether to skip exchange declaration. When true, assumes exchanges already exist with correct types. Default is false</para>
     ///     <para xml:lang="zh">是否跳过交换机声明。当为true时，假设交换机已存在且类型正确。默认是false</para>
     /// </summary>
-    public bool SkipExchangeDeclare { get; set; } = false;
+    public bool SkipExchangeDeclare { get; set; }
 
     /// <summary>
     ///     <para xml:lang="en">
@@ -138,4 +138,22 @@ public sealed class RabbitConfig
     ///     <para xml:lang="zh">是否在启动时验证交换机类型。当为true时，验证所有配置的交换机是否存在且类型正确。默认是true</para>
     /// </summary>
     public bool ValidateExchangesOnStartup { get; set; } = true;
+
+    /// <summary>
+    ///     <para xml:lang="en">Max size of in-memory retry queue. If > 0, overrides dynamic calculation</para>
+    ///     <para xml:lang="zh">内存重试队列的最大长度。若 > 0，则覆盖动态计算</para>
+    /// </summary>
+    public int RetryQueueMaxSize { get; set; }
+
+    /// <summary>
+    ///     <para xml:lang="en">Memory ratio used for dynamic retry queue sizing (0-0.25). Default 0.02 (2%)</para>
+    ///     <para xml:lang="zh">用于动态计算重试队列大小的内存占比（0-0.25）。默认 0.02（2%）</para>
+    /// </summary>
+    public double RetryQueueMaxMemoryRatio { get; set; } = 0.02;
+
+    /// <summary>
+    ///     <para xml:lang="en">Estimated average bytes per retry entry for sizing calculation. Default 2048</para>
+    ///     <para xml:lang="zh">估算的每条重试项平均字节数，用于容量计算。默认 2048</para>
+    /// </summary>
+    public int RetryQueueAvgEntryBytes { get; set; } = 2048;
 }

@@ -66,15 +66,73 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
     /// </summary>
     private async Task StartConsumerAsync(EventConfiguration config, Type eventType, int consumerIndex, Func<Type, BasicDeliverEventArgs, IChannel, int, CancellationToken, Task> handleReceivedEvent, CancellationTokenSource cts)
     {
-        var ct = cts.Token;
+        var outerCt = cts.Token;
+        using var localCts = CancellationTokenSource.CreateLinkedTokenSource(outerCt);
+        var ct = localCts.Token;
         try
         {
-            await using var channel = await CreateConsumerChannel(config, ct).ConfigureAwait(false);
+            await using var channel = await conn.CreateDedicatedChannelAsync(ct).ConfigureAwait(false);
+            await DeclareExchangeIfNeeded(config, channel, ct).ConfigureAwait(false);
+            await channel.QueueDeclareAsync(config.Queue.Name, config.Queue.Durable, config.Queue.Exclusive, config.Queue.AutoDelete, config.Queue.Arguments, cancellationToken: ct).ConfigureAwait(false);
+
+            // 绑定并开始消费
             if (config.Exchange.Type != EModel.None)
             {
                 await channel.QueueBindAsync(config.Queue.Name, config.Exchange.Name, config.Exchange.RoutingKey, cancellationToken: ct).ConfigureAwait(false);
             }
             await StartBasicConsume(eventType, config, channel, consumerIndex, handleReceivedEvent, ct).ConfigureAwait(false);
+
+            // 当通道关闭或异常时，自动重建消费者
+            channel.CallbackExceptionAsync += async (_, ea) =>
+            {
+                if (logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning(ea.Exception, "Consumer channel callback exception for event {EventName} (idx={Index}), restarting consumer", eventType.Name, consumerIndex);
+                }
+                try
+                {
+                    // ReSharper disable once AccessToDisposedClosure
+                    await localCts.CancelAsync();
+                    if (!cts.IsCancellationRequested)
+                    {
+                        await StartConsumerAsync(config, eventType, consumerIndex, handleReceivedEvent, cts).ConfigureAwait(false);
+                    }
+                }
+                catch
+                {
+                    /* ignore */
+                }
+            };
+            channel.ChannelShutdownAsync += async (_, ea) =>
+            {
+                if (logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning("Consumer channel shutdown for event {EventName} (idx={Index}). ReplyCode={ReplyCode}, ReplyText={ReplyText}. Restarting...", eventType.Name, consumerIndex, ea.ReplyCode, ea.ReplyText);
+                }
+                try
+                {
+                    // ReSharper disable once AccessToDisposedClosure
+                    await localCts.CancelAsync();
+                    if (!cts.IsCancellationRequested)
+                    {
+                        await StartConsumerAsync(config, eventType, consumerIndex, handleReceivedEvent, cts).ConfigureAwait(false);
+                    }
+                }
+                catch
+                {
+                    /* ignore */
+                }
+            };
+
+            // 等待取消信号，而不是轮询
+            try
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // 取消信号，正常退出
+            }
         }
         catch (OperationCanceledException)
         {
@@ -91,7 +149,7 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
             {
                 try
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(5), cts.Token).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromSeconds(5), ct).ConfigureAwait(false);
                     if (!cts.IsCancellationRequested)
                     {
                         await StartConsumerAsync(config, eventType, consumerIndex, handleReceivedEvent, cts).ConfigureAwait(false);
@@ -100,32 +158,6 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
                 catch (OperationCanceledException) { }
             }, CancellationToken.None);
         }
-    }
-
-    /// <summary>
-    /// 创建消费者通道并声明交换机/队列以及异常处理。
-    /// </summary>
-    private async Task<IChannel> CreateConsumerChannel(EventConfiguration config, CancellationToken ct)
-    {
-        if (logger.IsEnabled(LogLevel.Trace))
-        {
-            logger.LogTrace("Creating consumer channel");
-        }
-        var channel = await conn.GetChannelAsync().ConfigureAwait(false);
-        await DeclareExchangeIfNeeded(config, channel, ct).ConfigureAwait(false);
-        await channel.QueueDeclareAsync(config.Queue.Name, config.Queue.Durable, config.Queue.Exclusive, config.Queue.AutoDelete, config.Queue.Arguments, cancellationToken: ct).ConfigureAwait(false);
-
-        // 发生回调异常时重新初始化消费者（保持系统可恢复）
-        channel.CallbackExceptionAsync += async (_, ea) =>
-        {
-            if (logger.IsEnabled(LogLevel.Warning))
-            {
-                logger.LogWarning(ea.Exception, "Channel callback exception, clearing caches and reinitializing consumers");
-            }
-            cacheManager.EventHandlerCache.Clear();
-            await Task.CompletedTask;
-        };
-        return channel;
     }
 
     private static async Task DeclareExchangeIfNeeded(EventConfiguration config, IChannel channel, CancellationToken ct)
@@ -173,16 +205,6 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
         if (logger.IsEnabled(LogLevel.Debug))
         {
             logger.LogDebug("Started consumer {ConsumerIndex} for event {EventName}", consumerIndex, eventType.Name);
-        }
-
-        // 等待取消信号，而不是轮询
-        try
-        {
-            await Task.Delay(Timeout.InfiniteTimeSpan, ct).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            // 取消信号，正常退出
         }
     }
 

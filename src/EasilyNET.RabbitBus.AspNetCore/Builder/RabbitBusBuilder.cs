@@ -179,6 +179,41 @@ public sealed class RabbitBusBuilder
     }
 
     /// <summary>
+    ///     <para xml:lang="en">Configure retry queue sizing</para>
+    ///     <para xml:lang="zh">配置重试队列容量</para>
+    /// </summary>
+    /// <param name="maxSize">
+    ///     <para xml:lang="en">Fixed max size. If &gt; 0, overrides dynamic calculation</para>
+    ///     <para xml:lang="zh">固定最大长度。若 &gt; 0 则覆盖动态计算</para>
+    /// </param>
+    /// <param name="memoryRatio">
+    ///     <para xml:lang="en">Memory ratio for dynamic sizing (0-0.25). Ignored if null</para>
+    ///     <para xml:lang="zh">按内存动态计算占比（0-0.25）。为 null 则不变</para>
+    /// </param>
+    /// <param name="avgEntryBytes">
+    ///     <para xml:lang="en">Estimated average bytes per retry entry. Ignored if null</para>
+    ///     <para xml:lang="zh">单条重试项估算字节。为 null 则不变</para>
+    /// </param>
+    public RabbitBusBuilder WithRetryQueueSizing(int? maxSize = null, double? memoryRatio = null, int? avgEntryBytes = null)
+    {
+        if (maxSize.HasValue)
+        {
+            Config.RetryQueueMaxSize = Math.Max(0, maxSize.Value);
+        }
+        if (memoryRatio.HasValue)
+        {
+            var ratio = memoryRatio.Value;
+            if (double.IsNaN(ratio) || double.IsInfinity(ratio)) ratio = 0.02;
+            Config.RetryQueueMaxMemoryRatio = Math.Clamp(ratio, 0, 0.25);
+        }
+        if (avgEntryBytes.HasValue)
+        {
+            Config.RetryQueueAvgEntryBytes = Math.Max(256, avgEntryBytes.Value);
+        }
+        return this;
+    }
+
+    /// <summary>
     ///     <para xml:lang="en">Configure event with fluent API</para>
     ///     <para xml:lang="zh">使用流畅API配置事件</para>
     /// </summary>

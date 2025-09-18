@@ -112,7 +112,8 @@ public static class RabbitServiceExtension
                                                         {
                                                             UserName = config.UserName,
                                                             Password = config.PassWord,
-                                                            VirtualHost = config.VirtualHost
+                                                            VirtualHost = config.VirtualHost,
+                                                            ClientProvidedName = config.ApplicationName
                                                         }
                                                         : config.Host.IsNotNullOrWhiteSpace()
                                                             ? new()
@@ -121,7 +122,8 @@ public static class RabbitServiceExtension
                                                                 UserName = config.UserName,
                                                                 Password = config.PassWord,
                                                                 Port = config.Port,
-                                                                VirtualHost = config.VirtualHost
+                                                                VirtualHost = config.VirtualHost,
+                                                                ClientProvidedName = config.ApplicationName
                                                             }
                                                             : throw new InvalidOperationException("Configuration error: Unable to create a connection from the provided configuration."));
             factory.ConsumerDispatchConcurrency = config.ConsumerDispatchConcurrency;

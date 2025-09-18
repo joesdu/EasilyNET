@@ -139,21 +139,16 @@ internal sealed class PersistentConnection : IAsyncDisposable
     }
 
     /// <summary>
-    /// 异步获取RabbitMQ通道
+    /// 异步获取RabbitMQ通道（共享发布者通道）
     /// </summary>
-    /// <returns>RabbitMQ通道</returns>
     public async ValueTask<IChannel> GetChannelAsync() => await GetChannelInternalAsync().ConfigureAwait(false);
 
-    private async ValueTask<IChannel> GetChannelInternalAsync()
+    /// <summary>
+    /// 创建一个专用通道（不与共享通道复用）。适合消费者或独立使用场景。
+    /// </summary>
+    public async ValueTask<IChannel> CreateDedicatedChannelAsync(CancellationToken ct = default)
     {
-        // 1. 若已有可用通道直接返回
-        var existing = _currentChannel;
-        if (existing is { IsOpen: true })
-        {
-            return existing;
-        }
-
-        // 2. 如果连接不可用，启动/复用重连，并等待连接就绪（而不是立即抛出）
+        // 确保连接可用
         if (_currentConnection is not { IsOpen: true })
         {
             StartReconnectProcess();
@@ -166,40 +161,79 @@ internal sealed class PersistentConnection : IAsyncDisposable
                 throw new ObjectDisposedException(nameof(PersistentConnection));
             }
         }
-
-        // 3. 再次检查通道（可能其他线程已创建）
-        existing = _currentChannel;
-        if (existing is { IsOpen: true })
+        // 双重检查 + 小范围锁，避免与重连交换指针时竞争
+        using (await _asyncLock.LockAsync(ct).ConfigureAwait(false))
         {
-            return existing;
+            return _currentConnection is not { IsOpen: true }
+                       ? throw new InvalidOperationException("无法在没有有效连接的情况下创建通道")
+                       : await CreateChannelAsync(_currentConnection).ConfigureAwait(false);
         }
+    }
 
-        // 4. 创建新通道（串行化，避免并发重复创建）
-        using (await _asyncLock.LockAsync().ConfigureAwait(false))
+    private async ValueTask<IChannel> GetChannelInternalAsync()
+    {
+        // 使用重试循环确保在短暂断线或调试长暂停后能恢复并返回通道
+        while (true)
         {
-            if (_currentChannel is { IsOpen: true })
+            ObjectDisposedException.ThrowIf(_disposed, nameof(PersistentConnection));
+
+            // 1. 若已有可用通道直接返回
+            var existing = _currentChannel;
+            if (existing is { IsOpen: true })
             {
-                return _currentChannel;
+                return existing;
             }
-            try
+
+            // 2. 如果连接不可用，启动/复用重连，并等待连接就绪
+            if (_currentConnection is not { IsOpen: true })
             {
-                var channel = await CreateChannelAsync().ConfigureAwait(false);
-                _currentChannel = channel;
-                return channel;
-            }
-            catch (Exception ex)
-            {
-                if (_logger.IsEnabled(LogLevel.Error))
+                StartReconnectProcess();
+                try
                 {
-                    _logger.LogError(ex, "创建 RabbitMQ 通道失败，将重新进入重连流程");
+                    await _connectionReadyTcs.Task.ConfigureAwait(false);
                 }
-                // 连接可能又掉了，重新触发重连（如果还没有）
-                if (_currentConnection is not { IsOpen: true })
+                catch (TaskCanceledException)
                 {
-                    StartReconnectProcess();
+                    throw new ObjectDisposedException(nameof(PersistentConnection));
                 }
-                throw; // 让调用方感知失败（可能选择重试）
             }
+
+            // 3. 再次检查通道（可能其他线程已创建）
+            existing = _currentChannel;
+            if (existing is { IsOpen: true })
+            {
+                return existing;
+            }
+
+            // 4. 创建新通道（串行化，避免并发重复创建）
+            using (await _asyncLock.LockAsync().ConfigureAwait(false))
+            {
+                if (_currentChannel is { IsOpen: true })
+                {
+                    return _currentChannel;
+                }
+                try
+                {
+                    var channel = await CreateChannelAsync().ConfigureAwait(false);
+                    _currentChannel = channel;
+                    return channel;
+                }
+                catch (Exception ex)
+                {
+                    if (_logger.IsEnabled(LogLevel.Error))
+                    {
+                        _logger.LogError(ex, "创建 RabbitMQ 通道失败，将重新进入重连流程");
+                    }
+                    // 连接可能又掉了，重新触发重连（如果还没有），并继续下一轮重试而不是抛出
+                    if (_currentConnection is not { IsOpen: true })
+                    {
+                        StartReconnectProcess();
+                    }
+                }
+            }
+
+            // 小退避，避免紧密循环
+            await Task.Delay(200).ConfigureAwait(false);
         }
     }
 
@@ -252,20 +286,22 @@ internal sealed class PersistentConnection : IAsyncDisposable
                        : await _connectionFactory.CreateConnectionAsync(cfg.ApplicationName).ConfigureAwait(false);
         if (conn.IsOpen && _logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation("已成功连接到RabbitMQ服务器: {App}", cfg.ApplicationName);
+            _logger.LogInformation("已成功连接到RabbitMQ服务器: {Host}", cfg.Host);
         }
         return conn;
     }
 
-    private async Task<IChannel> CreateChannelAsync()
+    private async Task<IChannel> CreateChannelAsync() =>
+        _currentConnection is not { IsOpen: true }
+            ? throw new InvalidOperationException("无法在没有有效连接的情况下创建通道")
+            : await CreateChannelAsync(_currentConnection).ConfigureAwait(false);
+
+    // 新增: 使用指定连接创建通道，避免在重连期间错误引用并处置新连接
+    private async Task<IChannel> CreateChannelAsync(IConnection connection)
     {
-        if (_currentConnection is not { IsOpen: true })
-        {
-            throw new InvalidOperationException("无法在没有有效连接的情况下创建通道");
-        }
         var config = GetConfig();
         var channelOptions = new CreateChannelOptions(config.PublisherConfirms, config.PublisherConfirms);
-        return await _currentConnection.CreateChannelAsync(channelOptions).ConfigureAwait(false);
+        return await connection.CreateChannelAsync(channelOptions).ConfigureAwait(false);
     }
 
     private void RegisterConnectionEvents()
@@ -309,31 +345,32 @@ internal sealed class PersistentConnection : IAsyncDisposable
                 return;
             }
 
-            // 检查重连冷却时间，避免频繁重连
-            var timeSinceLastAttempt = DateTime.UtcNow - _lastReconnectAttempt;
-            if (timeSinceLastAttempt.TotalMilliseconds < MinReconnectIntervalMs)
-            {
-                if (_logger.IsEnabled(LogLevel.Debug))
-                {
-                    _logger.LogDebug("Reconnect attempt too frequent, waiting {RemainingMs}ms",
-                        MinReconnectIntervalMs - (int)timeSinceLastAttempt.TotalMilliseconds);
-                }
-                return;
-            }
-            _lastReconnectAttempt = DateTime.UtcNow;
-
-            // 使用异步锁保护重连状态
+            // 使用异步锁保护重连状态与就绪TCS
             using (await _reconnectAsyncLock.LockAsync().ConfigureAwait(false))
             {
-                if (_reconnectTask is { IsCompleted: false })
-                {
-                    return; // 已有重连任务在运行
-                }
+                // 重要：无论是否已有重连任务，都要先重置TCS，避免调用方继续使用已完成的TCS而不等待
                 if (_connectionReadyTcs.Task.IsCompleted)
                 {
-                    // 重置为新的未完成任务，等待重连成功时完成
                     _connectionReadyTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
                 }
+
+                // 若已有重连在进行，直接返回（保持等待）
+                if (_reconnectTask is { IsCompleted: false })
+                {
+                    return;
+                }
+
+                // 检查重连冷却时间，避免频繁重连
+                var timeSinceLastAttempt = DateTime.UtcNow - _lastReconnectAttempt;
+                if (timeSinceLastAttempt.TotalMilliseconds < MinReconnectIntervalMs)
+                {
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                    {
+                        _logger.LogDebug("Reconnect attempt too frequent, waiting {RemainingMs}ms", MinReconnectIntervalMs - (int)timeSinceLastAttempt.TotalMilliseconds);
+                    }
+                    return;
+                }
+                _lastReconnectAttempt = DateTime.UtcNow;
 
                 // 不频繁取消/创建 CTS，除非真正需要；保持一个长期 token（Dispose 时取消）
                 _reconnectTask = Task.Run(() => ExecuteReconnectWithContinuousRetryAsync(_reconnectCts.Token));
@@ -386,8 +423,8 @@ internal sealed class PersistentConnection : IAsyncDisposable
                     IChannel newChannel;
                     try
                     {
-                        _currentConnection = newConnection; // 临时放入以便 CreateChannelAsync 使用
-                        newChannel = await CreateChannelAsync().ConfigureAwait(false);
+                        // 使用新连接直接创建通道，避免依赖字段状态
+                        newChannel = await CreateChannelAsync(newConnection).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -411,7 +448,7 @@ internal sealed class PersistentConnection : IAsyncDisposable
                     }
                     using (await _asyncLock.LockAsync(cancellationToken).ConfigureAwait(false))
                     {
-                        // 交换引用
+                        // 交换引用（注意：不要在交换前修改字段，避免误处置新连接）
                         oldCh = _currentChannel;
                         oldConn = _currentConnection;
                         _currentConnection = newConnection;
@@ -477,14 +514,13 @@ internal sealed class PersistentConnection : IAsyncDisposable
                 // 失败退避等待
                 attempt++;
                 var backoff = BackoffUtility.Exponential(Math.Min(6, attempt), baseInterval, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30));
-                var delay = backoff; // 已包含抖动
                 if (_logger.IsEnabled(LogLevel.Warning))
                 {
-                    _logger.LogWarning(ex, "重连 RabbitMQ 失败，将在 {Delay} 后继续尝试 (attempt={Attempt})", delay, attempt);
+                    _logger.LogWarning(ex, "重连 RabbitMQ 失败，将在 {Delay} 后继续尝试 (attempt={Attempt})", backoff, attempt);
                 }
                 try
                 {
-                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                    await Task.Delay(backoff, cancellationToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {

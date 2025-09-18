@@ -240,7 +240,7 @@ internal sealed record EventBus : IBus
     private async Task PublishBatchInternal<T>(IEnumerable<T> events, string? routingKey, byte? priority, bool? multiThread, uint? ttl, CancellationToken ct) where T : IEvent
     {
         ct.ThrowIfCancellationRequested();
-        var list = events as IList<T> ?? events.ToList();
+        var list = events as IList<T> ?? [.. events];
         if (list.Count == 0)
         {
             return;
