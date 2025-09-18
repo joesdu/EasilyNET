@@ -535,7 +535,7 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         }
     }
 
-    private async Task DeclareExchangeSafelyAsync(IChannel channel, string exchangeName, string exchangeType, bool durable, bool autoDelete, IDictionary<string, object?>? arguments, CancellationToken cancellationToken, bool passive = true)
+    private async Task DeclareExchangeSafelyAsync(IChannel channel, string exchangeName, string exchangeType, bool durable, bool autoDelete, IDictionary<string, object?>? arguments, CancellationToken cancellationToken, bool passive)
     {
         var rabbitConfig = options.Get(Constant.OptionName);
         if (rabbitConfig.SkipExchangeDeclare)
