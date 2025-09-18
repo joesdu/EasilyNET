@@ -58,13 +58,6 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         return bp;
     }
 
-    private static void EnqueueForRetry(ConcurrentQueue<(IEvent Event, string? RoutingKey, byte? Priority, int RetryCount, DateTime NextRetryTime)> queue, IEvent @event, string? routingKey, byte? priority, int retryCount = 0, TimeSpan? delay = null)
-    {
-        var next = DateTime.UtcNow + (delay ?? MinRetryDelay);
-        queue.Enqueue((@event, routingKey, priority, retryCount, next));
-        RabbitBusMetrics.RetryEnqueued.Add(1);
-    }
-
     private static bool IsTransientChannelError(Exception ex) => ex is ObjectDisposedException || ex is AlreadyClosedException || (ex is OperationInterruptedException oi && (oi.InnerException is EndOfStreamException || oi.Message.Contains("End of stream", StringComparison.OrdinalIgnoreCase)));
 
     private async Task<IChannel> GetChannelAndEnsureExchangeAsync(EventConfiguration config, IDictionary<string, object?> args, bool passive, CancellationToken ct)
@@ -165,10 +158,9 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         {
             if (logger.IsEnabled(LogLevel.Warning))
             {
-                logger.LogWarning(ex, "Exchange declare failed for event {EventType} ID {EventId}, scheduling retry", @event.GetType().Name, @event.EventId);
+                logger.LogWarning(ex, "Exchange declare failed for event {EventType} ID {EventId}", @event.GetType().Name, @event.EventId);
             }
-            EnqueueForRetry(NackedMessages, @event, routingKey, priority, 0, MinRetryDelay);
-            return;
+            throw new InvalidOperationException($"Failed to declare exchange for event {@event.GetType().Name} with ID {@event.EventId}", ex);
         }
 
         // 2) 背压
@@ -197,22 +189,11 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
                 RabbitBusMetrics.OutstandingConfirms.Add(-1);
             }
             _outstandingMessages.TryRemove(sequenceNumber, out _);
-            if (IsTransientChannelError(ex))
-            {
-                // 发送阶段的瞬态通道错误：入队重试（由后台在新通道上重发）。
-                if (logger.IsEnabled(LogLevel.Warning))
-                {
-                    logger.LogWarning(ex, "Transient channel error while publishing event {EventType} ID {EventId}, scheduling retry", @event.GetType().Name, @event.EventId);
-                }
-                EnqueueForRetry(NackedMessages, @event, routingKey, properties.Priority, 0, MinRetryDelay);
-                return;
-            }
             if (logger.IsEnabled(LogLevel.Warning))
             {
-                logger.LogWarning(ex, "Publish failed for event {EventType} ID {EventId}, scheduling retry", @event.GetType().Name, @event.EventId);
+                logger.LogWarning(ex, "Publish failed for event {EventType} ID {EventId}", @event.GetType().Name, @event.EventId);
             }
-            EnqueueForRetry(NackedMessages, @event, routingKey, properties.Priority, 0, MinRetryDelay);
-            return;
+            throw new InvalidOperationException($"Failed to publish event {@event.GetType().Name} with ID {@event.EventId}", ex);
         }
         try
         {
@@ -244,10 +225,9 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         {
             if (logger.IsEnabled(LogLevel.Warning))
             {
-                logger.LogWarning(ex, "Exchange declare failed for delayed event {EventType} ID {EventId}, scheduling retry", @event.GetType().Name, @event.EventId);
+                logger.LogWarning(ex, "Exchange declare failed for delayed event {EventType} ID {EventId}", @event.GetType().Name, @event.EventId);
             }
-            EnqueueForRetry(NackedMessages, @event, routingKey, priority, 0, MinRetryDelay);
-            return;
+            throw new InvalidOperationException($"Failed to declare exchange for delayed event {@event.GetType().Name} with ID {@event.EventId}", ex);
         }
 
         // 2) 背压
@@ -278,10 +258,9 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
             _outstandingMessages.TryRemove(sequenceNumber, out _);
             if (logger.IsEnabled(LogLevel.Warning))
             {
-                logger.LogWarning(ex, "Publish failed for delayed event {EventType} ID {EventId}, scheduling retry", @event.GetType().Name, @event.EventId);
+                logger.LogWarning(ex, "Publish failed for delayed event {EventType} ID {EventId}", @event.GetType().Name, @event.EventId);
             }
-            EnqueueForRetry(NackedMessages, @event, routingKey, properties.Priority, 0, MinRetryDelay);
-            return;
+            throw new InvalidOperationException($"Failed to publish delayed event {@event.GetType().Name} with ID {@event.EventId}", ex);
         }
         try
         {
@@ -314,13 +293,9 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
             {
                 if (logger.IsEnabled(LogLevel.Warning))
                 {
-                    logger.LogWarning(ex, "Exchange declare failed for batch, scheduling {Count} events for retry", list.Count);
+                    logger.LogWarning(ex, "Exchange declare failed for batch, failing batch publish");
                 }
-                foreach (var ev in list)
-                {
-                    EnqueueForRetry(NackedMessages, ev, routingKey, priority, 0, MinRetryDelay);
-                }
-                return;
+                throw new InvalidOperationException("Failed to declare exchange for batch publish", ex);
             }
         }
         else
@@ -356,13 +331,9 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
         {
             if (logger.IsEnabled(LogLevel.Warning))
             {
-                logger.LogWarning(ex, "Exchange declare failed for delayed batch, scheduling {Count} events for retry", list.Count);
+                logger.LogWarning(ex, "Exchange declare failed for delayed batch, failing batch publish");
             }
-            foreach (var ev in list)
-            {
-                EnqueueForRetry(NackedMessages, ev, routingKey, priority, 0, MinRetryDelay);
-            }
-            return;
+            throw new InvalidOperationException("Failed to declare exchange for delayed batch publish", ex);
         }
         var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), true, ttl);
         var rabbitCfg = options.Get(Constant.OptionName);
@@ -406,10 +377,9 @@ internal sealed class EventPublisher(PersistentConnection conn, IBusSerializer s
                 _outstandingMessages.TryRemove(seq, out _);
                 if (logger.IsEnabled(LogLevel.Warning))
                 {
-                    logger.LogWarning(ex, "Publish in batch failed for event {EventType} ID {EventId}, scheduling retry", @event.GetType().Name, @event.EventId);
+                    logger.LogWarning(ex, "Publish in batch failed for event {EventType} ID {EventId}", @event.GetType().Name, @event.EventId);
                 }
-                EnqueueForRetry(NackedMessages, @event, routingKey, properties.Priority, 0, MinRetryDelay);
-                continue; // 继续处理其他消息
+                throw new InvalidOperationException($"Failed to publish event {@event.GetType().Name} with ID {@event.EventId} in batch", ex);
             }
             RabbitBusMetrics.PublishedBatch.Add(1);
             // 批量模式下保持与原实现一致：不等待单条 confirm，可按需扩展。

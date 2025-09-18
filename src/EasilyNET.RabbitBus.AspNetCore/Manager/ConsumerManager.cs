@@ -71,7 +71,7 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
         var ct = localCts.Token;
         try
         {
-            await using var channel = await conn.CreateDedicatedChannelAsync(ct).ConfigureAwait(false);
+            await using var channel = await conn.GetChannelAsync(ct).ConfigureAwait(false);
             await DeclareExchangeIfNeeded(config, channel, ct).ConfigureAwait(false);
             await channel.QueueDeclareAsync(config.Queue.Name, config.Queue.Durable, config.Queue.Exclusive, config.Queue.AutoDelete, config.Queue.Arguments, cancellationToken: ct).ConfigureAwait(false);
 

@@ -14,6 +14,7 @@ public class HelloWorldEventHandlers(ILogger<HelloWorldEventHandlers> logger) : 
     public Task HandleAsync(HelloWorldEvent @event)
     {
         logger.LogInformation("[消息处理自:{handler}]-{msg}", nameof(HelloWorldEventHandlers), JsonSerializer.Serialize(@event));
+        logger.LogInformation("枚举类型:{EventGender}", @event.Gender);
         return Task.CompletedTask;
     }
 }
