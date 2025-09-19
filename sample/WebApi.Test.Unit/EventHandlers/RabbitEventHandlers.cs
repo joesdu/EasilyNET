@@ -15,6 +15,7 @@ public class HelloWorldEventHandlers(ILogger<HelloWorldEventHandlers> logger) : 
     {
         logger.LogInformation("[消息处理自:{handler}]-{msg}", nameof(HelloWorldEventHandlers), JsonSerializer.Serialize(@event));
         logger.LogInformation("枚举类型:{EventGender}", @event.Gender);
+        @event.SomeMethod();
         return Task.CompletedTask;
     }
 }
