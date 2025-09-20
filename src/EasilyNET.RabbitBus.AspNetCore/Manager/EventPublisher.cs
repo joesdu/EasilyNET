@@ -137,7 +137,8 @@ internal sealed class EventPublisher : IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
-            // Ignore cancellation, the publish operation will handle it.
+            // Rethrow cancellation so it can be properly handled by the caller.
+            throw;
         }
     }
 
