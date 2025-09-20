@@ -77,6 +77,10 @@ public sealed class RabbitBusBuilder
     ///     <para xml:lang="en">Number of retry attempts</para>
     ///     <para xml:lang="zh">重试次数</para>
     /// </param>
+    /// <param name="retryIntervalSeconds">
+    ///     <para xml:lang="en">The interval in seconds for the background service to check for messages to retry</para>
+    ///     <para xml:lang="zh">后台服务检查要重试的消息的间隔时间（秒）</para>
+    /// </param>
     /// <param name="publisherConfirms">
     ///     <para xml:lang="en">Enable publisher confirms</para>
     ///     <para xml:lang="zh">启用发布者确认</para>
@@ -93,9 +97,10 @@ public sealed class RabbitBusBuilder
     ///     <para xml:lang="en">Timeout for publisher confirms in milliseconds</para>
     ///     <para xml:lang="zh">发布确认超时时间（毫秒）</para>
     /// </param>
-    public RabbitBusBuilder WithResilience(int retryCount = 5, bool publisherConfirms = true, int maxOutstandingConfirms = 1000, int batchSize = 100, int confirmTimeoutMs = 30000)
+    public RabbitBusBuilder WithResilience(int retryCount = 5, int retryIntervalSeconds = 1, bool publisherConfirms = true, int maxOutstandingConfirms = 1000, int batchSize = 100, int confirmTimeoutMs = 30000)
     {
         Config.RetryCount = retryCount;
+        Config.RetryIntervalSeconds = retryIntervalSeconds;
         Config.PublisherConfirms = publisherConfirms;
         Config.MaxOutstandingConfirms = maxOutstandingConfirms;
         Config.BatchSize = batchSize;
@@ -203,7 +208,10 @@ public sealed class RabbitBusBuilder
         if (memoryRatio.HasValue)
         {
             var ratio = memoryRatio.Value;
-            if (double.IsNaN(ratio) || double.IsInfinity(ratio)) ratio = 0.02;
+            if (double.IsNaN(ratio) || double.IsInfinity(ratio))
+            {
+                ratio = 0.02;
+            }
             Config.RetryQueueMaxMemoryRatio = Math.Clamp(ratio, 0, 0.25);
         }
         if (avgEntryBytes.HasValue)

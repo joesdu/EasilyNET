@@ -191,19 +191,26 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
 
     private async Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
     {
-        var conn = config.AmqpTcpEndpoints is not null && config.AmqpTcpEndpoints.Count > 0
-                       ? await connFactory.CreateConnectionAsync(config.AmqpTcpEndpoints, config.ApplicationName, cancellationToken).ConfigureAwait(false)
-                       : await connFactory.CreateConnectionAsync(config.ApplicationName, cancellationToken).ConfigureAwait(false);
-        if (conn.IsOpen && logger.IsEnabled(LogLevel.Information))
+        // 优先使用 AmqpTcpEndpoint 列表进行连接，这对于 DDNS 和集群环境更具弹性
+        if (config.AmqpTcpEndpoints is not null && config.AmqpTcpEndpoints.Count > 0)
         {
-            logger.LogInformation("已成功连接到RabbitMQ服务器: {Host}", config.Host);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Attempting to connect to RabbitMQ using endpoint list...");
+            }
+            return await connFactory.CreateConnectionAsync(config.AmqpTcpEndpoints, config.ApplicationName, cancellationToken).ConfigureAwait(false);
         }
-        return conn;
+        // 如果未提供列表，则回退到使用单个 Host 的传统方式
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Attempting to connect to RabbitMQ using single host {Host}...", config.Host);
+        }
+        return await connFactory.CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<IChannel> CreateChannelAsync(CancellationToken cancellationToken) =>
         _currentConnection is { IsOpen: true }
-            ? await CreateChannelAsync(_currentConnection!, cancellationToken).ConfigureAwait(false)
+            ? await CreateChannelAsync(_currentConnection, cancellationToken).ConfigureAwait(false)
             : throw new InvalidOperationException("无法在没有有效连接的情况下创建通道");
 
     private async Task<IChannel> CreateChannelAsync(IConnection connection, CancellationToken cancellationToken)

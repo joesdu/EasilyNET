@@ -29,6 +29,14 @@ public class HelloWorldEvent : IEvent
     /// 消息ID
     /// </summary>
     public string EventId => ObjectIdCompat.GenerateNewId().ToString();
+
+    /// <summary>
+    /// SomeMethod
+    /// </summary>
+    public void SomeMethod()
+    {
+        Console.WriteLine(nameof(SomeMethod));
+    }
 }
 
 /// <summary>
