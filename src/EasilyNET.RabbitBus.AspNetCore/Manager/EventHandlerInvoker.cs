@@ -20,7 +20,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
 
     // 缓存 (HandlerType, EventType) -> 开放委托: (object handler, object evt) => Task
     private static readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Func<object, object, Task>> _openDelegateCache = new();
-    private readonly ResiliencePipeline _pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
+    private readonly ResiliencePipeline _pipeline = pipelineProvider.GetPipeline(Constant.PublishPipelineName);
 
     // 作用域工厂与管道缓存，减少每次消息的服务解析开销
     private readonly IServiceScopeFactory? _scopeFactory = sp.GetService<IServiceScopeFactory>();

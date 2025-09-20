@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using EasilyNET.RabbitBus.AspNetCore.Abstractions;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
+using EasilyNET.RabbitBus.AspNetCore.Manager;
 using EasilyNET.RabbitBus.AspNetCore.Metrics;
 using EasilyNET.RabbitBus.AspNetCore.Utilities;
 using EasilyNET.RabbitBus.Core.Abstraction;
@@ -10,15 +11,15 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace EasilyNET.RabbitBus.AspNetCore.Manager;
+namespace EasilyNET.RabbitBus.AspNetCore.Services;
 
 /// <summary>
 /// 消息确认管理器，负责消息确认和重试逻辑
 /// </summary>
-internal sealed class MessageConfirmManager(
+internal sealed class MessageConfirmService(
     EventPublisher eventPublisher,
     IBus iBus,
-    ILogger<MessageConfirmManager> logger,
+    ILogger<MessageConfirmService> logger,
     IOptionsMonitor<RabbitConfig> options,
     IDeadLetterStore deadLetterStore) : BackgroundService
 {

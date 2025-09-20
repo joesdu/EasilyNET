@@ -11,7 +11,7 @@ namespace WebApi.Test.Unit.Controllers;
 [ApiController]
 [Route("api/[controller]/[action]")]
 [ApiGroup("RabbitBus", "RabbitBus Test")]
-public class RabbitBusController(IBus ibus,IServiceProvider sp) : ControllerBase
+public class RabbitBusController(IBus ibus, IServiceProvider sp) : ControllerBase
 {
     /// <summary>
     /// 发送HelloWorld消息

@@ -16,6 +16,8 @@ using Polly.Timeout;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
 
+// ReSharper disable UnusedMember.Global
+
 #pragma warning disable IDE0130 // 命名空间与文件夹结构不匹配
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -79,7 +81,7 @@ public static class RabbitServiceExtension
         services.AddSingleton<IDeadLetterStore, InMemoryDeadLetterStore>();
         services.AddSingleton<IBus, EventBus>();
         services.AddHostedService<SubscribeService>();
-        services.AddHostedService<MessageConfirmManager>();
+        services.AddHostedService<MessageConfirmService>();
         services.AddHealthChecks().AddRabbitBusHealthCheck();
         return services;
     }
@@ -131,7 +133,9 @@ public static class RabbitServiceExtension
             factory.RequestedHeartbeat = TimeSpan.FromSeconds(30);
             return factory;
         });
-        services.AddResiliencePipeline(Constant.ResiliencePipelineName, (builder, context) =>
+
+        // Publishing pipeline for message publishing operations
+        services.AddResiliencePipeline(Constant.PublishPipelineName, (builder, context) =>
         {
             var logger = context.ServiceProvider.GetRequiredService<ILogger<PersistentConnection>>();
             builder.AddRetry(new()
@@ -153,6 +157,36 @@ public static class RabbitServiceExtension
                 }
             });
             builder.AddTimeout(TimeSpan.FromMinutes(1));
+        });
+
+        // Connection pipeline for initial connection establishment only
+        services.AddResiliencePipeline(Constant.ConnectionPipelineName, (builder, context) =>
+        {
+            var logger = context.ServiceProvider.GetRequiredService<ILogger<PersistentConnection>>();
+            builder.AddRetry(new()
+            {
+                ShouldHandle = new PredicateBuilder()
+                               .Handle<BrokerUnreachableException>()
+                               .Handle<SocketException>()
+                               .Handle<TimeoutException>()
+                               .Handle<ConnectFailureException>()
+                               .Handle<AuthenticationFailureException>(),
+                MaxRetryAttempts = Math.Min(3, config.RetryCount), // Limit initial connection retries
+                Delay = TimeSpan.FromSeconds(1),
+                BackoffType = DelayBackoffType.Exponential,
+                UseJitter = true,
+                MaxDelay = TimeSpan.FromSeconds(5),
+                OnRetry = args =>
+                {
+                    var ex = args.Outcome.Exception!;
+                    if (logger.IsEnabled(LogLevel.Warning))
+                    {
+                        logger.LogWarning(ex, "Initial RabbitMQ connection attempt failed. Exception: {ExceptionMessage}", ex.Message);
+                    }
+                    return ValueTask.CompletedTask;
+                }
+            });
+            builder.AddTimeout(TimeSpan.FromSeconds(30)); // Shorter timeout for initial connection
         });
         services.AddSingleton<PersistentConnection>();
     }
