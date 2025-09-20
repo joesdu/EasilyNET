@@ -38,11 +38,16 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
         _disposed = true;
         try
         {
-            // 取消重连任务
-            await _reconnectCts.CancelAsync().ConfigureAwait(false);
+            // 取消重连任务并等待结束
+            try
+            {
+                await _reconnectCts.CancelAsync().ConfigureAwait(false);
+            }
+            catch
+            {
+                // ignore
+            }
             _reconnectCts.Dispose();
-
-            // 等待重连任务完成
             if (_reconnectTask is not null)
             {
                 try
@@ -53,6 +58,21 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
                 {
                     logger.LogWarning(ex, "等待重连任务完成时发生错误");
                 }
+            }
+
+            // 断开事件注册，避免回调在清理后触发
+            if (_currentConnection is not null && _eventsRegistered)
+            {
+                try
+                {
+                    _currentConnection.ConnectionShutdownAsync -= null; // 无法逐一移除匿名订阅，仅通过置位避免重复注册
+                    _currentConnection.ConnectionBlockedAsync -= null;
+                }
+                catch
+                {
+                    // ignore
+                }
+                _eventsRegistered = false;
             }
 
             // 清理资源
@@ -81,6 +101,8 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
                     logger.LogWarning(ex, "清理{ResourceName}时发生错误", nameof(_asyncLock));
                 }
             }
+
+            // 让等待方尽快结束
             _connectionReadyTcs.TrySetCanceled();
         }
         catch (Exception ex) when (logger.IsEnabled(LogLevel.Critical))

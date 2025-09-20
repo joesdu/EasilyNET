@@ -131,15 +131,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         {
             return;
         }
-        try
-        {
-            await _throttleSemaphore.WaitAsync(ct).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            // Optionally log cancellation here if desired.
-            throw;
-        }
+        await _throttleSemaphore.WaitAsync(ct).ConfigureAwait(false);
     }
 
     private async Task WaitForConfirmIfNeededAsync(TaskCompletionSource<bool> tcs, RabbitConfig cfg, string eventName, string eventId, bool delayed, CancellationToken ct)
