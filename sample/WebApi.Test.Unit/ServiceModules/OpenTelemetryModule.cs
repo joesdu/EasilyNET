@@ -26,7 +26,7 @@ internal sealed class OpenTelemetryModule : AppModule
                {
                    c.AddRuntimeInstrumentation();
                    c.AddProcessInstrumentation();
-                   c.AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel", "System.Net.Http", "WebApi.Test.Unit");
+                   c.AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel", "System.Net.Http", "WebApi.Test.Unit", "EasilyNET.RabbitBus");
                    c.AddOtlpExporter();
                })
                .WithLogging(c => c.AddOtlpExporter())
