@@ -47,7 +47,7 @@ internal sealed class MessageConfirmManager(
                     }
                     if (dropped > 0)
                     {
-                        RabbitBusMetrics.RetryDiscarded.Add(dropped);
+                        RabbitBusMetrics.PublishDiscarded.Add(dropped);
                         if (logger.IsEnabled(LogLevel.Error))
                         {
                             logger.LogError("Dropped {Count} nacked messages due to queue overflow (max={Max})", dropped, maxQueueSize);
@@ -74,7 +74,6 @@ internal sealed class MessageConfirmManager(
                         break;
                     }
                 }
-                RabbitBusMetrics.SetRetryQueueDepth(eventPublisher.NackedMessages.Count);
                 if (toRetry.Count == 0)
                 {
                     await Task.Delay(1000, stoppingToken);
@@ -86,7 +85,7 @@ internal sealed class MessageConfirmManager(
                     var maxRetries = rabbitCfg.RetryCount;
                     if (item.RetryCount > maxRetries)
                     {
-                        RabbitBusMetrics.RetryDiscarded.Add(1);
+                        RabbitBusMetrics.PublishDiscarded.Add(1);
                         RabbitBusMetrics.DeadLettered.Add(1);
                         try
                         {
@@ -111,13 +110,12 @@ internal sealed class MessageConfirmManager(
                         var del = _publishDelegateCache.GetOrAdd(eventType, CreatePublishDelegate);
                         if (del is null)
                         {
-                            RabbitBusMetrics.RetryRescheduled.Add(1);
                             Reschedule(item);
                             continue;
                         }
                         // 直接调用 IBus.Publish，避免全局超时打断等待连接恢复
                         await del(iBus, item.Event, item.RoutingKey, item.Priority, stoppingToken);
-                        RabbitBusMetrics.RetryAttempt.Add(1);
+                        RabbitBusMetrics.PublishRetried.Add(1);
                     }
                     catch (Exception ex)
                     {
@@ -125,7 +123,6 @@ internal sealed class MessageConfirmManager(
                         {
                             logger.LogError(ex, "Retry failed for {EventType} ID {EventId} attempt {Attempt}", item.Event.GetType().Name, item.Event.EventId, item.RetryCount);
                         }
-                        RabbitBusMetrics.RetryRescheduled.Add(1);
                         Reschedule(item);
                     }
                 }
@@ -168,11 +165,20 @@ internal sealed class MessageConfirmManager(
             total = 2L * 1024 * 1024 * 1024; // 兜底 2GB
         }
         var ratio = cfg.RetryQueueMaxMemoryRatio;
-        if (ratio <= 0) ratio = 0.02;           // 默认 2%
-        if (ratio > 0.25) ratio = 0.25;         // 上限 25%
+        if (ratio <= 0)
+        {
+            ratio = 0.02; // 默认 2%
+        }
+        if (ratio > 0.25)
+        {
+            ratio = 0.25; // 上限 25%
+        }
         var budget = (long)(total * ratio);
         var est = cfg.RetryQueueAvgEntryBytes;
-        if (est <= 0) est = 2048;               // 默认每条 ~2KB 估算
+        if (est <= 0)
+        {
+            est = 2048; // 默认每条 ~2KB 估算
+        }
         var calculated = (int)Math.Clamp(budget / est, 1_000, 500_000);
         return calculated;
     }

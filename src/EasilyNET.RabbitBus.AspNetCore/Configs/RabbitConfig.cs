@@ -68,6 +68,12 @@ public sealed class RabbitConfig
     public int ReconnectIntervalSeconds { get; set; } = 15;
 
     /// <summary>
+    ///     <para xml:lang="en">The interval in seconds for the background service to check for messages to retry. Default is 1</para>
+    ///     <para xml:lang="zh">后台服务检查要重试的消息的间隔时间（秒）。默认是 1</para>
+    /// </summary>
+    public int RetryIntervalSeconds { get; set; } = 1;
+
+    /// <summary>
     ///     <para xml:lang="en">The consumer dispatch concurrency. Default is 10</para>
     ///     <para xml:lang="zh">消费者调度并发数。默认是 10</para>
     /// </summary>
@@ -86,10 +92,10 @@ public sealed class RabbitConfig
     public bool PublisherConfirms { get; set; } = true;
 
     /// <summary>
-    ///     <para xml:lang="en">Maximum number of outstanding publisher confirms. Default is 1000</para>
-    ///     <para xml:lang="zh">最大未确认发布者确认数量。默认是 1000</para>
+    ///     <para xml:lang="en">Maximum number of outstanding publisher confirms. Default is 100</para>
+    ///     <para xml:lang="zh">最大未确认发布者确认数量。默认是 100</para>
     /// </summary>
-    public int MaxOutstandingConfirms { get; set; } = 1000;
+    public int MaxOutstandingConfirms { get; set; } = 100;
 
     /// <summary>
     ///     <para xml:lang="en">Batch size for batch publishing. Default is 100</para>
@@ -113,10 +119,7 @@ public sealed class RabbitConfig
     ///     <para xml:lang="en">QoS configuration</para>
     ///     <para xml:lang="zh">QoS配置</para>
     /// </summary>
-    public QosConfig Qos { get; } = new()
-    {
-        PrefetchCount = 100
-    };
+    public QosConfig Qos { get; } = new();
 
     /// <summary>
     ///     <para xml:lang="en">Application name for identification</para>

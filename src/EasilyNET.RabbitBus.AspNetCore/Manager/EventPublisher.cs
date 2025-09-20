@@ -7,6 +7,7 @@ using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Polly;
 using Polly.Registry;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -17,18 +18,45 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <summary>
 /// 事件发布器，负责处理所有事件发布相关逻辑
 /// </summary>
-internal sealed class EventPublisher(PersistentConnection conn, ResiliencePipelineProvider<string> pipelineProvider, IBusSerializer serializer, ILogger<EventBus> logger, IOptionsMonitor<RabbitConfig> options)
+internal sealed class EventPublisher : IAsyncDisposable
 {
     private const int LocalDeclareMaxAttempts = 5;
     private static readonly TimeSpan MinRetryDelay = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan MaxRetryDelay = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan LocalDeclareRetryDelay = TimeSpan.FromMilliseconds(200);
-
     private readonly SemaphoreSlim _confirmSemaphore = new(1, 1);
+
+    private readonly PersistentConnection _conn;
+    private readonly ILogger<EventBus> _logger;
     private readonly ConcurrentDictionary<ulong, TaskCompletionSource<bool>> _outstandingConfirms = [];
     private readonly ConcurrentDictionary<ulong, (IEvent Event, string? RoutingKey, byte? Priority, int RetryCount)> _outstandingMessages = [];
+    private readonly RabbitConfig _rabbitConfig;
+    private readonly ResiliencePipeline _resiliencePipeline;
+    private readonly IBusSerializer _serializer;
+    private readonly SemaphoreSlim? _throttleSemaphore;
+
+    // 构造函数中初始化信号量
+    public EventPublisher(PersistentConnection conn, ResiliencePipelineProvider<string> pipelineProvider, IBusSerializer serializer, ILogger<EventBus> logger, IOptionsMonitor<RabbitConfig> options)
+    {
+        _conn = conn;
+        _serializer = serializer;
+        _logger = logger;
+        _rabbitConfig = options.Get(Constant.OptionName);
+        _resiliencePipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
+        if (_rabbitConfig is { PublisherConfirms: true, MaxOutstandingConfirms: > 0 })
+        {
+            _throttleSemaphore = new(_rabbitConfig.MaxOutstandingConfirms, _rabbitConfig.MaxOutstandingConfirms);
+        }
+    }
 
     public ConcurrentQueue<(IEvent Event, string? RoutingKey, byte? Priority, int RetryCount, DateTime NextRetryTime)> NackedMessages { get; } = [];
+
+    public async ValueTask DisposeAsync()
+    {
+        _confirmSemaphore.Dispose();
+        _throttleSemaphore?.Dispose();
+        await ValueTask.CompletedTask;
+    }
 
     // 计算指数退避时间 2^n * 1s 带上限
     private static TimeSpan CalcBackoff(int retryCount) => BackoffUtility.Exponential(retryCount, MinRetryDelay, MinRetryDelay, MaxRetryDelay);
@@ -66,26 +94,24 @@ internal sealed class EventPublisher(PersistentConnection conn, ResiliencePipeli
         for (var attempt = 1; attempt <= LocalDeclareMaxAttempts; attempt++)
         {
             ct.ThrowIfCancellationRequested();
-            var channel = await conn.GetChannelAsync(ct).ConfigureAwait(false);
+            var channel = await _conn.GetChannelAsync(ct).ConfigureAwait(false);
             try
             {
-                await DeclareExchangeSafelyAsync(channel, config.Exchange.Name, config.Exchange.Type.Description,
-                    config.Exchange.Durable, config.Exchange.AutoDelete, args, ct, passive).ConfigureAwait(false);
+                await DeclareExchangeSafelyAsync(channel, config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, args, ct, passive).ConfigureAwait(false);
                 return channel; // 成功
             }
             catch (Exception ex) when (IsTransientChannelError(ex))
             {
-                if (logger.IsEnabled(LogLevel.Debug))
+                if (_logger.IsEnabled(LogLevel.Debug))
                 {
-                    logger.LogDebug(ex, "Transient channel error while declaring exchange {Exchange}, attempt {Attempt}/{MaxAttempts}", config.Exchange.Name, attempt, LocalDeclareMaxAttempts);
+                    _logger.LogDebug(ex, "Transient channel error while declaring exchange {Exchange}, attempt {Attempt}/{MaxAttempts}", config.Exchange.Name, attempt, LocalDeclareMaxAttempts);
                 }
                 await Task.Delay(LocalDeclareRetryDelay, ct).ConfigureAwait(false);
             }
         }
         // 多次尝试后仍失败，最后一次再拿到一个通道抛出 Declare 的异常，由调用方处理（入队重试）
-        var lastChannel = await conn.GetChannelAsync(ct).ConfigureAwait(false);
-        await DeclareExchangeSafelyAsync(lastChannel, config.Exchange.Name, config.Exchange.Type.Description,
-            config.Exchange.Durable, config.Exchange.AutoDelete, args, ct, passive).ConfigureAwait(false);
+        var lastChannel = await _conn.GetChannelAsync(ct).ConfigureAwait(false);
+        await DeclareExchangeSafelyAsync(lastChannel, config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, args, ct, passive).ConfigureAwait(false);
         return lastChannel;
     }
 
@@ -99,24 +125,19 @@ internal sealed class EventPublisher(PersistentConnection conn, ResiliencePipeli
         return (sequenceNumber, tcs);
     }
 
-    private async Task ThrottleIfNeededAsync(RabbitConfig cfg, CancellationToken ct)
+    private async Task ThrottleIfNeededAsync(CancellationToken ct)
     {
-        if (!cfg.PublisherConfirms)
-        {
-            return; // 无确认模式无法准确统计，直接返回
-        }
-        var max = cfg.MaxOutstandingConfirms;
-        if (max <= 0)
+        if (_throttleSemaphore is null)
         {
             return;
         }
-        // 简单自旋等待 + 延迟，可改为信号量优化
-        var spinWait = 0;
-        while (_outstandingConfirms.Count >= max)
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            await Task.Delay(5 + Math.Min(20, spinWait), ct).ConfigureAwait(false);
-            spinWait = Math.Min(spinWait + 5, 50);
+            await _throttleSemaphore.WaitAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Ignore cancellation, the publish operation will handle it.
         }
     }
 
@@ -137,83 +158,68 @@ internal sealed class EventPublisher(PersistentConnection conn, ResiliencePipeli
         }
         catch (TimeoutException)
         {
-            if (logger.IsEnabled(LogLevel.Warning))
+            if (_logger.IsEnabled(LogLevel.Warning))
             {
-                logger.LogWarning("Timeout waiting for publisher confirm for {Kind} event: {EventName} with ID: {EventId}", delayed ? "delayed" : "normal", eventName, eventId);
+                _logger.LogWarning("Timeout waiting for publisher confirm for {Kind} event: {EventName} with ID: {EventId}", delayed ? "delayed" : "normal", eventName, eventId);
             }
-            throw;
+            throw; // Re-throw to be caught by the Publish method.
         }
     }
 
     public async Task Publish<T>(EventConfiguration config, T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var rabbitConfig = options.Get(Constant.OptionName);
-
-        // 1) 交换机声明（本地快速重试，避免旧通道处置引发 ODE）
+        // 1) 交换机声明
         var args = config.Exchange.Arguments;
         IChannel channel;
         try
         {
             channel = config.Exchange.Type != EModel.None
                           ? await GetChannelAndEnsureExchangeAsync(config, args, false, cancellationToken).ConfigureAwait(false)
-                          : await conn.GetChannelAsync(cancellationToken).ConfigureAwait(false);
+                          : await _conn.GetChannelAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            if (logger.IsEnabled(LogLevel.Warning))
+            if (_logger.IsEnabled(LogLevel.Warning))
             {
-                logger.LogWarning(ex, "Exchange declare failed for event {EventType} ID {EventId}", @event.GetType().Name, @event.EventId);
+                _logger.LogWarning(ex, "Exchange declare failed for event {EventType} ID {EventId}", @event.GetType().Name, @event.EventId);
             }
             throw new InvalidOperationException($"Failed to declare exchange for event {@event.GetType().Name} with ID {@event.EventId}", ex);
         }
-
         // 2) 背压
-        await ThrottleIfNeededAsync(rabbitConfig, cancellationToken).ConfigureAwait(false);
-
-        // 3) 注册发布确认并发布
-        var properties = BuildBasicProperties(config, priority.GetValueOrDefault());
-        var (sequenceNumber, tcs) = await RegisterPendingAsync(channel, @event, routingKey, properties.Priority, cancellationToken).ConfigureAwait(false);
-        var body = serializer.Serialize(@event, @event.GetType());
-        var pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
+        await ThrottleIfNeededAsync(cancellationToken).ConfigureAwait(false);
+        ulong sequenceNumber = 0;
         try
         {
-            await pipeline.ExecuteAsync(async ct =>
+            // 3) 注册发布确认并发布
+            var properties = BuildBasicProperties(config, priority.GetValueOrDefault());
+            var (seq, tcs) = await RegisterPendingAsync(channel, @event, routingKey, properties.Priority, cancellationToken).ConfigureAwait(false);
+            sequenceNumber = seq;
+            var body = _serializer.Serialize(@event, @event.GetType());
+            await _resiliencePipeline.ExecuteAsync(async ct =>
             {
-                if (logger.IsEnabled(LogLevel.Trace))
+                if (_logger.IsEnabled(LogLevel.Trace))
                 {
-                    logger.LogTrace("Publishing event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, sequenceNumber);
+                    _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, sequenceNumber);
                 }
                 await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
             }, cancellationToken).ConfigureAwait(false);
+            await WaitForConfirmIfNeededAsync(tcs, _rabbitConfig, @event.GetType().Name, @event.EventId, false, cancellationToken).ConfigureAwait(false);
+            RabbitBusMetrics.PublishedNormal.Add(1);
         }
         catch (Exception ex)
         {
-            if (_outstandingConfirms.TryRemove(sequenceNumber, out _))
+            // 任何异常都意味着这个在途消息的生命周期结束了
+            if (ex is TimeoutException)
             {
-                RabbitBusMetrics.OutstandingConfirms.Add(-1);
+                RabbitBusMetrics.ConfirmTimeout.Add(1);
+                HandlePublishTimeout(sequenceNumber);
             }
-            _outstandingMessages.TryRemove(sequenceNumber, out _);
-            if (logger.IsEnabled(LogLevel.Warning))
+            else
             {
-                logger.LogWarning(ex, "Publish failed for event {EventType} ID {EventId}", @event.GetType().Name, @event.EventId);
+                HandlePublishFailure(sequenceNumber, ex, @event.GetType().Name, @event.EventId);
             }
-            throw new InvalidOperationException($"Failed to publish event {@event.GetType().Name} with ID {@event.EventId}", ex);
-        }
-        try
-        {
-            await WaitForConfirmIfNeededAsync(tcs, rabbitConfig, @event.GetType().Name, @event.EventId, false, cancellationToken).ConfigureAwait(false);
-            RabbitBusMetrics.PublishedNormal.Add(1);
-        }
-        catch (TimeoutException)
-        {
-            RabbitBusMetrics.ConfirmTimeout.Add(1);
-            // When a timeout occurs, we should remove the outstanding confirm to prevent memory leaks.
-            if (_outstandingConfirms.TryRemove(sequenceNumber, out _))
-            {
-                RabbitBusMetrics.OutstandingConfirms.Add(-1);
-            }
-            _outstandingMessages.TryRemove(sequenceNumber, out _);
+            // 向上抛出异常，让调用方知道失败了
             throw;
         }
     }
@@ -221,9 +227,7 @@ internal sealed class EventPublisher(PersistentConnection conn, ResiliencePipeli
     public async Task PublishDelayed<T>(EventConfiguration config, T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var rabbitConfig = options.Get(Constant.OptionName);
-
-        // 1) 交换机声明（带 x-delayed-type）使用本地快速重试
+        // 1) 交换机声明
         var exchangeArgs = new Dictionary<string, object?>(config.Exchange.Arguments);
         var hasDelayedType = exchangeArgs.TryGetValue("x-delayed-type", out var delayedType);
         exchangeArgs["x-delayed-type"] = !hasDelayedType || delayedType is null ? "direct" : delayedType;
@@ -234,59 +238,44 @@ internal sealed class EventPublisher(PersistentConnection conn, ResiliencePipeli
         }
         catch (Exception ex)
         {
-            if (logger.IsEnabled(LogLevel.Warning))
+            if (_logger.IsEnabled(LogLevel.Warning))
             {
-                logger.LogWarning(ex, "Exchange declare failed for delayed event {EventType} ID {EventId}", @event.GetType().Name, @event.EventId);
+                _logger.LogWarning(ex, "Exchange declare failed for delayed event {EventType} ID {EventId}", @event.GetType().Name, @event.EventId);
             }
             throw new InvalidOperationException($"Failed to declare exchange for delayed event {@event.GetType().Name} with ID {@event.EventId}", ex);
         }
-
         // 2) 背压
-        await ThrottleIfNeededAsync(rabbitConfig, cancellationToken).ConfigureAwait(false);
-
-        // 3) 发布
-        var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), true, ttl);
-        var (sequenceNumber, tcs) = await RegisterPendingAsync(channel, @event, routingKey, properties.Priority, cancellationToken).ConfigureAwait(false);
-        var body = serializer.Serialize(@event, @event.GetType());
-        var pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
+        await ThrottleIfNeededAsync(cancellationToken).ConfigureAwait(false);
+        ulong sequenceNumber = 0;
         try
         {
-            await pipeline.ExecuteAsync(async ct =>
+            // 3) 发布
+            var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), true, ttl);
+            var (seq, tcs) = await RegisterPendingAsync(channel, @event, routingKey, properties.Priority, cancellationToken).ConfigureAwait(false);
+            sequenceNumber = seq;
+            var body = _serializer.Serialize(@event, @event.GetType());
+            await _resiliencePipeline.ExecuteAsync(async ct =>
             {
-                if (logger.IsEnabled(LogLevel.Trace))
+                if (_logger.IsEnabled(LogLevel.Trace))
                 {
-                    logger.LogTrace("Publishing delayed event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, sequenceNumber);
+                    _logger.LogTrace("Publishing delayed event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, sequenceNumber);
                 }
                 await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
             }, cancellationToken).ConfigureAwait(false);
+            await WaitForConfirmIfNeededAsync(tcs, _rabbitConfig, @event.GetType().Name, @event.EventId, true, cancellationToken).ConfigureAwait(false);
+            RabbitBusMetrics.PublishedDelayed.Add(1);
         }
         catch (Exception ex)
         {
-            if (_outstandingConfirms.TryRemove(sequenceNumber, out _))
+            if (ex is TimeoutException)
             {
-                RabbitBusMetrics.OutstandingConfirms.Add(-1);
+                RabbitBusMetrics.ConfirmTimeout.Add(1);
+                HandlePublishTimeout(sequenceNumber);
             }
-            _outstandingMessages.TryRemove(sequenceNumber, out _);
-            if (logger.IsEnabled(LogLevel.Warning))
+            else
             {
-                logger.LogWarning(ex, "Publish failed for delayed event {EventType} ID {EventId}", @event.GetType().Name, @event.EventId);
+                HandlePublishFailure(sequenceNumber, ex, @event.GetType().Name, @event.EventId, true);
             }
-            throw new InvalidOperationException($"Failed to publish delayed event {@event.GetType().Name} with ID {@event.EventId}", ex);
-        }
-        try
-        {
-            await WaitForConfirmIfNeededAsync(tcs, rabbitConfig, @event.GetType().Name, @event.EventId, true, cancellationToken).ConfigureAwait(false);
-            RabbitBusMetrics.PublishedDelayed.Add(1);
-        }
-        catch (TimeoutException)
-        {
-            RabbitBusMetrics.ConfirmTimeout.Add(1);
-            // When a timeout occurs, we should remove the outstanding confirm to prevent memory leaks.
-            if (_outstandingConfirms.TryRemove(sequenceNumber, out _))
-            {
-                RabbitBusMetrics.OutstandingConfirms.Add(-1);
-            }
-            _outstandingMessages.TryRemove(sequenceNumber, out _);
             throw;
         }
     }
@@ -298,7 +287,7 @@ internal sealed class EventPublisher(PersistentConnection conn, ResiliencePipeli
         {
             return;
         }
-        // 预先确保交换机（快速重试）
+        // 预先确保交换机
         IChannel channel;
         if (config.Exchange.Type != EModel.None)
         {
@@ -308,24 +297,39 @@ internal sealed class EventPublisher(PersistentConnection conn, ResiliencePipeli
             }
             catch (Exception ex)
             {
-                if (logger.IsEnabled(LogLevel.Warning))
+                if (_logger.IsEnabled(LogLevel.Warning))
                 {
-                    logger.LogWarning(ex, "Exchange declare failed for batch, failing batch publish");
+                    _logger.LogWarning(ex, "Exchange declare failed for batch, failing batch publish");
                 }
                 throw new InvalidOperationException("Failed to declare exchange for batch publish", ex);
             }
         }
         else
         {
-            channel = await conn.GetChannelAsync(cancellationToken).ConfigureAwait(false);
+            channel = await _conn.GetChannelAsync(cancellationToken).ConfigureAwait(false);
         }
         var properties = BuildBasicProperties(config, priority.GetValueOrDefault());
-        var rabbitCfg = options.Get(Constant.OptionName);
-        var effectiveBatchSize = Math.Min(rabbitCfg.BatchSize, list.Count);
+        var effectiveBatchSize = Math.Min(_rabbitConfig.BatchSize, list.Count);
         foreach (var batch in list.Chunk(effectiveBatchSize))
         {
-            await ThrottleIfNeededAsync(rabbitCfg, cancellationToken).ConfigureAwait(false);
-            await PublishBatchInternal(channel, config, batch, properties, routingKey, multiThread, cancellationToken);
+            // 为批处理中的每条消息获取信号量
+            for (var i = 0; i < batch.Length; i++)
+            {
+                await ThrottleIfNeededAsync(cancellationToken).ConfigureAwait(false);
+            }
+            try
+            {
+                await PublishBatchInternal(channel, config, batch, properties, routingKey, multiThread, cancellationToken);
+            }
+            catch
+            {
+                // 如果批量发布内部失败，我们需要释放已获取的信号量
+                for (var i = 0; i < batch.Length; i++)
+                {
+                    _throttleSemaphore?.Release();
+                }
+                throw;
+            }
         }
     }
 
@@ -346,60 +350,65 @@ internal sealed class EventPublisher(PersistentConnection conn, ResiliencePipeli
         }
         catch (Exception ex)
         {
-            if (logger.IsEnabled(LogLevel.Warning))
+            if (_logger.IsEnabled(LogLevel.Warning))
             {
-                logger.LogWarning(ex, "Exchange declare failed for delayed batch, failing batch publish");
+                _logger.LogWarning(ex, "Exchange declare failed for delayed batch, failing batch publish");
             }
             throw new InvalidOperationException("Failed to declare exchange for delayed batch publish", ex);
         }
         var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), true, ttl);
-        var rabbitCfg = options.Get(Constant.OptionName);
-        var batchSize = Math.Min(rabbitCfg.BatchSize, list.Count);
+        var batchSize = Math.Min(_rabbitConfig.BatchSize, list.Count);
         foreach (var batch in list.Chunk(batchSize))
         {
-            await ThrottleIfNeededAsync(rabbitCfg, cancellationToken).ConfigureAwait(false);
-            await PublishBatchInternal(channel, config, batch, properties, routingKey, multiThread, cancellationToken);
+            for (var i = 0; i < batch.Length; i++)
+            {
+                await ThrottleIfNeededAsync(cancellationToken).ConfigureAwait(false);
+            }
+            try
+            {
+                await PublishBatchInternal(channel, config, batch, properties, routingKey, multiThread, cancellationToken);
+            }
+            catch
+            {
+                for (var i = 0; i < batch.Length; i++)
+                {
+                    _throttleSemaphore?.Release();
+                }
+                throw;
+            }
         }
     }
 
     private async Task PublishBatchInternal<T>(IChannel channel, EventConfiguration config, T[] batch, BasicProperties properties, string? routingKey, bool? multiThread, CancellationToken cancellationToken) where T : IEvent
     {
-        var pipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
-        if (multiThread is true && batch.Length > 1 && logger.IsEnabled(LogLevel.Debug))
+        if (multiThread is true && batch.Length > 1 && _logger.IsEnabled(LogLevel.Debug))
         {
-            logger.LogDebug("Batch publish requested multiThread but using sequential publish on single channel for safety. BatchSize={Size}", batch.Length);
+            _logger.LogDebug("Batch publish requested multiThread but using sequential publish on single channel for safety. BatchSize={Size}", batch.Length);
         }
         foreach (var @event in batch)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var (seq, _) = await RegisterPendingAsync(channel, @event, routingKey, properties.Priority, cancellationToken).ConfigureAwait(false);
-            var body = serializer.Serialize(@event, @event.GetType());
+            var body = _serializer.Serialize(@event, @event.GetType());
             try
             {
-                await pipeline.ExecuteAsync(async ct =>
+                await _resiliencePipeline.ExecuteAsync(async ct =>
                 {
-                    if (logger.IsEnabled(LogLevel.Trace))
+                    if (_logger.IsEnabled(LogLevel.Trace))
                     {
-                        logger.LogTrace("Publishing event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, seq);
+                        _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, seq);
                     }
                     await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
                 }, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                if (_outstandingConfirms.TryRemove(seq, out _))
-                {
-                    RabbitBusMetrics.OutstandingConfirms.Add(-1);
-                }
-                _outstandingMessages.TryRemove(seq, out _);
-                if (logger.IsEnabled(LogLevel.Warning))
-                {
-                    logger.LogWarning(ex, "Publish in batch failed for event {EventType} ID {EventId}", @event.GetType().Name, @event.EventId);
-                }
+                HandlePublishFailure(seq, ex, @event.GetType().Name, @event.EventId);
+                // 在批量模式下，一个失败不应阻止其他消息，但需要向上抛出以触发外部的信号量释放
                 throw new InvalidOperationException($"Failed to publish event {@event.GetType().Name} with ID {@event.EventId} in batch", ex);
             }
             RabbitBusMetrics.PublishedBatch.Add(1);
-            // 批量模式下保持与原实现一致：不等待单条 confirm，可按需扩展。
+            // 批量模式下不等待单条confirm，所以信号量由ACK/NACK回调处理
         }
     }
 
@@ -407,18 +416,18 @@ internal sealed class EventPublisher(PersistentConnection conn, ResiliencePipeli
 
     public async Task OnBasicNacks(object? _, BasicNackEventArgs ea)
     {
-        if (logger.IsEnabled(LogLevel.Warning))
+        if (_logger.IsEnabled(LogLevel.Warning))
         {
-            logger.LogWarning("Message nack-ed: DeliveryTag={DeliveryTag}, Multiple={Multiple}", ea.DeliveryTag, ea.Multiple);
+            _logger.LogWarning("Message nack-ed: DeliveryTag={DeliveryTag}, Multiple={Multiple}", ea.DeliveryTag, ea.Multiple);
         }
         await CleanOutstandingConfirms(ea.DeliveryTag, ea.Multiple, true);
     }
 
     public async Task OnBasicReturn(object? _, BasicReturnEventArgs ea)
     {
-        if (logger.IsEnabled(LogLevel.Warning))
+        if (_logger.IsEnabled(LogLevel.Warning))
         {
-            logger.LogWarning("Message returned: ReplyCode={ReplyCode}, ReplyText={ReplyText}, Exchange={Exchange}, RoutingKey={RoutingKey}", ea.ReplyCode, ea.ReplyText, ea.Exchange, ea.RoutingKey);
+            _logger.LogWarning("Message returned: ReplyCode={ReplyCode}, ReplyText={ReplyText}, Exchange={Exchange}, RoutingKey={RoutingKey}", ea.ReplyCode, ea.ReplyText, ea.Exchange, ea.RoutingKey);
         }
         // 无法路由时可考虑重发或其他处理，此处暂保持占位
         await Task.Yield();
@@ -450,10 +459,11 @@ internal sealed class EventPublisher(PersistentConnection conn, ResiliencePipeli
                     RabbitBusMetrics.RetryEnqueued.Add(1);
                 }
                 RabbitBusMetrics.OutstandingConfirms.Add(-1);
+                _throttleSemaphore?.Release();
             }
-            if (logger.IsEnabled(LogLevel.Information) && expiredConfirms.Count > 0)
+            if (_logger.IsEnabled(LogLevel.Information) && expiredConfirms.Count > 0)
             {
-                logger.LogInformation("Cleaned {Count} expired publisher confirms after reconnection", expiredConfirms.Count);
+                _logger.LogInformation("Cleaned {Count} expired publisher confirms after reconnection", expiredConfirms.Count);
             }
         }
         finally
@@ -467,51 +477,38 @@ internal sealed class EventPublisher(PersistentConnection conn, ResiliencePipeli
         await _confirmSemaphore.WaitAsync();
         try
         {
-            if (multiple)
+            var toRemove = multiple ? _outstandingConfirms.Keys.Where(k => k <= deliveryTag).ToList() : [deliveryTag];
+            foreach (var seqNo in toRemove)
             {
-                var toRemove = _outstandingConfirms.Keys.Where(k => k <= deliveryTag).ToList();
-                foreach (var seqNo in toRemove)
+                if (!_outstandingConfirms.TryRemove(seqNo, out var tcs))
                 {
-                    if (!_outstandingConfirms.TryRemove(seqNo, out var tcs))
-                    {
-                        continue;
-                    }
-                    tcs.SetResult(!nack);
-                    if (!nack || !_outstandingMessages.TryRemove(seqNo, out var messageInfo))
-                    {
-                        continue;
-                    }
-                    var nextRetryTime = DateTime.UtcNow + CalcBackoff(messageInfo.RetryCount);
-                    NackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
-                    RabbitBusMetrics.RetryEnqueued.Add(1);
+                    continue;
                 }
-                RabbitBusMetrics.OutstandingConfirms.Add(-toRemove.Count);
-                if (nack)
-                {
-                    RabbitBusMetrics.ConfirmNack.Add(toRemove.Count);
-                }
-                else
-                {
-                    RabbitBusMetrics.ConfirmAck.Add(toRemove.Count);
-                }
-            }
-            else if (_outstandingConfirms.TryRemove(deliveryTag, out var tcs))
-            {
                 tcs.SetResult(!nack);
-                if (nack && _outstandingMessages.TryRemove(deliveryTag, out var messageInfo))
+                if (nack && _outstandingMessages.TryRemove(seqNo, out var messageInfo))
                 {
                     var nextRetryTime = DateTime.UtcNow + CalcBackoff(messageInfo.RetryCount);
                     NackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
                     RabbitBusMetrics.RetryEnqueued.Add(1);
+                }
+                else if (!nack)
+                {
+                    // 仅在ACK时移除消息
+                    _outstandingMessages.TryRemove(seqNo, out _);
                 }
                 RabbitBusMetrics.OutstandingConfirms.Add(-1);
+                _throttleSemaphore?.Release();
+            }
+            if (toRemove.Count > 0)
+            {
+                var metricValue = toRemove.Count;
                 if (nack)
                 {
-                    RabbitBusMetrics.ConfirmNack.Add(1);
+                    RabbitBusMetrics.ConfirmNack.Add(metricValue);
                 }
                 else
                 {
-                    RabbitBusMetrics.ConfirmAck.Add(1);
+                    RabbitBusMetrics.ConfirmAck.Add(metricValue);
                 }
             }
         }
@@ -523,12 +520,11 @@ internal sealed class EventPublisher(PersistentConnection conn, ResiliencePipeli
 
     private async Task DeclareExchangeSafelyAsync(IChannel channel, string exchangeName, string exchangeType, bool durable, bool autoDelete, IDictionary<string, object?>? arguments, CancellationToken cancellationToken, bool passive)
     {
-        var rabbitConfig = options.Get(Constant.OptionName);
-        if (rabbitConfig.SkipExchangeDeclare)
+        if (_rabbitConfig.SkipExchangeDeclare)
         {
-            if (logger.IsEnabled(LogLevel.Debug))
+            if (_logger.IsEnabled(LogLevel.Debug))
             {
-                logger.LogDebug("Skipping exchange declaration for {ExchangeName} as SkipExchangeDeclare is enabled", exchangeName);
+                _logger.LogDebug("Skipping exchange declaration for {ExchangeName} as SkipExchangeDeclare is enabled", exchangeName);
             }
             return;
         }
@@ -540,17 +536,52 @@ internal sealed class EventPublisher(PersistentConnection conn, ResiliencePipeli
         {
             if (ex.Message.Contains("inequivalent arg 'type'", StringComparison.OrdinalIgnoreCase))
             {
-                if (logger.IsEnabled(LogLevel.Error))
+                if (_logger.IsEnabled(LogLevel.Error))
                 {
-                    logger.LogError(ex, "Exchange {ExchangeName} type mismatch detected. Expected: {ExpectedType}. Consider fixing configuration or setting SkipExchangeDeclare=true", exchangeName, exchangeType);
+                    _logger.LogError(ex, "Exchange {ExchangeName} type mismatch detected. Expected: {ExpectedType}. Consider fixing configuration or setting SkipExchangeDeclare=true", exchangeName, exchangeType);
                 }
                 throw new InvalidOperationException($"Exchange '{exchangeName}' type mismatch. Expected: {exchangeType}. Please fix the exchange configuration or set SkipExchangeDeclare=true", ex);
             }
-            if (logger.IsEnabled(LogLevel.Warning))
+            if (_logger.IsEnabled(LogLevel.Warning))
             {
-                logger.LogWarning(ex, "Exchange {ExchangeName} not found or other error, declaring with type {Type}", exchangeName, exchangeType);
+                _logger.LogWarning(ex, "Exchange {ExchangeName} not found or other error, declaring with type {Type}", exchangeName, exchangeType);
             }
             await channel.ExchangeDeclareAsync(exchangeName, exchangeType, durable, autoDelete, arguments, false, false, cancellationToken);
+        }
+    }
+
+    private void HandlePublishFailure(ulong sequenceNumber, Exception ex, string eventType, string eventId, bool isDelayed = false)
+    {
+        if (_outstandingConfirms.TryRemove(sequenceNumber, out _))
+        {
+            RabbitBusMetrics.OutstandingConfirms.Add(-1);
+            _throttleSemaphore?.Release(); // 失败时，必须释放信号量
+        }
+        _outstandingMessages.TryRemove(sequenceNumber, out _);
+        if (_logger.IsEnabled(LogLevel.Warning))
+        {
+            _logger.LogWarning(ex, "Publish failed for {Kind} event {EventType} ID {EventId}", isDelayed ? "delayed" : "normal", eventType, eventId);
+        }
+    }
+
+    private void HandlePublishTimeout(ulong sequenceNumber)
+    {
+        if (_outstandingConfirms.TryRemove(sequenceNumber, out var tcs))
+        {
+            tcs.TrySetResult(false); // Mark as failed
+            RabbitBusMetrics.OutstandingConfirms.Add(-1);
+            _throttleSemaphore?.Release(); // 超时也必须释放信号量
+        }
+        if (!_outstandingMessages.TryRemove(sequenceNumber, out var messageInfo))
+        {
+            return;
+        }
+        var nextRetryTime = DateTime.UtcNow + CalcBackoff(messageInfo.RetryCount);
+        NackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
+        RabbitBusMetrics.RetryEnqueued.Add(1);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Event {EventId} enqueued for retry due to publisher confirm timeout.", messageInfo.Event.EventId);
         }
     }
 }

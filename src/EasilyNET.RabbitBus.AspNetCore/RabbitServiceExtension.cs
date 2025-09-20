@@ -6,6 +6,7 @@ using EasilyNET.RabbitBus.AspNetCore.Builder;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Health;
 using EasilyNET.RabbitBus.AspNetCore.Manager;
+using EasilyNET.RabbitBus.AspNetCore.Metrics;
 using EasilyNET.RabbitBus.AspNetCore.Services;
 using EasilyNET.RabbitBus.AspNetCore.Stores;
 using EasilyNET.RabbitBus.Core.Abstraction;
@@ -20,28 +21,33 @@ using RabbitMQ.Client.Exceptions;
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
-///     <para xml:lang="en">RabbitMQ ServiceCollection</para>
-///     <para xml:lang="zh">RabbitMQ 服务集合</para>
+///     <para xml:lang="en">RabbitService Extension</para>
+///     <para xml:lang="zh">RabbitService扩展</para>
 /// </summary>
 public static class RabbitServiceExtension
 {
     /// <summary>
-    ///     <para xml:lang="en">Adds RabbitMQ message bus service using fluent builder</para>
-    ///     <para xml:lang="zh">使用流畅构建器添加RabbitMQ消息总线服务</para>
+    ///     <para xml:lang="en">Add RabbitBus Service</para>
+    ///     <para xml:lang="zh">添加RabbitBus服务</para>
     /// </summary>
     /// <param name="services">
-    ///     <para xml:lang="en">The service collection</para>
-    ///     <para xml:lang="zh">服务集合</para>
+    ///     <para xml:lang="en">IServiceCollection</para>
+    ///     <para xml:lang="zh">服务容器</para>
     /// </param>
-    /// <param name="configure">
-    ///     <para xml:lang="en">The fluent builder configuration action</para>
-    ///     <para xml:lang="zh">流畅构建器配置操作</para>
+    /// <param name="builder">
+    ///     <para xml:lang="en">RabbitBusBuilder</para>
+    ///     <para xml:lang="zh">RabbitBus构建器</para>
     /// </param>
-    public static void AddRabbitBus(this IServiceCollection services, Action<RabbitBusBuilder> configure)
+    /// <returns>
+    ///     <para xml:lang="en">IServiceCollection</para>
+    ///     <para xml:lang="zh">服务容器</para>
+    /// </returns>
+    public static IServiceCollection AddRabbitBus(this IServiceCollection services, Action<RabbitBusBuilder> builder)
     {
-        var builder = new RabbitBusBuilder();
-        configure.Invoke(builder);
-        var (config, registry) = builder.Build();
+        var busBuilder = new RabbitBusBuilder();
+        builder.Invoke(busBuilder);
+        var (config, eventRegistry) = busBuilder.Build();
+        RabbitBusMetrics.SetAppName(config.ApplicationName);
         services.RabbitPersistentConnection(o =>
         {
             o.ConnectionString = config.ConnectionString;
@@ -64,21 +70,18 @@ public static class RabbitServiceExtension
             o.SkipExchangeDeclare = config.SkipExchangeDeclare;
             o.ValidateExchangesOnStartup = config.ValidateExchangesOnStartup;
         });
-        services.AddSingleton(registry);
-        // 仅注册被显式配置的处理器
-        services.InjectConfiguredHandlers(registry);
-        // 序列化器
+        services.AddSingleton(eventRegistry);
+        services.InjectConfiguredHandlers(eventRegistry);
         services.AddSingleton(config.BusSerializer);
-        services.AddSingleton<EventHandlerInvoker>();
         services.AddSingleton<EventPublisher>();
+        services.AddSingleton<EventHandlerInvoker>();
         services.AddSingleton<ConsumerManager>();
         services.AddSingleton<IDeadLetterStore, InMemoryDeadLetterStore>();
-        // 后台消息确认/重试服务
         services.AddSingleton<IBus, EventBus>();
-        services.AddHostedService<MessageConfirmManager>();
         services.AddHostedService<SubscribeService>();
-        // 健康检查(若用户在外部已 AddHealthChecks 可复用)
+        services.AddHostedService<MessageConfirmManager>();
         services.AddHealthChecks().AddRabbitBusHealthCheck();
+        return services;
     }
 
     private static void InjectConfiguredHandlers(this IServiceCollection services, EventConfigurationRegistry registry)
@@ -135,7 +138,7 @@ public static class RabbitServiceExtension
             {
                 ShouldHandle = new PredicateBuilder().Handle<BrokerUnreachableException>().Handle<SocketException>().Handle<TimeoutRejectedException>(),
                 MaxRetryAttempts = config.RetryCount,
-                Delay = TimeSpan.FromMilliseconds(500),
+                Delay = TimeSpan.FromSeconds(2),
                 BackoffType = DelayBackoffType.Exponential,
                 UseJitter = true,
                 MaxDelay = TimeSpan.FromSeconds(10),
