@@ -130,7 +130,8 @@ public static class RabbitServiceExtension
                                                             }
                                                             : throw new InvalidOperationException("Configuration error: Unable to create a connection from the provided configuration."));
             factory.ConsumerDispatchConcurrency = config.ConsumerDispatchConcurrency;
-            factory.RequestedHeartbeat = TimeSpan.FromSeconds(30);
+            factory.RequestedHeartbeat = TimeSpan.FromSeconds(10); // 心跳间隔
+            factory.ContinuationTimeout = TimeSpan.FromSeconds(5); // 请求超时时间
             return factory;
         });
 
