@@ -81,7 +81,7 @@ public static class RabbitServiceExtension
         services.AddSingleton<IDeadLetterStore, InMemoryDeadLetterStore>();
         services.AddSingleton<IBus, EventBus>();
         services.AddHostedService<SubscribeService>();
-        services.AddHostedService<MessageConfirmManager>();
+        services.AddHostedService<MessageConfirmService>();
         services.AddHealthChecks().AddRabbitBusHealthCheck();
         return services;
     }

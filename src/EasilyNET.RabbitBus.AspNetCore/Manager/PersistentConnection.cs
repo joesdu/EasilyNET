@@ -314,7 +314,6 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
         {
             return;
         }
-
         // 若已经恢复，直接返回
         if (_currentConnection is { IsOpen: true })
         {
@@ -327,8 +326,6 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
         {
             try
             {
-                // For reconnection, don't use the pipeline - implement custom retry logic
-                // to avoid conflicts with the pipeline's timeout and retry logic
                 if (cancellationToken.IsCancellationRequested || _disposed)
                 {
                     return;
@@ -337,7 +334,6 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
                 {
                     logger.LogInformation("尝试重新连接到RabbitMQ...");
                 }
-
                 // 安全关闭旧连接和通道
                 IConnection? oldConn;
                 IChannel? oldCh;
@@ -360,8 +356,7 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
                     await SafeDisposeAsync(oldConn, "旧RabbitMQ连接").ConfigureAwait(false);
                     RabbitBusMetrics.ActiveConnections.Add(-1);
                 }
-
-                // 创建新连接 - 不使用pipeline，直接调用
+                // 重连需要无限重试
                 var newConnection = await CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
                 IChannel newChannel;
                 try
@@ -382,7 +377,6 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
                     RabbitBusMetrics.ActiveConnections.Add(1);
                     RabbitBusMetrics.ActiveChannels.Add(1);
                 }
-
                 // 事件注册
                 RegisterConnectionEvents(cancellationToken);
                 logger.LogInformation("成功重新连接到RabbitMQ");
