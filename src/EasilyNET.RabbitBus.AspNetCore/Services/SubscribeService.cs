@@ -62,8 +62,15 @@ internal sealed class SubscribeService(IServiceProvider sp, PersistentConnection
                     continue;
                 }
                 // 尝试从队列中取出一条消息进行处理
-                if (!publisher.NackedMessages.TryPeek(out var message) || DateTime.UtcNow < message.NextRetryTime || !publisher.NackedMessages.TryDequeue(out var messageToRetry))
+                if (!publisher.NackedMessages.TryDequeue(out var messageToRetry))
                 {
+                    continue;
+                }
+                // 检查消息是否到达重试时间
+                if (DateTime.UtcNow < messageToRetry.NextRetryTime)
+                {
+                    // 未到重试时间，将消息重新放回队列尾部
+                    publisher.NackedMessages.Enqueue(messageToRetry);
                     continue;
                 }
                 // 检查是否超过最大重试次数
