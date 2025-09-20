@@ -30,8 +30,8 @@ internal sealed class EventPublisher : IAsyncDisposable
     private readonly ILogger<EventBus> _logger;
     private readonly ConcurrentDictionary<ulong, TaskCompletionSource<bool>> _outstandingConfirms = [];
     private readonly ConcurrentDictionary<ulong, (IEvent Event, string? RoutingKey, byte? Priority, int RetryCount)> _outstandingMessages = [];
+    private readonly ResiliencePipeline _pipeline;
     private readonly RabbitConfig _rabbitConfig;
-    private readonly ResiliencePipeline _resiliencePipeline;
     private readonly IBusSerializer _serializer;
     private readonly SemaphoreSlim? _throttleSemaphore;
 
@@ -42,7 +42,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         _serializer = serializer;
         _logger = logger;
         _rabbitConfig = options.Get(Constant.OptionName);
-        _resiliencePipeline = pipelineProvider.GetPipeline(Constant.ResiliencePipelineName);
+        _pipeline = pipelineProvider.GetPipeline(Constant.PublishPipelineName);
         if (_rabbitConfig is { PublisherConfirms: true, MaxOutstandingConfirms: > 0 })
         {
             _throttleSemaphore = new(_rabbitConfig.MaxOutstandingConfirms, _rabbitConfig.MaxOutstandingConfirms);
@@ -196,7 +196,7 @@ internal sealed class EventPublisher : IAsyncDisposable
             var (seq, tcs) = await RegisterPendingAsync(channel, @event, routingKey, properties.Priority, cancellationToken).ConfigureAwait(false);
             sequenceNumber = seq;
             var body = _serializer.Serialize(@event, @event.GetType());
-            await _resiliencePipeline.ExecuteAsync(async ct =>
+            await _pipeline.ExecuteAsync(async ct =>
             {
                 if (_logger.IsEnabled(LogLevel.Trace))
                 {
@@ -254,7 +254,7 @@ internal sealed class EventPublisher : IAsyncDisposable
             var (seq, tcs) = await RegisterPendingAsync(channel, @event, routingKey, properties.Priority, cancellationToken).ConfigureAwait(false);
             sequenceNumber = seq;
             var body = _serializer.Serialize(@event, @event.GetType());
-            await _resiliencePipeline.ExecuteAsync(async ct =>
+            await _pipeline.ExecuteAsync(async ct =>
             {
                 if (_logger.IsEnabled(LogLevel.Trace))
                 {
@@ -392,7 +392,7 @@ internal sealed class EventPublisher : IAsyncDisposable
             var body = _serializer.Serialize(@event, @event.GetType());
             try
             {
-                await _resiliencePipeline.ExecuteAsync(async ct =>
+                await _pipeline.ExecuteAsync(async ct =>
                 {
                     if (_logger.IsEnabled(LogLevel.Trace))
                     {
