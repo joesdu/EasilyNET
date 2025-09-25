@@ -50,8 +50,7 @@ EasilyNET Packages
 
 <details>
 <summary style="font-size: 14px">English</summary>
-
-- IPC communication library, supporting inter-process communication, multiple serialization methods, and custom serialization methods (new).
+
 - Encryption and signature algorithms: AES, DES, RC4, TripleDES, RSA, SM2, SM3, SM4.
 - Message bus implementation based on RabbitMQ.
 - Encapsulation and extension for MongoDB driver, with convenient usage and common default configurations. Supports attribute-based index definition (new).
