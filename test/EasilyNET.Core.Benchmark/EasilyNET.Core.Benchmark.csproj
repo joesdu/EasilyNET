@@ -9,7 +9,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="BenchmarkDotNet" Version="0.15.3" />
+		<PackageReference Include="BenchmarkDotNet" Version="0.15.4" />
 		<PackageReference Include="MongoDB.Driver" Version="3.5.0" />
 	</ItemGroup>
 
