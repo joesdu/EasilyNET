@@ -68,7 +68,10 @@ public static class TimeSeriesCollectionExtensions
             }
             catch (Exception ex)
             {
-                logger?.LogError(ex, "Failed to create MongoDB time-series collections for context {ContextType} in background task.", typeof(T).Name);
+                if (logger is not null && logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(ex, "Failed to create MongoDB time-series collections for context {ContextType} in background task.", typeof(T).Name);
+                }
             }
         }).ContinueWith(t =>
         {
@@ -97,7 +100,10 @@ public static class TimeSeriesCollectionExtensions
             var collectionName = attribute.CollectionName;
             if (IllegalName.Equals(collectionName, StringComparison.OrdinalIgnoreCase))
             {
-                logger?.LogWarning("Skipping creation of time-series collection with illegal name: {CollectionName}", collectionName);
+                if (logger is not null && logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning("Skipping creation of time-series collection with illegal name: {CollectionName}", collectionName);
+                }
                 continue;
             }
             var collectionExists = CollectionCache.Contains(collectionName);
@@ -110,12 +116,18 @@ public static class TimeSeriesCollectionExtensions
                         TimeSeriesOptions = attribute.TimeSeriesOptions,                                             // 设置时序选项
                         ExpireAfter = attribute.ExpireAfter < 0 ? null : TimeSpan.FromSeconds(attribute.ExpireAfter) // 设置过期时间
                     });
-                    logger?.LogInformation("Successfully created time-series collection: {CollectionName}", collectionName);
+                    if (logger is not null && logger.IsEnabled(LogLevel.Information))
+                    {
+                        logger.LogInformation("Successfully created time-series collection: {CollectionName}", collectionName);
+                    }
                     CollectionCache.Add(collectionName);
                 }
                 catch (MongoCommandException ex) when (ex.Message.Contains("already exists"))
                 {
-                    logger?.LogWarning("Time-series collection {CollectionName} already exists. Skipping creation.", collectionName);
+                    if (logger is not null && logger.IsEnabled(LogLevel.Warning))
+                    {
+                        logger.LogWarning("Time-series collection {CollectionName} already exists. Skipping creation.", collectionName);
+                    }
                     // Ensure it's in the cache if it already exists // 如果集合已存在，确保它在缓存中
                     if (!CollectionCache.Contains(collectionName))
                     {
@@ -124,13 +136,19 @@ public static class TimeSeriesCollectionExtensions
                 }
                 catch (Exception ex)
                 {
-                    logger?.LogError(ex, "Failed to create time-series collection: {CollectionName}", collectionName);
+                    if (logger is not null && logger.IsEnabled(LogLevel.Error))
+                    {
+                        logger.LogError(ex, "Failed to create time-series collection: {CollectionName}", collectionName);
+                    }
                     continue;
                 }
             }
             else
             {
-                logger?.LogInformation("Time-series collection {CollectionName} already exists. Skipping creation.", collectionName);
+                if (logger is not null && logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Time-series collection {CollectionName} already exists. Skipping creation.", collectionName);
+                }
             }
             // Indexing for Time-Series Collections // 时序集合的索引
             // MongoDB automatically creates an index on the timeField. // MongoDB 会自动在 timeField 上创建索引。
@@ -179,7 +197,10 @@ public static class TimeSeriesCollectionExtensions
             }
             catch (Exception ex)
             {
-                logger?.LogError(ex, "Failed to list indexes for collection {CollectionName} when checking for metaField index.", collectionName);
+                if (logger is not null && logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(ex, "Failed to list indexes for collection {CollectionName} when checking for metaField index.", collectionName);
+                }
             }
             if (!indexExists)
             {
@@ -188,20 +209,32 @@ public static class TimeSeriesCollectionExtensions
                     var indexKeysDefinition = Builders<BsonDocument>.IndexKeys.Ascending(metaFieldName).Ascending(timeFieldName);
                     var createIndexOptions = new CreateIndexOptions { Name = indexName, Background = true };
                     collection.Indexes.CreateOne(new CreateIndexModel<BsonDocument>(indexKeysDefinition, createIndexOptions));
-                    logger?.LogInformation("Successfully created index {IndexName} on metaField and timeField for collection {CollectionName}.", indexName, collectionName);
+                    if (logger is not null && logger.IsEnabled(LogLevel.Information))
+                    {
+                        logger.LogInformation("Successfully created index {IndexName} on metaField and timeField for collection {CollectionName}.", indexName, collectionName);
+                    }
                 }
                 catch (MongoCommandException ex) when (ex.Message.Contains("already exists") || ex.Message.Contains("would create a duplicate index"))
                 {
-                    logger?.LogWarning("Index {IndexName} or a similar one on metaField and timeField for collection {CollectionName} already exists.", indexName, collectionName);
+                    if (logger is not null && logger.IsEnabled(LogLevel.Warning))
+                    {
+                        logger.LogWarning("Index {IndexName} or a similar one on metaField and timeField for collection {CollectionName} already exists.", indexName, collectionName);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    logger?.LogError(ex, "Failed to create index on metaField and timeField for collection {CollectionName}.", collectionName);
+                    if (logger is not null && logger.IsEnabled(LogLevel.Error))
+                    {
+                        logger.LogError(ex, "Failed to create index on metaField and timeField for collection {CollectionName}.", collectionName);
+                    }
                 }
             }
             else
             {
-                logger?.LogInformation("Index on metaField and timeField (or similar) already exists for collection {CollectionName}. Skipping creation.", collectionName);
+                if (logger is not null && logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Index on metaField and timeField (or similar) already exists for collection {CollectionName}. Skipping creation.", collectionName);
+                }
             }
         }
     }

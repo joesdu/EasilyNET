@@ -106,7 +106,7 @@ public static class RsaCrypt
         {
             throw new("加密字符串不能为空.");
         }
-        ArgumentException.ThrowIfNullOrEmpty(xmlPublicKey, nameof(xmlPublicKey));
+        ArgumentException.ThrowIfNullOrEmpty(xmlPublicKey);
         using var rsaProvider = new RSACryptoServiceProvider();
         rsaProvider.FromXmlString(xmlPublicKey);          //载入公钥
         var bufferSize = (rsaProvider.KeySize >> 3) - 11; //单块最大长度
@@ -149,7 +149,7 @@ public static class RsaCrypt
         {
             throw new("解密字符串不能为空.");
         }
-        ArgumentException.ThrowIfNullOrEmpty(xmlPrivateKey, nameof(xmlPrivateKey));
+        ArgumentException.ThrowIfNullOrEmpty(xmlPrivateKey);
         using var rsaProvider = new RSACryptoServiceProvider();
         rsaProvider.FromXmlString(xmlPrivateKey);
         var bufferSize = rsaProvider.KeySize >> 3;
@@ -179,7 +179,7 @@ public static class RsaCrypt
     /// </param>
     public static string GetFileSHA256(FileStream objFile)
     {
-        ArgumentNullException.ThrowIfNull(objFile, nameof(objFile));
+        ArgumentNullException.ThrowIfNull(objFile);
         using var stream = new MemoryStream();
         objFile.CopyTo(stream);
         var bytes = stream.ToArray();

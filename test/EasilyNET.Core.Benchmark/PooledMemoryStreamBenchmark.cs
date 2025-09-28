@@ -22,7 +22,7 @@ public class PooledMemoryStreamBenchmark
     [GlobalSetup]
     public void Setup()
     {
-        _data = Enumerable.Range(0, Size).Select(i => (byte)(i % 256)).ToArray();
+        _data = [.. Enumerable.Range(0, Size).Select(i => (byte)(i % 256))];
         _ms = new();
         _pms = new();
     }
@@ -58,7 +58,7 @@ public class PooledMemoryStreamBenchmark
         _pms.Position = 0;
         _pms.SetLength(_data.Length);
         _pms.Write(_data, 0, _data.Length);
-        return _pms.ToArray();
+        return [.. _pms];
     }
 }
 

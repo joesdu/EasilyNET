@@ -97,7 +97,7 @@ internal sealed class EventPublisher : IAsyncDisposable
             var channel = await _conn.GetChannelAsync(ct).ConfigureAwait(false);
             try
             {
-                await DeclareExchangeSafelyAsync(channel, config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, args, ct, passive).ConfigureAwait(false);
+                await DeclareExchangeSafelyAsync(channel, config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, args, passive, ct).ConfigureAwait(false);
                 return channel; // 成功
             }
             catch (Exception ex) when (IsTransientChannelError(ex))
@@ -111,7 +111,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         }
         // 多次尝试后仍失败，最后一次再拿到一个通道抛出 Declare 的异常，由调用方处理（入队重试）
         var lastChannel = await _conn.GetChannelAsync(ct).ConfigureAwait(false);
-        await DeclareExchangeSafelyAsync(lastChannel, config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, args, ct, passive).ConfigureAwait(false);
+        await DeclareExchangeSafelyAsync(lastChannel, config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, args, passive, ct).ConfigureAwait(false);
         return lastChannel;
     }
 
@@ -511,7 +511,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         }
     }
 
-    private async Task DeclareExchangeSafelyAsync(IChannel channel, string exchangeName, string exchangeType, bool durable, bool autoDelete, IDictionary<string, object?>? arguments, CancellationToken cancellationToken, bool passive)
+    private async Task DeclareExchangeSafelyAsync(IChannel channel, string exchangeName, string exchangeType, bool durable, bool autoDelete, IDictionary<string, object?>? arguments, bool passive, CancellationToken cancellationToken)
     {
         if (_rabbitConfig.SkipExchangeDeclare)
         {

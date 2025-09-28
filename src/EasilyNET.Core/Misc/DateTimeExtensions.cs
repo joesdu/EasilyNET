@@ -14,137 +14,6 @@ namespace EasilyNET.Core.Misc;
 public static class DateTimeExtensions
 {
     /// <summary>
-    ///     <para xml:lang="en">Gets the start and end time of a specific week by week number and year</para>
-    ///     <para xml:lang="zh">根据周数和年份获取某周的开始和结束时间</para>
-    /// </summary>
-    /// <param name="week">
-    ///     <para xml:lang="en">The week number within a year</para>
-    ///     <para xml:lang="zh">一年中的周数</para>
-    /// </param>
-    /// <param name="year">
-    ///     <para xml:lang="en">The year</para>
-    ///     <para xml:lang="zh">年份</para>
-    /// </param>
-    /// <param name="firstDay">
-    ///     <para xml:lang="en">The first day of the week (Sunday, Monday, etc.)</para>
-    ///     <para xml:lang="zh">一周的第一天（周日、周一等）</para>
-    /// </param>
-    public static (DateTime Start, DateTime End) WeekStartEndByNumber(this int week, int year, DayOfWeek firstDay) => new DateTime(year, 1, 1).AddDays((week - 1) * 7).WeekStartEnd(firstDay);
-
-    /// <summary>
-    ///     <para xml:lang="en">Gets the start and end time of a specific month by month number and year</para>
-    ///     <para xml:lang="zh">根据月份和年份获取某月的开始和结束时间</para>
-    /// </summary>
-    /// <param name="month">
-    ///     <para xml:lang="en">The month number</para>
-    ///     <para xml:lang="zh">月份</para>
-    /// </param>
-    /// <param name="year">
-    ///     <para xml:lang="en">The year</para>
-    ///     <para xml:lang="zh">年份</para>
-    /// </param>
-    public static (DateTime Start, DateTime End) MonthStartEndByMonth(this int month, int year) => month is < 1 or > 12 ? throw new("非法月份") : new DateTime(year, month, 2).MonthStartEnd;
-
-    /// <summary>
-    ///     <para xml:lang="en">Gets the numeric representation of a day of the week</para>
-    ///     <para xml:lang="zh">获取一周中某天的数字表示</para>
-    /// </summary>
-    /// <param name="day">
-    ///     <para xml:lang="en">The day of the week</para>
-    ///     <para xml:lang="zh">一周中的某天</para>
-    /// </param>
-    public static int DayNumber(this DayOfWeek day) =>
-        day switch
-        {
-            DayOfWeek.Friday    => 5,
-            DayOfWeek.Monday    => 1,
-            DayOfWeek.Saturday  => 6,
-            DayOfWeek.Thursday  => 4,
-            DayOfWeek.Tuesday   => 2,
-            DayOfWeek.Wednesday => 3,
-            _                   => 7
-        };
-
-    /// <summary>
-    ///     <para xml:lang="en">Converts a number (0-7) to a DayOfWeek</para>
-    ///     <para xml:lang="zh">将数字（0-7）转换为 DayOfWeek</para>
-    /// </summary>
-    /// <param name="number">
-    ///     <para xml:lang="en">The number to convert</para>
-    ///     <para xml:lang="zh">要转换的数字</para>
-    /// </param>
-    public static DayOfWeek ToDayOfWeek(this int number) =>
-        number is > 7 or < 0
-            ? throw new("please input 0-7")
-            : number switch
-            {
-                0 => DayOfWeek.Sunday,
-                1 => DayOfWeek.Monday,
-                2 => DayOfWeek.Tuesday,
-                3 => DayOfWeek.Wednesday,
-                4 => DayOfWeek.Thursday,
-                5 => DayOfWeek.Friday,
-                6 => DayOfWeek.Saturday,
-                _ => DayOfWeek.Sunday
-            };
-
-    /// <summary>
-    ///     <para xml:lang="en">Gets the Chinese name of a day of the week</para>
-    ///     <para xml:lang="zh">获取一周中某天的中文名称</para>
-    /// </summary>
-    /// <param name="day">
-    ///     <para xml:lang="en">The day of the week as an integer</para>
-    ///     <para xml:lang="zh">一周中的某天，表示为整数</para>
-    /// </param>
-    /// <param name="type">
-    ///     <para xml:lang="en">1 for "周", otherwise "星期"</para>
-    ///     <para xml:lang="zh">1 表示 "周"，否则表示 "星期"</para>
-    /// </param>
-    public static string DayName(this int day, int type = 1)
-    {
-        var name = day switch
-        {
-            1 => "一",
-            2 => "二",
-            3 => "三",
-            4 => "四",
-            5 => "五",
-            6 => "六",
-            0 => type == 1 ? "日" : "天",
-            _ => "错误"
-        };
-        return $"{(type == 1 ? "周" : "星期")}{name}";
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Gets the Chinese name of a day of the week</para>
-    ///     <para xml:lang="zh">获取一周中某天的中文名称</para>
-    /// </summary>
-    /// <param name="day">
-    ///     <para xml:lang="en">The day of the week</para>
-    ///     <para xml:lang="zh">一周中的某天</para>
-    /// </param>
-    /// <param name="type">
-    ///     <para xml:lang="en">1 for "周", otherwise "星期"</para>
-    ///     <para xml:lang="zh">1 表示 "周"，否则表示 "星期"</para>
-    /// </param>
-    public static string DayName(this DayOfWeek day, int type = 1)
-    {
-        var name = day switch
-        {
-            DayOfWeek.Monday    => "一",
-            DayOfWeek.Tuesday   => "二",
-            DayOfWeek.Wednesday => "三",
-            DayOfWeek.Thursday  => "四",
-            DayOfWeek.Friday    => "五",
-            DayOfWeek.Saturday  => "六",
-            DayOfWeek.Sunday    => type == 1 ? "日" : "天",
-            _                   => "错误"
-        };
-        return $"{(type == 1 ? "周" : "星期")}{name}";
-    }
-
-    /// <summary>
     ///     <para xml:lang="en">Validates the overlap between two time periods</para>
     ///     <para xml:lang="zh">验证两个时间段的重合情况</para>
     /// </summary>
@@ -351,6 +220,127 @@ public static class DateTimeExtensions
         {
             var culture = cultureInfo ?? CultureInfo.CurrentCulture;
             return culture.Calendar.GetWeekOfYear(dt, culture.DateTimeFormat.CalendarWeekRule, culture.DateTimeFormat.FirstDayOfWeek);
+        }
+    }
+
+    /// <param name="week">
+    ///     <para xml:lang="en">The week number within a year</para>
+    ///     <para xml:lang="zh">一年中的周数</para>
+    /// </param>
+    extension(int week)
+    {
+        /// <summary>
+        ///     <para xml:lang="en">Gets the start and end time of a specific week by week number and year</para>
+        ///     <para xml:lang="zh">根据周数和年份获取某周的开始和结束时间</para>
+        /// </summary>
+        /// <param name="year">
+        ///     <para xml:lang="en">The year</para>
+        ///     <para xml:lang="zh">年份</para>
+        /// </param>
+        /// <param name="firstDay">
+        ///     <para xml:lang="en">The first day of the week (Sunday, Monday, etc.)</para>
+        ///     <para xml:lang="zh">一周的第一天（周日、周一等）</para>
+        /// </param>
+        public (DateTime Start, DateTime End) WeekStartEndByNumber(int year, DayOfWeek firstDay) => new DateTime(year, 1, 1).AddDays((week - 1) * 7).WeekStartEnd(firstDay);
+
+        /// <summary>
+        ///     <para xml:lang="en">Gets the start and end time of a specific month by month number and year</para>
+        ///     <para xml:lang="zh">根据月份和年份获取某月的开始和结束时间</para>
+        /// </summary>
+        /// <param name="year">
+        ///     <para xml:lang="en">The year</para>
+        ///     <para xml:lang="zh">年份</para>
+        /// </param>
+        public (DateTime Start, DateTime End) MonthStartEndByMonth(int year) => week is < 1 or > 12 ? throw new("非法月份") : new DateTime(year, week, 2).MonthStartEnd;
+
+        /// <summary>
+        ///     <para xml:lang="en">Converts a number (0-7) to a DayOfWeek</para>
+        ///     <para xml:lang="zh">将数字（0-7）转换为 DayOfWeek</para>
+        /// </summary>
+        public DayOfWeek ToDayOfWeek() =>
+            week is > 7 or < 0
+                ? throw new("please input 0-7")
+                : week switch
+                {
+                    0 => DayOfWeek.Sunday,
+                    1 => DayOfWeek.Monday,
+                    2 => DayOfWeek.Tuesday,
+                    3 => DayOfWeek.Wednesday,
+                    4 => DayOfWeek.Thursday,
+                    5 => DayOfWeek.Friday,
+                    6 => DayOfWeek.Saturday,
+                    _ => DayOfWeek.Sunday
+                };
+
+        /// <summary>
+        ///     <para xml:lang="en">Gets the Chinese name of a day of the week</para>
+        ///     <para xml:lang="zh">获取一周中某天的中文名称</para>
+        /// </summary>
+        /// <param name="type">
+        ///     <para xml:lang="en">1 for "周", otherwise "星期"</para>
+        ///     <para xml:lang="zh">1 表示 "周"，否则表示 "星期"</para>
+        /// </param>
+        public string DayName(int type = 1)
+        {
+            var name = week switch
+            {
+                1 => "一",
+                2 => "二",
+                3 => "三",
+                4 => "四",
+                5 => "五",
+                6 => "六",
+                0 => type == 1 ? "日" : "天",
+                _ => "错误"
+            };
+            return $"{(type == 1 ? "周" : "星期")}{name}";
+        }
+    }
+
+    /// <param name="day">
+    ///     <para xml:lang="en">The day of the week</para>
+    ///     <para xml:lang="zh">一周中的某天</para>
+    /// </param>
+    extension(DayOfWeek day)
+    {
+        /// <summary>
+        ///     <para xml:lang="en">Gets the numeric representation of a day of the week</para>
+        ///     <para xml:lang="zh">获取一周中某天的数字表示</para>
+        /// </summary>
+        public int DayNumber() =>
+            day switch
+            {
+                DayOfWeek.Friday    => 5,
+                DayOfWeek.Monday    => 1,
+                DayOfWeek.Saturday  => 6,
+                DayOfWeek.Thursday  => 4,
+                DayOfWeek.Tuesday   => 2,
+                DayOfWeek.Wednesday => 3,
+                _                   => 7
+            };
+
+        /// <summary>
+        ///     <para xml:lang="en">Gets the Chinese name of a day of the week</para>
+        ///     <para xml:lang="zh">获取一周中某天的中文名称</para>
+        /// </summary>
+        /// <param name="type">
+        ///     <para xml:lang="en">1 for "周", otherwise "星期"</para>
+        ///     <para xml:lang="zh">1 表示 "周"，否则表示 "星期"</para>
+        /// </param>
+        public string DayName(int type = 1)
+        {
+            var name = day switch
+            {
+                DayOfWeek.Monday    => "一",
+                DayOfWeek.Tuesday   => "二",
+                DayOfWeek.Wednesday => "三",
+                DayOfWeek.Thursday  => "四",
+                DayOfWeek.Friday    => "五",
+                DayOfWeek.Saturday  => "六",
+                DayOfWeek.Sunday    => type == 1 ? "日" : "天",
+                _                   => "错误"
+            };
+            return $"{(type == 1 ? "周" : "星期")}{name}";
         }
     }
 }

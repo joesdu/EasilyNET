@@ -163,7 +163,7 @@ public readonly struct ObjectIdCompat : IComparable<ObjectIdCompat>, IEquatable<
     /// </param>
     public static ObjectIdCompat Parse(string s)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(s, nameof(s));
+        ArgumentException.ThrowIfNullOrWhiteSpace(s);
         return TryParse(s, out var snowId) ? snowId : throw new FormatException($"'{s}' is not a valid 24 digit hex string.");
     }
 

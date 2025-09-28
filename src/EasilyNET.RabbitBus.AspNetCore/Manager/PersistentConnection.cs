@@ -420,7 +420,10 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
             {
                 attempt++;
                 var backoff = BackoffUtility.Exponential(Math.Min(6, attempt), baseInterval, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30));
-                logger.LogWarning(ex, "重连RabbitMQ失败，将在{Delay}后继续尝试(attempt={Attempt})", backoff, attempt);
+                if (logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning(ex, "重连RabbitMQ失败，将在{Delay}后继续尝试(attempt={Attempt})", backoff, attempt);
+                }
                 try
                 {
                     await Task.Delay(backoff, cancellationToken).ConfigureAwait(false);

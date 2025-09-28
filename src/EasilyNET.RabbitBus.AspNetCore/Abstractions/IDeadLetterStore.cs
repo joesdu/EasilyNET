@@ -1,5 +1,7 @@
 using EasilyNET.RabbitBus.Core.Abstraction;
 
+// ReSharper disable UnusedMember.Global
+
 namespace EasilyNET.RabbitBus.AspNetCore.Abstractions;
 
 /// <summary>
@@ -7,6 +9,7 @@ namespace EasilyNET.RabbitBus.AspNetCore.Abstractions;
 /// </summary>
 internal interface IDeadLetterStore
 {
+    // ReSharper disable once UnusedParameter.Global
     ValueTask StoreAsync(IDeadLetterMessage message, CancellationToken cancellationToken = default);
 }
 

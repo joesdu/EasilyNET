@@ -93,7 +93,7 @@ public static class AssemblyHelper
     private static Lazy<Assembly[]> _lazyAllAssemblies = new(static () =>
     {
         ArgumentNullException.ThrowIfNull(Options);
-        return LoadAssembliesInternal(Options).ToArray();
+        return [.. LoadAssembliesInternal(Options)];
     });
 
     private static Lazy<Type[]> _lazyAllTypes = new(static () => LoadTypesInternal(_lazyAllAssemblies.Value));
@@ -303,7 +303,7 @@ public static class AssemblyHelper
     {
         var key = (type, inherit, _version);
         var cached = AttributeTypeCache.GetOrAdd(key, k =>
-            new(() => AllTypes.Where(a => SafeIsDefined(a, k.attrType, k.inherit)).Distinct().ToArray(), true));
+            new(() => [.. AllTypes.Where(a => SafeIsDefined(a, k.attrType, k.inherit)).Distinct()], true));
         return cached.Value;
     }
 
@@ -330,7 +330,7 @@ public static class AssemblyHelper
     // Internal: load all types with better performance and stable assembly order
     private static Type[] LoadTypesInternal(IEnumerable<Assembly> assemblies)
     {
-        var asmArray = assemblies as Assembly[] ?? assemblies.ToArray();
+        var asmArray = assemblies as Assembly[] ?? [.. assemblies];
         var perAsm = new List<Type>[asmArray.Length];
         Parallel.For(0, asmArray.Length, i =>
         {
@@ -552,8 +552,8 @@ public static class AssemblyHelper
         // Invalidate snapshots and attribute caches
         Interlocked.Increment(ref _version);
         AttributeTypeCache.Clear();
-        _lazyAllAssemblies = new(static () => LoadAssembliesInternal(Options).ToArray());
-        _lazyAllTypes = new(static () => LoadTypesInternal(_lazyAllAssemblies.Value).ToArray());
+        _lazyAllAssemblies = new(static () => [.. LoadAssembliesInternal(Options)]);
+        _lazyAllTypes = new(static () => [.. LoadTypesInternal(_lazyAllAssemblies.Value)]);
     }
 
     /// <summary>

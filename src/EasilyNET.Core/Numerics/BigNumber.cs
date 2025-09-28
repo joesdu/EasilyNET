@@ -33,24 +33,24 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     public static readonly BigNumber Zero = new(0);
 
     /// <summary>
-    /// 分母
-    /// </summary>
-    private BigInteger denominator;
-
-    /// <summary>
-    /// 分子
-    /// </summary>
-    private BigInteger numerator;
-
-    /// <summary>
     /// 符号位
     /// </summary>
-    private int Sign;
+    private int Sign { get; set; }
 
     /// <summary>
     /// 整数部分
     /// </summary>
-    private BigInteger whole;
+    private BigInteger Whole { get; set; }
+
+    /// <summary>
+    /// 分子
+    /// </summary>
+    private BigInteger Numerator { get; set; }
+
+    /// <summary>
+    /// 分母
+    /// </summary>
+    private BigInteger Denominator { get; set; }
 
     #region Constructors
 
@@ -60,9 +60,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// <param name="num"></param>
     public void SetBigNumber(BigNumber num)
     {
-        whole = num.whole;
-        numerator = num.numerator;
-        denominator = num.denominator;
+        Whole = num.Whole;
+        Numerator = num.Numerator;
+        Denominator = num.Denominator;
         Sign = num.Sign;
         Simplify();
     }
@@ -79,9 +79,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     {
         var num = new BigNumber
         {
-            whole = whole - 1,
-            numerator = 1,
-            denominator = 1,
+            Whole = whole - 1,
+            Numerator = 1,
+            Denominator = 1,
             Sign = whole.Sign
         };
         num.Simplify();
@@ -99,12 +99,12 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     {
         var num = new BigNumber
         {
-            whole = 0,
-            numerator = numerator,
-            denominator = denominator,
+            Whole = 0,
+            Numerator = numerator,
+            Denominator = denominator,
             Sign = numerator.Sign
         };
-        if (num.denominator == 0)
+        if (num.Denominator == 0)
         {
             throw new ArgumentException("Numerator must not be 0");
         }
@@ -124,11 +124,11 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     {
         var num = new BigNumber
         {
-            whole = whole,
-            numerator = numerator,
-            denominator = denominator
+            Whole = whole,
+            Numerator = numerator,
+            Denominator = denominator
         };
-        if (num.denominator == 0)
+        if (num.Denominator == 0)
         {
             throw new ArgumentException("Denominator must not be 0");
         }
@@ -142,9 +142,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// </summary>
     public BigNumber()
     {
-        whole = 0;
-        numerator = 0;
-        denominator = 1;
+        Whole = 0;
+        Numerator = 0;
+        Denominator = 1;
         Sign = 0;
     }
 
@@ -154,9 +154,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// <param name="whole"></param>
     public BigNumber(int whole)
     {
-        this.whole = whole;
-        numerator = 0;
-        denominator = 1;
+        Whole = whole;
+        Numerator = 0;
+        Denominator = 1;
         Sign = whole == 0
                    ? 0
                    : whole > 0
@@ -217,9 +217,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// <param name="whole">整数</param>
     public BigNumber(long whole)
     {
-        this.whole = whole;
-        numerator = 0;
-        denominator = 1;
+        Whole = whole;
+        Numerator = 0;
+        Denominator = 1;
         Sign = whole == 0
                    ? 0
                    : whole > 0
@@ -238,9 +238,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
         {
             throw new DivideByZeroException();
         }
-        whole = 0;
-        this.numerator = numerator;
-        this.denominator = denominator;
+        Whole = 0;
+        Numerator = numerator;
+        Denominator = denominator;
         Simplify();
     }
 
@@ -256,9 +256,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
         {
             throw new DivideByZeroException();
         }
-        this.whole = whole;
-        this.numerator = numerator;
-        this.denominator = denominator;
+        Whole = whole;
+        Numerator = numerator;
+        Denominator = denominator;
         Simplify();
     }
 
@@ -327,9 +327,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     {
         if (whole == decimal.Truncate(whole))
         {
-            this.whole = (BigInteger)whole;
-            numerator = 0;
-            denominator = 1;
+            Whole = (BigInteger)whole;
+            Numerator = 0;
+            Denominator = 1;
             Sign = whole == 0
                        ? 0
                        : whole > 0
@@ -349,9 +349,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
                 numVal = -numVal;
             }
             var denVal = BigInteger.Pow(10, scale);
-            this.whole = 0;
-            numerator = numVal;
-            denominator = denVal;
+            Whole = 0;
+            Numerator = numVal;
+            Denominator = denVal;
             Simplify();
         }
     }
@@ -369,10 +369,10 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// <exception cref="ArgumentException"></exception>
     public BigNumber(string whole, string numerator, string denominator)
     {
-        this.whole = BigInteger.Parse(whole);
-        this.numerator = BigInteger.Parse(numerator);
-        this.denominator = BigInteger.Parse(denominator);
-        if (this.denominator <= 0)
+        Whole = BigInteger.Parse(whole);
+        Numerator = BigInteger.Parse(numerator);
+        Denominator = BigInteger.Parse(denominator);
+        if (Denominator <= 0)
         {
             throw new ArgumentException("Numerator or denominator must bigger than 3");
         }
@@ -395,17 +395,17 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
                 throw new ArgumentException("number can contain only 1 split character");
             }
             var arr = number.Split(split);
-            whole = BigInteger.Parse(arr[0]);
-            numerator = BigInteger.Parse(arr[1]);
-            denominator = new(Math.Pow(10, arr[1].Length));
+            Whole = BigInteger.Parse(arr[0]);
+            Numerator = BigInteger.Parse(arr[1]);
+            Denominator = new(Math.Pow(10, arr[1].Length));
             Sign = GetSign();
             Simplify();
         }
         else
         {
-            whole = BigInteger.Parse(number);
-            numerator = 1;
-            denominator = 1;
+            Whole = BigInteger.Parse(number);
+            Numerator = 1;
+            Denominator = 1;
             Sign = GetSign();
             Simplify();
         }
@@ -421,18 +421,7 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
 
     #region Equal
 
-    public static bool operator ==(BigNumber? a, BigNumber? b)
-    {
-        if (ReferenceEquals(a, b))
-        {
-            return true;
-        }
-        if (a is null || b is null)
-        {
-            return false;
-        }
-        return a.CompareTo(b) == 0;
-    }
+    public static bool operator ==(BigNumber? a, BigNumber? b) => ReferenceEquals(a, b) || (a is not null && b is not null && a.CompareTo(b) == 0);
 
     public static bool operator ==(int a, BigNumber b) => Equal(new(a), b);
     public static bool operator ==(BigNumber a, int b) => Equal(a, new(b));
@@ -550,10 +539,10 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
 
     public static BigNumber operator +(BigNumber a, BigNumber b)
     {
-        var numA = (a.whole * a.denominator) + a.numerator;
-        var denA = a.denominator;
-        var numB = (b.whole * b.denominator) + b.numerator;
-        var denB = b.denominator;
+        var numA = (a.Whole * a.Denominator) + a.Numerator;
+        var denA = a.Denominator;
+        var numB = (b.Whole * b.Denominator) + b.Numerator;
+        var denB = b.Denominator;
         var resultNumerator = (numA * denB) + (numB * denA);
         var resultDenominator = denA * denB;
         return FromBigInteger(resultNumerator, resultDenominator);
@@ -576,7 +565,7 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
 
     #region Subtraction
 
-    public static BigNumber operator -(BigNumber a) => FromBigInteger(-a.whole, -a.numerator, a.denominator);
+    public static BigNumber operator -(BigNumber a) => FromBigInteger(-a.Whole, -a.Numerator, a.Denominator);
     public static BigNumber operator --(BigNumber a) => Subtract(a, new(1));
     public static BigNumber operator -(BigNumber a, BigNumber b) => a + -b;
     public static BigNumber operator -(int a, BigNumber b) => Subtract(new(a), b);
@@ -598,10 +587,10 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
 
     public static BigNumber operator *(BigNumber a, BigNumber b)
     {
-        var numA = (a.whole * a.denominator) + a.numerator;
-        var denA = a.denominator;
-        var numB = (b.whole * b.denominator) + b.numerator;
-        var denB = b.denominator;
+        var numA = (a.Whole * a.Denominator) + a.Numerator;
+        var denA = a.Denominator;
+        var numB = (b.Whole * b.Denominator) + b.Numerator;
+        var denB = b.Denominator;
         return FromBigInteger(numA * numB, denA * denB);
     }
 
@@ -624,10 +613,10 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
 
     public static BigNumber operator /(BigNumber a, BigNumber b)
     {
-        var numA = (a.whole * a.denominator) + a.numerator;
-        var denA = a.denominator;
-        var numB = (b.whole * b.denominator) + b.numerator;
-        var denB = b.denominator;
+        var numA = (a.Whole * a.Denominator) + a.Numerator;
+        var denA = a.Denominator;
+        var numB = (b.Whole * b.Denominator) + b.Numerator;
+        var denB = b.Denominator;
         return numB == 0 ? throw new DivideByZeroException() : FromBigInteger(numA * denB, denA * numB);
     }
 
@@ -659,7 +648,7 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
             return FromBigInteger(intA % intB);
         }
         var division = a / b;
-        var frac = (double)division.whole + ((double)division.numerator / (double)division.denominator);
+        var frac = (double)division.Whole + ((double)division.Numerator / (double)division.Denominator);
         var truncated = (BigInteger)Math.Truncate(frac);
         return a - (FromBigInteger(truncated) * b);
     }
@@ -684,8 +673,8 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     public static BigNumber operator <<(BigNumber a, int b)
     {
         a.Simplify();
-        var num = (a.whole * a.denominator) + a.numerator;
-        var den = a.denominator;
+        var num = (a.Whole * a.Denominator) + a.Numerator;
+        var den = a.Denominator;
         // 分子左移，分母不变
         return FromBigInteger(num << b, den);
     }
@@ -693,8 +682,8 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     public static BigNumber operator >> (BigNumber a, int b)
     {
         a.Simplify();
-        var num = (a.whole * a.denominator) + a.numerator;
-        var den = a.denominator;
+        var num = (a.Whole * a.Denominator) + a.Numerator;
+        var den = a.Denominator;
         // 分子右移，分母不变
         return FromBigInteger(num >> b, den);
     }
@@ -704,9 +693,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
         a.Simplify();
         b.Simplify();
         // 通分
-        var commonDen = BigInteger.Multiply(a.denominator, b.denominator);
-        var aNum = ((a.whole * a.denominator) + a.numerator) * (commonDen / a.denominator);
-        var bNum = ((b.whole * b.denominator) + b.numerator) * (commonDen / b.denominator);
+        var commonDen = BigInteger.Multiply(a.Denominator, b.Denominator);
+        var aNum = ((a.Whole * a.Denominator) + a.Numerator) * (commonDen / a.Denominator);
+        var bNum = ((b.Whole * b.Denominator) + b.Numerator) * (commonDen / b.Denominator);
         // 分子异或，分母不变
         var resultNum = aNum ^ bNum;
         return FromBigInteger(resultNum, commonDen);
@@ -735,9 +724,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
         var bSign = b.Sign is 0 or 1 ? 1 : -1;
         a.ToAssociative();
         b.ToAssociative();
-        var a_numerator = BigInteger.Abs(a.numerator) * BigInteger.Abs(b.denominator) * aSign;
-        var b_numerator = BigInteger.Abs(b.numerator) * BigInteger.Abs(a.denominator) * bSign;
-        var new_denominator = a.denominator * b.denominator;
+        var a_numerator = BigInteger.Abs(a.Numerator) * BigInteger.Abs(b.Denominator) * aSign;
+        var b_numerator = BigInteger.Abs(b.Numerator) * BigInteger.Abs(a.Denominator) * bSign;
+        var new_denominator = a.Denominator * b.Denominator;
         a_numerator = aSign * BigInteger.Abs(a_numerator);
         b_numerator = bSign * BigInteger.Abs(b_numerator);
         return FromBigInteger((aSign * BigInteger.Abs(a_numerator)) + (BigInteger.Abs(b_numerator) * bSign), new_denominator);
@@ -773,7 +762,7 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     {
         a.ToAssociative();
         b.ToAssociative();
-        var c = FromBigInteger(BigInteger.Abs(a.numerator * b.numerator), BigInteger.Abs(a.denominator * b.denominator));
+        var c = FromBigInteger(BigInteger.Abs(a.Numerator * b.Numerator), BigInteger.Abs(a.Denominator * b.Denominator));
         c.Sign = (a.Sign is 0 or 1 ? 1 : -1) * (b.Sign is 0 or 1 ? 1 : -1);
         return c;
     }
@@ -794,7 +783,7 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     {
         a.ToAssociative();
         b.ToAssociative();
-        var c = FromBigInteger(b.denominator, b.numerator);
+        var c = FromBigInteger(b.Denominator, b.Numerator);
         return Multiply(a, c);
     }
 
@@ -901,8 +890,8 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
         //var d = a.denominator == b.denominator;
         //return w && n && d;
         // ab先通分成一样的分母后再比较分子大小即可,上面的方式会造成分子分母不一定一样,比如:1/2和2/4;
-        var a_temp = ((a.whole * a.denominator) + a.numerator) * b.denominator;
-        var b_temp = ((b.whole * b.denominator) + b.numerator) * a.denominator;
+        var a_temp = ((a.Whole * a.Denominator) + a.Numerator) * b.Denominator;
+        var b_temp = ((b.Whole * b.Denominator) + b.Numerator) * a.Denominator;
         return a_temp == b_temp;
     }
 
@@ -924,12 +913,12 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     {
         a.ToAssociative();
         b.ToAssociative();
-        a.numerator *= b.denominator;
-        b.numerator *= a.denominator;
-        var temp = a.denominator;
-        a.denominator *= b.denominator;
-        b.denominator *= temp;
-        return a.numerator < b.numerator;
+        a.Numerator *= b.Denominator;
+        b.Numerator *= a.Denominator;
+        var temp = a.Denominator;
+        a.Denominator *= b.Denominator;
+        b.Denominator *= temp;
+        return a.Numerator < b.Numerator;
     }
 
     /// <summary>
@@ -942,12 +931,12 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     {
         a.ToAssociative();
         b.ToAssociative();
-        a.numerator *= b.denominator;
-        b.numerator *= a.denominator;
-        var temp = a.denominator;
-        a.denominator *= b.denominator;
-        b.denominator *= temp;
-        return a.numerator <= b.numerator;
+        a.Numerator *= b.Denominator;
+        b.Numerator *= a.Denominator;
+        var temp = a.Denominator;
+        a.Denominator *= b.Denominator;
+        b.Denominator *= temp;
+        return a.Numerator <= b.Numerator;
     }
 
     /// <summary>
@@ -960,12 +949,12 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     {
         a.ToAssociative();
         b.ToAssociative();
-        a.numerator *= b.denominator;
-        b.numerator *= a.denominator;
-        var temp = a.denominator;
-        a.denominator *= b.denominator;
-        b.denominator *= temp;
-        return a.numerator > b.numerator;
+        a.Numerator *= b.Denominator;
+        b.Numerator *= a.Denominator;
+        var temp = a.Denominator;
+        a.Denominator *= b.Denominator;
+        b.Denominator *= temp;
+        return a.Numerator > b.Numerator;
     }
 
     /// <summary>
@@ -978,12 +967,12 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     {
         a.ToAssociative();            // 10/3
         b.ToAssociative();            // 7/4
-        a.numerator *= b.denominator; // 40
-        b.numerator *= a.denominator; // 21
-        var temp = a.denominator;
-        a.denominator *= b.denominator;
-        b.denominator *= temp;
-        return a.numerator >= b.numerator;
+        a.Numerator *= b.Denominator; // 40
+        b.Numerator *= a.Denominator; // 21
+        var temp = a.Denominator;
+        a.Denominator *= b.Denominator;
+        b.Denominator *= temp;
+        return a.Numerator >= b.Numerator;
     }
 
     #endregion
@@ -993,8 +982,8 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// </summary>
     private void ToAssociative()
     {
-        numerator = (whole * denominator) + numerator;
-        whole = 0;
+        Numerator = (Whole * Denominator) + Numerator;
+        Whole = 0;
     }
 
     /// <summary>
@@ -1024,12 +1013,12 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// </summary>
     private void Simplify()
     {
-        if (denominator == 0)
+        if (Denominator == 0)
         {
             throw new DivideByZeroException();
         }
-        var num = (whole * denominator) + numerator;
-        var den = denominator;
+        var num = (Whole * Denominator) + Numerator;
+        var den = Denominator;
         if (den < 0)
         {
             num = -num;
@@ -1038,9 +1027,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
         var gcd = BigInteger.GreatestCommonDivisor(BigInteger.Abs(num), den);
         num /= gcd;
         den /= gcd;
-        whole = num / den;
-        numerator = num % den;
-        denominator = den;
+        Whole = num / den;
+        Numerator = num % den;
+        Denominator = den;
         Sign = num == 0
                    ? 0
                    : num > 0
@@ -1053,9 +1042,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// </summary>
     public void ToAbs()
     {
-        numerator = BigInteger.Abs(numerator);
-        whole = BigInteger.Abs(whole);
-        denominator = BigInteger.Abs(denominator);
+        Numerator = BigInteger.Abs(Numerator);
+        Whole = BigInteger.Abs(Whole);
+        Denominator = BigInteger.Abs(Denominator);
         Sign = 1;
     }
 
@@ -1077,21 +1066,21 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     public int GetSign()
     {
         var sign = 0;
-        if (whole.Sign != 0 && numerator.Sign != 0 && denominator.Sign != 0)
+        if (Whole.Sign != 0 && Numerator.Sign != 0 && Denominator.Sign != 0)
         {
-            sign = whole.Sign * numerator.Sign * denominator.Sign;
+            sign = Whole.Sign * Numerator.Sign * Denominator.Sign;
         }
-        else if (whole.Sign != 0 && numerator != 0)
+        else if (Whole.Sign != 0 && Numerator != 0)
         {
-            sign = whole.Sign * numerator.Sign;
+            sign = Whole.Sign * Numerator.Sign;
         }
-        else if (whole.Sign != 0 && denominator.Sign != 0)
+        else if (Whole.Sign != 0 && Denominator.Sign != 0)
         {
-            sign = whole.Sign * denominator.Sign;
+            sign = Whole.Sign * Denominator.Sign;
         }
-        else if (numerator.Sign != 0 && denominator.Sign != 0)
+        else if (Numerator.Sign != 0 && Denominator.Sign != 0)
         {
-            sign = numerator.Sign * denominator.Sign;
+            sign = Numerator.Sign * Denominator.Sign;
         }
         return sign;
     }
@@ -1105,46 +1094,27 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
             return "0";
         }
         var signPrefix = Sign == -1 ? "-" : "";
-        if (numerator == 0)
-        {
-            return $"{signPrefix}{BigInteger.Abs(whole)}";
-        }
-        return whole == 0 ? $"{signPrefix}{BigInteger.Abs(numerator)}/{denominator}" : $"{signPrefix}{BigInteger.Abs(whole)} {BigInteger.Abs(numerator)}/{denominator}";
+        return Numerator == 0
+                   ? $"{signPrefix}{BigInteger.Abs(Whole)}"
+                   : Whole == 0
+                       ? $"{signPrefix}{BigInteger.Abs(Numerator)}/{Denominator}"
+                       : $"{signPrefix}{BigInteger.Abs(Whole)} {BigInteger.Abs(Numerator)}/{Denominator}";
     }
 
     /// <inheritdoc />
-    public override bool Equals(object? obj)
-    {
-        if (obj is null)
-        {
-            return false;
-        }
-        if (ReferenceEquals(this, obj))
-        {
-            return true;
-        }
-        return obj is BigNumber other && Equals(other);
-    }
+    public override bool Equals(object? obj) => obj is not null && (ReferenceEquals(this, obj) || (obj is BigNumber other && Equals(other)));
 
     /// <inheritdoc />
     [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
     public override int GetHashCode()
     {
         Simplify();
-        var num = (whole * denominator) + numerator;
-        var den = denominator;
-        return HashCode.Combine(num, den);
+        var num = (Whole * Denominator) + Numerator;
+        return HashCode.Combine(num, Denominator);
     }
 
     /// <inheritdoc />
-    public bool Equals(BigNumber? other)
-    {
-        if (other is null)
-        {
-            return false;
-        }
-        return CompareTo(other) == 0;
-    }
+    public bool Equals(BigNumber? other) => other is not null && CompareTo(other) == 0;
 
     /// <inheritdoc />
     public int CompareTo(BigNumber? other)
@@ -1153,10 +1123,10 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
         {
             return 1;
         }
-        var numA = (whole * denominator) + numerator;
-        var denA = denominator;
-        var numB = (other.whole * other.denominator) + other.numerator;
-        var denB = other.denominator;
+        var numA = (Whole * Denominator) + Numerator;
+        var denA = Denominator;
+        var numB = (other.Whole * other.Denominator) + other.Numerator;
+        var denB = other.Denominator;
         return (numA * denB).CompareTo(numB * denA);
     }
 
@@ -1168,9 +1138,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     public bool IsInteger(out BigInteger value)
     {
         Simplify();
-        if (numerator == 0)
+        if (Numerator == 0)
         {
-            value = whole;
+            value = Whole;
             return true;
         }
         value = 0;

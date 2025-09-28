@@ -27,5 +27,6 @@ internal sealed class RabbitBusHealthCheck(PersistentConnection connection) : IH
 
 internal static class RabbitBusHealthCheckExtensions
 {
+    // ReSharper disable once UnusedMethodReturnValue.Global
     public static IHealthChecksBuilder AddRabbitBusHealthCheck(this IHealthChecksBuilder builder, string name = "rabbitbus") => builder.AddCheck<RabbitBusHealthCheck>(name);
 }

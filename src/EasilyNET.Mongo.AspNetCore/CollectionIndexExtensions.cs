@@ -91,10 +91,12 @@ public static class CollectionIndexExtensions
         // 缓存反射结果
         if (!PropertyCache.TryGetValue(dbContextType, out var properties))
         {
-            properties = AssemblyHelper.FindTypes(t => t == dbContextType)
-                                       .SelectMany(t => t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
-                                       .Where(prop => prop.PropertyType.IsGenericType && prop.PropertyType.GetGenericTypeDefinition() == typeof(IMongoCollection<>))
-                                       .ToArray();
+            properties =
+            [
+                .. AssemblyHelper.FindTypes(t => t == dbContextType)
+                                 .SelectMany(t => t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+                                 .Where(prop => prop.PropertyType.IsGenericType && prop.PropertyType.GetGenericTypeDefinition() == typeof(IMongoCollection<>))
+            ];
             PropertyCache.TryAdd(dbContextType, properties);
         }
         var timeSeriesTypes = AssemblyHelper.FindTypesByAttribute<TimeSeriesCollectionAttribute>(o => o is { IsClass: true, IsAbstract: false }, false).ToHashSet();
@@ -1031,12 +1033,13 @@ public static class CollectionIndexExtensions
         // ReSharper disable once UnusedAutoPropertyAccessor.Local
         public string OriginalPath { get; set; } = string.Empty;
 
+#pragma warning disable IDE0046 // 转换为条件表达式
         /// <summary>
         /// 比较两个索引定义是否相同
         /// </summary>
         public bool Equals(IndexDefinition? other)
         {
-            if (other == null)
+            if (other is null)
             {
                 return false;
             }
@@ -1075,5 +1078,6 @@ public static class CollectionIndexExtensions
             }
             return w1.Equals(w2);
         }
+#pragma warning restore IDE0046 // 转换为条件表达式
     }
 }

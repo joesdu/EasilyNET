@@ -16,5 +16,6 @@ internal sealed class InMemoryDeadLetterStore : IDeadLetterStore
         return ValueTask.CompletedTask;
     }
 
-    public IReadOnlyCollection<IDeadLetterMessage> Snapshot() => _queue.ToList();
+    // ReSharper disable once UnusedMember.Global
+    public IReadOnlyCollection<IDeadLetterMessage> Snapshot() => [.. _queue];
 }
