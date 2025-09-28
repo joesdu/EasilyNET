@@ -28,8 +28,8 @@ internal class ModuleApplicationBase : IModuleApplication
     /// </param>
     protected ModuleApplicationBase(Type? startModuleType, IServiceCollection? services)
     {
-        ArgumentNullException.ThrowIfNull(startModuleType, nameof(startModuleType));
-        ArgumentNullException.ThrowIfNull(services, nameof(services));
+        ArgumentNullException.ThrowIfNull(startModuleType);
+        ArgumentNullException.ThrowIfNull(services);
         _startModuleType = startModuleType;
         Services = services;
         ServiceProvider = services.BuildServiceProvider();
@@ -135,7 +135,7 @@ internal class ModuleApplicationBase : IModuleApplication
     /// </summary>
     protected void InitializeModules()
     {
-        ArgumentNullException.ThrowIfNull(ServiceProvider, nameof(ServiceProvider));
+        ArgumentNullException.ThrowIfNull(ServiceProvider);
         var ctx = new ApplicationContext(ServiceProvider);
         foreach (var cfg in Modules)
         {

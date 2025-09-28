@@ -29,28 +29,6 @@ public static class AutoDependencyInjectionServiceExtension
     public static IHost GetApplicationHost(this ApplicationContext context) => context.ServiceProvider.GetRequiredService<IObjectAccessor<IHost>>().Value ?? throw new ArgumentNullException(nameof(context));
 
     /// <summary>
-    ///     <para xml:lang="en">Inject services</para>
-    ///     <para xml:lang="zh">注入服务</para>
-    /// </summary>
-    /// <typeparam name="T">
-    ///     <para xml:lang="en">Type of the application module</para>
-    ///     <para xml:lang="zh">应用模块的类型</para>
-    /// </typeparam>
-    /// <param name="services">
-    ///     <para xml:lang="en"><see cref="IServiceCollection" /> to configure services</para>
-    ///     <para xml:lang="zh">用于配置服务的 <see cref="IServiceCollection" /></para>
-    /// </param>
-    public static void AddApplicationModules<T>(this IServiceCollection services) where T : AppModule
-    {
-        ArgumentNullException.ThrowIfNull(services, nameof(services));
-        services.AddSingleton<IObjectAccessor<IHost>>(new ObjectAccessor<IHost>());
-        // dynamic resolution helpers
-        services.AddScoped<IResolver>(sp => new Resolver(sp.CreateScope().ServiceProvider));
-        services.AddSingleton(typeof(INamedServiceFactory<>), typeof(NamedServiceFactory<>));
-        ApplicationFactory.Create<T>(services);
-    }
-
-    /// <summary>
     ///     <para xml:lang="en">Initialize the application and configure middleware</para>
     ///     <para xml:lang="zh">初始化应用，配置中间件</para>
     /// </summary>
@@ -76,23 +54,48 @@ public static class AutoDependencyInjectionServiceExtension
     /// </param>
     public static IConfiguration GetConfiguration(this IServiceProvider provider) => provider.GetRequiredService<IConfiguration>();
 
-    internal static void AddNamedService(this IServiceCollection services, Type serviceType, object key, Type implementationType, ServiceLifetime lifetime)
+    /// <param name="services">
+    ///     <para xml:lang="en"><see cref="IServiceCollection" /> to configure services</para>
+    ///     <para xml:lang="zh">用于配置服务的 <see cref="IServiceCollection" /></para>
+    /// </param>
+    extension(IServiceCollection services)
     {
-        var descriptor = new NamedServiceDescriptor(serviceType, implementationType, lifetime);
-        ServiceProviderExtension.NamedServices[(key, serviceType)] = descriptor;
-        switch (lifetime)
+        /// <summary>
+        ///     <para xml:lang="en">Inject services</para>
+        ///     <para xml:lang="zh">注入服务</para>
+        /// </summary>
+        /// <typeparam name="T">
+        ///     <para xml:lang="en">Type of the application module</para>
+        ///     <para xml:lang="zh">应用模块的类型</para>
+        /// </typeparam>
+        public void AddApplicationModules<T>() where T : AppModule
         {
-            case ServiceLifetime.Singleton:
-                services.AddKeyedSingleton(descriptor.ServiceType, key, (p, _) => p.CreateInstance(descriptor.ImplementationType));
-                break;
-            case ServiceLifetime.Scoped:
-                services.AddKeyedScoped(descriptor.ServiceType, key, (p, _) => p.CreateInstance(descriptor.ImplementationType));
-                break;
-            case ServiceLifetime.Transient:
-                services.AddKeyedTransient(descriptor.ServiceType, key, (p, _) => p.CreateInstance(descriptor.ImplementationType));
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(lifetime), lifetime, null);
+            ArgumentNullException.ThrowIfNull(services);
+            services.AddSingleton<IObjectAccessor<IHost>>(new ObjectAccessor<IHost>());
+            // dynamic resolution helpers
+            services.AddScoped<IResolver>(sp => new Resolver(sp.CreateScope().ServiceProvider));
+            services.AddSingleton(typeof(INamedServiceFactory<>), typeof(NamedServiceFactory<>));
+            ApplicationFactory.Create<T>(services);
+        }
+
+        internal void AddNamedService(Type serviceType, object key, Type implementationType, ServiceLifetime lifetime)
+        {
+            var descriptor = new NamedServiceDescriptor(serviceType, implementationType, lifetime);
+            ServiceProviderExtension.NamedServices[(key, serviceType)] = descriptor;
+            switch (lifetime)
+            {
+                case ServiceLifetime.Singleton:
+                    services.AddKeyedSingleton(descriptor.ServiceType, key, (p, _) => p.CreateInstance(descriptor.ImplementationType));
+                    break;
+                case ServiceLifetime.Scoped:
+                    services.AddKeyedScoped(descriptor.ServiceType, key, (p, _) => p.CreateInstance(descriptor.ImplementationType));
+                    break;
+                case ServiceLifetime.Transient:
+                    services.AddKeyedTransient(descriptor.ServiceType, key, (p, _) => p.CreateInstance(descriptor.ImplementationType));
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(lifetime), lifetime, null);
+            }
         }
     }
 }

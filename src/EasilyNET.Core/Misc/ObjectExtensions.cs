@@ -52,90 +52,9 @@ public static class ObjectExtensions
         {
             return;
         }
-        ArgumentException.ThrowIfNullOrEmpty(message, nameof(message));
+        ArgumentException.ThrowIfNullOrEmpty(message);
         throw (TException)Activator.CreateInstance(typeof(TException), message)!;
     }
-
-    /// <summary>
-    ///     <para xml:lang="en">Validates whether the specified assertion expression is true. If not, throws an <see cref="Exception" />.</para>
-    ///     <para xml:lang="zh">验证指定值的断言表达式是否为真，如果不为真，抛出 <see cref="Exception" /> 异常。</para>
-    /// </summary>
-    /// <typeparam name="T">
-    ///     <para xml:lang="en">The type of the value to validate</para>
-    ///     <para xml:lang="zh">要验证的值的类型</para>
-    /// </typeparam>
-    /// <param name="value">
-    ///     <para xml:lang="en">The value to validate</para>
-    ///     <para xml:lang="zh">要验证的值</para>
-    /// </param>
-    /// <param name="assertionFunc">
-    ///     <para xml:lang="en">The assertion expression to validate</para>
-    ///     <para xml:lang="zh">要验证的断言表达式</para>
-    /// </param>
-    /// <param name="message">
-    ///     <para xml:lang="en">The exception message</para>
-    ///     <para xml:lang="zh">异常消息</para>
-    /// </param>
-    public static void Required<T>(this T value, Func<T, bool> assertionFunc, string message)
-    {
-        ArgumentNullException.ThrowIfNull(assertionFunc, nameof(assertionFunc));
-        Require<Exception>(assertionFunc(value), message);
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">
-    ///     Validates whether the specified assertion expression is true. If not, throws an exception of the specified type
-    ///     <typeparamref name="TException" />.
-    ///     </para>
-    ///     <para xml:lang="zh">验证指定值的断言表达式是否为真，如果不为真，抛出指定类型 <typeparamref name="TException" /> 的异常。</para>
-    /// </summary>
-    /// <typeparam name="T">
-    ///     <para xml:lang="en">The type of the value to validate</para>
-    ///     <para xml:lang="zh">要验证的值的类型</para>
-    /// </typeparam>
-    /// <typeparam name="TException">
-    ///     <para xml:lang="en">The type of exception to throw</para>
-    ///     <para xml:lang="zh">异常类型</para>
-    /// </typeparam>
-    /// <param name="value">
-    ///     <para xml:lang="en">The value to validate</para>
-    ///     <para xml:lang="zh">要验证的值</para>
-    /// </param>
-    /// <param name="assertionFunc">
-    ///     <para xml:lang="en">The assertion expression to validate</para>
-    ///     <para xml:lang="zh">要验证的断言表达式</para>
-    /// </param>
-    /// <param name="message">
-    ///     <para xml:lang="en">The exception message</para>
-    ///     <para xml:lang="zh">异常消息</para>
-    /// </param>
-    public static void Required<T, TException>(this T value, Func<T, bool> assertionFunc, string message) where TException : Exception
-    {
-        ArgumentNullException.ThrowIfNull(assertionFunc, nameof(assertionFunc));
-        Require<TException>(assertionFunc(value), message);
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Checks if the parameter is not null, otherwise throws an <see cref="ArgumentNullException" />.</para>
-    ///     <para xml:lang="zh">检查参数不能为空引用，否则抛出 <see cref="ArgumentNullException" /> 异常。</para>
-    /// </summary>
-    /// <typeparam name="T">
-    ///     <para xml:lang="en">The type of the parameter</para>
-    ///     <para xml:lang="zh">参数的类型</para>
-    /// </typeparam>
-    /// <param name="value">
-    ///     <para xml:lang="en">The parameter value</para>
-    ///     <para xml:lang="zh">参数值</para>
-    /// </param>
-    /// <param name="paramName">
-    ///     <para xml:lang="en">The parameter name</para>
-    ///     <para xml:lang="zh">参数名称</para>
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     <para xml:lang="en">Thrown when the parameter is null</para>
-    ///     <para xml:lang="zh">当参数为空时抛出</para>
-    /// </exception>
-    public static void NotNull<T>(this T value, string paramName) => Require<ArgumentNullException>(value is not null, $"参数“{paramName}”不能为空引用。");
 
     /// <summary>
     ///     <para xml:lang="en">
@@ -231,99 +150,151 @@ public static class ObjectExtensions
     /// </returns>
     public static bool HasAttribute<T>(this MemberInfo memberInfo, bool inherit = true) where T : Attribute => memberInfo.IsDefined(typeof(T), inherit);
 
-    /// <summary>
-    ///     <para xml:lang="en">
-    ///     Dynamically sets the property value of an object at runtime. This method is thread-safe and useful for writing general data
-    ///     mapping functions that need to dynamically set object properties based on different inputs.
-    ///     </para>
-    ///     <para xml:lang="zh">在运行时动态地设置对象的属性值。这个方法在多线程环境中也是安全的，在编写需要根据不同输入动态设置对象属性的通用数据映射函数时非常有用。</para>
-    /// </summary>
-    /// <typeparam name="TObject">
-    ///     <para xml:lang="en">The type of the object</para>
-    ///     <para xml:lang="zh">对象的类型</para>
+    /// <param name="value">
+    ///     <para xml:lang="en">The value to validate</para>
+    ///     <para xml:lang="zh">要验证的值</para>
+    /// </param>
+    /// <typeparam name="T">
+    ///     <para xml:lang="en">The type of the value to validate</para>
+    ///     <para xml:lang="zh">要验证的值的类型</para>
     /// </typeparam>
-    /// <typeparam name="TValue">
-    ///     <para xml:lang="en">The type of the value</para>
-    ///     <para xml:lang="zh">值的类型</para>
-    /// </typeparam>
-    /// <param name="obj">
-    ///     <para xml:lang="en">The object to set the property on</para>
-    ///     <para xml:lang="zh">要设置属性的对象</para>
-    /// </param>
-    /// <param name="propertySelector">
-    ///     <para xml:lang="en">The property selector</para>
-    ///     <para xml:lang="zh">属性选择器</para>
-    /// </param>
-    /// <param name="valueFactory">
-    ///     <para xml:lang="en">
-    ///     The value factory to compute the property value when needed. Useful for handling property values that are computationally
-    ///     expensive or dependent on other factors.
-    ///     </para>
-    ///     <para xml:lang="zh">在需要的时候计算属性值的值工厂。处理计算成本较高或依赖于其他因素的属性值时非常有用。</para>
-    /// </param>
-    [RequiresUnreferencedCode("This method uses reflection and may not be compatible with AOT.")]
-    public static bool TrySetProperty<TObject, TValue>(this TObject obj, Expression<Func<TObject, TValue>> propertySelector, Func<TValue> valueFactory)
+    extension<T>(T value)
     {
-        return TrySetProperty(obj, propertySelector, _ => valueFactory());
-    }
+        /// <summary>
+        ///     <para xml:lang="en">Validates whether the specified assertion expression is true. If not, throws an <see cref="Exception" />.</para>
+        ///     <para xml:lang="zh">验证指定值的断言表达式是否为真，如果不为真，抛出 <see cref="Exception" /> 异常。</para>
+        /// </summary>
+        /// <param name="assertionFunc">
+        ///     <para xml:lang="en">The assertion expression to validate</para>
+        ///     <para xml:lang="zh">要验证的断言表达式</para>
+        /// </param>
+        /// <param name="message">
+        ///     <para xml:lang="en">The exception message</para>
+        ///     <para xml:lang="zh">异常消息</para>
+        /// </param>
+        public void Required(Func<T, bool> assertionFunc, string message)
+        {
+            ArgumentNullException.ThrowIfNull(assertionFunc);
+            Require<Exception>(assertionFunc(value), message);
+        }
 
-    /// <summary>
-    ///     <para xml:lang="en">
-    ///     Dynamically sets the property value of an object at runtime. This method is thread-safe and useful for writing general data
-    ///     mapping functions that need to dynamically set object properties based on different inputs.
-    ///     </para>
-    ///     <para xml:lang="zh">在运行时动态地设置对象的属性值。这个方法在多线程环境中也是安全的，在编写需要根据不同输入动态设置对象属性的通用数据映射函数时非常有用。</para>
-    /// </summary>
-    /// <typeparam name="TObject">
-    ///     <para xml:lang="en">The type of the object</para>
-    ///     <para xml:lang="zh">对象的类型</para>
-    /// </typeparam>
-    /// <typeparam name="TValue">
-    ///     <para xml:lang="en">The type of the value</para>
-    ///     <para xml:lang="zh">值的类型</para>
-    /// </typeparam>
-    /// <param name="obj">
-    ///     <para xml:lang="en">The object to set the property on</para>
-    ///     <para xml:lang="zh">要设置属性的对象</para>
-    /// </param>
-    /// <param name="propertySelector">
-    ///     <para xml:lang="en">The property selector</para>
-    ///     <para xml:lang="zh">属性选择器</para>
-    /// </param>
-    /// <param name="valueFactory">
-    ///     <para xml:lang="en">
-    ///     The value factory to compute the property value when needed. Useful for handling property values that are computationally
-    ///     expensive or dependent on other factors.
-    ///     </para>
-    ///     <para xml:lang="zh">在需要的时候计算属性值的值工厂。处理计算成本较高或依赖于其他因素的属性值时非常有用。</para>
-    /// </param>
-    [RequiresUnreferencedCode("This method uses reflection and may not be compatible with AOT.")]
-    public static bool TrySetProperty<TObject, TValue>(this TObject obj, Expression<Func<TObject, TValue>> propertySelector, Func<TObject, TValue> valueFactory)
-    {
-        var cacheKey = $"{obj?.GetType().FullName}_{propertySelector}";
-        var property = CachedObjectProperties.GetOrAdd(cacheKey, _ => new(() =>
+        /// <summary>
+        ///     <para xml:lang="en">
+        ///     Validates whether the specified assertion expression is true. If not, throws an exception of the specified type
+        ///     <typeparamref name="TException" />.
+        ///     </para>
+        ///     <para xml:lang="zh">验证指定值的断言表达式是否为真，如果不为真，抛出指定类型 <typeparamref name="TException" /> 的异常。</para>
+        /// </summary>
+        /// <typeparam name="TException">
+        ///     <para xml:lang="en">The type of exception to throw</para>
+        ///     <para xml:lang="zh">异常类型</para>
+        /// </typeparam>
+        /// <param name="assertionFunc">
+        ///     <para xml:lang="en">The assertion expression to validate</para>
+        ///     <para xml:lang="zh">要验证的断言表达式</para>
+        /// </param>
+        /// <param name="message">
+        ///     <para xml:lang="en">The exception message</para>
+        ///     <para xml:lang="zh">异常消息</para>
+        /// </param>
+        public void Required<TException>(Func<T, bool> assertionFunc, string message) where TException : Exception
         {
-            if (propertySelector.Body is not MemberExpression memberExpression)
+            ArgumentNullException.ThrowIfNull(assertionFunc);
+            Require<TException>(assertionFunc(value), message);
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Checks if the parameter is not null, otherwise throws an <see cref="ArgumentNullException" />.</para>
+        ///     <para xml:lang="zh">检查参数不能为空引用，否则抛出 <see cref="ArgumentNullException" /> 异常。</para>
+        /// </summary>
+        /// <param name="paramName">
+        ///     <para xml:lang="en">The parameter name</para>
+        ///     <para xml:lang="zh">参数名称</para>
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        ///     <para xml:lang="en">Thrown when the parameter is null</para>
+        ///     <para xml:lang="zh">当参数为空时抛出</para>
+        /// </exception>
+        public void NotNull(string paramName) => Require<ArgumentNullException>(value is not null, $"参数“{paramName}”不能为空引用。");
+
+        /// <summary>
+        ///     <para xml:lang="en">
+        ///     Dynamically sets the property value of an object at runtime. This method is thread-safe and useful for writing general data
+        ///     mapping functions that need to dynamically set object properties based on different inputs.
+        ///     </para>
+        ///     <para xml:lang="zh">在运行时动态地设置对象的属性值。这个方法在多线程环境中也是安全的，在编写需要根据不同输入动态设置对象属性的通用数据映射函数时非常有用。</para>
+        /// </summary>
+        /// <typeparam name="TValue">
+        ///     <para xml:lang="en">The type of the value</para>
+        ///     <para xml:lang="zh">值的类型</para>
+        /// </typeparam>
+        /// <param name="propertySelector">
+        ///     <para xml:lang="en">The property selector</para>
+        ///     <para xml:lang="zh">属性选择器</para>
+        /// </param>
+        /// <param name="valueFactory">
+        ///     <para xml:lang="en">
+        ///     The value factory to compute the property value when needed. Useful for handling property values that are computationally
+        ///     expensive or dependent on other factors.
+        ///     </para>
+        ///     <para xml:lang="zh">在需要的时候计算属性值的值工厂。处理计算成本较高或依赖于其他因素的属性值时非常有用。</para>
+        /// </param>
+        [RequiresUnreferencedCode("This method uses reflection and may not be compatible with AOT.")]
+        public bool TrySetProperty<TValue>(Expression<Func<T, TValue>> propertySelector, Func<TValue> valueFactory)
+        {
+            return TrySetProperty(value, propertySelector, _ => valueFactory());
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">
+        ///     Dynamically sets the property value of an object at runtime. This method is thread-safe and useful for writing general data
+        ///     mapping functions that need to dynamically set object properties based on different inputs.
+        ///     </para>
+        ///     <para xml:lang="zh">在运行时动态地设置对象的属性值。这个方法在多线程环境中也是安全的，在编写需要根据不同输入动态设置对象属性的通用数据映射函数时非常有用。</para>
+        /// </summary>
+        /// <typeparam name="TValue">
+        ///     <para xml:lang="en">The type of the value</para>
+        ///     <para xml:lang="zh">值的类型</para>
+        /// </typeparam>
+        /// <param name="propertySelector">
+        ///     <para xml:lang="en">The property selector</para>
+        ///     <para xml:lang="zh">属性选择器</para>
+        /// </param>
+        /// <param name="valueFactory">
+        ///     <para xml:lang="en">
+        ///     The value factory to compute the property value when needed. Useful for handling property values that are computationally
+        ///     expensive or dependent on other factors.
+        ///     </para>
+        ///     <para xml:lang="zh">在需要的时候计算属性值的值工厂。处理计算成本较高或依赖于其他因素的属性值时非常有用。</para>
+        /// </param>
+        [RequiresUnreferencedCode("This method uses reflection and may not be compatible with AOT.")]
+        public bool TrySetProperty<TValue>(Expression<Func<T, TValue>> propertySelector, Func<T, TValue> valueFactory)
+        {
+            var cacheKey = $"{value?.GetType().FullName}_{propertySelector}";
+            var property = CachedObjectProperties.GetOrAdd(cacheKey, _ => new(() =>
             {
-                return null;
+                if (propertySelector.Body is not MemberExpression memberExpression)
+                {
+                    return null;
+                }
+                //if (propertySelector.Body is not { NodeType: ExpressionType.MemberAccess  } var memberExpression) return default;
+                //根据成员表达式，获取对应属性，并且有set访问属性
+                var propertyInfo = value?.GetType().GetProperties().FirstOrDefault(o => o.Name == memberExpression.Member.Name && o.GetSetMethod(true) is not null);
+                return propertyInfo;
+            }));
+            if (property.Value == null)
+            {
+                return false;
             }
-            //if (propertySelector.Body is not { NodeType: ExpressionType.MemberAccess  } var memberExpression) return default;
-            //根据成员表达式，获取对应属性，并且有set访问属性
-            var propertyInfo = obj?.GetType().GetProperties().FirstOrDefault(o => o.Name == memberExpression.Member.Name && o.GetSetMethod(true) is not null);
-            return propertyInfo;
-        }));
-        if (property.Value == null)
-        {
-            return false;
-        }
-        try
-        {
-            property.Value.SetValue(obj, valueFactory(obj));
-            return true;
-        }
-        catch
-        {
-            return false;
+            try
+            {
+                property.Value.SetValue(value, valueFactory(value));
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

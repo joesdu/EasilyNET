@@ -18,8 +18,8 @@ public class MongoContext : IDisposable
     public IMongoClient Client { get; private set; }
 
     /// <summary>
-    ///     <para xml:lang="en">Get the specific database name configured in the connection string or HoyoMongoSettings, or the default database</para>
-    ///     <para xml:lang="zh">获取链接字符串或者HoyoMongoSettings中配置的特定名称数据库或默认数据库</para>
+    ///     <para xml:lang="en">Get the specific database name configured in the connection string or MongoSettings, or the default database</para>
+    ///     <para xml:lang="zh">获取链接字符串或者MongoSettings中配置的特定名称数据库或默认数据库</para>
     /// </summary>
     public IMongoDatabase Database { get; private set; }
 
@@ -43,7 +43,7 @@ public class MongoContext : IDisposable
     /// </param>
     public IMongoCollection<TDocument> GetCollection<TDocument>(string name)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         return Database.GetCollection<TDocument>(name);
     }
 

@@ -19,7 +19,7 @@ public sealed class ApplicationContext : IServiceProviderAccessor
     /// </exception>
     public ApplicationContext(IServiceProvider? serviceProvider)
     {
-        ArgumentNullException.ThrowIfNull(serviceProvider, nameof(serviceProvider));
+        ArgumentNullException.ThrowIfNull(serviceProvider);
         ServiceProvider = serviceProvider;
     }
 

@@ -39,7 +39,7 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
     /// <inheritdoc />
     public void Unregister<TMessage>(object recipient) where TMessage : class
     {
-        ArgumentNullException.ThrowIfNull(recipient, nameof(recipient));
+        ArgumentNullException.ThrowIfNull(recipient);
         var messageType = typeof(TMessage);
         lock (_lock)
         {
@@ -69,7 +69,7 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
     /// <inheritdoc />
     public void Send<TMessage>(TMessage message) where TMessage : class
     {
-        ArgumentNullException.ThrowIfNull(message, nameof(message));
+        ArgumentNullException.ThrowIfNull(message);
         var messageType = typeof(TMessage);
         List<Action<TMessage>>? actionsToInvoke = null;
         List<object>? deadKeysToRemove = null; // Stores keys (WeakReference or recipient object) to remove
@@ -168,8 +168,8 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
 
     private void RegisterInternal<TMessage>(object recipient, Action<TMessage> action, bool keepSubscriberReferenceAlive) where TMessage : class
     {
-        ArgumentNullException.ThrowIfNull(recipient, nameof(recipient));
-        ArgumentNullException.ThrowIfNull(action, nameof(action));
+        ArgumentNullException.ThrowIfNull(recipient);
+        ArgumentNullException.ThrowIfNull(action);
         var messageType = typeof(TMessage);
         // targetReference is now correctly an object, which can be the recipient itself or a WeakReference
         var targetReference = keepSubscriberReferenceAlive ? recipient : new WeakReference(recipient);
@@ -194,7 +194,7 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
     /// </param>
     public void Unregister(object recipient)
     {
-        ArgumentNullException.ThrowIfNull(recipient, nameof(recipient));
+        ArgumentNullException.ThrowIfNull(recipient);
         lock (_lock)
         {
             // Iterate over a copy of keys for safe removal from _recipients

@@ -32,10 +32,8 @@ internal sealed class SubscribeService(IServiceProvider sp, PersistentConnection
         var ibus = sp.GetRequiredService<IBus>() as EventBus ?? throw new InvalidOperationException("IBus service is not registered or is not of type EventBus.");
         var publisher = sp.GetRequiredService<EventPublisher>();
         var consumerTask = ibus.RunRabbit(cancelToken);
-
         // 启动后台重试任务
         var retryTask = ProcessNackedMessagesAsync(publisher, ibus, cancelToken);
-
         // 等待两个任务完成
         await Task.WhenAll(consumerTask, retryTask);
     }
@@ -43,9 +41,8 @@ internal sealed class SubscribeService(IServiceProvider sp, PersistentConnection
     /// <summary>
     /// 持续处理进入NACK队列的消息
     /// </summary>
-    private async Task ProcessNackedMessagesAsync(EventPublisher publisher, IBus bus, CancellationToken ct)
+    private async Task ProcessNackedMessagesAsync(EventPublisher publisher, EventBus bus, CancellationToken ct)
     {
-        // 从配置中获取重试间隔，提供一个合理的默认值
         var retryInterval = TimeSpan.FromSeconds(_config.RetryIntervalSeconds > 0 ? _config.RetryIntervalSeconds : 1);
         if (logger.IsEnabled(LogLevel.Information))
         {
@@ -76,7 +73,10 @@ internal sealed class SubscribeService(IServiceProvider sp, PersistentConnection
                 // 检查是否超过最大重试次数
                 if (messageToRetry.RetryCount > _config.RetryCount)
                 {
-                    logger.LogWarning("Event {EventId} has exceeded max retry count of {MaxRetries} and will be discarded.", messageToRetry.Event.EventId, _config.RetryCount);
+                    if (logger.IsEnabled(LogLevel.Warning))
+                    {
+                        logger.LogWarning("Event {EventId} has exceeded max retry count of {MaxRetries} and will be discarded.", messageToRetry.Event.EventId, _config.RetryCount);
+                    }
                     RabbitBusMetrics.PublishDiscarded.Add(1);
                     continue;
                 }
@@ -93,18 +93,27 @@ internal sealed class SubscribeService(IServiceProvider sp, PersistentConnection
                 }
                 catch (Exception ex)
                 {
-                    // Publish方法已经将失败的消息重新入队，这里只记录异常
-                    logger.LogError(ex, "An exception occurred while retrying event {EventId}. It will be re-queued by the publisher.", messageToRetry.Event.EventId);
+                    if (logger.IsEnabled(LogLevel.Error))
+                        // Publish方法已经将失败的消息重新入队，这里只记录异常
+                    {
+                        logger.LogError(ex, "An exception occurred while retrying event {EventId}. It will be re-queued by the publisher.", messageToRetry.Event.EventId);
+                    }
                 }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
-                logger.LogInformation("NACKed message processor is shutting down.");
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("NACKed message processor is shutting down.");
+                }
                 break;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "An unexpected error occurred in the NACKed message processor loop.");
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(ex, "An unexpected error occurred in the NACKed message processor loop.");
+                }
                 // 增加一个较长的延迟，避免在持续出错时消耗过多CPU
                 await Task.Delay(TimeSpan.FromSeconds(5), ct);
             }
