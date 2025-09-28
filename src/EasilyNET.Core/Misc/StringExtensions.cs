@@ -454,7 +454,7 @@ public static partial class StringExtensions
                 return value;
             }
             var charArray = value.ToCharArray();
-            Array.Reverse((Array)charArray);
+            Array.Reverse(charArray);
             return new(charArray);
         }
 
