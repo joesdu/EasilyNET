@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 
+// ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
 
 namespace EasilyNET.Security;
@@ -13,6 +14,16 @@ namespace EasilyNET.Security;
 ///     </para>
 ///     <para xml:lang="zh">DES加密解密(由于本库对密钥进行了hash算法处理.使用本库加密仅能用本库解密)</para>
 /// </summary>
+/// <remarks>
+///     <para xml:lang="en">
+///     ⚠️ WARNING: DES is considered insecure and should not be used for new applications.
+///     It is recommended to use AES256 instead. This is provided only for compatibility with legacy systems.
+///     </para>
+///     <para xml:lang="zh">
+///     ⚠️ 警告: DES被认为是不安全的,不应用于新应用程序。
+///     建议使用AES256代替。仅为与遗留系统兼容而提供。
+///     </para>
+/// </remarks>
 // ReSharper disable once UnusedType.Global
 public static class DesCrypt
 {
@@ -36,7 +47,7 @@ public static class DesCrypt
     ///     <para xml:lang="en">The input password</para>
     ///     <para xml:lang="zh">输入的密码</para>
     /// </param>
-    private static (byte[] Key, byte[] IV) GetEesKey(string pwd)
+    private static (byte[] Key, byte[] IV) GetDesKey(string pwd)
     {
         if (KeyCache.TryGetValue(pwd, out var cachedKey))
         {
@@ -77,7 +88,7 @@ public static class DesCrypt
     /// </param>
     public static byte[] Encrypt(ReadOnlySpan<byte> content, string pwd, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7)
     {
-        var (Key, IV) = GetEesKey(pwd);
+        var (Key, IV) = GetDesKey(pwd);
         using var des = DES.Create();
         des.Key = Key;
         des.IV = IV;
@@ -112,7 +123,7 @@ public static class DesCrypt
     /// </param>
     public static byte[] Decrypt(ReadOnlySpan<byte> secret, string pwd, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7)
     {
-        var (Key, IV) = GetEesKey(pwd);
+        var (Key, IV) = GetDesKey(pwd);
         using var des = DES.Create();
         des.Key = Key;
         des.IV = IV;
@@ -124,4 +135,136 @@ public static class DesCrypt
         cs.FlushFinalBlock();
         return ms.ToArray();
     }
+
+    #region String Encryption/Decryption Convenience Methods
+
+    /// <summary>
+    ///     <para xml:lang="en">Encrypt string and return Base64 encoded result</para>
+    ///     <para xml:lang="zh">加密字符串并返回Base64编码结果</para>
+    /// </summary>
+    /// <param name="content">
+    ///     <para xml:lang="en">String to be encrypted</para>
+    ///     <para xml:lang="zh">待加密字符串</para>
+    /// </param>
+    /// <param name="pwd">
+    ///     <para xml:lang="en">Key</para>
+    ///     <para xml:lang="zh">密钥</para>
+    /// </param>
+    /// <param name="mode">
+    ///     <para xml:lang="en">Encryption mode</para>
+    ///     <para xml:lang="zh">加密模式</para>
+    /// </param>
+    /// <param name="padding">
+    ///     <para xml:lang="en">Padding mode</para>
+    ///     <para xml:lang="zh">填充模式</para>
+    /// </param>
+    /// <param name="encoding">
+    ///     <para xml:lang="en">Character encoding, default: UTF8</para>
+    ///     <para xml:lang="zh">字符编码,默认:UTF8</para>
+    /// </param>
+    public static string EncryptToBase64(string content, string pwd, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7, Encoding? encoding = null)
+    {
+        encoding ??= Encoding.UTF8;
+        var bytes = encoding.GetBytes(content);
+        var encrypted = Encrypt(bytes, pwd, mode, padding);
+        return Convert.ToBase64String(encrypted);
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Decrypt Base64 encoded string</para>
+    ///     <para xml:lang="zh">解密Base64编码的字符串</para>
+    /// </summary>
+    /// <param name="base64Content">
+    ///     <para xml:lang="en">Base64 encoded encrypted string</para>
+    ///     <para xml:lang="zh">Base64编码的加密字符串</para>
+    /// </param>
+    /// <param name="pwd">
+    ///     <para xml:lang="en">Key</para>
+    ///     <para xml:lang="zh">密钥</para>
+    /// </param>
+    /// <param name="mode">
+    ///     <para xml:lang="en">Encryption mode</para>
+    ///     <para xml:lang="zh">加密模式</para>
+    /// </param>
+    /// <param name="padding">
+    ///     <para xml:lang="en">Padding mode</para>
+    ///     <para xml:lang="zh">填充模式</para>
+    /// </param>
+    /// <param name="encoding">
+    ///     <para xml:lang="en">Character encoding, default: UTF8</para>
+    ///     <para xml:lang="zh">字符编码,默认:UTF8</para>
+    /// </param>
+    public static string DecryptFromBase64(string base64Content, string pwd, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7, Encoding? encoding = null)
+    {
+        encoding ??= Encoding.UTF8;
+        var bytes = Convert.FromBase64String(base64Content);
+        var decrypted = Decrypt(bytes, pwd, mode, padding);
+        return encoding.GetString(decrypted);
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Encrypt string and return hexadecimal result</para>
+    ///     <para xml:lang="zh">加密字符串并返回十六进制结果</para>
+    /// </summary>
+    /// <param name="content">
+    ///     <para xml:lang="en">String to be encrypted</para>
+    ///     <para xml:lang="zh">待加密字符串</para>
+    /// </param>
+    /// <param name="pwd">
+    ///     <para xml:lang="en">Key</para>
+    ///     <para xml:lang="zh">密钥</para>
+    /// </param>
+    /// <param name="mode">
+    ///     <para xml:lang="en">Encryption mode</para>
+    ///     <para xml:lang="zh">加密模式</para>
+    /// </param>
+    /// <param name="padding">
+    ///     <para xml:lang="en">Padding mode</para>
+    ///     <para xml:lang="zh">填充模式</para>
+    /// </param>
+    /// <param name="encoding">
+    ///     <para xml:lang="en">Character encoding, default: UTF8</para>
+    ///     <para xml:lang="zh">字符编码,默认:UTF8</para>
+    /// </param>
+    public static string EncryptToHex(string content, string pwd, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7, Encoding? encoding = null)
+    {
+        encoding ??= Encoding.UTF8;
+        var bytes = encoding.GetBytes(content);
+        var encrypted = Encrypt(bytes, pwd, mode, padding);
+        return Convert.ToHexString(encrypted);
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Decrypt hexadecimal encoded string</para>
+    ///     <para xml:lang="zh">解密十六进制编码的字符串</para>
+    /// </summary>
+    /// <param name="hexContent">
+    ///     <para xml:lang="en">Hexadecimal encoded encrypted string</para>
+    ///     <para xml:lang="zh">十六进制编码的加密字符串</para>
+    /// </param>
+    /// <param name="pwd">
+    ///     <para xml:lang="en">Key</para>
+    ///     <para xml:lang="zh">密钥</para>
+    /// </param>
+    /// <param name="mode">
+    ///     <para xml:lang="en">Encryption mode</para>
+    ///     <para xml:lang="zh">加密模式</para>
+    /// </param>
+    /// <param name="padding">
+    ///     <para xml:lang="en">Padding mode</para>
+    ///     <para xml:lang="zh">填充模式</para>
+    /// </param>
+    /// <param name="encoding">
+    ///     <para xml:lang="en">Character encoding, default: UTF8</para>
+    ///     <para xml:lang="zh">字符编码,默认:UTF8</para>
+    /// </param>
+    public static string DecryptFromHex(string hexContent, string pwd, CipherMode mode = CipherMode.CBC, PaddingMode padding = PaddingMode.PKCS7, Encoding? encoding = null)
+    {
+        encoding ??= Encoding.UTF8;
+        var bytes = Convert.FromHexString(hexContent);
+        var decrypted = Decrypt(bytes, pwd, mode, padding);
+        return encoding.GetString(decrypted);
+    }
+
+    #endregion
 }
