@@ -28,7 +28,8 @@ public static class RsaKeyConverter
     /// </param>
     public static string ToBase64PrivateKey(string xmlPrivate)
     {
-        using var rsa = new RSACryptoServiceProvider();
+        ArgumentException.ThrowIfNullOrWhiteSpace(xmlPrivate);
+        using var rsa = RSA.Create();
         rsa.FromXmlString(xmlPrivate);
         var param = rsa.ExportParameters(true);
         var privateKeyParam = new RsaPrivateCrtKeyParameters(new(1, param.Modulus), new(1, param.Exponent),
@@ -49,7 +50,8 @@ public static class RsaKeyConverter
     /// </param>
     public static string ToBase64PublicKey(string xmlPublic)
     {
-        using var rsa = new RSACryptoServiceProvider();
+        ArgumentException.ThrowIfNullOrWhiteSpace(xmlPublic);
+        using var rsa = RSA.Create();
         rsa.FromXmlString(xmlPublic);
         var p = rsa.ExportParameters(false);
         var keyParams = new RsaKeyParameters(false, new(1, p.Modulus), new(1, p.Exponent));
@@ -67,8 +69,9 @@ public static class RsaKeyConverter
     /// </param>
     public static string ToXmlPrivateKey(string base64Private)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(base64Private);
         var privateKeyParams = (RsaPrivateCrtKeyParameters)PrivateKeyFactory.CreateKey(Convert.FromBase64String(base64Private));
-        using var rsa = new RSACryptoServiceProvider();
+        using var rsa = RSA.Create();
         var rsaParams = new RSAParameters
         {
             Modulus = privateKeyParams.Modulus.ToByteArrayUnsigned(),
@@ -94,8 +97,9 @@ public static class RsaKeyConverter
     /// </param>
     public static string ToXmlPublicKey(string base64Public)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(base64Public);
         var p = (RsaKeyParameters)PublicKeyFactory.CreateKey(Convert.FromBase64String(base64Public));
-        using var rsa = new RSACryptoServiceProvider();
+        using var rsa = RSA.Create();
         var rsaParams = new RSAParameters
         {
             Modulus = p.Modulus.ToByteArrayUnsigned(),

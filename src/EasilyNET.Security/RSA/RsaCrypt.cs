@@ -22,13 +22,11 @@ public static class RsaCrypt
     /// </param>
     public static RsaSecretKey GenerateKey(int keySize)
     {
-        if (keySize is > 16384 or < 384 && keySize % 8 is not 0)
+        if (keySize is > 16384 or < 384 || keySize % 8 is not 0)
         {
             throw new ArgumentException("密钥的大小,必须384位到16384位,增量为8", nameof(keySize));
         }
-        using var rsa = new RSACryptoServiceProvider(keySize);
-        rsa.KeySize = keySize;
-        rsa.PersistKeyInCsp = false;
+        using var rsa = RSA.Create(keySize);
         return new()
         {
             PrivateKey = rsa.ToXmlString(true),
@@ -58,11 +56,20 @@ public static class RsaCrypt
     ///     <para xml:lang="en">Byte array to be encrypted</para>
     ///     <para xml:lang="zh">需要进行加密的字节数组</para>
     /// </param>
-    public static byte[] Encrypt(string xmlPublicKey, ReadOnlySpan<byte> content)
+    /// <param name="useOaep">
+    ///     <para xml:lang="en">Use OAEP padding (more secure, recommended)</para>
+    ///     <para xml:lang="zh">使用OAEP填充(更安全,推荐使用)</para>
+    /// </param>
+    public static byte[] Encrypt(string xmlPublicKey, ReadOnlySpan<byte> content, bool useOaep = true)
     {
-        using var rsa = new RSACryptoServiceProvider();
+        ArgumentException.ThrowIfNullOrWhiteSpace(xmlPublicKey);
+        if (content.Length is 0)
+        {
+            throw new ArgumentException("加密内容不能为空.", nameof(content));
+        }
+        using var rsa = RSA.Create();
         rsa.FromXmlString(xmlPublicKey);
-        return rsa.Encrypt(content.ToArray(), false);
+        return rsa.Encrypt(content.ToArray(), useOaep ? RSAEncryptionPadding.OaepSHA256 : RSAEncryptionPadding.Pkcs1);
     }
 
     /// <summary>
@@ -77,11 +84,20 @@ public static class RsaCrypt
     ///     <para xml:lang="en">Byte array to be decrypted</para>
     ///     <para xml:lang="zh">需要进行解密的字节数组</para>
     /// </param>
-    public static byte[] Decrypt(string xmlPrivateKey, ReadOnlySpan<byte> secret)
+    /// <param name="useOaep">
+    ///     <para xml:lang="en">Use OAEP padding (must match encryption setting)</para>
+    ///     <para xml:lang="zh">使用OAEP填充(必须与加密时的设置一致)</para>
+    /// </param>
+    public static byte[] Decrypt(string xmlPrivateKey, ReadOnlySpan<byte> secret, bool useOaep = true)
     {
-        using var rsa = new RSACryptoServiceProvider();
+        ArgumentException.ThrowIfNullOrWhiteSpace(xmlPrivateKey);
+        if (secret.Length is 0)
+        {
+            throw new ArgumentException("解密内容不能为空.", nameof(secret));
+        }
+        using var rsa = RSA.Create();
         rsa.FromXmlString(xmlPrivateKey);
-        return rsa.Decrypt(secret.ToArray(), false);
+        return rsa.Decrypt(secret.ToArray(), useOaep ? RSAEncryptionPadding.OaepSHA256 : RSAEncryptionPadding.Pkcs1);
     }
 
     /// <summary>
@@ -100,17 +116,23 @@ public static class RsaCrypt
     ///     <para xml:lang="en">Encrypted data</para>
     ///     <para xml:lang="zh">加密后的数据</para>
     /// </param>
-    public static void Encrypt(string xmlPublicKey, ReadOnlySpan<byte> content, out byte[] secret)
+    /// <param name="useOaep">
+    ///     <para xml:lang="en">Use OAEP padding (more secure, recommended)</para>
+    ///     <para xml:lang="zh">使用OAEP填充(更安全,推荐使用)</para>
+    /// </param>
+    public static void Encrypt(string xmlPublicKey, ReadOnlySpan<byte> content, out byte[] secret, bool useOaep = true)
     {
         if (content.Length is 0)
         {
-            throw new("加密字符串不能为空.");
+            throw new ArgumentException("加密字符串不能为空.", nameof(content));
         }
-        ArgumentException.ThrowIfNullOrEmpty(xmlPublicKey);
-        using var rsaProvider = new RSACryptoServiceProvider();
-        rsaProvider.FromXmlString(xmlPublicKey);          //载入公钥
-        var bufferSize = (rsaProvider.KeySize >> 3) - 11; //单块最大长度
+        ArgumentException.ThrowIfNullOrWhiteSpace(xmlPublicKey);
+        using var rsaProvider = RSA.Create();
+        rsaProvider.FromXmlString(xmlPublicKey); //载入公钥
+        // OAEP padding uses more space, so the buffer size is smaller
+        var bufferSize = useOaep ? (rsaProvider.KeySize >> 3) - 66 : (rsaProvider.KeySize >> 3) - 11; //单块最大长度
         var buffer = bufferSize <= 256 ? stackalloc byte[bufferSize] : new byte[bufferSize];
+        var padding = useOaep ? RSAEncryptionPadding.OaepSHA256 : RSAEncryptionPadding.Pkcs1;
         using MemoryStream ms = new(content.ToArray()), os = new();
         while (true)
         {
@@ -121,7 +143,7 @@ public static class RsaCrypt
                 break;
             }
             var temp = buffer[..readSize].ToArray();
-            var encryptedBytes = rsaProvider.Encrypt(temp, false);
+            var encryptedBytes = rsaProvider.Encrypt(temp, padding);
             os.Write(encryptedBytes, 0, encryptedBytes.Length);
         }
         secret = os.ToArray(); //转化为字节流方便传输
@@ -143,17 +165,22 @@ public static class RsaCrypt
     ///     <para xml:lang="en">Decrypted data</para>
     ///     <para xml:lang="zh">解密后的数据</para>
     /// </param>
-    public static void Decrypt(string xmlPrivateKey, ReadOnlySpan<byte> secret, out byte[] context)
+    /// <param name="useOaep">
+    ///     <para xml:lang="en">Use OAEP padding (must match encryption setting)</para>
+    ///     <para xml:lang="zh">使用OAEP填充(必须与加密时的设置一致)</para>
+    /// </param>
+    public static void Decrypt(string xmlPrivateKey, ReadOnlySpan<byte> secret, out byte[] context, bool useOaep = true)
     {
         if (secret.Length is 0)
         {
-            throw new("解密字符串不能为空.");
+            throw new ArgumentException("解密字符串不能为空.", nameof(secret));
         }
-        ArgumentException.ThrowIfNullOrEmpty(xmlPrivateKey);
-        using var rsaProvider = new RSACryptoServiceProvider();
+        ArgumentException.ThrowIfNullOrWhiteSpace(xmlPrivateKey);
+        using var rsaProvider = RSA.Create();
         rsaProvider.FromXmlString(xmlPrivateKey);
         var bufferSize = rsaProvider.KeySize >> 3;
         var buffer = bufferSize <= 256 ? stackalloc byte[bufferSize] : new byte[bufferSize];
+        var padding = useOaep ? RSAEncryptionPadding.OaepSHA256 : RSAEncryptionPadding.Pkcs1;
         using MemoryStream ms = new(secret.ToArray()), os = new();
         while (true)
         {
@@ -163,7 +190,7 @@ public static class RsaCrypt
                 break;
             }
             var temp = buffer[..readSize].ToArray();
-            var rawBytes = rsaProvider.Decrypt(temp, false);
+            var rawBytes = rsaProvider.Decrypt(temp, padding);
             os.Write(rawBytes, 0, rawBytes.Length);
         }
         context = os.ToArray();
@@ -180,12 +207,105 @@ public static class RsaCrypt
     public static string GetFileSHA256(FileStream objFile)
     {
         ArgumentNullException.ThrowIfNull(objFile);
-        using var stream = new MemoryStream();
-        objFile.CopyTo(stream);
-        var bytes = stream.ToArray();
-        var array = SHA256.HashData(bytes);
-        objFile.Close();
+        if (!objFile.CanRead)
+        {
+            throw new ArgumentException("文件流不可读.", nameof(objFile));
+        }
+        var originalPosition = objFile.Position;
+        objFile.Position = 0;
+        var array = SHA256.HashData(objFile);
+        objFile.Position = originalPosition; // 恢复原始位置
         return Convert.ToHexString(array);
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Get SHA256 hash from file asynchronously</para>
+    ///     <para xml:lang="zh">异步从文件中取得SHA256描述信息</para>
+    /// </summary>
+    /// <param name="objFile">
+    ///     <para xml:lang="en">File stream</para>
+    ///     <para xml:lang="zh">文件流</para>
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     <para xml:lang="en">Cancellation token</para>
+    ///     <para xml:lang="zh">取消令牌</para>
+    /// </param>
+    public static async Task<string> GetFileSHA256Async(FileStream objFile, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(objFile);
+        if (!objFile.CanRead)
+        {
+            throw new ArgumentException("文件流不可读.", nameof(objFile));
+        }
+        var originalPosition = objFile.Position;
+        objFile.Position = 0;
+        var array = await SHA256.HashDataAsync(objFile, cancellationToken);
+        objFile.Position = originalPosition; // 恢复原始位置
+        return Convert.ToHexString(array);
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Export RSA private key to PEM format</para>
+    ///     <para xml:lang="zh">导出RSA私钥到PEM格式</para>
+    /// </summary>
+    /// <param name="xmlPrivateKey">
+    ///     <para xml:lang="en">XML private key</para>
+    ///     <para xml:lang="zh">XML私钥</para>
+    /// </param>
+    public static string ExportPrivateKeyToPem(string xmlPrivateKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(xmlPrivateKey);
+        using var rsa = RSA.Create();
+        rsa.FromXmlString(xmlPrivateKey);
+        return rsa.ExportRSAPrivateKeyPem();
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Export RSA public key to PEM format</para>
+    ///     <para xml:lang="zh">导出RSA公钥到PEM格式</para>
+    /// </summary>
+    /// <param name="xmlPublicKey">
+    ///     <para xml:lang="en">XML public key</para>
+    ///     <para xml:lang="zh">XML公钥</para>
+    /// </param>
+    public static string ExportPublicKeyToPem(string xmlPublicKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(xmlPublicKey);
+        using var rsa = RSA.Create();
+        rsa.FromXmlString(xmlPublicKey);
+        return rsa.ExportRSAPublicKeyPem();
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Import RSA private key from PEM format</para>
+    ///     <para xml:lang="zh">从PEM格式导入RSA私钥</para>
+    /// </summary>
+    /// <param name="pemPrivateKey">
+    ///     <para xml:lang="en">PEM private key</para>
+    ///     <para xml:lang="zh">PEM私钥</para>
+    /// </param>
+    public static string ImportPrivateKeyFromPem(string pemPrivateKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(pemPrivateKey);
+        using var rsa = RSA.Create();
+        rsa.ImportFromPem(pemPrivateKey);
+        return rsa.ToXmlString(true);
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Import RSA public key from PEM format</para>
+    ///     <para xml:lang="zh">从PEM格式导入RSA公钥</para>
+    /// </summary>
+    /// <param name="pemPublicKey">
+    ///     <para xml:lang="en">PEM public key</para>
+    ///     <para xml:lang="zh">PEM公钥</para>
+    /// </param>
+    public static string ImportPublicKeyFromPem(string pemPublicKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(pemPublicKey);
+        using var rsa = RSA.Create();
+        rsa.ImportFromPem(pemPublicKey);
+        return rsa.ToXmlString(false);
     }
 
     #region RSA签名与签名验证
@@ -204,13 +324,16 @@ public static class RsaCrypt
     /// </param>
     public static byte[] Signature(string xmlPrivateKey, ReadOnlySpan<byte> context)
     {
-        using var rsa = new RSACryptoServiceProvider();
+        ArgumentException.ThrowIfNullOrWhiteSpace(xmlPrivateKey);
+        if (context.Length is 0)
+        {
+            throw new ArgumentException("签名数据不能为空.", nameof(context));
+        }
+        using var rsa = RSA.Create();
         rsa.FromXmlString(xmlPrivateKey);
-        var RSAFormatter = new RSAPKCS1SignatureFormatter(rsa);
-        //设置签名的算法为SHA256
-        RSAFormatter.SetHashAlgorithm("SHA256");
-        //执行签名 
-        return RSAFormatter.CreateSignature(context.ToArray());
+        // 对数据进行SHA256哈希后再签名
+        var hash = SHA256.HashData(context);
+        return rsa.SignHash(hash, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
     }
 
     /// <summary>
@@ -222,8 +345,8 @@ public static class RsaCrypt
     ///     <para xml:lang="zh">当前RSA对象的密匙XML字符串(不包括专用参数)--公钥</para>
     /// </param>
     /// <param name="secret">
-    ///     <para xml:lang="en">Data signed with RSA (hash string, e.g., MD5 or SHA256, this library uses SHA256)</para>
-    ///     <para xml:lang="zh">用RSA签名的数据[俗称:Hash描述字符串,即:MD5或者SHA256这种.本库使用SHA256]</para>
+    ///     <para xml:lang="en">Original data (will be hashed with SHA256)</para>
+    ///     <para xml:lang="zh">原始数据(将使用SHA256进行哈希)</para>
     /// </param>
     /// <param name="signature">
     ///     <para xml:lang="en">Signature to be verified</para>
@@ -231,12 +354,20 @@ public static class RsaCrypt
     /// </param>
     public static bool Verification(string xmlPublicKey, ReadOnlySpan<byte> secret, ReadOnlySpan<byte> signature)
     {
-        using var rsa = new RSACryptoServiceProvider();
+        ArgumentException.ThrowIfNullOrWhiteSpace(xmlPublicKey);
+        if (secret.Length is 0)
+        {
+            throw new ArgumentException("验证数据不能为空.", nameof(secret));
+        }
+        if (signature.Length is 0)
+        {
+            throw new ArgumentException("签名不能为空.", nameof(signature));
+        }
+        using var rsa = RSA.Create();
         rsa.FromXmlString(xmlPublicKey);
-        var formatter = new RSAPKCS1SignatureDeformatter(rsa);
-        //指定解密的时候HASH算法为SHA256
-        formatter.SetHashAlgorithm("SHA256");
-        return formatter.VerifySignature(secret.ToArray(), signature.ToArray());
+        // 对数据进行SHA256哈希
+        var hash = SHA256.HashData(secret);
+        return rsa.VerifyHash(hash, signature.ToArray(), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
     }
 
     #endregion
