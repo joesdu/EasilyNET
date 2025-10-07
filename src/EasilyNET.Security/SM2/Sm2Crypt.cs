@@ -6,6 +6,7 @@ using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Signers;
+using Org.BouncyCastle.Security;
 using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
 
 // ReSharper disable MemberCanBePrivate.Global
@@ -37,10 +38,21 @@ public static class Sm2Crypt
     public static void GenerateKey(out byte[] publicKey, out byte[] privateKey)
     {
         var g = new ECKeyPairGenerator();
-        g.Init(new ECKeyGenerationParameters(new ECDomainParameters(x9), new()));
+        var random = new SecureRandom();
+        g.Init(new ECKeyGenerationParameters(new ECDomainParameters(x9), random));
         var k = g.GenerateKeyPair();
         publicKey = ((ECPublicKeyParameters)k.Public).Q.GetEncoded(false);
-        privateKey = ((ECPrivateKeyParameters)k.Private).D.ToByteArray();
+        // 确保私钥字节数组长度为 32 字节,不包含符号位
+        var d = ((ECPrivateKeyParameters)k.Private).D;
+        privateKey = d.ToByteArrayUnsigned();
+        // SM2 私钥应该是 32 字节,如果不足需要补齐
+        if (privateKey.Length >= 32)
+        {
+            return;
+        }
+        var temp = new byte[32];
+        Array.Copy(privateKey, 0, temp, 32 - privateKey.Length, privateKey.Length);
+        privateKey = temp;
     }
 
     /// <summary>
@@ -55,21 +67,28 @@ public static class Sm2Crypt
     ///     <para xml:lang="en">Data to be encrypted</para>
     ///     <para xml:lang="zh">需要加密的数据</para>
     /// </param>
-    /// <param name="model">
-    ///     <para xml:lang="en">Mode</para>
-    ///     <para xml:lang="zh">模式</para>
-    /// </param>
     /// <param name="userId">
     ///     <para xml:lang="en">User ID</para>
     ///     <para xml:lang="zh">用户ID</para>
     /// </param>
+    /// <param name="model">
+    ///     <para xml:lang="en">Mode</para>
+    ///     <para xml:lang="zh">模式</para>
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     <para xml:lang="en">Thrown when publicKey or data is null</para>
+    ///     <para xml:lang="zh">当 publicKey 或 data 为 null 时抛出</para>
+    /// </exception>
     public static byte[] Encrypt(byte[] publicKey, byte[] data, byte[]? userId = null, Mode model = Mode.C1C3C2)
     {
+        ArgumentNullException.ThrowIfNull(publicKey);
+        ArgumentNullException.ThrowIfNull(data);
         var sm2 = new SM2Engine(new SM3Digest(), Mode.C1C3C2);
-        ICipherParameters cp = new ParametersWithRandom(new ECPublicKeyParameters(x9.Curve.DecodePoint(publicKey), new(x9)));
+        var ecParams = new ECPublicKeyParameters(x9.Curve.DecodePoint(publicKey), new(x9));
+        ICipherParameters cp = new ParametersWithRandom(ecParams);
         if (userId is not null)
         {
-            cp = new ParametersWithID(cp, userId);
+            cp = new ParametersWithID(new ParametersWithRandom(ecParams), userId);
         }
         sm2.Init(true, cp);
         data = sm2.ProcessBlock(data, 0, data.Length);
@@ -92,25 +111,33 @@ public static class Sm2Crypt
     ///     <para xml:lang="en">Data to be decrypted</para>
     ///     <para xml:lang="zh">需要解密的数据</para>
     /// </param>
-    /// <param name="model">
-    ///     <para xml:lang="en">Mode</para>
-    ///     <para xml:lang="zh">模式</para>
-    /// </param>
     /// <param name="userId">
     ///     <para xml:lang="en">User ID</para>
     ///     <para xml:lang="zh">用户ID</para>
     /// </param>
+    /// <param name="model">
+    ///     <para xml:lang="en">Mode</para>
+    ///     <para xml:lang="zh">模式</para>
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     <para xml:lang="en">Thrown when privateKey or data is null</para>
+    ///     <para xml:lang="zh">当 privateKey 或 data 为 null 时抛出</para>
+    /// </exception>
     public static byte[] Decrypt(byte[] privateKey, byte[] data, byte[]? userId = null, Mode model = Mode.C1C3C2)
     {
+        ArgumentNullException.ThrowIfNull(privateKey);
+        ArgumentNullException.ThrowIfNull(data);
         if (model == Mode.C1C2C3)
         {
             data = C123ToC132(data);
         }
         var sm2 = new SM2Engine(new SM3Digest(), Mode.C1C3C2);
-        ICipherParameters cp = new ECPrivateKeyParameters(new(1, privateKey), new(x9));
+        // 使用正的符号位创建 BigInteger,1 表示正数
+        var ecParams = new ECPrivateKeyParameters(new(1, privateKey), new(x9));
+        ICipherParameters cp = ecParams;
         if (userId is not null)
         {
-            cp = new ParametersWithID(cp, userId);
+            cp = new ParametersWithID(ecParams, userId);
         }
         sm2.Init(false, cp);
         return sm2.ProcessBlock(data, 0, data.Length);
@@ -132,11 +159,18 @@ public static class Sm2Crypt
     ///     <para xml:lang="en">User ID</para>
     ///     <para xml:lang="zh">用户ID</para>
     /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     <para xml:lang="en">Thrown when privateKey or msg is null</para>
+    ///     <para xml:lang="zh">当 privateKey 或 msg 为 null 时抛出</para>
+    /// </exception>
     public static byte[] Signature(byte[] privateKey, byte[] msg, byte[]? userId = null)
     {
+        ArgumentNullException.ThrowIfNull(privateKey);
+        ArgumentNullException.ThrowIfNull(msg);
         var sm2 = new SM2Signer(new SM3Digest());
         // var sm2 = new SM2Signer(StandardDsaEncoding.Instance, new SM3Digest());
         // var sm2 = new SM2Signer(PlainDsaEncoding.Instance, new SM3Digest());
+        // 使用正的符号位创建 BigInteger,1 表示正数
         ICipherParameters cp = new ParametersWithRandom(new ECPrivateKeyParameters(new(1, privateKey), new(x9)));
         if (userId is not null)
         {
@@ -167,8 +201,15 @@ public static class Sm2Crypt
     ///     <para xml:lang="en">User ID</para>
     ///     <para xml:lang="zh">用户ID</para>
     /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     <para xml:lang="en">Thrown when publicKey, msg, or signature is null</para>
+    ///     <para xml:lang="zh">当 publicKey、msg 或 signature 为 null 时抛出</para>
+    /// </exception>
     public static bool Verify(byte[] publicKey, byte[] msg, byte[] signature, byte[]? userId = null)
     {
+        ArgumentNullException.ThrowIfNull(publicKey);
+        ArgumentNullException.ThrowIfNull(msg);
+        ArgumentNullException.ThrowIfNull(signature);
         var sm2 = new SM2Signer(new SM3Digest());
         ICipherParameters cp = new ECPublicKeyParameters(x9.Curve.DecodePoint(publicKey), new(x9));
         if (userId is not null)
