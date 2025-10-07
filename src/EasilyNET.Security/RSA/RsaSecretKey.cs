@@ -67,7 +67,7 @@ public readonly struct RsaSecretKey(string privateKey, string publicKey)
          -----BEGIN RSA PEM PRIVATE KEY-----
          {RsaCrypt.ExportPrivateKeyToPem(PrivateKey)}
          -----END RSA PEM PRIVATE KEY-----
-         
+
          -----BEGIN RSA PEM PUBLIC KEY-----
          {RsaCrypt.ExportPublicKeyToPem(PublicKey)}
          -----END RSA PEM PUBLIC KEY-----
@@ -97,8 +97,5 @@ public readonly struct RsaSecretKey(string privateKey, string publicKey)
     ///     <para xml:lang="en">PEM format public key</para>
     ///     <para xml:lang="zh">PEM格式公钥</para>
     /// </param>
-    public static RsaSecretKey FromPem(string pemPrivateKey, string pemPublicKey)
-    {
-        return new RsaSecretKey(RsaCrypt.ImportPrivateKeyFromPem(pemPrivateKey), RsaCrypt.ImportPublicKeyFromPem(pemPublicKey));
-    }
+    public static RsaSecretKey FromPem(string pemPrivateKey, string pemPublicKey) => new(RsaCrypt.ImportPrivateKeyFromPem(pemPrivateKey), RsaCrypt.ImportPublicKeyFromPem(pemPublicKey));
 }
