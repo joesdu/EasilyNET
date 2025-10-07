@@ -18,8 +18,8 @@ namespace EasilyNET.Security;
 public static class Sm3Signature
 {
     /// <summary>
-    ///     <para xml:lang="en">Gets the SM3 signature of a string (alias for Crypt)</para>
-    ///     <para xml:lang="zh">获取字符串的SM3签名(Crypt的别名)</para>
+    ///     <para xml:lang="en">Gets the SM3 hash of a string (alias for Crypt)</para>
+    ///     <para xml:lang="zh">获取字符串的SM3哈希(Crypt的别名)</para>
     /// </summary>
     /// <param name="data">
     ///     <para xml:lang="en">The input string</para>
@@ -29,16 +29,16 @@ public static class Sm3Signature
     ///     <para xml:lang="en">The SM3 hash as a byte array (32 bytes)</para>
     ///     <para xml:lang="zh">SM3哈希值的字节数组(32字节)</para>
     /// </returns>
-    public static byte[] Signature(string data)
+    public static byte[] Hash(string data)
     {
         ArgumentException.ThrowIfNullOrEmpty(data);
         var msg = Encoding.UTF8.GetBytes(data);
-        return Signature(msg);
+        return Hash(msg);
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Gets the SM3 signature of a byte array (alias for Crypt)</para>
-    ///     <para xml:lang="zh">获取字节数组的SM3签名(Crypt的别名)</para>
+    ///     <para xml:lang="en">Gets the SM3 hash of a byte array (alias for Crypt)</para>
+    ///     <para xml:lang="zh">获取字节数组的SM3哈希(Crypt的别名)</para>
     /// </summary>
     /// <param name="data">
     ///     <para xml:lang="en">The input byte array</para>
@@ -48,7 +48,7 @@ public static class Sm3Signature
     ///     <para xml:lang="en">The SM3 hash as a byte array (32 bytes)</para>
     ///     <para xml:lang="zh">SM3哈希值的字节数组(32字节)</para>
     /// </returns>
-    public static byte[] Signature(ReadOnlySpan<byte> data)
+    public static byte[] Hash(ReadOnlySpan<byte> data)
     {
         Span<byte> md = stackalloc byte[32];
         var sm3 = new SM3Digest();
@@ -73,9 +73,9 @@ public static class Sm3Signature
     ///     <para xml:lang="en">The SM3 hash as a hexadecimal string (64 characters)</para>
     ///     <para xml:lang="zh">SM3哈希值的十六进制字符串(64个字符)</para>
     /// </returns>
-    public static string SignatureToHex(string data, bool upperCase = false)
+    public static string HashToHex(string data, bool upperCase = false)
     {
-        var hash = Signature(data);
+        var hash = Hash(data);
         var hex = Convert.ToHexString(hash);
         return upperCase ? hex : hex.ToLowerInvariant();
     }
@@ -96,9 +96,9 @@ public static class Sm3Signature
     ///     <para xml:lang="en">The SM3 hash as a hexadecimal string (64 characters)</para>
     ///     <para xml:lang="zh">SM3哈希值的十六进制字符串(64个字符)</para>
     /// </returns>
-    public static string SignatureToHex(ReadOnlySpan<byte> data, bool upperCase = false)
+    public static string HashToHex(ReadOnlySpan<byte> data, bool upperCase = false)
     {
-        var hash = Signature(data);
+        var hash = Hash(data);
         var hex = Convert.ToHexString(hash);
         return upperCase ? hex : hex.ToLowerInvariant();
     }
@@ -115,9 +115,9 @@ public static class Sm3Signature
     ///     <para xml:lang="en">The SM3 hash as a Base64 string</para>
     ///     <para xml:lang="zh">SM3哈希值的Base64字符串</para>
     /// </returns>
-    public static string SignatureToBase64(string data)
+    public static string HashToBase64(string data)
     {
-        var hash = Signature(data);
+        var hash = Hash(data);
         return Convert.ToBase64String(hash);
     }
 
@@ -133,9 +133,9 @@ public static class Sm3Signature
     ///     <para xml:lang="en">The SM3 hash as a Base64 string</para>
     ///     <para xml:lang="zh">SM3哈希值的Base64字符串</para>
     /// </returns>
-    public static string SignatureToBase64(ReadOnlySpan<byte> data)
+    public static string HashToBase64(ReadOnlySpan<byte> data)
     {
-        var hash = Signature(data);
+        var hash = Hash(data);
         return Convert.ToBase64String(hash);
     }
 }
