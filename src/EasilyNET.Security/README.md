@@ -95,15 +95,15 @@ private const string data = "Microsoft";
 public void SM3HexString()
 {
     // 方法1: 使用便捷方法直接获取十六进制字符串(小写)
-    var hex = Sm3Crypt.SignatureToHex(data);
+    var hex = Sm3Signature.SignatureToHex(data);
     hex.Should().Be("1749ce3e4ef7622f1ebabb52078ec86309cabd5a6073c8a0711bf35e19ba51b8");
 
     // 方法2: 使用便捷方法获取大写十六进制字符串
-    var hexUpper = Sm3Crypt.SignatureToHex(data, upperCase: true);
+    var hexUpper = Sm3Signature.SignatureToHex(data, upperCase: true);
     hexUpper.Should().Be("1749CE3E4EF7622F1EBABB52078EC86309CABD5A6073C8A0711BF35E19BA51B8");
 
     // 方法3: 传统方式 - 先获取字节数组再转换
-    var byte_data = Sm3Crypt.Signature(data);
+    var byte_data = Sm3Signature.Signature(data);
     var hex2 = Convert.ToHexString(byte_data);
     hex2.ToUpper().Should().Be("1749CE3E4EF7622F1EBABB52078EC86309CABD5A6073C8A0711BF35E19BA51B8");
 }
