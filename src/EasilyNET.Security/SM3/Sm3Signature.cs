@@ -18,8 +18,8 @@ namespace EasilyNET.Security;
 public static class Sm3Signature
 {
     /// <summary>
-    ///     <para xml:lang="en">Gets the SM3 hash of a string (alias for Crypt)</para>
-    ///     <para xml:lang="zh">获取字符串的SM3哈希(Crypt的别名)</para>
+    ///     <para xml:lang="en">Gets the SM3 hash of a string</para>
+    ///     <para xml:lang="zh">获取字符串的SM3哈希</para>
     /// </summary>
     /// <param name="data">
     ///     <para xml:lang="en">The input string</para>
@@ -37,8 +37,8 @@ public static class Sm3Signature
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Gets the SM3 hash of a byte array (alias for Crypt)</para>
-    ///     <para xml:lang="zh">获取字节数组的SM3哈希(Crypt的别名)</para>
+    ///     <para xml:lang="en">Gets the SM3 hash of a byte array</para>
+    ///     <para xml:lang="zh">获取字节数组的SM3哈希</para>
     /// </summary>
     /// <param name="data">
     ///     <para xml:lang="en">The input byte array</para>
