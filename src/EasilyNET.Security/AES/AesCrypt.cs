@@ -90,7 +90,7 @@ public static class AesCrypt
                 break;
             }
             default:
-                throw new ArgumentException($"不支持的AES密钥模式: {model}", nameof(model));
+                throw new ArgumentException($"Unsupported AES key mode: {model} (不支持的AES密钥模式)", nameof(model));
         }
         KeyCache[cacheKey] = (key, iv);
         return (key, iv);
