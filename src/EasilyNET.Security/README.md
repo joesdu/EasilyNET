@@ -87,25 +87,55 @@ public void RsaEncryptAndDecrypt()
 ###### SM3
 
 ```csharp
- private const string data = "Microsoft";
+private const string data = "Microsoft";
 
 /// <summary>
-/// SM3测试16进制字符串格式
+/// SM3测试 - 直接返回16进制字符串
 /// </summary>
 public void SM3HexString()
 {
-    var byte_data = Sm3Crypt.Crypt(data);
-    var hex = byte_data.ToHex();
-    hex.ToUpper().Should().Be("1749CE3E4EF7622F1EBABB52078EC86309CABD5A6073C8A0711BF35E19BA51B8");
+    // 方法1: 使用便捷方法直接获取十六进制字符串(小写)
+    var hex = Sm3Crypt.SignatureToHex(data);
+    hex.Should().Be("1749ce3e4ef7622f1ebabb52078ec86309cabd5a6073c8a0711bf35e19ba51b8");
+
+    // 方法2: 使用便捷方法获取大写十六进制字符串
+    var hexUpper = Sm3Crypt.SignatureToHex(data, upperCase: true);
+    hexUpper.Should().Be("1749CE3E4EF7622F1EBABB52078EC86309CABD5A6073C8A0711BF35E19BA51B8");
+
+    // 方法3: 传统方式 - 先获取字节数组再转换
+    var byte_data = Sm3Crypt.Signature(data);
+    var hex2 = Convert.ToHexString(byte_data);
+    hex2.ToUpper().Should().Be("1749CE3E4EF7622F1EBABB52078EC86309CABD5A6073C8A0711BF35E19BA51B8");
 }
 
 /// <summary>
-/// SM3测试Base64字符串格式
+/// SM3测试 - 直接返回Base64字符串
 /// </summary>
 public void SM3Base64()
 {
-    var byte_data = Sm3Crypt.Crypt(data);
-    var base64 = byte_data.ToBase64();
+    // 方法1: 使用便捷方法直接获取Base64字符串
+    var base64 = Sm3Crypt.SignatureToBase64(data);
+    base64.ToUpper().Should().Be("F0NOPK73YI8EURTSB47IYWNKVVPGC8IGCRVZXHM6UBG=");
+
+    // 方法2: 传统方式 - 先获取字节数组再转换
+    var byte_data = Sm3Crypt.Signature(data);
+    var base64_2 = Convert.ToBase64String(byte_data);
+    base64_2.ToUpper().Should().Be("F0NOPK73YI8EURTSB47IYWNKVVPGC8IGCRVZXHM6UBG=");
+}
+
+/// <summary>
+/// SM3测试 - 对字节数组进行哈希
+/// </summary>
+public void SM3FromByteArray()
+{
+    var inputBytes = Encoding.UTF8.GetBytes(data);
+
+    // 直接获取十六进制字符串
+    var hex = Sm3Crypt.SignatureToHex(inputBytes, upperCase: true);
+    hex.Should().Be("1749CE3E4EF7622F1EBABB52078EC86309CABD5A6073C8A0711BF35E19BA51B8");
+
+    // 直接获取Base64字符串
+    var base64 = Sm3Crypt.SignatureToBase64(inputBytes);
     base64.ToUpper().Should().Be("F0NOPK73YI8EURTSB47IYWNKVVPGC8IGCRVZXHM6UBG=");
 }
 ```
