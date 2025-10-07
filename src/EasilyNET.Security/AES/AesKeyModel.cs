@@ -12,6 +12,11 @@ public enum AesKeyModel
     AES128,
 
     /// <summary>
+    /// AES192
+    /// </summary>
+    AES192,
+
+    /// <summary>
     /// AES256
     /// </summary>
     AES256
