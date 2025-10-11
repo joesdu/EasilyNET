@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 // ReSharper disable CollectionNeverUpdated.Global
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 
-namespace WebApi.Test.Unit;
+namespace WebApi.Test.Unit.dtos;
 
 /// <summary>
 /// 上传文件的基本信息

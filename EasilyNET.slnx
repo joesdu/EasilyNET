@@ -35,7 +35,6 @@
     </Folder>
     <Folder Name="/src/Core/">
         <Project Path="src/EasilyNET.Core/EasilyNET.Core.csproj" />
-        <Project Path="src/EasilyNET.WebCore.Swagger/EasilyNET.WebCore.Swagger.csproj" />
         <Project Path="src/EasilyNET.WebCore/EasilyNET.WebCore.csproj" />
     </Folder>
     <Folder Name="/src/Framework/">

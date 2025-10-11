@@ -1,7 +1,9 @@
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable ClassNeverInstantiated.Global
 
-namespace EasilyNET.Core.Attributes;
+using EasilyNET.Core.Attributes;
+
+namespace WebApi.Test.Unit.Swaggers.Attributes;
 
 /// <summary>
 ///     <para xml:lang="en">This attribute can be used to group controllers in Swagger documentation.</para>

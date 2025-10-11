@@ -1,4 +1,4 @@
-namespace WebApi.Test.Unit;
+namespace WebApi.Test.Unit.Domain;
 
 /// <summary>
 /// Test2

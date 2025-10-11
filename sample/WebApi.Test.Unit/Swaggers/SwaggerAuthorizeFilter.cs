@@ -4,7 +4,7 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.WebCore.Swagger.SwaggerFilters;
+namespace WebApi.Test.Unit.Swaggers;
 
 /// <summary>
 ///     <para xml:lang="en">Add 🔒 to interfaces that require Authorize in Swagger documentation</para>

@@ -1,4 +1,4 @@
-namespace WebApi.Test.Unit;
+namespace WebApi.Test.Unit.dtos;
 
 /// <summary>
 /// 用来记录文件信息的实体.

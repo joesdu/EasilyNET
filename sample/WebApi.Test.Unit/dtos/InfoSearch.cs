@@ -3,7 +3,7 @@
 
 using EasilyNET.Core;
 
-namespace WebApi.Test.Unit;
+namespace WebApi.Test.Unit.dtos;
 
 /// <summary>
 /// 文件信息查询实体

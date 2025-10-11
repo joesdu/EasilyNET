@@ -1,7 +1,7 @@
-using EasilyNET.Core.Attributes;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Test.Unit.Events;
+using WebApi.Test.Unit.Swaggers.Attributes;
 
 namespace WebApi.Test.Unit.Controllers;
 

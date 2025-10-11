@@ -1,10 +1,11 @@
 using System.Collections.Concurrent;
 using EasilyNET.Core;
-using EasilyNET.Core.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
+using WebApi.Test.Unit.dtos;
+using WebApi.Test.Unit.Swaggers.Attributes;
 
 // ReSharper disable UnusedMemberHierarchy.Global
 // ReSharper disable VirtualMemberNeverOverridden.Global
