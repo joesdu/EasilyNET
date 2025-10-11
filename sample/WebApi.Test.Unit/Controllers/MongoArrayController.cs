@@ -1,4 +1,3 @@
-using EasilyNET.Core.Attributes;
 using EasilyNET.Core.Enums;
 using EasilyNET.Core.Misc;
 using EasilyNET.Mongo.Core;
@@ -7,6 +6,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using WebApi.Test.Unit.Domain;
+using WebApi.Test.Unit.Swaggers.Attributes;
 
 namespace WebApi.Test.Unit.Controllers;
 

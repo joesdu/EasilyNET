@@ -1,5 +1,7 @@
 ### EasilyNET.WebCore.Swagger
 
+**不再单独发 Nuget 包,合并到 WebApi 项目中.之前的 Nuget 包依旧可用**
+
 将 Swagger 的扩展独立出来,避免 WebCore 的过度依赖.
 
 - 新增 Swagger 页面参数忽略.比如某些默认参数不需要调用者传入,并且也不希望他看见

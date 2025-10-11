@@ -1,12 +1,11 @@
 using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Reflection;
-using EasilyNET.Core.Attributes;
 using EasilyNET.Core.Misc;
-using EasilyNET.WebCore.Swagger.SwaggerFilters;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using WebApi.Test.Unit.Swaggers;
+using WebApi.Test.Unit.Swaggers.Attributes;
 
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global

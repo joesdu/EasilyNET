@@ -3,7 +3,7 @@ using EasilyNET.Mongo.Core.Attributes;
 using EasilyNET.Mongo.Core.Enums;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace WebApi.Test.Unit;
+namespace WebApi.Test.Unit.Domain;
 
 /// <summary>
 /// Mongo测试数据类型

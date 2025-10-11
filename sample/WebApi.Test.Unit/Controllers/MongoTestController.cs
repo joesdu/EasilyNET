@@ -1,12 +1,12 @@
 using System.ComponentModel;
 using System.Text.Json.Nodes;
-using EasilyNET.Core.Attributes;
 using EasilyNET.Core.Enums;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using WebApi.Test.Unit.Domain;
+using WebApi.Test.Unit.Swaggers.Attributes;
 
 namespace WebApi.Test.Unit.Controllers;
 

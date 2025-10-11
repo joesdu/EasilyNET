@@ -1,4 +1,6 @@
-namespace EasilyNET.Core.Attributes;
+using EasilyNET.Core.Attributes;
+
+namespace WebApi.Test.Unit.Swaggers.Attributes;
 
 /// <summary>
 ///     <para xml:lang="en">This attribute can be used to hide actions or controllers in Swagger documentation.</para>

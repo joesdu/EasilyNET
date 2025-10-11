@@ -1,11 +1,11 @@
 using System.Reflection;
-using EasilyNET.Core.Attributes;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using WebApi.Test.Unit.Swaggers.Attributes;
 
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.WebCore.Swagger.SwaggerFilters;
+namespace WebApi.Test.Unit.Swaggers;
 
 /// <summary>
 ///     <para xml:lang="en">Hide APIs in Swagger documentation</para>

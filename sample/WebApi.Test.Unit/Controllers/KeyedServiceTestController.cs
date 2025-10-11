@@ -1,6 +1,6 @@
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
-using EasilyNET.Core.Attributes;
 using Microsoft.AspNetCore.Mvc;
+using WebApi.Test.Unit.Swaggers.Attributes;
 
 // ReSharper disable ClassNeverInstantiated.Global
 
