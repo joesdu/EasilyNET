@@ -1,7 +1,4 @@
-using EasilyNET.Core;
-using Shouldly;
-
-namespace EasilyNET.Tests.Unit;
+namespace EasilyNET.Test.Unit.PageResult;
 
 /// <summary>
 /// 分页返回测试
@@ -20,11 +17,11 @@ public class PageResultTests
         var list = new List<int> { 1, 2, 3 };
 
         // Act
-        var result = PageResult.Wrap(total, list);
+        var result = Core.PageResult.Wrap(total, list);
 
         // Assert
-        result.Total.ShouldBe(total);
-        result.List.ShouldBeEquivalentTo(list);
+        Assert.AreEqual(total, result.Total);
+        Assert.AreEqual(list, result.List);
     }
 
     /// <summary>
@@ -38,11 +35,11 @@ public class PageResultTests
         var list = new List<dynamic> { 1, "hello", true };
 
         // Act
-        var result = PageResult.WrapDynamic(total, list);
+        var result = Core.PageResult.WrapDynamic(total, list);
 
         // Assert
-        result.Total.ShouldBe(total);
-        result.List.ShouldBeEquivalentTo(list);
+        Assert.AreEqual(total, result.Total);
+        Assert.AreEqual(list, result.List);
     }
 
     /// <summary>
@@ -56,11 +53,11 @@ public class PageResultTests
         long? total = null;
 
         // Act
-        var result = PageResult.Wrap(total, list);
+        var result = Core.PageResult.Wrap(total, list);
 
         // Assert
-        result.Total.ShouldBe(0);
-        result.List.ShouldBeEquivalentTo(list);
+        Assert.AreEqual(0, result.Total);
+        Assert.AreEqual(list, result.List);
     }
 
     /// <summary>
@@ -74,11 +71,11 @@ public class PageResultTests
         const long total = 3L;
 
         // Act
-        var result = PageResult.Wrap(total, list);
+        var result = Core.PageResult.Wrap(total, list);
 
         // Assert
-        result.Total.ShouldBe(total);
-        result.List.ShouldBeNull();
+        Assert.AreEqual(total, result.Total);
+        Assert.IsNull(result.List);
     }
 
     /// <summary>
@@ -92,11 +89,11 @@ public class PageResultTests
         long? total = null;
 
         // Act
-        var result = PageResult.WrapDynamic(total, list);
+        var result = Core.PageResult.WrapDynamic(total, list);
 
         // Assert
-        result.Total.ShouldBe(0);
-        result.List.ShouldBeEquivalentTo(list);
+        Assert.AreEqual(0, result.Total);
+        Assert.AreEqual(list, result.List);
     }
 
     /// <summary>
@@ -110,10 +107,10 @@ public class PageResultTests
         const long total = 3L;
 
         // Act
-        var result = PageResult.WrapDynamic(total, list);
+        var result = Core.PageResult.WrapDynamic(total, list);
 
         // Assert
-        result.Total.ShouldBe(total);
-        result.List.ShouldBeNull();
+        Assert.AreEqual(total, result.Total);
+        Assert.IsNull(result.List);
     }
 }

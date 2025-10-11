@@ -1,6 +1,6 @@
 using EasilyNET.Core.Language;
 
-namespace EasilyNET.Test.Unit;
+namespace EasilyNET.Test.Unit.Language;
 
 /// <summary>
 /// </summary>

@@ -1,6 +1,5 @@
 using System.Text;
 using EasilyNET.Security;
-using Shouldly;
 
 namespace EasilyNET.Test.Unit.Security;
 
@@ -23,9 +22,9 @@ public class Sm4Test
         var result = Sm4Crypt.EncryptECB("701d1cc0cfbe7ee11824df718855c0c6", true, byte_data);
         // 获取Base64格式的字符串结果
         var base64 = Convert.ToBase64String(result);
-        base64.ShouldBe("ThRruxZZm1GrHE5KkP4UmQ==");
+        Assert.AreEqual("ThRruxZZm1GrHE5KkP4UmQ==", base64);
         var hex = Convert.ToHexString(result);
-        hex.ToUpper().ShouldBe("4E146BBB16599B51AB1C4E4A90FE1499");
+        Assert.AreEqual("4E146BBB16599B51AB1C4E4A90FE1499", hex.ToUpper());
     }
 
     /// <summary>
@@ -42,7 +41,7 @@ public class Sm4Test
         var result = Sm4Crypt.DecryptECB("701d1cc0cfbe7ee11824df718855c0c6", true, byte_data);
         // 解析结果获取字符串
         var str = Encoding.UTF8.GetString(result);
-        str.ShouldBe("Microsoft");
+        Assert.AreEqual("Microsoft", str);
     }
 
     /// <summary>
@@ -58,9 +57,9 @@ public class Sm4Test
         var result = Sm4Crypt.EncryptECB("1cc0cfbe7ee11824", false, byte_data);
         // 将结果转为16进制字符串
         var hex = Convert.ToHexString(result);
-        hex.ToUpper().ShouldBe("D265DF0510C05FE836D3113B3ACEC714");
+        Assert.AreEqual("D265DF0510C05FE836D3113B3ACEC714", hex.ToUpper());
         var base64 = Convert.ToBase64String(result);
-        base64.ShouldBe("0mXfBRDAX+g20xE7Os7HFA==");
+        Assert.AreEqual("0mXfBRDAX+g20xE7Os7HFA==", base64);
     }
 
     /// <summary>
@@ -74,7 +73,7 @@ public class Sm4Test
         var result = Sm4Crypt.DecryptECB("1cc0cfbe7ee11824", false, byte_data);
         // 解析结果获取字符串
         var str = Encoding.UTF8.GetString(result);
-        str.ShouldBe("Microsoft");
+        Assert.AreEqual("Microsoft", str);
     }
 
     /// <summary>
@@ -87,9 +86,9 @@ public class Sm4Test
         var byte_data = Encoding.UTF8.GetBytes(data);
         var result = Sm4Crypt.EncryptCBC("701d1cc0cfbe7ee11824df718855c0c6", true, "701d1cc0cfbe7ee11824df718855c0c5", byte_data);
         var base64 = Convert.ToBase64String(result);
-        base64.ShouldBe("Q2iUaMuSHjLvq6GhUQnGTg==");
+        Assert.AreEqual("Q2iUaMuSHjLvq6GhUQnGTg==", base64);
         var hex = Convert.ToHexString(result);
-        hex.ToUpper().ShouldBe("43689468CB921E32EFABA1A15109C64E");
+        Assert.AreEqual("43689468CB921E32EFABA1A15109C64E", hex.ToUpper());
     }
 
     /// <summary>
@@ -102,7 +101,7 @@ public class Sm4Test
         var byte_data = Convert.FromBase64String(data);
         var result = Sm4Crypt.DecryptCBC("701d1cc0cfbe7ee11824df718855c0c6", true, "701d1cc0cfbe7ee11824df718855c0c5", byte_data);
         var str = Encoding.UTF8.GetString(result);
-        str.ShouldBe("Microsoft");
+        Assert.AreEqual("Microsoft", str);
     }
 
     /// <summary>
@@ -115,9 +114,9 @@ public class Sm4Test
         var byte_data = Encoding.UTF8.GetBytes(data);
         var result = Sm4Crypt.EncryptCBC("1cc0cfbe7ee11824", false, "1cc0cfbe7ee12824", byte_data);
         var hex = Convert.ToHexString(result);
-        hex.ToUpper().ShouldBe("1BD7A32E49B60B17698AAC9D1E4FEE4A");
+        Assert.AreEqual("1BD7A32E49B60B17698AAC9D1E4FEE4A", hex.ToUpper());
         var base64 = Convert.ToBase64String(result);
-        base64.ShouldBe("G9ejLkm2CxdpiqydHk/uSg==");
+        Assert.AreEqual("G9ejLkm2CxdpiqydHk/uSg==", base64);
     }
 
     /// <summary>
@@ -130,6 +129,6 @@ public class Sm4Test
         var byte_data = Convert.FromHexString(data);
         var result = Sm4Crypt.DecryptCBC("1cc0cfbe7ee11824", false, "1cc0cfbe7ee12824", byte_data);
         var str = Encoding.UTF8.GetString(result);
-        str.ShouldBe("Microsoft");
+        Assert.AreEqual("Microsoft", str);
     }
 }

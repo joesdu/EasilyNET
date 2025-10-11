@@ -1,5 +1,4 @@
 using EasilyNET.Core.Misc;
-using Shouldly;
 
 namespace EasilyNET.Test.Unit.Misc;
 
@@ -17,7 +16,7 @@ public class RmbCapitalizedTest
     public void RmbCapitalizedMin(double value)
     {
         Console.WriteLine(value.ToRmb());
-        value.ToRmb().ShouldBe("壹仟伍佰玖拾肆元陆角陆分");
+        Assert.AreEqual("壹仟伍佰玖拾肆元陆角陆分", value.ToRmb());
     }
 
     /// <summary>
@@ -28,6 +27,6 @@ public class RmbCapitalizedTest
     public void RmbCapitalizedMax(string value)
     {
         Console.WriteLine(value.ConvertTo<decimal>().ToRmb());
-        value.ConvertTo<decimal>().ToRmb().ShouldBe("壹仟伍佰玖拾肆秭贰仟柒佰捌拾叁垓贰仟柒佰肆拾贰京壹仟叁佰柒拾捌兆伍仟壹佰捌拾贰亿柒仟陆佰叁拾伍万捌仟柒佰壹拾贰元柒角");
+        Assert.AreEqual("壹仟伍佰玖拾肆秭贰仟柒佰捌拾叁垓贰仟柒佰肆拾贰京壹仟叁佰柒拾捌兆伍仟壹佰捌拾贰亿柒仟陆佰叁拾伍万捌仟柒佰壹拾贰元柒角", value.ConvertTo<decimal>().ToRmb());
     }
 }

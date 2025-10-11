@@ -1,5 +1,4 @@
 using EasilyNET.Core.Threading;
-using Shouldly;
 
 namespace EasilyNET.Test.Unit.Threading;
 
@@ -7,14 +6,15 @@ namespace EasilyNET.Test.Unit.Threading;
 public class AsyncLockTests
 {
     // ReSharper disable once CollectionNeverQueried.Local
-    private static readonly Dictionary<string, string> _dictionary = []; // Made static for TestAsyncLock, ensure cleanup
+    // ReSharper disable once CollectionNeverUpdated.Local
+    private static readonly Dictionary<string, string> Dic = []; // Made static for TestAsyncLock, ensure cleanup
 
     public TestContext? TestContext { get; set; }
 
     [TestInitialize]
     public void TestInitialize()
     {
-        _dictionary.Clear(); // Clear the static dictionary before each test
+        Dic.Clear(); // Clear the static dictionary before each test
     }
 
     /// <summary>
@@ -24,12 +24,12 @@ public class AsyncLockTests
     public async Task LockAsync_AcquireAndRelease_ShouldUpdateIsHeld()
     {
         using var asyncLock = new AsyncLock();
-        asyncLock.IsHeld.ShouldBeFalse();
+        Assert.IsFalse(asyncLock.IsHeld);
         using (await asyncLock.LockAsync())
         {
-            asyncLock.IsHeld.ShouldBeTrue();
+            Assert.IsTrue(asyncLock.IsHeld);
         }
-        asyncLock.IsHeld.ShouldBeFalse();
+        Assert.IsFalse(asyncLock.IsHeld);
     }
 
     /// <summary>
@@ -47,7 +47,7 @@ public class AsyncLockTests
             using (await asyncLock.LockAsync())
             {
                 task1LockAcquired.SetResult(true);
-                asyncLock.IsHeld.ShouldBeTrue();
+                Assert.IsTrue(asyncLock.IsHeld);
                 await Task.Delay(50); // Hold the lock for a bit
             }
         });
@@ -55,11 +55,11 @@ public class AsyncLockTests
         {
             await task1LockAcquired.Task;    // Ensure task1 has acquired the lock
             await Task.Delay(5);             // Give task1 time to be in the lock
-            asyncLock.IsHeld.ShouldBeTrue(); // Lock should still be held by task1
+            Assert.IsTrue(asyncLock.IsHeld); // Lock should still be held by task1
             using (await asyncLock.LockAsync())
             {
                 task2LockAcquired.SetResult(true);
-                asyncLock.IsHeld.ShouldBeTrue();
+                Assert.IsTrue(asyncLock.IsHeld);
                 await Task.Delay(50); // Hold the lock for a bit
             }
         });
@@ -67,19 +67,19 @@ public class AsyncLockTests
         {
             await task2LockAcquired.Task;    // Ensure task2 has acquired the lock
             await Task.Delay(5);             // Give task2 time to be in the lock
-            asyncLock.IsHeld.ShouldBeTrue(); // Lock should still be held by task2
+            Assert.IsTrue(asyncLock.IsHeld); // Lock should still be held by task2
             using (await asyncLock.LockAsync())
             {
                 task3LockAcquired.SetResult(true);
-                asyncLock.IsHeld.ShouldBeTrue();
+                Assert.IsTrue(asyncLock.IsHeld);
                 await Task.Delay(50); // Hold the lock for a bit
             }
         });
         await Task.WhenAll(task1, task2, task3);
-        task1LockAcquired.Task.Result.ShouldBeTrue();
-        task2LockAcquired.Task.Result.ShouldBeTrue();
-        task3LockAcquired.Task.Result.ShouldBeTrue();
-        asyncLock.IsHeld.ShouldBeFalse(); // All tasks completed, lock should be released
+        Assert.IsTrue(task1LockAcquired.Task.Result);
+        Assert.IsTrue(task2LockAcquired.Task.Result);
+        Assert.IsTrue(task3LockAcquired.Task.Result);
+        Assert.IsFalse(asyncLock.IsHeld); // All tasks completed, lock should be released
     }
 
     /// <summary>
@@ -90,6 +90,11 @@ public class AsyncLockTests
     {
         var lockObj = new AsyncLock();
         var shared = 0;
+        var tasks = Enumerable.Range(0, 10).Select(_ => AccessShared()).ToArray();
+        await Task.WhenAll(tasks);
+        Assert.AreEqual(10, shared); // Ensure increments are serialized
+        TestContext?.WriteLine($"Dictionary count after concurrent adds: {Dic.Count}");
+        return;
 
         async Task AccessShared()
         {
@@ -100,11 +105,6 @@ public class AsyncLockTests
                 shared = initial + 1;
             }
         }
-
-        var tasks = Enumerable.Range(0, 10).Select(_ => AccessShared()).ToArray();
-        await Task.WhenAll(tasks);
-        Assert.AreEqual(10, shared); // Ensure increments are serialized
-        TestContext?.WriteLine($"Dictionary count after concurrent adds: {_dictionary.Count}");
     }
 
     /// <summary>
@@ -122,9 +122,9 @@ public class AsyncLockTests
             await Task.Delay(10); // Simulate async work
             executed = true;
         });
-        executed.ShouldBeTrue();
-        lockHeldDuringAction.ShouldBeTrue();
-        asyncLock.IsHeld.ShouldBeFalse(); // Lock should be released after action
+        Assert.IsTrue(executed);
+        Assert.IsTrue(lockHeldDuringAction);
+        Assert.IsFalse(asyncLock.IsHeld); // Lock should be released after action
     }
 
     /// <summary>
@@ -142,9 +142,9 @@ public class AsyncLockTests
             await Task.Delay(10); // Simulate async work
             return expectedResult;
         });
-        result.ShouldBe(expectedResult);
-        lockHeldDuringFunc.ShouldBeTrue();
-        asyncLock.IsHeld.ShouldBeFalse(); // Lock should be released after func
+        Assert.AreEqual(expectedResult, result);
+        Assert.IsTrue(lockHeldDuringFunc);
+        Assert.IsFalse(asyncLock.IsHeld); // Lock should be released after func
     }
 
     /// <summary>
@@ -162,7 +162,7 @@ public class AsyncLockTests
         await cts.CancelAsync(); // Use CancelAsync for async operations
         await Assert.ThrowsExactlyAsync<TaskCanceledException>(async () => await lockTask);
         releaser.Dispose(); // Release the initially acquired lock
-        asyncLock.IsHeld.ShouldBeFalse();
+        Assert.IsFalse(asyncLock.IsHeld);
     }
 
     /// <summary>
@@ -184,9 +184,9 @@ public class AsyncLockTests
         }, cts.Token);
         await cts.CancelAsync(); // Use CancelAsync
         await Assert.ThrowsExactlyAsync<TaskCanceledException>(async () => await lockActionTask);
-        actionExecuted.ShouldBeFalse(); // Action should not have been executed
+        Assert.IsFalse(actionExecuted); // Action should not have been executed
         releaser.Dispose();             // Release the initially acquired lock
-        asyncLock.IsHeld.ShouldBeFalse();
+        Assert.IsFalse(asyncLock.IsHeld);
     }
 
     /// <summary>
@@ -209,9 +209,9 @@ public class AsyncLockTests
         }, cts.Token);
         await cts.CancelAsync(); // Use CancelAsync
         await Assert.ThrowsExactlyAsync<TaskCanceledException>(async () => await lockFuncTask);
-        funcExecuted.ShouldBeFalse(); // Func should not have been executed
+        Assert.IsFalse(funcExecuted); // Func should not have been executed
         releaser.Dispose();           // Release the initially acquired lock
-        asyncLock.IsHeld.ShouldBeFalse();
+        Assert.IsFalse(asyncLock.IsHeld);
     }
 
     /// <summary>
@@ -243,8 +243,8 @@ public class AsyncLockTests
 
         // The task should not complete because it's waiting for the lock that this flow already holds.
         var completedTask = await Task.WhenAny(reentrantTask, Task.Delay(TimeSpan.FromMilliseconds(200)));
-        completedTask.ShouldNotBe(reentrantTask, "Lock should have deadlocked due to non-reentrancy.");
-        reentrantTask.IsCompleted.ShouldBeFalse();
+        Assert.AreNotEqual(reentrantTask, completedTask, "Lock should have deadlocked due to non-reentrancy.");
+        Assert.IsFalse(reentrantTask.IsCompleted);
 
         // No explicit cleanup for reentrantTask needed here as the test is verifying it doesn't complete.
         // The `using var releaser` will dispose the first lock, and `using var asyncLock` will dispose the AsyncLock itself.
@@ -258,11 +258,11 @@ public class AsyncLockTests
     public async Task Release_Dispose_ShouldReleaseLock()
     {
         using var asyncLock = new AsyncLock();
-        asyncLock.IsHeld.ShouldBeFalse();
+        Assert.IsFalse(asyncLock.IsHeld);
         var releaser = await asyncLock.LockAsync();
-        asyncLock.IsHeld.ShouldBeTrue();
+        Assert.IsTrue(asyncLock.IsHeld);
         releaser.Dispose();
-        asyncLock.IsHeld.ShouldBeFalse();
+        Assert.IsFalse(asyncLock.IsHeld);
     }
 
     /// <summary>
@@ -272,26 +272,26 @@ public class AsyncLockTests
     public async Task WaitingCount_ShouldReflectWaitingTasks()
     {
         using var asyncLock = new AsyncLock();
-        asyncLock.WaitingCount.ShouldBe(0);
+        Assert.AreEqual(0, asyncLock.WaitingCount);
 
         // Acquire lock; no waiters yet.
         var releaser1 = await asyncLock.LockAsync();
-        asyncLock.IsHeld.ShouldBeTrue();
-        asyncLock.WaitingCount.ShouldBe(0);
+        Assert.IsTrue(asyncLock.IsHeld);
+        Assert.AreEqual(0, asyncLock.WaitingCount);
 
         // Start a waiter; it should now be queued.
         var waitingTask = asyncLock.LockAsync();
-        asyncLock.WaitingCount.ShouldBe(1);
+        Assert.AreEqual(1, asyncLock.WaitingCount);
 
         // Release first holder; waiting task should acquire and queue becomes empty.
         releaser1.Dispose();
         var releaser2 = await waitingTask;
-        asyncLock.IsHeld.ShouldBeTrue();
-        asyncLock.WaitingCount.ShouldBe(0);
+        Assert.IsTrue(asyncLock.IsHeld);
+        Assert.AreEqual(0, asyncLock.WaitingCount);
 
         // Release second holder; lock is free and no waiters.
         releaser2.Dispose();
-        asyncLock.IsHeld.ShouldBeFalse();
-        asyncLock.WaitingCount.ShouldBe(0);
+        Assert.IsFalse(asyncLock.IsHeld);
+        Assert.AreEqual(0, asyncLock.WaitingCount);
     }
 }
