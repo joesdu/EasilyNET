@@ -1,6 +1,5 @@
 using System.Text;
 using EasilyNET.Security;
-using Shouldly;
 
 namespace EasilyNET.Test.Unit.Security;
 
@@ -31,7 +30,7 @@ public class Sm2Test
         Console.WriteLine(Convert.ToBase64String(signature));
         // 验证签名
         var verify = Sm2Crypt.Verify(pub_bytes, data_bytes, signature);
-        verify.ShouldBeTrue();
+        Assert.IsTrue(verify);
     }
 
     /// <summary>
@@ -57,6 +56,6 @@ public class Sm2Test
         Console.WriteLine(Convert.ToBase64String(signature));
         // 验证签名
         var verify = Sm2Crypt.Verify(pub_bytes, data_bytes, signature, userid_bytes);
-        verify.ShouldBeTrue();
+        Assert.IsTrue(verify);
     }
 }

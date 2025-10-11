@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using EasilyNET.Core.Essentials;
-using Shouldly;
 
 namespace EasilyNET.Test.Unit.Essentials;
 
@@ -35,7 +34,7 @@ public class ObjectIdCompatTest
         var snow1 = ObjectIdCompat.GenerateNewId();
         var snow2 = ObjectIdCompat.GenerateNewId();
         var comparison = snow2.CompareTo(snow1);
-        comparison.ShouldBe(1);
+        Assert.AreEqual(1, comparison);
     }
 
     /// <summary>
@@ -47,7 +46,7 @@ public class ObjectIdCompatTest
         var snow1 = ObjectIdCompat.GenerateNewId();
         var snow1String = snow1.ToString();
         var parsedSnow1 = ObjectIdCompat.Parse(snow1String);
-        snow1.ShouldBe(parsedSnow1);
+        Assert.AreEqual(snow1, parsedSnow1);
     }
 
     /// <summary>
@@ -59,7 +58,7 @@ public class ObjectIdCompatTest
         var snow1 = ObjectIdCompat.GenerateNewId();
         var byteArray = snow1.ToByteArray();
         var snowFromBytes = new ObjectIdCompat(byteArray);
-        snow1.ShouldBe(snowFromBytes);
+        Assert.AreEqual(snow1, snowFromBytes);
     }
 
     /// <summary>
@@ -71,7 +70,7 @@ public class ObjectIdCompatTest
         var snow1 = ObjectIdCompat.GenerateNewId();
         var timestamp = snow1.Timestamp;
         var creationTime = snow1.CreationTime;
-        creationTime.ShouldBe(DateTime.UnixEpoch.AddSeconds((uint)timestamp));
+        Assert.AreEqual(creationTime, DateTime.UnixEpoch.AddSeconds((uint)timestamp));
     }
 
     /// <summary>
@@ -81,13 +80,13 @@ public class ObjectIdCompatTest
     public void TestObjectIdCompatTryParseAndInvalidInput()
     {
         var valid = ObjectIdCompat.GenerateNewId().ToString();
-        ObjectIdCompat.TryParse(valid, out _).ShouldBeTrue();
-        valid.ToUpperInvariant().Length.ShouldBe(24);
-        ObjectIdCompat.TryParse(valid.ToUpperInvariant(), out _).ShouldBeTrue();
-        ObjectIdCompat.TryParse("", out _).ShouldBeFalse();
-        ObjectIdCompat.TryParse("123", out _).ShouldBeFalse();
-        ObjectIdCompat.TryParse(new('f', 23), out _).ShouldBeFalse();
-        ObjectIdCompat.TryParse(new('g', 24), out _).ShouldBeFalse();
+        Assert.IsTrue(ObjectIdCompat.TryParse(valid, out _));
+        Assert.AreEqual(24, valid.ToUpperInvariant().Length);
+        Assert.IsTrue(ObjectIdCompat.TryParse(valid.ToUpperInvariant(), out _));
+        Assert.IsFalse(ObjectIdCompat.TryParse("", out _));
+        Assert.IsFalse(ObjectIdCompat.TryParse("123", out _));
+        Assert.IsFalse(ObjectIdCompat.TryParse(new('f', 23), out _));
+        Assert.IsFalse(ObjectIdCompat.TryParse(new('g', 24), out _));
     }
 
     /// <summary>
@@ -99,8 +98,8 @@ public class ObjectIdCompatTest
         var snow = ObjectIdCompat.GenerateNewId();
         var str = snow.ToString();
         var parsed = ObjectIdCompat.Parse(str);
-        snow.ShouldBe(parsed);
-        snow.GetHashCode().ShouldBe(parsed.GetHashCode());
+        Assert.AreEqual(snow, parsed);
+        Assert.AreEqual(snow.GetHashCode(), parsed.GetHashCode());
     }
 
     /// <summary>
@@ -113,8 +112,8 @@ public class ObjectIdCompatTest
         var bytes = snow.ToByteArray();
         var fromBytes = new ObjectIdCompat(bytes);
         var fromString = new ObjectIdCompat(snow.ToString());
-        fromBytes.ShouldBe(snow);
-        fromString.ShouldBe(snow);
+        Assert.AreEqual(snow, fromBytes);
+        Assert.AreEqual(snow, fromString);
     }
 
     /// <summary>
@@ -125,13 +124,13 @@ public class ObjectIdCompatTest
     {
         var zeroBytes = new byte[12];
         var zeroId = new ObjectIdCompat(zeroBytes);
-        zeroId.Timestamp.ShouldBe(0);
-        zeroId.CreationTime.ShouldBe(DateTime.UnixEpoch);
+        Assert.AreEqual(0, zeroId.Timestamp);
+        Assert.AreEqual(DateTime.UnixEpoch, zeroId.CreationTime);
         var maxBytes = new byte[12];
         for (var i = 0; i < 12; i++)
             maxBytes[i] = 0xFF;
         var maxId = new ObjectIdCompat(maxBytes);
-        maxId.Timestamp.ShouldBe(-1); // 0xFFFFFFFF as int
+        Assert.AreEqual(-1, maxId.Timestamp); // 0xFFFFFFFF as int
     }
 
     /// <summary>
@@ -142,10 +141,10 @@ public class ObjectIdCompatTest
     {
         var snow = ObjectIdCompat.GenerateNewId();
         IConvertible convertible = snow;
-        convertible.GetTypeCode().ShouldBe(TypeCode.Object);
-        Should.Throw<InvalidCastException>(() => convertible.ToBoolean(null));
-        Should.Throw<InvalidCastException>(() => convertible.ToInt32(null));
-        convertible.ToString(null).ShouldBe(snow.ToString());
+        Assert.AreEqual(TypeCode.Object, convertible.GetTypeCode());
+        Assert.Throws<InvalidCastException>(() => convertible.ToBoolean(null));
+        Assert.Throws<InvalidCastException>(() => convertible.ToInt32(null));
+        Assert.AreEqual(snow.ToString(), convertible.ToString(null));
     }
 
     /// <summary>
@@ -158,9 +157,9 @@ public class ObjectIdCompatTest
         Parallel.For(0, 10000, _ =>
         {
             var id = ObjectIdCompat.GenerateNewId().ToString();
-            set.TryAdd(id, true).ShouldBeTrue();
+            Assert.IsTrue(set.TryAdd(id, true));
         });
-        set.Count.ShouldBe(10000);
+        Assert.HasCount(10000, set);
     }
 
     /// <summary>
@@ -172,9 +171,9 @@ public class ObjectIdCompatTest
         var snow = ObjectIdCompat.GenerateNewId();
         var bytes = snow.ToByteArray();
         var fromBytes = new ObjectIdCompat(bytes);
-        fromBytes.ShouldBe(snow);
+        Assert.AreEqual(snow, fromBytes);
         var str = snow.ToString();
         var fromStr = ObjectIdCompat.Parse(str);
-        fromStr.ShouldBe(snow);
+        Assert.AreEqual(snow, fromStr);
     }
 }

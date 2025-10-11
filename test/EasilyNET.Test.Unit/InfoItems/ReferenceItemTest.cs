@@ -1,7 +1,6 @@
 using EasilyNET.Core;
-using Shouldly;
 
-namespace EasilyNET.Tests.Unit;
+namespace EasilyNET.Test.Unit.InfoItems;
 
 /// <summary>
 /// ReferenceItem 测试
@@ -26,8 +25,8 @@ public class ReferenceItemTest
         var r3 = o1 != o3;
 
         // Assert
-        r1.ShouldBe(true);
-        r2.ShouldBe(true);
-        r3.ShouldBe(true);
+        Assert.IsTrue(r1);
+        Assert.IsTrue(r2);
+        Assert.IsTrue(r3);
     }
 }

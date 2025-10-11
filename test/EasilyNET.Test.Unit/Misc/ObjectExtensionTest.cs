@@ -1,5 +1,4 @@
 using EasilyNET.Core.Misc;
-using Shouldly;
 
 namespace EasilyNET.Test.Unit.Misc;
 
@@ -17,8 +16,8 @@ public class ObjectExtension
     {
         var person = new Person();
         var succeed = person.TrySetProperty(o => o.Name, () => "大黄瓜");
-        succeed.ShouldBeTrue();
-        person.Name.ShouldBe("大黄瓜");
+        Assert.IsTrue(succeed);
+        Assert.AreEqual("大黄瓜", person.Name);
     }
 
     /// <summary>
@@ -32,8 +31,8 @@ public class ObjectExtension
             Age = 1
         };
         var succeed = person.TrySetProperty(o => o.Age, value => value.Age + 1);
-        succeed.ShouldBeTrue();
-        person.Age.ShouldBe(2);
+        Assert.IsTrue(succeed);
+        Assert.AreEqual(2, person.Age);
     }
 
     /// <summary>
@@ -46,10 +45,10 @@ public class ObjectExtension
         {
             Time = DateTime.Now
         };
-        person.Time.HasValue.ShouldBeTrue();
+        Assert.IsTrue(person.Time.HasValue);
         var succeed = person.TrySetProperty(o => o.Time, () => null);
-        succeed.ShouldBeTrue();
-        person.Time.ShouldBeNull();
+        Assert.IsTrue(succeed);
+        Assert.IsNull(person.Time);
     }
 }
 
