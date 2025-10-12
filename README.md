@@ -70,26 +70,15 @@ EasilyNET Packages
 
 
 </details>
-
-#### Core
+
 
 | NuGet Package                   | Version      | Download     | Document                                          |
 | ------------------------------- | ------------ | ------------ | ------------------------------------------------- |
 | [EasilyNET.Core][8]             | ![Nuget][9]  | ![Nuget][10] | [文档](./src/EasilyNET.Core/README.md)            |
-| [EasilyNET.WebCore][14]         | ![Nuget][15] | ![Nuget][16] | [文档](./src/EasilyNET.WebCore/README.md)         |
-
-#### Framework
-
-| NuGet Package                           | Version      | Download     | Document                                                  |
-| --------------------------------------- | ------------ | ------------ | --------------------------------------------------------- |
+| [EasilyNET.WebCore][14]         | ![Nuget][15] | ![Nuget][16] | [文档](./src/EasilyNET.WebCore/README.md)         |
 | [EasilyNET.AutoDependencyInjection][17] | ![Nuget][18] | ![Nuget][19] | [文档](./src/EasilyNET.AutoDependencyInjection/README.md) |
 | [EasilyNET.RabbitBus.AspNetCore][20]    | ![Nuget][21] | ![Nuget][22] | [文档](./src/EasilyNET.RabbitBus.AspNetCore/README.md)    |
-| [EasilyNET.Security][23]                | ![Nuget][24] | ![Nuget][25] | [文档](./src/EasilyNET.Security/README.md)                |
-
-#### Mongo
-
-| NuGet Package                      | Version      | Download     | Document                                             |
-| ---------------------------------- | ------------ | ------------ | ---------------------------------------------------- |
+| [EasilyNET.Security][23]                | ![Nuget][24] | ![Nuget][25] | [文档](./src/EasilyNET.Security/README.md)                |
 | [EasilyNET.Mongo.AspNetCore][26]   | ![Nuget][27] | ![Nuget][28] | [文档](./src/EasilyNET.Mongo.AspNetCore/README.md)   |
 | [EasilyNET.Mongo.ConsoleDebug][29] | ![Nuget][30] | ![Nuget][31] | [文档](./src/EasilyNET.Mongo.ConsoleDebug/README.md) |
 
