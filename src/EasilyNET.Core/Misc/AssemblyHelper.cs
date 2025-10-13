@@ -479,7 +479,7 @@ public static class AssemblyHelper
                     where raw.IsNotNullOrWhiteSpace()
                     select ConvertWildcardToRegex(raw)
                     into pattern
-                    select new Regex(pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100))).ToList();
+                    select new Regex(pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(1000))).ToList();
         return list.ToFrozenSet();
     }
 
