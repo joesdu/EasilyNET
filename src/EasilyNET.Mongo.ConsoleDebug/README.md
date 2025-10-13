@@ -93,10 +93,21 @@ clientSettings.ClusterConfigurator = cb =>
     }));
     s.Subscribe(new ActivityEventDiagnosticsSubscriber(new()
     {
-        CaptureCommandText = true
+        CaptureCommandText = true,
+        // 默认启用,排除 GridFS chunks 命令以避免捕获大量二进制数据导致内存占用过高
+        ExcludeGridFSChunks = true,
+        // 限制命令文本的最大长度(默认 1000 字符),超过将被截断
+        MaxCommandTextLength = 1000
     }));
 };}
 
 ```
+
+**注意事项**:
+
+- 当使用 GridFS 时,如果 `CaptureCommandText` 设置为 `true`,活动跟踪会捕获来自插入块命令的大量二进制数据,导致内存使用量过高。
+- 为了避免此问题,默认启用 `ExcludeGridFSChunks` 选项,它会自动排除对 `*.chunks` 集合的 insert 命令的命令文本捕获。
+- 你也可以使用 `MaxCommandTextLength` 来限制捕获的命令文本的最大长度,超过此长度的命令将被截断。
+- 如果确实需要捕获 GridFS chunks 的完整命令文本,可以将 `ExcludeGridFSChunks` 设置为 `false`,但请注意这可能会导致高内存使用。
 
 同时参考[MongoDB.Driver.Core.Extensions.DiagnosticSources](https://github.com/jbogard/MongoDB.Driver.Core.Extensions.DiagnosticSources)

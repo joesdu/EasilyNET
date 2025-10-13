@@ -103,7 +103,26 @@ public sealed class ActivityEventDiagnosticsSubscriber : IEventSubscriber
         }
         if (activity.IsAllDataRequested && _options.CaptureCommandText)
         {
-            activity.AddTag("db.query.text", @event.Command.ToJson(new() { Indent = true }));
+            // 检查是否为 GridFS chunks 的 insert 命令,以避免捕获大量二进制数据
+            var shouldCaptureCommandText = true;
+            if (_options.ExcludeGridFSChunks && @event.CommandName == "insert")
+            {
+                // 检查集合名称是否以 .chunks 结尾(GridFS 使用 fs.chunks 或 <bucketName>.chunks)
+                if (collName.EndsWith(".chunks", StringComparison.OrdinalIgnoreCase))
+                {
+                    shouldCaptureCommandText = false;
+                }
+            }
+            if (shouldCaptureCommandText)
+            {
+                var commandText = @event.Command.ToJson(new() { Indent = true });
+                // 如果设置了最大长度限制,则截断命令文本
+                if (_options.MaxCommandTextLength > 0 && commandText.Length > _options.MaxCommandTextLength)
+                {
+                    commandText = commandText[.._options.MaxCommandTextLength] + "\n... [truncated]";
+                }
+                activity.AddTag("db.query.text", commandText);
+            }
         }
         _activityMap.TryAdd(@event.RequestId, activity);
     }
