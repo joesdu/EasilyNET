@@ -302,7 +302,7 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
         var fi = await (await Bucket.FindAsync(gbf.In(c => c.Id, oids), cancellationToken: cancellationToken)).ToListAsync(cancellationToken);
         var fids = fi.Select(c => new { Id = c.Id.ToString(), FileName = c.Filename }).ToArray();
         _ = fids.Length > 6 ? Task.Run(DeleteSingleFile, cancellationToken) : DeleteSingleFile();
-        _ = Coll.DeleteManyAsync(c => ids.Contains(c.FileId), cancellationToken);
+        _ = Coll.DeleteManyAsync(c => ids.AsEnumerable().Contains(c.FileId), cancellationToken);
         return fids.Select(c => c.FileName);
 
         Task DeleteSingleFile()
