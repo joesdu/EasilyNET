@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyModel;
 
@@ -104,6 +105,11 @@ public static class AssemblyHelper
     // Options to control scanning behavior
     private static readonly Lock _optionsLock = new();
 
+    private static readonly ParallelOptions parallelOptions = new()
+    {
+        MaxDegreeOfParallelism = Environment.ProcessorCount
+    };
+
     static AssemblyHelper()
     {
         // Initialize default include patterns
@@ -114,7 +120,7 @@ public static class AssemblyHelper
             return;
         }
         Options.IncludePatterns.Add(entryAssemblyName);
-        var prefix = entryAssemblyName.Split('.').FirstOrDefault();
+        var prefix = entryAssemblyName.Split('.', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
         if (!string.IsNullOrWhiteSpace(prefix))
         {
             Options.IncludePatterns.Add($"{prefix}.*");
@@ -331,39 +337,34 @@ public static class AssemblyHelper
     private static Type[] LoadTypesInternal(IEnumerable<Assembly> assemblies)
     {
         var asmArray = assemblies as Assembly[] ?? [.. assemblies];
-        var perAsm = new List<Type>[asmArray.Length];
-        Parallel.For(0, asmArray.Length, i =>
+        var allTypes = new ConcurrentBag<Type>();
+        Parallel.ForEach(asmArray, parallelOptions, assembly =>
         {
-            var list = new List<Type>(128);
-            var assembly = asmArray[i];
             try
             {
                 var typesInAssembly = assembly.GetTypes();
-                list.AddRange(typesInAssembly);
+                foreach (var type in typesInAssembly)
+                {
+                    allTypes.Add(type);
+                }
             }
             catch (ReflectionTypeLoadException rtle)
             {
-                list.AddRange(rtle.Types.OfType<Type>());
+                // 只添加成功加载的类型
+                foreach (var type in rtle.Types)
+                {
+                    if (type is not null)
+                    {
+                        allTypes.Add(type);
+                    }
+                }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to load types from assembly: {assembly.FullName}, error: {ex.Message}");
             }
-            perAsm[i] = list;
         });
-        var total = perAsm.Sum(t => t.Count);
-        var result = new Type[total];
-        var offset = 0;
-        foreach (var list in perAsm)
-        {
-            if (list.Count == 0)
-            {
-                continue;
-            }
-            list.CopyTo(result, offset);
-            offset += list.Count;
-        }
-        return result;
+        return [.. allTypes];
     }
 
     // Internal: load assemblies based on options
@@ -382,36 +383,35 @@ public static class AssemblyHelper
                 _ = result.TryAdd(asm.FullName, asm);
             }
         }
-        // 2) Assemblies from DependencyContext (fast path)
-        IEnumerable<AssemblyName> candidateNames = [];
-        try
+        // 2) Assemblies from DependencyContext (fast path) 只在需要时扫描 DependencyContext
+        if (options.ScanAllRuntimeLibraries)
         {
-            var dc = DependencyContext.Default;
-            if (dc is not null)
+            IEnumerable<AssemblyName> candidateNames = [];
+            try
             {
-                // Correct usage: GetDefaultAssemblyNames()
-                candidateNames = dc.GetDefaultAssemblyNames();
+                var dc = DependencyContext.Default;
+                if (dc is not null)
+                {
+                    candidateNames = dc.GetDefaultAssemblyNames();
+                }
             }
+            catch
+            {
+                // ignore
+            }
+            var filteredNames = candidateNames.Where(name => MatchAssembly(name, options)).ToArray();
+            Parallel.ForEach(filteredNames, parallelOptions, name =>
+            {
+                if (!TryLoadByName(name, out var asm))
+                {
+                    return;
+                }
+                if (asm is not null && asm.FullName.IsNotNullOrWhiteSpace())
+                {
+                    result.TryAdd(asm.FullName, asm);
+                }
+            });
         }
-        catch
-        {
-            // ignore
-        }
-        Parallel.ForEach(candidateNames, name =>
-        {
-            if (!MatchAssembly(name, options))
-            {
-                return;
-            }
-            if (!TryLoadByName(name, out var asm))
-            {
-                return;
-            }
-            if (asm is not null && asm.FullName.IsNotNullOrWhiteSpace())
-            {
-                result.TryAdd(asm.FullName, asm);
-            }
-        });
         // 3) Optionally probe disk
         if (!options.AllowDirectoryProbe)
         {
@@ -477,12 +477,49 @@ public static class AssemblyHelper
     {
         var list = (from raw in patterns
                     where raw.IsNotNullOrWhiteSpace()
-                    select new Regex($"^{Regex.Escape(raw)
-                                              .Replace("\\*", ".*", StringComparison.Ordinal)
-                                              .Replace("\\?", ".", StringComparison.Ordinal)}$",
-                        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
-            .ToList();
+                    select ConvertWildcardToRegex(raw)
+                    into pattern
+                    select new Regex(pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100))).ToList();
         return list.ToFrozenSet();
+    }
+
+    private static string ConvertWildcardToRegex(string wildcard)
+    {
+        var length = wildcard.Length;
+        var result = new StringBuilder((length * 2) + 2);
+        result.Append('^');
+        for (var i = 0; i < length; i++)
+        {
+            var c = wildcard[i];
+            switch (c)
+            {
+                case '*':
+                    result.Append(".*");
+                    break;
+                case '?':
+                    result.Append('.');
+                    break;
+                case '.':
+                case '\\':
+                case '+':
+                case '|':
+                case '{':
+                case '}':
+                case '[':
+                case ']':
+                case '(':
+                case ')':
+                case '^':
+                case '$':
+                    result.Append('\\').Append(c);
+                    break;
+                default:
+                    result.Append(c);
+                    break;
+            }
+        }
+        result.Append('$');
+        return result.ToString();
     }
 
     private static IEnumerable<Assembly> ProbeAssembliesFromDisk(FrozenSet<Regex> patterns)
@@ -573,7 +610,15 @@ public static class AssemblyHelper
                 "System.*",
                 "Microsoft.*",
                 "netstandard",
-                "mscorlib"
+                "mscorlib",
+                "WindowsBase",
+                "Newtonsoft.*",
+                "Serilog.*",
+                "NLog.*",
+                "Npgsql.*",
+                "Oracle.*",
+                "MySql.*",
+                "SQLite.*"
             };
             IncludePatterns = new(StringComparer.OrdinalIgnoreCase)
             {
