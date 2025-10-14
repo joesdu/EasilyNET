@@ -383,35 +383,34 @@ public static class AssemblyHelper
                 _ = result.TryAdd(asm.FullName, asm);
             }
         }
-        // 2) Assemblies from DependencyContext (fast path) 只在需要时扫描 DependencyContext
-        if (options.ScanAllRuntimeLibraries)
+
+        // 2) Assemblies from DependencyContext (fast path) - always consider DependencyContext and filter via include/exclude
+        IEnumerable<AssemblyName> candidateNames = [];
+        try
         {
-            IEnumerable<AssemblyName> candidateNames = [];
-            try
+            var dc = DependencyContext.Default;
+            if (dc is not null)
             {
-                var dc = DependencyContext.Default;
-                if (dc is not null)
-                {
-                    candidateNames = dc.GetDefaultAssemblyNames();
-                }
+                candidateNames = dc.GetDefaultAssemblyNames();
             }
-            catch
-            {
-                // ignore
-            }
-            var filteredNames = candidateNames.Where(name => MatchAssembly(name, options)).ToArray();
-            Parallel.ForEach(filteredNames, parallelOptions, name =>
-            {
-                if (!TryLoadByName(name, out var asm))
-                {
-                    return;
-                }
-                if (asm is not null && asm.FullName.IsNotNullOrWhiteSpace())
-                {
-                    result.TryAdd(asm.FullName, asm);
-                }
-            });
         }
+        catch
+        {
+            // ignore
+        }
+        var filteredNames = candidateNames.Where(name => MatchAssembly(name, options)).ToArray();
+        Parallel.ForEach(filteredNames, parallelOptions, name =>
+        {
+            if (!TryLoadByName(name, out var asm))
+            {
+                return;
+            }
+            if (asm is not null && asm.FullName.IsNotNullOrWhiteSpace())
+            {
+                result.TryAdd(asm.FullName, asm);
+            }
+        });
+
         // 3) Optionally probe disk
         if (!options.AllowDirectoryProbe)
         {
