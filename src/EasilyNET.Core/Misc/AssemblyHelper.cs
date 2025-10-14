@@ -332,19 +332,6 @@ public static class AssemblyHelper
     /// </param>
     public static IEnumerable<Assembly> FindAllItems(Func<Assembly, bool> predicate) => AllAssemblies.Where(predicate);
 
-    /// <summary>
-    ///     <para xml:lang="en">Load all types from the given assemblies in parallel with fault tolerance.</para>
-    ///     <para xml:lang="zh">并行且具备容错能力地从给定程序集加载所有类型。</para>
-    /// </summary>
-    /// <param name="assemblies">
-    ///     <para xml:lang="en">Assemblies to scan for types.</para>
-    ///     <para xml:lang="zh">要扫描其类型的程序集集合。</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">An array of successfully loaded types from all assemblies.</para>
-    ///     <para xml:lang="zh">从所有程序集成功加载的类型数组。</para>
-    /// </returns>
-    // Internal: load all types with better performance and stable assembly order
     private static Type[] LoadTypesInternal(IEnumerable<Assembly> assemblies)
     {
         var asmArray = assemblies as Assembly[] ?? [.. assemblies];
@@ -380,17 +367,8 @@ public static class AssemblyHelper
 
     /// <summary>
     ///     <para xml:lang="en">Load assemblies according to the provided options (loaded, DependencyContext, optional disk probing).</para>
-    ///     <para xml:lang="zh">根据提供的选项加载程序集（已加载程序集、DependencyContext、可选磁盘探测）。</para>
+    ///     <para xml:lang="zh">根据提供的选项加载程序集（已加载程序集、DependencyContext、可选磁盘探测）</para>
     /// </summary>
-    /// <param name="options">
-    ///     <para xml:lang="en">Scanning options controlling include/exclude and probing behavior.</para>
-    ///     <para xml:lang="zh">控制包含/排除与探测行为的扫描选项。</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A collection of assemblies matching the options.</para>
-    ///     <para xml:lang="zh">与选项匹配的程序集集合。</para>
-    /// </returns>
-    // Internal: load assemblies based on options
     private static IEnumerable<Assembly> LoadAssembliesInternal(AssemblyScanOptions options)
     {
         var result = new ConcurrentDictionary<string, Assembly>(StringComparer.OrdinalIgnoreCase);
@@ -407,7 +385,7 @@ public static class AssemblyHelper
             }
         }
 
-        // 2) Assemblies from DependencyContext (fast path) - always consider DependencyContext and filter via include/exclude
+        // 2) Assemblies from DependencyContext (fast path) - DependencyContext scanning now happens unconditionally, always consider DependencyContext and filter via include/exclude
         IEnumerable<AssemblyName> candidateNames = [];
         try
         {
@@ -450,27 +428,10 @@ public static class AssemblyHelper
         return result.Values;
     }
 
-    /// <summary>
-    ///     <para xml:lang="en">Try to load assembly by its <see cref="AssemblyName" /> using cache and <see cref="Assembly.Load(AssemblyName)" />.</para>
-    ///     <para xml:lang="zh">尝试通过 <see cref="AssemblyName" /> 使用缓存与 <see cref="Assembly.Load(AssemblyName)" /> 加载程序集。</para>
-    /// </summary>
-    /// <param name="assemblyName">
-    ///     <para xml:lang="en">The assembly identity to load.</para>
-    ///     <para xml:lang="zh">要加载的程序集标识。</para>
-    /// </param>
-    /// <param name="asm">
-    ///     <para xml:lang="en">When successful, returns the loaded assembly; otherwise null.</para>
-    ///     <para xml:lang="zh">成功时返回已加载的程序集；否则为 null。</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if the assembly was loaded or found in cache; otherwise false.</para>
-    ///     <para xml:lang="zh">如果程序集被加载或在缓存中找到则为 true；否则为 false。</para>
-    /// </returns>
     [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Assembly))]
     private static bool TryLoadByName(AssemblyName assemblyName, out Assembly? asm)
     {
         asm = null;
-        // Check cache
         if (AssemblyCache.TryGetValue(assemblyName.FullName, out var cached))
         {
             if (cached is null)
@@ -499,18 +460,6 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">Check whether the assembly name matches include/exclude patterns under the given options.</para>
     ///     <para xml:lang="zh">判断程序集名称是否在给定选项下匹配包含/排除模式。</para>
     /// </summary>
-    /// <param name="name">
-    ///     <para xml:lang="en">The assembly name to check.</para>
-    ///     <para xml:lang="zh">要检查的程序集名称。</para>
-    /// </param>
-    /// <param name="options">
-    ///     <para xml:lang="en">Scanning options containing include/exclude patterns.</para>
-    ///     <para xml:lang="zh">包含/排除模式的扫描选项。</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if the assembly should be considered; otherwise false.</para>
-    ///     <para xml:lang="zh">如果该程序集应被考虑则返回 true；否则返回 false。</para>
-    /// </returns>
     private static bool MatchAssembly(AssemblyName name, AssemblyScanOptions options)
     {
         var simple = name.Name ?? string.Empty;
@@ -529,16 +478,8 @@ public static class AssemblyHelper
 
     /// <summary>
     ///     <para xml:lang="en">Compile wildcard patterns (supports '*' and '?') into a frozen set of pattern strings for MatchesSimpleExpression.</para>
-    ///     <para xml:lang="zh">将通配符模式（支持 '*' 与 '?'）编译为用于 MatchesSimpleExpression 的不可变字符串集合。</para>
+    ///     <para xml:lang="zh">将通配符模式（支持 "*" 与 "?"）编译为用于 MatchesSimpleExpression 的不可变字符串集合。</para>
     /// </summary>
-    /// <param name="patterns">
-    ///     <para xml:lang="en">Wildcard patterns to be compiled.</para>
-    ///     <para xml:lang="zh">需要编译的通配符模式集合。</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">A frozen set of wildcard pattern strings.</para>
-    ///     <para xml:lang="zh">冻结的通配符模式字符串集合。</para>
-    /// </returns>
     private static FrozenSet<string> CompileWildcardPatterns(IEnumerable<string> patterns)
     {
         var list = (from raw in patterns
@@ -552,14 +493,6 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">Probe application directory for assemblies and load those whose names match provided patterns.</para>
     ///     <para xml:lang="zh">在应用目录中探测程序集并加载与给定模式匹配的程序集。</para>
     /// </summary>
-    /// <param name="patterns">
-    ///     <para xml:lang="en">Include wildcard patterns used to filter file names (without extension).</para>
-    ///     <para xml:lang="zh">用于筛选文件名（不含扩展名）的包含通配符模式。</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">An enumerable sequence of loaded assemblies.</para>
-    ///     <para xml:lang="zh">已加载程序集的可枚举序列。</para>
-    /// </returns>
     private static IEnumerable<Assembly> ProbeAssembliesFromDisk(FrozenSet<string> patterns)
     {
         IEnumerable<string> files = [];
@@ -614,22 +547,6 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">Safely check whether a type is decorated with the specified attribute, swallowing reflection errors.</para>
     ///     <para xml:lang="zh">安全地检查类型是否带有指定特性，避免反射异常导致失败。</para>
     /// </summary>
-    /// <param name="t">
-    ///     <para xml:lang="en">The target type.</para>
-    ///     <para xml:lang="zh">要检查的目标类型。</para>
-    /// </param>
-    /// <param name="attr">
-    ///     <para xml:lang="en">The attribute type to search for.</para>
-    ///     <para xml:lang="zh">要查找的特性类型。</para>
-    /// </param>
-    /// <param name="inherit">
-    ///     <para xml:lang="en">Whether to search the type's inheritance chain.</para>
-    ///     <para xml:lang="zh">是否在继承链中查找。</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if defined; otherwise false (including when exceptions occur).</para>
-    ///     <para xml:lang="zh">若已定义返回 true；发生异常或未定义返回 false。</para>
-    /// </returns>
     private static bool SafeIsDefined(Type t, Type attr, bool inherit)
     {
         try
@@ -648,7 +565,6 @@ public static class AssemblyHelper
     /// </summary>
     private static void Reset()
     {
-        // Invalidate snapshots and attribute caches
         Interlocked.Increment(ref _version);
         AttributeTypeCache.Clear();
         _lazyAllAssemblies = new(static () => [.. LoadAssembliesInternal(Options)]);
@@ -698,7 +614,6 @@ public static class AssemblyHelper
         ///     <para xml:lang="en">Allow probing the app directory for additional DLLs when not found</para>
         ///     <para xml:lang="zh">允许在未找到时从应用程序目录探测 DLL</para>
         /// </summary>
-        // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
         public bool AllowDirectoryProbe { get; set; }
 
         internal Lazy<FrozenSet<string>> CompiledIncludePatterns => new(() => CompileWildcardPatterns(IncludePatterns));
