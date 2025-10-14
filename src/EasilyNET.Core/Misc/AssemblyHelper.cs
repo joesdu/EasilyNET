@@ -2,10 +2,9 @@ using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO.Enumeration;
 using System.Reflection;
 using System.Runtime.Loader;
-using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyModel;
 
 // ReSharper disable UnusedMember.Global
@@ -249,7 +248,7 @@ public static class AssemblyHelper
         foreach (var asm in loaded)
         {
             var name = asm.GetName().Name ?? string.Empty;
-            if (patterns.Any(p => p.IsMatch(name)))
+            if (patterns.Any(p => FileSystemName.MatchesSimpleExpression(p, name)))
             {
                 yield return asm;
             }
@@ -259,7 +258,7 @@ public static class AssemblyHelper
         foreach (var name in dcNames)
         {
             var simpleName = name.Name ?? string.Empty;
-            if (!patterns.Any(p => p.IsMatch(simpleName)))
+            if (!patterns.Any(p => FileSystemName.MatchesSimpleExpression(p, simpleName)))
             {
                 continue;
             }
@@ -333,7 +332,6 @@ public static class AssemblyHelper
     /// </param>
     public static IEnumerable<Assembly> FindAllItems(Func<Assembly, bool> predicate) => AllAssemblies.Where(predicate);
 
-    // Internal: load all types with better performance and stable assembly order
     private static Type[] LoadTypesInternal(IEnumerable<Assembly> assemblies)
     {
         var asmArray = assemblies as Assembly[] ?? [.. assemblies];
@@ -367,7 +365,10 @@ public static class AssemblyHelper
         return [.. allTypes];
     }
 
-    // Internal: load assemblies based on options
+    /// <summary>
+    ///     <para xml:lang="en">Load assemblies according to the provided options (loaded, DependencyContext, optional disk probing).</para>
+    ///     <para xml:lang="zh">根据提供的选项加载程序集（已加载程序集、DependencyContext、可选磁盘探测）</para>
+    /// </summary>
     private static IEnumerable<Assembly> LoadAssembliesInternal(AssemblyScanOptions options)
     {
         var result = new ConcurrentDictionary<string, Assembly>(StringComparer.OrdinalIgnoreCase);
@@ -383,35 +384,34 @@ public static class AssemblyHelper
                 _ = result.TryAdd(asm.FullName, asm);
             }
         }
-        // 2) Assemblies from DependencyContext (fast path) 只在需要时扫描 DependencyContext
-        if (options.ScanAllRuntimeLibraries)
+
+        // 2) Assemblies from DependencyContext (fast path) - DependencyContext scanning now happens unconditionally, always consider DependencyContext and filter via include/exclude
+        IEnumerable<AssemblyName> candidateNames = [];
+        try
         {
-            IEnumerable<AssemblyName> candidateNames = [];
-            try
+            var dc = DependencyContext.Default;
+            if (dc is not null)
             {
-                var dc = DependencyContext.Default;
-                if (dc is not null)
-                {
-                    candidateNames = dc.GetDefaultAssemblyNames();
-                }
+                candidateNames = dc.GetDefaultAssemblyNames();
             }
-            catch
-            {
-                // ignore
-            }
-            var filteredNames = candidateNames.Where(name => MatchAssembly(name, options)).ToArray();
-            Parallel.ForEach(filteredNames, parallelOptions, name =>
-            {
-                if (!TryLoadByName(name, out var asm))
-                {
-                    return;
-                }
-                if (asm is not null && asm.FullName.IsNotNullOrWhiteSpace())
-                {
-                    result.TryAdd(asm.FullName, asm);
-                }
-            });
         }
+        catch
+        {
+            // ignore
+        }
+        var filteredNames = candidateNames.Where(name => MatchAssembly(name, options)).ToArray();
+        Parallel.ForEach(filteredNames, parallelOptions, name =>
+        {
+            if (!TryLoadByName(name, out var asm))
+            {
+                return;
+            }
+            if (asm is not null && asm.FullName.IsNotNullOrWhiteSpace())
+            {
+                result.TryAdd(asm.FullName, asm);
+            }
+        });
+
         // 3) Optionally probe disk
         if (!options.AllowDirectoryProbe)
         {
@@ -432,7 +432,6 @@ public static class AssemblyHelper
     private static bool TryLoadByName(AssemblyName assemblyName, out Assembly? asm)
     {
         asm = null;
-        // Check cache
         if (AssemblyCache.TryGetValue(assemblyName.FullName, out var cached))
         {
             if (cached is null)
@@ -457,6 +456,10 @@ public static class AssemblyHelper
         }
     }
 
+    /// <summary>
+    ///     <para xml:lang="en">Check whether the assembly name matches include/exclude patterns under the given options.</para>
+    ///     <para xml:lang="zh">判断程序集名称是否在给定选项下匹配包含/排除模式。</para>
+    /// </summary>
     private static bool MatchAssembly(AssemblyName name, AssemblyScanOptions options)
     {
         var simple = name.Name ?? string.Empty;
@@ -465,64 +468,32 @@ public static class AssemblyHelper
             return options.ScanAllRuntimeLibraries;
         }
         // Exclude first
-        if (options.CompiledExcludePatterns.Value.Any(pattern => pattern.IsMatch(simple)))
+        if (options.CompiledExcludePatterns.Value.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, simple)))
         {
             return false;
         }
         // Then include
-        return options.IncludePatterns.Count == 0 || options.CompiledIncludePatterns.Value.Any(pattern => pattern.IsMatch(simple));
+        return options.IncludePatterns.Count == 0 || options.CompiledIncludePatterns.Value.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, simple));
     }
 
-    private static FrozenSet<Regex> CompileWildcardPatterns(IEnumerable<string> patterns)
+    /// <summary>
+    ///     <para xml:lang="en">Compile wildcard patterns (supports '*' and '?') into a frozen set of pattern strings for MatchesSimpleExpression.</para>
+    ///     <para xml:lang="zh">将通配符模式（支持 "*" 与 "?"）编译为用于 MatchesSimpleExpression 的不可变字符串集合。</para>
+    /// </summary>
+    private static FrozenSet<string> CompileWildcardPatterns(IEnumerable<string> patterns)
     {
         var list = (from raw in patterns
-                    where raw.IsNotNullOrWhiteSpace()
-                    select ConvertWildcardToRegex(raw)
-                    into pattern
-                    select new Regex(pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(1000))).ToList();
-        return list.ToFrozenSet();
+                    let trimmed = raw?.Trim()
+                    where !string.IsNullOrWhiteSpace(trimmed)
+                    select trimmed!).ToList();
+        return list.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
     }
 
-    private static string ConvertWildcardToRegex(string wildcard)
-    {
-        var length = wildcard.Length;
-        var result = new StringBuilder((length * 2) + 2);
-        result.Append('^');
-        for (var i = 0; i < length; i++)
-        {
-            var c = wildcard[i];
-            switch (c)
-            {
-                case '*':
-                    result.Append(".*");
-                    break;
-                case '?':
-                    result.Append('.');
-                    break;
-                case '.':
-                case '\\':
-                case '+':
-                case '|':
-                case '{':
-                case '}':
-                case '[':
-                case ']':
-                case '(':
-                case ')':
-                case '^':
-                case '$':
-                    result.Append('\\').Append(c);
-                    break;
-                default:
-                    result.Append(c);
-                    break;
-            }
-        }
-        result.Append('$');
-        return result.ToString();
-    }
-
-    private static IEnumerable<Assembly> ProbeAssembliesFromDisk(FrozenSet<Regex> patterns)
+    /// <summary>
+    ///     <para xml:lang="en">Probe application directory for assemblies and load those whose names match provided patterns.</para>
+    ///     <para xml:lang="zh">在应用目录中探测程序集并加载与给定模式匹配的程序集。</para>
+    /// </summary>
+    private static IEnumerable<Assembly> ProbeAssembliesFromDisk(FrozenSet<string> patterns)
     {
         IEnumerable<string> files = [];
         try
@@ -536,7 +507,7 @@ public static class AssemblyHelper
         foreach (var file in files)
         {
             var fileName = Path.GetFileNameWithoutExtension(file);
-            if (!patterns.Any(p => p.IsMatch(fileName)))
+            if (!patterns.Any(p => FileSystemName.MatchesSimpleExpression(p, fileName)))
             {
                 continue;
             }
@@ -572,6 +543,10 @@ public static class AssemblyHelper
         }
     }
 
+    /// <summary>
+    ///     <para xml:lang="en">Safely check whether a type is decorated with the specified attribute, swallowing reflection errors.</para>
+    ///     <para xml:lang="zh">安全地检查类型是否带有指定特性，避免反射异常导致失败。</para>
+    /// </summary>
     private static bool SafeIsDefined(Type t, Type attr, bool inherit)
     {
         try
@@ -584,9 +559,12 @@ public static class AssemblyHelper
         }
     }
 
+    /// <summary>
+    ///     <para xml:lang="en">Reset internal caches and snapshots, forcing recomputation on next access.</para>
+    ///     <para xml:lang="zh">重置内部缓存与快照，在下次访问时强制重新计算。</para>
+    /// </summary>
     private static void Reset()
     {
-        // Invalidate snapshots and attribute caches
         Interlocked.Increment(ref _version);
         AttributeTypeCache.Clear();
         _lazyAllAssemblies = new(static () => [.. LoadAssembliesInternal(Options)]);
@@ -636,12 +614,11 @@ public static class AssemblyHelper
         ///     <para xml:lang="en">Allow probing the app directory for additional DLLs when not found</para>
         ///     <para xml:lang="zh">允许在未找到时从应用程序目录探测 DLL</para>
         /// </summary>
-        // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
         public bool AllowDirectoryProbe { get; set; }
 
-        internal Lazy<FrozenSet<Regex>> CompiledIncludePatterns => new(() => CompileWildcardPatterns(IncludePatterns));
+        internal Lazy<FrozenSet<string>> CompiledIncludePatterns => new(() => CompileWildcardPatterns(IncludePatterns));
 
-        internal Lazy<FrozenSet<Regex>> CompiledExcludePatterns => new(() => CompileWildcardPatterns(ExcludePatterns));
+        internal Lazy<FrozenSet<string>> CompiledExcludePatterns => new(() => CompileWildcardPatterns(ExcludePatterns));
 
         /// <summary>
         ///     <para xml:lang="en">Include patterns, e.g. "EasilyNET.*"</para>
