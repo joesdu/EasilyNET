@@ -41,11 +41,4 @@
     <ProjectReference Include="..\..\src\EasilyNET.WebCore\EasilyNET.WebCore.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="Swaggers\README.md">
-      <PackagePath></PackagePath>
-      <Pack>true</Pack>
-    </None>
-  </ItemGroup>
-
 </Project>
