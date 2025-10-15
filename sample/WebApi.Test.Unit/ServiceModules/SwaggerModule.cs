@@ -23,7 +23,7 @@ internal sealed class SwaggerModule : AppModule
     static SwaggerModule()
     {
         var dic = new ConcurrentDictionary<string, OpenApiInfo>();
-        // 添加默认文档（未分组的控制器）
+        // 添加默认文档(未分组的控制器)
         dic.TryAdd(_docName, new()
         {
             Title = _docName,
