@@ -1,6 +1,5 @@
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using Microsoft.AspNetCore.Mvc;
-using WebApi.Test.Unit.Swaggers.Attributes;
 
 // ReSharper disable ClassNeverInstantiated.Global
 
@@ -9,7 +8,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// <inheritdoc />
 [Route("api/[controller]")]
 [ApiController]
-[ApiGroup("KeyedServiceTest", "KeyedServiceTestController")]
+[ApiExplorerSettings(GroupName = "KeyedServiceTest")]
 public class KeyedServiceTestController(IServiceProvider sp, [FromKeyedServices("helloKey")] IKeyedServiceTest2 kst2) : ControllerBase
 {
     /// <summary>

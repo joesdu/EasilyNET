@@ -1,6 +1,7 @@
 using System.Net;
 using EasilyNET.Core.Enums;
 using EasilyNET.Core.Essentials;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Test.Unit.Controllers;
@@ -16,6 +17,7 @@ public class ValuesController : ControllerBase
     /// Error
     /// </summary>
     [HttpGet("Error")]
+    [Authorize]
     public void GetError() => throw new BusinessException(HttpStatusCode.Forbidden, "403异常");
 
     /// <summary>

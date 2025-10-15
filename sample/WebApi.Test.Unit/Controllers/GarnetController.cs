@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
-using WebApi.Test.Unit.Swaggers.Attributes;
 
 namespace WebApi.Test.Unit.Controllers;
 
 /// <inheritdoc />
 [Route("api/[controller]")]
 [ApiController]
-[ApiGroup("GarnetTest")]
+[ApiExplorerSettings(GroupName = "GarnetTest")]
 public class GarnetController(IDistributedCache garnet) : ControllerBase
 {
     /// <summary>

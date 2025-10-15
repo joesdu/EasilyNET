@@ -1,7 +1,13 @@
+using System.Collections.Concurrent;
+using System.Collections.Frozen;
+using System.Reflection;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
+using EasilyNET.Core.Misc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.OpenApi;
+using WebApi.Test.Unit.Swaggers;
 
 namespace WebApi.Test.Unit.ServiceModules;
 
@@ -10,12 +16,36 @@ namespace WebApi.Test.Unit.ServiceModules;
 /// </summary>
 internal sealed class SwaggerModule : AppModule
 {
-    /// https://github.com/domaindrivendev/Swashbuckle.AspNetCore
-    /// <inheritdoc />
-    public override bool GetEnable(ConfigureServicesContext context)
+    private const string _defaultDescription = "Console.WriteLine(\"🐂🍺\")";
+    private static readonly FrozenDictionary<string, OpenApiInfo> attributesDic;
+    private static readonly string _docName = Assembly.GetEntryAssembly()?.GetName().Name ?? string.Empty;
+
+    static SwaggerModule()
     {
-        var config = context.ServiceProvider.GetConfiguration();
-        return config.GetSection("ServicesEnable").GetValue<bool>("Swagger");
+        var dic = new ConcurrentDictionary<string, OpenApiInfo>();
+        // 添加默认文档(未分组的控制器)
+        dic.TryAdd(_docName, new()
+        {
+            Title = _docName,
+            Description = _defaultDescription
+        });
+        var attributes = AssemblyHelper.FindTypesByAttribute<ApiExplorerSettingsAttribute>()
+                                       .Select(ctrl => ctrl.GetCustomAttribute<ApiExplorerSettingsAttribute>())
+                                       .OfType<ApiExplorerSettingsAttribute>()
+                                       .OrderBy(c => c.GroupName).ToArray();
+        if (attributes.Length > 0)
+        {
+            foreach (var attribute in attributes)
+            {
+                dic.TryAdd(attribute.GroupName ?? _docName, new()
+                {
+                    Title = attribute.GroupName,
+                    Description = _defaultDescription
+                });
+            }
+        }
+        // 按名称排序并转换为FrozenDictionary
+        attributesDic = dic.OrderBy(kvp => kvp.Key == _docName ? string.Empty : kvp.Key).ToFrozenDictionary();
     }
 
     /// <inheritdoc />
@@ -24,17 +54,53 @@ internal sealed class SwaggerModule : AppModule
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         context.Services.AddSwaggerGen(c =>
         {
-            // 这里使用EasilyNET提供的扩展配置.
-            c.EasilySwaggerGenOptions();
-            // 配置认证方式
-            c.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new()
+            // 添加全局安全方案定义
+            c.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
             {
                 Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
                 Name = "Authorization",
-                In = ParameterLocation.Header,
-                Type = SecuritySchemeType.ApiKey,
-                Scheme = JwtBearerDefaults.AuthenticationScheme
+                Scheme = "bearer",              // 小写，符合OpenAPI 3.x规范
+                BearerFormat = "JWT",           // 指示令牌格式
+                Type = SecuritySchemeType.Http, // 使用Http方案以支持Bearer
+                In = ParameterLocation.Header
             });
+
+            // 注意：不要在这里添加全局 AddSecurityRequirement
+            // 让 OperationFilter 来处理每个操作的安全要求
+
+            // 配置文档过滤规则
+            c.DocInclusionPredicate((docName, apiDescription) =>
+            {
+                var metadata = apiDescription.ActionDescriptor.EndpointMetadata.OfType<ApiExplorerSettingsAttribute>().FirstOrDefault();
+                // 如果控制器有GroupName，匹配对应文档
+                if (metadata != null && !string.IsNullOrEmpty(metadata.GroupName))
+                {
+                    return metadata.GroupName.Equals(docName, StringComparison.OrdinalIgnoreCase);
+                }
+                // 未指定GroupName的控制器归入默认文档
+                return docName == _docName;
+            });
+            var files = Directory.GetFiles(AppContext.BaseDirectory, "*.xml", SearchOption.TopDirectoryOnly);
+            foreach (var file in files)
+            {
+                try
+                {
+                    c.IncludeXmlComments(file, true);
+                }
+                catch (Exception)
+                {
+                    // ignore
+                }
+            }
+
+            // 添加 OperationFilter 来处理授权
+            c.OperationFilter<SwaggerAuthorizeFilter>();
+
+            // 动态注册所有文档
+            foreach (var (key, value) in attributesDic)
+            {
+                c.SwaggerDoc(key, value);
+            }
         });
         await Task.CompletedTask;
     }
@@ -43,7 +109,15 @@ internal sealed class SwaggerModule : AppModule
     public override async Task ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationHost() as IApplicationBuilder;
-        app?.UseEasilySwaggerUI();
+        app.UseSwagger();
+        app.UseSwaggerUI(c =>
+        {
+            foreach (var (key, value) in attributesDic)
+            {
+                c.SwaggerEndpoint($"/swagger/{key}/swagger.json", value.Title);
+            }
+            c.RoutePrefix = "swagger";
+        });
         await base.ApplicationInitialization(context);
     }
 }
