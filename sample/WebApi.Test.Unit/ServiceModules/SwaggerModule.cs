@@ -54,7 +54,7 @@ internal sealed class SwaggerModule : AppModule
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         context.Services.AddSwaggerGen(c =>
         {
-            // 添加全局安全方案
+            // 添加全局安全方案定义
             c.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
             {
                 Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
@@ -64,6 +64,10 @@ internal sealed class SwaggerModule : AppModule
                 Type = SecuritySchemeType.Http, // 使用Http方案以支持Bearer
                 In = ParameterLocation.Header
             });
+
+            // 注意：不要在这里添加全局 AddSecurityRequirement
+            // 让 OperationFilter 来处理每个操作的安全要求
+
             // 配置文档过滤规则
             c.DocInclusionPredicate((docName, apiDescription) =>
             {
@@ -88,7 +92,10 @@ internal sealed class SwaggerModule : AppModule
                     // ignore
                 }
             }
+
+            // 添加 OperationFilter 来处理授权
             c.OperationFilter<SwaggerAuthorizeFilter>();
+
             // 动态注册所有文档
             foreach (var (key, value) in attributesDic)
             {

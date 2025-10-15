@@ -34,25 +34,22 @@ public sealed class SwaggerAuthorizeFilter : IOperationFilter
         {
             return;
         }
-        operation.Security = new List<OpenApiSecurityRequirement>
+        // OpenAPI 3.x ：
+        // 必须传入 hostDocument 参数，这样 OpenApiSecuritySchemeReference 才能解析 Target
+        // Target 不为 null 时，序列化才会正常工作
+        var schemeReference = new OpenApiSecuritySchemeReference(JwtBearerDefaults.AuthenticationScheme,
+            context.Document // 传入文档实例，让引用能够解析到实际的安全方案
+        );
+        var requirement = new OpenApiSecurityRequirement
         {
-            new()
-            {
-                {
-                    new("test")
-                    {
-                        Reference = new()
-                        {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = JwtBearerDefaults.AuthenticationScheme // "Bearer"
-                        }
-                    },
-                    [] // 空字符串表示无特定作用域要求
-                }
-            }
+            { schemeReference, [] }
         };
+
+        // 初始化 Security 集合（如果为 null）
+        operation.Security ??= [];
+        operation.Security.Add(requirement);
+
         // 添加401和403响应
-        // 确保Responses不为空并添加401和403
         operation.Responses ??= new();
         if (!operation.Responses.ContainsKey("401"))
         {
