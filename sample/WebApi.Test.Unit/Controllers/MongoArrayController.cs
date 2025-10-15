@@ -6,7 +6,6 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using WebApi.Test.Unit.Domain;
-using WebApi.Test.Unit.Swaggers.Attributes;
 
 namespace WebApi.Test.Unit.Controllers;
 
@@ -16,7 +15,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// <param name="db"></param>
 [Route("api/[controller]")]
 [ApiController]
-[ApiGroup("MongoTest", "Mongo一些测试")]
+[ApiExplorerSettings(GroupName = "MongoTest")]
 public class MongoArrayController(DbContext db) : ControllerBase
 {
     private readonly FilterDefinitionBuilder<FamilyInfo> _bf = Builders<FamilyInfo>.Filter;

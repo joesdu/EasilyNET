@@ -1,7 +1,6 @@
 using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Test.Unit.Events;
-using WebApi.Test.Unit.Swaggers.Attributes;
 
 namespace WebApi.Test.Unit.Controllers;
 
@@ -10,8 +9,8 @@ namespace WebApi.Test.Unit.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]/[action]")]
-[ApiGroup("RabbitBus", "RabbitBus Test")]
-public class RabbitBusController(IBus ibus, IServiceProvider sp) : ControllerBase
+[ApiExplorerSettings(GroupName = "RabbitBus")]
+public class RabbitBusController(IBus ibus) : ControllerBase
 {
     /// <summary>
     /// 发送HelloWorld消息
@@ -101,15 +100,5 @@ public class RabbitBusController(IBus ibus, IServiceProvider sp) : ControllerBas
     public async Task TopicTo3()
     {
         await ibus.Publish(new TopicEventOne(), "topic.queue.3");
-    }
-
-    /// <summary>
-    /// 测试
-    /// </summary>
-    [HttpGet]
-    public void ProviderTest()
-    {
-        var log = sp.GetRequiredService<ILogger<RabbitBusController>>();
-        log.LogInformation("This is a test log from ProviderTest method.");
     }
 }

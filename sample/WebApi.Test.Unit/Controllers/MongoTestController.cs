@@ -6,7 +6,6 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using WebApi.Test.Unit.Domain;
-using WebApi.Test.Unit.Swaggers.Attributes;
 
 namespace WebApi.Test.Unit.Controllers;
 
@@ -15,7 +14,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[ApiGroup("MongoTest", "Mongo一些测试2")]
+[ApiExplorerSettings(GroupName = "MongoTest")]
 public class MongoTestController(DbContext db) : ControllerBase
 {
     private readonly FilterDefinitionBuilder<MongoTest> bf = Builders<MongoTest>.Filter;

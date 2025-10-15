@@ -5,7 +5,6 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
 using WebApi.Test.Unit.dtos;
-using WebApi.Test.Unit.Swaggers.Attributes;
 
 // ReSharper disable UnusedMemberHierarchy.Global
 // ReSharper disable VirtualMemberNeverOverridden.Global
@@ -18,7 +17,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[ApiGroup("MongoFS", "MongoDB GridFS")]
+[ApiExplorerSettings(GroupName = "MongoFS")]
 public class GridFSController(GridFSBucket bucket) : ControllerBase
 {
     /// <summary>

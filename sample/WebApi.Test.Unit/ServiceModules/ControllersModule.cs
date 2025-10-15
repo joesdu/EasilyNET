@@ -4,6 +4,7 @@ using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using EasilyNET.Mongo.AspNetCore.JsonConverters;
 using EasilyNET.WebCore.JsonConverters;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using WebApi.Test.Unit.Common;
@@ -34,6 +35,14 @@ internal sealed class ControllersModule : AppModule
                    c.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                });
         context.Services.AddEndpointsApiExplorer();
+        context.Services.AddAuthentication(c =>
+        {
+            c.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            c.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        }).AddJwtBearer(c =>
+        {
+            // 配置JWT选项
+        });
         await Task.CompletedTask;
     }
 }
