@@ -52,7 +52,7 @@ public static class TimeSeriesCollectionExtensions
             var db = scope.ServiceProvider.GetService<T>();
             ArgumentNullException.ThrowIfNull(db, nameof(T));
             var loggerFactory = scope.ServiceProvider.GetService<ILoggerFactory>();
-            var logger = loggerFactory?.CreateLogger("TimeSeriesCollectionExtensions");
+            var logger = loggerFactory?.CreateLogger(nameof(TimeSeriesCollectionExtensions));
             try
             {
                 var collections = db.Database.ListCollectionNames().ToList();
