@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApi.Test.Unit.Controllers;
 
 /// <inheritdoc />
-[Route("api/[controller]")]
+[Route("api/[controller]/[action]")]
 [ApiController]
-[ApiExplorerSettings(GroupName = nameof(InjectServiceTest))]
+[ApiExplorerSettings(GroupName = "InjectServiceTest")]
 public class InjectServiceTestController(IServiceProvider sp) : ControllerBase
 {
     /// <summary>

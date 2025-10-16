@@ -14,7 +14,7 @@ using WebApi.Test.Unit.Common;
 var appInitial = Stopwatch.GetTimestamp();
 AssemblyHelper.Configure(o =>
 {
-    o.AllowDirectoryProbe = true;
+    o.AllowDirectoryProbe = false;
     o.ScanAllRuntimeLibraries = false;
 });
 // Enable UTF-8 support in console
