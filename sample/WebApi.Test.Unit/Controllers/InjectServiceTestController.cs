@@ -8,17 +8,17 @@ namespace WebApi.Test.Unit.Controllers;
 /// <inheritdoc />
 [Route("api/[controller]")]
 [ApiController]
-[ApiExplorerSettings(GroupName = "KeyedServiceTest")]
-public class KeyedServiceTestController(IServiceProvider sp) : ControllerBase
+[ApiExplorerSettings(GroupName = nameof(InjectServiceTest))]
+public class InjectServiceTestController(IServiceProvider sp) : ControllerBase
 {
     /// <summary>
     /// ShowHello
     /// </summary>
     /// <returns></returns>
-    [HttpGet("HelloKeyedService")]
+    [HttpGet]
     public string? ShowHello()
     {
-        var kst = sp.GetService<KeyedServiceTest>();
+        var kst = sp.GetService<InjectServiceTest>();
         return kst?.ShowHello();
     }
 
@@ -26,10 +26,10 @@ public class KeyedServiceTestController(IServiceProvider sp) : ControllerBase
     /// ShowHello2
     /// </summary>
     /// <returns></returns>
-    [HttpGet("HelloKeyedService2")]
+    [HttpGet]
     public string? ShowHello2()
     {
-        var kst2 = sp.GetService<IKeyedServiceTest2>();
+        var kst2 = sp.GetService<IInjectServiceTest2>();
         return kst2?.ShowHello2();
     }
 
@@ -37,31 +37,28 @@ public class KeyedServiceTestController(IServiceProvider sp) : ControllerBase
     /// ShowHello3
     /// </summary>
     /// <returns></returns>
-    [HttpGet("HelloKeyedService3")]
+    [HttpGet]
     public string? ShowHello3()
     {
-        var kst = sp.GetService<IKeyedServiceTest>();
+        var kst = sp.GetService<IInjectServiceTest>();
         return kst?.ShowHello();
     }
 }
 
-/// <summary>
-/// KeyedServiceTest
-/// </summary>
+/// <inheritdoc cref="IInjectServiceTest" />
 [DependencyInjection(ServiceLifetime.Transient, AddSelf = true)]
-public sealed class KeyedServiceTest : IKeyedServiceTest, IKeyedServiceTest2
+public sealed class InjectServiceTest : IInjectServiceTest, IInjectServiceTest2
 {
     /// <inheritdoc />
-    public string ShowHello() => "Hello, KeyedServiceTest!";
+    public string ShowHello() => "Hello, Test!";
 
     /// <inheritdoc />
-    public string ShowHello2() => "Hello2, KeyedServiceTest!";
+    public string ShowHello2() => "Hello2, Test!";
 }
 
 /// <summary>
-/// IKeyedServiceTest2
 /// </summary>
-public interface IKeyedServiceTest2
+public interface IInjectServiceTest2
 {
     /// <summary>
     /// ShowHello2
@@ -71,9 +68,8 @@ public interface IKeyedServiceTest2
 }
 
 /// <summary>
-/// IKeyedServiceTest
 /// </summary>
-public interface IKeyedServiceTest
+public interface IInjectServiceTest
 {
     /// <summary>
     /// ShowHello
