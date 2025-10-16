@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using EasilyNET.Mongo.AspNetCore.Converter;
+using EasilyNET.Mongo.AspNetCore.Converters;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;

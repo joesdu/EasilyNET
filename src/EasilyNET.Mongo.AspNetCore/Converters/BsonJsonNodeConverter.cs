@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
 using MongoDB.Bson;
 
-namespace EasilyNET.Mongo.AspNetCore.Converter;
+namespace EasilyNET.Mongo.AspNetCore.Converters;
 
 internal static class BsonJsonNodeConverter
 {
