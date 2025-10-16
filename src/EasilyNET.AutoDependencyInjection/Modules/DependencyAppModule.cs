@@ -30,53 +30,86 @@ public sealed class DependencyAppModule : AppModule
             var attr = impl.GetCustomAttribute<DependencyInjectionAttribute>();
             var lifetime = attr?.Lifetime;
             if (lifetime is null)
-                continue;
-            if (attr?.AsType is not null)
             {
-                // 若实现类不是注册类型的派生类，则跳过
-                if (impl.IsBaseOn(attr.AsType))
-                {
-                    if (attr.ServiceKey is not null)
-                    {
-                        services.AddNamedService(attr.AsType, attr.ServiceKey, impl, lifetime.Value);
-                    }
-                    else
-                    {
-                        // 记录服务类型 -> 实现类型映射
-                        ServiceProviderExtension.ServiceImplementations[attr.AsType] = impl;
-                        services.Add(new(attr.AsType, p => p.CreateInstance(impl), lifetime.Value));
-                    }
-                }
                 continue;
             }
-            var serviceTypes = GetServiceTypes(impl);
-            if (serviceTypes.Count is 0 || attr?.AddSelf is true)
+            // ====== KeyedService 注册逻辑 ======
+            if (attr?.ServiceKey is not null)
             {
-                if (attr?.ServiceKey is not null)
+                // 1. 处理 SelfOnly：仅注册自身为 KeyedService
+                if (attr.SelfOnly)
                 {
                     services.AddNamedService(impl, attr.ServiceKey, impl, lifetime.Value);
+                    continue;
                 }
-                else
+                // 2. 处理 AsType：注册指定的服务类型为 KeyedService
+                if (attr.AsType is not null)
                 {
-                    // 自身注册也记录映射
+                    if (!impl.IsBaseOn(attr.AsType))
+                    {
+                        continue;
+                    }
+                    services.AddNamedService(attr.AsType, attr.ServiceKey, impl, lifetime.Value);
+                    // AsType 指定后，如果还需要注册自身，需要显式设置 AddSelf
+                    if (attr.AddSelf)
+                    {
+                        services.AddNamedService(impl, attr.ServiceKey, impl, lifetime.Value);
+                    }
+                    continue;
+                }
+                // 3. 当使用 ServiceKey 但没有指定 SelfOnly 或 AsType 时
+                // 为了避免语义混乱，必须明确指定注册策略
+                // 默认行为：仅注册自身（与 SelfOnly 相同）
+                services.AddNamedService(impl, attr.ServiceKey, impl, lifetime.Value);
+                continue;
+            }
+            // ====== 普通服务注册逻辑（无 ServiceKey）======
+            // 1. 处理 AddSelf + SelfOnly：仅注册自身
+            if (attr is { AddSelf: true, SelfOnly: true })
+            {
+                ServiceProviderExtension.ServiceImplementations[impl] = impl;
+                services.Add(new(impl, p => p.CreateInstance(impl), lifetime.Value));
+                continue;
+            }
+            // 2. 处理 AsType：注册指定的服务类型
+            if (attr?.AsType is not null)
+            {
+                if (!impl.IsBaseOn(attr.AsType))
+                {
+                    continue;
+                }
+                ServiceProviderExtension.ServiceImplementations[attr.AsType] = impl;
+                services.Add(new(attr.AsType, p => p.CreateInstance(impl), lifetime.Value));
+                // AsType 指定后，如果还需要注册自身，需要显式设置 AddSelf
+                if (attr.AddSelf)
+                {
                     ServiceProviderExtension.ServiceImplementations[impl] = impl;
                     services.Add(new(impl, p => p.CreateInstance(impl), lifetime.Value));
                 }
-                if (attr?.SelfOnly is true || serviceTypes.Count is 0)
-                    continue;
+                continue;
             }
-            foreach (var serviceType in serviceTypes)
+            // 3. 自动注册接口和抽象类
+            var serviceTypes = GetServiceTypes(impl);
+            // 3.1 如果需要注册自身（显式指定 AddSelf）
+            if (attr?.AddSelf is true)
             {
-                if (attr?.ServiceKey is not null)
+                ServiceProviderExtension.ServiceImplementations[impl] = impl;
+                services.Add(new(impl, p => p.CreateInstance(impl), lifetime.Value));
+            }
+            // 3.2 注册所有接口和抽象类
+            if (serviceTypes.Count > 0)
+            {
+                foreach (var serviceType in serviceTypes)
                 {
-                    services.AddNamedService(serviceType, attr.ServiceKey, impl, lifetime.Value);
-                }
-                else
-                {
-                    // 记录接口/抽象 -> 实现 类型映射
                     ServiceProviderExtension.ServiceImplementations[serviceType] = impl;
                     services.Add(new(serviceType, p => p.CreateInstance(impl), lifetime.Value));
                 }
+            }
+            else if (attr?.AddSelf is not true)
+            {
+                // 3.3 没有接口或抽象类，且未显式声明 AddSelf 时，仅注册自身
+                ServiceProviderExtension.ServiceImplementations[impl] = impl;
+                services.Add(new(impl, p => p.CreateInstance(impl), lifetime.Value));
             }
         }
     }

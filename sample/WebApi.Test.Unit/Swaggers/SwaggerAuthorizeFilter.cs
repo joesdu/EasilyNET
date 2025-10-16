@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi;
@@ -21,34 +22,23 @@ public sealed class SwaggerAuthorizeFilter : IOperationFilter
         // 获取方法和类的特性
         var methodAttributes = context.MethodInfo.GetCustomAttributes(true);
         var classAttributes = context.MethodInfo.DeclaringType?.GetCustomAttributes(true) ?? [];
-        var authAttributes = methodAttributes.Union(classAttributes).OfType<AuthorizeAttribute>();
-        var allowAnonymousAttributes = methodAttributes.Union(classAttributes).OfType<AllowAnonymousAttribute>();
-
-        // 如果存在AllowAnonymous特性，不添加安全要求
-        if (allowAnonymousAttributes.Any())
-        {
-            return;
-        }
-        // 如果存在Authorize特性，添加安全要求
-        if (!authAttributes.Any())
+        var authAttributes = methodAttributes.Union(classAttributes).OfType<AuthorizeAttribute>().ToFrozenSet();
+        var allowAnonymousAttributes = methodAttributes.Union(classAttributes).OfType<AllowAnonymousAttribute>().ToFrozenSet();
+        // 如果存在AllowAnonymous或没有Authorize特性,不添加安全要求
+        if (allowAnonymousAttributes.Count > 0 || authAttributes.Count is 0)
         {
             return;
         }
         // OpenAPI 3.x ：
         // 必须传入 hostDocument 参数，这样 OpenApiSecuritySchemeReference 才能解析 Target
         // Target 不为 null 时，序列化才会正常工作
-        var schemeReference = new OpenApiSecuritySchemeReference(JwtBearerDefaults.AuthenticationScheme,
-            context.Document // 传入文档实例，让引用能够解析到实际的安全方案
-        );
+        var schemeReference = new OpenApiSecuritySchemeReference(JwtBearerDefaults.AuthenticationScheme, context.Document);
         var requirement = new OpenApiSecurityRequirement
         {
             { schemeReference, [] }
         };
-
-        // 初始化 Security 集合（如果为 null）
         operation.Security ??= [];
         operation.Security.Add(requirement);
-
         // 添加401和403响应
         operation.Responses ??= new();
         if (!operation.Responses.ContainsKey("401"))

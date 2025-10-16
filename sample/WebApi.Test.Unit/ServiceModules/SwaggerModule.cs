@@ -44,7 +44,6 @@ internal sealed class SwaggerModule : AppModule
                 });
             }
         }
-        // 按名称排序并转换为FrozenDictionary
         attributesDic = dic.OrderBy(kvp => kvp.Key == _docName ? string.Empty : kvp.Key).ToFrozenDictionary();
     }
 
@@ -64,16 +63,14 @@ internal sealed class SwaggerModule : AppModule
                 Type = SecuritySchemeType.Http, // 使用Http方案以支持Bearer
                 In = ParameterLocation.Header
             });
-
             // 注意：不要在这里添加全局 AddSecurityRequirement
             // 让 OperationFilter 来处理每个操作的安全要求
-
             // 配置文档过滤规则
             c.DocInclusionPredicate((docName, apiDescription) =>
             {
                 var metadata = apiDescription.ActionDescriptor.EndpointMetadata.OfType<ApiExplorerSettingsAttribute>().FirstOrDefault();
                 // 如果控制器有GroupName，匹配对应文档
-                if (metadata != null && !string.IsNullOrEmpty(metadata.GroupName))
+                if (metadata is not null && metadata.GroupName.IsNotNullOrWhiteSpace())
                 {
                     return metadata.GroupName.Equals(docName, StringComparison.OrdinalIgnoreCase);
                 }
@@ -92,10 +89,8 @@ internal sealed class SwaggerModule : AppModule
                     // ignore
                 }
             }
-
             // 添加 OperationFilter 来处理授权
             c.OperationFilter<SwaggerAuthorizeFilter>();
-
             // 动态注册所有文档
             foreach (var (key, value) in attributesDic)
             {
