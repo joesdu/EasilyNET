@@ -9,17 +9,17 @@ namespace WebApi.Test.Unit.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [ApiExplorerSettings(GroupName = "KeyedServiceTest")]
-public class KeyedServiceTestController(IServiceProvider sp, [FromKeyedServices("helloKey")] IKeyedServiceTest2 kst2) : ControllerBase
+public class KeyedServiceTestController(IServiceProvider sp) : ControllerBase
 {
     /// <summary>
     /// ShowHello
     /// </summary>
     /// <returns></returns>
     [HttpGet("HelloKeyedService")]
-    public string ShowHello()
+    public string? ShowHello()
     {
-        var kst = sp.GetRequiredKeyedService<KeyedServiceTest>("helloKey");
-        return kst.ShowHello();
+        var kst = sp.GetService<KeyedServiceTest>();
+        return kst?.ShowHello();
     }
 
     /// <summary>
@@ -27,24 +27,28 @@ public class KeyedServiceTestController(IServiceProvider sp, [FromKeyedServices(
     /// </summary>
     /// <returns></returns>
     [HttpGet("HelloKeyedService2")]
-    public string ShowHello2() => kst2.ShowHello2();
+    public string? ShowHello2()
+    {
+        var kst2 = sp.GetService<IKeyedServiceTest2>();
+        return kst2?.ShowHello2();
+    }
 
     /// <summary>
     /// ShowHello3
     /// </summary>
     /// <returns></returns>
     [HttpGet("HelloKeyedService3")]
-    public string ShowHello3()
+    public string? ShowHello3()
     {
-        var kst = sp.GetRequiredKeyedService<IKeyedServiceTest>("helloKey");
-        return kst.ShowHello();
+        var kst = sp.GetService<IKeyedServiceTest>();
+        return kst?.ShowHello();
     }
 }
 
 /// <summary>
 /// KeyedServiceTest
 /// </summary>
-[DependencyInjection(ServiceLifetime.Transient, AsType = typeof(IKeyedServiceTest2), ServiceKey = "helloKey")]
+[DependencyInjection(ServiceLifetime.Transient, AddSelf = true)]
 public sealed class KeyedServiceTest : IKeyedServiceTest, IKeyedServiceTest2
 {
     /// <inheritdoc />
