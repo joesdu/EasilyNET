@@ -23,6 +23,7 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: csharp
+        queries: security-extended,security-and-quality
         build-mode: manual
 
     - name: Setup .NET SDK
