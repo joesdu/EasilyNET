@@ -49,7 +49,7 @@ This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDU
 
 ## Development Environment Setup
 
-1. Ensure you have the latest .NET 9 SDK installed.
+1. Ensure you have the latest .NET 10 SDK installed.
 2. Restore dependencies:
    ```bash
    dotnet restore
