@@ -201,5 +201,4 @@ By contributing to this project, you agree that your contributions will be licen
 
 ---
 
-Thank you for contributing to EasilyNET! Your efforts help make this project better for everyone.</content>
-<parameter name="filePath">g:\GitHub\EasilyNET\CONTRIBUTING.md
+Thank you for contributing to EasilyNET! Your efforts help make this project better for everyone.
