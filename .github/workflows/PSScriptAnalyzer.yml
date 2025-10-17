@@ -11,11 +11,11 @@ name: PSScriptAnalyzer
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   schedule:
-    - cron: '16 10 * * 2'
+    - cron: "16 10 * * 2"
 
 permissions:
   contents: read
