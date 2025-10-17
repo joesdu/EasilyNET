@@ -2,6 +2,7 @@
     <Folder Name="/.github/">
         <File Path=".github/dependabot.yml" />
         <File Path=".github/release-drafter.yml" />
+        <File Path=".github/copilot-instructions.md" />
     </Folder>
     <Folder Name="/.github/ISSUE_TEMPLATE/">
         <File Path=".github/ISSUE_TEMPLATE/bug.yml" />
