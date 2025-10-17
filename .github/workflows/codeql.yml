@@ -26,10 +26,12 @@ jobs:
 
     # 如果你的项目确实需要 .NET 10 预览，请设置为你项目日志里相近的版本（否则改为稳定版本如 '8.0.x'）
     - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v5
       with:
-        # 如果你想避免使用预览，请改成稳定版本；若项目目标 net10.0 则需设置预览版本
-        dotnet-version: '10.0.100-rc.2'
+        dotnet-version: |
+          8.0.x
+          9.0.x
+          10.0.x
 
     - name: Restore NuGet packages
       run: dotnet restore ./EasilyNET.sln --configfile nuget.config
