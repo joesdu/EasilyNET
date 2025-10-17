@@ -60,7 +60,7 @@ representative at an online or offline event.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement at
-[dygood@outlook.com](mailto:dygood@outlook.com) . 
+[dygood@outlook.com](mailto:dygood@outlook.com).
 <!--For anonymous reporting, you may use our web form: [https://your-org.example/report-conduct](https://your-org.example/report-conduct).-->
 All complaints will be reviewed and investigated promptly and fairly.
 
