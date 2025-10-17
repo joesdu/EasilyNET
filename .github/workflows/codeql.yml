@@ -24,7 +24,6 @@ jobs:
       with:
         languages: csharp
 
-    # 如果你的项目确实需要 .NET 10 预览，请设置为你项目日志里相近的版本（否则改为稳定版本如 '8.0.x'）
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v5
       with:
@@ -34,11 +33,11 @@ jobs:
           10.0.x
 
     - name: Restore NuGet packages
-      run: dotnet restore ./EasilyNET.sln --configfile nuget.config
+      run: dotnet restore ./EasilyNET.slnx --configfile nuget.config
       # 如果仓库没有 solution 文件，请改为对 src/*.csproj 的 restore，或指定正确路径
 
     - name: Build solution (explicit)
-      run: dotnet build ./EasilyNET.sln --configuration Release --no-restore
+      run: dotnet build ./EasilyNET.slnx --configuration Release --no-restore
       # 若没有 EasilyNET.sln，替换为根目录下的具体 .csproj 或多个 build 命令
 
     - name: Run CodeQL analysis
