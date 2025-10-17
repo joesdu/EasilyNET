@@ -1,0 +1,68 @@
+name: Pull Request
+description: Create a pull request to contribute to the project
+title: "[PR] "
+labels: []
+assignees: []
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 📝 Description
+      description: Provide a clear and concise description of the changes. What problem does this PR solve?
+      placeholder: Describe your changes here...
+    validations:
+      required: true
+  - type: textarea
+    id: related-issues
+    attributes:
+      label: 🔗 Related Issues
+      description: Link to any related issues or pull requests. Use keywords like "Closes #123" or "Fixes #456"
+      placeholder: "- Closes #\n- Fixes #"
+  - type: checkboxes
+    id: type-of-change
+    attributes:
+      label: 🏷️ Type of Change
+      description: Check all that apply
+      options:
+        - label: 🐛 Bug fix (non-breaking change which fixes an issue)
+        - label: ✨ New feature (non-breaking change which adds functionality)
+        - label: 💥 Breaking change (fix or feature that would cause existing functionality to not work as expected)
+        - label: 📚 Documentation update
+        - label: 🔧 Refactor (no functional changes)
+        - label: 🧪 Tests (adding or updating tests)
+        - label: 🛠️ Build/CI changes
+        - label: 🎨 Style changes (formatting, etc.)
+        - label: 🚀 Performance improvements
+        - label: 🔒 Security improvements
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✅ Checklist
+      description: Check all that apply
+      options:
+        - label: My code follows the project's coding standards
+        - label: I have performed a self-review of my own code
+        - label: I have commented my code, particularly in hard-to-understand areas
+        - label: I have made corresponding changes to the documentation
+        - label: My changes generate no new warnings or errors
+        - label: I have added tests that prove my fix is effective or that my feature works
+        - label: New and existing unit tests pass locally with my changes
+        - label: Any dependent changes have been merged and published in downstream modules
+  - type: textarea
+    id: testing
+    attributes:
+      label: 🧪 Testing
+      description: Describe how you tested your changes
+      placeholder: "- [ ] Unit tests\n- [ ] Integration tests\n- [ ] Manual testing\n- [ ] Other (please specify):"
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 📸 Screenshots (if applicable)
+      description: Add screenshots to help explain your changes
+      placeholder: Upload screenshots here...
+  - type: textarea
+    id: additional-notes
+    attributes:
+      label: 🔍 Additional Notes
+      description: Any additional information or context about this PR
+      placeholder: Add any other context or notes...
