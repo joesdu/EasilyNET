@@ -1,50 +1,44 @@
-name: "CodeQL"
+name: "CodeQL (custom dotnet build)"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
-  schedule:
-    - cron: '30 1 * * 0'
+    # 可按需调整
+    branches: [ main ]
 
 jobs:
-  analyze:
-    name: Analyze
+  codeql-analysis:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
     permissions:
       actions: read
       contents: read
       security-events: write
 
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'csharp' ]
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: |
-          8.0.x
-          9.0.x
-          10.0.x
-
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v2
       with:
-        languages: ${{ matrix.language }}
-        queries: security-extended,security-and-quality
+        languages: csharp
 
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+    # 如果你的项目确实需要 .NET 10 预览，请设置为你项目日志里相近的版本（否则改为稳定版本如 '8.0.x'）
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v3
       with:
-        category: "/language:${{matrix.language}}"
+        # 如果你想避免使用预览，请改成稳定版本；若项目目标 net10.0 则需设置预览版本
+        dotnet-version: '10.0.100-rc.2'
+
+    - name: Restore NuGet packages
+      run: dotnet restore ./EasilyNET.sln --configfile nuget.config
+      # 如果仓库没有 solution 文件，请改为对 src/*.csproj 的 restore，或指定正确路径
+
+    - name: Build solution (explicit)
+      run: dotnet build ./EasilyNET.sln --configuration Release --no-restore
+      # 若没有 EasilyNET.sln，替换为根目录下的具体 .csproj 或多个 build 命令
+
+    - name: Run CodeQL analysis
+      uses: github/codeql-action/analyze@v2
+      # 增加并发/超时等配置可根据需要补充
