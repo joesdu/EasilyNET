@@ -43,5 +43,5 @@ jobs:
       # 若没有 EasilyNET.sln，替换为根目录下的具体 .csproj 或多个 build 命令
 
     - name: Run CodeQL analysis
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3
       # 增加并发/超时等配置可根据需要补充
