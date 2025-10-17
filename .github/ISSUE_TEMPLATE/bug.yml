@@ -1,20 +1,20 @@
 name: 🐛 上报 BUG (Report bug)
-description: 烦请您帮助我们进步(Create a report to help us improve).
+description: 烦请您帮助我们进步(Create a report to help us improve)
 title: "[Bug]: "
-labels: [ "bug" ]
+labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        感谢您能抽出时间填写这个 BUG 表单.(Thanks for taking the time to fill out this bug report!)
+        感谢您能抽出时间填写这个 BUG 表单(Thanks for taking the time to fill out this bug report!)
 
   - type: dropdown
     id: os
     attributes:
-      label: ⚙️ OS
-      description: 您用的是什么系统?
+      label: ⚙️ 操作系统 (OS)
+      description: 您用的是什么系统? (What operating system are you using?)
       options:
-        - Windows(Default)
+        - Windows(默认)
         - Linux
         - Android
         - Apple
@@ -22,10 +22,10 @@ body:
   - type: dropdown
     id: architecture
     attributes:
-      label: ⚙️ Architecture
-      description: 芯片指令集是哪种?
+      label: ⚙️ 架构 (Architecture)
+      description: 芯片指令集是哪种? (What architecture are you using?)
       options:
-        - Any(Default)
+        - Any(默认)
         - Arm64
         - x64
         - LoongArch
@@ -35,11 +35,11 @@ body:
   - type: dropdown
     id: version
     attributes:
-      label: ⚙️ .NET Version
+      label: ⚙️ .NET 版本 (.NET Version)
       multiple: true
-      description: What version of our software are you running?
+      description: 您正在运行我们软件的哪个版本? (What version of our software are you running?)
       options:
-        - .NET10(LTS) (Default)
+        - .NET10(LTS) (默认)
         - .NET9(STS)
         - .NET8(LTS)
     validations:
@@ -48,8 +48,8 @@ body:
   - type: textarea
     id: what-happened
     attributes:
-      label: 📄 请描述您的问题(Describe the bug).
-      description: 请清晰简洁地描述您遇到的 BUG (A clear and concise description of what the bug is).
+      label: 📄 请描述您的问题(Describe the bug)
+      description: 请清晰简洁地描述您遇到的 BUG (A clear and concise description of what the bug is)
       placeholder: Bug Details!
     validations:
       required: true
@@ -57,8 +57,8 @@ body:
   - type: textarea
     id: how-happened
     attributes:
-      label: ⭕ BUG 重现(To Reproduce).
-      description: 重现步骤(Steps to reproduce the behavior).
+      label: ⭕ BUG 重现(To Reproduce)
+      description: 重现步骤(Steps to reproduce the behavior)
       placeholder: Bug Reproduce!
     validations:
       required: false
@@ -66,7 +66,7 @@ body:
   - type: input
     id: contact
     attributes:
-      label: 📱 您的联系方式(Contact Details).
+      label: 📱 您的联系方式(Contact Details)
       description: 如果我们需要进一步的沟通,如何找到您? (How can we get in touch with you if we need more info?)
       placeholder: ex. email@example.com
     validations:
