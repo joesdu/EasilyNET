@@ -40,7 +40,7 @@ public sealed class SwaggerAuthorizeFilter : IOperationFilter
         operation.Security ??= [];
         operation.Security.Add(requirement);
         // 添加401和403响应
-        operation.Responses ??= new();
+        operation.Responses ??= [];
         if (!operation.Responses.ContainsKey("401"))
         {
             operation.Responses.Add("401", new OpenApiResponse { Description = "Unauthorized" });
