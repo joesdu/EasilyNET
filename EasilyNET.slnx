@@ -1,6 +1,7 @@
 <Solution>
     <Folder Name="/.github/">
         <File Path=".github/dependabot.yml" />
+        <File Path=".github/PULL_REQUEST_TEMPLATE.md" />
         <File Path=".github/release-drafter.yml" />
         <File Path=".github/copilot-instructions.md" />
     </Folder>
