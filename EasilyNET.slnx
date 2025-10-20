@@ -14,7 +14,7 @@
     <Folder Name="/.github/workflows/">
         <File Path=".github/workflows/build_test.yml" />
         <File Path=".github/workflows/releaser.yml" />
-        <File Path="PSScriptAnalyzer.yml" />
+        <File Path=".github/workflows/PSScriptAnalyzer.yml" />
     </Folder>
     <Folder Name="/sample/">
         <Project Path="sample/WebApi.Test.Unit/WebApi.Test.Unit.csproj" />
