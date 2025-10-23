@@ -3,11 +3,13 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
 using EasilyNET.Core.Essentials;
+using Microsoft.VSDiagnostics;
 
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace EasilyNET.Core.Benchmark;
 
+[CPUUsageDiagnoser]
 [Config(typeof(UlidBenchmarkConfig))]
 public class UlidBenchmark
 {

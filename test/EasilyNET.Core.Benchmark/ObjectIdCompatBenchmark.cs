@@ -2,6 +2,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Order;
 using EasilyNET.Core.Essentials;
+using Microsoft.VSDiagnostics;
 using MongoDB.Bson;
 
 namespace EasilyNET.Core.Benchmark;
@@ -10,6 +11,7 @@ namespace EasilyNET.Core.Benchmark;
 /// ObjectIdCompat vs MongoDB.Bson.ObjectId - comprehensive benchmark
 /// </summary>
 [MemoryDiagnoser]
+[CPUUsageDiagnoser]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
 [CategoriesColumn]
