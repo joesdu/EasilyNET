@@ -6,6 +6,7 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Order;
 using BenchmarkDotNet.Toolchains.InProcess.Emit;
 using EasilyNET.Core.Threading;
+using Microsoft.VSDiagnostics;
 
 namespace EasilyNET.Core.Benchmark;
 
@@ -24,6 +25,7 @@ namespace EasilyNET.Core.Benchmark;
 ///     </para>
 /// </summary>
 [MemoryDiagnoser]
+[CPUUsageDiagnoser]
 [ThreadingDiagnoser]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 [RankColumn]
