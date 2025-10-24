@@ -54,13 +54,14 @@ services:
       - "4318:4318" # OTLP http接收器
 
   # MCP Context7 服务
-  context7:
-    image: mcp/context7:latest
-    container_name: context7
-    environment:
-      - TZ=Asia/Chongqing
-    ports:
-      - "8080:8080"
+  # context7:
+  #   image: mcp/context7:latest
+  #   container_name: context7
+  #   environment:
+  #     - TZ=Asia/Chongqing
+  #   ports:
+  #     - "8080:8080"
+
 #  openobserve:
 #    image: public.ecr.aws/zinclabs/openobserve:latest
 #    container_name: openobserve
