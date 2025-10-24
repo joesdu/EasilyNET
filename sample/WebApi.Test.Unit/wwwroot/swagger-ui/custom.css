@@ -1,888 +1,423 @@
 /* ============================================================
- Swagger UI Theme - Dark Mode Support
-   只对深色模式进行主题化，浅色模式保持原始 Swagger UI 风格
+ Swagger UI Theme - Color-Only Dark Mode v3.0
+   - 宗旨: 只覆盖颜色，不触碰布局、间距、尺寸，以确保与原始 swagger-ui.css 完美兼容.
+   - 解决了因覆盖布局样式导致的元素位置偏移问题.
+   - 优化了色彩、可见性和现代风格.
    ============================================================ */
 
-/* 浅色模式 (默认 - 保持原始 Swagger UI 风格，不做任何改变) */
-:root {
-  /* 浅色模式使用原始的 Swagger UI 默认颜色 */
-  /* 这里故意不定义变量，让 Swagger UI 使用其默认样式 */
-}
+/* 浅色模式 (默认 - 完全依赖原始 swagger-ui.css, 不做任何改变) */
 
-/* 深色模式变量定义 - 调整回 GitHub Dark 风格配色 */
+/* 深色模式变量定义 - 优化后的 GitHub Dark 风格配色 */
 [data-theme="dark"] {
-  --bg-primary: #0d1117; /* 更深的背景，类似 GitHub Dark */
-  --bg-secondary: #161b22; /* 稍微亮的次级背景 */
-  --bg-tertiary: #21262d; /* 三级背景 */
-  --border-color: #30363d; /* 更柔和的边框 */
-  --text-primary: #f0f6fc; /* 高对比度的主要文本 */
-  --text-secondary: #c9d1d9; /* 次级文本 */
-  --text-tertiary: #8b949e; /* 三级文本 */
-  --accent-primary: #1f6feb; /* 现代蓝色强调色 */
-  --accent-primary-hover: #388bfd; /* 悬停时的亮蓝色 */
-  --accent-secondary: #58a6ff; /* 次级强调色 */
-  --accent-secondary-hover: #79c0ff; /* 悬停时的亮次级色 */
-  --error-color: #f85149; /* 现代红色错误 */
-  --warning-color: #d29922; /* 橙色警告 */
-  --success-color: #56d364; /* 绿色成功 */
-  --info-color: #79c0ff; /* 蓝色信息 */
-  --shadow-color: rgba(1, 4, 9, 0.75); /* 阴影颜色 */
+  /* -- 色彩系统 -- */
+  --bg-primary: #0d1117; /* 主背景色 (最暗) */
+  --bg-secondary: #161b22; /* 次级背景色 (卡片、头部等) */
+  --bg-tertiary: #21262d; /* 三级背景色 (输入框、悬停等) */
+  --border-color: #30363d; /* 边框颜色 */
+  --border-color-strong: #8b949e; /* 更强的边框/分隔线 */
+  --text-primary: #e6edf3; /* 主要文本颜色 (更高亮) */
+  --text-secondary: #c9d1d9; /* 次要文本颜色 */
+  --text-tertiary: #8b949e; /* 辅助/提示文本颜色 */
+  --accent-primary: #2f81f7; /* 强调色 (链接、主按钮) */
+  --accent-primary-hover: #58a6ff; /* 强调色悬停 */
+  --error-color: #f85149; /* 错误颜色 */
+  --success-color: #2ea043; /* 成功颜色 */
+
+  /* -- HTTP 方法颜色 -- */
+  --method-get: #58a6ff;
+  --method-post: #3fb950;
+  --method-put: #c69026;
+  --method-delete: #f85149;
+  --method-patch: #79c0ff;
+  --method-head: #a371f7;
+  --method-options: #6a737d;
 }
 
-/* ===== 深色模式样式 (仅在 data-theme="dark" 时应用) ===== */
-[data-theme="dark"] html,
-[data-theme="dark"] body {
+/* ===== 全局背景和文本颜色 ===== */
+[data-theme="dark"],
+[data-theme="dark"] body,
+[data-theme="dark"] .swagger-ui {
   background-color: var(--bg-primary) !important;
   color: var(--text-primary) !important;
-  font-family: sans-serif;
 }
 
-[data-theme="dark"] .swagger-ui {
-  color: var(--text-primary);
-  font-family: sans-serif;
-  background: var(--bg-primary) !important;
+/* ===== 滚动条 ===== */
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--bg-primary);
 }
 
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-color: var(--bg-primary); /* 仅修改边框颜色 */
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color);
+}
+
+/* ===== 顶栏 (Topbar) ===== */
 [data-theme="dark"] .topbar {
   background-color: var(--bg-secondary) !important;
-  padding: 10px 0;
+  border-bottom-color: var(--border-color);
 }
 
-[data-theme="dark"] .topbar .topbar-wrapper {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-[data-theme="dark"] .topbar a {
-  align-items: center;
-  color: var(--accent-primary) !important;
-  display: flex;
-  flex: 1;
-  font-family: sans-serif;
-  font-size: 1.5em;
-  font-weight: 700;
-  max-width: 300px;
-  text-decoration: none;
+[data-theme="dark"] .topbar a,
+[data-theme="dark"] .topbar a:visited {
+  color: var(--text-primary) !important;
 }
 
 [data-theme="dark"] .topbar a:hover {
   color: var(--accent-primary-hover) !important;
 }
 
-[data-theme="dark"] .swagger-ui .info {
-  margin: 50px 0;
-  color: var(--text-primary) !important;
+/* Topbar 中的输入框和按钮颜色 */
+[data-theme="dark"] .topbar .download-url-wrapper input[type="text"] {
+  border-color: var(--success-color);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
+[data-theme="dark"] .topbar .download-url-wrapper .download-url-button {
+  background-color: var(--success-color);
+  color: #fff;
+}
+
+/* ===== 信息区域 (Info) ===== */
 [data-theme="dark"] .swagger-ui .info .title {
   color: var(--text-primary) !important;
-  font-family: sans-serif;
-  font-size: 36px;
-  margin: 0;
 }
 
-[data-theme="dark"] .swagger-ui .info .description {
+[data-theme="dark"] .swagger-ui .info .description,
+[data-theme="dark"] .swagger-ui .info,
+[data-theme="dark"] .swagger-ui .info p {
   color: var(--text-secondary) !important;
 }
 
-[data-theme="dark"] .swagger-ui a {
-  color: var(--accent-primary) !important;
-  font-family: sans-serif;
-  font-size: 14px;
-  transition: all 0.4s;
+[data-theme="dark"] .swagger-ui .info .base-url {
+  color: var(--text-secondary);
 }
 
-[data-theme="dark"] .swagger-ui a:hover {
+[data-theme="dark"] .swagger-ui .info a {
+  color: var(--accent-primary) !important;
+}
+
+[data-theme="dark"] .swagger-ui .info a:hover {
   color: var(--accent-primary-hover) !important;
 }
 
+/* ===== 按钮 (Buttons) ===== */
 [data-theme="dark"] .swagger-ui .btn {
-  background: transparent;
-  border: 2px solid var(--border-color);
-  border-radius: 4px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
   color: var(--text-primary) !important;
-  font-family: sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 5px 23px;
-  transition: all 0.3s;
 }
 
 [data-theme="dark"] .swagger-ui .btn:hover {
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+  background: var(--border-color);
+  border-color: var(--border-color-strong);
 }
 
 [data-theme="dark"] .swagger-ui .btn.execute {
   background-color: var(--accent-primary);
   border-color: var(--accent-primary);
-  color: #fff;
+  color: #fff !important;
+}
+
+[data-theme="dark"] .swagger-ui .btn.execute:hover {
+  background-color: var(--accent-primary-hover);
+  border-color: var(--accent-primary-hover);
 }
 
 [data-theme="dark"] .swagger-ui .btn.authorize {
-  background-color: transparent;
   border-color: var(--success-color);
-  color: var(--success-color);
-  display: inline;
-  line-height: 1;
+  color: var(--success-color) !important;
+  background: transparent;
 }
 
-[data-theme="dark"] .swagger-ui input[type="email"],
-[data-theme="dark"] .swagger-ui input[type="file"],
+[data-theme="dark"] .swagger-ui .btn.authorize:hover {
+  background-color: var(--success-color);
+  color: #fff !important;
+}
+
+[data-theme="dark"] .swagger-ui .btn.authorize svg {
+  fill: var(--success-color);
+}
+
+[data-theme="dark"] .swagger-ui .btn.authorize:hover svg {
+  fill: #fff;
+}
+
+[data-theme="dark"] .swagger-ui .btn.cancel {
+  border-color: var(--error-color);
+  color: var(--error-color);
+  background: transparent;
+}
+
+[data-theme="dark"] .swagger-ui .btn.cancel:hover {
+  background-color: var(--error-color);
+  color: #fff;
+}
+
+/* ===== 输入框与表单 (Inputs & Forms) ===== */
+[data-theme="dark"] .swagger-ui input[type="text"],
 [data-theme="dark"] .swagger-ui input[type="password"],
 [data-theme="dark"] .swagger-ui input[type="search"],
-[data-theme="dark"] .swagger-ui input[type="text"],
+[data-theme="dark"] .swagger-ui input[type="email"],
 [data-theme="dark"] .swagger-ui input[type="url"],
-[data-theme="dark"] .swagger-ui textarea {
-  background: var(--bg-tertiary) !important;
-  border: 1px solid var(--border-color) !important;
-  border-radius: 4px;
-  margin: 5px 0;
-  min-width: 100px;
-  padding: 8px 10px;
+[data-theme="dark"] .swagger-ui textarea,
+[data-theme="dark"] .swagger-ui select {
+  background: var(--bg-primary) !important;
+  border-color: var(--border-color) !important;
   color: var(--text-primary) !important;
 }
 
-[data-theme="dark"] .swagger-ui input[type="email"].invalid,
-[data-theme="dark"] .swagger-ui input[type="file"].invalid,
-[data-theme="dark"] .swagger-ui input[type="password"].invalid,
-[data-theme="dark"] .swagger-ui input[type="search"].invalid,
-[data-theme="dark"] .swagger-ui input[type="text"].invalid,
-[data-theme="dark"] .swagger-ui textarea.invalid {
-  animation: shake 0.4s 1;
-  background: #feebeb;
-  border-color: var(--error-color);
+[data-theme="dark"] .swagger-ui input:focus,
+[data-theme="dark"] .swagger-ui textarea:focus,
+[data-theme="dark"] .swagger-ui select:focus {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 3px rgba(47, 129, 247, 0.4); /* 仅保留 focus 时的阴影 */
 }
 
-[data-theme="dark"] .swagger-ui textarea {
-  background: hsla(0, 0%, 100%, 0.8);
-  border: none;
-  border-radius: 4px;
-  color: var(--text-primary);
-  font-family: monospace;
-  font-size: 12px;
-  font-weight: 600;
-  min-height: 280px;
-  outline: none;
-  padding: 10px;
-  width: 100%;
+[data-theme="dark"] .swagger-ui label,
+[data-theme="dark"] .swagger-ui .opblock .opblock-section-header > label,
+[data-theme="dark"] .swagger-ui .response-control-media-type__title,
+[data-theme="dark"] .swagger-ui .servers > label {
+  color: var(--text-secondary);
 }
 
-[data-theme="dark"] .swagger-ui textarea:focus {
-  border: 2px solid var(--accent-primary);
+/* ===== 操作块 (Opblock) 与区域标题 ===== */
+[data-theme="dark"] .swagger-ui .opblock,
+[data-theme="dark"] section.models {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-color);
 }
 
-[data-theme="dark"] .swagger-ui textarea.curl {
-  background: var(--bg-secondary);
-  border-radius: 4px;
-  color: #fff;
-  font-family: monospace;
-  font-size: 12px;
-  font-weight: 600;
-  margin: 0;
-  min-height: 100px;
-  padding: 10px;
-  resize: none;
+[data-theme="dark"] .swagger-ui .opblock .opblock-section-header,
+[data-theme="dark"] section.models h4 {
+  background: var(--bg-secondary) !important;
+  border-bottom-color: var(--border-color);
 }
 
-[data-theme="dark"] .swagger-ui select {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  background: var(--bg-tertiary)
-    url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M13.418 7.859a.695.695 0 0 1 .978 0 .68.68 0 0 1 0 .969l-3.908 3.83a.697.697 0 0 1-.979 0l-3.908-3.83a.68.68 0 0 1 0-.969.695.695 0 0 1 .978 0L10 11z"/></svg>')
-    right 10px center no-repeat;
-  background-size: 20px;
-  border: 2px solid var(--border-color);
-  border-radius: 4px;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
-  color: var(--text-primary);
-  font-family: sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 5px 40px 5px 10px;
+[data-theme="dark"] .swagger-ui .opblock .opblock-section-header h4,
+[data-theme="dark"] section.models h4,
+[data-theme="dark"] section.models h5 {
+  color: var(--text-primary) !important;
 }
 
-[data-theme="dark"] .swagger-ui select[multiple] {
-  background: var(--bg-tertiary);
-  margin: 5px 0;
-  padding: 5px;
-}
-
-[data-theme="dark"] .swagger-ui select.invalid {
-  animation: shake 0.4s 1;
-  background: #feebeb;
-  border-color: var(--error-color);
+[data-theme="dark"] .swagger-ui .opblock.is-open .opblock-summary {
+  border-bottom-color: var(--border-color);
 }
 
 [data-theme="dark"] .swagger-ui .scheme-container {
   background: var(--bg-primary);
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.15);
-  margin: 0 0 20px;
-  padding: 30px 0;
-}
-
-[data-theme="dark"] .swagger-ui section {
-  background-color: var(--bg-primary) !important;
-}
-
-[data-theme="dark"] .swagger-ui .opblock {
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  box-shadow: 0 0 3px rgba(0, 0, 0, 0.19);
-  margin: 0 0 15px;
-  background-color: var(--bg-secondary) !important;
-}
-
-[data-theme="dark"] .opblock.opblock-post {
-  background: rgba(73, 204, 144, 0.1);
-  border-color: var(--success-color);
-}
-
-[data-theme="dark"] .opblock.opblock-post .opblock-summary-method {
-  background: var(--success-color);
-}
-
-[data-theme="dark"] .opblock.opblock-put {
-  background: rgba(252, 161, 48, 0.1);
-  border-color: var(--warning-color);
-}
-
-[data-theme="dark"] .opblock.opblock-put .opblock-summary-method {
-  background: var(--warning-color);
-}
-
-[data-theme="dark"] .opblock.opblock-delete {
-  background: rgba(249, 62, 62, 0.1);
-  border-color: var(--error-color);
-}
-
-[data-theme="dark"] .opblock.opblock-delete .opblock-summary-method {
-  background: var(--error-color);
-}
-
-[data-theme="dark"] .opblock.opblock-get {
-  background: rgba(97, 175, 254, 0.1);
-  border-color: var(--info-color);
-}
-
-[data-theme="dark"] .opblock.opblock-get .opblock-summary-method {
-  background: var(--info-color);
-}
-
-[data-theme="dark"] .opblock.opblock-patch {
-  background: rgba(80, 227, 194, 0.1);
-  border-color: #50e3c2;
-}
-
-[data-theme="dark"] .opblock.opblock-patch .opblock-summary-method {
-  background: #50e3c2;
-}
-
-[data-theme="dark"] .opblock.opblock-head {
-  background: rgba(144, 18, 254, 0.1);
-  border-color: #9012fe;
-}
-
-[data-theme="dark"] .opblock.opblock-head .opblock-summary-method {
-  background: #9012fe;
-}
-
-[data-theme="dark"] .opblock.opblock-options {
-  background: rgba(13, 90, 167, 0.1);
-  border-color: #0d5aa7;
-}
-
-[data-theme="dark"] .opblock.opblock-options .opblock-summary-method {
-  background: #0d5aa7;
-}
-
-[data-theme="dark"] .opblock.opblock-deprecated {
-  background: hsla(0, 0%, 92%, 0.1);
-  border-color: #ebebeb;
-  opacity: 0.6;
-}
-
-[data-theme="dark"] .opblock.opblock-deprecated .opblock-summary-method {
-  background: #ebebeb;
 }
 
 [data-theme="dark"] .swagger-ui .opblock .opblock-summary-method {
-  background: var(--bg-tertiary);
-  border-radius: 3px;
   color: #fff;
-  font-family: sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  min-width: 80px;
-  padding: 6px 0;
-  text-align: center;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
 }
 
-[data-theme="dark"] .swagger-ui .opblock .opblock-summary-operation-id,
+/* 确保方法文本总是白色 */
+
+/* --- HTTP 方法颜色 --- */
+[data-theme="dark"] .opblock.opblock-get {
+  border-color: var(--method-get);
+  background: rgba(88, 166, 255, 0.1);
+}
+
+[data-theme="dark"] .opblock.opblock-get .opblock-summary-method {
+  background: var(--method-get);
+}
+
+[data-theme="dark"] .opblock.opblock-post {
+  border-color: var(--method-post);
+  background: rgba(63, 185, 80, 0.1);
+}
+
+[data-theme="dark"] .opblock.opblock-post .opblock-summary-method {
+  background: var(--method-post);
+}
+
+[data-theme="dark"] .opblock.opblock-put {
+  border-color: var(--method-put);
+  background: rgba(198, 144, 38, 0.1);
+}
+
+[data-theme="dark"] .opblock.opblock-put .opblock-summary-method {
+  background: var(--method-put);
+}
+
+[data-theme="dark"] .opblock.opblock-delete {
+  border-color: var(--method-delete);
+  background: rgba(248, 81, 73, 0.1);
+}
+
+[data-theme="dark"] .opblock.opblock-delete .opblock-summary-method {
+  background: var(--method-delete);
+}
+
+[data-theme="dark"] .opblock.opblock-patch {
+  border-color: var(--method-patch);
+  background: rgba(121, 192, 255, 0.1);
+}
+
+[data-theme="dark"] .opblock.opblock-patch .opblock-summary-method {
+  background: var(--method-patch);
+}
+
 [data-theme="dark"] .swagger-ui .opblock .opblock-summary-path,
-[data-theme="dark"] .swagger-ui .opblock .opblock-summary-path__deprecated {
-  align-items: center;
+[data-theme="dark"] .swagger-ui .opblock .opblock-summary-operation-id {
   color: var(--text-primary);
-  display: flex;
-  font-family: monospace;
-  font-size: 16px;
-  font-weight: 600;
-  word-break: break-word;
 }
 
 [data-theme="dark"] .swagger-ui .opblock .opblock-summary-description {
   color: var(--text-secondary);
-  font-family: sans-serif;
-  font-size: 13px;
-  word-break: break-word;
 }
 
-[data-theme="dark"] .swagger-ui .opblock .opblock-section-header {
-  align-items: center;
-  background: hsla(0, 0%, 100%, 0.8);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  display: flex;
-  min-height: 50px;
-  padding: 8px 20px;
-  background: var(--bg-tertiary) !important;
-}
-
-[data-theme="dark"] .swagger-ui .opblock .opblock-section-header > label {
-  align-items: center;
-  color: var(--text-primary);
-  display: flex;
-  font-family: sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  margin: 0 0 0 auto;
-}
-
-[data-theme="dark"] .swagger-ui .opblock .opblock-section-header h4 {
-  color: var(--text-primary);
-  flex: 1;
-  font-family: sans-serif;
-  font-size: 14px;
-  margin: 0;
-}
-
-[data-theme="dark"] .swagger-ui .parameter__type {
-  color: var(--text-secondary);
-  font-family: monospace;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 5px 0;
+/* ===== 参数和表格 (Parameters & Tables) ===== */
+[data-theme="dark"] .swagger-ui .parameters-col_description p {
+  color: var(--text-secondary) !important;
 }
 
 [data-theme="dark"] .swagger-ui .parameter__name {
   color: var(--text-primary);
-  font-family: sans-serif;
-  font-size: 16px;
-  font-weight: 400;
-  margin-right: 0.75em;
-}
-
-[data-theme="dark"] .swagger-ui .parameter__name.required {
-  font-weight: 700;
-}
-
-[data-theme="dark"] .swagger-ui .parameter__name.required span {
-  color: red;
 }
 
 [data-theme="dark"] .swagger-ui .parameter__name.required:after {
-  color: rgba(255, 0, 0, 0.6);
-  content: "required";
-  font-size: 10px;
-  padding: 5px;
-  position: relative;
-  top: -6px;
+  background-color: rgba(248, 81, 73, 0.1);
+  color: var(--error-color);
 }
 
 [data-theme="dark"] .swagger-ui .parameter__in {
-  color: grey;
-  font-family: monospace;
-  font-size: 12px;
-  font-style: italic;
-  font-weight: 600;
+  color: var(--text-tertiary);
 }
 
-[data-theme="dark"] .swagger-ui .parameter__deprecated {
-  color: red;
-  font-family: monospace;
-  font-size: 12px;
-  font-style: italic;
-  font-weight: 600;
-}
-
-[data-theme="dark"] .swagger-ui table {
-  border-collapse: collapse;
-  padding: 0 10px;
-  width: 100%;
-  background-color: var(--bg-primary) !important;
-}
-
-[data-theme="dark"] .swagger-ui table.model tbody tr td {
-  padding: 0 0 0 1em;
-  vertical-align: top;
-  color: var(--text-primary);
-}
-
-[data-theme="dark"] .swagger-ui table.model tbody tr td:first-of-type {
-  padding: 0 0 0 2em;
-  width: 174px;
-}
-
-[data-theme="dark"] .swagger-ui table.headers td {
-  color: var(--text-primary);
-  font-family: monospace;
-  font-size: 12px;
-  font-weight: 300;
-  font-weight: 600;
-  vertical-align: middle;
-}
-
-[data-theme="dark"] .swagger-ui table.headers .header-example {
+[data-theme="dark"] .swagger-ui table thead tr th,
+[data-theme="dark"] .swagger-ui table thead tr td {
+  border-bottom-color: var(--border-color);
   color: var(--text-secondary);
-  font-style: italic;
 }
 
-[data-theme="dark"] .swagger-ui table tbody tr td {
-  padding: 10px 0 0;
-  vertical-align: top;
+[data-theme="dark"] .swagger-ui table.model tr.description,
+[data-theme="dark"] .swagger-ui table.model tr.external-docs {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .swagger-ui table,
+[data-theme="dark"] .swagger-ui table tr,
+[data-theme="dark"] .swagger-ui table td {
   color: var(--text-primary);
 }
 
-[data-theme="dark"] .swagger-ui table tbody tr td:first-of-type {
-  min-width: 6em;
-  padding: 10px 0;
-}
-
-[data-theme="dark"] .swagger-ui table thead tr td,
-[data-theme="dark"] .swagger-ui table thead tr th {
-  border-bottom: 1px solid rgba(59, 65, 81, 0.2);
-  color: var(--text-primary);
-  font-family: sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 12px 0;
-  text-align: left;
-}
-
-[data-theme="dark"] .swagger-ui .response-col_status {
-  color: var(--text-primary);
-  font-family: sans-serif;
-  font-size: 14px;
-}
-
-[data-theme="dark"] .swagger-ui .response-col_description {
-  width: 99%;
-}
-
-[data-theme="dark"] .swagger-ui .response-col_links {
-  color: var(--text-primary);
-  font-family: sans-serif;
-  font-size: 14px;
-  max-width: 40em;
-  padding-left: 2em;
-}
-
-[data-theme="dark"] .swagger-ui .auth-container {
-  border-bottom: 1px solid var(--border-color);
-  margin: 0 0 10px;
-  padding: 10px 20px;
-  background-color: var(--bg-secondary) !important;
-}
-
-[data-theme="dark"] .swagger-ui .auth-container:last-of-type {
-  border: 0;
-  margin: 0;
-  padding: 10px 20px;
-}
-
-[data-theme="dark"] .swagger-ui .auth-container h4 {
-  margin: 5px 0 15px !important;
-  color: var(--text-primary);
-}
-
-[data-theme="dark"] .swagger-ui .auth-container .errors {
-  background-color: rgba(249, 62, 62, 0.1);
-  border-radius: 4px;
-  color: var(--error-color);
-  font-family: monospace;
-  font-size: 12px;
-  font-weight: 600;
-  margin: 1em;
-  padding: 10px;
-}
-
-[data-theme="dark"] .swagger-ui .dialog-ux {
-  bottom: 0;
-  left: 0;
-  position: fixed;
-  right: 0;
-  top: 0;
-  z-index: 9999;
-}
-
-[data-theme="dark"] .swagger-ui .dialog-ux .backdrop-ux {
-  background: rgba(0, 0, 0, 0.8);
-  bottom: 0;
-  left: 0;
-  position: fixed;
-  right: 0;
-  top: 0;
-}
-
-[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.2);
-  left: 50%;
-  max-width: 650px;
-  min-width: 300px;
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 100%;
-  z-index: 9999;
-}
-
-[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-content {
-  max-height: 540px;
-  overflow-y: auto;
-  padding: 20px;
-}
-
-[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-content p {
-  color: var(--text-primary);
-  font-family: sans-serif;
-  font-size: 12px;
-  margin: 0 0 5px;
-}
-
-[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-content h4 {
-  color: var(--text-primary);
-  font-family: sans-serif;
-  font-size: 18px;
-  font-weight: 600;
-  margin: 15px 0 0;
-}
-
-[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-header {
-  align-items: center;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  padding: 12px 0;
-}
-
-[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-header .close-modal {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  background: none;
-  border: none;
-  padding: 0 10px;
-}
-
-[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-header h3 {
-  color: var(--text-primary);
-  flex: 1;
-  font-family: sans-serif;
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0;
-  padding: 0 20px;
-}
-
-[data-theme="dark"] .swagger-ui .model {
-  color: var(--text-primary);
-  font-family: monospace;
-  font-size: 12px;
-  font-weight: 300;
-  font-weight: 600;
-}
-
-[data-theme="dark"] .swagger-ui .model .deprecated span,
-[data-theme="dark"] .swagger-ui .model .deprecated td {
-  color: #a0a0a0 !important;
-}
-
-[data-theme="dark"] .swagger-ui section.models {
-  border: 1px solid rgba(59, 65, 81, 0.3);
-  border-radius: 4px;
-  margin: 30px 0;
-  background-color: var(--bg-primary) !important;
-}
-
-[data-theme="dark"] .swagger-ui section.models.is-open .model-container {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-  margin: 0 20px 15px;
-  position: relative;
-  transition: all 0.5s;
-  background: var(--bg-tertiary) !important;
-}
-
-[data-theme="dark"] .swagger-ui section.models h4 {
-  align-items: center;
-  color: var(--text-primary);
-  cursor: pointer;
-  display: flex;
-  font-family: sans-serif;
-  font-size: 16px;
-  margin: 0;
-  padding: 10px 20px 10px 10px;
-  transition: all 0.2s;
-}
-
-[data-theme="dark"] .swagger-ui section.models h4:hover {
-  background: rgba(0, 0, 0, 0.02);
-  background: rgba(255, 255, 255, 0.05) !important;
+/* ===== 模型 (Models) ===== */
+[data-theme="dark"] .swagger-ui section.models.is-open .model-container,
+[data-theme="dark"] .swagger-ui .model-box {
+  background: var(--bg-primary) !important;
 }
 
 [data-theme="dark"] .swagger-ui .model-title {
   color: var(--text-primary);
-  font-family: sans-serif;
-  font-size: 16px;
 }
 
-[data-theme="dark"] .swagger-ui .model-box {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-  display: inline-block;
-  padding: 10px;
-  background: var(--bg-tertiary) !important;
+[data-theme="dark"] .swagger-ui .model,
+[data-theme="dark"] .swagger-ui .model .property.primitive {
+  color: var(--text-secondary);
 }
 
-[data-theme="dark"] .swagger-ui .markdown p,
-[data-theme="dark"] .swagger-ui .markdown pre,
-[data-theme="dark"] .swagger-ui .renderedMarkdown p,
-[data-theme="dark"] .swagger-ui .renderedMarkdown pre {
-  margin: 1em auto;
-  word-break: break-all;
-  word-break: break-word;
+[data-theme="dark"] .swagger-ui .model-box .model-jump-to-path {
+  opacity: 0.5;
+}
+
+/* ===== 响应和代码 (Responses & Code) ===== */
+[data-theme="dark"] .swagger-ui .responses-inner h4,
+[data-theme="dark"] .swagger-ui .responses-inner h5 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .swagger-ui .response-col_status {
   color: var(--text-primary);
 }
 
-[data-theme="dark"] .swagger-ui .markdown pre,
-[data-theme="dark"] .swagger-ui .renderedMarkdown pre {
-  background: none;
-  color: #000;
-  font-weight: 400;
-  padding: 0;
-  white-space: pre-wrap;
-  background: var(--bg-tertiary) !important;
+[data-theme="dark"] .swagger-ui .opblock-body pre.microlight,
+[data-theme="dark"] .swagger-ui .markdown pre {
+  background: var(--bg-primary) !important;
   color: var(--text-primary) !important;
+  border-color: var(--border-color);
 }
 
 [data-theme="dark"] .swagger-ui .markdown code,
 [data-theme="dark"] .swagger-ui .renderedMarkdown code {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-  color: var(--accent-primary);
-  font-family: monospace;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 5px 7px;
-  background: var(--bg-secondary) !important;
+  background: var(--bg-tertiary) !important;
+  color: var(--accent-primary-hover) !important;
 }
 
-[data-theme="dark"] .swagger-ui .opblock-body pre.microlight {
-  background: var(--bg-tertiary);
-  border-radius: 4px;
-  font-size: 12px;
-  hyphens: auto;
-  margin: 0;
-  padding: 10px;
-  white-space: pre-wrap;
-  word-break: break-all;
-  word-break: break-word;
-  word-wrap: break-word;
-  color: #fff;
-  font-family: monospace;
-  font-weight: 600;
-}
-
-[data-theme="dark"] .swagger-ui .highlight-code > .microlight {
-  max-height: 400px;
-  min-height: 6em;
-  overflow-y: auto;
-}
-
-[data-theme="dark"] .swagger-ui .curl-command .copy-to-clipboard {
-  bottom: 5px;
-  height: 20px;
-  right: 10px;
-  width: 20px;
-}
-
-[data-theme="dark"] .swagger-ui .copy-to-clipboard {
-  align-items: center;
-  background: var(--bg-tertiary);
-  border: none;
-  border-radius: 4px;
-  bottom: 10px;
-  display: flex;
-  height: 30px;
-  justify-content: center;
-  position: absolute;
-  right: 100px;
-  width: 30px;
-}
-
-[data-theme="dark"] .swagger-ui .download-contents {
-  align-items: center;
-  background: var(--bg-tertiary);
-  border: none;
-  border-radius: 4px;
-  bottom: 10px;
-  color: #fff;
-  display: flex;
-  font-family: sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  height: 30px;
-  justify-content: center;
-  padding: 5px;
-  position: absolute;
-  right: 10px;
-  text-align: center;
-}
-
-[data-theme="dark"] .swagger-ui .errors-wrapper {
-  animation: scaleUp 0.5s;
-  background: rgba(249, 62, 62, 0.1);
-  border: 2px solid var(--error-color);
-  border-radius: 4px;
-  margin: 20px;
-  padding: 10px 20px;
-}
-
-[data-theme="dark"] .swagger-ui .errors-wrapper .error-wrapper {
-  margin: 0 0 10px;
-}
-
-[data-theme="dark"] .swagger-ui .errors-wrapper .errors h4 {
+[data-theme="dark"] .swagger-ui .loading-container:after {
   color: var(--text-primary);
-  font-family: monospace;
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0;
 }
 
-[data-theme="dark"] .swagger-ui .errors-wrapper .errors small {
+[data-theme="dark"] .swagger-ui .opblock-tag {
+  color: var(--text-primary);
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .swagger-ui .opblock-tag small {
   color: var(--text-secondary);
 }
 
-[data-theme="dark"] .swagger-ui .version-pragma__message {
-  display: flex;
-  font-size: 1.2em;
-  height: 100%;
-  justify-content: center;
-  line-height: 1.5em;
-  padding: 0 0.6em;
-  text-align: center;
+[data-theme="dark"] .swagger-ui .opblock-tag:hover {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .swagger-ui .opblock-tag svg {
+  fill: var(--text-primary);
+}
+
+/* ===== 模态框 (Dialogs/Modals) ===== */
+[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-header {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-header h3 {
   color: var(--text-primary);
 }
 
-[data-theme="dark"] .swagger-ui .json-schema-2020-12 {
-  background-color: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-  margin: 0 20px 15px;
-  padding: 12px 0 12px 20px;
-  background-color: var(--bg-tertiary) !important;
-}
-
-[data-theme="dark"] .swagger-ui .json-schema-2020-12-keyword__name--primary {
-  color: var(--text-primary);
-  font-style: normal;
-}
-
-[data-theme="dark"] .swagger-ui .json-schema-2020-12-keyword__value--primary {
-  color: var(--text-primary);
-  font-style: normal;
-}
-
-[data-theme="dark"] .swagger-ui .json-schema-2020-12__title {
-  color: var(--text-primary);
-  display: inline-block;
-  font-family: sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: normal;
-}
-
-[data-theme="dark"] .swagger-ui .json-schema-2020-12-keyword__name {
-  font-size: 12px;
-  font-weight: 700;
-  margin-left: 20px;
-}
-
-[data-theme="dark"] .swagger-ui .json-schema-2020-12-keyword__value {
+[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-content,
+[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-content p,
+[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-content h4 {
   color: var(--text-secondary);
-  font-size: 12px;
-  font-style: italic;
-  font-weight: 400;
 }
 
-[data-theme="dark"]
-  .swagger-ui
-  .json-schema-2020-12-json-viewer__name--primary {
+[data-theme="dark"] .swagger-ui .auth-container {
+  background-color: transparent !important;
+}
+
+[data-theme="dark"] .swagger-ui .auth-container h4 {
   color: var(--text-primary);
-  font-style: normal;
 }
 
-[data-theme="dark"]
-  .swagger-ui
-  .json-schema-2020-12-json-viewer__value--primary {
-  color: var(--text-primary);
-  font-style: normal;
+[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-header .close-modal svg {
+  fill: var(--text-primary);
 }
 
-[data-theme="dark"] .swagger-ui .json-schema-2020-12-json-viewer__name {
-  font-size: 12px;
-  font-weight: 700;
-  margin-left: 20px;
+/* ===== 主题切换按钮样式 (保持不变, 但适配了深色模式下的颜色) ===== */
+[data-theme="dark"] .theme-toggle-btn {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary) !important;
 }
 
-[data-theme="dark"] .swagger-ui .json-schema-2020-12-json-viewer__value {
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-style: italic;
-  font-weight: 400;
-}
-
-[data-theme="dark"] .swagger-ui .json-schema-2020-12__attribute--primary {
-  color: var(--accent-primary);
-}
-
-/* ===== 平滑过渡 (仅在深色模式下应用) ===== */
-[data-theme="dark"] {
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-[data-theme="dark"] .swagger-ui,
-[data-theme="dark"] .swagger-ui * {
-  transition: background-color 0.3s ease, color 0.3s ease,
-    border-color 0.3s ease;
-}
-
-/* ===== 主题切换按钮样式 ===== */
 .theme-toggle-btn {
   position: fixed;
   top: 8px;
   right: 10px;
   z-index: 9999;
-  background-color: transparent;
-  color: white !important;
+  background-color: rgba(0, 0, 0, 0.1); /* 浅色模式下的背景 */
+  color: #333 !important; /* 浅色模式下的文字颜色 */
   border: none !important;
   border-radius: 6px !important;
-  /*cursor: pointer !important;*/
   font-size: 16px !important;
   font-weight: 500 !important;
   display: flex;
@@ -894,12 +429,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   transition: all 0.2s ease !important;
   outline: none !important;
-}
-
-.theme-toggle-btn:hover {
-  /* background-color: var(--accent-primary-hover) !important; */ /* 移除背景色以保持透明 */
-  /* box-shadow: 0 4px 12px rgba(0,0,0,.25) !important; */ /* 移除阴影以简化样式 */
-  /* transform: translateY(-1px); */ /* 移除变换以保持静态 */
+  cursor: pointer;
 }
 
 .theme-toggle-btn:active {
@@ -911,34 +441,9 @@
   outline-offset: 2px;
 }
 
-/* ===== 响应式设计 ===== */
 @media (max-width: 768px) {
   .theme-toggle-btn {
     top: 10px;
     right: 10px;
-    padding: 8px 12px !important;
-    font-size: 14px !important;
-    min-width: 40px;
-    min-height: 40px;
   }
-}
-
-/* ===== Scrollbar 样式 (全局) ===== */
-.swagger-ui::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
-}
-
-.swagger-ui::-webkit-scrollbar-track {
-  background: var(--bg-primary);
-  border-radius: 6px;
-}
-
-.swagger-ui::-webkit-scrollbar-thumb {
-  background: var(--bg-tertiary);
-  border-radius: 6px;
-}
-
-.swagger-ui::-webkit-scrollbar-thumb:hover {
-  background: var(--border-color);
 }
