@@ -1,0 +1,449 @@
+/* ============================================================
+ Swagger UI Theme - Color-Only Dark Mode v3.0
+   - 宗旨: 只覆盖颜色，不触碰布局、间距、尺寸，以确保与原始 swagger-ui.css 完美兼容.
+   - 解决了因覆盖布局样式导致的元素位置偏移问题.
+   - 优化了色彩、可见性和现代风格.
+   ============================================================ */
+
+/* 浅色模式 (默认 - 完全依赖原始 swagger-ui.css, 不做任何改变) */
+
+/* 深色模式变量定义 - 优化后的 GitHub Dark 风格配色 */
+[data-theme="dark"] {
+  /* -- 色彩系统 -- */
+  --bg-primary: #0d1117; /* 主背景色 (最暗) */
+  --bg-secondary: #161b22; /* 次级背景色 (卡片、头部等) */
+  --bg-tertiary: #21262d; /* 三级背景色 (输入框、悬停等) */
+  --border-color: #30363d; /* 边框颜色 */
+  --border-color-strong: #8b949e; /* 更强的边框/分隔线 */
+  --text-primary: #e6edf3; /* 主要文本颜色 (更高亮) */
+  --text-secondary: #c9d1d9; /* 次要文本颜色 */
+  --text-tertiary: #8b949e; /* 辅助/提示文本颜色 */
+  --accent-primary: #2f81f7; /* 强调色 (链接、主按钮) */
+  --accent-primary-hover: #58a6ff; /* 强调色悬停 */
+  --error-color: #f85149; /* 错误颜色 */
+  --success-color: #2ea043; /* 成功颜色 */
+
+  /* -- HTTP 方法颜色 -- */
+  --method-get: #58a6ff;
+  --method-post: #3fb950;
+  --method-put: #c69026;
+  --method-delete: #f85149;
+  --method-patch: #79c0ff;
+  --method-head: #a371f7;
+  --method-options: #6a737d;
+}
+
+/* ===== 全局背景和文本颜色 ===== */
+[data-theme="dark"],
+[data-theme="dark"] body,
+[data-theme="dark"] .swagger-ui {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ===== 滚动条 ===== */
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-color: var(--bg-primary); /* 仅修改边框颜色 */
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color);
+}
+
+/* ===== 顶栏 (Topbar) ===== */
+[data-theme="dark"] .topbar {
+  background-color: var(--bg-secondary) !important;
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .topbar a,
+[data-theme="dark"] .topbar a:visited {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .topbar a:hover {
+  color: var(--accent-primary-hover) !important;
+}
+
+/* Topbar 中的输入框和按钮颜色 */
+[data-theme="dark"] .topbar .download-url-wrapper input[type="text"] {
+  border-color: var(--success-color);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .topbar .download-url-wrapper .download-url-button {
+  background-color: var(--success-color);
+  color: #fff;
+}
+
+/* ===== 信息区域 (Info) ===== */
+[data-theme="dark"] .swagger-ui .info .title {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .swagger-ui .info .description,
+[data-theme="dark"] .swagger-ui .info,
+[data-theme="dark"] .swagger-ui .info p {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .swagger-ui .info .base-url {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .swagger-ui .info a {
+  color: var(--accent-primary) !important;
+}
+
+[data-theme="dark"] .swagger-ui .info a:hover {
+  color: var(--accent-primary-hover) !important;
+}
+
+/* ===== 按钮 (Buttons) ===== */
+[data-theme="dark"] .swagger-ui .btn {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .swagger-ui .btn:hover {
+  background: var(--border-color);
+  border-color: var(--border-color-strong);
+}
+
+[data-theme="dark"] .swagger-ui .btn.execute {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #fff !important;
+}
+
+[data-theme="dark"] .swagger-ui .btn.execute:hover {
+  background-color: var(--accent-primary-hover);
+  border-color: var(--accent-primary-hover);
+}
+
+[data-theme="dark"] .swagger-ui .btn.authorize {
+  border-color: var(--success-color);
+  color: var(--success-color) !important;
+  background: transparent;
+}
+
+[data-theme="dark"] .swagger-ui .btn.authorize:hover {
+  background-color: var(--success-color);
+  color: #fff !important;
+}
+
+[data-theme="dark"] .swagger-ui .btn.authorize svg {
+  fill: var(--success-color);
+}
+
+[data-theme="dark"] .swagger-ui .btn.authorize:hover svg {
+  fill: #fff;
+}
+
+[data-theme="dark"] .swagger-ui .btn.cancel {
+  border-color: var(--error-color);
+  color: var(--error-color);
+  background: transparent;
+}
+
+[data-theme="dark"] .swagger-ui .btn.cancel:hover {
+  background-color: var(--error-color);
+  color: #fff;
+}
+
+/* ===== 输入框与表单 (Inputs & Forms) ===== */
+[data-theme="dark"] .swagger-ui input[type="text"],
+[data-theme="dark"] .swagger-ui input[type="password"],
+[data-theme="dark"] .swagger-ui input[type="search"],
+[data-theme="dark"] .swagger-ui input[type="email"],
+[data-theme="dark"] .swagger-ui input[type="url"],
+[data-theme="dark"] .swagger-ui textarea,
+[data-theme="dark"] .swagger-ui select {
+  background: var(--bg-primary) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .swagger-ui input:focus,
+[data-theme="dark"] .swagger-ui textarea:focus,
+[data-theme="dark"] .swagger-ui select:focus {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 3px rgba(47, 129, 247, 0.4); /* 仅保留 focus 时的阴影 */
+}
+
+[data-theme="dark"] .swagger-ui label,
+[data-theme="dark"] .swagger-ui .opblock .opblock-section-header > label,
+[data-theme="dark"] .swagger-ui .response-control-media-type__title,
+[data-theme="dark"] .swagger-ui .servers > label {
+  color: var(--text-secondary);
+}
+
+/* ===== 操作块 (Opblock) 与区域标题 ===== */
+[data-theme="dark"] .swagger-ui .opblock,
+[data-theme="dark"] section.models {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .swagger-ui .opblock .opblock-section-header,
+[data-theme="dark"] section.models h4 {
+  background: var(--bg-secondary) !important;
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .swagger-ui .opblock .opblock-section-header h4,
+[data-theme="dark"] section.models h4,
+[data-theme="dark"] section.models h5 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .swagger-ui .opblock.is-open .opblock-summary {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .swagger-ui .scheme-container {
+  background: var(--bg-primary);
+}
+
+[data-theme="dark"] .swagger-ui .opblock .opblock-summary-method {
+  color: #fff;
+}
+
+/* 确保方法文本总是白色 */
+
+/* --- HTTP 方法颜色 --- */
+[data-theme="dark"] .opblock.opblock-get {
+  border-color: var(--method-get);
+  background: rgba(88, 166, 255, 0.1);
+}
+
+[data-theme="dark"] .opblock.opblock-get .opblock-summary-method {
+  background: var(--method-get);
+}
+
+[data-theme="dark"] .opblock.opblock-post {
+  border-color: var(--method-post);
+  background: rgba(63, 185, 80, 0.1);
+}
+
+[data-theme="dark"] .opblock.opblock-post .opblock-summary-method {
+  background: var(--method-post);
+}
+
+[data-theme="dark"] .opblock.opblock-put {
+  border-color: var(--method-put);
+  background: rgba(198, 144, 38, 0.1);
+}
+
+[data-theme="dark"] .opblock.opblock-put .opblock-summary-method {
+  background: var(--method-put);
+}
+
+[data-theme="dark"] .opblock.opblock-delete {
+  border-color: var(--method-delete);
+  background: rgba(248, 81, 73, 0.1);
+}
+
+[data-theme="dark"] .opblock.opblock-delete .opblock-summary-method {
+  background: var(--method-delete);
+}
+
+[data-theme="dark"] .opblock.opblock-patch {
+  border-color: var(--method-patch);
+  background: rgba(121, 192, 255, 0.1);
+}
+
+[data-theme="dark"] .opblock.opblock-patch .opblock-summary-method {
+  background: var(--method-patch);
+}
+
+[data-theme="dark"] .swagger-ui .opblock .opblock-summary-path,
+[data-theme="dark"] .swagger-ui .opblock .opblock-summary-operation-id {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .swagger-ui .opblock .opblock-summary-description {
+  color: var(--text-secondary);
+}
+
+/* ===== 参数和表格 (Parameters & Tables) ===== */
+[data-theme="dark"] .swagger-ui .parameters-col_description p {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .swagger-ui .parameter__name {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .swagger-ui .parameter__name.required:after {
+  background-color: rgba(248, 81, 73, 0.1);
+  color: var(--error-color);
+}
+
+[data-theme="dark"] .swagger-ui .parameter__in {
+  color: var(--text-tertiary);
+}
+
+[data-theme="dark"] .swagger-ui table thead tr th,
+[data-theme="dark"] .swagger-ui table thead tr td {
+  border-bottom-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .swagger-ui table.model tr.description,
+[data-theme="dark"] .swagger-ui table.model tr.external-docs {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .swagger-ui table,
+[data-theme="dark"] .swagger-ui table tr,
+[data-theme="dark"] .swagger-ui table td {
+  color: var(--text-primary);
+}
+
+/* ===== 模型 (Models) ===== */
+[data-theme="dark"] .swagger-ui section.models.is-open .model-container,
+[data-theme="dark"] .swagger-ui .model-box {
+  background: var(--bg-primary) !important;
+}
+
+[data-theme="dark"] .swagger-ui .model-title {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .swagger-ui .model,
+[data-theme="dark"] .swagger-ui .model .property.primitive {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .swagger-ui .model-box .model-jump-to-path {
+  opacity: 0.5;
+}
+
+/* ===== 响应和代码 (Responses & Code) ===== */
+[data-theme="dark"] .swagger-ui .responses-inner h4,
+[data-theme="dark"] .swagger-ui .responses-inner h5 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .swagger-ui .response-col_status {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .swagger-ui .opblock-body pre.microlight,
+[data-theme="dark"] .swagger-ui .markdown pre {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .swagger-ui .markdown code,
+[data-theme="dark"] .swagger-ui .renderedMarkdown code {
+  background: var(--bg-tertiary) !important;
+  color: var(--accent-primary-hover) !important;
+}
+
+[data-theme="dark"] .swagger-ui .loading-container:after {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .swagger-ui .opblock-tag {
+  color: var(--text-primary);
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .swagger-ui .opblock-tag small {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .swagger-ui .opblock-tag:hover {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .swagger-ui .opblock-tag svg {
+  fill: var(--text-primary);
+}
+
+/* ===== 模态框 (Dialogs/Modals) ===== */
+[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-header {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-header h3 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-content,
+[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-content p,
+[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-content h4 {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .swagger-ui .auth-container {
+  background-color: transparent !important;
+}
+
+[data-theme="dark"] .swagger-ui .auth-container h4 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .swagger-ui .dialog-ux .modal-ux-header .close-modal svg {
+  fill: var(--text-primary);
+}
+
+/* ===== 主题切换按钮样式 (保持不变, 但适配了深色模式下的颜色) ===== */
+[data-theme="dark"] .theme-toggle-btn {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary) !important;
+}
+
+.theme-toggle-btn {
+  position: fixed;
+  top: 8px;
+  right: 10px;
+  z-index: 9999;
+  background-color: rgba(0, 0, 0, 0.1); /* 浅色模式下的背景 */
+  color: #333 !important; /* 浅色模式下的文字颜色 */
+  border: none !important;
+  border-radius: 6px !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px !important;
+  min-width: 44px;
+  min-height: 44px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease !important;
+  outline: none !important;
+  cursor: pointer;
+}
+
+.theme-toggle-btn:active {
+  transform: translateY(0);
+}
+
+.theme-toggle-btn:focus {
+  outline: 2px solid rgba(73, 144, 226, 0.5);
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .theme-toggle-btn {
+    top: 10px;
+    right: 10px;
+  }
+}

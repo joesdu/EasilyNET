@@ -46,6 +46,9 @@ internal sealed class AppWebModule : AppModule
         app?.UseAuthentication();
         // 再授权
         app?.UseAuthorization();
+
+        // 添加静态文件中间件，用于提供 wwwroot 中的文件
+        app?.UseStaticFiles();
         await base.ApplicationInitialization(context);
     }
 }
