@@ -1,36 +1,57 @@
 /* ============================================================
  Swagger UI Theme - Color-Only Dark Mode v3.0
-   - 宗旨: 只覆盖颜色，不触碰布局、间距、尺寸，以确保与原始 swagger-ui.css 完美兼容.
+   - 宗旨: 只覆盖颜色,不触碰布局、间距、尺寸,以确保与原始 swagger-ui.css 完美兼容.
    - 解决了因覆盖布局样式导致的元素位置偏移问题.
    - 优化了色彩、可见性和现代风格.
    ============================================================ */
 
 /* 浅色模式 (默认 - 完全依赖原始 swagger-ui.css, 不做任何改变) */
 
-/* 深色模式变量定义 - 优化后的 GitHub Dark 风格配色 */
+/* 深色模式变量定义 - Dracula Theme (二次微调版) */
 [data-theme="dark"] {
-  /* -- 色彩系统 -- */
-  --bg-primary: #0d1117; /* 主背景色 (最暗) */
-  --bg-secondary: #161b22; /* 次级背景色 (卡片、头部等) */
-  --bg-tertiary: #21262d; /* 三级背景色 (输入框、悬停等) */
-  --border-color: #30363d; /* 边框颜色 */
-  --border-color-strong: #8b949e; /* 更强的边框/分隔线 */
-  --text-primary: #e6edf3; /* 主要文本颜色 (更高亮) */
-  --text-secondary: #c9d1d9; /* 次要文本颜色 */
-  --text-tertiary: #8b949e; /* 辅助/提示文本颜色 */
-  --accent-primary: #2f81f7; /* 强调色 (链接、主按钮) */
-  --accent-primary-hover: #58a6ff; /* 强调色悬停 */
-  --error-color: #f85149; /* 错误颜色 */
-  --success-color: #2ea043; /* 成功颜色 */
-
-  /* -- HTTP 方法颜色 -- */
-  --method-get: #58a6ff;
-  --method-post: #3fb950;
-  --method-put: #c69026;
-  --method-delete: #f85149;
-  --method-patch: #79c0ff;
-  --method-head: #a371f7;
-  --method-options: #6a737d;
+  /* -- Dracula 官方色彩系统 (微调) -- */
+  --bg-primary: #282a36;
+  /* Background - 主背景色 */
+  --bg-secondary: #44475a;
+  /* Current Line/Selection - 次级背景色 (卡片等) */
+  --bg-tertiary: #3a3c4e;
+  /* 自定义 - 三级背景色 (输入框等) */
+  --border-color: #6272a4;
+  /* Comment - 边框颜色 */
+  --border-color-strong: #bd93f9;
+  /* Purple - 更强的边框/分隔线 */
+  --text-primary: #f8f8f2;
+  /* Foreground - 主要文本颜色 */
+  --text-secondary: #bd93f9;
+  /* Purple - 次要文本颜色, 增强可读性 */
+  --text-tertiary: #6272a4;
+  /* Comment - 辅助/提示文本颜色 (例如 'in query') */
+  --accent-primary: #bd93f9;
+  /* Purple - 强调色 (链接、主按钮) */
+  --accent-primary-hover: #ff79c6;
+  /* Pink - 强调色悬停 */
+  --error-color: #ff5555;
+  /* Red - 错误颜色 */
+  --success-color: #50fa7b;
+  /* Green - 成功颜色 */
+  /* -- HTTP 方法颜色 (使用 Dracula 配色) -- */
+  --method-get: #8be9fd;
+  /* Cyan - GET */
+  --method-post: #50fa7b;
+  /* Green - POST */
+  --method-put: #f1fa8c;
+  /* Yellow - PUT */
+  --method-delete: #ff5555;
+  /* Red - DELETE */
+  --method-patch: #ffb86c;
+  /* Orange - PATCH */
+  --method-head: #bd93f9;
+  /* Purple - HEAD */
+  --method-options: #6272a4;
+  /* Comment - OPTIONS */
+  /* -- 特殊元素颜色 -- */
+  --param-type-color: #f1fa8c;
+  /* Yellow - 参数类型文本颜色 */
 }
 
 /* ===== 全局背景和文本颜色 ===== */
@@ -48,7 +69,8 @@
 
 [data-theme="dark"] ::-webkit-scrollbar-thumb {
   background: var(--bg-tertiary);
-  border-color: var(--bg-primary); /* 仅修改边框颜色 */
+  border-color: var(--bg-primary);
+  /* 仅修改边框颜色 */
 }
 
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
@@ -79,7 +101,7 @@
 
 [data-theme="dark"] .topbar .download-url-wrapper .download-url-button {
   background-color: var(--success-color);
-  color: #fff;
+  color: #000;
 }
 
 /* ===== 信息区域 (Info) ===== */
@@ -136,7 +158,7 @@
 
 [data-theme="dark"] .swagger-ui .btn.authorize:hover {
   background-color: var(--success-color);
-  color: #fff !important;
+  color: #000 !important;
 }
 
 [data-theme="dark"] .swagger-ui .btn.authorize svg {
@@ -144,7 +166,7 @@
 }
 
 [data-theme="dark"] .swagger-ui .btn.authorize:hover svg {
-  fill: #fff;
+  fill: #000;
 }
 
 [data-theme="dark"] .swagger-ui .btn.cancel {
@@ -175,7 +197,8 @@
 [data-theme="dark"] .swagger-ui textarea:focus,
 [data-theme="dark"] .swagger-ui select:focus {
   border-color: var(--accent-primary) !important;
-  box-shadow: 0 0 0 3px rgba(47, 129, 247, 0.4); /* 仅保留 focus 时的阴影 */
+  box-shadow: 0 0 0 2px rgba(189, 147, 249, 0.4);
+  /* 调整 focus 阴影颜色为紫色 */
 }
 
 [data-theme="dark"] .swagger-ui label,
@@ -213,15 +236,19 @@
 }
 
 [data-theme="dark"] .swagger-ui .opblock .opblock-summary-method {
-  color: #fff;
+  color: #282a36;
 }
 
-/* 确保方法文本总是白色 */
+[data-theme="dark"] .opblock-description-wrapper p {
+  color: var(--text-secondary);
+}
+
+/* 确保方法文本总是黑色以保证可读性 */
 
 /* --- HTTP 方法颜色 --- */
 [data-theme="dark"] .opblock.opblock-get {
   border-color: var(--method-get);
-  background: rgba(88, 166, 255, 0.1);
+  background: rgba(139, 233, 253, 0.15);
 }
 
 [data-theme="dark"] .opblock.opblock-get .opblock-summary-method {
@@ -230,7 +257,7 @@
 
 [data-theme="dark"] .opblock.opblock-post {
   border-color: var(--method-post);
-  background: rgba(63, 185, 80, 0.1);
+  background: rgba(80, 250, 123, 0.15);
 }
 
 [data-theme="dark"] .opblock.opblock-post .opblock-summary-method {
@@ -239,7 +266,7 @@
 
 [data-theme="dark"] .opblock.opblock-put {
   border-color: var(--method-put);
-  background: rgba(198, 144, 38, 0.1);
+  background: rgba(241, 250, 140, 0.15);
 }
 
 [data-theme="dark"] .opblock.opblock-put .opblock-summary-method {
@@ -248,7 +275,7 @@
 
 [data-theme="dark"] .opblock.opblock-delete {
   border-color: var(--method-delete);
-  background: rgba(248, 81, 73, 0.1);
+  background: rgba(255, 85, 85, 0.15);
 }
 
 [data-theme="dark"] .opblock.opblock-delete .opblock-summary-method {
@@ -257,7 +284,7 @@
 
 [data-theme="dark"] .opblock.opblock-patch {
   border-color: var(--method-patch);
-  background: rgba(121, 192, 255, 0.1);
+  background: rgba(255, 184, 108, 0.15);
 }
 
 [data-theme="dark"] .opblock.opblock-patch .opblock-summary-method {
@@ -278,12 +305,17 @@
   color: var(--text-secondary) !important;
 }
 
+[data-theme="dark"] .swagger-ui .parameter__type {
+  color: var(--param-type-color);
+  font-weight: 600;
+}
+
 [data-theme="dark"] .swagger-ui .parameter__name {
   color: var(--text-primary);
 }
 
 [data-theme="dark"] .swagger-ui .parameter__name.required:after {
-  background-color: rgba(248, 81, 73, 0.1);
+  background-color: rgba(255, 85, 85, 0.1);
   color: var(--error-color);
 }
 
@@ -327,6 +359,10 @@
   opacity: 0.5;
 }
 
+[data-theme="dark"] .swagger-ui .model-example .tab li {
+  color: var(--text-primary);
+}
+
 /* ===== 响应和代码 (Responses & Code) ===== */
 [data-theme="dark"] .swagger-ui .responses-inner h4,
 [data-theme="dark"] .swagger-ui .responses-inner h5 {
@@ -348,6 +384,10 @@
 [data-theme="dark"] .swagger-ui .renderedMarkdown code {
   background: var(--bg-tertiary) !important;
   color: var(--accent-primary-hover) !important;
+}
+
+[data-theme="dark"] .swagger-ui .renderedMarkdown p {
+  color: var(--text-secondary) !important;
 }
 
 [data-theme="dark"] .swagger-ui .loading-container:after {
@@ -411,25 +451,30 @@
 
 .theme-toggle-btn {
   position: fixed;
-  top: 8px;
-  right: 10px;
+  top: 80px;
+  right: 20px;
   z-index: 9999;
-  background-color: rgba(0, 0, 0, 0.1); /* 浅色模式下的背景 */
-  color: #333 !important; /* 浅色模式下的文字颜色 */
+  background-color: rgba(0, 0, 0, 0.1);
+  /* 浅色模式下的背景 */
+  color: #333 !important;
+  /* 浅色模式下的文字颜色 */
   border: none !important;
   border-radius: 6px !important;
-  font-size: 16px !important;
   font-weight: 500 !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px !important;
   min-width: 44px;
   min-height: 44px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   transition: all 0.2s ease !important;
   outline: none !important;
   cursor: pointer;
+}
+
+.theme-toggle-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .theme-toggle-btn:active {
@@ -445,5 +490,74 @@
   .theme-toggle-btn {
     top: 10px;
     right: 10px;
+  }
+
+  .theme-toggle-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* 返回顶部按钮样式 */
+.back-to-top-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  z-index: 10000;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: white !important;
+  border: none !important;
+  border-radius: 50% !important;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease !important;
+  cursor: pointer;
+  outline: none !important;
+}
+
+.back-to-top-btn svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2;
+}
+
+.back-to-top-btn:hover {
+  background-color: rgba(0, 0, 0, 0.6);
+  transform: translateY(-2px);
+}
+
+.back-to-top-btn:active {
+  transform: translateY(0);
+}
+
+[data-theme="dark"] .back-to-top-btn {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .back-to-top-btn:hover {
+  background-color: var(--border-color);
+}
+
+@media (max-width: 768px) {
+  .theme-toggle-btn {
+    margin-left: auto;
+    /* 在移动设备上同样推到右侧 */
+  }
+
+  .back-to-top-btn {
+    bottom: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .back-to-top-btn svg {
+    width: 20px;
+    height: 20px;
   }
 }
