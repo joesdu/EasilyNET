@@ -11,6 +11,22 @@
   const LIGHT_THEME = "light";
 
   /**
+   * Throttle function to limit the rate at which a function can be called.
+   */
+  function throttle(func, limit) {
+    let inThrottle;
+    return function () {
+      const args = arguments;
+      const context = this;
+      if (!inThrottle) {
+        func.apply(context, args);
+        inThrottle = true;
+        setTimeout(() => (inThrottle = false), limit);
+      }
+    };
+  }
+
+  /**
    * Get the current theme from localStorage or system preference
    */
   function getCurrentTheme() {
@@ -152,13 +168,15 @@
 
       document.body.appendChild(button);
 
-      window.addEventListener("scroll", () => {
+      const handleScroll = () => {
         if (window.scrollY > 200) {
           button.style.display = "block";
         } else {
           button.style.display = "none";
         }
-      });
+      };
+
+      window.addEventListener("scroll", throttle(handleScroll, 100));
     };
 
     if (document.readyState === "loading") {
