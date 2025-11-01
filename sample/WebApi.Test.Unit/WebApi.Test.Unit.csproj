@@ -29,7 +29,7 @@
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <PackageReference Include="Serilog.Sinks.Map" Version="2.0.0" />
     <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.1-nblumhardt-02317" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.0.0-pr.3283.1890" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.0.0-pr.3283.1925" />
   </ItemGroup>
 
   <ItemGroup>
