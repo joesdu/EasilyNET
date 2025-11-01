@@ -22,7 +22,7 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<!--<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>-->
-		<NoWarn>$(NoWarn);</NoWarn>
+		<NoWarn>$(NoWarn);IDE0048;</NoWarn>
 		<!--控制生成产物目录-->
 		<!--<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>-->
 	</PropertyGroup>
