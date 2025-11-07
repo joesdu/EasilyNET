@@ -227,7 +227,7 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
         {
             logger.LogInformation("Attempting to connect to RabbitMQ using single host {Host}...", config.Host);
         }
-        return await connFactory.CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
+        return await connFactory.CreateConnectionAsync(config.ApplicationName, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<IChannel> CreateChannelAsync(CancellationToken cancellationToken) =>
