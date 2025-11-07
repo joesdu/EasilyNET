@@ -132,8 +132,9 @@ public static class RabbitServiceExtension
                                                                 }
                                                                 : throw new InvalidOperationException("Configuration error: Unable to create a connection from the provided configuration."));
                 factory.ConsumerDispatchConcurrency = config.ConsumerDispatchConcurrency;
-                factory.RequestedHeartbeat = TimeSpan.FromSeconds(10);  // 心跳间隔
-                factory.ContinuationTimeout = TimeSpan.FromSeconds(20); // 请求超时时间 (should be >= 1.5-2x heartbeat)
+                const double HeartbeatIntervalSeconds = 10d;
+                factory.RequestedHeartbeat = TimeSpan.FromSeconds(HeartbeatIntervalSeconds);      // 心跳间隔
+                factory.ContinuationTimeout = TimeSpan.FromSeconds(HeartbeatIntervalSeconds * 2); // 请求超时时间 (should be >= 1.5-2x heartbeat)
                 return factory;
             });
 
