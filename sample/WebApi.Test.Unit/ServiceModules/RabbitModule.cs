@@ -20,7 +20,8 @@ internal sealed class RabbitModule : AppModule
             c.WithConnection(f => f.Uri = new(config.GetConnectionString("Rabbit") ?? string.Empty))
              .WithConsumerSettings()
              .WithResilience()
-             .WithExchangeSettings(false, true);
+             .WithExchangeSettings(false, true)
+             .WithApplication("EasilyNET");
 
             // 配置自定义序列化器示例（可选）
             // c.WithSerializer<MsgPackSerializer>(); // 使用MessagePack序列化器
