@@ -27,25 +27,37 @@ internal sealed class SwaggerModule : AppModule
         dic.TryAdd(_docName, new()
         {
             Title = _docName,
-            Description = _defaultDescription
+            Description = _defaultDescription,
+            //Version = "v1",
+            //TermsOfService = new Uri("https://cn.bing.com"),
+            //Contact = new OpenApiContact()
+            //{
+            //    Name = "EasilyNET",
+            //    Email = "dygood@outlook.com"
+            //}
+            License = License
         });
         var attributes = AssemblyHelper.FindTypesByAttribute<ApiExplorerSettingsAttribute>()
                                        .Select(ctrl => ctrl.GetCustomAttribute<ApiExplorerSettingsAttribute>())
                                        .OfType<ApiExplorerSettingsAttribute>()
-                                       .OrderBy(c => c.GroupName).ToArray();
-        if (attributes.Length > 0)
+                                       .OrderBy(c => c.GroupName);
+        attributes.ForEach(attribute =>
         {
-            foreach (var attribute in attributes)
+            dic.TryAdd(attribute.GroupName ?? _docName, new()
             {
-                dic.TryAdd(attribute.GroupName ?? _docName, new()
-                {
-                    Title = attribute.GroupName,
-                    Description = _defaultDescription
-                });
-            }
-        }
+                Title = attribute.GroupName,
+                Description = _defaultDescription,
+                License = License
+            });
+        });
         attributesDic = dic.OrderBy(kvp => kvp.Key == _docName ? string.Empty : kvp.Key).ToFrozenDictionary();
     }
+
+    private static OpenApiLicense License { get; } = new()
+    {
+        Name = "MIT License",
+        Url = new("https://github.com/joesdu/EasilyNET/blob/main/LICENSE")
+    };
 
     /// <inheritdoc />
     public override async Task ConfigureServices(ConfigureServicesContext context)
@@ -53,6 +65,17 @@ internal sealed class SwaggerModule : AppModule
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         context.Services.AddSwaggerGen(c =>
         {
+            // 添加服务器配置以支持多种 Scheme (HTTP/HTTPS)
+            //c.AddServer(new()
+            //{
+            //    Url = "https://localhost:5001",
+            //    Description = "HTTPS Endpoint"
+            //});
+            //c.AddServer(new()
+            //{
+            //    Url = "http://localhost:5000",
+            //    Description = "HTTP Endpoint"
+            //});
             // 添加全局安全方案定义
             c.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
             {
