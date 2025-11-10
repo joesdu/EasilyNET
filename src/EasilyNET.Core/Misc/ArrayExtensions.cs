@@ -29,7 +29,7 @@ public static class ArrayExtensions
 
         /// <summary>
         ///     <para xml:lang="en">Iterates over each element in the array and performs the specified action</para>
-        ///     <para xml:lang="zh">遍历数组中的每个元素并执行指定的操作</para>
+        ///     <para xml:lang="zh">遍历多维数组的每个元素,并对每个元素执行指定的操作</para>
         /// </summary>
         /// <param name="action">
         ///     <para xml:lang="en">The action to perform on each element</para>
