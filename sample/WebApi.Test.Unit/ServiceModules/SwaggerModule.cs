@@ -29,7 +29,7 @@ internal sealed class SwaggerModule : AppModule
             Title = _docName,
             Description = _defaultDescription,
             //Version = "v1",
-            //TermsOfService = new Uri("htts://cn.bing.com"),
+            //TermsOfService = new Uri("https://cn.bing.com"),
             //Contact = new OpenApiContact()
             //{
             //    Name = "EasilyNET",
