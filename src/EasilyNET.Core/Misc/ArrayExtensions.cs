@@ -28,7 +28,7 @@ public static class ArrayExtensions
         public long LongCount => array.LongLength;
 
         /// <summary>
-        ///     <para xml:lang="en">Iterates over each element in the array and performs the specified action</para>
+        ///     <para xml:lang="en">Iterates over each element in the multi-dimensional array and performs the specified action</para>
         ///     <para xml:lang="zh">遍历多维数组的每个元素,并对每个元素执行指定的操作</para>
         /// </summary>
         /// <param name="action">
