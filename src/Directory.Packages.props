@@ -22,8 +22,8 @@
     <PackageVersion Include="RabbitMQ.Client" Version="7.2.0" />
     <PackageVersion Include="Spectre.Console.Json" Version="0.53.1-preview.0.2" />
     <!--microsoft asp.net core -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.0-rc.2.25502.107" />
-    <PackageVersion Include="Microsoft.Extensions.Resilience" Version="9.10.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.0.0" />
   </ItemGroup>
   <!-- 自定义任务来检查 TargetFramework -->
   <PropertyGroup>

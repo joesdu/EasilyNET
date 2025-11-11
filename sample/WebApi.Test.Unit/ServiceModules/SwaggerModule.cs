@@ -127,7 +127,7 @@ internal sealed class SwaggerModule : AppModule
     public override async Task ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationHost() as IApplicationBuilder;
-        app.UseSwagger();
+        app.UseSwagger(c => c.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1);
         app.UseSwaggerUI(c =>
         {
             foreach (var (key, value) in attributesDic)
