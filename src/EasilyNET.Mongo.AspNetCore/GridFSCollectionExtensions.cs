@@ -112,7 +112,7 @@ public static class GridFSCollectionExtensions
             services.AddMongoGridFS(db, Constant.ConfigName, c =>
             {
                 c.BucketName = Constant.BucketName;
-                c.ChunkSizeBytes = 1024;
+                c.ChunkSizeBytes = 255 * 1024; // 255KB - 优化流式传输性能
                 c.ReadConcern = new();
                 c.ReadPreference = ReadPreference.Primary;
                 c.WriteConcern = WriteConcern.Unacknowledged;

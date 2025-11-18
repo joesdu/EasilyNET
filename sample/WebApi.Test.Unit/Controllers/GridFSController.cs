@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using EasilyNET.Core;
+using EasilyNET.Mongo.AspNetCore.Helpers;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
@@ -13,7 +15,7 @@ using WebApi.Test.Unit.dtos;
 namespace WebApi.Test.Unit.Controllers;
 
 /// <summary>
-/// GridFS控制器,当引入Extension后,请使用Extension版本的API
+/// GridFS控制器
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -220,21 +222,105 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
     }
 
     /// <summary>
-    /// 通过文件名下载
+    /// 流式下载 - 支持 Range 请求,用于视频/音频播放
     /// </summary>
-    /// <param name="name"></param>
+    /// <param name="id">文件ID</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    [HttpGet("DownloadByName/{name}")]
-    public virtual async Task<FileStreamResult> DownloadByName(string name, CancellationToken cancellationToken)
+    [HttpGet("StreamRange/{id}")]
+    public virtual async Task<IActionResult> StreamRange(string id, CancellationToken cancellationToken)
     {
-        var stream = await Bucket.OpenDownloadStreamByNameAsync(name, new() { Seekable = true }, cancellationToken);
-        var content_type = stream.FileInfo.Metadata["contentType"].AsString;
-        if (string.IsNullOrWhiteSpace(content_type))
+        // 解析 Range 头
+        var rangeHeader = Request.Headers[HeaderNames.Range].ToString();
+        long? startByte = null;
+        long? endByte = null;
+        if (!string.IsNullOrEmpty(rangeHeader) && rangeHeader.StartsWith("bytes=", StringComparison.OrdinalIgnoreCase))
         {
-            content_type = "application/octet-stream";
+            var range = rangeHeader[6..].Split('-');
+            if (range.Length == 2)
+            {
+                if (long.TryParse(range[0], out var start))
+                {
+                    startByte = start;
+                }
+                if (!string.IsNullOrEmpty(range[1]) && long.TryParse(range[1], out var end))
+                {
+                    endByte = end;
+                }
+            }
         }
-        return File(stream, content_type, stream.FileInfo.Filename);
+        try
+        {
+            var result = await GridFSRangeStreamHelper.DownloadRangeAsync(Bucket,
+                             ObjectId.Parse(id),
+                             startByte ?? 0,
+                             endByte,
+                             cancellationToken);
+            var contentType = result.FileInfo.Metadata.Contains("contentType")
+                                  ? result.FileInfo.Metadata["contentType"].AsString
+                                  : "application/octet-stream";
+
+            // 设置响应头
+            Response.Headers[HeaderNames.AcceptRanges] = "bytes";
+            Response.Headers[HeaderNames.ContentRange] = $"bytes {result.RangeStart}-{result.RangeEnd}/{result.TotalLength}";
+            Response.StatusCode = startByte.HasValue ? 206 : 200; // 206 Partial Content
+            return File(result.Stream, contentType, result.FileInfo.Filename, true);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return StatusCode(416); // Range Not Satisfiable
+        }
+    }
+
+    /// <summary>
+    /// 通过文件名流式下载 - 支持 Range 请求
+    /// </summary>
+    /// <param name="name">文件名</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet("StreamRangeByName/{name}")]
+    public virtual async Task<IActionResult> StreamRangeByName(string name, CancellationToken cancellationToken)
+    {
+        // 解析 Range 头
+        var rangeHeader = Request.Headers[HeaderNames.Range].ToString();
+        long? startByte = null;
+        long? endByte = null;
+        if (!string.IsNullOrEmpty(rangeHeader) && rangeHeader.StartsWith("bytes=", StringComparison.OrdinalIgnoreCase))
+        {
+            var range = rangeHeader[6..].Split('-');
+            if (range.Length == 2)
+            {
+                if (long.TryParse(range[0], out var start))
+                {
+                    startByte = start;
+                }
+                if (!string.IsNullOrEmpty(range[1]) && long.TryParse(range[1], out var end))
+                {
+                    endByte = end;
+                }
+            }
+        }
+        try
+        {
+            var result = await GridFSRangeStreamHelper.DownloadRangeByNameAsync(Bucket,
+                             name,
+                             startByte ?? 0,
+                             endByte,
+                             cancellationToken);
+            var contentType = result.FileInfo.Metadata.Contains("contentType")
+                                  ? result.FileInfo.Metadata["contentType"].AsString
+                                  : "application/octet-stream";
+
+            // 设置响应头
+            Response.Headers[HeaderNames.AcceptRanges] = "bytes";
+            Response.Headers[HeaderNames.ContentRange] = $"bytes {result.RangeStart}-{result.RangeEnd}/{result.TotalLength}";
+            Response.StatusCode = startByte.HasValue ? 206 : 200; // 206 Partial Content
+            return File(result.Stream, contentType, result.FileInfo.Filename, true);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return StatusCode(416); // Range Not Satisfiable
+        }
     }
 
     /// <summary>
