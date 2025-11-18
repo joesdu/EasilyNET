@@ -22,9 +22,7 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<!--<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>-->
-		<!-- Suppress IDE0048 (Add required accessibility modifiers) project-wide because explicit accessibility modifiers are not required by our coding standards and to reduce unnecessary diffs in generated code.
-		     全局禁用 IDE0048（要求添加访问修饰符），因为我们的编码规范不强制要求显式访问修饰符，并且这样可以减少自动生成代码中的无意义变更。 -->
-		<NoWarn>$(NoWarn);IDE0048;</NoWarn>
+		<NoWarn>$(NoWarn);</NoWarn>
 		<!--控制生成产物目录-->
 		<!--<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>-->
 	</PropertyGroup>
