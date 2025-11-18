@@ -1,5 +1,4 @@
 using System.Text;
-using Org.BouncyCastle.Utilities.Encoders;
 
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable ReturnTypeCanBeEnumerable.Global
@@ -23,7 +22,7 @@ public static class Sm4Crypt
     private static byte[] ValidateAndDecodeKey(string secretKey, bool hexString)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(secretKey);
-        var keyBytes = hexString ? Hex.Decode(secretKey) : Encoding.UTF8.GetBytes(secretKey);
+        var keyBytes = hexString ? Convert.FromHexString(secretKey) : Encoding.UTF8.GetBytes(secretKey);
         return keyBytes.Length != KeySize ? throw new ArgumentException($"Invalid key length. SM4 requires a {KeySize * 8}-bit ({KeySize} bytes) key. Provided key is {keyBytes.Length} bytes.", nameof(secretKey)) : keyBytes;
     }
 
@@ -34,7 +33,7 @@ public static class Sm4Crypt
     private static byte[] ValidateAndDecodeIV(string iv, bool hexString)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(iv);
-        var ivBytes = hexString ? Hex.Decode(iv) : Encoding.UTF8.GetBytes(iv);
+        var ivBytes = hexString ? Convert.FromHexString(iv) : Encoding.UTF8.GetBytes(iv);
         return ivBytes.Length != BlockSize ? throw new ArgumentException($"Invalid IV length. SM4 CBC mode requires a {BlockSize * 8}-bit ({BlockSize} bytes) IV. Provided IV is {ivBytes.Length} bytes.", nameof(iv)) : ivBytes;
     }
 
