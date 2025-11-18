@@ -438,26 +438,16 @@ public static class RsaCrypt
     ///     <para xml:lang="en">Compute hash using specified algorithm</para>
     ///     <para xml:lang="zh">使用指定算法计算哈希</para>
     /// </summary>
-    private static byte[] ComputeHash(ReadOnlySpan<byte> data, HashAlgorithmName algorithmName)
-    {
-        if (algorithmName == HashAlgorithmName.SHA256)
+    private static byte[] ComputeHash(ReadOnlySpan<byte> data, HashAlgorithmName algorithmName) =>
+        algorithmName.Name switch
         {
-            return SHA256.HashData(data);
-        }
-        if (algorithmName == HashAlgorithmName.SHA1)
-        {
-            return SHA1.HashData(data);
-        }
-        if (algorithmName == HashAlgorithmName.SHA384)
-        {
-            return SHA384.HashData(data);
-        }
-        if (algorithmName == HashAlgorithmName.SHA512)
-        {
-            return SHA512.HashData(data);
-        }
-        return algorithmName == HashAlgorithmName.MD5 ? MD5.HashData(data) : throw new ArgumentException($"不支持的哈希算法: {algorithmName.Name}", nameof(algorithmName));
-    }
+            nameof(HashAlgorithmName.SHA256) => SHA256.HashData(data),
+            nameof(HashAlgorithmName.SHA1)   => SHA1.HashData(data),
+            nameof(HashAlgorithmName.SHA384) => SHA384.HashData(data),
+            nameof(HashAlgorithmName.SHA512) => SHA512.HashData(data),
+            nameof(HashAlgorithmName.MD5)    => MD5.HashData(data),
+            _ => throw new ArgumentException($"不支持的哈希算法: {algorithmName.Name}", nameof(algorithmName))
+        };
 
     #endregion
 }
