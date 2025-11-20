@@ -155,7 +155,20 @@ public static class GridFSRangeStreamHelper
         public override long Position
         {
             get => _position;
-            set => throw new NotSupportedException();
+            set
+            {
+                if (value < 0 || value > Length)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), "Position must be within the range of the stream");
+                }
+                
+                // 计算在基础流中的实际位置
+                var baseStreamInitialPosition = _baseStream.Position - _position;
+                var newBasePosition = baseStreamInitialPosition + value;
+                
+                _baseStream.Position = newBasePosition;
+                _position = value;
+            }
         }
 
         public override int Read(byte[] buffer, int offset, int count)
@@ -201,11 +214,59 @@ public static class GridFSRangeStreamHelper
 
         public override Task FlushAsync(CancellationToken cancellationToken) => _baseStream.FlushAsync(cancellationToken);
 
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            if (!CanSeek)
+            {
+                throw new NotSupportedException("Stream does not support seeking");
+            }
 
-        public override void SetLength(long value) => throw new NotSupportedException();
+            var newPosition = origin switch
+            {
+                SeekOrigin.Begin => offset,
+                SeekOrigin.Current => _position + offset,
+                SeekOrigin.End => Length + offset,
+                _ => throw new ArgumentException("Invalid seek origin", nameof(origin))
+            };
 
-        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+            if (newPosition < 0)
+            {
+                throw new IOException("Cannot seek to a negative position");
+            }
+
+            if (newPosition > Length)
+            {
+                throw new IOException("Cannot seek beyond the end of the stream");
+            }
+
+            Position = newPosition;
+            return _position;
+        }
+
+        public override void SetLength(long value)
+        {
+            throw new NotSupportedException("Setting length is not supported for range streams");
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            throw new NotSupportedException("Writing is not supported for range streams");
+        }
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException("Writing is not supported for range streams");
+        }
+
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException("Writing is not supported for range streams");
+        }
+
+        public override void WriteByte(byte value)
+        {
+            throw new NotSupportedException("Writing is not supported for range streams");
+        }
 
         protected override void Dispose(bool disposing)
         {

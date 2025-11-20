@@ -13,7 +13,7 @@ namespace WebApi.Test.Unit.Controllers;
 [ApiController]
 [Route("api/GridFS/Resumable")]
 [ApiExplorerSettings(GroupName = "MongoFS")]
-public class GridFSResumableController(GridFSBucket bucket) : ControllerBase
+public class GridFSResumableController(IGridFSBucket bucket) : ControllerBase
 {
     private GridFSResumableUploadHelper ResumableHelper => field ??= new(bucket);
 
@@ -148,7 +148,7 @@ public class GridFSResumableController(GridFSBucket bucket) : ControllerBase
     /// 完成上传 - 将所有块组合成完整文件
     /// </summary>
     /// <param name="sessionId">会话 ID</param>
-    /// <param name="fileHash">文件哈希值(可选,用于验证)</param>
+    /// <param name="fileHash">文件哈希值(SHA256,可选,用于验证)</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("Finalize/{sessionId}")]
@@ -169,7 +169,21 @@ public class GridFSResumableController(GridFSBucket bucket) : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
+            Console.WriteLine($"[ERROR] FinalizeUpload InvalidOperationException: {ex.Message}");
+            Console.WriteLine($"[ERROR] StackTrace: {ex.StackTrace}");
             return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] FinalizeUpload Exception: {ex.GetType().Name}");
+            Console.WriteLine($"[ERROR] Message: {ex.Message}");
+            Console.WriteLine($"[ERROR] StackTrace: {ex.StackTrace}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"[ERROR] InnerException: {ex.InnerException.Message}");
+                Console.WriteLine($"[ERROR] InnerException StackTrace: {ex.InnerException.StackTrace}");
+            }
+            return StatusCode(500, $"Internal server error: {ex.Message}");
         }
     }
 
@@ -184,7 +198,8 @@ public class GridFSResumableController(GridFSBucket bucket) : ControllerBase
     {
         try
         {
-            await ResumableHelper.CancelSessionAsync(sessionId, cancellationToken);
+            // 默认删除会话记录
+            await ResumableHelper.CancelSessionAsync(sessionId, deleteSession: true, cancellationToken);
             return Ok(new { message = "Upload cancelled successfully" });
         }
         catch (Exception ex)

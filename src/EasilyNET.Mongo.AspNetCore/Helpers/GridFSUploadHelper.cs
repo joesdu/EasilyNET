@@ -110,8 +110,9 @@ public static class GridFSUploadHelper
     /// <summary>
     ///     <para xml:lang="en">
     ///     Calculate optimal chunk size based on file size. Larger files use larger chunks for better performance.
+    ///     Strategy: Minimize chunk count while respecting MongoDB's 16MB document size limit.
     ///     </para>
-    ///     <para xml:lang="zh">根据文件大小计算最佳块大小。较大文件使用较大块以获得更好性能。</para>
+    ///     <para xml:lang="zh">根据文件大小计算最佳块大小。较大文件使用较大块以获得更好性能。策略:在遵守 MongoDB 16MB 文档大小限制的前提下,最小化块数量。</para>
     /// </summary>
     /// <param name="fileSize">
     ///     <para xml:lang="en">File size in bytes</para>
@@ -123,16 +124,21 @@ public static class GridFSUploadHelper
     /// </returns>
     public static int GetOptimalChunkSize(long fileSize)
     {
+        // MongoDB 文档大小限制为 16MB,这是单个块的最大安全大小
+        const int maxChunkSize = 16 * 1024 * 1024; // 16MB
         return fileSize switch
         {
-            // 小文件 < 1MB: 使用 64KB 块
-            < 1024 * 1024 => 64 * 1024,
-            // 中等文件 1MB - 10MB: 使用 255KB 块(GridFS 默认)
-            < 10 * 1024 * 1024 => 255 * 1024,
-            // 大文件 10MB - 100MB: 使用 512KB 块
-            < 100 * 1024 * 1024 => 512 * 1024,
-            // 超大文件 >= 100MB: 使用 1MB 块
-            _ => 1024 * 1024
+            // 极小文件 < 256KB: 使用 64KB 块 (最多 4 块)
+            < 256 * 1024 => 64 * 1024,
+            // 小文件 256KB - 2MB: 使用 256KB 块 (最多 8 块)
+            < 2 * 1024 * 1024 => 256 * 1024,
+            // 中等文件 2MB - 16MB: 使用 2MB 块 (最多 8 块)
+            < 16 * 1024 * 1024 => 2 * 1024 * 1024,
+            // 大文件 16MB - 160MB: 使用 8MB 块 (最多 20 块)
+            < 160 * 1024 * 1024 => 8 * 1024 * 1024,
+            // 超大文件 >= 160MB: 使用 16MB 块 (最大块)
+            // 示例: 1GB 文件 = 64 块, 10GB 文件 = 640 块, 100GB 文件 = 6400 块
+            _ => maxChunkSize
         };
     }
 }

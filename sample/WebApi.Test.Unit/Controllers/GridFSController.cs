@@ -20,17 +20,12 @@ namespace WebApi.Test.Unit.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [ApiExplorerSettings(GroupName = "MongoFS")]
-public class GridFSController(GridFSBucket bucket) : ControllerBase
+public class GridFSController(IGridFSBucket bucket) : ControllerBase
 {
     /// <summary>
     /// 查询过滤器
     /// </summary>
     private readonly FilterDefinitionBuilder<GridFSItemInfo> _bf = Builders<GridFSItemInfo>.Filter;
-
-    /// <summary>
-    /// GridFSBucket
-    /// </summary>
-    private readonly GridFSBucket Bucket = bucket;
 
     /// <summary>
     /// IMongoCollection
@@ -51,52 +46,50 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
     [HttpPost("Infos")]
     public virtual async Task<object> Infos(InfoSearch info, CancellationToken cancellationToken)
     {
-        var f = _bf.Empty;
+        var filters = new List<FilterDefinition<GridFSItemInfo>>();
         if (!string.IsNullOrWhiteSpace(info.FileName))
         {
-            f &= _bf.Where(c => c.FileName.Contains(info.FileName));
+            filters.Add(_bf.Where(c => c.FileName.Contains(info.FileName)));
         }
         if (!string.IsNullOrWhiteSpace(info.UserName))
         {
-            f &= _bf.Where(c => c.UserName.Contains(info.UserName));
+            filters.Add(_bf.Where(c => c.UserName.Contains(info.UserName)));
         }
         if (!string.IsNullOrWhiteSpace(info.UserId))
         {
-            f &= _bf.Where(c => c.UserId.Contains(info.UserId));
+            filters.Add(_bf.Where(c => c.UserId.Contains(info.UserId)));
         }
         if (!string.IsNullOrWhiteSpace(info.App))
         {
-            f &= _bf.Where(c => c.App.Contains(info.App));
+            filters.Add(_bf.Where(c => c.App.Contains(info.App)));
         }
         if (!string.IsNullOrWhiteSpace(info.BusinessType))
         {
-            f &= _bf.Where(c => c.BusinessType.Contains(info.BusinessType));
+            filters.Add(_bf.Where(c => c.BusinessType.Contains(info.BusinessType)));
         }
         if (info.Start is not null)
         {
-            f &= _bf.Gte(c => c.CreateTime, info.Start);
+            filters.Add(_bf.Gte(c => c.CreateTime, info.Start));
         }
         if (info.End is not null)
         {
-            f &= _bf.Lte(c => c.CreateTime, info.End);
+            filters.Add(_bf.Lte(c => c.CreateTime, info.End));
         }
         if (!string.IsNullOrWhiteSpace(info.Key))
         {
-            f &= _bf.Or(_bf.Where(c => c.FileName.Contains(info.Key!)),
+            filters.Add(_bf.Or(_bf.Where(c => c.FileName.Contains(info.Key!)),
                 _bf.Where(c => c.UserName.Contains(info.Key!)),
                 _bf.Where(c => c.UserId.Contains(info.Key!)),
                 _bf.Where(c => c.App.Contains(info.Key!)),
-                _bf.Where(c => c.BusinessType.Contains(info.Key!)));
+                _bf.Where(c => c.BusinessType.Contains(info.Key!))));
         }
-        var total = await Coll.CountDocumentsAsync(f, cancellationToken: cancellationToken);
-        var list = await Coll
-                         .FindAsync(f, new()
-                         {
-                             Sort = Builders<GridFSItemInfo>.Sort.Descending(c => c.CreateTime),
-                             Limit = info.Size,
-                             Skip = info.Skip
-                         }, cancellationToken)
-                         .GetAwaiter().GetResult().ToListAsync(cancellationToken);
+        var filter = filters.Count > 0 ? _bf.And(filters) : _bf.Empty;
+        var total = await Coll.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+        var list = await Coll.Find(filter)
+                             .Sort(Builders<GridFSItemInfo>.Sort.Descending(c => c.CreateTime))
+                             .Skip(info.Skip)
+                             .Limit(info.Size)
+                             .ToListAsync(cancellationToken);
         return PageResult.Wrap(total, list);
     }
 
@@ -112,7 +105,7 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
         }
         if (fs.DeleteIds.Count > 0)
         {
-            _ = Delete(cancellationToken, [.. fs.DeleteIds]);
+            await Delete(cancellationToken, [.. fs.DeleteIds]);
         }
         var rsList = new ConcurrentBag<GridFSItem>();
         var infos = new ConcurrentBag<GridFSItemInfo>();
@@ -135,7 +128,7 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
                 metadata.Add("category", fs.CategoryId!);
             }
             var upo = new GridFSUploadOptions { BatchSize = fs.File.Count, Metadata = new(metadata) };
-            var oid = await Bucket.UploadFromStreamAsync(item.FileName, item.OpenReadStream(), upo, token);
+            var oid = await bucket.UploadFromStreamAsync(item.FileName, item.OpenReadStream(), upo, token);
             rsList.Add(new() { FileId = oid.ToString() ?? string.Empty, FileName = item.FileName, Length = item.Length, ContentType = item.ContentType });
             infos.Add(new()
             {
@@ -151,7 +144,7 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
                 CreateTime = DateTime.Now
             });
         });
-        _ = Coll.InsertManyAsync(infos, cancellationToken: cancellationToken);
+        await Coll.InsertManyAsync(infos, cancellationToken: cancellationToken);
         return rsList;
     }
 
@@ -167,7 +160,7 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
         }
         if (!string.IsNullOrWhiteSpace(fs.DeleteId))
         {
-            _ = await Delete(cancellationToken, fs.DeleteId!);
+            await Delete(cancellationToken, fs.DeleteId!);
         }
         if (fs.File.ContentType is null)
         {
@@ -186,20 +179,29 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
             metadata.Add("category", fs.CategoryId!);
         }
         var upo = new GridFSUploadOptions { BatchSize = 1, Metadata = new(metadata) };
-        var oid = await Bucket.UploadFromStreamAsync(fs.File.FileName, fs.File.OpenReadStream(), upo, cancellationToken);
-        _ = Coll.InsertOneAsync(new()
+        var oid = await bucket.UploadFromStreamAsync(fs.File.FileName, fs.File.OpenReadStream(), upo, cancellationToken);
+        try
         {
-            FileId = oid.ToString() ?? string.Empty,
-            FileName = fs.File.FileName,
-            Length = fs.File.Length,
-            ContentType = fs.File.ContentType,
-            UserId = fs.UserId,
-            UserName = fs.UserName,
-            App = fs.App,
-            BusinessType = fs.BusinessType,
-            CategoryId = fs.CategoryId,
-            CreateTime = DateTime.Now
-        }, cancellationToken: cancellationToken);
+            await Coll.InsertOneAsync(new()
+            {
+                FileId = oid.ToString() ?? string.Empty,
+                FileName = fs.File.FileName,
+                Length = fs.File.Length,
+                ContentType = fs.File.ContentType,
+                UserId = fs.UserId,
+                UserName = fs.UserName,
+                App = fs.App,
+                BusinessType = fs.BusinessType,
+                CategoryId = fs.CategoryId,
+                CreateTime = DateTime.Now
+            }, cancellationToken: cancellationToken);
+        }
+        catch
+        {
+            // 如果元数据插入失败,尝试删除已上传的文件以避免孤儿文件
+            await bucket.DeleteAsync(oid, cancellationToken);
+            throw;
+        }
         return new() { FileId = oid.ToString() ?? string.Empty, FileName = fs.File.FileName, Length = fs.File.Length, ContentType = fs.File.ContentType };
     }
 
@@ -212,7 +214,7 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
     [HttpGet("Download/{id}")]
     public virtual async Task<FileStreamResult> Download(string id, CancellationToken cancellationToken)
     {
-        var stream = await Bucket.OpenDownloadStreamAsync(ObjectId.Parse(id), new() { Seekable = true }, cancellationToken);
+        var stream = await bucket.OpenDownloadStreamAsync(ObjectId.Parse(id), new() { Seekable = true }, cancellationToken);
         var content_type = stream.FileInfo.Metadata["contentType"].AsString;
         if (string.IsNullOrWhiteSpace(content_type))
         {
@@ -251,7 +253,7 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
         }
         try
         {
-            var result = await GridFSRangeStreamHelper.DownloadRangeAsync(Bucket,
+            var result = await GridFSRangeStreamHelper.DownloadRangeAsync(bucket,
                              ObjectId.Parse(id),
                              startByte ?? 0,
                              endByte,
@@ -302,7 +304,7 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
         }
         try
         {
-            var result = await GridFSRangeStreamHelper.DownloadRangeByNameAsync(Bucket,
+            var result = await GridFSRangeStreamHelper.DownloadRangeByNameAsync(bucket,
                              name,
                              startByte ?? 0,
                              endByte,
@@ -332,8 +334,8 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
     [HttpGet("FileContent/{id}")]
     public virtual async Task<FileContentResult> FileContent(string id, CancellationToken cancellationToken)
     {
-        var fi = await (await Bucket.FindAsync(gbf.Eq(c => c.Id, ObjectId.Parse(id)), cancellationToken: cancellationToken)).SingleOrDefaultAsync(cancellationToken) ?? throw new("no data find");
-        var bytes = await Bucket.DownloadAsBytesAsync(ObjectId.Parse(id), new() { Seekable = true }, cancellationToken);
+        var fi = await (await bucket.FindAsync(gbf.Eq(c => c.Id, ObjectId.Parse(id)), cancellationToken: cancellationToken)).SingleOrDefaultAsync(cancellationToken) ?? throw new("no data find");
+        var bytes = await bucket.DownloadAsBytesAsync(ObjectId.Parse(id), new() { Seekable = true }, cancellationToken);
         var content_type = fi.Metadata["contentType"].AsString;
         return string.IsNullOrWhiteSpace(content_type)
                    ? throw new("The file ContentType cannot be determined, please confirm whether the file type is specified when uploading the file, or view it after downloaded.")
@@ -349,8 +351,8 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
     [HttpGet("FileContentByName/{name}")]
     public virtual async Task<FileContentResult> FileContentByName(string name, CancellationToken cancellationToken)
     {
-        var fi = await (await Bucket.FindAsync(gbf.Eq(c => c.Filename, name), cancellationToken: cancellationToken)).FirstOrDefaultAsync(cancellationToken) ?? throw new("can't find this file");
-        var bytes = await Bucket.DownloadAsBytesByNameAsync(name, new() { Seekable = true }, cancellationToken);
+        var fi = await (await bucket.FindAsync(gbf.Eq(c => c.Filename, name), cancellationToken: cancellationToken)).FirstOrDefaultAsync(cancellationToken) ?? throw new("can't find this file");
+        var bytes = await bucket.DownloadAsBytesByNameAsync(name, new() { Seekable = true }, cancellationToken);
         var content_type = fi.Metadata["contentType"].AsString;
         return string.IsNullOrWhiteSpace(content_type)
                    ? throw new("The file ContentType cannot be determined, please confirm whether the file type is specified when uploading the file, or view it after downloaded.")
@@ -366,11 +368,10 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
     /// <returns></returns>
     [HttpPut("{id}/Rename/{newName}")]
     // ReSharper disable once MemberCanBeProtected.Global
-    public virtual Task Rename(string id, string newName, CancellationToken cancellationToken)
+    public virtual async Task Rename(string id, string newName, CancellationToken cancellationToken)
     {
-        _ = Bucket.RenameAsync(ObjectId.Parse(id), newName, cancellationToken);
-        _ = Coll.UpdateOneAsync(c => c.FileId == id, Builders<GridFSItemInfo>.Update.Set(c => c.FileName, newName), cancellationToken: cancellationToken);
-        return Task.CompletedTask;
+        await bucket.RenameAsync(ObjectId.Parse(id), newName, cancellationToken);
+        await Coll.UpdateOneAsync(c => c.FileId == id, Builders<GridFSItemInfo>.Update.Set(c => c.FileName, newName), cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -380,23 +381,20 @@ public class GridFSController(GridFSBucket bucket) : ControllerBase
     /// <param name="ids">文件ID集合</param>
     /// <returns></returns>
     [HttpDelete]
-    // ReSharper disable once MemberCanBeProtected.Global
-    public virtual async Task<IEnumerable<string>> Delete(CancellationToken cancellationToken, params string[] ids)
+    public virtual async Task<IEnumerable<string>> Delete(CancellationToken cancellationToken, [FromBody] params string[] ids)
     {
         var oids = ids.Select(ObjectId.Parse).ToList();
-        var fi = await (await Bucket.FindAsync(gbf.In(c => c.Id, oids), cancellationToken: cancellationToken)).ToListAsync(cancellationToken);
+        var fi = await (await bucket.FindAsync(gbf.In(c => c.Id, oids), cancellationToken: cancellationToken)).ToListAsync(cancellationToken);
         var fids = fi.Select(c => new { Id = c.Id.ToString(), FileName = c.Filename }).ToArray();
-        _ = fids.Length > 6 ? Task.Run(DeleteSingleFile, cancellationToken) : DeleteSingleFile();
-        _ = Coll.DeleteManyAsync(c => ids.AsEnumerable().Contains(c.FileId), cancellationToken);
-        return fids.Select(c => c.FileName);
 
-        Task DeleteSingleFile()
+        // 删除 GridFS 中的文件
+        foreach (var item in fids)
         {
-            foreach (var item in fids)
-            {
-                _ = Bucket.DeleteAsync(ObjectId.Parse(item.Id), cancellationToken);
-            }
-            return Task.CompletedTask;
+            await bucket.DeleteAsync(ObjectId.Parse(item.Id), cancellationToken);
         }
+
+        // 删除元数据集合中的记录
+        await Coll.DeleteManyAsync(c => ids.AsEnumerable().Contains(c.FileId), cancellationToken);
+        return fids.Select(c => c.FileName);
     }
 }
