@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using EasilyNET.Mongo.AspNetCore.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
@@ -169,19 +170,20 @@ public class GridFSResumableController(IGridFSBucket bucket) : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            Console.WriteLine($"[ERROR] FinalizeUpload InvalidOperationException: {ex.Message}");
-            Console.WriteLine($"[ERROR] StackTrace: {ex.StackTrace}");
+            Debug.WriteLine($"[ERROR] | FinalizeUpload InvalidOperationException: {ex.Message}", nameof(FinalizeUpload));
+            Debug.WriteLine($"[ERROR] | StackTrace: {ex.StackTrace}", nameof(FinalizeUpload));
             return BadRequest(ex.Message);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ERROR] FinalizeUpload Exception: {ex.GetType().Name}");
-            Console.WriteLine($"[ERROR] Message: {ex.Message}");
-            Console.WriteLine($"[ERROR] StackTrace: {ex.StackTrace}");
-            if (ex.InnerException != null)
+            Debug.WriteLine($"[ERROR] | FinalizeUpload Exception: {ex.GetType().Name}", nameof(FinalizeUpload));
+            Debug.WriteLine($"[ERROR] | Message: {ex.Message}", nameof(FinalizeUpload));
+            Debug.WriteLine($"[ERROR] | StackTrace: {ex.StackTrace}", nameof(FinalizeUpload));
+            // ReSharper disable once InvertIf
+            if (ex.InnerException is not null)
             {
-                Console.WriteLine($"[ERROR] InnerException: {ex.InnerException.Message}");
-                Console.WriteLine($"[ERROR] InnerException StackTrace: {ex.InnerException.StackTrace}");
+                Debug.WriteLine($"[ERROR] InnerException: {ex.InnerException.Message}", nameof(FinalizeUpload));
+                Debug.WriteLine($"[ERROR] InnerException StackTrace: {ex.InnerException.StackTrace}", nameof(FinalizeUpload));
             }
             return StatusCode(500, $"Internal server error: {ex.Message}");
         }
@@ -199,7 +201,7 @@ public class GridFSResumableController(IGridFSBucket bucket) : ControllerBase
         try
         {
             // 默认删除会话记录
-            await ResumableHelper.CancelSessionAsync(sessionId, deleteSession: true, cancellationToken);
+            await ResumableHelper.CancelSessionAsync(sessionId, true, cancellationToken);
             return Ok(new { message = "Upload cancelled successfully" });
         }
         catch (Exception ex)

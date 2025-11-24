@@ -266,7 +266,7 @@ public class GridFSController(IGridFSBucket bucket) : ControllerBase
             Response.Headers[HeaderNames.AcceptRanges] = "bytes";
             Response.Headers[HeaderNames.ContentRange] = $"bytes {result.RangeStart}-{result.RangeEnd}/{result.TotalLength}";
             Response.StatusCode = startByte.HasValue ? 206 : 200; // 206 Partial Content
-            return File(result.Stream, contentType, result.FileInfo.Filename, true);
+            return File(result.Stream, contentType, result.FileInfo.Filename, false);
         }
         catch (ArgumentOutOfRangeException)
         {
@@ -317,7 +317,7 @@ public class GridFSController(IGridFSBucket bucket) : ControllerBase
             Response.Headers[HeaderNames.AcceptRanges] = "bytes";
             Response.Headers[HeaderNames.ContentRange] = $"bytes {result.RangeStart}-{result.RangeEnd}/{result.TotalLength}";
             Response.StatusCode = startByte.HasValue ? 206 : 200; // 206 Partial Content
-            return File(result.Stream, contentType, result.FileInfo.Filename, true);
+            return File(result.Stream, contentType, result.FileInfo.Filename, false);
         }
         catch (ArgumentOutOfRangeException)
         {
