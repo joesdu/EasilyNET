@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GridFS 断点续传示例</title>
-    <style>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>GridFS 断点续传示例</title>
+        <style>
             * {
                 margin: 0;
                 padding: 0;
@@ -243,108 +243,108 @@
                 border: 1px solid #3b82f6;
             }
         </style>
-</head>
+    </head>
 
-<body>
-<div class="container">
-    <h1>📤 GridFS 断点续传示例</h1>
-    <p class="subtitle">支持大文件分块上传、暂停恢复、断点续传</p>
+    <body>
+        <div class="container">
+            <h1>📤 GridFS 断点续传示例</h1>
+            <p class="subtitle">支持大文件分块上传、暂停恢复、断点续传</p>
 
-    <!-- 上传部分 -->
-    <div class="upload-section">
-        <h2>文件上传</h2>
+            <!-- 上传部分 -->
+            <div class="upload-section">
+                <h2>文件上传</h2>
 
-        <div class="file-input-wrapper">
-            <input type="file" id="fileInput"/>
-            <label for="fileInput" class="file-input-label">📁 选择文件</label>
-            <span class="file-name" id="fileName">未选择文件</span>
-        </div>
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" />
+                    <label for="fileInput" class="file-input-label">📁 选择文件</label>
+                    <span class="file-name" id="fileName">未选择文件</span>
+                </div>
 
-        <div class="controls">
-            <button id="startBtn" class="btn-primary">开始上传</button>
-            <button id="pauseBtn" class="btn-warning" disabled>暂停</button>
-            <button id="resumeBtn" class="btn-success" disabled>恢复</button>
-            <button id="cancelBtn" class="btn-danger" disabled>取消</button>
-        </div>
+                <div class="controls">
+                    <button id="startBtn" class="btn-primary">开始上传</button>
+                    <button id="pauseBtn" class="btn-warning" disabled>暂停</button>
+                    <button id="resumeBtn" class="btn-success" disabled>恢复</button>
+                    <button id="cancelBtn" class="btn-danger" disabled>取消</button>
+                </div>
 
-        <div class="progress-container" id="uploadProgress" style="display: none;">
-            <div class="progress-bar-wrapper">
-                <div class="progress-bar" id="progressBar">0%</div>
+                <div class="progress-container" id="uploadProgress" style="display: none;">
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar" id="progressBar">0%</div>
+                    </div>
+                    <div class="status-info">
+                        <div>
+                            <strong>状态:</strong> <span id="uploadStatus">准备中...</span>
+                        </div>
+                        <div>
+                            <strong>进度:</strong> <span id="uploadPercentage">0%</span>
+                        </div>
+                        <div>
+                            <strong>已上传:</strong> <span id="uploadedSize">0 B</span> / <span id="totalSize">0 B</span>
+                        </div>
+                        <div>
+                            <strong>上传速度:</strong> <span id="uploadSpeed">0 B/s</span>
+                        </div>
+                        <div>
+                            <strong>预计剩余:</strong> <span id="remainingTime">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="uploadAlert" style="display: none;"></div>
             </div>
-            <div class="status-info">
-                <div>
-                    <strong>状态:</strong> <span id="uploadStatus">准备中...</span>
+
+            <!-- 下载部分 -->
+            <div class="download-section">
+                <h2>文件下载 (断点续传)</h2>
+
+                <input type="text" id="fileIdInput" class="download-input"
+                    placeholder="输入文件 ID (如: 507f1f77bcf86cd799439011)" />
+
+                <div class="controls">
+                    <button id="downloadBtn" class="btn-primary">开始下载</button>
+                    <button id="cancelDownloadBtn" class="btn-danger" disabled>取消下载</button>
                 </div>
-                <div>
-                    <strong>进度:</strong> <span id="uploadPercentage">0%</span>
+
+                <div class="progress-container" id="downloadProgress" style="display: none;">
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar" id="downloadProgressBar">0%</div>
+                    </div>
+                    <div class="status-info">
+                        <div>
+                            <strong>已下载:</strong> <span id="downloadedSize">0 B</span> /
+                            <span id="downloadTotalSize">
+                                0
+                                B
+                            </span>
+                        </div>
+                        <div>
+                            <strong>进度:</strong> <span id="downloadPercentage">0%</span>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <strong>已上传:</strong> <span id="uploadedSize">0 B</span> / <span id="totalSize">0 B</span>
-                </div>
-                <div>
-                    <strong>上传速度:</strong> <span id="uploadSpeed">0 B/s</span>
-                </div>
-                <div>
-                    <strong>预计剩余:</strong> <span id="remainingTime">--</span>
-                </div>
+
+                <div id="downloadAlert" style="display: none;"></div>
+            </div>
+
+            <!-- 视频播放测试 -->
+            <div class="video-section">
+                <h2>🎬 视频流式播放测试</h2>
+                <p class="subtitle">输入视频文件 ID,测试范围请求和拖动功能</p>
+
+                <input type="text" id="videoFileId" class="download-input" placeholder="输入视频文件 ID" />
+
+                <button id="loadVideoBtn" class="btn-primary">加载视频</button>
+
+                <video id="videoPlayer" controls style="margin-top: 20px; display: none;">
+                    您的浏览器不支持视频播放
+                </video>
             </div>
         </div>
 
-        <div id="uploadAlert" style="display: none;"></div>
-    </div>
+        <!-- 引入 js-sha256 库用于流式计算哈希 -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.10.1/sha256.min.js"></script>
 
-    <!-- 下载部分 -->
-    <div class="download-section">
-        <h2>文件下载 (断点续传)</h2>
-
-        <input type="text" id="fileIdInput" class="download-input"
-               placeholder="输入文件 ID (如: 507f1f77bcf86cd799439011)"/>
-
-        <div class="controls">
-            <button id="downloadBtn" class="btn-primary">开始下载</button>
-            <button id="cancelDownloadBtn" class="btn-danger" disabled>取消下载</button>
-        </div>
-
-        <div class="progress-container" id="downloadProgress" style="display: none;">
-            <div class="progress-bar-wrapper">
-                <div class="progress-bar" id="downloadProgressBar">0%</div>
-            </div>
-            <div class="status-info">
-                <div>
-                    <strong>已下载:</strong> <span id="downloadedSize">0 B</span> /
-                    <span id="downloadTotalSize">
-                        0
-                        B
-                    </span>
-                </div>
-                <div>
-                    <strong>进度:</strong> <span id="downloadPercentage">0%</span>
-                </div>
-            </div>
-        </div>
-
-        <div id="downloadAlert" style="display: none;"></div>
-    </div>
-
-    <!-- 视频播放测试 -->
-    <div class="video-section">
-        <h2>🎬 视频流式播放测试</h2>
-        <p class="subtitle">输入视频文件 ID,测试范围请求和拖动功能</p>
-
-        <input type="text" id="videoFileId" class="download-input" placeholder="输入视频文件 ID"/>
-
-        <button id="loadVideoBtn" class="btn-primary">加载视频</button>
-
-        <video id="videoPlayer" controls style="margin-top: 20px; display: none;">
-            您的浏览器不支持视频播放
-        </video>
-    </div>
-</div>
-
-<!-- 引入 js-sha256 库用于流式计算哈希 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.10.1/sha256.min.js"></script>
-
-<script type="module">
+        <script type="module">
             import {
                 GridFSResumableUploader,
                 GridFSResumableDownloader,
@@ -403,7 +403,7 @@
                 if (!file) return;
 
                 uploader = new GridFSResumableUploader(file, {
-                    uploadUrl: '/api/GridFS/Resumable', // 根据实际 API 路径修改
+                    uploadUrl: '/api/GridFS', // 根据实际 API 路径修改
                     chunkSize: 1024 * 1024, // 1MB
                     maxConcurrent: 3,
                     onProgress: (progress) => {
@@ -542,6 +542,6 @@
                 }, 5000);
             }
         </script>
-</body>
+    </body>
 
 </html>

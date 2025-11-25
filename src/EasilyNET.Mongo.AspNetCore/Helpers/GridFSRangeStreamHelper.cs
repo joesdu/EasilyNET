@@ -112,7 +112,7 @@ public static class GridFSRangeStreamHelper
         CancellationToken cancellationToken = default)
     {
         // 获取文件信息
-        var fileInfo = await (await bucket.FindAsync(Builders<GridFSFileInfo>.Filter.Eq(f => f.Filename, filename), cancellationToken: cancellationToken))
+        var fileInfo = await (await bucket.FindAsync(Builders<GridFSFileInfo>.Filter.Eq(static f => f.Filename, filename), cancellationToken: cancellationToken))
                            .FirstOrDefaultAsync(cancellationToken) ??
                        throw new FileNotFoundException($"File '{filename}' not found");
         var totalLength = fileInfo.Length;
@@ -161,11 +161,10 @@ public static class GridFSRangeStreamHelper
                 {
                     throw new ArgumentOutOfRangeException(nameof(value), "Position must be within the range of the stream");
                 }
-                
+
                 // 计算在基础流中的实际位置
                 var baseStreamInitialPosition = _baseStream.Position - _position;
                 var newBasePosition = baseStreamInitialPosition + value;
-                
                 _baseStream.Position = newBasePosition;
                 _position = value;
             }
@@ -205,9 +204,17 @@ public static class GridFSRangeStreamHelper
                 return 0;
             }
             var bytesToRead = (int)Math.Min(buffer.Length, remainingBytes);
-            var bytesRead = await _baseStream.ReadAsync(buffer[..bytesToRead], cancellationToken);
-            _position += bytesRead;
-            return bytesRead;
+            try
+            {
+                var bytesRead = await _baseStream.ReadAsync(buffer[..bytesToRead], cancellationToken);
+                _position += bytesRead;
+                return bytesRead;
+            }
+            catch (OperationCanceledException)
+            {
+                // 客户端中止连接是正常行为,返回 0 表示流结束
+                return 0;
+            }
         }
 
         public override void Flush() => _baseStream.Flush();
@@ -220,25 +227,21 @@ public static class GridFSRangeStreamHelper
             {
                 throw new NotSupportedException("Stream does not support seeking");
             }
-
             var newPosition = origin switch
             {
-                SeekOrigin.Begin => offset,
+                SeekOrigin.Begin   => offset,
                 SeekOrigin.Current => _position + offset,
-                SeekOrigin.End => Length + offset,
-                _ => throw new ArgumentException("Invalid seek origin", nameof(origin))
+                SeekOrigin.End     => Length + offset,
+                _                  => throw new ArgumentException("Invalid seek origin", nameof(origin))
             };
-
             if (newPosition < 0)
             {
                 throw new IOException("Cannot seek to a negative position");
             }
-
             if (newPosition > Length)
             {
                 throw new IOException("Cannot seek beyond the end of the stream");
             }
-
             Position = newPosition;
             return _position;
         }
@@ -253,15 +256,9 @@ public static class GridFSRangeStreamHelper
             throw new NotSupportedException("Writing is not supported for range streams");
         }
 
-        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-        {
-            throw new NotSupportedException("Writing is not supported for range streams");
-        }
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => throw new NotSupportedException("Writing is not supported for range streams");
 
-        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
-        {
-            throw new NotSupportedException("Writing is not supported for range streams");
-        }
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) => throw new NotSupportedException("Writing is not supported for range streams");
 
         public override void WriteByte(byte value)
         {

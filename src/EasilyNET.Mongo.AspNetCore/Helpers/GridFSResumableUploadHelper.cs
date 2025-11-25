@@ -179,6 +179,7 @@ public class GridFSResumableUploadHelper
         if (existingChunk != null)
         {
             // 块已存在,同步 session.UploadedChunks 并返回
+            // ReSharper disable once InvertIf
             if (!session.UploadedChunks.Contains(chunkNumber))
             {
                 var syncFilter = Builders<GridFSUploadSession>.Filter.Eq(s => s.SessionId, sessionId);
