@@ -8,6 +8,12 @@
  */
 
 /**
+ * 声明全局变量类型
+ */
+declare const sha256: any;
+declare const hashwasm: any;
+
+/**
  * 上传配置选项
  */
 export interface UploadOptions {
@@ -660,20 +666,44 @@ async function calculateHash(blob: Blob): Promise<string> {
  * 计算文件 SHA256 哈希 (流式)
  */
 async function calculateSHA256(file: File): Promise<string> {
-  // 优先使用 hash-wasm (WebAssembly) 进行高性能计算
-  // @ts-ignore
-  if (typeof hashwasm !== "undefined") {
+  // 尝试动态加载 hash-wasm
+  try {
     // @ts-ignore
-    const hasher = await hashwasm.createSHA256();
-    hasher.init();
-
-    const reader = file.stream().getReader();
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      hasher.update(value);
+    if (typeof hashwasm === "undefined") {
+      await new Promise<void>((resolve, reject) => {
+        const src = "./lib/hash-wasm/sha256.umd.min.js";
+        if (document.querySelector(`script[src="${src}"]`)) {
+          resolve();
+          return;
+        }
+        const script = document.createElement("script");
+        script.src = src;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("Failed to load hash-wasm"));
+        document.head.appendChild(script);
+      });
     }
-    return (hasher.digest() as string).toUpperCase();
+
+    // 优先使用 hash-wasm (WebAssembly) 进行高性能计算
+    // @ts-ignore
+    if (typeof hashwasm !== "undefined") {
+      // @ts-ignore
+      const hasher = await hashwasm.createSHA256();
+      hasher.init();
+
+      const reader = file.stream().getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        hasher.update(value);
+      }
+      return (hasher.digest() as string).toUpperCase();
+    }
+  } catch (e) {
+    console.warn(
+      "Failed to load or use hash-wasm, falling back to slower methods",
+      e
+    );
   }
 
   const chunkSize = 10 * 1024 * 1024; // 10MB 块大小
