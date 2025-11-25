@@ -29,6 +29,7 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
     /// </summary>
     /// <param name="filename">文件名</param>
     /// <param name="totalSize">文件总大小(字节)</param>
+    /// <param name="fileHash">文件SHA256特征值</param>
     /// <param name="contentType">Content-Type</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
@@ -38,6 +39,8 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
         string filename,
         [FromQuery]
         long totalSize,
+        [FromQuery]
+        string? fileHash = null,
         [FromQuery]
         string? contentType = null,
         CancellationToken cancellationToken = default)
@@ -49,6 +52,7 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
         }
         var session = await ResumableHelper.CreateSessionAsync(filename,
                           totalSize,
+                          fileHash,
                           metadata,
                           cancellationToken: cancellationToken);
         return Ok(new
@@ -57,7 +61,9 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
             filename = session.Filename,
             totalSize = session.TotalSize,
             chunkSize = session.ChunkSize,
-            expiresAt = session.ExpiresAt
+            expiresAt = session.ExpiresAt,
+            status = session.Status.ToString(),
+            fileId = session.FileId // 如果秒传成功,这里会有值
         });
     }
 
@@ -66,6 +72,7 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
     /// </summary>
     /// <param name="sessionId">会话 ID</param>
     /// <param name="chunkNumber">块编号(从 0 开始)</param>
+    /// <param name="chunkHash">块 SHA256 哈希</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("UploadChunk")]
@@ -75,6 +82,8 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
         string sessionId,
         [FromQuery]
         int chunkNumber,
+        [FromQuery]
+        string chunkHash,
         CancellationToken cancellationToken = default)
     {
         using var ms = new MemoryStream();
@@ -82,7 +91,7 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
         var data = ms.ToArray();
         try
         {
-            var session = await ResumableHelper.UploadChunkAsync(sessionId, chunkNumber, data, cancellationToken);
+            var session = await ResumableHelper.UploadChunkAsync(sessionId, chunkNumber, data, chunkHash, cancellationToken);
             return Ok(new
             {
                 sessionId = session.SessionId,
@@ -217,24 +226,6 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
     }
 
     /// <summary>
-    /// 下载
-    /// </summary>
-    /// <param name="id">文件ID</param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    [HttpGet("Download/{id}")]
-    public virtual async Task<FileStreamResult> Download(string id, CancellationToken cancellationToken = default)
-    {
-        var stream = await bucket.OpenDownloadStreamAsync(ObjectId.Parse(id), new() { Seekable = true }, cancellationToken);
-        var content_type = stream.FileInfo.Metadata["contentType"].AsString;
-        if (string.IsNullOrWhiteSpace(content_type))
-        {
-            content_type = "application/octet-stream";
-        }
-        return File(stream, content_type, stream.FileInfo.Filename);
-    }
-
-    /// <summary>
     /// 流式下载 - 支持 Range 请求,用于视频/音频播放
     /// </summary>
     /// <param name="id">文件ID</param>
@@ -243,6 +234,21 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
     [HttpGet("StreamRange/{id}")]
     public virtual async Task<IActionResult> StreamRange(string id, CancellationToken cancellationToken = default)
     {
+        // 尝试解析为 ObjectId (直接 FileId)
+        if (!ObjectId.TryParse(id, out var fileId))
+        {
+            // 不是 ObjectId, 尝试作为 SessionId 查询
+            var session = await ResumableHelper.GetSessionAsync(id, cancellationToken);
+            if (session != null && session.Status.ToString() == "Completed" && !string.IsNullOrEmpty(session.FileId))
+            {
+                fileId = ObjectId.Parse(session.FileId);
+            }
+            else
+            {
+                return NotFound($"File or Session {id} not found or not ready.");
+            }
+        }
+
         // 解析 Range 头
         var rangeHeader = Request.Headers[HeaderNames.Range].ToString();
         long? startByte = null;
@@ -265,7 +271,7 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
         try
         {
             var result = await GridFSRangeStreamHelper.DownloadRangeAsync(bucket,
-                             ObjectId.Parse(id),
+                             fileId,
                              startByte ?? 0,
                              endByte,
                              cancellationToken);
@@ -318,10 +324,10 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
         var fi = await (await bucket.FindAsync(gbf.In(c => c.Id, oids), cancellationToken: cancellationToken)).ToListAsync(cancellationToken);
         var fids = fi.Select(c => new { Id = c.Id.ToString(), FileName = c.Filename }).ToArray();
 
-        // 删除 GridFS 中的文件
+        // 删除 GridFS 中的文件 (使用引用计数删除)
         foreach (var item in fids)
         {
-            await bucket.DeleteAsync(ObjectId.Parse(item.Id), cancellationToken);
+            await ResumableHelper.DeleteFileAsync(ObjectId.Parse(item.Id), cancellationToken);
         }
         return fids.Select(c => c.FileName);
     }

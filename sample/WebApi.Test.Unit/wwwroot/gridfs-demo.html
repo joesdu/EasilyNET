@@ -341,8 +341,8 @@
             </div>
         </div>
 
-        <!-- 引入 js-sha256 库用于流式计算哈希 -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.10.1/sha256.min.js"></script>
+        <!-- 引入 hash-wasm 库用于高性能流式计算哈希 (WebAssembly) -->
+        <script src="https://cdn.jsdelivr.net/npm/hash-wasm/dist/sha256.umd.min.js"></script>
 
         <script type="module">
             import {
@@ -412,12 +412,28 @@
                         progressBar.style.width = `${percent}%`;
                         progressBar.textContent = `${percent}%`;
 
-                        uploadStatus.textContent = '上传中...';
+                        // 根据状态显示不同的文本
+                        if (progress.status === 'merging') {
+                            uploadStatus.textContent = '合并文件中,请稍候...';
+                            uploadSpeed.textContent = '--';
+                            remainingTime.textContent = '正在处理';
+                        } else if (progress.status === 'hashing') {
+                            uploadStatus.textContent = '正在计算文件特征值(Hash)...';
+                            uploadSpeed.textContent = '--';
+                            remainingTime.textContent = '请稍候';
+                        } else if (progress.status === 'completed') {
+                            uploadStatus.textContent = '秒传成功!';
+                            uploadSpeed.textContent = '--';
+                            remainingTime.textContent = '完成';
+                        } else {
+                            uploadStatus.textContent = '上传中...';
+                            uploadSpeed.textContent = `${formatFileSize(progress.speed)}/s`;
+                            remainingTime.textContent = formatTime(progress.remainingTime);
+                        }
+
                         uploadPercentage.textContent = `${percent}%`;
                         uploadedSize.textContent = formatFileSize(progress.loaded);
                         totalSize.textContent = formatFileSize(progress.total);
-                        uploadSpeed.textContent = `${formatFileSize(progress.speed)}/s`;
-                        remainingTime.textContent = formatTime(progress.remainingTime);
                     },
                     onError: (error) => {
                         showAlert(uploadAlert, `上传失败: ${error.message}`, 'error');

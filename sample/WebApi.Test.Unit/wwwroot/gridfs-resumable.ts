@@ -45,6 +45,8 @@ export interface UploadProgress {
   speed: number;
   /** 预计剩余时间 (秒) */
   remainingTime: number;
+  /** 上传状态: 'hashing' | 'uploading' | 'merging' | 'completed' */
+  status?: "hashing" | "uploading" | "merging" | "completed";
 }
 
 /**
@@ -115,7 +117,8 @@ export class GridFSResumableUploader {
       ...options,
     };
 
-    this.initializeChunks();
+    // chunks 将在获取到后端返回的 chunkSize 后再初始化
+    // this.initializeChunks();
   }
 
   /**
@@ -145,21 +148,19 @@ export class GridFSResumableUploader {
     this.startTime = Date.now();
 
     try {
-      // 1. 初始化上传会话
-      const { sessionId, chunkSize } = await this.initializeUpload();
-      this.uploadId = sessionId;
-
-      // 如果服务端返回的块大小与配置不一致，更新配置并重新分块
-      if (chunkSize && chunkSize !== this.options.chunkSize) {
-        this.options.chunkSize = chunkSize;
-        this.initializeChunks();
+      // 0. 预先计算文件哈希 (用于秒传)
+      // 通知用户正在计算哈希
+      if (this.options.onProgress) {
+        this.options.onProgress({
+          loaded: 0,
+          total: this.file.size,
+          percentage: 0,
+          speed: 0,
+          remainingTime: 0,
+          status: "hashing", // 新增状态标识
+        });
       }
 
-      // 2. 并发上传分块
-      await this.uploadChunks();
-
-      // 3. 完成上传
-      // 计算文件哈希 (SHA256)
       let fileHash: string | undefined;
       try {
         fileHash = await calculateSHA256(this.file);
@@ -167,10 +168,55 @@ export class GridFSResumableUploader {
         console.warn("哈希计算失败:", e);
       }
 
-      const fileId = await this.completeUpload(fileHash);
+      // 1. 初始化上传会话 (携带哈希)
+      const sessionInfo = await this.initializeUpload(fileHash);
+      this.uploadId = sessionInfo.sessionId;
 
-      this.options.onComplete(fileId);
-      return fileId;
+      // 检查是否秒传成功
+      if (sessionInfo.status === "Completed" && sessionInfo.fileId) {
+        console.log("秒传成功!");
+        // 直接完成
+        this.options.onProgress?.({
+          loaded: this.file.size,
+          total: this.file.size,
+          percentage: 100,
+          speed: 0,
+          remainingTime: 0,
+          status: "completed",
+        });
+        this.options.onComplete(sessionInfo.fileId);
+        return sessionInfo.fileId;
+      }
+
+      // 如果服务端返回的块大小与配置不一致，更新配置并重新分块
+      if (sessionInfo.chunkSize) {
+        this.options.chunkSize = sessionInfo.chunkSize;
+      }
+
+      // 现在初始化分块 (使用后端的 chunkSize)
+      this.initializeChunks();
+
+      // 2. 并发上传分块
+      await this.uploadChunks();
+
+      // 3. 完成上传
+      // 通知用户开始合并文件
+      if (this.options.onProgress) {
+        this.options.onProgress({
+          loaded: this.file.size,
+          total: this.file.size,
+          percentage: 100,
+          speed: 0,
+          remainingTime: 0,
+          status: "merging",
+        });
+      }
+
+      // 此时 fileHash 已经计算过了，直接使用
+      const finalFileId = await this.completeUpload(fileHash);
+
+      this.options.onComplete(finalFileId);
+      return finalFileId;
     } catch (error) {
       this.options.onError(error as Error);
       throw error;
@@ -226,15 +272,21 @@ export class GridFSResumableUploader {
   /**
    * 初始化上传会话
    */
-  private async initializeUpload(): Promise<{
+  private async initializeUpload(fileHash?: string): Promise<{
     sessionId: string;
     chunkSize: number;
+    status?: string;
+    fileId?: string;
   }> {
     const params = new URLSearchParams({
       filename: this.file.name,
       totalSize: this.file.size.toString(),
       contentType: this.file.type,
     });
+
+    if (fileHash) {
+      params.append("fileHash", fileHash);
+    }
 
     const response = await fetch(
       `${this.options.uploadUrl}/CreateSession?${params.toString()}`,
@@ -250,8 +302,8 @@ export class GridFSResumableUploader {
       throw new Error(`初始化上传失败: ${response.statusText}`);
     }
 
-    const { sessionId, chunkSize } = await response.json();
-    return { sessionId, chunkSize };
+    const { sessionId, chunkSize, status, fileId } = await response.json();
+    return { sessionId, chunkSize, status, fileId };
   }
 
   /**
@@ -304,11 +356,15 @@ export class GridFSResumableUploader {
   /**
    * 上传单个分块
    */
-  private async uploadChunk(chunk: ChunkTask): Promise<void> {
+  private async uploadChunk(
+    chunk: ChunkTask,
+    internalRetry = 0
+  ): Promise<void> {
     const blob = this.file.slice(chunk.start, chunk.end);
+    const chunkHash = await calculateHash(blob);
 
     const response = await fetch(
-      `${this.options.uploadUrl}/UploadChunk?sessionId=${this.uploadId}&chunkNumber=${chunk.index}`,
+      `${this.options.uploadUrl}/UploadChunk?sessionId=${this.uploadId}&chunkNumber=${chunk.index}&chunkHash=${chunkHash}`,
       {
         method: "POST",
         headers: {
@@ -321,7 +377,23 @@ export class GridFSResumableUploader {
     );
 
     if (!response.ok) {
-      throw new Error(`上传分块 ${chunk.index} 失败: ${response.statusText}`);
+      const errorText = await response.text();
+      // 检查是否是哈希校验失败 (状态码 400 且错误信息包含 hash)
+      if (
+        response.status === 400 &&
+        errorText.toLowerCase().includes("hash") &&
+        internalRetry < 3
+      ) {
+        console.warn(
+          `分块 ${chunk.index} 哈希校验失败，正在重试 (${
+            internalRetry + 1
+          }/3)...`
+        );
+        return this.uploadChunk(chunk, internalRetry + 1);
+      }
+      throw new Error(
+        `上传分块 ${chunk.index} 失败: ${response.status} ${response.statusText} - ${errorText}`
+      );
     }
 
     chunk.uploaded = true;
@@ -437,7 +509,9 @@ export class GridFSResumableDownloader {
       // 从 Content-Disposition 头中提取文件名
       const contentDisposition = response.headers.get("Content-Disposition");
       if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
+        const filenameMatch = contentDisposition.match(
+          /filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i
+        );
         if (filenameMatch && filenameMatch[1]) {
           // 解码 URL 编码的文件名
           this.options.filename = decodeURIComponent(filenameMatch[1]);
@@ -570,60 +644,88 @@ export function formatTime(seconds: number): string {
 }
 
 /**
- * js-sha256 库类型定义
+ * 计算 Blob 的 SHA256 哈希
  */
-declare const sha256: {
-  create: () => {
-    update: (data: ArrayBuffer | Uint8Array | string) => void;
-    hex: () => string;
-  };
-};
+async function calculateHash(blob: Blob): Promise<string> {
+  const buffer = await blob.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase();
+}
 
 /**
  * 计算文件 SHA256 哈希 (流式)
  */
 async function calculateSHA256(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    // 检查是否引入了 js-sha256 库
-    if (typeof sha256 === "undefined") {
-      reject(new Error("缺少 js-sha256 库，请在 HTML 中引入"));
-      return;
+  // 优先使用 hash-wasm (WebAssembly) 进行高性能计算
+  // @ts-ignore
+  if (typeof hashwasm !== "undefined") {
+    // @ts-ignore
+    const hasher = await hashwasm.createSHA256();
+    hasher.init();
+
+    const reader = file.stream().getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      hasher.update(value);
     }
+    return (hasher.digest() as string).toUpperCase();
+  }
 
-    const hasher = sha256.create();
-    const chunkSize = 2 * 1024 * 1024; // 2MB 块大小
-    const chunks = Math.ceil(file.size / chunkSize);
-    let currentChunk = 0;
+  const chunkSize = 10 * 1024 * 1024; // 10MB 块大小
+  const chunks = Math.ceil(file.size / chunkSize);
+  let currentChunk = 0;
 
-    const fileReader = new FileReader();
+  // 使用增量哈希计算 (如果浏览器支持)
+  // 注意: Web Crypto API 不直接支持流式哈希,这里为了简单起见,
+  // 如果文件较小直接计算,如果文件较大可能需要使用 js-sha256 或其他库
+  // 这里我们尝试使用 js-sha256 如果存在,否则使用 Web Crypto API (一次性读取,可能导致内存问题)
 
-    fileReader.onload = (e) => {
-      try {
-        const buffer = e.target?.result as ArrayBuffer;
-        hasher.update(buffer);
-        currentChunk++;
+  if (typeof sha256 !== "undefined") {
+    return new Promise((resolve, reject) => {
+      const hasher = sha256.create();
+      const fileReader = new FileReader();
 
-        if (currentChunk < chunks) {
-          loadNext();
-        } else {
-          resolve(hasher.hex());
+      fileReader.onload = (e) => {
+        try {
+          const buffer = e.target?.result as ArrayBuffer;
+          hasher.update(buffer);
+          currentChunk++;
+
+          if (currentChunk < chunks) {
+            loadNext();
+          } else {
+            resolve(hasher.hex().toUpperCase());
+          }
+        } catch (error) {
+          reject(error);
         }
-      } catch (error) {
-        reject(error);
+      };
+
+      fileReader.onerror = () => {
+        reject(new Error("文件读取失败"));
+      };
+
+      function loadNext() {
+        const start = currentChunk * chunkSize;
+        const end = Math.min(start + chunkSize, file.size);
+        const blob = file.slice(start, end);
+        fileReader.readAsArrayBuffer(blob);
       }
-    };
 
-    fileReader.onerror = () => {
-      reject(new Error("文件读取失败"));
-    };
+      loadNext();
+    });
+  }
 
-    function loadNext() {
-      const start = currentChunk * chunkSize;
-      const end = Math.min(start + chunkSize, file.size);
-      const blob = file.slice(start, end);
-      fileReader.readAsArrayBuffer(blob);
-    }
-
-    loadNext();
-  });
+  // Fallback to Web Crypto API (Warning: loads full file into memory if not careful,
+  // but here we just implement a simple version or assume file fits in memory for this demo if js-sha256 is missing)
+  // For large files, it's recommended to use a library like spark-md5 or js-sha256 that supports incremental updates.
+  console.warn(
+    "hash-wasm and js-sha256 not found, using Web Crypto API (may consume high memory for large files)"
+  );
+  return (await calculateHash(file)).toUpperCase();
 }
