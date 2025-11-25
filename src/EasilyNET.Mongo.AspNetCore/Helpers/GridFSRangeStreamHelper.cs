@@ -61,74 +61,10 @@ public static class GridFSRangeStreamHelper
         {
             throw new ArgumentOutOfRangeException(nameof(startByte), "Start byte is beyond file length");
         }
-
         // 打开可定位的下载流
         var fullStream = await bucket.OpenDownloadStreamAsync(id, new() { Seekable = true }, cancellationToken);
-
         // 定位到起始位置
         fullStream.Seek(actualStart, SeekOrigin.Begin);
-
-        // 创建范围限制流
-        var rangeLength = (actualEnd - actualStart) + 1;
-        var rangeStream = new RangeStream(fullStream, rangeLength);
-        return (rangeStream, totalLength, actualStart, actualEnd, fileInfo);
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">
-    ///     Downloads a range of bytes from a GridFS file by filename. Supports HTTP Range header for video/audio streaming.
-    ///     </para>
-    ///     <para xml:lang="zh">通过文件名从 GridFS 文件中下载指定范围的字节。支持 HTTP Range 头,用于视频/音频流传输。</para>
-    /// </summary>
-    /// <param name="bucket">
-    ///     <para xml:lang="en">GridFS bucket</para>
-    ///     <para xml:lang="zh">GridFS 存储桶</para>
-    /// </param>
-    /// <param name="filename">
-    ///     <para xml:lang="en">Filename</para>
-    ///     <para xml:lang="zh">文件名</para>
-    /// </param>
-    /// <param name="startByte">
-    ///     <para xml:lang="en">Start byte position (inclusive)</para>
-    ///     <para xml:lang="zh">起始字节位置(包含)</para>
-    /// </param>
-    /// <param name="endByte">
-    ///     <para xml:lang="en">End byte position (inclusive), null for end of file</para>
-    ///     <para xml:lang="zh">结束字节位置(包含),null 表示文件末尾</para>
-    /// </param>
-    /// <param name="cancellationToken">
-    ///     <para xml:lang="en">Cancellation token</para>
-    ///     <para xml:lang="zh">取消令牌</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Range stream with file info</para>
-    ///     <para xml:lang="zh">范围流及文件信息</para>
-    /// </returns>
-    public static async Task<(Stream Stream, long TotalLength, long RangeStart, long RangeEnd, GridFSFileInfo FileInfo)> DownloadRangeByNameAsync(
-        IGridFSBucket bucket,
-        string filename,
-        long startByte,
-        long? endByte = null,
-        CancellationToken cancellationToken = default)
-    {
-        // 获取文件信息
-        var fileInfo = await (await bucket.FindAsync(Builders<GridFSFileInfo>.Filter.Eq(static f => f.Filename, filename), cancellationToken: cancellationToken))
-                           .FirstOrDefaultAsync(cancellationToken) ??
-                       throw new FileNotFoundException($"File '{filename}' not found");
-        var totalLength = fileInfo.Length;
-        var actualStart = Math.Max(0, startByte);
-        var actualEnd = endByte.HasValue ? Math.Min(endByte.Value, totalLength - 1) : totalLength - 1;
-        if (actualStart >= totalLength)
-        {
-            throw new ArgumentOutOfRangeException(nameof(startByte), "Start byte is beyond file length");
-        }
-
-        // 打开可定位的下载流
-        var fullStream = await bucket.OpenDownloadStreamByNameAsync(filename, new() { Seekable = true }, cancellationToken);
-
-        // 定位到起始位置
-        fullStream.Seek(actualStart, SeekOrigin.Begin);
-
         // 创建范围限制流
         var rangeLength = (actualEnd - actualStart) + 1;
         var rangeStream = new RangeStream(fullStream, rangeLength);
@@ -161,7 +97,6 @@ public static class GridFSRangeStreamHelper
                 {
                     throw new ArgumentOutOfRangeException(nameof(value), "Position must be within the range of the stream");
                 }
-
                 // 计算在基础流中的实际位置
                 var baseStreamInitialPosition = _baseStream.Position - _position;
                 var newBasePosition = baseStreamInitialPosition + value;
@@ -246,24 +181,15 @@ public static class GridFSRangeStreamHelper
             return _position;
         }
 
-        public override void SetLength(long value)
-        {
-            throw new NotSupportedException("Setting length is not supported for range streams");
-        }
+        public override void SetLength(long value) => throw new NotSupportedException("Setting length is not supported for range streams");
 
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            throw new NotSupportedException("Writing is not supported for range streams");
-        }
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException("Writing is not supported for range streams");
 
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => throw new NotSupportedException("Writing is not supported for range streams");
 
         public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) => throw new NotSupportedException("Writing is not supported for range streams");
 
-        public override void WriteByte(byte value)
-        {
-            throw new NotSupportedException("Writing is not supported for range streams");
-        }
+        public override void WriteByte(byte value) => throw new NotSupportedException("Writing is not supported for range streams");
 
         protected override void Dispose(bool disposing)
         {
