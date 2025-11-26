@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Filters;
 
+// ReSharper disable CollectionNeverUpdated.Global
+
 namespace EasilyNET.Mongo.AspNetCore.Options;
 
 /// <summary>

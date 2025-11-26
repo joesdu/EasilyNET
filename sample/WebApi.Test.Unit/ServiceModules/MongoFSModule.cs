@@ -12,11 +12,13 @@ internal sealed class MongoFSModule : AppModule
     /// <inheritdoc />
     public override async Task ConfigureServices(ConfigureServicesContext context)
     {
-        context.Services.AddMongoGridFS(serverConfigure: options =>
+        context.Services.AddMongoGridFS(serverConfigure: s =>
         {
-            options.EnableController = true;
+            s.EnableController = true;
 #if !DEBUG
-            options.AuthorizeData.Add(new AuthorizeAttribute());
+            s.AuthorizeData.Add(new AuthorizeAttribute());
+            // 或者添加带策略的授权 (相当于 [Authorize(Policy = "MyPolicy")])
+            // s.AuthorizeData.Add(new AuthorizeAttribute("MyPolicy"));
 #endif
         });
         await Task.CompletedTask;
