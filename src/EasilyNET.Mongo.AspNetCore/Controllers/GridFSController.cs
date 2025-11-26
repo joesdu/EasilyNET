@@ -177,20 +177,20 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
         }
         catch (InvalidOperationException ex)
         {
-            logger.LogDebug("[ERROR] | FinalizeUpload InvalidOperationException: {ExMessage}", ex.Message);
-            logger.LogDebug("[ERROR] | StackTrace: {ExStackTrace}", ex.StackTrace);
+            logger.LogError("FinalizeUpload InvalidOperationException: {ExMessage}", ex.Message);
+            logger.LogError("StackTrace: {ExStackTrace}", ex.StackTrace);
             return BadRequest(ex.Message);
         }
         catch (Exception ex)
         {
-            logger.LogDebug("[ERROR] | FinalizeUpload Exception: {Name}", ex.GetType().Name);
-            logger.LogDebug("[ERROR] | Message: {ExMessage}", ex.Message);
-            logger.LogDebug("[ERROR] | StackTrace: {ExStackTrace}", ex.StackTrace);
+            logger.LogError("FinalizeUpload Exception: {Name}", ex.GetType().Name);
+            logger.LogError("Message: {ExMessage}", ex.Message);
+            logger.LogError("StackTrace: {ExStackTrace}", ex.StackTrace);
             // ReSharper disable once InvertIf
             if (ex.InnerException is not null)
             {
-                logger.LogDebug("[ERROR] InnerException: {InnerExceptionMessage}", ex.InnerException.Message);
-                logger.LogDebug("[ERROR] InnerException StackTrace: {InnerExceptionStackTrace}", ex.InnerException.StackTrace);
+                logger.LogError("InnerException: {InnerExceptionMessage}", ex.InnerException.Message);
+                logger.LogError("InnerException StackTrace: {InnerExceptionStackTrace}", ex.InnerException.StackTrace);
             }
             return StatusCode(500, $"Internal server error: {ex.Message}");
         }

@@ -20,7 +20,7 @@ public sealed class GridFSResumableUploadHelper
     private readonly IGridFSBucket _bucket;
     private readonly IMongoCollection<BsonDocument> _chunksCollection;
     private readonly IMongoCollection<GridFSUploadSession> _sessionCollection;
-    private readonly string _tempDir = Path.Combine(AppContext.BaseDirectory, Constant.GridFSTempDir);
+    private const int GridFSChunkSize = 2 * 1024 * 1024; // 2MB standard chunk size
 
     /// <summary>
     ///     <para xml:lang="en">Initialize resumable upload helper</para>
@@ -35,12 +35,10 @@ public sealed class GridFSResumableUploadHelper
         _bucket = bucket;
         var database = _bucket.Database;
         _sessionCollection = database.GetCollection<GridFSUploadSession>("fs.upload_sessions");
-        // 使用独立的集合存储临时块,避免污染标准的 GridFS chunks 集合,并确保索引不冲突
-        _chunksCollection = database.GetCollection<BsonDocument>($"{_bucket.Options.BucketName}.resumable_chunks");
+        // 直接操作 GridFS 的 chunks 集合
+        _chunksCollection = database.GetCollection<BsonDocument>($"{_bucket.Options.BucketName}.chunks");
         // 创建索引以提升查询性能
         CreateIndexes();
-        // 清理可能存在的脏数据
-        CleanupOrphanedGridFSChunks();
     }
 
     private void CreateIndexes()
@@ -64,15 +62,7 @@ public sealed class GridFSResumableUploadHelper
         });
         _sessionCollection.Indexes.CreateOne(ttlIndexModel);
 
-        // 为块集合创建唯一索引,防止并发上传导致重复块
-        var chunkIndexKeys = Builders<BsonDocument>.IndexKeys.Ascending("session_id").Ascending("n");
-        var chunkIndexModel = new CreateIndexModel<BsonDocument>(chunkIndexKeys, new()
-        {
-            Name = "SessionId_ChunkNumber_Index",
-            Unique = true,
-            Background = true
-        });
-        _chunksCollection.Indexes.CreateOne(chunkIndexModel);
+        // GridFS chunks 集合通常已有索引 (files_id, n), 无需重复创建
     }
 
     /// <summary>
@@ -122,6 +112,12 @@ public sealed class GridFSResumableUploadHelper
         int sessionExpirationHours = 24,
         CancellationToken cancellationToken = default)
     {
+        // 验证分片大小
+        if (chunkSize.HasValue && chunkSize.Value % GridFSChunkSize != 0)
+        {
+            throw new ArgumentException($"Chunk size must be a multiple of {GridFSChunkSize} bytes (2MB).", nameof(chunkSize));
+        }
+
         // 1. 检查是否存在相同哈希的文件 (秒传)
         if (!string.IsNullOrEmpty(fileHash))
         {
@@ -156,6 +152,7 @@ public sealed class GridFSResumableUploadHelper
         }
 
         // 2. 正常创建会话
+        // 确保分片大小是 GridFSChunkSize (2MB) 的整数倍, 以便直接映射到 GridFS chunks
         var session = new GridFSUploadSession
         {
             SessionId = ObjectId.GenerateNewId().ToString(),
@@ -165,12 +162,12 @@ public sealed class GridFSResumableUploadHelper
             ChunkSize = chunkSize ??
                         totalSize switch
                         {
-                            < 100 * 1024 * 1024       => 8 * 1024 * 1024,  // < 100MB: 8MB 分片
-                            < 500 * 1024 * 1024       => 16 * 1024 * 1024, // 100MB - 500MB: 16MB 分片
-                            < 2L * 1024 * 1024 * 1024 => 32 * 1024 * 1024, // 500MB - 2GB: 32MB 分片
-                            _                         => 64 * 1024 * 1024  // > 2GB: 64MB 分片
+                            < 20 * 1024 * 1024 => 1 * GridFSChunkSize, // < 20MB: 2MB 分片
+                            < 100 * 1024 * 1024 => 2 * GridFSChunkSize, // < 100MB: 4MB 分片
+                            _ => 5 * GridFSChunkSize  // > 100MB: 10MB 分片
                         },
             Metadata = metadata,
+            FileId = ObjectId.GenerateNewId().ToString(), // 预先生成 FileId
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             ExpiresAt = DateTime.UtcNow.AddHours(sessionExpirationHours),
@@ -230,7 +227,17 @@ public sealed class GridFSResumableUploadHelper
             throw new InvalidOperationException($"Session {sessionId} is not in progress (status: {session.Status})");
         }
         // 检查块是否已上传 - 从数据库中查询而不是依赖内存中的 session.UploadedChunks
-        var chunkExistsFilter = Builders<BsonDocument>.Filter.And(Builders<BsonDocument>.Filter.Eq("session_id", sessionId), Builders<BsonDocument>.Filter.Eq("n", chunkNumber));
+        // 注意: 由于我们现在直接写入 fs.chunks, 这里的 n 是 GridFS 的块索引, 而不是上传分片的索引
+        // 一个上传分片可能对应多个 GridFS 块
+        var chunksPerUpload = session.ChunkSize / GridFSChunkSize;
+        var baseN = chunkNumber * chunksPerUpload;
+        var fileId = ObjectId.Parse(session.FileId!);
+
+        // 只要检查第一个子块是否存在即可 (假设写入是原子的或批量的)
+        var chunkExistsFilter = Builders<BsonDocument>.Filter.And(
+            Builders<BsonDocument>.Filter.Eq("files_id", fileId),
+            Builders<BsonDocument>.Filter.Eq("n", baseN)
+        );
         var existingChunk = await _chunksCollection.Find(chunkExistsFilter).FirstOrDefaultAsync(cancellationToken);
         if (existingChunk != null)
         {
@@ -244,47 +251,47 @@ public sealed class GridFSResumableUploadHelper
             }
             return await GetSessionAsync(sessionId, cancellationToken) ?? session;
         }
-        // 保存块数据到临时文件
-        var sessionDir = Path.Combine(_tempDir, sessionId);
-        if (!Directory.Exists(sessionDir))
-        {
-            Directory.CreateDirectory(sessionDir);
-        }
-        var chunkPath = Path.Combine(sessionDir, chunkNumber.ToString());
-        await File.WriteAllBytesAsync(chunkPath, data, cancellationToken);
-        // 验证块哈希 (写入后读取校验,确保磁盘数据完整性)
+        // 验证块哈希
         using (var sha256 = SHA256.Create())
         {
-            await using var stream = File.OpenRead(chunkPath);
-            var computedHashBytes = await sha256.ComputeHashAsync(stream, cancellationToken);
+            var computedHashBytes = sha256.ComputeHash(data);
             var computedHash = Convert.ToHexString(computedHashBytes);
             if (!computedHash.Equals(chunkHash, StringComparison.OrdinalIgnoreCase))
             {
-                // 校验失败，删除错误文件
-                try
-                {
-                    File.Delete(chunkPath);
-                }
-                catch
-                {
-                    /* ignore */
-                }
-                throw new InvalidOperationException($"Chunk hash verification failed after writing to disk. Expected: {chunkHash}, Got: {computedHash}");
+                throw new InvalidOperationException($"Chunk hash verification failed. Expected: {chunkHash}, Got: {computedHash}");
             }
         }
-        // 临时存储块元数据(不包含数据本身)
-        var chunkDoc = new BsonDocument
+
+        // 直接写入 GridFS chunks 集合
+        // 将上传的大块拆分为 GridFS 标准块 (2MB)
+        var baseChunkIndex = chunkNumber * (session.ChunkSize / GridFSChunkSize);
+        var subChunks = new List<BsonDocument>();
+
+        for (var i = 0; i < data.Length; i += GridFSChunkSize)
         {
-            { "session_id", sessionId },
-            { "n", chunkNumber },
-            // { "data", new BsonBinaryData(data) }, // 不再存储数据到 MongoDB
-            { "uploadedAt", DateTime.UtcNow }
-        };
+            var length = Math.Min(GridFSChunkSize, data.Length - i);
+            var subChunkData = new byte[length];
+            Array.Copy(data, i, subChunkData, 0, length);
+
+            var n = baseChunkIndex + (i / GridFSChunkSize);
+            var chunkDoc = new BsonDocument
+            {
+                { "files_id", fileId },
+                { "n", n },
+                { "data", new BsonBinaryData(subChunkData) }
+            };
+            subChunks.Add(chunkDoc);
+        }
+
         try
         {
-            await _chunksCollection.InsertOneAsync(chunkDoc, cancellationToken: cancellationToken);
+            // 批量插入子块
+            if (subChunks.Count > 0)
+            {
+                await _chunksCollection.InsertManyAsync(subChunks, cancellationToken: cancellationToken);
+            }
         }
-        catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
+        catch (MongoBulkWriteException ex) when (ex.WriteErrors.Any(e => e.Category == ServerErrorCategory.DuplicateKey))
         {
             // 如果发生重复键异常,说明该块已经存在(并发上传)
             // 同步会话状态并返回
@@ -293,6 +300,7 @@ public sealed class GridFSResumableUploadHelper
             await _sessionCollection.UpdateOneAsync(retryFilter, retryUpdate, cancellationToken: cancellationToken);
             return await GetSessionAsync(sessionId, cancellationToken) ?? session;
         }
+
         // 更新会话 - 添加块号到 UploadedChunks 列表
         var filter = Builders<GridFSUploadSession>.Filter.Eq(s => s.SessionId, sessionId);
         var update = Builders<GridFSUploadSession>.Update.AddToSet(s => s.UploadedChunks, chunkNumber)
@@ -342,7 +350,7 @@ public sealed class GridFSResumableUploadHelper
             {
                 // 统一转换为大写
                 verifyHash = verifyHash.ToUpperInvariant();
-                var existingId = await TryDeduplicateAsync(sessionId, verifyHash, cancellationToken);
+                var existingId = await TryDeduplicateAsync(sessionId, ObjectId.Parse(session.FileId!), verifyHash, cancellationToken);
                 if (existingId != ObjectId.Empty)
                 {
                     return existingId;
@@ -353,10 +361,18 @@ public sealed class GridFSResumableUploadHelper
             var totalChunks = (int)Math.Ceiling((double)session.TotalSize / session.ChunkSize);
             Debug.WriteLine($"[DEBUG] Expected chunks: {totalChunks}, TotalSize: {session.TotalSize}, ChunkSize: {session.ChunkSize}");
             // 从数据库中查询实际上传的块,而不是依赖 session.UploadedChunks
-            var chunkFilter = Builders<BsonDocument>.Filter.Eq("session_id", sessionId);
+            var fileIdObj = ObjectId.Parse(session.FileId!);
+            var chunkFilter = Builders<BsonDocument>.Filter.Eq("files_id", fileIdObj);
             var uploadedChunkNumbers = await _chunksCollection.Find(chunkFilter).Project(Builders<BsonDocument>.Projection.Include("n")).ToListAsync(cancellationToken);
-            var actualUploadedChunks = uploadedChunkNumbers.Select(doc => doc["n"].AsInt32).OrderBy(n => n).ToList();
-            Debug.WriteLine($"[DEBUG] Actual uploaded chunks: [{string.Join(", ", actualUploadedChunks)}]");
+
+            // 将 GridFS 块索引 (n) 映射回上传分片索引
+            var chunksPerUpload = Math.Max(1, session.ChunkSize / GridFSChunkSize);
+            var actualUploadedChunks = uploadedChunkNumbers
+                .Select(doc => doc["n"].AsInt32 / chunksPerUpload)
+                .Distinct()
+                .OrderBy(n => n)
+                .ToList();
+            Debug.WriteLine($"[DEBUG] Actual uploaded chunks (mapped): [{string.Join(", ", actualUploadedChunks)}]");
 
             // 检查是否所有块都已上传
             if (actualUploadedChunks.Count != totalChunks)
@@ -378,102 +394,98 @@ public sealed class GridFSResumableUploadHelper
                     throw new InvalidOperationException($"Missing chunk number {i}");
                 }
             }
-            Debug.WriteLine("[DEBUG] All chunks validated, starting GridFS upload");
-            // 上传到 GridFS
-            var uploadOptions = new GridFSUploadOptions
-            {
-                // GridFS 存储块大小固定为 2MB, 避免 session.ChunkSize 超过 MongoDB 16MB 限制
-                // 这里与上传分片大小解耦: 上传分片(session.ChunkSize)可以很大(如64MB)以提升上传速度,
-                // 而 GridFS 存储块(ChunkSizeBytes)保持较小(2MB)以符合 MongoDB 文档限制并优化读取性能
-                ChunkSizeBytes = 2 * 1024 * 1024,
-                Metadata = session.Metadata
-            };
-            // 开启 GridFS 上传流
-            await using var uploadStream = await _bucket.OpenUploadStreamAsync(session.Filename, uploadOptions, cancellationToken);
-            // 初始化 SHA256 (总是计算哈希以支持去重)
-            using var sha256 = SHA256.Create();
-            long totalBytesWritten = 0;
-            var sessionDir = Path.Combine(_tempDir, sessionId);
+            Debug.WriteLine("[DEBUG] All chunks validated, creating GridFS file entry");
 
-            // 优化: 直接按顺序从文件系统读取,避免 MongoDB 查询和游标开销
-            for (var i = 0; i < totalChunks; i++)
-            {
-                var chunkPath = Path.Combine(sessionDir, i.ToString());
-                if (!File.Exists(chunkPath))
-                {
-                    throw new InvalidOperationException($"Chunk file not found: {chunkPath}");
-                }
+            // 优化: 直接创建 fs.files 文档, 避免读取和重写所有块
+            // 注意: 如果需要严格的 SHA256 校验, 仍然需要读取所有块来计算哈希
+            // 这里我们假设如果 verifyHash 为空, 或者为了性能, 我们跳过全量哈希计算
+            // 如果提供了 verifyHash, 我们仍然需要计算哈希 (这会很慢, 但比读+写快)
 
-                // 使用 FileStream 避免一次性加载到内存
-                await using var fileStream = new FileStream(chunkPath, FileMode.Open, FileAccess.Read, FileShare.Read,
-                    81920, // 80KB buffer for optimal I/O
-                    true);
-                var chunkData = new byte[fileStream.Length];
-                var totalRead = 0;
-                while (totalRead < chunkData.Length)
-                {
-                    var bytesRead = await fileStream.ReadAsync(chunkData.AsMemory(totalRead), cancellationToken);
-                    if (bytesRead == 0)
-                    {
-                        throw new InvalidOperationException($"Unexpected end of file when reading chunk {i}");
-                    }
-                    totalRead += bytesRead;
-                }
-                totalBytesWritten += chunkData.Length;
-                Debug.WriteLine($"[DEBUG] Writing chunk {i}, size: {chunkData.Length} bytes");
-
-                // 更新哈希计算
-                sha256.TransformBlock(chunkData, 0, chunkData.Length, null, 0);
-
-                // 写入 GridFS 流
-                await uploadStream.WriteAsync(chunkData, cancellationToken);
-            }
-            Debug.WriteLine($"[DEBUG] Total bytes written: {totalBytesWritten}");
-
-            // 验证哈希
-            sha256.TransformFinalBlock([], 0, 0);
-            var computedHash = Convert.ToHexString(sha256.Hash!);
-            Debug.WriteLine($"[DEBUG] Computed hash: {computedHash}");
+            string computedHash;
             if (!string.IsNullOrEmpty(verifyHash))
             {
-                Debug.WriteLine($"[DEBUG] Expected hash: {verifyHash}");
+                // 需要计算哈希 - 只能读取所有块
+                Debug.WriteLine("[DEBUG] Calculating hash for verification...");
+                using var sha256 = SHA256.Create();
+
+                // 使用游标遍历 chunks
+                var sort = Builders<BsonDocument>.Sort.Ascending("n");
+                var cursor = await _chunksCollection.Find(Builders<BsonDocument>.Filter.Eq("files_id", fileIdObj))
+                                                    .Sort(sort)
+                                                    .ToCursorAsync(cancellationToken);
+
+                while (await cursor.MoveNextAsync(cancellationToken))
+                {
+                    foreach (var chunk in cursor.Current)
+                    {
+                        var data = chunk["data"].AsBsonBinaryData.Bytes;
+                        sha256.TransformBlock(data, 0, data.Length, null, 0);
+                    }
+                }
+                sha256.TransformFinalBlock([], 0, 0);
+                computedHash = Convert.ToHexString(sha256.Hash!);
+
                 if (!computedHash.Equals(verifyHash, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException($"File hash verification failed. Expected: {verifyHash}, Got: {computedHash}");
                 }
             }
-            Debug.WriteLine("[DEBUG] Closing upload stream");
-            // 完成上传
-            await uploadStream.CloseAsync(cancellationToken);
-            var fileId = uploadStream.Id;
-            Debug.WriteLine($"[DEBUG] Upload stream closed, fileId: {fileId}");
-
-            // 2. 再次尝试去重 (防止并发或 verifyHash 为空的情况)
-            // 此时文件已经上传到 GridFS (fileId), 但 metadata 还没更新
-            var dupFilter = Builders<GridFSFileInfo>.Filter.Eq("metadata.fileHash", computedHash);
-            // 排除刚才上传的文件 (虽然它还没有 fileHash metadata, 但为了保险)
-            var existingFile = await (await _bucket.FindAsync(dupFilter, cancellationToken: cancellationToken)).FirstOrDefaultAsync(cancellationToken);
-            if (existingFile != null)
+            else
             {
-                Debug.WriteLine($"[INFO] Duplicate file found after upload: {existingFile.Id}. Deleting new file {fileId}...");
-                // 删除刚才上传的冗余文件
-                await _bucket.DeleteAsync(fileId, cancellationToken);
-
-                // 增加现有文件的引用计数
-                await IncrementRefCountAsync(existingFile.Id, cancellationToken);
-
-                // 更新会话
-                await UpdateSessionCompletedAsync(sessionId, existingFile.Id, computedHash, cancellationToken);
-                await CleanupTempDataAsync(sessionId, cancellationToken);
-                return existingFile.Id;
+                // 跳过哈希计算, 使用空字符串或占位符
+                // 注意: GridFS 标准通常使用 MD5, 但新版驱动和 MongoDB 已弃用 MD5
+                // 我们在 metadata 中存储 fileHash
+                computedHash = string.Empty;
             }
 
-            // 3. 没有重复, 更新新文件的 metadata (hash + refCount)
-            await UpdateFileMetadataAsync(fileId, computedHash, 1, cancellationToken);
+            var fileId = ObjectId.Parse(session.FileId!);
+
+            // 2. 再次尝试去重 (防止并发或 verifyHash 为空的情况)
+            if (!string.IsNullOrEmpty(computedHash))
+            {
+                var dupFilter = Builders<GridFSFileInfo>.Filter.Eq("metadata.fileHash", computedHash);
+                var existingFile = await (await _bucket.FindAsync(dupFilter, cancellationToken: cancellationToken)).FirstOrDefaultAsync(cancellationToken);
+                if (existingFile != null)
+                {
+                    Debug.WriteLine($"[INFO] Duplicate file found after upload: {existingFile.Id}. Deleting new file {fileId}...");
+                    // 删除刚才上传的冗余文件 (chunks)
+                    await _bucket.DeleteAsync(fileId, cancellationToken);
+
+                    // 增加现有文件的引用计数
+                    await IncrementRefCountAsync(existingFile.Id, cancellationToken);
+
+                    // 更新会话
+                    await UpdateSessionCompletedAsync(sessionId, existingFile.Id, computedHash, cancellationToken);
+                    return existingFile.Id;
+                }
+            }
+
+            // 3. 创建 fs.files 文档
+            var filesCollection = _bucket.Database.GetCollection<BsonDocument>($"{_bucket.Options.BucketName}.files");
+            var fileDoc = new BsonDocument
+            {
+                { "_id", fileId },
+                { "length", session.TotalSize },
+                { "chunkSize", GridFSChunkSize },
+                { "uploadDate", DateTime.UtcNow },
+                { "filename", session.Filename },
+                { "metadata", session.Metadata ?? new BsonDocument() }
+            };
+
+            // 添加自定义元数据
+            if (!fileDoc["metadata"].AsBsonDocument.Contains("fileHash"))
+            {
+                fileDoc["metadata"].AsBsonDocument.Add("fileHash", computedHash);
+            }
+            if (!fileDoc["metadata"].AsBsonDocument.Contains("refCount"))
+            {
+                fileDoc["metadata"].AsBsonDocument.Add("refCount", 1);
+            }
+
+            await filesCollection.InsertOneAsync(fileDoc, cancellationToken: cancellationToken);
 
             // 更新会话
             await UpdateSessionCompletedAsync(sessionId, fileId, computedHash, cancellationToken);
-            await CleanupTempDataAsync(sessionId, cancellationToken);
             Debug.WriteLine("[DEBUG] FinalizeUploadAsync completed successfully");
             return fileId;
         }
@@ -499,9 +511,14 @@ public sealed class GridFSResumableUploadHelper
         var session = await GetSessionAsync(sessionId, cancellationToken) ?? throw new InvalidOperationException($"Session {sessionId} not found");
         var totalChunks = (int)Math.Ceiling((double)session.TotalSize / session.ChunkSize);
         // 从数据库中查询实际上传的块
-        var chunkFilter = Builders<BsonDocument>.Filter.Eq("session_id", sessionId);
+        var fileIdObj = ObjectId.Parse(session.FileId!);
+        var chunkFilter = Builders<BsonDocument>.Filter.Eq("files_id", fileIdObj);
         var uploadedChunkNumbers = await _chunksCollection.Find(chunkFilter).Project(Builders<BsonDocument>.Projection.Include("n")).ToListAsync(cancellationToken);
-        var actualUploadedChunks = uploadedChunkNumbers.Select(doc => doc["n"].AsInt32).ToHashSet();
+
+        var chunksPerUpload = Math.Max(1, session.ChunkSize / GridFSChunkSize);
+        var actualUploadedChunks = uploadedChunkNumbers
+            .Select(doc => doc["n"].AsInt32 / chunksPerUpload)
+            .ToHashSet();
         var allChunks = Enumerable.Range(0, totalChunks).ToList();
         var missingChunks = allChunks.Where(n => !actualUploadedChunks.Contains(n)).ToList();
         return missingChunks;
@@ -525,15 +542,12 @@ public sealed class GridFSResumableUploadHelper
     /// </param>
     public async Task CancelSessionAsync(string sessionId, bool deleteSession = true, CancellationToken cancellationToken = default)
     {
-        // 清理临时块数据
-        var chunkFilter = Builders<BsonDocument>.Filter.Eq("session_id", sessionId);
-        await _chunksCollection.DeleteManyAsync(chunkFilter, cancellationToken);
-        // 清理临时文件
-        var sessionDir = Path.Combine(_tempDir, sessionId);
-        if (Directory.Exists(sessionDir))
+        var session = await GetSessionAsync(sessionId, cancellationToken);
+        if (session != null && !string.IsNullOrEmpty(session.FileId))
         {
-            Directory.Delete(sessionDir, true);
+            await CleanupTempDataAsync(ObjectId.Parse(session.FileId), cancellationToken);
         }
+
         var filter = Builders<GridFSUploadSession>.Filter.Eq(s => s.SessionId, sessionId);
         if (deleteSession)
         {
@@ -559,14 +573,11 @@ public sealed class GridFSResumableUploadHelper
         foreach (var session in expiredSessions)
         {
             // 清理临时块数据
-            var chunkFilter = Builders<BsonDocument>.Filter.Eq("session_id", session.SessionId);
-            await _chunksCollection.DeleteManyAsync(chunkFilter, cancellationToken);
-            // 清理临时文件
-            var sessionDir = Path.Combine(_tempDir, session.SessionId);
-            if (Directory.Exists(sessionDir))
+            if (!string.IsNullOrEmpty(session.FileId))
             {
-                Directory.Delete(sessionDir, true);
+                await CleanupTempDataAsync(ObjectId.Parse(session.FileId), cancellationToken);
             }
+
             // 标记会话为过期
             var updateFilter = Builders<GridFSUploadSession>.Filter.Eq(s => s.SessionId, session.SessionId);
             var update = Builders<GridFSUploadSession>.Update.Set(s => s.Status, UploadStatus.Expired);
@@ -666,22 +677,15 @@ public sealed class GridFSResumableUploadHelper
         Debug.WriteLine("[DEBUG] Session updated");
     }
 
-    private async Task CleanupTempDataAsync(string sessionId, CancellationToken cancellationToken)
+    private async Task CleanupTempDataAsync(ObjectId fileId, CancellationToken cancellationToken)
     {
         // 清理临时块数据
-        var deleteFilter = Builders<BsonDocument>.Filter.Eq("session_id", sessionId);
+        var deleteFilter = Builders<BsonDocument>.Filter.Eq("files_id", fileId);
         await _chunksCollection.DeleteManyAsync(deleteFilter, cancellationToken);
-
-        // 清理临时文件
-        var sessionDir = Path.Combine(_tempDir, sessionId);
-        if (Directory.Exists(sessionDir))
-        {
-            Directory.Delete(sessionDir, true);
-        }
-        Debug.WriteLine("[DEBUG] Temporary chunks cleaned up");
+        Debug.WriteLine($"[DEBUG] Temporary chunks cleaned up for fileId: {fileId}");
     }
 
-    private async Task<ObjectId> TryDeduplicateAsync(string sessionId, string fileHash, CancellationToken cancellationToken)
+    private async Task<ObjectId> TryDeduplicateAsync(string sessionId, ObjectId originalFileId, string fileHash, CancellationToken cancellationToken)
     {
         var filter = Builders<GridFSFileInfo>.Filter.Eq("metadata.fileHash", fileHash);
         var existingFile = await (await _bucket.FindAsync(filter, cancellationToken: cancellationToken)).FirstOrDefaultAsync(cancellationToken);
@@ -692,7 +696,7 @@ public sealed class GridFSResumableUploadHelper
         Debug.WriteLine($"[INFO] Duplicate file found (pre-check): {existingFile.Id}");
         await IncrementRefCountAsync(existingFile.Id, cancellationToken);
         await UpdateSessionCompletedAsync(sessionId, existingFile.Id, fileHash, cancellationToken);
-        await CleanupTempDataAsync(sessionId, cancellationToken);
+        await CleanupTempDataAsync(originalFileId, cancellationToken);
         return existingFile.Id;
     }
 }

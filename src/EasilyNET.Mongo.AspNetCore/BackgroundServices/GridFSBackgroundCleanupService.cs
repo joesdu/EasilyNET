@@ -63,7 +63,5 @@ internal sealed class GridFSBackgroundCleanupService(IServiceProvider sp, ILogge
         {
             logger.LogInformation("Cleaned up {Count} orphaned GridFS chunks.", deletedChunks);
         }
-        // 3. Cleanup temp storage (Safety net for files older than 24h)
-        await cleanupHelper.CleanupTempStorageAsync(TimeSpan.FromHours(24), stoppingToken);
     }
 }

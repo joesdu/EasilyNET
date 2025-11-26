@@ -1,4 +1,3 @@
-using EasilyNET.Mongo.AspNetCore.Common;
 using EasilyNET.Mongo.AspNetCore.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -19,7 +18,6 @@ internal sealed class GridFSCleanupHelper
     private readonly IMongoCollection<BsonDocument> _chunksCollection;
     private readonly IMongoCollection<BsonDocument> _filesCollection;
     private readonly IMongoCollection<GridFSUploadSession> _sessionCollection;
-    private readonly string _tempDir = Path.Combine(AppContext.BaseDirectory, Constant.GridFSTempDir);
 
     /// <summary>
     ///     <para xml:lang="en">Initialize cleanup helper</para>
@@ -160,24 +158,39 @@ internal sealed class GridFSCleanupHelper
     /// </returns>
     public async Task<long> CleanupOrphanedChunksAsync(CancellationToken cancellationToken = default)
     {
-        // 获取所有有效的文件 ID
-        var validFileIds = await _filesCollection.Find(Builders<BsonDocument>.Filter.Empty)
-                                                 .Project(Builders<BsonDocument>.Projection.Include("_id"))
-                                                 .ToListAsync(cancellationToken);
-        var validIdSet = new HashSet<ObjectId>(validFileIds.Select(f => f["_id"].AsObjectId));
-
-        // 查找所有块
-        var allChunks = await _chunksCollection.Find(Builders<BsonDocument>.Filter.Empty)
-                                               .Project(Builders<BsonDocument>.Projection.Include("files_id"))
-                                               .ToListAsync(cancellationToken);
-        // 找出孤立的块
-        var orphanedChunkFileIds = allChunks.Select(c => c["files_id"].AsObjectId).Distinct().Where(id => !validIdSet.Contains(id)).ToList();
-        long deletedCount = 0;
-        // 删除孤立的块
-        foreach (var filter in orphanedChunkFileIds.Select(fileId => Builders<BsonDocument>.Filter.Eq("files_id", fileId)))
+        // 1. 获取所有已完成文件的 ID
+        var completedFileIds = await _filesCollection.Distinct<ObjectId>("_id", Builders<BsonDocument>.Filter.Empty).ToListAsync(cancellationToken);
+        var validIdSet = new HashSet<ObjectId>(completedFileIds);
+        // 2. 获取所有活跃/未过期会话的 FileId
+        // 注意: 即使是过期的会话, 如果还没被 CleanupExpiredSessionsAsync 清理, 我们也不应该在这里删除它的块
+        // 应该让 CleanupExpiredSessionsAsync 负责清理过期会话的块
+        var sessionFileIds = await _sessionCollection.Distinct<string>("FileId", Builders<GridFSUploadSession>.Filter.Empty).ToListAsync(cancellationToken);
+        foreach (var idStr in sessionFileIds)
         {
-            var result = await _chunksCollection.DeleteManyAsync(filter, cancellationToken);
-            deletedCount += result.DeletedCount;
+            if (ObjectId.TryParse(idStr, out var id))
+            {
+                validIdSet.Add(id);
+            }
+        }
+        // 3. 获取所有块的 files_id (去重)
+        // 使用 Distinct 优化性能
+        var chunkFileIds = await _chunksCollection.Distinct<ObjectId>("files_id", Builders<BsonDocument>.Filter.Empty).ToListAsync(cancellationToken);
+        // 4. 找出孤立的 files_id (既不在 fs.files 也不在 fs.upload_sessions)
+        var orphanedFileIds = chunkFileIds.Where(id => !validIdSet.Contains(id)).ToList();
+        long deletedCount = 0;
+        // 5. 删除孤立的块
+        foreach (var fileId in orphanedFileIds)
+        {
+            try
+            {
+                var filter = Builders<BsonDocument>.Filter.Eq("files_id", fileId);
+                var result = await _chunksCollection.DeleteManyAsync(filter, cancellationToken);
+                deletedCount += result.DeletedCount;
+            }
+            catch
+            {
+                // ignore
+            }
         }
         return deletedCount;
     }
@@ -251,11 +264,12 @@ internal sealed class GridFSCleanupHelper
             {
                 // Delete session record
                 await _sessionCollection.DeleteOneAsync(s => s.SessionId == session.SessionId, cancellationToken);
-                // Delete temp files
-                var sessionDir = Path.Combine(_tempDir, session.SessionId);
-                if (Directory.Exists(sessionDir))
+
+                // Delete temp chunks from MongoDB (fs.chunks)
+                if (!string.IsNullOrEmpty(session.FileId) && ObjectId.TryParse(session.FileId, out var fileId))
                 {
-                    Directory.Delete(sessionDir, true);
+                    var chunkFilter = Builders<BsonDocument>.Filter.Eq("files_id", fileId);
+                    await _chunksCollection.DeleteManyAsync(chunkFilter, cancellationToken);
                 }
                 deletedCount++;
             }
@@ -265,49 +279,6 @@ internal sealed class GridFSCleanupHelper
             }
         }
         return deletedCount;
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Clean up temporary files in the local file system that are older than the specified time.</para>
-    ///     <para xml:lang="zh">清理本地文件系统中超过指定时间的临时文件。</para>
-    /// </summary>
-    /// <param name="retentionPeriod">
-    ///     <para xml:lang="en">Retention period (files older than this will be deleted)</para>
-    ///     <para xml:lang="zh">保留期(超过此时间的文件将被删除)</para>
-    /// </param>
-    /// <param name="cancellationToken">
-    ///     <para xml:lang="en">Cancellation token</para>
-    ///     <para xml:lang="zh">取消令牌</para>
-    /// </param>
-    public Task CleanupTempStorageAsync(TimeSpan retentionPeriod, CancellationToken cancellationToken = default)
-    {
-        if (!Directory.Exists(_tempDir))
-        {
-            return Task.CompletedTask;
-        }
-        var cutoffTime = DateTime.UtcNow.Subtract(retentionPeriod);
-        var directories = Directory.GetDirectories(_tempDir);
-        foreach (var dir in directories)
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
-            try
-            {
-                var dirInfo = new DirectoryInfo(dir);
-                // Check creation time or last write time
-                if (dirInfo.CreationTimeUtc < cutoffTime)
-                {
-                    dirInfo.Delete(true);
-                }
-            }
-            catch
-            {
-                // Ignore errors
-            }
-        }
-        return Task.CompletedTask;
     }
 
     /// <summary>
