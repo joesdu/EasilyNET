@@ -170,7 +170,7 @@ internal sealed class GridFSCleanupHelper
         }
         // 3. 获取所有块的 files_id (去重)
         // 使用 Distinct 优化性能
-        var chunkFileIds = await _chunksCollection.Distinct<ObjectId>("files_id", Builders<BsonDocument>.Filter.Empty).ToListAsync(cancellationToken);
+        var chunkFileIds = await _chunksCollection.Distinct<ObjectId>("files_id", Builders<BsonDocument>.Filter.Empty, cancellationToken: cancellationToken).ToListAsync(cancellationToken);
         // 4. 找出孤立的 files_id (既不在 fs.files 也不在 fs.upload_sessions)
         var orphanedFileIds = chunkFileIds.Where(id => !validIdSet.Contains(id)).ToList();
         long deletedCount = 0;
@@ -227,13 +227,16 @@ internal sealed class GridFSCleanupHelper
         {
             TotalFiles = totalFiles,
             TotalSize = totalSize,
-            LargestFiles = largestFiles.Select(f => new GridFileInfo
-            {
-                Id = f["_id"].AsObjectId.ToString(),
-                Filename = f["filename"].AsString,
-                Size = f["length"].ToInt64(),
-                UploadDate = f["uploadDate"].ToUniversalTime()
-            }).ToList()
+            LargestFiles =
+            [
+                .. largestFiles.Select(f => new GridFileInfo
+                {
+                    Id = f["_id"].AsObjectId.ToString(),
+                    Filename = f["filename"].AsString,
+                    Size = f["length"].ToInt64(),
+                    UploadDate = f["uploadDate"].ToUniversalTime()
+                })
+            ]
         };
     }
 
