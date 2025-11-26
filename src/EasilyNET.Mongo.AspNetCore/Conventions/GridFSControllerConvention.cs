@@ -13,14 +13,23 @@ internal sealed class GridFSControllerConvention(GridFSServerOptions options) : 
 {
     public void Apply(ControllerModel controller)
     {
-        if (controller.ControllerType != typeof(GridFSController)) return;
+        if (controller.ControllerType != typeof(GridFSController))
+        {
+            return;
+        }
         if (!options.EnableController)
         {
             controller.ApiExplorer.IsVisible = false;
             controller.Actions.Clear();
             return;
         }
-        if (options.AuthorizeData.Count != 0) controller.Filters.Add(new AuthorizeFilter(options.AuthorizeData));
-        foreach (var filter in options.Filters) controller.Filters.Add(filter);
+        if (options.AuthorizeData.Count is not 0)
+        {
+            controller.Filters.Add(new AuthorizeFilter(options.AuthorizeData));
+        }
+        foreach (var filter in options.Filters)
+        {
+            controller.Filters.Add(filter);
+        }
     }
 }
