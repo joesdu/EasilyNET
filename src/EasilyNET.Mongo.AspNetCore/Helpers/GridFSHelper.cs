@@ -553,9 +553,9 @@ public sealed class GridFSHelper
         var result = await filesCollection.FindOneAndUpdateAsync(filter, update, options, cancellationToken);
         if (result != null)
         {
-            int refCount = (result.Contains("metadata") && result["metadata"].IsBsonDocument && result["metadata"].AsBsonDocument.Contains("refCount"))
-                ? result["metadata"]["refCount"].AsInt32
-                : -1;
+            var refCount = result.Contains("metadata") && result["metadata"].IsBsonDocument && result["metadata"].AsBsonDocument.Contains("refCount")
+                               ? result["metadata"]["refCount"].AsInt32
+                               : -1;
             if (refCount <= 0)
             {
                 await _bucket.DeleteAsync(fileId, cancellationToken);

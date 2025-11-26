@@ -2,7 +2,6 @@ using EasilyNET.Mongo.AspNetCore.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
-using GridFileInfo = EasilyNET.Mongo.AspNetCore.Models.GridFileInfo;
 
 // ReSharper disable UnusedMember.Global
 
@@ -159,22 +158,19 @@ internal sealed class GridFSCleanupHelper
     public async Task<long> CleanupOrphanedChunksAsync(CancellationToken cancellationToken = default)
     {
         // 1. 获取所有已完成文件的 ID
-        var completedFileIds = await _filesCollection.Distinct<ObjectId>("_id", Builders<BsonDocument>.Filter.Empty).ToListAsync(cancellationToken);
+        var completedFileIds = await _filesCollection.Distinct<ObjectId>("_id", Builders<BsonDocument>.Filter.Empty, cancellationToken: cancellationToken).ToListAsync(cancellationToken);
         var validIdSet = new HashSet<ObjectId>(completedFileIds);
         // 2. 获取所有活跃/未过期会话的 FileId
         // 注意: 即使是过期的会话, 如果还没被 CleanupExpiredSessionsAsync 清理, 我们也不应该在这里删除它的块
         // 应该让 CleanupExpiredSessionsAsync 负责清理过期会话的块
-        var sessionFileIds = await _sessionCollection.Distinct<string>("FileId", Builders<GridFSUploadSession>.Filter.Empty).ToListAsync(cancellationToken);
-        foreach (var id in sessionFileIds
-            .Select(idStr => { return ObjectId.TryParse(idStr, out var id) ? id : (ObjectId?)null; })
-            .Where(id => id.HasValue)
-            .Select(id => id.Value))
+        var sessionFileIds = await _sessionCollection.Distinct<string>("fileId", Builders<GridFSUploadSession>.Filter.Empty, cancellationToken: cancellationToken).ToListAsync(cancellationToken);
+        foreach (var id in sessionFileIds.Select(idStr => ObjectId.TryParse(idStr, out var id) ? id : ObjectId.Empty).Where(id => id != ObjectId.Empty))
         {
             validIdSet.Add(id);
         }
         // 3. 获取所有块的 files_id (去重)
         // 使用 Distinct 优化性能
-        var chunkFileIds = await _chunksCollection.Distinct<ObjectId>("files_id", Builders<BsonDocument>.Filter.Empty).ToListAsync(cancellationToken);
+        var chunkFileIds = await _chunksCollection.Distinct<ObjectId>("files_id", Builders<BsonDocument>.Filter.Empty, cancellationToken: cancellationToken).ToListAsync(cancellationToken);
         // 4. 找出孤立的 files_id (既不在 fs.files 也不在 fs.upload_sessions)
         var orphanedFileIds = chunkFileIds.Where(id => !validIdSet.Contains(id)).ToList();
         long deletedCount = 0;
@@ -231,13 +227,16 @@ internal sealed class GridFSCleanupHelper
         {
             TotalFiles = totalFiles,
             TotalSize = totalSize,
-            LargestFiles = largestFiles.Select(f => new GridFileInfo
-            {
-                Id = f["_id"].AsObjectId.ToString(),
-                Filename = f["filename"].AsString,
-                Size = f["length"].ToInt64(),
-                UploadDate = f["uploadDate"].ToUniversalTime()
-            }).ToList()
+            LargestFiles =
+            [
+                .. largestFiles.Select(f => new GridFileInfo
+                {
+                    Id = f["_id"].AsObjectId.ToString(),
+                    Filename = f["filename"].AsString,
+                    Size = f["length"].ToInt64(),
+                    UploadDate = f["uploadDate"].ToUniversalTime()
+                })
+            ]
         };
     }
 
