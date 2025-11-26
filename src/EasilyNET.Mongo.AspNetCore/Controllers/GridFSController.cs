@@ -3,12 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using MongoDB.Bson;
-using MongoDB.Driver;
-using MongoDB.Driver.GridFS;
 
 // ReSharper disable UnusedMember.Global
 
-namespace WebApi.Test.Unit.Controllers;
+namespace EasilyNET.Mongo.AspNetCore.Controllers;
 
 /// <summary>
 /// GridFS 断点续传控制器
@@ -16,15 +14,8 @@ namespace WebApi.Test.Unit.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [ApiExplorerSettings(GroupName = "MongoFS")]
-public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> logger) : ControllerBase
+public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridFSController> logger) : ControllerBase
 {
-    /// <summary>
-    /// GridFSFileInfo Filter
-    /// </summary>
-    private readonly FilterDefinitionBuilder<GridFSFileInfo> gbf = Builders<GridFSFileInfo>.Filter;
-
-    private GridFSResumableUploadHelper ResumableHelper => field ??= new(bucket);
-
     /// <summary>
     /// 创建断点续传会话
     /// </summary>
@@ -35,7 +26,7 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("CreateSession")]
-    public virtual async Task<IActionResult> CreateSession(
+    public async Task<IActionResult> CreateSession(
         [FromQuery]
         string filename,
         [FromQuery]
@@ -51,7 +42,7 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
         {
             metadata["contentType"] = contentType;
         }
-        var session = await ResumableHelper.CreateSessionAsync(filename, totalSize, fileHash, metadata, cancellationToken: cancellationToken);
+        var session = await resumableHelper.CreateSessionAsync(filename, totalSize, fileHash, metadata, cancellationToken: cancellationToken);
         return Ok(new
         {
             sessionId = session.SessionId,
@@ -73,7 +64,7 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("UploadChunk")]
-    public virtual async Task<IActionResult> UploadChunk(
+    public async Task<IActionResult> UploadChunk(
         [FromQuery]
         string sessionId,
         [FromQuery]
@@ -87,7 +78,7 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
         var data = ms.ToArray();
         try
         {
-            var session = await ResumableHelper.UploadChunkAsync(sessionId, chunkNumber, data, chunkHash, cancellationToken);
+            var session = await resumableHelper.UploadChunkAsync(sessionId, chunkNumber, data, chunkHash, cancellationToken);
             return Ok(new
             {
                 sessionId = session.SessionId,
@@ -111,14 +102,14 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpGet("Session/{sessionId}")]
-    public virtual async Task<IActionResult> GetSession(string sessionId, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetSession(string sessionId, CancellationToken cancellationToken = default)
     {
-        var session = await ResumableHelper.GetSessionAsync(sessionId, cancellationToken);
+        var session = await resumableHelper.GetSessionAsync(sessionId, cancellationToken);
         if (session == null)
         {
             return NotFound($"Session {sessionId} not found");
         }
-        var missingChunks = await ResumableHelper.GetMissingChunksAsync(sessionId, cancellationToken);
+        var missingChunks = await resumableHelper.GetMissingChunksAsync(sessionId, cancellationToken);
         return Ok(new
         {
             sessionId = session.SessionId,
@@ -143,11 +134,11 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpGet("MissingChunks/{sessionId}")]
-    public virtual async Task<IActionResult> GetMissingChunks(string sessionId, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetMissingChunks(string sessionId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var missingChunks = await ResumableHelper.GetMissingChunksAsync(sessionId, cancellationToken);
+            var missingChunks = await resumableHelper.GetMissingChunksAsync(sessionId, cancellationToken);
             return Ok(new { sessionId, missingChunks });
         }
         catch (InvalidOperationException ex)
@@ -164,11 +155,11 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("Finalize/{sessionId}")]
-    public virtual async Task<IActionResult> FinalizeUpload(string sessionId, [FromQuery] string? fileHash = null, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> FinalizeUpload(string sessionId, [FromQuery] string? fileHash = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            var fileId = await ResumableHelper.FinalizeUploadAsync(sessionId, fileHash, cancellationToken);
+            var fileId = await resumableHelper.FinalizeUploadAsync(sessionId, fileHash, cancellationToken);
             return Ok(new
             {
                 fileId = fileId.ToString(),
@@ -203,12 +194,12 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpDelete("Cancel/{sessionId}")]
-    public virtual async Task<IActionResult> CancelUpload(string sessionId, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> CancelUpload(string sessionId, CancellationToken cancellationToken = default)
     {
         try
         {
             // 默认删除会话记录
-            await ResumableHelper.CancelSessionAsync(sessionId, true, cancellationToken);
+            await resumableHelper.CancelSessionAsync(sessionId, true, cancellationToken);
             return Ok(new { message = "Upload cancelled successfully" });
         }
         catch (Exception ex)
@@ -224,13 +215,13 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpGet("StreamRange/{id}")]
-    public virtual async Task<IActionResult> StreamRange(string id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> StreamRange(string id, CancellationToken cancellationToken = default)
     {
         // 尝试解析为 ObjectId (直接 FileId)
         if (!ObjectId.TryParse(id, out var fileId))
         {
             // 不是 ObjectId, 尝试作为 SessionId 查询
-            var session = await ResumableHelper.GetSessionAsync(id, cancellationToken);
+            var session = await resumableHelper.GetSessionAsync(id, cancellationToken);
             if (session != null && session.Status.ToString() == "Completed" && !string.IsNullOrEmpty(session.FileId))
             {
                 fileId = ObjectId.Parse(session.FileId);
@@ -262,7 +253,7 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
         }
         try
         {
-            var result = await GridFSRangeStreamHelper.DownloadRangeAsync(bucket, fileId, startByte ?? 0, endByte, cancellationToken);
+            var result = await resumableHelper.DownloadRangeAsync(fileId, startByte ?? 0, endByte, cancellationToken);
             var contentType = result.FileInfo.Metadata.Contains("contentType")
                                   ? result.FileInfo.Metadata["contentType"].AsString
                                   : "application/octet-stream";
@@ -293,10 +284,7 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
     /// <returns></returns>
     [HttpPut("{id}/Rename/{newName}")]
     // ReSharper disable once MemberCanBeProtected.Global
-    public virtual async Task Rename(string id, string newName, CancellationToken cancellationToken = default)
-    {
-        await bucket.RenameAsync(ObjectId.Parse(id), newName, cancellationToken);
-    }
+    public async Task Rename(string id, string newName, CancellationToken cancellationToken = default) => await resumableHelper.Rename(id, newName, cancellationToken);
 
     /// <summary>
     /// 删除文件
@@ -305,16 +293,5 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
     /// <param name="ids">文件ID集合</param>
     /// <returns></returns>
     [HttpDelete]
-    public virtual async Task<IEnumerable<string>> Delete(string[] ids, CancellationToken cancellationToken = default)
-    {
-        var oids = ids.Select(ObjectId.Parse).ToList();
-        var fi = await (await bucket.FindAsync(gbf.In(c => c.Id, oids), cancellationToken: cancellationToken)).ToListAsync(cancellationToken);
-        var fids = fi.Select(c => new { Id = c.Id.ToString(), FileName = c.Filename }).ToArray();
-        // 删除 GridFS 中的文件 (使用引用计数删除)
-        foreach (var item in fids)
-        {
-            await ResumableHelper.DeleteFileAsync(ObjectId.Parse(item.Id), cancellationToken);
-        }
-        return fids.Select(c => c.FileName);
-    }
+    public async Task<IEnumerable<string>> Delete(string[] ids, CancellationToken cancellationToken = default) => await resumableHelper.Delete(ids, cancellationToken);
 }

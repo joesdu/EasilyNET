@@ -2,8 +2,8 @@ using EasilyNET.Mongo.AspNetCore.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
+using GridFileInfo = EasilyNET.Mongo.AspNetCore.Models.GridFileInfo;
 
-// ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 
 namespace EasilyNET.Mongo.AspNetCore.Helpers;
@@ -231,7 +231,7 @@ internal sealed class GridFSCleanupHelper
         {
             TotalFiles = totalFiles,
             TotalSize = totalSize,
-            LargestFiles = largestFiles.Select(f => new FileInfo
+            LargestFiles = largestFiles.Select(f => new GridFileInfo
             {
                 Id = f["_id"].AsObjectId.ToString(),
                 Filename = f["filename"].AsString,
@@ -280,94 +280,4 @@ internal sealed class GridFSCleanupHelper
         }
         return deletedCount;
     }
-
-    /// <summary>
-    ///     <para xml:lang="en">
-    ///     Create TTL index on files collection to automatically delete files after specified time
-    ///     </para>
-    ///     <para xml:lang="zh">在文件集合上创建 TTL 索引,以在指定时间后自动删除文件</para>
-    /// </summary>
-    /// <param name="expireAfterSeconds">
-    ///     <para xml:lang="en">Expire after seconds (e.g., 86400 for 24 hours)</para>
-    ///     <para xml:lang="zh">过期时间(秒),例如 86400 表示 24 小时</para>
-    /// </param>
-    /// <param name="metadataField">
-    ///     <para xml:lang="en">
-    ///     Metadata field to use for TTL (optional, uses uploadDate if not specified)
-    ///     </para>
-    ///     <para xml:lang="zh">用于 TTL 的元数据字段(可选,未指定时使用 uploadDate)</para>
-    /// </param>
-    /// <param name="cancellationToken">
-    ///     <para xml:lang="en">Cancellation token</para>
-    ///     <para xml:lang="zh">取消令牌</para>
-    /// </param>
-    public async Task CreateTTLIndexAsync(int expireAfterSeconds, string? metadataField = null, CancellationToken cancellationToken = default)
-    {
-        var field = string.IsNullOrEmpty(metadataField) ? "uploadDate" : $"metadata.{metadataField}";
-        var indexKeys = Builders<BsonDocument>.IndexKeys.Ascending(field);
-        var indexOptions = new CreateIndexOptions
-        {
-            ExpireAfter = TimeSpan.FromSeconds(expireAfterSeconds),
-            Name = $"TTL_{field.Replace(".", "_")}_Index",
-            Background = true
-        };
-        var indexModel = new CreateIndexModel<BsonDocument>(indexKeys, indexOptions);
-        await _filesCollection.Indexes.CreateOneAsync(indexModel, cancellationToken: cancellationToken);
-    }
-}
-
-/// <summary>
-///     <para xml:lang="en">GridFS storage statistics</para>
-///     <para xml:lang="zh">GridFS 存储统计信息</para>
-/// </summary>
-public class GridFSStorageStats
-{
-    /// <summary>
-    ///     <para xml:lang="en">Total number of files</para>
-    ///     <para xml:lang="zh">文件总数</para>
-    /// </summary>
-    public long TotalFiles { get; set; }
-
-    /// <summary>
-    ///     <para xml:lang="en">Total size in bytes</para>
-    ///     <para xml:lang="zh">总大小(字节)</para>
-    /// </summary>
-    public long TotalSize { get; set; }
-
-    /// <summary>
-    ///     <para xml:lang="en">List of largest files</para>
-    ///     <para xml:lang="zh">最大文件列表</para>
-    /// </summary>
-    public List<FileInfo> LargestFiles { get; set; } = [];
-}
-
-/// <summary>
-///     <para xml:lang="en">File information</para>
-///     <para xml:lang="zh">文件信息</para>
-/// </summary>
-public class FileInfo
-{
-    /// <summary>
-    ///     <para xml:lang="en">File ID</para>
-    ///     <para xml:lang="zh">文件 ID</para>
-    /// </summary>
-    public string Id { get; set; } = string.Empty;
-
-    /// <summary>
-    ///     <para xml:lang="en">Filename</para>
-    ///     <para xml:lang="zh">文件名</para>
-    /// </summary>
-    public string Filename { get; set; } = string.Empty;
-
-    /// <summary>
-    ///     <para xml:lang="en">File size in bytes</para>
-    ///     <para xml:lang="zh">文件大小(字节)</para>
-    /// </summary>
-    public long Size { get; set; }
-
-    /// <summary>
-    ///     <para xml:lang="en">Upload date</para>
-    ///     <para xml:lang="zh">上传日期</para>
-    /// </summary>
-    public DateTime UploadDate { get; set; }
 }

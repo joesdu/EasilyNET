@@ -157,6 +157,11 @@ public static class GridFSCollectionExtensions
             services.TryAddSingleton(sp => sp.GetRequiredService<IGridFSBucketFactory>().CreateBucket(db));
             services.TryAddSingleton<GridFSCleanupHelper>();
             services.AddHostedService<GridFSBackgroundCleanupService>();
+            services.AddSingleton<GridFSHelper>(sp =>
+            {
+                var bucket = sp.GetRequiredService<IGridFSBucket>();
+                return new(bucket);
+            });
             return services;
         }
     }

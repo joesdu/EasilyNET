@@ -12,7 +12,7 @@ namespace EasilyNET.Mongo.AspNetCore.Models;
 ///     <para xml:lang="en">GridFS resumable upload session</para>
 ///     <para xml:lang="zh">GridFS 断点续传会话</para>
 /// </summary>
-public class GridFSUploadSession
+public sealed class GridFSUploadSession
 {
     /// <summary>
     ///     <para xml:lang="en">Session ID</para>
