@@ -165,12 +165,12 @@ internal sealed class GridFSCleanupHelper
         // 注意: 即使是过期的会话, 如果还没被 CleanupExpiredSessionsAsync 清理, 我们也不应该在这里删除它的块
         // 应该让 CleanupExpiredSessionsAsync 负责清理过期会话的块
         var sessionFileIds = await _sessionCollection.Distinct<string>("FileId", Builders<GridFSUploadSession>.Filter.Empty).ToListAsync(cancellationToken);
-        foreach (var idStr in sessionFileIds)
+        foreach (var id in sessionFileIds
+            .Select(idStr => { return ObjectId.TryParse(idStr, out var id) ? id : (ObjectId?)null; })
+            .Where(id => id.HasValue)
+            .Select(id => id.Value))
         {
-            if (ObjectId.TryParse(idStr, out var id))
-            {
-                validIdSet.Add(id);
-            }
+            validIdSet.Add(id);
         }
         // 3. 获取所有块的 files_id (去重)
         // 使用 Distinct 优化性能
