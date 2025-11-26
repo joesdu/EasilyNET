@@ -1,5 +1,6 @@
 using EasilyNET.Mongo.AspNetCore.Helpers;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -50,11 +51,7 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
         {
             metadata["contentType"] = contentType;
         }
-        var session = await ResumableHelper.CreateSessionAsync(filename,
-                          totalSize,
-                          fileHash,
-                          metadata,
-                          cancellationToken: cancellationToken);
+        var session = await ResumableHelper.CreateSessionAsync(filename, totalSize, fileHash, metadata, cancellationToken: cancellationToken);
         return Ok(new
         {
             sessionId = session.SessionId,
@@ -76,7 +73,6 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("UploadChunk")]
-    [RequestSizeLimit(10 * 1024 * 1024)] // 10MB max chunk size
     public virtual async Task<IActionResult> UploadChunk(
         [FromQuery]
         string sessionId,
@@ -168,11 +164,7 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("Finalize/{sessionId}")]
-    public virtual async Task<IActionResult> FinalizeUpload(
-        string sessionId,
-        [FromQuery]
-        string? fileHash = null,
-        CancellationToken cancellationToken = default)
+    public virtual async Task<IActionResult> FinalizeUpload(string sessionId, [FromQuery] string? fileHash = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -270,15 +262,10 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
         }
         try
         {
-            var result = await GridFSRangeStreamHelper.DownloadRangeAsync(bucket,
-                             fileId,
-                             startByte ?? 0,
-                             endByte,
-                             cancellationToken);
+            var result = await GridFSRangeStreamHelper.DownloadRangeAsync(bucket, fileId, startByte ?? 0, endByte, cancellationToken);
             var contentType = result.FileInfo.Metadata.Contains("contentType")
                                   ? result.FileInfo.Metadata["contentType"].AsString
                                   : "application/octet-stream";
-
             // 设置响应头
             Response.Headers[HeaderNames.AcceptRanges] = "bytes";
             Response.Headers[HeaderNames.ContentRange] = $"bytes {result.RangeStart}-{result.RangeEnd}/{result.TotalLength}";
@@ -323,7 +310,6 @@ public class GridFSController(IGridFSBucket bucket, ILogger<GridFSController> lo
         var oids = ids.Select(ObjectId.Parse).ToList();
         var fi = await (await bucket.FindAsync(gbf.In(c => c.Id, oids), cancellationToken: cancellationToken)).ToListAsync(cancellationToken);
         var fids = fi.Select(c => new { Id = c.Id.ToString(), FileName = c.Filename }).ToArray();
-
         // 删除 GridFS 中的文件 (使用引用计数删除)
         foreach (var item in fids)
         {

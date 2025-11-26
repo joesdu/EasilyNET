@@ -11,7 +11,7 @@ namespace EasilyNET.Mongo.AspNetCore.Helpers;
 ///     <para xml:lang="en">GridFS range stream helper for video/audio streaming scenarios</para>
 ///     <para xml:lang="zh">GridFS 范围流辅助类,用于视频/音频流场景</para>
 /// </summary>
-public static class GridFSRangeStreamHelper
+internal static class GridFSRangeStreamHelper
 {
     /// <summary>
     ///     <para xml:lang="en">

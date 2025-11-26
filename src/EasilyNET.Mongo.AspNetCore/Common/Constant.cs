@@ -29,4 +29,10 @@ internal static class Constant
     ///     <para xml:lang="zh">默认配置名称</para>
     /// </summary>
     internal const string ConfigName = "EasilyNetGridFS";
+
+    /// <summary>
+    ///     <para xml:lang="en">gridfs temporary chunk storage directory</para>
+    ///     <para xml:lang="zh">GridFS上传分片临时存储目录</para>
+    /// </summary>
+    internal const string GridFSTempDir = "gridfs_temp";
 }

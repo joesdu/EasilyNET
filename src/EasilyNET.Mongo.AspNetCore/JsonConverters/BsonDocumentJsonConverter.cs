@@ -20,7 +20,7 @@ namespace EasilyNET.Mongo.AspNetCore.JsonConverters;
 ///  ]]>
 ///  </code>
 /// </example>
-public sealed class BsonDocumentJsonConverter : JsonConverter<BsonDocument?>
+internal sealed class BsonDocumentJsonConverter : JsonConverter<BsonDocument?>
 {
     /// <inheritdoc />
     public override BsonDocument? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

@@ -8,7 +8,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// 消息总线测试控制器
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/[controller]/[action]")]
 [ApiExplorerSettings(GroupName = "RabbitBus")]
 public class RabbitBusController(IBus ibus) : ControllerBase
 {

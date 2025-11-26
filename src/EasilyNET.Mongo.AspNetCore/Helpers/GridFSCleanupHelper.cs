@@ -1,3 +1,5 @@
+using EasilyNET.Mongo.AspNetCore.Common;
+using EasilyNET.Mongo.AspNetCore.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
@@ -11,11 +13,13 @@ namespace EasilyNET.Mongo.AspNetCore.Helpers;
 ///     <para xml:lang="en">GridFS file cleanup helper for managing expired or orphaned files</para>
 ///     <para xml:lang="zh">GridFS 文件清理辅助类,用于管理过期或孤立文件</para>
 /// </summary>
-public class GridFSCleanupHelper
+internal sealed class GridFSCleanupHelper
 {
     private readonly IGridFSBucket _bucket;
     private readonly IMongoCollection<BsonDocument> _chunksCollection;
     private readonly IMongoCollection<BsonDocument> _filesCollection;
+    private readonly IMongoCollection<GridFSUploadSession> _sessionCollection;
+    private readonly string _tempDir = Path.Combine(AppContext.BaseDirectory, Constant.GridFSTempDir);
 
     /// <summary>
     ///     <para xml:lang="en">Initialize cleanup helper</para>
@@ -31,6 +35,7 @@ public class GridFSCleanupHelper
         var bucketName = bucket.Options.BucketName;
         _filesCollection = bucket.Database.GetCollection<BsonDocument>($"{bucketName}.files");
         _chunksCollection = bucket.Database.GetCollection<BsonDocument>($"{bucketName}.chunks");
+        _sessionCollection = bucket.Database.GetCollection<GridFSUploadSession>("fs.upload_sessions");
     }
 
     /// <summary>
@@ -59,15 +64,10 @@ public class GridFSCleanupHelper
     ///     <para xml:lang="en">Number of deleted files</para>
     ///     <para xml:lang="zh">删除的文件数</para>
     /// </returns>
-    public async Task<long> DeleteOldFilesAsync(
-        int days,
-        string? filePattern = null,
-        FilterDefinition<BsonDocument>? metadataFilter = null,
-        CancellationToken cancellationToken = default)
+    public async Task<long> DeleteOldFilesAsync(int days, string? filePattern = null, FilterDefinition<BsonDocument>? metadataFilter = null, CancellationToken cancellationToken = default)
     {
         var cutoffDate = DateTime.UtcNow.AddDays(-days);
         var filterBuilder = Builders<BsonDocument>.Filter;
-
         // 构建过滤条件
         var filters = new List<FilterDefinition<BsonDocument>>
         {
@@ -82,13 +82,9 @@ public class GridFSCleanupHelper
             filters.Add(metadataFilter);
         }
         var combinedFilter = filterBuilder.And(filters);
-
         // 查找符合条件的文件
-        var filesToDelete = await _filesCollection.Find(combinedFilter)
-                                                  .Project(Builders<BsonDocument>.Projection.Include("_id"))
-                                                  .ToListAsync(cancellationToken);
+        var filesToDelete = await _filesCollection.Find(combinedFilter).Project(Builders<BsonDocument>.Projection.Include("_id")).ToListAsync(cancellationToken);
         long deletedCount = 0;
-
         // 逐个删除文件
         foreach (var file in filesToDelete)
         {
@@ -127,15 +123,10 @@ public class GridFSCleanupHelper
     ///     <para xml:lang="en">Number of deleted files</para>
     ///     <para xml:lang="zh">删除的文件数</para>
     /// </returns>
-    public async Task<long> DeleteByMetadataAsync(
-        string metadataKey,
-        BsonValue metadataValue,
-        CancellationToken cancellationToken = default)
+    public async Task<long> DeleteByMetadataAsync(string metadataKey, BsonValue metadataValue, CancellationToken cancellationToken = default)
     {
         var filter = Builders<BsonDocument>.Filter.Eq($"metadata.{metadataKey}", metadataValue);
-        var filesToDelete = await _filesCollection.Find(filter)
-                                                  .Project(Builders<BsonDocument>.Projection.Include("_id"))
-                                                  .ToListAsync(cancellationToken);
+        var filesToDelete = await _filesCollection.Find(filter).Project(Builders<BsonDocument>.Projection.Include("_id")).ToListAsync(cancellationToken);
         long deletedCount = 0;
         foreach (var file in filesToDelete)
         {
@@ -170,26 +161,18 @@ public class GridFSCleanupHelper
     public async Task<long> CleanupOrphanedChunksAsync(CancellationToken cancellationToken = default)
     {
         // 获取所有有效的文件 ID
-        var validFileIds = await _filesCollection
-                                 .Find(Builders<BsonDocument>.Filter.Empty)
-                                 .Project(Builders<BsonDocument>.Projection.Include("_id"))
-                                 .ToListAsync(cancellationToken);
+        var validFileIds = await _filesCollection.Find(Builders<BsonDocument>.Filter.Empty)
+                                                 .Project(Builders<BsonDocument>.Projection.Include("_id"))
+                                                 .ToListAsync(cancellationToken);
         var validIdSet = new HashSet<ObjectId>(validFileIds.Select(f => f["_id"].AsObjectId));
 
         // 查找所有块
-        var allChunks = await _chunksCollection
-                              .Find(Builders<BsonDocument>.Filter.Empty)
-                              .Project(Builders<BsonDocument>.Projection.Include("files_id"))
-                              .ToListAsync(cancellationToken);
-
+        var allChunks = await _chunksCollection.Find(Builders<BsonDocument>.Filter.Empty)
+                                               .Project(Builders<BsonDocument>.Projection.Include("files_id"))
+                                               .ToListAsync(cancellationToken);
         // 找出孤立的块
-        var orphanedChunkFileIds = allChunks
-                                   .Select(c => c["files_id"].AsObjectId)
-                                   .Distinct()
-                                   .Where(id => !validIdSet.Contains(id))
-                                   .ToList();
+        var orphanedChunkFileIds = allChunks.Select(c => c["files_id"].AsObjectId).Distinct().Where(id => !validIdSet.Contains(id)).ToList();
         long deletedCount = 0;
-
         // 删除孤立的块
         foreach (var filter in orphanedChunkFileIds.Select(fileId => Builders<BsonDocument>.Filter.Eq("files_id", fileId)))
         {
@@ -215,8 +198,7 @@ public class GridFSCleanupHelper
     /// </returns>
     public async Task<GridFSStorageStats> GetStorageStatsAsync(CancellationToken cancellationToken = default)
     {
-        var totalFiles = await _filesCollection.CountDocumentsAsync(Builders<BsonDocument>.Filter.Empty,
-                             cancellationToken: cancellationToken);
+        var totalFiles = await _filesCollection.CountDocumentsAsync(Builders<BsonDocument>.Filter.Empty, cancellationToken: cancellationToken);
         var pipeline = new[]
         {
             new BsonDocument("$group", new BsonDocument
@@ -228,11 +210,10 @@ public class GridFSCleanupHelper
         var aggregation = await _filesCollection.AggregateAsync<BsonDocument>(pipeline, cancellationToken: cancellationToken);
         var result = await aggregation.FirstOrDefaultAsync(cancellationToken);
         var totalSize = result?["totalSize"].ToInt64() ?? 0;
-        var largestFiles = await _filesCollection
-                                 .Find(Builders<BsonDocument>.Filter.Empty)
-                                 .Sort(Builders<BsonDocument>.Sort.Descending("length"))
-                                 .Limit(10)
-                                 .ToListAsync(cancellationToken);
+        var largestFiles = await _filesCollection.Find(Builders<BsonDocument>.Filter.Empty)
+                                                 .Sort(Builders<BsonDocument>.Sort.Descending("length"))
+                                                 .Limit(10)
+                                                 .ToListAsync(cancellationToken);
         return new()
         {
             TotalFiles = totalFiles,
@@ -245,6 +226,88 @@ public class GridFSCleanupHelper
                 UploadDate = f["uploadDate"].ToUniversalTime()
             }).ToList()
         };
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Clean up expired sessions and their temporary files</para>
+    ///     <para xml:lang="zh">清理过期会话及其临时文件</para>
+    /// </summary>
+    /// <param name="cancellationToken">
+    ///     <para xml:lang="en">Cancellation token</para>
+    ///     <para xml:lang="zh">取消令牌</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Number of deleted sessions</para>
+    ///     <para xml:lang="zh">删除的会话数</para>
+    /// </returns>
+    public async Task<long> CleanupExpiredSessionsAsync(CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<GridFSUploadSession>.Filter.Lt(s => s.ExpiresAt, DateTime.UtcNow);
+        var expiredSessions = await _sessionCollection.Find(filter).ToListAsync(cancellationToken);
+        long deletedCount = 0;
+        foreach (var session in expiredSessions)
+        {
+            try
+            {
+                // Delete session record
+                await _sessionCollection.DeleteOneAsync(s => s.SessionId == session.SessionId, cancellationToken);
+                // Delete temp files
+                var sessionDir = Path.Combine(_tempDir, session.SessionId);
+                if (Directory.Exists(sessionDir))
+                {
+                    Directory.Delete(sessionDir, true);
+                }
+                deletedCount++;
+            }
+            catch
+            {
+                // Log error but continue
+            }
+        }
+        return deletedCount;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Clean up temporary files in the local file system that are older than the specified time.</para>
+    ///     <para xml:lang="zh">清理本地文件系统中超过指定时间的临时文件。</para>
+    /// </summary>
+    /// <param name="retentionPeriod">
+    ///     <para xml:lang="en">Retention period (files older than this will be deleted)</para>
+    ///     <para xml:lang="zh">保留期(超过此时间的文件将被删除)</para>
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     <para xml:lang="en">Cancellation token</para>
+    ///     <para xml:lang="zh">取消令牌</para>
+    /// </param>
+    public Task CleanupTempStorageAsync(TimeSpan retentionPeriod, CancellationToken cancellationToken = default)
+    {
+        if (!Directory.Exists(_tempDir))
+        {
+            return Task.CompletedTask;
+        }
+        var cutoffTime = DateTime.UtcNow.Subtract(retentionPeriod);
+        var directories = Directory.GetDirectories(_tempDir);
+        foreach (var dir in directories)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+            try
+            {
+                var dirInfo = new DirectoryInfo(dir);
+                // Check creation time or last write time
+                if (dirInfo.CreationTimeUtc < cutoffTime)
+                {
+                    dirInfo.Delete(true);
+                }
+            }
+            catch
+            {
+                // Ignore errors
+            }
+        }
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -267,10 +330,7 @@ public class GridFSCleanupHelper
     ///     <para xml:lang="en">Cancellation token</para>
     ///     <para xml:lang="zh">取消令牌</para>
     /// </param>
-    public async Task CreateTTLIndexAsync(
-        int expireAfterSeconds,
-        string? metadataField = null,
-        CancellationToken cancellationToken = default)
+    public async Task CreateTTLIndexAsync(int expireAfterSeconds, string? metadataField = null, CancellationToken cancellationToken = default)
     {
         var field = string.IsNullOrEmpty(metadataField) ? "uploadDate" : $"metadata.{metadataField}";
         var indexKeys = Builders<BsonDocument>.IndexKeys.Ascending(field);
