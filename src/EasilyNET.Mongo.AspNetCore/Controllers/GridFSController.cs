@@ -270,7 +270,9 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // 客户端取消请求(正常行为,如视频快进/快退)
-            logger.LogDebug("Range request cancelled by client for file {FileId}", id);
+            // Sanitize 'id' to prevent log forging by removing newlines/carriage returns.
+            var sanitizedId = id.Replace("\r", "").Replace("\n", "");
+            logger.LogDebug("Range request cancelled by client for file {FileId}", sanitizedId);
             return StatusCode(499); // Client Closed Request
         }
     }
