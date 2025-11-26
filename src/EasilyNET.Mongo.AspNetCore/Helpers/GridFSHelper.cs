@@ -398,9 +398,8 @@ public sealed class GridFSHelper
                                                     .ToCursorAsync(cancellationToken);
                 while (await cursor.MoveNextAsync(cancellationToken))
                 {
-                    foreach (var chunk in cursor.Current)
+                    foreach (var data in cursor.Current.Select(chunk => chunk["data"].AsBsonBinaryData.Bytes))
                     {
-                        var data = chunk["data"].AsBsonBinaryData.Bytes;
                         sha256.TransformBlock(data, 0, data.Length, null, 0);
                     }
                 }
