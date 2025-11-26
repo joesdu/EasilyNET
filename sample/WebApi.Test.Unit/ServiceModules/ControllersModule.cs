@@ -2,7 +2,6 @@ using System.Net;
 using System.Text.Json.Serialization;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.Mongo.AspNetCore.JsonConverters;
 using EasilyNET.WebCore.JsonConverters;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
@@ -31,7 +30,6 @@ internal sealed class ControllersModule : AppModule
                    c.JsonSerializerOptions.Converters.Add(new DecimalJsonConverter());
                    c.JsonSerializerOptions.Converters.Add(new IntJsonConverter());
                    c.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
-                   c.JsonSerializerOptions.Converters.Add(new BsonDocumentJsonConverter());
                    c.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                });
         context.Services.AddEndpointsApiExplorer();
@@ -41,7 +39,20 @@ internal sealed class ControllersModule : AppModule
             c.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
         }).AddJwtBearer(c =>
         {
-            // 配置JWT选项
+            // 配置JWT选项用于解决 <a> 标签下载或 <video src="..."> 无法设置请求头的问题
+            c.Events = new()
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/api/GridFS") && context.HttpContext.Request.Method.Equals("GET", StringComparison.OrdinalIgnoreCase))
+                    {
+                        context.Token = accessToken;
+                    }
+                    return Task.CompletedTask;
+                }
+            };
         });
         await Task.CompletedTask;
     }

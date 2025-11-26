@@ -287,7 +287,7 @@ app.Run();
 
 ## 📁 GridFS 文件存储
 
-GridFS 是 MongoDB 的分布式文件系统，支持存储超过 16MB 的文件。
+GridFS 是 MongoDB 的分布式文件系统,支持存储超过 16MB 的文件.本实现经过优化,支持高效的流式传输和范围读取.
 
 ### 基础使用
 
@@ -295,90 +295,72 @@ GridFS 是 MongoDB 的分布式文件系统，支持存储超过 16MB 的文件�
 
 ```csharp
 // 需要提前注册 IMongoDatabase，或使用其他重载
-builder.Services.AddMongoGridFS();
+builder.Services.AddMongoGridFS(options =>
+{
+    options.ChunkSizeBytes = 255 * 1024; // 255KB - 优化流式传输性能
+});
 ```
 
-2. **依赖注入使用**:
+### 🎬 流式传输 - 视频/音频播放
 
-````csharp
-public class FileService(IGridFSBucket bucket)
-{
-    private readonly IGridFSBucket _bucket = bucket;
+- 支持 HTTP Range 请求的流式传输,完美支持(音)视频播放器的进度拖动和断点续传.
+- 支持超大文件的分块上传和断点续传,适合不稳定网络环境.前后端配合实现真正的断点续传.
 
-    public async Task UploadFileAsync(Stream stream, string filename)
-    {
-        var id = await _bucket.UploadFromStreamAsync(filename, stream);
-        return id;
-    }
+##### 使用 JavaScript SDK
 
-    public async Task<Stream> DownloadFileAsync(string filename)
-    {
-        return await _bucket.OpenDownloadStreamByNameAsync(filename);
-    }
-}
+```javascript
+import {
+  GridFSResumableUploader,
+  GridFSResumableDownloader,
+  formatFileSize,
+} from "./easilynet-gridfs-sdk.js";
 
----
+// 上传示例
+const startUpload = async (file) => {
+  const uploader = new GridFSResumableUploader(file, {
+    // url: 'https://api.example.com', // 可选: 如果后端不在当前域,请填写域名
+    chunkSize: 1024 * 1024, // 1MB
+    maxConcurrent: 3,
+    onProgress: (progress) => {
+      console.log(`上传进度: ${progress.percentage}%`);
+      console.log(`速度: ${formatFileSize(progress.speed)}/s`);
+    },
+    onError: (error) => {
+      console.error("上传错误:", error);
+    },
+    onComplete: (fileId) => {
+      console.log("上传完成, FileId:", fileId);
+    },
+  });
 
-## 🏷️ 索引管理
+  try {
+    await uploader.start();
+  } catch (error) {
+    console.error("上传失败:", error);
+  }
 
-EasilyNET.Mongo.AspNetCore 支持基于特性自动为实体类创建 MongoDB 索引，会根据字段命名约定（如小驼峰）自动适配索引字段名。
+  // 支持暂停/恢复/取消
+  // uploader.pause();
+  // await uploader.resume();
+  // await uploader.cancel();
+};
 
-### 核心特性
+// 下载示例
+const startDownload = async (fileId) => {
+  const downloader = new GridFSResumableDownloader({
+    fileId: fileId,
+    onProgress: (progress) => {
+      console.log(`下载进度: ${progress.percentage}%`);
+    },
+    onError: (error) => {
+      console.error("下载错误:", error);
+    },
+  });
 
-- **单字段索引**: 使用 `[MongoIndex]` 特性声明
-- **复合索引**: 使用 `[MongoCompoundIndex]` 特性声明
-- **索引类型**: 支持唯一索引、文本索引、地理空间索引等
-- **自动适配**: 字段名自动适配命名约定
-
-### 使用示例
-
-```csharp
-public class User
-{
-    [MongoIndex(EIndexType.Ascending, Unique = true)]
-    public string UserName { get; set; } = string.Empty;
-
-    [MongoIndex(EIndexType.Descending)]
-    public DateTime CreatedAt { get; set; }
-}
-
-[MongoCompoundIndex(
-    new[] { "UserName", "CreatedAt" },
-    new[] { EIndexType.Ascending, EIndexType.Descending },
-    Unique = true)]
-public class Log
-{
-    public string UserName { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; set; }
-}
+  try {
+    await downloader.downloadAndSave();
+  } catch (error) {
+    console.error("下载失败:", error);
+  }
+};
 ```
-
-### 配置索引创建
-
-```csharp
-var app = builder.Build();
-
-// 自动为所有集合创建索引，字段名自动适配命名约定
-app.UseCreateMongoIndexes<DbContext>();
-
-// 若存在多个 DbContext，需要多次应用
-app.UseCreateMongoIndexes<DbContext2>();
-```
-
-### 注意事项
-
-- 自动索引创建会比对现有索引定义
-- 若定义不一致会自动删除并重建（通过名称匹配）
-- 若不存在对应名称，不会删除原有索引（避免手动创建的索引失效）
-
----
-
-## 📚 更多资源
-
-- [示例项目](https://github.com/joesdu/EasilyNET/tree/main/sample)
-- [API 文档](https://github.com/joesdu/EasilyNET/wiki)
-- [问题反馈](https://github.com/joesdu/EasilyNET/issues)
-
----
-
-_最后更新: 2025 年 9 月 3 日_

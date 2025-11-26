@@ -1,7 +1,6 @@
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
-using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WebApi.Test.Unit.ServiceModules;
 
@@ -13,15 +12,15 @@ internal sealed class MongoFSModule : AppModule
     /// <inheritdoc />
     public override async Task ConfigureServices(ConfigureServicesContext context)
     {
-        context.Services.Configure<FormOptions>(c =>
-               {
-                   c.MultipartHeadersLengthLimit = int.MaxValue;
-                   c.MultipartBodyLengthLimit = long.MaxValue;
-                   c.ValueLengthLimit = int.MaxValue;
-               })
-               .Configure<KestrelServerOptions>(c => c.Limits.MaxRequestBodySize = null)
-               .Configure<IISServerOptions>(c => c.MaxRequestBodySize = null);
-        context.Services.AddMongoGridFS();
+        context.Services.AddMongoGridFS(serverConfigure: s =>
+        {
+            s.EnableController = true;
+#if !DEBUG
+            s.AuthorizeData.Add(new AuthorizeAttribute());
+            // 或者添加带策略的授权 (相当于 [Authorize(Policy = "MyPolicy")])
+            // s.AuthorizeData.Add(new AuthorizeAttribute("MyPolicy"));
+#endif
+        });
         await Task.CompletedTask;
     }
 }

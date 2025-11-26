@@ -1,6 +1,14 @@
 using EasilyNET.Mongo.AspNetCore.Abstraction;
+using EasilyNET.Mongo.AspNetCore.BackgroundServices;
 using EasilyNET.Mongo.AspNetCore.Common;
+using EasilyNET.Mongo.AspNetCore.Conventions;
 using EasilyNET.Mongo.AspNetCore.Factories;
+using EasilyNET.Mongo.AspNetCore.Helpers;
+using EasilyNET.Mongo.AspNetCore.Options;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
@@ -36,10 +44,14 @@ public static class GridFSCollectionExtensions
         ///     <para xml:lang="en">Configuration action</para>
         ///     <para xml:lang="zh">配置操作</para>
         /// </param>
-        public IServiceCollection AddMongoGridFS(Action<GridFSBucketOptions>? configure = null)
+        /// <param name="serverConfigure">
+        ///     <para xml:lang="en">Server configuration action</para>
+        ///     <para xml:lang="zh">服务端配置操作</para>
+        /// </param>
+        public IServiceCollection AddMongoGridFS(Action<GridFSBucketOptions>? configure = null, Action<GridFSServerOptions>? serverConfigure = null)
         {
             var db = services.BuildServiceProvider().GetService<IMongoDatabase>() ?? throw new("请先注册IMongoDatabase服务");
-            services.AddMongoGridFS(db, configure);
+            services.AddMongoGridFS(db, configure, serverConfigure);
             return services;
         }
 
@@ -59,10 +71,14 @@ public static class GridFSCollectionExtensions
         ///     <para xml:lang="en">Configuration action</para>
         ///     <para xml:lang="zh">配置操作</para>
         /// </param>
-        public IServiceCollection AddMongoGridFS(MongoClientSettings mongoSettings, string? dbName = null, Action<GridFSBucketOptions>? configure = null)
+        /// <param name="serverConfigure">
+        ///     <para xml:lang="en">Server configuration action</para>
+        ///     <para xml:lang="zh">服务端配置操作</para>
+        /// </param>
+        public IServiceCollection AddMongoGridFS(MongoClientSettings mongoSettings, string? dbName = null, Action<GridFSBucketOptions>? configure = null, Action<GridFSServerOptions>? serverConfigure = null)
         {
             var db = new MongoClient(mongoSettings).GetDatabase(dbName ?? Constant.DefaultDbName);
-            services.AddMongoGridFS(db, configure);
+            services.AddMongoGridFS(db, configure, serverConfigure);
             return services;
         }
 
@@ -81,7 +97,11 @@ public static class GridFSCollectionExtensions
         ///     <para xml:lang="en">Configuration action</para>
         ///     <para xml:lang="zh">配置操作</para>
         /// </param>
-        public IServiceCollection AddMongoGridFS(IConfiguration configuration, Action<GridFSBucketOptions>? configure = null)
+        /// <param name="serverConfigure">
+        ///     <para xml:lang="en">Server configuration action</para>
+        ///     <para xml:lang="zh">服务端配置操作</para>
+        /// </param>
+        public IServiceCollection AddMongoGridFS(IConfiguration configuration, Action<GridFSBucketOptions>? configure = null, Action<GridFSServerOptions>? serverConfigure = null)
         {
             var connStr = configuration.GetConnectionString("Mongo") ?? Environment.GetEnvironmentVariable("CONNECTIONSTRINGS_MONGO");
             if (string.IsNullOrWhiteSpace(connStr))
@@ -91,7 +111,7 @@ public static class GridFSCollectionExtensions
             var url = MongoUrl.Create(connStr);
             var name = string.IsNullOrWhiteSpace(url.DatabaseName) ? Constant.DefaultDbName : url.DatabaseName;
             var db = new MongoClient(url).GetDatabase(name);
-            services.AddMongoGridFS(db, configure);
+            services.AddMongoGridFS(db, configure, serverConfigure);
             return services;
         }
 
@@ -107,17 +127,21 @@ public static class GridFSCollectionExtensions
         ///     <para xml:lang="en">Configuration action</para>
         ///     <para xml:lang="zh">配置操作</para>
         /// </param>
-        public IServiceCollection AddMongoGridFS(IMongoDatabase db, Action<GridFSBucketOptions>? configure = null)
+        /// <param name="serverConfigure">
+        ///     <para xml:lang="en">Server configuration action</para>
+        ///     <para xml:lang="zh">服务端配置操作</para>
+        /// </param>
+        public IServiceCollection AddMongoGridFS(IMongoDatabase db, Action<GridFSBucketOptions>? configure = null, Action<GridFSServerOptions>? serverConfigure = null)
         {
             services.AddMongoGridFS(db, Constant.ConfigName, c =>
             {
                 c.BucketName = Constant.BucketName;
-                c.ChunkSizeBytes = 1024;
+                c.ChunkSizeBytes = 255 * 1024; // 255KB - 优化流式传输性能
                 c.ReadConcern = new();
                 c.ReadPreference = ReadPreference.Primary;
                 c.WriteConcern = WriteConcern.Unacknowledged;
                 configure?.Invoke(c);
-            });
+            }, serverConfigure);
             return services;
         }
 
@@ -137,11 +161,33 @@ public static class GridFSCollectionExtensions
         ///     <para xml:lang="en">Configuration action</para>
         ///     <para xml:lang="zh">配置操作</para>
         /// </param>
-        public IServiceCollection AddMongoGridFS(IMongoDatabase db, string name, Action<GridFSBucketOptions> configure)
+        /// <param name="serverConfigure">
+        ///     <para xml:lang="en">Server configuration action</para>
+        ///     <para xml:lang="zh">服务端配置操作</para>
+        /// </param>
+        public IServiceCollection AddMongoGridFS(IMongoDatabase db, string name, Action<GridFSBucketOptions> configure, Action<GridFSServerOptions>? serverConfigure = null)
         {
             services.Configure(name, configure);
+            var serverOptions = new GridFSServerOptions();
+            serverConfigure?.Invoke(serverOptions);
+            services.Configure<MvcOptions>(c => c.Conventions.Add(new GridFSControllerConvention(serverOptions)));
+            services.Configure<FormOptions>(c =>
+                    {
+                        c.MultipartHeadersLengthLimit = int.MaxValue;
+                        c.MultipartBodyLengthLimit = long.MaxValue;
+                        c.ValueLengthLimit = int.MaxValue;
+                    })
+                    .Configure<KestrelServerOptions>(c => c.Limits.MaxRequestBodySize = null)
+                    .Configure<IISServerOptions>(c => c.MaxRequestBodySize = null);
             services.TryAddSingleton<IGridFSBucketFactory, GridFSBucketFactory>();
             services.TryAddSingleton(sp => sp.GetRequiredService<IGridFSBucketFactory>().CreateBucket(db));
+            services.TryAddSingleton<GridFSCleanupHelper>();
+            services.AddHostedService<GridFSBackgroundCleanupService>();
+            services.AddSingleton<GridFSHelper>(sp =>
+            {
+                var bucket = sp.GetRequiredService<IGridFSBucket>();
+                return new(bucket);
+            });
             return services;
         }
     }
