@@ -155,7 +155,7 @@ public static class GridFSCollectionExtensions
                     .Configure<IISServerOptions>(c => c.MaxRequestBodySize = null);
             services.TryAddSingleton<IGridFSBucketFactory, GridFSBucketFactory>();
             services.TryAddSingleton(sp => sp.GetRequiredService<IGridFSBucketFactory>().CreateBucket(db));
-            services.TryAddScoped<GridFSCleanupHelper>();
+            services.TryAddSingleton<GridFSCleanupHelper>();
             services.AddHostedService<GridFSBackgroundCleanupService>();
             return services;
         }

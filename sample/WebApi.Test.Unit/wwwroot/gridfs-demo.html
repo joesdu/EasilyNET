@@ -347,7 +347,7 @@
                 GridFSResumableDownloader,
                 formatFileSize,
                 formatTime
-            } from './gridfs-resumable.js';
+            } from './easilynet-gridfs-sdk.js';
 
             let uploader = null;
             let downloader = null;
@@ -400,7 +400,7 @@
                 if (!file) return;
 
                 uploader = new GridFSResumableUploader(file, {
-                    uploadUrl: '/api/GridFS', // 根据实际 API 路径修改
+                    // url: 'https://api.example.com', // 可选: 如果后端不在当前域,请填写域名
                     chunkSize: 1024 * 1024, // 1MB
                     maxConcurrent: 3,
                     onProgress: (progress) => {
@@ -485,7 +485,7 @@
                 }
 
                 downloader = new GridFSResumableDownloader({
-                    downloadUrl: '/api/GridFS/StreamRange', // 根据实际 API 路径修改
+                    // url: 'https://api.example.com', // 可选: 如果后端不在当前域,请填写域名
                     fileId: fileId,
                     onProgress: (progress) => {
                         downloadProgress.style.display = 'block';

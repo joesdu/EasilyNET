@@ -17,8 +17,8 @@ declare const hashwasm: any;
  * 上传配置选项
  */
 export interface UploadOptions {
-  /** 服务端上传接口地址 */
-  uploadUrl: string;
+  /** 服务端地址 (例如: https://api.example.com), 默认为当前域名 */
+  url?: string;
   /** 分块大小 (字节), 默认 1MB */
   chunkSize?: number;
   /** 最大并发上传数, 默认 3 */
@@ -59,8 +59,8 @@ export interface UploadProgress {
  * 下载配置选项
  */
 export interface DownloadOptions {
-  /** 服务端下载接口地址 */
-  downloadUrl: string;
+  /** 服务端地址 (例如: https://api.example.com), 默认为当前域名 */
+  url?: string;
   /** 文件 ID */
   fileId: string;
   /** 保存的文件名 */
@@ -120,6 +120,7 @@ export class GridFSResumableUploader {
       onProgress: () => {},
       onError: () => {},
       onComplete: () => {},
+      url: "",
       ...options,
     };
 
@@ -295,8 +296,10 @@ export class GridFSResumableUploader {
       params.append("fileHash", fileHash);
     }
 
+    const host = (this.options.url || "").replace(/\/+$/, "");
+    const apiBase = `${host}/api/GridFS`;
     const response = await fetch(
-      `${this.options.uploadUrl}/CreateSession?${params.toString()}`,
+      `${apiBase}/CreateSession?${params.toString()}`,
       {
         method: "POST",
         headers: {
@@ -370,8 +373,10 @@ export class GridFSResumableUploader {
     const blob = this.file.slice(chunk.start, chunk.end);
     const chunkHash = await calculateHash(blob);
 
+    const host = (this.options.url || "").replace(/\/+$/, "");
+    const apiBase = `${host}/api/GridFS`;
     const response = await fetch(
-      `${this.options.uploadUrl}/UploadChunk?sessionId=${this.uploadId}&chunkNumber=${chunk.index}&chunkHash=${chunkHash}`,
+      `${apiBase}/UploadChunk?sessionId=${this.uploadId}&chunkNumber=${chunk.index}&chunkHash=${chunkHash}`,
       {
         method: "POST",
         headers: {
@@ -412,7 +417,9 @@ export class GridFSResumableUploader {
    * 完成上传
    */
   private async completeUpload(fileHash?: string): Promise<string> {
-    let url = `${this.options.uploadUrl}/Finalize/${this.uploadId}`;
+    const host = (this.options.url || "").replace(/\/+$/, "");
+    const apiBase = `${host}/api/GridFS`;
+    let url = `${apiBase}/Finalize/${this.uploadId}`;
     if (fileHash) {
       url += `?fileHash=${fileHash}`;
     }
@@ -437,7 +444,9 @@ export class GridFSResumableUploader {
    * 取消上传
    */
   private async abortUpload(): Promise<void> {
-    await fetch(`${this.options.uploadUrl}/Cancel/${this.uploadId}`, {
+    const host = (this.options.url || "").replace(/\/+$/, "");
+    const apiBase = `${host}/api/GridFS`;
+    await fetch(`${apiBase}/Cancel/${this.uploadId}`, {
       method: "DELETE",
       headers: this.options.headers,
     });
@@ -477,6 +486,7 @@ export class GridFSResumableDownloader {
       headers: {},
       onProgress: () => {},
       onError: () => {},
+      url: "",
       ...options,
     };
   }
@@ -505,8 +515,10 @@ export class GridFSResumableDownloader {
         headers["Range"] = `bytes=${startByte}-`;
       }
 
+      const host = (this.options.url || "").replace(/\/+$/, "");
+      const apiBase = `${host}/api/GridFS`;
       const response = await fetch(
-        `${this.options.downloadUrl}/${this.options.fileId}`,
+        `${apiBase}/StreamRange/${this.options.fileId}`,
         {
           headers,
           signal: this.abortController.signal,
@@ -603,7 +615,9 @@ export class GridFSResumableDownloader {
    * 用于浏览器直接下载或 <video> 标签播放
    */
   getDownloadUrl(): string {
-    let url = `${this.options.downloadUrl}/${this.options.fileId}`;
+    const host = (this.options.url || "").replace(/\/+$/, "");
+    const apiBase = `${host}/api/GridFS`;
+    let url = `${apiBase}/StreamRange/${this.options.fileId}`;
     // 尝试将 Authorization 头转换为 access_token 参数
     // 注意: 这需要后端接口支持 Query String 鉴权
     const auth =
