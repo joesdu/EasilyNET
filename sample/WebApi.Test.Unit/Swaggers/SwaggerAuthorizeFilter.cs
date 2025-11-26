@@ -1,6 +1,6 @@
-using System.Collections.Frozen;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -22,10 +22,15 @@ public sealed class SwaggerAuthorizeFilter : IOperationFilter
         // 获取方法和类的特性
         var methodAttributes = context.MethodInfo.GetCustomAttributes(true);
         var classAttributes = context.MethodInfo.DeclaringType?.GetCustomAttributes(true) ?? [];
-        var authAttributes = methodAttributes.Union(classAttributes).OfType<AuthorizeAttribute>().ToFrozenSet();
-        var allowAnonymousAttributes = methodAttributes.Union(classAttributes).OfType<AllowAnonymousAttribute>().ToFrozenSet();
-        // 如果存在AllowAnonymous或没有Authorize特性,不添加安全要求
-        if (allowAnonymousAttributes.Count > 0 || authAttributes.Count is 0)
+        // 检查特性
+        var hasAuthorizeAttribute = methodAttributes.Union(classAttributes).OfType<AuthorizeAttribute>().Any();
+        var hasAllowAnonymousAttribute = methodAttributes.Union(classAttributes).OfType<AllowAnonymousAttribute>().Any();
+        // 检查过滤器 (处理动态添加的过滤器)
+        var filters = context.ApiDescription.ActionDescriptor.FilterDescriptors;
+        var hasAuthorizeFilter = filters.Select(f => f.Filter).OfType<AuthorizeFilter>().Any();
+        var hasAllowAnonymousFilter = filters.Select(f => f.Filter).OfType<AllowAnonymousFilter>().Any();
+        // 如果存在AllowAnonymous或没有Authorize特性/过滤器,不添加安全要求
+        if (hasAllowAnonymousAttribute || hasAllowAnonymousFilter || (!hasAuthorizeAttribute && !hasAuthorizeFilter))
         {
             return;
         }
