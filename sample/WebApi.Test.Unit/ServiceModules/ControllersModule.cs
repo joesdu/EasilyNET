@@ -39,7 +39,7 @@ internal sealed class ControllersModule : AppModule
             c.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
         }).AddJwtBearer(c =>
         {
-            // 配置JWT选项
+            // 配置JWT选项用于解决 <a> 标签下载或 <video src="..."> 无法设置请求头的问题
             c.Events = new()
             {
                 OnMessageReceived = context =>
