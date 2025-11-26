@@ -532,7 +532,7 @@
                     return;
                 }
 
-                videoPlayer.src = `/api/GridFS/StreamRange/${fileId}`; // 根据实际 API 路径修改
+                videoPlayer.src = GridFSResumableDownloader.getUrl(fileId);
                 videoPlayer.style.display = 'block';
                 videoPlayer.load();
             });

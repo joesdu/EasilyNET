@@ -390,6 +390,27 @@ export class GridFSResumableDownloader {
   }
 
   /**
+   * 获取文件下载链接 (静态辅助方法)
+   * @param fileId 文件 ID
+   * @param options 可选配置 (url, headers)
+   */
+  static getUrl(fileId, options) {
+    const host = (options?.url || "").replace(/\/+$/, "");
+    const apiBase = `${host}/api/GridFS`;
+    let url = `${apiBase}/StreamRange/${fileId}`;
+
+    const auth =
+      options?.headers?.["Authorization"] ||
+      options?.headers?.["authorization"];
+    if (auth) {
+      const token = auth.replace(/^Bearer\s+/i, "");
+      const separator = url.includes("?") ? "&" : "?";
+      url += `${separator}access_token=${encodeURIComponent(token)}`;
+    }
+    return url;
+  }
+
+  /**
    * 开始下载 (支持断点续传)
    * @param getWritableStream 可选的回调函数，用于获取写入流。参数为文件名和总大小。
    */
@@ -508,20 +529,10 @@ export class GridFSResumableDownloader {
    * 用于浏览器直接下载或 <video> 标签播放
    */
   getDownloadUrl() {
-    const host = (this.options.url || "").replace(/\/+$/, "");
-    const apiBase = `${host}/api/GridFS`;
-    let url = `${apiBase}/StreamRange/${this.options.fileId}`;
-    // 尝试将 Authorization 头转换为 access_token 参数
-    // 注意: 这需要后端接口支持 Query String 鉴权
-    const auth =
-      this.options.headers?.["Authorization"] ||
-      this.options.headers?.["authorization"];
-    if (auth) {
-      const token = auth.replace(/^Bearer\s+/i, "");
-      const separator = url.includes("?") ? "&" : "?";
-      url += `${separator}access_token=${encodeURIComponent(token)}`;
-    }
-    return url;
+    return GridFSResumableDownloader.getUrl(this.options.fileId, {
+      url: this.options.url,
+      headers: this.options.headers,
+    });
   }
 
   /**
