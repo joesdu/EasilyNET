@@ -2,7 +2,6 @@ using System.Net;
 using System.Text.Json.Serialization;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.Mongo.AspNetCore.JsonConverters;
 using EasilyNET.WebCore.JsonConverters;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
@@ -31,7 +30,6 @@ internal sealed class ControllersModule : AppModule
                    c.JsonSerializerOptions.Converters.Add(new DecimalJsonConverter());
                    c.JsonSerializerOptions.Converters.Add(new IntJsonConverter());
                    c.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
-                   c.JsonSerializerOptions.Converters.Add(new BsonDocumentJsonConverter());
                    c.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                });
         context.Services.AddEndpointsApiExplorer();
@@ -42,6 +40,19 @@ internal sealed class ControllersModule : AppModule
         }).AddJwtBearer(c =>
         {
             // 配置JWT选项
+            c.Events = new()
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/api/GridFS") && context.HttpContext.Request.Method.Equals("GET", StringComparison.OrdinalIgnoreCase))
+                    {
+                        context.Token = accessToken;
+                    }
+                    return Task.CompletedTask;
+                }
+            };
         });
         await Task.CompletedTask;
     }

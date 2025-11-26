@@ -9,7 +9,7 @@ namespace WebApi.Test.Unit.Controllers;
 /// <summary>
 /// 一些接口上的功能测试
 /// </summary>
-[Route("api/[controller]/[action]")]
+[Route("api/[controller]/")]
 [ApiController]
 public class ValuesController : ControllerBase
 {

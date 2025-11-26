@@ -1,6 +1,7 @@
 using EasilyNET.Core.Misc;
 using EasilyNET.Mongo.AspNetCore.Common;
 using EasilyNET.Mongo.AspNetCore.Conventions;
+using EasilyNET.Mongo.AspNetCore.JsonConverters;
 using EasilyNET.Mongo.AspNetCore.Options;
 using EasilyNET.Mongo.Core;
 using Microsoft.Extensions.Configuration;
@@ -164,6 +165,7 @@ public static class MongoServiceExtensions
             services.AddSingleton(context.Database);
             services.AddSingleton(context);
             services.AddSingleton(options);
+            services.AddControllers().AddJsonOptions(c => c.JsonSerializerOptions.Converters.Add(new BsonDocumentJsonConverter()));
         }
     }
 }

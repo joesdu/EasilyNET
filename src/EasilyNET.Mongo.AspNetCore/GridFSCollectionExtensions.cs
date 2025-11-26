@@ -1,6 +1,11 @@
 using EasilyNET.Mongo.AspNetCore.Abstraction;
+using EasilyNET.Mongo.AspNetCore.BackgroundServices;
 using EasilyNET.Mongo.AspNetCore.Common;
 using EasilyNET.Mongo.AspNetCore.Factories;
+using EasilyNET.Mongo.AspNetCore.Helpers;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
@@ -112,7 +117,7 @@ public static class GridFSCollectionExtensions
             services.AddMongoGridFS(db, Constant.ConfigName, c =>
             {
                 c.BucketName = Constant.BucketName;
-                c.ChunkSizeBytes = 1024;
+                c.ChunkSizeBytes = 255 * 1024; // 255KB - 优化流式传输性能
                 c.ReadConcern = new();
                 c.ReadPreference = ReadPreference.Primary;
                 c.WriteConcern = WriteConcern.Unacknowledged;
@@ -140,8 +145,18 @@ public static class GridFSCollectionExtensions
         public IServiceCollection AddMongoGridFS(IMongoDatabase db, string name, Action<GridFSBucketOptions> configure)
         {
             services.Configure(name, configure);
+            services.Configure<FormOptions>(c =>
+                    {
+                        c.MultipartHeadersLengthLimit = int.MaxValue;
+                        c.MultipartBodyLengthLimit = long.MaxValue;
+                        c.ValueLengthLimit = int.MaxValue;
+                    })
+                    .Configure<KestrelServerOptions>(c => c.Limits.MaxRequestBodySize = null)
+                    .Configure<IISServerOptions>(c => c.MaxRequestBodySize = null);
             services.TryAddSingleton<IGridFSBucketFactory, GridFSBucketFactory>();
             services.TryAddSingleton(sp => sp.GetRequiredService<IGridFSBucketFactory>().CreateBucket(db));
+            services.TryAddSingleton<GridFSCleanupHelper>();
+            services.AddHostedService<GridFSBackgroundCleanupService>();
             return services;
         }
     }
