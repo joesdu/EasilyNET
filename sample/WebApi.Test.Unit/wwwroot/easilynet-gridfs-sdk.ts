@@ -535,9 +535,6 @@ export class GridFSResumableDownloader {
         ...this.options.headers,
       };
 
-      if (startByte > 0) {
-        headers["Range"] = `bytes=${startByte}-`;
-      }
 
       const host = (this.options.url || "").replace(/\/+$/, "");
       const apiBase = `${host}/api/GridFS`;
