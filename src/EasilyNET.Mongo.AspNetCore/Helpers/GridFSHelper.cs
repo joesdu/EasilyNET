@@ -5,16 +5,13 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
 
-// ReSharper disable UnusedType.Global
-// ReSharper disable UnusedMember.Global
-
 namespace EasilyNET.Mongo.AspNetCore.Helpers;
 
 /// <summary>
 ///     <para xml:lang="en">GridFS resumable upload helper - supports breakpoint resume for large file uploads</para>
 ///     <para xml:lang="zh">GridFS 断点续传辅助类 - 支持大文件上传的断点续传</para>
 /// </summary>
-public sealed class GridFSResumableUploadHelper
+public sealed class GridFSHelper
 {
     private const int GridFSChunkSize = 2 * 1024 * 1024; // 2MB standard chunk size
     private readonly IGridFSBucket _bucket;
@@ -29,7 +26,7 @@ public sealed class GridFSResumableUploadHelper
     ///     <para xml:lang="en">GridFS bucket</para>
     ///     <para xml:lang="zh">GridFS 存储桶</para>
     /// </param>
-    public GridFSResumableUploadHelper(IGridFSBucket bucket)
+    public GridFSHelper(IGridFSBucket bucket)
     {
         _bucket = bucket;
         var database = _bucket.Database;
@@ -60,8 +57,6 @@ public sealed class GridFSResumableUploadHelper
             Background = true
         });
         _sessionCollection.Indexes.CreateOne(ttlIndexModel);
-
-        // GridFS chunks 集合通常已有索引 (files_id, n), 无需重复创建
     }
 
     /// <summary>
@@ -247,14 +242,11 @@ public sealed class GridFSResumableUploadHelper
             return await GetSessionAsync(sessionId, cancellationToken) ?? session;
         }
         // 验证块哈希
-        using (var sha256 = SHA256.Create())
+        var computedHashBytes = SHA256.HashData(data);
+        var computedHash = Convert.ToHexString(computedHashBytes);
+        if (!computedHash.Equals(chunkHash, StringComparison.OrdinalIgnoreCase))
         {
-            var computedHashBytes = sha256.ComputeHash(data);
-            var computedHash = Convert.ToHexString(computedHashBytes);
-            if (!computedHash.Equals(chunkHash, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException($"Chunk hash verification failed. Expected: {chunkHash}, Got: {computedHash}");
-            }
+            throw new InvalidOperationException($"Chunk hash verification failed. Expected: {chunkHash}, Got: {computedHash}");
         }
 
         // 直接写入 GridFS chunks 集合
@@ -548,33 +540,10 @@ public sealed class GridFSResumableUploadHelper
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Clean up expired sessions (can be called periodically by a background job)</para>
-    ///     <para xml:lang="zh">清理过期会话(可由后台任务定期调用)</para>
-    /// </summary>
-    public async Task CleanupExpiredSessionsAsync(CancellationToken cancellationToken = default)
-    {
-        var filter = Builders<GridFSUploadSession>.Filter.And(Builders<GridFSUploadSession>.Filter.Lt(s => s.ExpiresAt, DateTime.UtcNow), Builders<GridFSUploadSession>.Filter.Ne(s => s.Status, UploadStatus.Completed));
-        var expiredSessions = await _sessionCollection.Find(filter).ToListAsync(cancellationToken);
-        foreach (var session in expiredSessions)
-        {
-            // 清理临时块数据
-            if (!string.IsNullOrEmpty(session.FileId))
-            {
-                await CleanupTempDataAsync(ObjectId.Parse(session.FileId), cancellationToken);
-            }
-
-            // 标记会话为过期
-            var updateFilter = Builders<GridFSUploadSession>.Filter.Eq(s => s.SessionId, session.SessionId);
-            var update = Builders<GridFSUploadSession>.Update.Set(s => s.Status, UploadStatus.Expired);
-            await _sessionCollection.UpdateOneAsync(updateFilter, update, cancellationToken: cancellationToken);
-        }
-    }
-
-    /// <summary>
     ///     <para xml:lang="en">Delete file with reference counting</para>
     ///     <para xml:lang="zh">带引用计数的删除文件</para>
     /// </summary>
-    public async Task DeleteFileAsync(ObjectId fileId, CancellationToken cancellationToken = default)
+    private async Task DeleteFileAsync(ObjectId fileId, CancellationToken cancellationToken = default)
     {
         var filesCollection = _bucket.Database.GetCollection<BsonDocument>($"{_bucket.Options.BucketName}.files");
         var filter = Builders<BsonDocument>.Filter.Eq("_id", fileId);
@@ -608,6 +577,85 @@ public sealed class GridFSResumableUploadHelper
         {
             Debug.WriteLine($"[WARN] File {fileId} not found during delete");
         }
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Downloads a range of bytes from a GridFS file. Supports HTTP Range header for video/audio streaming.
+    ///     </para>
+    ///     <para xml:lang="zh">从 GridFS 文件中下载指定范围的字节。支持 HTTP Range 头,用于视频/音频流传输。</para>
+    /// </summary>
+    /// <param name="id">
+    ///     <para xml:lang="en">File ObjectId</para>
+    ///     <para xml:lang="zh">文件 ObjectId</para>
+    /// </param>
+    /// <param name="startByte">
+    ///     <para xml:lang="en">Start byte position (inclusive)</para>
+    ///     <para xml:lang="zh">起始字节位置(包含)</para>
+    /// </param>
+    /// <param name="endByte">
+    ///     <para xml:lang="en">End byte position (inclusive), null for end of file</para>
+    ///     <para xml:lang="zh">结束字节位置(包含),null 表示文件末尾</para>
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     <para xml:lang="en">Cancellation token</para>
+    ///     <para xml:lang="zh">取消令牌</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Range stream with file info</para>
+    ///     <para xml:lang="zh">范围流及文件信息</para>
+    /// </returns>
+    public async Task<(Stream Stream, long TotalLength, long RangeStart, long RangeEnd, GridFSFileInfo FileInfo)> DownloadRangeAsync(ObjectId id, long startByte, long? endByte = null, CancellationToken cancellationToken = default)
+    {
+        // 获取文件信息
+        var fileInfo = await (await _bucket.FindAsync(Builders<GridFSFileInfo>.Filter.Eq(f => f.Id, id), cancellationToken: cancellationToken))
+                           .FirstOrDefaultAsync(cancellationToken) ??
+                       throw new FileNotFoundException($"File with ID {id} not found");
+        var totalLength = fileInfo.Length;
+        var actualStart = Math.Max(0, startByte);
+        var actualEnd = endByte.HasValue ? Math.Min(endByte.Value, totalLength - 1) : totalLength - 1;
+        if (actualStart >= totalLength)
+        {
+            throw new ArgumentOutOfRangeException(nameof(startByte), "Start byte is beyond file length");
+        }
+        // 打开可定位的下载流
+        var fullStream = await _bucket.OpenDownloadStreamAsync(id, new() { Seekable = true }, cancellationToken);
+        // 定位到起始位置
+        fullStream.Seek(actualStart, SeekOrigin.Begin);
+        // 创建范围限制流
+        var rangeLength = (actualEnd - actualStart) + 1;
+        var rangeStream = new RangeStream(fullStream, rangeLength);
+        return (rangeStream, totalLength, actualStart, actualEnd, fileInfo);
+    }
+
+    /// <summary>
+    /// Rename a file in GridFS
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="newName"></param>
+    /// <param name="cancellationToken"></param>
+    public async Task Rename(string id, string newName, CancellationToken cancellationToken = default)
+    {
+        await _bucket.RenameAsync(ObjectId.Parse(id), newName, cancellationToken);
+    }
+
+    /// <summary>
+    /// Delete files by IDs with reference counting
+    /// </summary>
+    /// <param name="ids"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public async Task<IEnumerable<string>> Delete(string[] ids, CancellationToken cancellationToken = default)
+    {
+        var oids = ids.Select(ObjectId.Parse).ToList();
+        var fi = await (await _bucket.FindAsync(Builders<GridFSFileInfo>.Filter.In(c => c.Id, oids), cancellationToken: cancellationToken)).ToListAsync(cancellationToken);
+        var fids = fi.Select(c => new { Id = c.Id.ToString(), FileName = c.Filename }).ToArray();
+        // 删除 GridFS 中的文件 (使用引用计数删除)
+        foreach (var item in fids)
+        {
+            await DeleteFileAsync(ObjectId.Parse(item.Id), cancellationToken);
+        }
+        return fids.Select(c => c.FileName);
     }
 
     private async Task IncrementRefCountAsync(ObjectId fileId, CancellationToken cancellationToken)
