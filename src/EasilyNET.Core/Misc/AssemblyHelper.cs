@@ -161,17 +161,20 @@ public static class AssemblyHelper
     public static void AddAssemblyNames(params IEnumerable<string> names)
     {
         ArgumentNullException.ThrowIfNull(names);
-        foreach (var n in names)
+        lock (_optionsLock)
         {
-            if (string.IsNullOrWhiteSpace(n))
+            foreach (var n in names)
             {
-                continue;
+                if (string.IsNullOrWhiteSpace(n))
+                {
+                    continue;
+                }
+                Options.IncludePatterns.Add(n);
             }
-            Options.IncludePatterns.Add(n);
-        }
-        if (_configurationComplete)
-        {
-            Reset();
+            if (_configurationComplete)
+            {
+                Reset();
+            }
         }
     }
 
@@ -202,21 +205,18 @@ public static class AssemblyHelper
     /// </summary>
     public static void AddIncludePatterns(params string[]? patterns)
     {
-        if (patterns is null || patterns.Length == 0)
+        lock (_optionsLock)
         {
-            return;
-        }
-        foreach (var p in patterns)
-        {
-            if (string.IsNullOrWhiteSpace(p))
+            foreach (var p in patterns ?? [])
             {
-                continue;
+                if (string.IsNullOrWhiteSpace(p))
+                    continue;
+                Options.IncludePatterns.Add(p);
             }
-            Options.IncludePatterns.Add(p);
-        }
-        if (_configurationComplete)
-        {
-            Reset();
+            if (_configurationComplete)
+            {
+                Reset();
+            }
         }
     }
 
@@ -230,17 +230,20 @@ public static class AssemblyHelper
         {
             return;
         }
-        foreach (var p in patterns)
+        lock (_optionsLock)
         {
-            if (string.IsNullOrWhiteSpace(p))
+            foreach (var p in patterns)
             {
-                continue;
+                if (string.IsNullOrWhiteSpace(p))
+                {
+                    continue;
+                }
+                Options.ExcludePatterns.Add(p);
             }
-            Options.ExcludePatterns.Add(p);
-        }
-        if (_configurationComplete)
-        {
-            Reset();
+            if (_configurationComplete)
+            {
+                Reset();
+            }
         }
     }
 
@@ -349,11 +352,16 @@ public static class AssemblyHelper
     {
         var asmArray = assemblies as Assembly[] ?? [.. assemblies];
         // Use array of local lists to reduce ConcurrentBag contention
+        // Pre-initialize to avoid NullReferenceException if Parallel.For iteration throws before assignment
         var localResults = new List<Type>[asmArray.Length];
+        for (var i = 0; i < localResults.Length; i++)
+        {
+            localResults[i] = [];
+        }
         Parallel.For(0, asmArray.Length, parallelOptions, i =>
         {
             var assembly = asmArray[i];
-            var localList = new List<Type>();
+            var localList = localResults[i];
             try
             {
                 var typesInAssembly = assembly.GetTypes();
@@ -368,7 +376,6 @@ public static class AssemblyHelper
             {
                 Debug.WriteLine($"Failed to load types from assembly: {assembly.FullName}, error: {ex.Message}");
             }
-            localResults[i] = localList;
         });
         // Merge results efficiently
         var totalCount = localResults.Sum(list => list.Count);

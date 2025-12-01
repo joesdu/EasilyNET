@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using EasilyNET.AutoDependencyInjection.Abstractions;
@@ -123,17 +124,25 @@ internal class ModuleApplicationBase : IModuleApplication
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IAppModule? CreateModule(Type moduleType, ConfigureServicesContext context)
     {
-        var factory = ConstructorCache.GetOrAdd(moduleType, static t =>
+        try
         {
-            var ctor = t.GetConstructor(Type.EmptyTypes);
-            return ctor is null
-                       ? throw new InvalidOperationException($"Type {t.FullName} does not have a parameterless constructor.")
-                       // Use compiled delegate for faster instantiation
-                       : Expression.Lambda<Func<object>>(Expression.New(ctor)).Compile();
-        });
-        var module = factory() as IAppModule;
-        ArgumentNullException.ThrowIfNull(module, nameof(moduleType));
-        return module.GetEnable(context) ? module : null;
+            var factory = ConstructorCache.GetOrAdd(moduleType, static t =>
+            {
+                var ctor = t.GetConstructor(Type.EmptyTypes);
+                return ctor is null
+                           ? throw new InvalidOperationException($"Type {t.FullName} does not have a parameterless constructor.")
+                           : Expression.Lambda<Func<object>>(Expression.New(ctor)).Compile();
+            });
+            var module = factory() as IAppModule;
+            ArgumentNullException.ThrowIfNull(module, nameof(moduleType));
+            return module.GetEnable(context) ? module : null;
+        }
+        catch (Exception ex)
+        {
+            // Log the error but don't break other modules
+            Debug.WriteLine($"Failed to create module {moduleType.FullName}: {ex.Message}");
+            return null;
+        }
     }
 
     /// <summary>
