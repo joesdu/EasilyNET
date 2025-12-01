@@ -159,24 +159,27 @@ public static class AssemblyHelper
     public static void AddAssemblyNames(params IEnumerable<string> names)
     {
         ArgumentNullException.ThrowIfNull(names);
-        var added = false;
-        foreach (var n in names)
+        lock (_optionsLock)
         {
-            if (string.IsNullOrWhiteSpace(n))
+            var added = false;
+            foreach (var n in names)
             {
-                continue;
+                if (string.IsNullOrWhiteSpace(n))
+                {
+                    continue;
+                }
+                if (Options.IncludePatterns.Add(n))
+                {
+                    added = true;
+                }
             }
-            if (Options.IncludePatterns.Add(n))
+            if (!added)
             {
-                added = true;
+                return;
             }
+            Options.InvalidatePatternCache();
+            Reset();
         }
-        if (!added)
-        {
-            return;
-        }
-        Options.InvalidatePatternCache();
-        Reset();
     }
 
     /// <summary>
@@ -209,24 +212,27 @@ public static class AssemblyHelper
         {
             return;
         }
-        var added = false;
-        foreach (var p in patterns)
+        lock (_optionsLock)
         {
-            if (string.IsNullOrWhiteSpace(p))
+            var added = false;
+            foreach (var p in patterns)
             {
-                continue;
+                if (string.IsNullOrWhiteSpace(p))
+                {
+                    continue;
+                }
+                if (Options.IncludePatterns.Add(p))
+                {
+                    added = true;
+                }
             }
-            if (Options.IncludePatterns.Add(p))
+            if (!added)
             {
-                added = true;
+                return;
             }
+            Options.InvalidatePatternCache();
+            Reset();
         }
-        if (!added)
-        {
-            return;
-        }
-        Options.InvalidatePatternCache();
-        Reset();
     }
 
     /// <summary>
@@ -239,24 +245,27 @@ public static class AssemblyHelper
         {
             return;
         }
-        var added = false;
-        foreach (var p in patterns)
+        lock (_optionsLock)
         {
-            if (string.IsNullOrWhiteSpace(p))
+            var added = false;
+            foreach (var p in patterns)
             {
-                continue;
+                if (string.IsNullOrWhiteSpace(p))
+                {
+                    continue;
+                }
+                if (Options.ExcludePatterns.Add(p))
+                {
+                    added = true;
+                }
             }
-            if (Options.ExcludePatterns.Add(p))
+            if (!added)
             {
-                added = true;
+                return;
             }
+            Options.InvalidatePatternCache();
+            Reset();
         }
-        if (!added)
-        {
-            return;
-        }
-        Options.InvalidatePatternCache();
-        Reset();
     }
 
     /// <summary>
@@ -723,7 +732,9 @@ public static class AssemblyHelper
                     {
                         return _compiledIncludePatterns;
                     }
-                    _compiledIncludePatterns = CompileWildcardPatterns(IncludePatterns);
+                    // Take a snapshot of the patterns to avoid race conditions
+                    var snapshot = IncludePatterns.ToArray();
+                    _compiledIncludePatterns = CompileWildcardPatterns(snapshot);
                     Volatile.Write(ref _lastIncludeVersion, currentVersion);
                     return _compiledIncludePatterns;
                 }
@@ -747,7 +758,9 @@ public static class AssemblyHelper
                     {
                         return _compiledExcludePatterns;
                     }
-                    _compiledExcludePatterns = CompileWildcardPatterns(ExcludePatterns);
+                    // Take a snapshot of the patterns to avoid race conditions
+                    var snapshot = ExcludePatterns.ToArray();
+                    _compiledExcludePatterns = CompileWildcardPatterns(snapshot);
                     Volatile.Write(ref _lastExcludeVersion, currentVersion);
                     return _compiledExcludePatterns;
                 }
