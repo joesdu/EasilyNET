@@ -556,14 +556,7 @@ public static class AssemblyHelper
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool MatchesAnyPattern(string name, FrozenSet<string> patterns)
     {
-        foreach (var pattern in patterns)
-        {
-            if (FileSystemName.MatchesSimpleExpression(pattern, name))
-            {
-                return true;
-            }
-        }
-        return false;
+        return patterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, name));
     }
 
     /// <summary>
