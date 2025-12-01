@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Enumeration;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using Microsoft.Extensions.DependencyModel;
 
@@ -158,15 +159,27 @@ public static class AssemblyHelper
     public static void AddAssemblyNames(params IEnumerable<string> names)
     {
         ArgumentNullException.ThrowIfNull(names);
-        foreach (var n in names)
+        lock (_optionsLock)
         {
-            if (string.IsNullOrWhiteSpace(n))
+            var added = false;
+            foreach (var n in names)
             {
-                continue;
+                if (string.IsNullOrWhiteSpace(n))
+                {
+                    continue;
+                }
+                if (Options.IncludePatterns.Add(n))
+                {
+                    added = true;
+                }
             }
-            Options.IncludePatterns.Add(n);
+            if (!added)
+            {
+                return;
+            }
+            Options.InvalidatePatternCache();
+            Reset();
         }
-        Reset();
     }
 
     /// <summary>
@@ -199,15 +212,27 @@ public static class AssemblyHelper
         {
             return;
         }
-        foreach (var p in patterns)
+        lock (_optionsLock)
         {
-            if (string.IsNullOrWhiteSpace(p))
+            var added = false;
+            foreach (var p in patterns)
             {
-                continue;
+                if (string.IsNullOrWhiteSpace(p))
+                {
+                    continue;
+                }
+                if (Options.IncludePatterns.Add(p))
+                {
+                    added = true;
+                }
             }
-            Options.IncludePatterns.Add(p);
+            if (!added)
+            {
+                return;
+            }
+            Options.InvalidatePatternCache();
+            Reset();
         }
-        Reset();
     }
 
     /// <summary>
@@ -220,15 +245,27 @@ public static class AssemblyHelper
         {
             return;
         }
-        foreach (var p in patterns)
+        lock (_optionsLock)
         {
-            if (string.IsNullOrWhiteSpace(p))
+            var added = false;
+            foreach (var p in patterns)
             {
-                continue;
+                if (string.IsNullOrWhiteSpace(p))
+                {
+                    continue;
+                }
+                if (Options.ExcludePatterns.Add(p))
+                {
+                    added = true;
+                }
             }
-            Options.ExcludePatterns.Add(p);
+            if (!added)
+            {
+                return;
+            }
+            Options.InvalidatePatternCache();
+            Reset();
         }
-        Reset();
     }
 
     /// <summary>
@@ -243,12 +280,21 @@ public static class AssemblyHelper
     public static IEnumerable<Assembly?> GetAssembliesByName(params IEnumerable<string> assemblyNames)
     {
         var patterns = CompileWildcardPatterns(assemblyNames);
+        if (patterns.Count == 0)
+        {
+            yield break;
+        }
+        var yieldedFullNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         // Prefer already loaded assemblies
-        var loaded = AssemblyLoadContext.Default.Assemblies;
-        foreach (var asm in loaded)
+        foreach (var asm in AssemblyLoadContext.Default.Assemblies)
         {
             var name = asm.GetName().Name ?? string.Empty;
-            if (patterns.Any(p => FileSystemName.MatchesSimpleExpression(p, name)))
+            if (!MatchesAnyPattern(name, patterns))
+            {
+                continue;
+            }
+            var fullName = asm.FullName;
+            if (fullName is not null && yieldedFullNames.Add(fullName))
             {
                 yield return asm;
             }
@@ -258,11 +304,16 @@ public static class AssemblyHelper
         foreach (var name in dcNames)
         {
             var simpleName = name.Name ?? string.Empty;
-            if (!patterns.Any(p => FileSystemName.MatchesSimpleExpression(p, simpleName)))
+            if (!MatchesAnyPattern(simpleName, patterns))
             {
                 continue;
             }
-            if (TryLoadByName(name, out var asm))
+            if (!TryLoadByName(name, out var asm) || asm is null)
+            {
+                continue;
+            }
+            var fullName = asm.FullName;
+            if (fullName is not null && yieldedFullNames.Add(fullName))
             {
                 yield return asm;
             }
@@ -274,7 +325,11 @@ public static class AssemblyHelper
         }
         foreach (var asm in ProbeAssembliesFromDisk(patterns))
         {
-            yield return asm;
+            var fullName = asm.FullName;
+            if (fullName is not null && yieldedFullNames.Add(fullName))
+            {
+                yield return asm;
+            }
         }
     }
 
@@ -335,34 +390,55 @@ public static class AssemblyHelper
     private static Type[] LoadTypesInternal(IEnumerable<Assembly> assemblies)
     {
         var asmArray = assemblies as Assembly[] ?? [.. assemblies];
-        var allTypes = new ConcurrentBag<Type>();
-        Parallel.ForEach(asmArray, parallelOptions, assembly =>
+        if (asmArray.Length == 0)
         {
+            return [];
+        }
+        // Pre-collect types per assembly to reduce contention
+        var typeArrays = new Type[asmArray.Length][];
+        Parallel.For(0, asmArray.Length, parallelOptions, i =>
+        {
+            var assembly = asmArray[i];
             try
             {
-                var typesInAssembly = assembly.GetTypes();
-                foreach (var type in typesInAssembly)
-                {
-                    allTypes.Add(type);
-                }
+                typeArrays[i] = assembly.GetTypes();
             }
             catch (ReflectionTypeLoadException rtle)
             {
-                // 只添加成功加载的类型
-                foreach (var type in rtle.Types)
+                // Filter out null types - count without creating iterator
+                var loadedTypes = rtle.Types;
+                var count = loadedTypes.OfType<Type>().Count();
+                var filtered = new Type[count];
+                var idx = 0;
+                foreach (var t in loadedTypes)
                 {
-                    if (type is not null)
+                    if (t is not null)
                     {
-                        allTypes.Add(type);
+                        filtered[idx++] = t;
                     }
                 }
+                typeArrays[i] = filtered;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to load types from assembly: {assembly.FullName}, error: {ex.Message}");
+                typeArrays[i] = [];
             }
         });
-        return [.. allTypes];
+        // Calculate total count and merge
+        var totalCount = typeArrays.Sum(arr => arr.Length);
+        var result = new Type[totalCount];
+        var offset = 0;
+        foreach (var arr in typeArrays)
+        {
+            if (arr.Length == 0)
+            {
+                continue;
+            }
+            Array.Copy(arr, 0, result, offset, arr.Length);
+            offset += arr.Length;
+        }
+        return result;
     }
 
     /// <summary>
@@ -467,13 +543,29 @@ public static class AssemblyHelper
         {
             return options.ScanAllRuntimeLibraries;
         }
-        // Exclude first
-        if (options.CompiledExcludePatterns.Value.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, simple)))
+        // Exclude first - use foreach to avoid LINQ overhead
+        var excludePatterns = options.CompiledExcludePatterns;
+        if (excludePatterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, simple)))
         {
             return false;
         }
         // Then include
-        return options.IncludePatterns.Count == 0 || options.CompiledIncludePatterns.Value.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, simple));
+        if (options.IncludePatterns.Count == 0)
+        {
+            return true;
+        }
+        var includePatterns = options.CompiledIncludePatterns;
+        return includePatterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, simple));
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Check if name matches any pattern in the set (avoids LINQ delegate overhead).</para>
+    ///     <para xml:lang="zh">检查名称是否匹配集合中的任何模式（避免 LINQ 委托开销）。</para>
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool MatchesAnyPattern(string name, FrozenSet<string> patterns)
+    {
+        return patterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, name));
     }
 
     /// <summary>
@@ -507,7 +599,7 @@ public static class AssemblyHelper
         foreach (var file in files)
         {
             var fileName = Path.GetFileNameWithoutExtension(file);
-            if (!patterns.Any(p => FileSystemName.MatchesSimpleExpression(p, fileName)))
+            if (!MatchesAnyPattern(fileName, patterns))
             {
                 continue;
             }
@@ -577,6 +669,13 @@ public static class AssemblyHelper
     /// </summary>
     public sealed class AssemblyScanOptions
     {
+        private readonly Lock _patternLock = new();
+        private volatile FrozenSet<string>? _compiledExcludePatterns;
+        private volatile FrozenSet<string>? _compiledIncludePatterns;
+        private int _lastExcludeVersion = -1;
+        private int _lastIncludeVersion = -1;
+        private volatile int _patternVersion;
+
         internal AssemblyScanOptions()
         {
             // Reasonable defaults
@@ -616,9 +715,57 @@ public static class AssemblyHelper
         /// </summary>
         public bool AllowDirectoryProbe { get; set; }
 
-        internal Lazy<FrozenSet<string>> CompiledIncludePatterns => new(() => CompileWildcardPatterns(IncludePatterns));
+        internal FrozenSet<string> CompiledIncludePatterns
+        {
+            get
+            {
+                var currentVersion = _patternVersion;
+                var cached = _compiledIncludePatterns;
+                if (cached is not null && Volatile.Read(ref _lastIncludeVersion) == currentVersion)
+                {
+                    return cached;
+                }
+                lock (_patternLock)
+                {
+                    currentVersion = _patternVersion;
+                    if (_compiledIncludePatterns is not null && _lastIncludeVersion == currentVersion)
+                    {
+                        return _compiledIncludePatterns;
+                    }
+                    // Take a snapshot of the patterns to avoid race conditions
+                    var snapshot = IncludePatterns.ToArray();
+                    _compiledIncludePatterns = CompileWildcardPatterns(snapshot);
+                    Volatile.Write(ref _lastIncludeVersion, currentVersion);
+                    return _compiledIncludePatterns;
+                }
+            }
+        }
 
-        internal Lazy<FrozenSet<string>> CompiledExcludePatterns => new(() => CompileWildcardPatterns(ExcludePatterns));
+        internal FrozenSet<string> CompiledExcludePatterns
+        {
+            get
+            {
+                var currentVersion = _patternVersion;
+                var cached = _compiledExcludePatterns;
+                if (cached is not null && Volatile.Read(ref _lastExcludeVersion) == currentVersion)
+                {
+                    return cached;
+                }
+                lock (_patternLock)
+                {
+                    currentVersion = _patternVersion;
+                    if (_compiledExcludePatterns is not null && _lastExcludeVersion == currentVersion)
+                    {
+                        return _compiledExcludePatterns;
+                    }
+                    // Take a snapshot of the patterns to avoid race conditions
+                    var snapshot = ExcludePatterns.ToArray();
+                    _compiledExcludePatterns = CompileWildcardPatterns(snapshot);
+                    Volatile.Write(ref _lastExcludeVersion, currentVersion);
+                    return _compiledExcludePatterns;
+                }
+            }
+        }
 
         /// <summary>
         ///     <para xml:lang="en">Include patterns, e.g. "EasilyNET.*"</para>
@@ -631,5 +778,11 @@ public static class AssemblyHelper
         ///     <para xml:lang="zh">排除模式，例如 "System.*"</para>
         /// </summary>
         public HashSet<string> ExcludePatterns { get; }
+
+        /// <summary>
+        ///     <para xml:lang="en">Invalidates compiled pattern caches</para>
+        ///     <para xml:lang="zh">使编译的模式缓存失效</para>
+        /// </summary>
+        internal void InvalidatePatternCache() => Interlocked.Increment(ref _patternVersion);
     }
 }
