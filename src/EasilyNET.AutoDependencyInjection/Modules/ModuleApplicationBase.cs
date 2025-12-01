@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.Core.Misc;
@@ -12,6 +13,8 @@ namespace EasilyNET.AutoDependencyInjection.Modules;
 /// <inheritdoc />
 internal class ModuleApplicationBase : IModuleApplication
 {
+    // Cache compiled constructors to avoid repeated Expression.Compile() overhead
+    private static readonly ConcurrentDictionary<Type, Func<object>> ConstructorCache = new();
     private readonly Type _startModuleType;
 
     /// <summary>
@@ -33,7 +36,7 @@ internal class ModuleApplicationBase : IModuleApplication
         _startModuleType = startModuleType;
         Services = services;
         ServiceProvider = services.BuildServiceProvider();
-        GetModules().GetAwaiter().GetResult();
+        LoadModules();
     }
 
     /// <summary>
@@ -76,10 +79,10 @@ internal class ModuleApplicationBase : IModuleApplication
     ///     <para xml:lang="en">Get all modules that need to be loaded</para>
     ///     <para xml:lang="zh">获取所有需要加载的模块</para>
     /// </summary>
-    private async Task GetModules()
+    private void LoadModules()
     {
-        var sources = await GetAllEnabledModule();
-        var module = sources.FirstOrDefault(o => o.GetType() == _startModuleType) ?? throw new($"类型为“{_startModuleType.FullName}”的模块实例无法找到");
+        var sources = GetAllEnabledModule();
+        var module = sources.FirstOrDefault(o => o.GetType() == _startModuleType) ?? throw new($"类型为 '{_startModuleType.FullName}' 的模块实例无法找到");
         Modules.Add(module);
         var depends = module.GetDependedTypes();
         foreach (var dependType in depends)
@@ -96,18 +99,12 @@ internal class ModuleApplicationBase : IModuleApplication
     ///     <para xml:lang="en">Get all enabled modules</para>
     ///     <para xml:lang="zh">获取所有启用的模块</para>
     /// </summary>
-    private async Task<ConcurrentBag<IAppModule>> GetAllEnabledModule()
+    private List<IAppModule> GetAllEnabledModule()
     {
-        var types = AssemblyHelper.AllTypes.Where(AppModule.IsAppModule);
-        var source = new ConcurrentBag<IAppModule>();
-        await Parallel.ForEachAsync(types, async (type, _) =>
-        {
-            var module = await CreateModule(type);
-            if (module is not null)
-            {
-                source.Add(module);
-            }
-        });
+        var types = AssemblyHelper.AllTypes.Where(AppModule.IsAppModule).ToArray();
+        var context = new ConfigureServicesContext(Services, ServiceProvider);
+        var source = new List<IAppModule>(types.Length);
+        source.AddRange(types.Select(type => CreateModule(type, context)).OfType<IAppModule>());
         return source;
     }
 
@@ -119,14 +116,24 @@ internal class ModuleApplicationBase : IModuleApplication
     ///     <para xml:lang="en">Type of the module</para>
     ///     <para xml:lang="zh">模块的类型</para>
     /// </param>
-    private async Task<IAppModule?> CreateModule(Type moduleType)
+    /// <param name="context">
+    ///     <para xml:lang="en">Configure services context</para>
+    ///     <para xml:lang="zh">配置服务上下文</para>
+    /// </param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static IAppModule? CreateModule(Type moduleType, ConfigureServicesContext context)
     {
-        return await Task.Run(() =>
+        var factory = ConstructorCache.GetOrAdd(moduleType, static t =>
         {
-            var module = Expression.Lambda(Expression.New(moduleType)).Compile().DynamicInvoke() as IAppModule;
-            ArgumentNullException.ThrowIfNull(module, nameof(moduleType));
-            return module.GetEnable(new(Services, ServiceProvider)) ? module : null;
+            var ctor = t.GetConstructor(Type.EmptyTypes);
+            return ctor is null
+                       ? throw new InvalidOperationException($"Type {t.FullName} does not have a parameterless constructor.")
+                       // Use compiled delegate for faster instantiation
+                       : Expression.Lambda<Func<object>>(Expression.New(ctor)).Compile();
         });
+        var module = factory() as IAppModule;
+        ArgumentNullException.ThrowIfNull(module, nameof(moduleType));
+        return module.GetEnable(context) ? module : null;
     }
 
     /// <summary>

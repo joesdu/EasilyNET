@@ -109,6 +109,9 @@ public static class AssemblyHelper
         MaxDegreeOfParallelism = Environment.ProcessorCount
     };
 
+    // Track if configuration is complete to avoid premature Reset calls
+    private static volatile bool _configurationComplete;
+
     static AssemblyHelper()
     {
         // Initialize default include patterns
@@ -166,7 +169,10 @@ public static class AssemblyHelper
             }
             Options.IncludePatterns.Add(n);
         }
-        Reset();
+        if (_configurationComplete)
+        {
+            Reset();
+        }
     }
 
     /// <summary>
@@ -179,6 +185,7 @@ public static class AssemblyHelper
         lock (_optionsLock)
         {
             configure(Options);
+            _configurationComplete = true;
             Reset();
         }
     }
@@ -207,7 +214,10 @@ public static class AssemblyHelper
             }
             Options.IncludePatterns.Add(p);
         }
-        Reset();
+        if (_configurationComplete)
+        {
+            Reset();
+        }
     }
 
     /// <summary>
@@ -228,7 +238,10 @@ public static class AssemblyHelper
             }
             Options.ExcludePatterns.Add(p);
         }
-        Reset();
+        if (_configurationComplete)
+        {
+            Reset();
+        }
     }
 
     /// <summary>
@@ -335,34 +348,38 @@ public static class AssemblyHelper
     private static Type[] LoadTypesInternal(IEnumerable<Assembly> assemblies)
     {
         var asmArray = assemblies as Assembly[] ?? [.. assemblies];
-        var allTypes = new ConcurrentBag<Type>();
-        Parallel.ForEach(asmArray, parallelOptions, assembly =>
+        // Use array of local lists to reduce ConcurrentBag contention
+        var localResults = new List<Type>[asmArray.Length];
+        Parallel.For(0, asmArray.Length, parallelOptions, i =>
         {
+            var assembly = asmArray[i];
+            var localList = new List<Type>();
             try
             {
                 var typesInAssembly = assembly.GetTypes();
-                foreach (var type in typesInAssembly)
-                {
-                    allTypes.Add(type);
-                }
+                localList.AddRange(typesInAssembly);
             }
             catch (ReflectionTypeLoadException rtle)
             {
                 // 只添加成功加载的类型
-                foreach (var type in rtle.Types)
-                {
-                    if (type is not null)
-                    {
-                        allTypes.Add(type);
-                    }
-                }
+                localList.AddRange(rtle.Types.OfType<Type>());
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to load types from assembly: {assembly.FullName}, error: {ex.Message}");
             }
+            localResults[i] = localList;
         });
-        return [.. allTypes];
+        // Merge results efficiently
+        var totalCount = localResults.Sum(list => list.Count);
+        var result = new Type[totalCount];
+        var index = 0;
+        foreach (var list in localResults)
+        {
+            list.CopyTo(result, index);
+            index += list.Count;
+        }
+        return result;
     }
 
     /// <summary>
@@ -468,12 +485,12 @@ public static class AssemblyHelper
             return options.ScanAllRuntimeLibraries;
         }
         // Exclude first
-        if (options.CompiledExcludePatterns.Value.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, simple)))
+        if (options.CompiledExcludePatterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, simple)))
         {
             return false;
         }
         // Then include
-        return options.IncludePatterns.Count == 0 || options.CompiledIncludePatterns.Value.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, simple));
+        return options.IncludePatterns.Count == 0 || options.CompiledIncludePatterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, simple));
     }
 
     /// <summary>
@@ -567,6 +584,7 @@ public static class AssemblyHelper
     {
         Interlocked.Increment(ref _version);
         AttributeTypeCache.Clear();
+        Options.InvalidateCompiledPatterns();
         _lazyAllAssemblies = new(static () => [.. LoadAssembliesInternal(Options)]);
         _lazyAllTypes = new(static () => [.. LoadTypesInternal(_lazyAllAssemblies.Value)]);
     }
@@ -577,6 +595,9 @@ public static class AssemblyHelper
     /// </summary>
     public sealed class AssemblyScanOptions
     {
+        private Lazy<FrozenSet<string>> _compiledExcludePatterns;
+        private Lazy<FrozenSet<string>> _compiledIncludePatterns;
+
         internal AssemblyScanOptions()
         {
             // Reasonable defaults
@@ -602,6 +623,8 @@ public static class AssemblyHelper
             {
                 "EasilyNET*"
             };
+            _compiledIncludePatterns = new(() => CompileWildcardPatterns(IncludePatterns));
+            _compiledExcludePatterns = new(() => CompileWildcardPatterns(ExcludePatterns));
         }
 
         /// <summary>
@@ -616,9 +639,9 @@ public static class AssemblyHelper
         /// </summary>
         public bool AllowDirectoryProbe { get; set; }
 
-        internal Lazy<FrozenSet<string>> CompiledIncludePatterns => new(() => CompileWildcardPatterns(IncludePatterns));
+        internal FrozenSet<string> CompiledIncludePatterns => _compiledIncludePatterns.Value;
 
-        internal Lazy<FrozenSet<string>> CompiledExcludePatterns => new(() => CompileWildcardPatterns(ExcludePatterns));
+        internal FrozenSet<string> CompiledExcludePatterns => _compiledExcludePatterns.Value;
 
         /// <summary>
         ///     <para xml:lang="en">Include patterns, e.g. "EasilyNET.*"</para>
@@ -631,5 +654,15 @@ public static class AssemblyHelper
         ///     <para xml:lang="zh">排除模式，例如 "System.*"</para>
         /// </summary>
         public HashSet<string> ExcludePatterns { get; }
+
+        /// <summary>
+        ///     <para xml:lang="en">Invalidates compiled patterns cache. Call after modifying IncludePatterns or ExcludePatterns.</para>
+        ///     <para xml:lang="zh">使编译模式缓存失效。修改 IncludePatterns 或 ExcludePatterns 后调用。</para>
+        /// </summary>
+        internal void InvalidateCompiledPatterns()
+        {
+            _compiledIncludePatterns = new(() => CompileWildcardPatterns(IncludePatterns));
+            _compiledExcludePatterns = new(() => CompileWildcardPatterns(ExcludePatterns));
+        }
     }
 }

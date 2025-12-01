@@ -7,6 +7,12 @@
     <DockerfileContext>..\..</DockerfileContext>
     <DockerComposeProjectPath>..\..\docker-compose.dcproj</DockerComposeProjectPath>
     <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    <!-- 启用 ReadyToRun 预编译以加速首次启动 -->
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <!-- 启用分层编译 (默认已启用,显式声明确保生效) -->
+    <TieredCompilation>true</TieredCompilation>
+    <!-- 启用快速 JIT 用于分层编译的第一层 -->
+    <TieredCompilationQuickJit>true</TieredCompilationQuickJit>
   </PropertyGroup>
 
   <ItemGroup>
