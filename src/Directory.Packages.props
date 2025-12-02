@@ -24,12 +24,18 @@
     <!--microsoft asp.net core -->
     <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.0.0" />
+    <!--microsoft source generator-->
+    <!--<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.12.0-beta1.25218.8" />-->
+    <!--<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />-->
   </ItemGroup>
   <!-- 自定义任务来检查 TargetFramework -->
   <PropertyGroup>
     <IsVisualStudioMSBuild Condition="'$(MSBuildRuntimeType)' == 'Full'">true</IsVisualStudioMSBuild>
   </PropertyGroup>
-  <UsingTask TaskName="CheckTargetFrameworkTask" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" Condition="'$(IsVisualStudioMSBuild)' == 'true' and '$(UseWPF)' != 'true' and '$(UseWindowsForms)' != 'true'">
+  <UsingTask TaskName="CheckTargetFrameworkTask" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" Condition="'$(IsVisualStudioMSBuild)' == 'true' 
+			 and '$(UseWPF)' != 'true' 
+			 and '$(UseWindowsForms)' != 'true'
+			 and '$(IsRoslynComponent)' != 'true'">
     <ParameterGroup>
       <ProjectFile ParameterType="System.String" Required="true" />
     </ParameterGroup>
@@ -44,7 +50,10 @@
                 ]]></Code>
     </Task>
   </UsingTask>
-  <Target Name="CheckTargetFramework" BeforeTargets="BeforeBuild" Condition="'$(IsVisualStudioMSBuild)' == 'true' and '$(UseWPF)' != 'true'">
+  <Target Name="CheckTargetFramework" BeforeTargets="BeforeBuild" Condition="'$(IsVisualStudioMSBuild)' == 'true' 
+		  and '$(UseWPF)' != 'true' 
+		  and '$(UseWindowsForms)' != 'true'
+		  and '$(IsRoslynComponent)' != 'true'">
     <CheckTargetFrameworkTask ProjectFile="$(MSBuildProjectFullPath)" />
   </Target>
 </Project>
