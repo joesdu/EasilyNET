@@ -664,7 +664,7 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">Factory method for creating type snapshot</para>
     ///     <para xml:lang="zh">创建类型快照的工厂方法</para>
     /// </summary>
-    private static Type[] CreateTypeSnapshot() => LoadTypesInternal(CreateAssemblySnapshot());
+    private static Type[] CreateTypeSnapshot() => LoadTypesInternal(_lazyAllAssemblies.Value);
 
     /// <summary>
     ///     <para xml:lang="en">Scanning options</para>
@@ -723,9 +723,10 @@ public static class AssemblyHelper
             get
             {
                 var currentVersion = _patternVersion;
+                var lastVersion = Volatile.Read(ref _lastIncludeVersion);
                 var cached = _compiledIncludePatterns;
                 // Fast path: check if cache is valid
-                if (cached is not null && Volatile.Read(ref _lastIncludeVersion) == currentVersion)
+                if (cached is not null && lastVersion == currentVersion)
                 {
                     return cached;
                 }
@@ -752,9 +753,10 @@ public static class AssemblyHelper
             get
             {
                 var currentVersion = _patternVersion;
+                var lastVersion = Volatile.Read(ref _lastExcludeVersion);
                 var cached = _compiledExcludePatterns;
                 // Fast path: check if cache is valid
-                if (cached is not null && Volatile.Read(ref _lastExcludeVersion) == currentVersion)
+                if (cached is not null && lastVersion == currentVersion)
                 {
                     return cached;
                 }
