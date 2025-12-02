@@ -419,7 +419,7 @@ public static class AssemblyHelper
                 typeArrays[i] = [];
             }
         });
-        // Calculate total count efficiently
+        // Calculate total count and merge all type arrays into single result
         var totalCount = typeArrays.Sum(arr => arr.Length);
         var result = new Type[totalCount];
         var offset = 0;
@@ -723,9 +723,10 @@ public static class AssemblyHelper
             get
             {
                 var currentVersion = _patternVersion;
+                var lastVersion = Volatile.Read(ref _lastIncludeVersion);
                 var cached = _compiledIncludePatterns;
                 // Fast path: check if cache is valid
-                if (cached is not null && _lastIncludeVersion == currentVersion)
+                if (cached is not null && lastVersion == currentVersion)
                 {
                     return cached;
                 }
@@ -740,8 +741,8 @@ public static class AssemblyHelper
                     // Rebuild cache
                     var snapshot = IncludePatterns.ToArray();
                     var compiled = CompileWildcardPatterns(snapshot);
-                    _lastIncludeVersion = _patternVersion;
                     _compiledIncludePatterns = compiled;
+                    Volatile.Write(ref _lastIncludeVersion, _patternVersion);
                     return compiled;
                 }
             }
@@ -752,9 +753,10 @@ public static class AssemblyHelper
             get
             {
                 var currentVersion = _patternVersion;
+                var lastVersion = Volatile.Read(ref _lastExcludeVersion);
                 var cached = _compiledExcludePatterns;
                 // Fast path: check if cache is valid
-                if (cached is not null && _lastExcludeVersion == currentVersion)
+                if (cached is not null && lastVersion == currentVersion)
                 {
                     return cached;
                 }
@@ -769,8 +771,8 @@ public static class AssemblyHelper
                     // Rebuild cache
                     var snapshot = ExcludePatterns.ToArray();
                     var compiled = CompileWildcardPatterns(snapshot);
-                    _lastExcludeVersion = _patternVersion;
                     _compiledExcludePatterns = compiled;
+                    Volatile.Write(ref _lastExcludeVersion, _patternVersion);
                     return compiled;
                 }
             }

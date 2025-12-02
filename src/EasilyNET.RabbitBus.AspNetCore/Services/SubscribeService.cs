@@ -46,7 +46,7 @@ internal sealed class SubscribeService(IServiceProvider sp, PersistentConnection
         var retryInterval = TimeSpan.FromSeconds(_config.RetryIntervalSeconds > 0 ? _config.RetryIntervalSeconds : 1);
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Starting NACKed message processor with check interval: {Interval}", retryInterval);
+            logger.LogInformation("Starting NACKed message processor with check interval: {Interval} ms", retryInterval.TotalMilliseconds);
         }
         while (!ct.IsCancellationRequested)
         {
