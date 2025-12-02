@@ -14,7 +14,7 @@ using System.Reflection;
 // ReSharper disable UnusedType.Global
 // ReSharper disable SuggestBaseTypeForParameter
 
-namespace EasilyNET.Core.DeepCopy;
+namespace EasilyNET.Core.Misc;
 
 /// <summary>
 ///     <para xml:lang="en">Ultra-fast deep copy class implemented using expression trees.</para>
