@@ -91,13 +91,8 @@ public static class AssemblyHelper
     private static readonly ConcurrentDictionary<(Type attrType, bool inherit, int version), Lazy<IReadOnlyList<Type>>> AttributeTypeCache = new();
 
     // Lazily computed snapshots. We recreate these when options change.
-    private static Lazy<Assembly[]> _lazyAllAssemblies = new(static () =>
-    {
-        ArgumentNullException.ThrowIfNull(Options);
-        return [.. LoadAssembliesInternal(Options)];
-    });
-
-    private static Lazy<Type[]> _lazyAllTypes = new(static () => LoadTypesInternal(_lazyAllAssemblies.Value));
+    private static Lazy<Assembly[]> _lazyAllAssemblies = new(CreateAssemblySnapshot);
+    private static Lazy<Type[]> _lazyAllTypes = new(CreateTypeSnapshot);
 
     // Bump when options/caches are reset to invalidate attr caches
     private static volatile int _version;
@@ -405,7 +400,6 @@ public static class AssemblyHelper
             }
             catch (ReflectionTypeLoadException rtle)
             {
-                // Filter out null types - count without creating iterator
                 var loadedTypes = rtle.Types;
                 var count = loadedTypes.OfType<Type>().Count();
                 var filtered = new Type[count];
@@ -425,7 +419,7 @@ public static class AssemblyHelper
                 typeArrays[i] = [];
             }
         });
-        // Calculate total count and merge
+        // Calculate total count efficiently
         var totalCount = typeArrays.Sum(arr => arr.Length);
         var result = new Type[totalCount];
         var offset = 0;
@@ -543,7 +537,6 @@ public static class AssemblyHelper
         {
             return options.ScanAllRuntimeLibraries;
         }
-        // Exclude first - use foreach to avoid LINQ overhead
         var excludePatterns = options.CompiledExcludePatterns;
         if (excludePatterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, simple)))
         {
@@ -563,10 +556,7 @@ public static class AssemblyHelper
     ///     <para xml:lang="zh">检查名称是否匹配集合中的任何模式（避免 LINQ 委托开销）。</para>
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool MatchesAnyPattern(string name, FrozenSet<string> patterns)
-    {
-        return patterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, name));
-    }
+    private static bool MatchesAnyPattern(string name, FrozenSet<string> patterns) => patterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, name));
 
     /// <summary>
     ///     <para xml:lang="en">Compile wildcard patterns (supports '*' and '?') into a frozen set of pattern strings for MatchesSimpleExpression.</para>
@@ -659,9 +649,22 @@ public static class AssemblyHelper
     {
         Interlocked.Increment(ref _version);
         AttributeTypeCache.Clear();
-        _lazyAllAssemblies = new(static () => [.. LoadAssembliesInternal(Options)]);
-        _lazyAllTypes = new(static () => [.. LoadTypesInternal(_lazyAllAssemblies.Value)]);
+        // Use Interlocked.Exchange to ensure atomic updates
+        Interlocked.Exchange(ref _lazyAllAssemblies, new(CreateAssemblySnapshot));
+        Interlocked.Exchange(ref _lazyAllTypes, new(CreateTypeSnapshot));
     }
+
+    /// <summary>
+    ///     <para xml:lang="en">Factory method for creating assembly snapshot</para>
+    ///     <para xml:lang="zh">创建程序集快照的工厂方法</para>
+    /// </summary>
+    private static Assembly[] CreateAssemblySnapshot() => [.. LoadAssembliesInternal(Options)];
+
+    /// <summary>
+    ///     <para xml:lang="en">Factory method for creating type snapshot</para>
+    ///     <para xml:lang="zh">创建类型快照的工厂方法</para>
+    /// </summary>
+    private static Type[] CreateTypeSnapshot() => LoadTypesInternal(_lazyAllAssemblies.Value);
 
     /// <summary>
     ///     <para xml:lang="en">Scanning options</para>
@@ -721,22 +724,25 @@ public static class AssemblyHelper
             {
                 var currentVersion = _patternVersion;
                 var cached = _compiledIncludePatterns;
-                if (cached is not null && Volatile.Read(ref _lastIncludeVersion) == currentVersion)
+                // Fast path: check if cache is valid
+                if (cached is not null && _lastIncludeVersion == currentVersion)
                 {
                     return cached;
                 }
                 lock (_patternLock)
                 {
-                    currentVersion = _patternVersion;
-                    if (_compiledIncludePatterns is not null && _lastIncludeVersion == currentVersion)
+                    // Double-check inside lock
+                    cached = _compiledIncludePatterns;
+                    if (cached is not null && _lastIncludeVersion == _patternVersion)
                     {
-                        return _compiledIncludePatterns;
+                        return cached;
                     }
-                    // Take a snapshot of the patterns to avoid race conditions
+                    // Rebuild cache
                     var snapshot = IncludePatterns.ToArray();
-                    _compiledIncludePatterns = CompileWildcardPatterns(snapshot);
-                    Volatile.Write(ref _lastIncludeVersion, currentVersion);
-                    return _compiledIncludePatterns;
+                    var compiled = CompileWildcardPatterns(snapshot);
+                    _lastIncludeVersion = _patternVersion;
+                    _compiledIncludePatterns = compiled;
+                    return compiled;
                 }
             }
         }
@@ -747,22 +753,25 @@ public static class AssemblyHelper
             {
                 var currentVersion = _patternVersion;
                 var cached = _compiledExcludePatterns;
-                if (cached is not null && Volatile.Read(ref _lastExcludeVersion) == currentVersion)
+                // Fast path: check if cache is valid
+                if (cached is not null && _lastExcludeVersion == currentVersion)
                 {
                     return cached;
                 }
                 lock (_patternLock)
                 {
-                    currentVersion = _patternVersion;
-                    if (_compiledExcludePatterns is not null && _lastExcludeVersion == currentVersion)
+                    // Double-check inside lock
+                    cached = _compiledExcludePatterns;
+                    if (cached is not null && _lastExcludeVersion == _patternVersion)
                     {
-                        return _compiledExcludePatterns;
+                        return cached;
                     }
-                    // Take a snapshot of the patterns to avoid race conditions
+                    // Rebuild cache
                     var snapshot = ExcludePatterns.ToArray();
-                    _compiledExcludePatterns = CompileWildcardPatterns(snapshot);
-                    Volatile.Write(ref _lastExcludeVersion, currentVersion);
-                    return _compiledExcludePatterns;
+                    var compiled = CompileWildcardPatterns(snapshot);
+                    _lastExcludeVersion = _patternVersion;
+                    _compiledExcludePatterns = compiled;
+                    return compiled;
                 }
             }
         }
