@@ -68,18 +68,22 @@ public static class AutoDependencyInjectionServiceExtension
         ///     <para xml:lang="en">Type of the application module</para>
         ///     <para xml:lang="zh">应用模块的类型</para>
         /// </typeparam>
-        public void AddApplicationModules<T>() where T : AppModule
+        public IServiceCollection AddApplicationModules<T>() where T : AppModule
         {
             ArgumentNullException.ThrowIfNull(services);
-            services.AddSingleton<IObjectAccessor<IHost>>(new ObjectAccessor<IHost>());
-            // dynamic resolution helpers
-            services.AddScoped<IResolver>(sp => new Resolver(sp.CreateScope().ServiceProvider));
+            services.AddSingleton<IObjectAccessor<IHost>>(_ => new ObjectAccessor<IHost>());
+            services.AddScoped<IResolver>(sp => new Resolver(sp));
             services.AddSingleton(typeof(INamedServiceFactory<>), typeof(NamedServiceFactory<>));
             ApplicationFactory.Create<T>(services);
+            return services;
         }
 
-        internal void AddNamedService(Type serviceType, object key, Type implementationType, ServiceLifetime lifetime)
+        // ReSharper disable once UnusedMethodReturnValue.Global
+        internal IServiceCollection AddNamedService(Type serviceType, object key, Type implementationType, ServiceLifetime lifetime)
         {
+            ArgumentNullException.ThrowIfNull(services);
+            ArgumentNullException.ThrowIfNull(serviceType);
+            ArgumentNullException.ThrowIfNull(implementationType);
             var descriptor = new NamedServiceDescriptor(serviceType, implementationType, lifetime);
             ServiceProviderExtension.NamedServices[(key, serviceType)] = descriptor;
             switch (lifetime)
@@ -96,6 +100,7 @@ public static class AutoDependencyInjectionServiceExtension
                 default:
                     throw new ArgumentOutOfRangeException(nameof(lifetime), lifetime, null);
             }
+            return services;
         }
     }
 }
