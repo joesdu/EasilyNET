@@ -27,10 +27,9 @@ public static class ServiceProviderExtension
     extension(IServiceProvider provider)
     {
         /// <summary>
-        ///     <para xml:lang="en">Create a resolver wrapper for the current provider.</para>
-        ///     <para xml:lang="zh">基于当前 <see cref="IServiceProvider" /> 创建解析器。</para>
+        ///     <para xml:lang="en">Whether to create an isolated scope for the resolver.</para>
+        ///     <para xml:lang="zh">是否为解析器创建一个独立的作用域</para>
         /// </summary>
-        /// <param name="createScope">Whether to create an isolated scope for the resolver.</param>
         public IResolver CreateResolver(bool createScope = false)
         {
             if (!createScope)
@@ -248,12 +247,9 @@ public static class ServiceProviderExtension
             var constructor = ConstructorCache.GetOrAdd(implementationType, static type =>
             {
                 var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
-                // ReSharper disable once ConvertIfStatementToReturnStatement
-                if (constructors.Length == 0)
-                {
-                    throw new InvalidOperationException($"No public constructor found for type '{type.FullName}'.");
-                }
-                return constructors.OrderByDescending(c => c.GetParameters().Length).First();
+                return constructors.Length == 0
+                           ? throw new InvalidOperationException($"No public constructor found for type '{type.FullName}'.")
+                           : constructors.OrderByDescending(c => c.GetParameters().Length).First();
             });
             var parameters = constructor.GetParameters().Select(parameter =>
             {
@@ -264,7 +260,10 @@ public static class ServiceProviderExtension
                     return provider.GetRequiredKeyedService(parameter.ParameterType, key!);
                 }
                 var value = provider.GetService(parameter.ParameterType);
-                return value ?? (parameter.HasDefaultValue ? parameter.DefaultValue : throw new InvalidOperationException($"Unable to resolve service for type '{parameter.ParameterType}' while attempting to activate '{implementationType}'."));
+                return value ??
+                       (parameter.HasDefaultValue
+                            ? parameter.DefaultValue
+                            : throw new InvalidOperationException($"Unable to resolve service for type '{parameter.ParameterType}' while attempting to activate '{implementationType}'."));
             }).ToArray();
             return constructor.Invoke(parameters);
         }
