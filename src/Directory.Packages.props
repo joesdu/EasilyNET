@@ -32,10 +32,7 @@
   <PropertyGroup>
     <IsVisualStudioMSBuild Condition="'$(MSBuildRuntimeType)' == 'Full'">true</IsVisualStudioMSBuild>
   </PropertyGroup>
-  <UsingTask TaskName="CheckTargetFrameworkTask" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" Condition="'$(IsVisualStudioMSBuild)' == 'true' 
-			 and '$(UseWPF)' != 'true' 
-			 and '$(UseWindowsForms)' != 'true'
-			 and '$(IsRoslynComponent)' != 'true'">
+  <UsingTask TaskName="CheckTargetFrameworkTask" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" Condition="'$(IsVisualStudioMSBuild)' == 'true' &#xD;&#xA;			 and '$(UseWPF)' != 'true' &#xD;&#xA;			 and '$(UseWindowsForms)' != 'true'&#xD;&#xA;			 and '$(IsRoslynComponent)' != 'true'">
     <ParameterGroup>
       <ProjectFile ParameterType="System.String" Required="true" />
     </ParameterGroup>
@@ -50,10 +47,7 @@
                 ]]></Code>
     </Task>
   </UsingTask>
-  <Target Name="CheckTargetFramework" BeforeTargets="BeforeBuild" Condition="'$(IsVisualStudioMSBuild)' == 'true' 
-		  and '$(UseWPF)' != 'true' 
-		  and '$(UseWindowsForms)' != 'true'
-		  and '$(IsRoslynComponent)' != 'true'">
+  <Target Name="CheckTargetFramework" BeforeTargets="BeforeBuild" Condition="'$(IsVisualStudioMSBuild)' == 'true' &#xD;&#xA;		  and '$(UseWPF)' != 'true' &#xD;&#xA;		  and '$(UseWindowsForms)' != 'true'&#xD;&#xA;		  and '$(IsRoslynComponent)' != 'true'">
     <CheckTargetFrameworkTask ProjectFile="$(MSBuildProjectFullPath)" />
   </Target>
 </Project>
