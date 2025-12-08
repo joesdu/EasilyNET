@@ -33,7 +33,6 @@ public static class ServiceProviderExtension
         /// <param name="createScope">Whether to create an isolated scope for the resolver.</param>
         public IResolver CreateResolver(bool createScope = false)
         {
-            ArgumentNullException.ThrowIfNull(provider);
             if (!createScope)
             {
                 return new Resolver(provider);
@@ -57,16 +56,8 @@ public static class ServiceProviderExtension
         /// </summary>
         public T Resolve<T>(params Parameter[] parameters)
         {
-            if (parameters.Length > 0)
-            {
-                using var resolver = provider.CreateResolver();
-                return resolver.Resolve<T>(parameters);
-            }
-            else
-            {
-                using var resolver = provider.CreateResolver();
-                return resolver.Resolve<T>();
-            }
+            using var resolver = provider.CreateResolver();
+            return resolver.Resolve<T>(parameters);
         }
 
         /// <summary>
@@ -74,7 +65,6 @@ public static class ServiceProviderExtension
         /// </summary>
         public object Resolve(Type serviceType, params Parameter[] parameters)
         {
-            ArgumentNullException.ThrowIfNull(parameters);
             using var resolver = provider.CreateResolver();
             return resolver.Resolve(serviceType, parameters);
         }
@@ -135,17 +125,22 @@ public static class ServiceProviderExtension
 
         /// <summary>
         /// Begin a child resolver scope.
+        /// <para>⚠️ The caller is responsible for disposing the returned IResolver.</para>
         /// </summary>
         public IResolver BeginResolverScope() => provider.CreateResolver(true);
 
         internal object CreateInstance(Type implementationType)
         {
-            ArgumentNullException.ThrowIfNull(provider);
             ArgumentNullException.ThrowIfNull(implementationType);
             var constructor = ConstructorCache.GetOrAdd(implementationType, static type =>
             {
                 var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
-                return constructors.Length == 0 ? throw new InvalidOperationException($"No public constructor found for type '{type.FullName}'.") : constructors.OrderByDescending(c => c.GetParameters().Length).First();
+                // ReSharper disable once ConvertIfStatementToReturnStatement
+                if (constructors.Length == 0)
+                {
+                    throw new InvalidOperationException($"No public constructor found for type '{type.FullName}'.");
+                }
+                return constructors.OrderByDescending(c => c.GetParameters().Length).First();
             });
             var parameters = constructor.GetParameters().Select(parameter =>
             {

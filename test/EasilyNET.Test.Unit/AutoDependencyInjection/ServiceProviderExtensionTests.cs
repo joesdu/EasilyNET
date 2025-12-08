@@ -27,14 +27,21 @@ public sealed class ServiceProviderExtensionTests
     [TestMethod]
     public void Resolve_WithParameters_ShouldOverrideConstructorArguments()
     {
-        var services = new ServiceCollection();
-        services.AddTransient<IWelcomeService, WelcomeService>();
-        using var provider = services.BuildServiceProvider();
-        RegisterImplementation(typeof(IWelcomeService), typeof(WelcomeService));
-        // Cast to the base type to satisfy nullable analysis for the params array.
-        // ReSharper disable once RedundantExplicitParamsArrayCreation
-        var welcome = provider.Resolve<IWelcomeService>(new Parameter[] { new NamedParameter("name", "Rose") });
-        Assert.AreEqual("Hello, Rose", welcome.Greet());
+        try
+        {
+            var services = new ServiceCollection();
+            services.AddTransient<IWelcomeService, WelcomeService>();
+            using var provider = services.BuildServiceProvider();
+            RegisterImplementation(typeof(IWelcomeService), typeof(WelcomeService));
+            // Cast to the base type to satisfy nullable analysis for the params array.
+            // ReSharper disable once RedundantExplicitParamsArrayCreation
+            var welcome = provider.Resolve<IWelcomeService>(new Parameter[] { new NamedParameter("name", "Rose") });
+            Assert.AreEqual("Hello, Rose", welcome.Greet());
+        }
+        finally
+        {
+            ClearRegistries();
+        }
     }
 
     [TestMethod]
