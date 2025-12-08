@@ -31,7 +31,9 @@ public sealed class ServiceProviderExtensionTests
         services.AddTransient<IWelcomeService, WelcomeService>();
         using var provider = services.BuildServiceProvider();
         RegisterImplementation(typeof(IWelcomeService), typeof(WelcomeService));
-        var welcome = provider.Resolve<IWelcomeService>(new NamedParameter("name", "Rose"));
+        // Cast to the base type to satisfy nullable analysis for the params array.
+        // ReSharper disable once RedundantExplicitParamsArrayCreation
+        var welcome = provider.Resolve<IWelcomeService>(new Parameter[] { new NamedParameter("name", "Rose") });
         Assert.AreEqual("Hello, Rose", welcome.Greet());
     }
 
