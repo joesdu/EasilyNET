@@ -43,8 +43,17 @@ public static class ServiceProviderExtension
         }
 
         /// <summary>
-        /// Resolve type dynamically.
+        ///     <para xml:lang="en">Resolve type dynamically.</para>
+        ///     <para xml:lang="zh">动态解析指定类型的服务。</para>
         /// </summary>
+        /// <param name="serviceType">
+        ///     <para xml:lang="en">The type of service to resolve.</para>
+        ///     <para xml:lang="zh">要解析的服务类型。</para>
+        /// </param>
+        /// <returns>
+        ///     <para xml:lang="en">The resolved service instance.</para>
+        ///     <para xml:lang="zh">解析的服务实例。</para>
+        /// </returns>
         public object Resolve(Type serviceType)
         {
             using var resolver = provider.CreateResolver();
@@ -52,8 +61,21 @@ public static class ServiceProviderExtension
         }
 
         /// <summary>
-        /// Resolve with constructor parameter overrides.
+        ///     <para xml:lang="en">Resolve with constructor parameter overrides.</para>
+        ///     <para xml:lang="zh">使用构造函数参数覆盖来解析服务。</para>
         /// </summary>
+        /// <typeparam name="T">
+        ///     <para xml:lang="en">The service type to resolve.</para>
+        ///     <para xml:lang="zh">要解析的服务类型。</para>
+        /// </typeparam>
+        /// <param name="parameters">
+        ///     <para xml:lang="en">Constructor parameters to override.</para>
+        ///     <para xml:lang="zh">要覆盖的构造函数参数。</para>
+        /// </param>
+        /// <returns>
+        ///     <para xml:lang="en">The resolved service instance.</para>
+        ///     <para xml:lang="zh">解析的服务实例。</para>
+        /// </returns>
         public T Resolve<T>(params Parameter[] parameters)
         {
             using var resolver = provider.CreateResolver();
@@ -61,8 +83,21 @@ public static class ServiceProviderExtension
         }
 
         /// <summary>
-        /// Resolve with constructor parameter overrides.
+        ///     <para xml:lang="en">Resolve with constructor parameter overrides.</para>
+        ///     <para xml:lang="zh">使用构造函数参数覆盖来解析服务。</para>
         /// </summary>
+        /// <param name="serviceType">
+        ///     <para xml:lang="en">The type of service to resolve.</para>
+        ///     <para xml:lang="zh">要解析的服务类型。</para>
+        /// </param>
+        /// <param name="parameters">
+        ///     <para xml:lang="en">Constructor parameters to override.</para>
+        ///     <para xml:lang="zh">要覆盖的构造函数参数。</para>
+        /// </param>
+        /// <returns>
+        ///     <para xml:lang="en">The resolved service instance.</para>
+        ///     <para xml:lang="zh">解析的服务实例。</para>
+        /// </returns>
         public object Resolve(Type serviceType, params Parameter[] parameters)
         {
             using var resolver = provider.CreateResolver();
@@ -70,8 +105,17 @@ public static class ServiceProviderExtension
         }
 
         /// <summary>
-        /// Resolve all registrations for <typeparamref name="T" />.
+        ///     <para xml:lang="en">Resolve all registrations for <typeparamref name="T" />.</para>
+        ///     <para xml:lang="zh">解析 <typeparamref name="T" /> 的所有注册。</para>
         /// </summary>
+        /// <typeparam name="T">
+        ///     <para xml:lang="en">The service type to resolve.</para>
+        ///     <para xml:lang="zh">要解析的服务类型。</para>
+        /// </typeparam>
+        /// <returns>
+        ///     <para xml:lang="en">A collection of all registered service instances.</para>
+        ///     <para xml:lang="zh">所有已注册服务实例的集合。</para>
+        /// </returns>
         public IEnumerable<T> ResolveAll<T>()
         {
             using var resolver = provider.CreateResolver();
@@ -79,8 +123,17 @@ public static class ServiceProviderExtension
         }
 
         /// <summary>
-        /// Resolve optional service.
+        ///     <para xml:lang="en">Resolve optional service.</para>
+        ///     <para xml:lang="zh">解析可选服务。</para>
         /// </summary>
+        /// <typeparam name="T">
+        ///     <para xml:lang="en">The service type to resolve.</para>
+        ///     <para xml:lang="zh">要解析的服务类型。</para>
+        /// </typeparam>
+        /// <returns>
+        ///     <para xml:lang="en">The resolved service instance, or null if the service is not registered.</para>
+        ///     <para xml:lang="zh">解析的服务实例，如果服务未注册则返回 null。</para>
+        /// </returns>
         public T? ResolveOptional<T>()
         {
             using var resolver = provider.CreateResolver();
@@ -88,8 +141,21 @@ public static class ServiceProviderExtension
         }
 
         /// <summary>
-        /// Try resolve service.
+        ///     <para xml:lang="en">Try resolve service.</para>
+        ///     <para xml:lang="zh">尝试解析服务。</para>
         /// </summary>
+        /// <typeparam name="T">
+        ///     <para xml:lang="en">The service type to resolve.</para>
+        ///     <para xml:lang="zh">要解析的服务类型。</para>
+        /// </typeparam>
+        /// <param name="instance">
+        ///     <para xml:lang="en">The resolved service instance, or null if resolution fails.</para>
+        ///     <para xml:lang="zh">解析的服务实例，如果解析失败则为 null。</para>
+        /// </param>
+        /// <returns>
+        ///     <para xml:lang="en">True if the service was successfully resolved; otherwise, false.</para>
+        ///     <para xml:lang="zh">如果服务成功解析则返回 true，否则返回 false。</para>
+        /// </returns>
         public bool TryResolve<T>(out T? instance)
         {
             using var resolver = provider.CreateResolver();
@@ -97,8 +163,21 @@ public static class ServiceProviderExtension
         }
 
         /// <summary>
-        /// Try resolve service by type.
+        ///     <para xml:lang="en">Try resolve service by type.</para>
+        ///     <para xml:lang="zh">按类型尝试解析服务。</para>
         /// </summary>
+        /// <param name="serviceType">
+        ///     <para xml:lang="en">The type of service to resolve.</para>
+        ///     <para xml:lang="zh">要解析的服务类型。</para>
+        /// </param>
+        /// <param name="instance">
+        ///     <para xml:lang="en">The resolved service instance, or null if resolution fails.</para>
+        ///     <para xml:lang="zh">解析的服务实例，如果解析失败则为 null。</para>
+        /// </param>
+        /// <returns>
+        ///     <para xml:lang="en">True if the service was successfully resolved; otherwise, false.</para>
+        ///     <para xml:lang="zh">如果服务成功解析则返回 true，否则返回 false。</para>
+        /// </returns>
         public bool TryResolve(Type serviceType, out object? instance)
         {
             using var resolver = provider.CreateResolver();
@@ -106,8 +185,25 @@ public static class ServiceProviderExtension
         }
 
         /// <summary>
-        /// Resolve named registration.
+        ///     <para xml:lang="en">Resolve named registration.</para>
+        ///     <para xml:lang="zh">解析命名注册的服务。</para>
         /// </summary>
+        /// <typeparam name="T">
+        ///     <para xml:lang="en">The service type to resolve.</para>
+        ///     <para xml:lang="zh">要解析的服务类型。</para>
+        /// </typeparam>
+        /// <param name="name">
+        ///     <para xml:lang="en">The name of the registered service.</para>
+        ///     <para xml:lang="zh">已注册服务的名称。</para>
+        /// </param>
+        /// <param name="parameters">
+        ///     <para xml:lang="en">Optional constructor parameters to override.</para>
+        ///     <para xml:lang="zh">可选的构造函数参数覆盖。</para>
+        /// </param>
+        /// <returns>
+        ///     <para xml:lang="en">The resolved service instance.</para>
+        ///     <para xml:lang="zh">解析的服务实例。</para>
+        /// </returns>
         public T ResolveNamed<T>(string name, params Parameter[]? parameters)
         {
             using var resolver = provider.CreateResolver();
@@ -115,8 +211,25 @@ public static class ServiceProviderExtension
         }
 
         /// <summary>
-        /// Resolve keyed registration.
+        ///     <para xml:lang="en">Resolve keyed registration.</para>
+        ///     <para xml:lang="zh">解析键控注册的服务。</para>
         /// </summary>
+        /// <typeparam name="T">
+        ///     <para xml:lang="en">The service type to resolve.</para>
+        ///     <para xml:lang="zh">要解析的服务类型。</para>
+        /// </typeparam>
+        /// <param name="key">
+        ///     <para xml:lang="en">The key of the registered service.</para>
+        ///     <para xml:lang="zh">已注册服务的键。</para>
+        /// </param>
+        /// <param name="parameters">
+        ///     <para xml:lang="en">Optional constructor parameters to override.</para>
+        ///     <para xml:lang="zh">可选的构造函数参数覆盖。</para>
+        /// </param>
+        /// <returns>
+        ///     <para xml:lang="en">The resolved service instance.</para>
+        ///     <para xml:lang="zh">解析的服务实例。</para>
+        /// </returns>
         public T ResolveKeyed<T>(object key, params Parameter[]? parameters)
         {
             using var resolver = provider.CreateResolver();
