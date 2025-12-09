@@ -54,10 +54,10 @@ public sealed class GridFSUploadSession
     public string? FileId { get; set; }
 
     /// <summary>
-    ///     <para xml:lang="en">File metadata</para>
-    ///     <para xml:lang="zh">文件元数据</para>
+    ///     <para xml:lang="en">Content Type</para>
+    ///     <para xml:lang="zh">文件类型</para>
     /// </summary>
-    public BsonDocument? Metadata { get; set; }
+    public string? ContentType { get; set; }
 
     /// <summary>
     ///     <para xml:lang="en">Uploaded chunk numbers</para>

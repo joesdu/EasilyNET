@@ -77,9 +77,9 @@ public sealed class GridFSHelper
     ///     <para xml:lang="en">File SHA256</para>
     ///     <para xml:lang="zh">文件SHA256特征值</para>
     /// </param>
-    /// <param name="metadata">
-    ///     <para xml:lang="en">File metadata (optional)</para>
-    ///     <para xml:lang="zh">文件元数据(可选)</para>
+    /// <param name="contentType">
+    ///     <para xml:lang="en">File content type (optional)</para>
+    ///     <para xml:lang="zh">文件类型(可选)</para>
     /// </param>
     /// <param name="chunkSize">
     ///     <para xml:lang="en">Chunk size in bytes (optional, uses optimal size if not specified)</para>
@@ -101,7 +101,7 @@ public sealed class GridFSHelper
         string filename,
         long totalSize,
         string? fileHash,
-        BsonDocument? metadata = null,
+        string? contentType = null,
         int? chunkSize = null,
         int sessionExpirationHours = 24,
         CancellationToken cancellationToken = default)
@@ -131,7 +131,7 @@ public sealed class GridFSHelper
                     TotalSize = totalSize,
                     UploadedSize = totalSize,
                     ChunkSize = chunkSize ?? existingFile.ChunkSizeBytes,
-                    Metadata = metadata,
+                    ContentType = contentType,
                     FileId = existingFile.Id.ToString(),
                     FileHash = fileHash,
                     CreatedAt = DateTime.UtcNow,
@@ -160,7 +160,7 @@ public sealed class GridFSHelper
                             < 100 * 1024 * 1024 => 2 * GridFSChunkSize, // < 100MB: 4MB 分片
                             _                   => 5 * GridFSChunkSize  // > 100MB: 10MB 分片
                         },
-            Metadata = metadata,
+            ContentType = contentType,
             FileId = ObjectId.GenerateNewId().ToString(), // 预先生成 FileId
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -448,7 +448,8 @@ public sealed class GridFSHelper
                 { "chunkSize", GridFSChunkSize },
                 { "uploadDate", DateTime.UtcNow },
                 { "filename", session.Filename },
-                { "metadata", session.Metadata ?? [] }
+                { "contentType", session.ContentType is null ? BsonNull.Value : new BsonString(session.ContentType) },
+                { "metadata", new BsonDocument() }
             };
 
             // 添加自定义元数据
