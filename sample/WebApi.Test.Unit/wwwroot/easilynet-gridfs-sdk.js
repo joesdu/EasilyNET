@@ -18,11 +18,18 @@ export class GridFSUploader {
     this.startTime = 0;
     this.uploadedBytes = 0;
     this.isPaused = false;
+    this.elapsedBeforePause = 0;
+    this.hashPromise = null;
+    this.cachedFileHash = undefined;
     this.file = file;
     this.options = {
       chunkSize: 1024 * 1024, // 1MB (初始值,将被后端返回的值覆盖)
-      maxConcurrent: 3,
+      maxConcurrent: Math.min(
+        6,
+        Math.max(2, navigator?.hardwareConcurrency ?? 4)
+      ),
       retryCount: 3,
+      verifyOnServer: true,
       headers: {},
       metadata: {},
       onProgress: () => {},
@@ -55,34 +62,39 @@ export class GridFSUploader {
    */
   async start() {
     if (this.isPaused) {
-      this.resume();
+      await this.resume();
       return this.uploadId;
     }
 
+    this.isPaused = false;
     this.abortController = new AbortController();
-    this.startTime = Date.now();
+    this.startTime = performance.now();
+    this.elapsedBeforePause = 0;
+    this.uploadedBytes = 0;
 
     try {
-      // 0. 预先计算文件哈希 (用于秒传)
-      // 通知用户正在计算哈希
-      if (this.options.onProgress) {
-        this.options.onProgress({
+      this.hashPromise = calculateSHA256(this.file, (hashProgress) => {
+        this.options.onProgress?.({
           loaded: 0,
           total: this.file.size,
           percentage: 0,
           speed: 0,
           remainingTime: 0,
-          status: "hashing", // 新增状态标识
+          status: "hashing",
+          hashPercentage: hashProgress.percentage,
         });
-      }
+      });
 
-      let fileHash;
+      const fileHash =
+        this.cachedFileHash ??
+        (await this.hashPromise.catch((e) => {
+          console.warn("哈希计算失败:", e);
+          return undefined;
+        }));
+      if (fileHash) this.cachedFileHash = fileHash;
 
-      // 恢复串行计算，确保秒传功能可用
-      try {
-        fileHash = await calculateSHA256(this.file);
-      } catch (e) {
-        console.warn("哈希计算失败:", e);
+      if (this.isPaused) {
+        return this.uploadId;
       }
 
       // 1. 初始化上传会话 (携带哈希)
@@ -91,8 +103,6 @@ export class GridFSUploader {
 
       // 检查是否秒传成功
       if (sessionInfo.status === "Completed" && sessionInfo.fileId) {
-        console.log("秒传成功!");
-        // 直接完成
         this.options.onProgress?.({
           loaded: this.file.size,
           total: this.file.size,
@@ -105,31 +115,38 @@ export class GridFSUploader {
         return sessionInfo.fileId;
       }
 
-      // 使用后端返回的 chunkSize
       if (sessionInfo.chunkSize) {
         this.options.chunkSize = sessionInfo.chunkSize;
       }
 
-      // 现在初始化分块 (使用后端的 chunkSize)
       this.initializeChunks();
+      this.options.onProgress?.({
+        loaded: 0,
+        total: this.file.size,
+        percentage: 0,
+        speed: 0,
+        remainingTime: 0,
+        status: "uploading",
+      });
 
       // 2. 并发上传分块
       await this.uploadChunks();
-      // 3. 完成上传
-      // 通知用户开始合并文件
-      if (this.options.onProgress) {
-        this.options.onProgress({
-          loaded: this.file.size,
-          total: this.file.size,
-          percentage: 100,
-          speed: 0,
-          remainingTime: 0,
-          status: "merging", // 新增状态标识
-        });
-      }
 
-      // 此时 fileHash 已经计算过了，直接使用
-      const finalFileId = await this.completeUpload(fileHash);
+      if (this.isPaused) return this.uploadId;
+
+      // 3. 完成上传
+      this.options.onProgress?.({
+        loaded: this.file.size,
+        total: this.file.size,
+        percentage: 100,
+        speed: 0,
+        remainingTime: 0,
+        status: "merging",
+      });
+
+      const finalHash =
+        this.cachedFileHash ?? (await this.hashPromise?.catch(() => undefined));
+      const finalFileId = await this.completeUpload(finalHash);
 
       this.options.onComplete(finalFileId);
       return finalFileId;
@@ -144,6 +161,7 @@ export class GridFSUploader {
    */
   pause() {
     this.isPaused = true;
+    this.elapsedBeforePause += performance.now() - this.startTime;
     this.abortController?.abort();
   }
 
@@ -153,19 +171,21 @@ export class GridFSUploader {
   async resume() {
     if (!this.isPaused) return;
 
+    if (!this.uploadId) {
+      throw new Error("没有可恢复的上传会话");
+    }
+
     this.isPaused = false;
     this.abortController = new AbortController();
+    this.startTime = performance.now();
 
     try {
       await this.uploadChunks();
 
-      // 计算哈希 (同 start 方法)
-      let fileHash;
-      try {
-        fileHash = await calculateSHA256(this.file);
-      } catch (e) {
-        console.warn("哈希计算失败:", e);
-      }
+      if (this.isPaused) return;
+
+      const fileHash =
+        this.cachedFileHash ?? (await this.hashPromise?.catch(() => undefined));
 
       const fileId = await this.completeUpload(fileHash);
       this.options.onComplete(fileId);
@@ -241,12 +261,20 @@ export class GridFSUploader {
             if (index > -1) executing.splice(index, 1);
           })
           .catch((error) => {
-            // 重试逻辑
-            if (chunk.retries < this.options.retryCount) {
-              chunk.retries++;
-              queue.push(chunk);
+            const isAbort = error?.name === "AbortError";
+            const removeExecuting = () => {
               const index = executing.indexOf(promise);
               if (index > -1) executing.splice(index, 1);
+            };
+            if (this.isPaused && isAbort) {
+              removeExecuting();
+              return;
+            }
+            // 重试逻辑
+            if (!isAbort && chunk.retries < this.options.retryCount) {
+              chunk.retries++;
+              queue.push(chunk);
+              removeExecuting();
             } else {
               throw error;
             }
@@ -275,18 +303,27 @@ export class GridFSUploader {
 
     const host = (this.options.url || "").replace(/\/+$/, "");
     const apiBase = `${host}/api/GridFS`;
-    const response = await fetch(
-      `${apiBase}/UploadChunk?sessionId=${this.uploadId}&chunkNumber=${chunk.index}&chunkHash=${chunkHash}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/octet-stream",
-          ...this.options.headers,
-        },
-        body: blob,
-        signal: this.abortController?.signal,
+    let response;
+    try {
+      response = await fetch(
+        `${apiBase}/UploadChunk?sessionId=${this.uploadId}&chunkNumber=${chunk.index}&chunkHash=${chunkHash}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/octet-stream",
+            ...this.options.headers,
+          },
+          body: blob,
+          signal: this.abortController?.signal,
+        }
+      );
+    } catch (error) {
+      const isAbort = error?.name === "AbortError";
+      if (this.isPaused && isAbort) {
+        return;
       }
-    );
+      throw error;
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -319,10 +356,17 @@ export class GridFSUploader {
   async completeUpload(fileHash) {
     const host = (this.options.url || "").replace(/\/+$/, "");
     const apiBase = `${host}/api/GridFS`;
-    let url = `${apiBase}/Finalize/${this.uploadId}`;
+    const params = new URLSearchParams();
     if (fileHash) {
-      url += `?fileHash=${fileHash}`;
+      params.append("fileHash", fileHash);
     }
+    if (this.options.verifyOnServer === false) {
+      params.append("skipHashValidation", "true");
+    }
+    const qs = params.toString();
+    const url = qs
+      ? `${apiBase}/Finalize/${this.uploadId}?${qs}`
+      : `${apiBase}/Finalize/${this.uploadId}`;
 
     const response = await fetch(url, {
       method: "POST",
@@ -356,7 +400,8 @@ export class GridFSUploader {
    * 更新上传进度
    */
   updateProgress() {
-    const elapsed = (Date.now() - this.startTime) / 1000; // 秒
+    const elapsed =
+      (this.elapsedBeforePause + (performance.now() - this.startTime)) / 1000; // 秒
     const speed = elapsed > 0 ? this.uploadedBytes / elapsed : 0;
     const remainingBytes = this.file.size - this.uploadedBytes;
     const remainingTime = speed > 0 ? remainingBytes / speed : 0;
@@ -367,6 +412,7 @@ export class GridFSUploader {
       percentage: (this.uploadedBytes / this.file.size) * 100,
       speed,
       remainingTime,
+      status: "uploading",
     };
 
     this.options.onProgress(progress);
@@ -605,8 +651,13 @@ async function calculateHash(blob) {
 /**
  * 计算文件 SHA256 哈希 (流式)
  */
-async function calculateSHA256(file) {
-  // 尝试动态加载 hash-wasm
+async function calculateSHA256(file, onProgress) {
+  try {
+    return await calculateSHA256WithWorker(file, onProgress);
+  } catch (e) {
+    console.warn("Worker 哈希计算失败, 回退到主线程", e);
+  }
+
   try {
     if (typeof hashwasm === "undefined") {
       await new Promise((resolve, reject) => {
@@ -623,16 +674,22 @@ async function calculateSHA256(file) {
       });
     }
 
-    // 优先使用 hash-wasm (WebAssembly) 进行高性能计算
     if (typeof hashwasm !== "undefined") {
       const hasher = await hashwasm.createSHA256();
       hasher.init();
 
       const reader = file.stream().getReader();
+      let processed = 0;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         hasher.update(value);
+        processed += value.length;
+        onProgress?.({
+          loaded: processed,
+          total: file.size,
+          percentage: (processed / file.size) * 100,
+        });
       }
       return hasher.digest().toUpperCase();
     }
@@ -646,6 +703,7 @@ async function calculateSHA256(file) {
   const chunkSize = 10 * 1024 * 1024; // 10MB 块大小
   const chunks = Math.ceil(file.size / chunkSize);
   let currentChunk = 0;
+  let processed = 0;
 
   if (typeof sha256 !== "undefined") {
     return new Promise((resolve, reject) => {
@@ -657,6 +715,12 @@ async function calculateSHA256(file) {
           const buffer = e.target?.result;
           hasher.update(buffer);
           currentChunk++;
+          processed += buffer.byteLength;
+          onProgress?.({
+            loaded: processed,
+            total: file.size,
+            percentage: (processed / file.size) * 100,
+          });
 
           if (currentChunk < chunks) {
             loadNext();
@@ -686,5 +750,61 @@ async function calculateSHA256(file) {
   console.warn(
     "hash-wasm and js-sha256 not found, using Web Crypto API (may consume high memory for large files)"
   );
-  return calculateHash(file);
+  const hash = await calculateHash(file);
+  onProgress?.({ loaded: file.size, total: file.size, percentage: 100 });
+  return hash;
+}
+
+async function calculateSHA256WithWorker(file, onProgress) {
+  const workerUrl = new URL("./hash-worker.js", import.meta.url);
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(workerUrl);
+    let aborted = false;
+
+    worker.onmessage = (event) => {
+      const message = event.data;
+      switch (message.type) {
+        case "progress":
+          onProgress?.({
+            loaded: message.loaded,
+            total: message.total,
+            percentage: (message.loaded / message.total) * 100,
+          });
+          break;
+        case "done":
+          worker.terminate();
+          resolve(message.hash.toUpperCase());
+          break;
+        case "error":
+          worker.terminate();
+          reject(new Error(message.error));
+          break;
+        default:
+          break;
+      }
+    };
+
+    worker.onerror = (err) => {
+      if (!aborted) {
+        reject(err);
+      }
+      worker.terminate();
+    };
+
+    worker.postMessage({ type: "start", size: file.size });
+
+    (async () => {
+      const reader = file.stream().getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        worker.postMessage({ type: "chunk", chunk: value }, [value.buffer]);
+      }
+      worker.postMessage({ type: "finalize" });
+    })().catch((err) => {
+      aborted = true;
+      worker.terminate();
+      reject(err);
+    });
+  });
 }

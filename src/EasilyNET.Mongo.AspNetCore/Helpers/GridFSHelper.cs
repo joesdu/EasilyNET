@@ -162,6 +162,7 @@ public sealed class GridFSHelper
                         },
             ContentType = contentType,
             FileId = ObjectId.GenerateNewId().ToString(), // 预先生成 FileId
+            FileHash = fileHash,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             ExpiresAt = DateTime.UtcNow.AddHours(sessionExpirationHours),
@@ -229,7 +230,7 @@ public sealed class GridFSHelper
         // 只要检查第一个子块是否存在即可
         var chunkExistsFilter = Builders<BsonDocument>.Filter.And(Builders<BsonDocument>.Filter.Eq("files_id", fileId), Builders<BsonDocument>.Filter.Eq("n", baseN));
         var existingChunk = await _chunksCollection.Find(chunkExistsFilter).FirstOrDefaultAsync(cancellationToken);
-        if (existingChunk != null)
+        if (existingChunk is not null)
         {
             // 块已存在,同步 session.UploadedChunks 并返回
             // ReSharper disable once InvertIf
@@ -310,6 +311,10 @@ public sealed class GridFSHelper
     ///     <para xml:lang="en">Expected file hash (SHA256) for verification (optional)</para>
     ///     <para xml:lang="zh">用于验证的预期文件哈希值(SHA256)(可选)</para>
     /// </param>
+    /// <param name="skipHashValidation">
+    ///     <para xml:lang="en">Skip full hash validation (trust client hash, faster but less safe)</para>
+    ///     <para xml:lang="zh">跳过服务器端全量哈希校验(依赖客户端哈希,更快但安全性降低)</para>
+    /// </param>
     /// <param name="cancellationToken">
     ///     <para xml:lang="en">Cancellation token</para>
     ///     <para xml:lang="zh">取消令牌</para>
@@ -318,7 +323,7 @@ public sealed class GridFSHelper
     ///     <para xml:lang="en">GridFS file ID</para>
     ///     <para xml:lang="zh">GridFS 文件 ID</para>
     /// </returns>
-    public async Task<ObjectId> FinalizeUploadAsync(string sessionId, string? verifyHash = null, CancellationToken cancellationToken = default)
+    public async Task<ObjectId> FinalizeUploadAsync(string sessionId, string? verifyHash = null, bool skipHashValidation = false, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -328,13 +333,12 @@ public sealed class GridFSHelper
             {
                 return ObjectId.Parse(session.FileId!);
             }
+            var expectedHash = (verifyHash ?? session.FileHash)?.ToUpperInvariant();
 
             // 1. 尝试通过 verifyHash 进行去重 (如果提供了 hash)
-            if (!string.IsNullOrEmpty(verifyHash))
+            if (!string.IsNullOrEmpty(expectedHash))
             {
-                // 统一转换为大写
-                verifyHash = verifyHash.ToUpperInvariant();
-                var existingId = await TryDeduplicateAsync(sessionId, ObjectId.Parse(session.FileId!), verifyHash, cancellationToken);
+                var existingId = await TryDeduplicateAsync(sessionId, ObjectId.Parse(session.FileId!), expectedHash, cancellationToken);
                 if (existingId != ObjectId.Empty)
                 {
                     return existingId;
@@ -385,36 +389,37 @@ public sealed class GridFSHelper
             // 这里我们假设如果 verifyHash 为空, 或者为了性能, 我们跳过全量哈希计算
             // 如果提供了 verifyHash, 我们仍然需要计算哈希 (这会很慢, 但比读+写快)
             string computedHash;
-            if (!string.IsNullOrEmpty(verifyHash))
+            if (!string.IsNullOrEmpty(expectedHash))
             {
-                // 需要计算哈希 - 只能读取所有块
-                Debug.WriteLine("[DEBUG] Calculating hash for verification...");
-                using var sha256 = SHA256.Create();
-
-                // 使用游标遍历 chunks
-                var sort = Builders<BsonDocument>.Sort.Ascending("n");
-                var cursor = await _chunksCollection.Find(Builders<BsonDocument>.Filter.Eq("files_id", fileIdObj))
-                                                    .Sort(sort)
-                                                    .ToCursorAsync(cancellationToken);
-                while (await cursor.MoveNextAsync(cancellationToken))
+                if (skipHashValidation)
                 {
-                    foreach (var data in cursor.Current.Select(chunk => chunk["data"].AsBsonBinaryData.Bytes))
-                    {
-                        sha256.TransformBlock(data, 0, data.Length, null, 0);
-                    }
+                    computedHash = expectedHash;
                 }
-                sha256.TransformFinalBlock([], 0, 0);
-                computedHash = Convert.ToHexString(sha256.Hash!);
-                if (!computedHash.Equals(verifyHash, StringComparison.OrdinalIgnoreCase))
+                else
                 {
-                    throw new InvalidOperationException($"File hash verification failed. Expected: {verifyHash}, Got: {computedHash}");
+                    Debug.WriteLine("[DEBUG] Calculating hash for verification...");
+                    using var sha256 = SHA256.Create();
+                    var sort = Builders<BsonDocument>.Sort.Ascending("n");
+                    var cursor = await _chunksCollection.Find(Builders<BsonDocument>.Filter.Eq("files_id", fileIdObj))
+                                                        .Sort(sort)
+                                                        .ToCursorAsync(cancellationToken);
+                    while (await cursor.MoveNextAsync(cancellationToken))
+                    {
+                        foreach (var data in cursor.Current.Select(chunk => chunk["data"].AsBsonBinaryData.Bytes))
+                        {
+                            sha256.TransformBlock(data, 0, data.Length, null, 0);
+                        }
+                    }
+                    sha256.TransformFinalBlock([], 0, 0);
+                    computedHash = Convert.ToHexString(sha256.Hash!);
+                    if (!computedHash.Equals(expectedHash, StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new InvalidOperationException($"File hash verification failed. Expected: {expectedHash}, Got: {computedHash}");
+                    }
                 }
             }
             else
             {
-                // 跳过哈希计算, 使用空字符串或占位符
-                // 注意: GridFS 标准通常使用 MD5, 但新版驱动和 MongoDB 已弃用 MD5
-                // 我们在 metadata 中存储 fileHash
                 computedHash = string.Empty;
             }
             var fileId = ObjectId.Parse(session.FileId!);

@@ -147,14 +147,15 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
     /// </summary>
     /// <param name="sessionId">会话 ID</param>
     /// <param name="fileHash">文件哈希值(SHA256,可选,用于验证)</param>
+    /// <param name="skipHashValidation">是否跳过服务器端全量哈希校验(更快但安全性降低)</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     [HttpPost("Finalize/{sessionId}")]
-    public async Task<IActionResult> FinalizeUpload(string sessionId, [FromQuery] string? fileHash = null, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> FinalizeUpload(string sessionId, [FromQuery] string? fileHash = null, [FromQuery] bool skipHashValidation = false, CancellationToken cancellationToken = default)
     {
         try
         {
-            var fileId = await resumableHelper.FinalizeUploadAsync(sessionId, fileHash, cancellationToken);
+            var fileId = await resumableHelper.FinalizeUploadAsync(sessionId, fileHash, skipHashValidation, cancellationToken);
             return Ok(new
             {
                 fileId = fileId.ToString(),
