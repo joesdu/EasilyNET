@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>GridFS 断点续传示例</title>
+        <title>GridFS 示例</title>
         <style>
             * {
                 margin: 0;
@@ -247,7 +247,7 @@
 
     <body>
         <div class="container">
-            <h1>📤 GridFS 断点续传示例</h1>
+            <h1>📤 GridFS 示例</h1>
             <p class="subtitle">支持大文件分块上传、暂停恢复、断点续传</p>
 
             <!-- 上传部分 -->
@@ -343,8 +343,8 @@
 
         <script type="module">
             import {
-                GridFSResumableUploader,
-                GridFSResumableDownloader,
+                GridFSUploader,
+                GridFSDownloader,
                 formatFileSize,
                 formatTime
             } from './easilynet-gridfs-sdk.js';
@@ -399,13 +399,16 @@
                 const file = fileInput.files[0];
                 if (!file) return;
 
-                uploader = new GridFSResumableUploader(file, {
+                uploader = new GridFSUploader(file, {
                     // url: 'https://api.example.com', // 可选: 如果后端不在当前域,请填写域名
                     chunkSize: 1024 * 1024, // 1MB
                     maxConcurrent: 3,
                     onProgress: (progress) => {
                         uploadProgress.style.display = 'block';
-                        const percent = progress.percentage.toFixed(2);
+                        const percentValue = (progress.status === 'hashing' && typeof progress.hashPercentage === 'number')
+                            ? progress.hashPercentage
+                            : progress.percentage;
+                        const percent = percentValue.toFixed(2);
                         progressBar.style.width = `${percent}%`;
                         progressBar.textContent = `${percent}%`;
 
@@ -415,7 +418,7 @@
                             uploadSpeed.textContent = '--';
                             remainingTime.textContent = '正在处理';
                         } else if (progress.status === 'hashing') {
-                            uploadStatus.textContent = '正在计算文件特征值(Hash)...';
+                            uploadStatus.textContent = `正在计算文件特征值(Hash)... ${percent}%`;
                             uploadSpeed.textContent = '--';
                             remainingTime.textContent = '请稍候';
                         } else if (progress.status === 'completed') {
@@ -484,7 +487,7 @@
                     return;
                 }
 
-                downloader = new GridFSResumableDownloader({
+                downloader = new GridFSDownloader({
                     // url: 'https://api.example.com', // 可选: 如果后端不在当前域,请填写域名
                     fileId: fileId,
                     onProgress: (progress) => {
@@ -532,7 +535,7 @@
                     return;
                 }
 
-                videoPlayer.src = GridFSResumableDownloader.getUrl(fileId);
+                videoPlayer.src = GridFSDownloader.getUrl(fileId);
                 videoPlayer.style.display = 'block';
                 videoPlayer.load();
             });
