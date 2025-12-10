@@ -10,7 +10,7 @@
 /**
  * GridFS 断点续传上传器
  */
-export class GridFSResumableUploader {
+export class GridFSUploader {
   constructor(file, options) {
     this.chunks = [];
     this.uploadId = "";
@@ -376,7 +376,7 @@ export class GridFSResumableUploader {
 /**
  * GridFS 断点续传下载器
  */
-export class GridFSResumableDownloader {
+export class GridFSDownloader {
   constructor(options) {
     this.abortController = null;
     this.options = {
@@ -529,7 +529,7 @@ export class GridFSResumableDownloader {
    * 用于浏览器直接下载或 <video> 标签播放
    */
   getDownloadUrl() {
-    return GridFSResumableDownloader.getUrl(this.options.fileId, {
+    return GridFSDownloader.getUrl(this.options.fileId, {
       url: this.options.url,
       headers: this.options.headers,
     });
