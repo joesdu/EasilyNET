@@ -71,7 +71,7 @@ public static class AutoDependencyInjectionServiceExtension
         public IServiceCollection AddApplicationModules<T>() where T : AppModule
         {
             ArgumentNullException.ThrowIfNull(services);
-            services.AddSingleton<IObjectAccessor<IHost>>(_ => new ObjectAccessor<IHost>());
+            services.AddSingleton<IObjectAccessor<IHost>>(new ObjectAccessor<IHost>());
             services.AddScoped<IResolver>(sp => new Resolver(sp));
             services.AddSingleton(typeof(INamedServiceFactory<>), typeof(NamedServiceFactory<>));
             ApplicationFactory.Create<T>(services);

@@ -37,12 +37,7 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
         string? contentType = null,
         CancellationToken cancellationToken = default)
     {
-        var metadata = new BsonDocument();
-        if (!string.IsNullOrEmpty(contentType))
-        {
-            metadata["contentType"] = contentType;
-        }
-        var session = await resumableHelper.CreateSessionAsync(filename, totalSize, fileHash, metadata, cancellationToken: cancellationToken);
+        var session = await resumableHelper.CreateSessionAsync(filename, totalSize, fileHash, contentType, cancellationToken: cancellationToken);
         return Ok(new
         {
             sessionId = session.SessionId,

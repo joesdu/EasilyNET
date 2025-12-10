@@ -35,7 +35,7 @@ public sealed class ServiceProviderExtensionTests
             RegisterImplementation(typeof(IWelcomeService), typeof(WelcomeService));
             // Cast to the base type to satisfy nullable analysis for the params array.
             // ReSharper disable once RedundantExplicitParamsArrayCreation
-            var welcome = provider.Resolve<IWelcomeService>(new Parameter[] { new NamedParameter("name", "Rose") });
+            var welcome = provider.Resolve<IWelcomeService>([new NamedParameter("name", "Rose")]);
             Assert.AreEqual("Hello, Rose", welcome.Greet());
         }
         finally
