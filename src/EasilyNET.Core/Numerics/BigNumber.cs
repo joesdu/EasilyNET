@@ -52,6 +52,30 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// </summary>
     private BigInteger Denominator { get; set; }
 
+    /// <summary>
+    /// 基于当前值创建浅拷贝
+    /// </summary>
+    private BigNumber CloneRaw() =>
+        new()
+        {
+            Whole = Whole,
+            Numerator = Numerator,
+            Denominator = Denominator,
+            Sign = Sign
+        };
+
+    /// <summary>
+    /// 以分数形式返回当前值 (分子/分母)，不破坏原始对象
+    /// </summary>
+    private (BigInteger numerator, BigInteger denominator) AsFraction()
+    {
+        var copy = CloneRaw();
+        copy.Simplify();
+        var numerator = (copy.Whole * copy.Denominator) + copy.Numerator;
+        var denominator = copy.Denominator;
+        return (numerator, denominator);
+    }
+
     #region Constructors
 
     /// <summary>
@@ -106,7 +130,7 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
         };
         if (num.Denominator == 0)
         {
-            throw new ArgumentException("Numerator must not be 0");
+            throw new ArgumentException("Denominator must not be 0");
         }
         num.Simplify();
         return num;
@@ -639,18 +663,14 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
 
     public static BigNumber operator %(BigNumber a, BigNumber b)
     {
-        if (b == Zero)
+        var (numA, denA) = a.AsFraction();
+        var (numB, denB) = b.AsFraction();
+        if (numB == 0)
         {
             throw new DivideByZeroException();
         }
-        if (a.IsInteger(out var intA) && b.IsInteger(out var intB))
-        {
-            return FromBigInteger(intA % intB);
-        }
-        var division = a / b;
-        var frac = (double)division.Whole + ((double)division.Numerator / (double)division.Denominator);
-        var truncated = (BigInteger)Math.Truncate(frac);
-        return a - (FromBigInteger(truncated) * b);
+        var quotient = BigInteger.Divide(numA * denB, denA * numB);
+        return FromBigInteger(numA, denA) - (FromBigInteger(quotient) * b);
     }
 
     public static BigNumber operator %(int a, BigNumber b) => Mod(new(a), b);
@@ -672,30 +692,26 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
 
     public static BigNumber operator <<(BigNumber a, int b)
     {
-        a.Simplify();
-        var num = (a.Whole * a.Denominator) + a.Numerator;
-        var den = a.Denominator;
+        var (num, den) = a.AsFraction();
         // 分子左移，分母不变
         return FromBigInteger(num << b, den);
     }
 
     public static BigNumber operator >> (BigNumber a, int b)
     {
-        a.Simplify();
-        var num = (a.Whole * a.Denominator) + a.Numerator;
-        var den = a.Denominator;
+        var (num, den) = a.AsFraction();
         // 分子右移，分母不变
         return FromBigInteger(num >> b, den);
     }
 
     public static BigNumber operator ^(BigNumber a, BigNumber b)
     {
-        a.Simplify();
-        b.Simplify();
+        var (numA, denA) = a.AsFraction();
+        var (numB, denB) = b.AsFraction();
         // 通分
-        var commonDen = BigInteger.Multiply(a.Denominator, b.Denominator);
-        var aNum = ((a.Whole * a.Denominator) + a.Numerator) * (commonDen / a.Denominator);
-        var bNum = ((b.Whole * b.Denominator) + b.Numerator) * (commonDen / b.Denominator);
+        var commonDen = BigInteger.Multiply(denA, denB);
+        var aNum = numA * (commonDen / denA);
+        var bNum = numB * (commonDen / denB);
         // 分子异或，分母不变
         var resultNum = aNum ^ bNum;
         return FromBigInteger(resultNum, commonDen);
@@ -719,17 +735,11 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// <returns></returns>
     public static BigNumber Add(BigNumber a, BigNumber b)
     {
-        // To associative
-        var aSign = a.Sign is 0 or 1 ? 1 : -1;
-        var bSign = b.Sign is 0 or 1 ? 1 : -1;
-        a.ToAssociative();
-        b.ToAssociative();
-        var a_numerator = BigInteger.Abs(a.Numerator) * BigInteger.Abs(b.Denominator) * aSign;
-        var b_numerator = BigInteger.Abs(b.Numerator) * BigInteger.Abs(a.Denominator) * bSign;
-        var new_denominator = a.Denominator * b.Denominator;
-        a_numerator = aSign * BigInteger.Abs(a_numerator);
-        b_numerator = bSign * BigInteger.Abs(b_numerator);
-        return FromBigInteger((aSign * BigInteger.Abs(a_numerator)) + (BigInteger.Abs(b_numerator) * bSign), new_denominator);
+        var (numA, denA) = a.AsFraction();
+        var (numB, denB) = b.AsFraction();
+        var numerator = (numA * denB) + (numB * denA);
+        var denominator = denA * denB;
+        return FromBigInteger(numerator, denominator);
     }
 
     /// <summary>
@@ -760,11 +770,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// <returns></returns>
     public static BigNumber Multiply(BigNumber a, BigNumber b)
     {
-        a.ToAssociative();
-        b.ToAssociative();
-        var c = FromBigInteger(BigInteger.Abs(a.Numerator * b.Numerator), BigInteger.Abs(a.Denominator * b.Denominator));
-        c.Sign = (a.Sign is 0 or 1 ? 1 : -1) * (b.Sign is 0 or 1 ? 1 : -1);
-        return c;
+        var (numA, denA) = a.AsFraction();
+        var (numB, denB) = b.AsFraction();
+        return FromBigInteger(numA * numB, denA * denB);
     }
 
     /// <summary>
@@ -781,10 +789,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// <returns></returns>
     public static BigNumber Divide(BigNumber a, BigNumber b)
     {
-        a.ToAssociative();
-        b.ToAssociative();
-        var c = FromBigInteger(b.Denominator, b.Numerator);
-        return Multiply(a, c);
+        var (numA, denA) = a.AsFraction();
+        var (numB, denB) = b.AsFraction();
+        return numB == 0 ? throw new DivideByZeroException() : FromBigInteger(numA * denB, denA * numB);
     }
 
     /// <summary>
@@ -801,14 +808,14 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// <returns></returns>
     public static BigNumber Mod(BigNumber a, BigNumber b)
     {
-        a.ToAbs();
-        b.ToAbs();
-        while (a >= b)
+        var (numA, denA) = a.AsFraction();
+        var (numB, denB) = b.AsFraction();
+        if (numB == 0)
         {
-            a -= b;
+            throw new DivideByZeroException();
         }
-        a.ToAbs();
-        return a;
+        var quotient = BigInteger.Divide(numA * denB, denA * numB);
+        return FromBigInteger(numA, denA) - (FromBigInteger(quotient) * b);
     }
 
     /// <summary>
@@ -819,10 +826,22 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// <returns></returns>
     public static BigNumber Pow(BigNumber a, BigInteger b)
     {
-        var result = new BigNumber(1);
-        for (var i = new BigInteger(0); i < b; i++)
+        if (b < 0)
         {
-            result *= a;
+            throw new ArgumentOutOfRangeException(nameof(b), "Exponent must be non-negative.");
+        }
+        var (num, den) = a.AsFraction();
+        var result = One;
+        var baseVal = FromBigInteger(num, den);
+        var exp = b;
+        while (exp > 0)
+        {
+            if ((exp & 1) == 1)
+            {
+                result *= baseVal;
+            }
+            baseVal *= baseVal;
+            exp >>= 1;
         }
         return result;
     }
@@ -909,17 +928,7 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// <param name="a"></param>
     /// <param name="b"></param>
     /// <returns></returns>
-    public static bool Smaller(BigNumber a, BigNumber b)
-    {
-        a.ToAssociative();
-        b.ToAssociative();
-        a.Numerator *= b.Denominator;
-        b.Numerator *= a.Denominator;
-        var temp = a.Denominator;
-        a.Denominator *= b.Denominator;
-        b.Denominator *= temp;
-        return a.Numerator < b.Numerator;
-    }
+    public static bool Smaller(BigNumber a, BigNumber b) => a.CompareTo(b) < 0;
 
     /// <summary>
     /// 判断一个BigNumber是否小于等于另一个BigNumber
@@ -927,17 +936,7 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// <param name="a"></param>
     /// <param name="b"></param>
     /// <returns></returns>
-    public static bool SmallerOrEqual(BigNumber a, BigNumber b)
-    {
-        a.ToAssociative();
-        b.ToAssociative();
-        a.Numerator *= b.Denominator;
-        b.Numerator *= a.Denominator;
-        var temp = a.Denominator;
-        a.Denominator *= b.Denominator;
-        b.Denominator *= temp;
-        return a.Numerator <= b.Numerator;
-    }
+    public static bool SmallerOrEqual(BigNumber a, BigNumber b) => a.CompareTo(b) <= 0;
 
     /// <summary>
     /// 判断一个BigNumber是否大于另一个BigNumber
@@ -945,17 +944,7 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// <param name="a"></param>
     /// <param name="b"></param>
     /// <returns></returns>
-    public static bool Bigger(BigNumber a, BigNumber b)
-    {
-        a.ToAssociative();
-        b.ToAssociative();
-        a.Numerator *= b.Denominator;
-        b.Numerator *= a.Denominator;
-        var temp = a.Denominator;
-        a.Denominator *= b.Denominator;
-        b.Denominator *= temp;
-        return a.Numerator > b.Numerator;
-    }
+    public static bool Bigger(BigNumber a, BigNumber b) => a.CompareTo(b) > 0;
 
     /// <summary>
     /// 判断一个BigNumber是否大于等于另一个BigNumber
@@ -963,28 +952,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// <param name="a"></param>
     /// <param name="b"></param>
     /// <returns></returns>
-    public static bool BiggerOrEqual(BigNumber a, BigNumber b)
-    {
-        a.ToAssociative();            // 10/3
-        b.ToAssociative();            // 7/4
-        a.Numerator *= b.Denominator; // 40
-        b.Numerator *= a.Denominator; // 21
-        var temp = a.Denominator;
-        a.Denominator *= b.Denominator;
-        b.Denominator *= temp;
-        return a.Numerator >= b.Numerator;
-    }
+    public static bool BiggerOrEqual(BigNumber a, BigNumber b) => a.CompareTo(b) >= 0;
 
     #endregion
-
-    /// <summary>
-    /// 转换为关联式
-    /// </summary>
-    private void ToAssociative()
-    {
-        Numerator = (Whole * Denominator) + Numerator;
-        Whole = 0;
-    }
 
     /// <summary>
     /// 计算最大公因数
@@ -1045,7 +1015,7 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
         Numerator = BigInteger.Abs(Numerator);
         Whole = BigInteger.Abs(Whole);
         Denominator = BigInteger.Abs(Denominator);
-        Sign = 1;
+        Sign = Whole == 0 && Numerator == 0 ? 0 : 1;
     }
 
     /// <summary>
@@ -1055,8 +1025,9 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// <returns></returns>
     public static BigNumber Abs(BigNumber a)
     {
-        a.ToAbs();
-        return a;
+        var clone = a.CloneRaw();
+        clone.ToAbs();
+        return clone;
     }
 
     /// <summary>
