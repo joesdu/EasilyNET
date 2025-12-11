@@ -757,10 +757,10 @@ async function calculateHash(blob: Blob): Promise<string> {
 type HashProgress = { loaded: number; total: number; percentage: number };
 
 /**
- * Calculate file SHA256 hash (streaming)
- * @param file - File to hash
- * @param onProgress - Optional callback for hash calculation progress updates
- * @returns Promise resolving to uppercase SHA256 hex string
+ * 计算文件的 SHA256 哈希（流式处理）
+ * @param file 要计算哈希的文件
+ * @param onProgress 可选，哈希计算进度回调
+ * @returns 返回大写的 SHA256 十六进制字符串的 Promise
  */
 async function calculateSHA256(
   file: File,
