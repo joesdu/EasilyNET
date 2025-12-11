@@ -73,7 +73,7 @@ public class BigNumberTest
         var fpow = BigNumber.Pow(f, 2);
         Assert.AreEqual(BigNumber.FromBigInteger(new(4), new(9)), fpow);
         // 负指数应抛异常
-        ExpectException<ArgumentOutOfRangeException>(() => BigNumber.Pow(a, new BigInteger(-1)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => BigNumber.Pow(a, new BigInteger(-1)));
     }
 
     [TestMethod]
@@ -132,7 +132,7 @@ public class BigNumberTest
         // 2又1/3 = 7/3, 1/2 = 1/2, 7/3 % 1/2 = 1/3
         Assert.AreEqual(BigNumber.FromBigInteger(new(1), new(3)), fmod);
         // 除零检测
-        ExpectException<DivideByZeroException>(() => _ = a % BigNumber.Zero);
+        Assert.Throws<DivideByZeroException>(() => _ = a % BigNumber.Zero);
     }
 
     [TestMethod]
@@ -174,8 +174,8 @@ public class BigNumberTest
     public void TestDivisionAndCtorGuardrails()
     {
         var one = BigNumber.FromBigInteger(new(1));
-        ExpectException<DivideByZeroException>(() => BigNumber.Divide(one, BigNumber.Zero));
-        ExpectException<DivideByZeroException>(() => _ = new BigNumber(1, 0));
+        Assert.Throws<DivideByZeroException>(() => BigNumber.Divide(one, BigNumber.Zero));
+        Assert.Throws<DivideByZeroException>(() => _ = new BigNumber(1, 0));
     }
 
     [TestMethod]
@@ -186,18 +186,5 @@ public class BigNumberTest
         Assert.AreEqual(new(42), intVal);
         var nonInteger = BigNumber.FromBigInteger(new(7), new(3));
         Assert.IsFalse(nonInteger.IsInteger(out _));
-    }
-
-    private static void ExpectException<TException>(Action action) where TException : Exception
-    {
-        try
-        {
-            action();
-            Assert.Fail($"Expected exception of type {typeof(TException).Name}.");
-        }
-        catch (TException)
-        {
-            // OK
-        }
     }
 }

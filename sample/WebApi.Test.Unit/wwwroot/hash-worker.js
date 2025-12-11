@@ -1,9 +1,11 @@
 /* eslint-disable no-undef */
 // Web Worker: 通过 hash-wasm 在后台计算 SHA256, 避免阻塞主线程
+// SubtleCrypto 回退模式必须一次性拼接全部分片，容易耗尽内存，因此设置硬性文件大小上限。
+const SUBTLE_FALLBACK_MAX_BYTES = 64 * 1024 * 1024; // 64 MiB
+
 let hasher = null;
 let processed = 0;
 let total = 0;
-let useSubtleFallback = false;
 let subtleChunks = [];
 
 self.onmessage = async (event) => {
@@ -24,10 +26,23 @@ self.onmessage = async (event) => {
       }
 
       if (!hasher) {
-        useSubtleFallback = true;
         subtleChunks = [];
+        if (total > SUBTLE_FALLBACK_MAX_BYTES) {
+          postMessage({
+            type: "error",
+            error: `hash-wasm 不可用且 SubtleCrypto 回退仅支持 <= ${formatBytes(
+              SUBTLE_FALLBACK_MAX_BYTES
+            )} 的文件（当前 ${formatBytes(total)}）。`,
+          });
+          close();
+          return;
+        }
       }
-      postMessage({ type: "ready", impl: hasher ? "hash-wasm" : "subtle" });
+      postMessage({
+        type: "ready",
+        impl: hasher ? "hash-wasm" : "subtle",
+        subtleLimit: SUBTLE_FALLBACK_MAX_BYTES,
+      });
       return;
     }
 
@@ -45,9 +60,14 @@ self.onmessage = async (event) => {
     if (type === "finalize") {
       let hex = "";
       if (hasher) {
-        hex = hasher.digest().toUpperCase();
+        const digestResult = hasher.digest();
+        hex = (
+          typeof digestResult === "string"
+            ? digestResult
+            : bufferToHex(digestResult)
+        ).toUpperCase();
       } else {
-        // Fallback: 使用 SubtleCrypto(需要拼接内存,但只在 hash-wasm 不可用时执行)
+        // Fallback: 使用 SubtleCrypto(需要拼接内存,但只在 hash-wasm 不可用且文件大小受限时执行)
         const combined = concatBuffers(subtleChunks);
         const digest = await crypto.subtle.digest("SHA-256", combined);
         hex = bufferToHex(new Uint8Array(digest)).toUpperCase();
@@ -76,4 +96,13 @@ function bufferToHex(bytes) {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
+}
+
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes)) return "未知";
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+  const idx = Math.floor(Math.log(bytes) / Math.log(1024));
+  const value = bytes / Math.pow(1024, idx);
+  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[idx]}`;
 }

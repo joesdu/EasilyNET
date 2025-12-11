@@ -427,8 +427,8 @@ export class GridFSUploader {
       );
     } catch (error) {
       const isAbort = (error as DOMException)?.name === "AbortError";
-      if (this.isPaused && isAbort) {
-        return;
+      if (isAbort) {
+        return; // Always return on abort, regardless of pause state
       }
       throw error;
     }
@@ -586,10 +586,6 @@ export class GridFSDownloader {
       const headers: Record<string, string> = {
         ...this.options.headers,
       };
-
-      if (startByte > 0) {
-        headers["Range"] = `bytes=${startByte}-`;
-      }
 
       const host = (this.options.url || "").replace(/\/+$/, "");
       const apiBase = `${host}/api/GridFS`;
@@ -760,6 +756,12 @@ async function calculateHash(blob: Blob): Promise<string> {
  */
 type HashProgress = { loaded: number; total: number; percentage: number };
 
+/**
+ * 计算文件的 SHA256 哈希（流式处理）
+ * @param file 要计算哈希的文件
+ * @param onProgress 可选，哈希计算进度回调
+ * @returns 返回大写的 SHA256 十六进制字符串的 Promise
+ */
 async function calculateSHA256(
   file: File,
   onProgress?: (progress: HashProgress) => void
@@ -770,7 +772,6 @@ async function calculateSHA256(
   } catch (e) {
     console.warn("Worker 哈希计算失败, 回退到主线程", e);
   }
-
   // 回退: 主线程 hash-wasm (依旧较快, 但可能阻塞)
   try {
     // @ts-ignore
@@ -879,7 +880,7 @@ async function calculateSHA256WithWorker(
   const workerUrl = new URL("./hash-worker.js", import.meta.url);
   return new Promise((resolve, reject) => {
     const worker = new Worker(workerUrl);
-    let aborted = false;
+    let settled = false;
 
     type WorkerMessage =
       | { type: "ready"; impl: string }
@@ -887,17 +888,34 @@ async function calculateSHA256WithWorker(
       | { type: "done"; hash: string }
       | { type: "error"; error: string };
 
+    // Throttle progress updates: at most every 100ms or every 1% progress
+    let lastProgressTime = 0;
+    let lastProgressPercent = 0;
     worker.onmessage = (event) => {
       const message = event.data as WorkerMessage;
       switch (message.type) {
-        case "progress":
-          onProgress?.({
-            loaded: message.loaded,
-            total: message.total,
-            percentage: (message.loaded / message.total) * 100,
-          });
+        case "progress": {
+          const now = Date.now();
+          const percent = (message.loaded / message.total) * 100;
+          if (!onProgress) {
+            // do nothing
+          } else if (
+            now - lastProgressTime > 100 ||
+            percent - lastProgressPercent >= 1 ||
+            percent === 100
+          ) {
+            onProgress({
+              loaded: message.loaded,
+              total: message.total,
+              percentage: percent,
+            });
+            lastProgressTime = now;
+            lastProgressPercent = percent;
+          }
           break;
+        }
         case "done":
+          settled = true;
           worker.terminate();
           resolve(message.hash.toUpperCase());
           break;
@@ -911,7 +929,7 @@ async function calculateSHA256WithWorker(
     };
 
     worker.onerror = (err) => {
-      if (!aborted) {
+      if (!settled) {
         reject(err);
       }
       worker.terminate();
@@ -924,11 +942,12 @@ async function calculateSHA256WithWorker(
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        worker.postMessage({ type: "chunk", chunk: value }, [value.buffer]);
+        const copy = value.slice(); // Creates a copy with its own buffer
+        worker.postMessage({ type: "chunk", chunk: copy }, [copy.buffer]);
       }
       worker.postMessage({ type: "finalize" });
     })().catch((err) => {
-      aborted = true;
+      settled = true;
       worker.terminate();
       reject(err);
     });

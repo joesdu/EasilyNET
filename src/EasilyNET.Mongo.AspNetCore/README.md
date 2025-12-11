@@ -310,14 +310,14 @@ builder.Services.AddMongoGridFS(options =>
 
 ```javascript
 import {
-  GridFSResumableUploader,
-  GridFSResumableDownloader,
+  GridFSUploader,
+  GridFSDownloader,
   formatFileSize,
 } from "./easilynet-gridfs-sdk.js";
 
 // 上传示例
 const startUpload = async (file) => {
-  const uploader = new GridFSResumableUploader(file, {
+  const uploader = new GridFSUploader(file, {
     // url: 'https://api.example.com', // 可选: 如果后端不在当前域,请填写域名
     chunkSize: 1024 * 1024, // 1MB
     maxConcurrent: 3,
@@ -347,7 +347,7 @@ const startUpload = async (file) => {
 
 // 下载示例
 const startDownload = async (fileId) => {
-  const downloader = new GridFSResumableDownloader({
+  const downloader = new GridFSDownloader({
     fileId: fileId,
     onProgress: (progress) => {
       console.log(`下载进度: ${progress.percentage}%`);

@@ -6,7 +6,6 @@
  * @author EasilyNET
  * @license MIT
  */
-
 /**
  * GridFS 断点续传上传器
  */
@@ -20,10 +19,9 @@ export class GridFSUploader {
     this.isPaused = false;
     this.elapsedBeforePause = 0;
     this.hashPromise = null;
-    this.cachedFileHash = undefined;
     this.file = file;
     this.options = {
-      chunkSize: 1024 * 1024, // 1MB (初始值,将被后端返回的值覆盖)
+      chunkSize: 1024 * 1024, // 1MB
       maxConcurrent: Math.min(
         6,
         Math.max(2, navigator?.hardwareConcurrency ?? 4)
@@ -38,11 +36,9 @@ export class GridFSUploader {
       url: "",
       ...options,
     };
-
-    // 注意: chunks 将在获取到后端返回的 chunkSize 后再初始化
+    // chunks 将在获取到后端返回的 chunkSize 后再初始化
     // this.initializeChunks();
   }
-
   /**
    * 初始化分块信息
    */
@@ -56,7 +52,6 @@ export class GridFSUploader {
       uploaded: false,
     }));
   }
-
   /**
    * 开始上传
    */
@@ -65,14 +60,13 @@ export class GridFSUploader {
       await this.resume();
       return this.uploadId;
     }
-
     this.isPaused = false;
     this.abortController = new AbortController();
     this.startTime = performance.now();
     this.elapsedBeforePause = 0;
     this.uploadedBytes = 0;
-
     try {
+      // 0. 预先计算文件哈希 (用于秒传), 在独立线程中避免阻塞 UI
       this.hashPromise = calculateSHA256(this.file, (hashProgress) => {
         this.options.onProgress?.({
           loaded: 0,
@@ -84,7 +78,6 @@ export class GridFSUploader {
           hashPercentage: hashProgress.percentage,
         });
       });
-
       const fileHash =
         this.cachedFileHash ??
         (await this.hashPromise.catch((e) => {
@@ -92,15 +85,12 @@ export class GridFSUploader {
           return undefined;
         }));
       if (fileHash) this.cachedFileHash = fileHash;
-
       if (this.isPaused) {
         return this.uploadId;
       }
-
       // 1. 初始化上传会话 (携带哈希)
       const sessionInfo = await this.initializeUpload(fileHash);
       this.uploadId = sessionInfo.sessionId;
-
       // 检查是否秒传成功
       if (sessionInfo.status === "Completed" && sessionInfo.fileId) {
         this.options.onProgress?.({
@@ -114,11 +104,11 @@ export class GridFSUploader {
         this.options.onComplete(sessionInfo.fileId);
         return sessionInfo.fileId;
       }
-
+      // 如果服务端返回的块大小与配置不一致，更新配置并重新分块
       if (sessionInfo.chunkSize) {
         this.options.chunkSize = sessionInfo.chunkSize;
       }
-
+      // 现在初始化分块 (使用后端的 chunkSize)
       this.initializeChunks();
       this.options.onProgress?.({
         loaded: 0,
@@ -128,12 +118,9 @@ export class GridFSUploader {
         remainingTime: 0,
         status: "uploading",
       });
-
       // 2. 并发上传分块
       await this.uploadChunks();
-
       if (this.isPaused) return this.uploadId;
-
       // 3. 完成上传
       this.options.onProgress?.({
         loaded: this.file.size,
@@ -143,11 +130,9 @@ export class GridFSUploader {
         remainingTime: 0,
         status: "merging",
       });
-
       const finalHash =
         this.cachedFileHash ?? (await this.hashPromise?.catch(() => undefined));
       const finalFileId = await this.completeUpload(finalHash);
-
       this.options.onComplete(finalFileId);
       return finalFileId;
     } catch (error) {
@@ -155,7 +140,6 @@ export class GridFSUploader {
       throw error;
     }
   }
-
   /**
    * 暂停上传
    */
@@ -164,29 +148,23 @@ export class GridFSUploader {
     this.elapsedBeforePause += performance.now() - this.startTime;
     this.abortController?.abort();
   }
-
   /**
    * 恢复上传
    */
   async resume() {
     if (!this.isPaused) return;
-
     if (!this.uploadId) {
       throw new Error("没有可恢复的上传会话");
     }
-
     this.isPaused = false;
     this.abortController = new AbortController();
     this.startTime = performance.now();
-
     try {
       await this.uploadChunks();
-
       if (this.isPaused) return;
-
+      // 优先使用已缓存/已在进行的哈希
       const fileHash =
         this.cachedFileHash ?? (await this.hashPromise?.catch(() => undefined));
-
       const fileId = await this.completeUpload(fileHash);
       this.options.onComplete(fileId);
     } catch (error) {
@@ -194,7 +172,6 @@ export class GridFSUploader {
       throw error;
     }
   }
-
   /**
    * 取消上传
    */
@@ -204,7 +181,6 @@ export class GridFSUploader {
       await this.abortUpload();
     }
   }
-
   /**
    * 初始化上传会话
    */
@@ -214,11 +190,9 @@ export class GridFSUploader {
       totalSize: this.file.size.toString(),
       contentType: this.file.type,
     });
-
     if (fileHash) {
       params.append("fileHash", fileHash);
     }
-
     const host = (this.options.url || "").replace(/\/+$/, "");
     const apiBase = `${host}/api/GridFS`;
     const response = await fetch(
@@ -230,15 +204,12 @@ export class GridFSUploader {
         },
       }
     );
-
     if (!response.ok) {
       throw new Error(`初始化上传失败: ${response.statusText}`);
     }
-
-    const sessionInfo = await response.json();
-    return sessionInfo; // 返回完整的会话信息,包含 sessionId 和 chunkSize
+    const { sessionId, chunkSize, status, fileId } = await response.json();
+    return { sessionId, chunkSize, status, fileId };
   }
-
   /**
    * 并发上传分块
    */
@@ -246,10 +217,8 @@ export class GridFSUploader {
     const pendingChunks = this.chunks.filter((c) => !c.uploaded);
     const queue = [...pendingChunks];
     const executing = [];
-
     while (queue.length > 0 || executing.length > 0) {
       if (this.isPaused) break;
-
       while (
         executing.length < this.options.maxConcurrent &&
         queue.length > 0
@@ -279,28 +248,23 @@ export class GridFSUploader {
               throw error;
             }
           });
-
         executing.push(promise);
       }
-
       if (executing.length > 0) {
         await Promise.race(executing);
       }
     }
-
     // 确保所有分块都已上传
     if (!this.isPaused && executing.length > 0) {
       await Promise.all(executing);
     }
   }
-
   /**
    * 上传单个分块
    */
   async uploadChunk(chunk, internalRetry = 0) {
     const blob = this.file.slice(chunk.start, chunk.end);
     const chunkHash = await calculateHash(blob);
-
     const host = (this.options.url || "").replace(/\/+$/, "");
     const apiBase = `${host}/api/GridFS`;
     let response;
@@ -319,12 +283,11 @@ export class GridFSUploader {
       );
     } catch (error) {
       const isAbort = error?.name === "AbortError";
-      if (this.isPaused && isAbort) {
-        return;
+      if (isAbort) {
+        return; // Always return on abort, regardless of pause state
       }
       throw error;
     }
-
     if (!response.ok) {
       const errorText = await response.text();
       // 检查是否是哈希校验失败 (状态码 400 且错误信息包含 hash)
@@ -344,12 +307,10 @@ export class GridFSUploader {
         `上传分块 ${chunk.index} 失败: ${response.status} ${response.statusText} - ${errorText}`
       );
     }
-
     chunk.uploaded = true;
     this.uploadedBytes += chunk.end - chunk.start;
     this.updateProgress();
   }
-
   /**
    * 完成上传
    */
@@ -367,7 +328,6 @@ export class GridFSUploader {
     const url = qs
       ? `${apiBase}/Finalize/${this.uploadId}?${qs}`
       : `${apiBase}/Finalize/${this.uploadId}`;
-
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -375,15 +335,12 @@ export class GridFSUploader {
         ...this.options.headers,
       },
     });
-
     if (!response.ok) {
       throw new Error(`完成上传失败: ${response.statusText}`);
     }
-
     const { fileId } = await response.json();
     return fileId;
   }
-
   /**
    * 取消上传
    */
@@ -395,7 +352,6 @@ export class GridFSUploader {
       headers: this.options.headers,
     });
   }
-
   /**
    * 更新上传进度
    */
@@ -405,7 +361,6 @@ export class GridFSUploader {
     const speed = elapsed > 0 ? this.uploadedBytes / elapsed : 0;
     const remainingBytes = this.file.size - this.uploadedBytes;
     const remainingTime = speed > 0 ? remainingBytes / speed : 0;
-
     const progress = {
       loaded: this.uploadedBytes,
       total: this.file.size,
@@ -414,11 +369,9 @@ export class GridFSUploader {
       remainingTime,
       status: "uploading",
     };
-
     this.options.onProgress(progress);
   }
 }
-
 /**
  * GridFS 断点续传下载器
  */
@@ -434,7 +387,6 @@ export class GridFSDownloader {
       ...options,
     };
   }
-
   /**
    * 获取文件下载链接 (静态辅助方法)
    * @param fileId 文件 ID
@@ -444,7 +396,6 @@ export class GridFSDownloader {
     const host = (options?.url || "").replace(/\/+$/, "");
     const apiBase = `${host}/api/GridFS`;
     let url = `${apiBase}/StreamRange/${fileId}`;
-
     const auth =
       options?.headers?.["Authorization"] ||
       options?.headers?.["authorization"];
@@ -455,26 +406,17 @@ export class GridFSDownloader {
     }
     return url;
   }
-
   /**
    * 开始下载 (支持断点续传)
-   * @param getWritableStream 可选的回调函数，用于获取写入流。参数为文件名和总大小。
+   * @param getWritableStream 可选: 返回一个 WritableStream 用于流式保存
    */
   async start(getWritableStream) {
     this.abortController = new AbortController();
-
     try {
       const startByte = 0;
-
-      // 发送 Range 请求
       const headers = {
         ...this.options.headers,
       };
-
-      if (startByte > 0) {
-        headers["Range"] = `bytes=${startByte}-`;
-      }
-
       const host = (this.options.url || "").replace(/\/+$/, "");
       const apiBase = `${host}/api/GridFS`;
       const response = await fetch(
@@ -484,37 +426,27 @@ export class GridFSDownloader {
           signal: this.abortController.signal,
         }
       );
-
       if (!response.ok && response.status !== 206) {
         throw new Error(`下载失败: ${response.statusText}`);
       }
-
-      // 从 Content-Disposition 头中提取文件名
       const contentDisposition = response.headers.get("Content-Disposition");
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(
           /filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i
         );
         if (filenameMatch && filenameMatch[1]) {
-          // 解码 URL 编码的文件名
           this.options.filename = decodeURIComponent(filenameMatch[1]);
         }
       }
-
-      // 获取总大小
       const contentRange = response.headers.get("Content-Range");
       const totalSize = contentRange
         ? parseInt(contentRange.split("/")[1])
         : parseInt(response.headers.get("Content-Length") || "0");
-
-      // 流式读取响应
       const reader = response.body?.getReader();
       if (!reader) {
         throw new Error("无法读取响应流");
       }
-
-      // 如果提供了获取写入流的回调，尝试获取写入流
-      let writer;
+      let writer = null;
       if (getWritableStream) {
         const stream = await getWritableStream(
           this.options.filename,
@@ -524,55 +456,42 @@ export class GridFSDownloader {
           writer = stream.getWriter();
         }
       }
-
       const chunks = [];
       let receivedLength = startByte;
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
         if (writer) {
           await writer.write(value);
         } else {
           chunks.push(value);
         }
-
         receivedLength += value.length;
-
-        // 更新进度
         this.options.onProgress?.({
           loaded: receivedLength,
           total: totalSize,
           percentage: (receivedLength / totalSize) * 100,
         });
       }
-
       if (writer) {
         await writer.close();
         return;
       }
-
-      // 合并所有分块
       const blob = new Blob(chunks);
-
       return blob;
     } catch (error) {
       this.options.onError?.(error);
       throw error;
     }
   }
-
   /**
    * 取消下载
    */
   cancel() {
     this.abortController?.abort();
   }
-
   /**
    * 获取下载链接 (带鉴权参数)
-   * 用于浏览器直接下载或 <video> 标签播放
    */
   getDownloadUrl() {
     return GridFSDownloader.getUrl(this.options.fileId, {
@@ -580,9 +499,8 @@ export class GridFSDownloader {
       headers: this.options.headers,
     });
   }
-
   /**
-   * 下载并保存文件 (使用浏览器原生下载)
+   * 使用浏览器原生下载
    */
   async downloadAndSave() {
     const url = this.getDownloadUrl();
@@ -598,7 +516,6 @@ export class GridFSDownloader {
       document.body.removeChild(a);
     }, 100);
   }
-
   /**
    * 保存文件到本地
    */
@@ -611,7 +528,6 @@ export class GridFSDownloader {
     URL.revokeObjectURL(url);
   }
 }
-
 /**
  * 格式化文件大小
  */
@@ -622,7 +538,6 @@ export function formatFileSize(bytes) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
 }
-
 /**
  * 格式化时间
  */
@@ -634,7 +549,6 @@ export function formatTime(seconds) {
     (seconds % 3600) / 60
   )}分`;
 }
-
 /**
  * 计算 Blob 的 SHA256 哈希
  */
@@ -647,18 +561,22 @@ async function calculateHash(blob) {
     .join("")
     .toUpperCase();
 }
-
 /**
- * 计算文件 SHA256 哈希 (流式)
+ * 计算文件的 SHA256 哈希（流式处理）
+ * @param file 要计算哈希的文件
+ * @param onProgress 可选，哈希计算进度回调
+ * @returns 返回大写 SHA256 十六进制字符串的 Promise
  */
 async function calculateSHA256(file, onProgress) {
+  // 优先使用 Web Worker + hash-wasm, 避免主线程阻塞
   try {
     return await calculateSHA256WithWorker(file, onProgress);
   } catch (e) {
     console.warn("Worker 哈希计算失败, 回退到主线程", e);
   }
-
+  // 回退: 主线程 hash-wasm (依旧较快, 但可能阻塞)
   try {
+    // @ts-ignore
     if (typeof hashwasm === "undefined") {
       await new Promise((resolve, reject) => {
         const src = "./lib/hash-wasm/sha256.umd.min.js";
@@ -673,11 +591,11 @@ async function calculateSHA256(file, onProgress) {
         document.head.appendChild(script);
       });
     }
-
+    // @ts-ignore
     if (typeof hashwasm !== "undefined") {
+      // @ts-ignore
       const hasher = await hashwasm.createSHA256();
       hasher.init();
-
       const reader = file.stream().getReader();
       let processed = 0;
       while (true) {
@@ -699,17 +617,14 @@ async function calculateSHA256(file, onProgress) {
       e
     );
   }
-
   const chunkSize = 10 * 1024 * 1024; // 10MB 块大小
   const chunks = Math.ceil(file.size / chunkSize);
   let currentChunk = 0;
   let processed = 0;
-
   if (typeof sha256 !== "undefined") {
     return new Promise((resolve, reject) => {
       const hasher = sha256.create();
       const fileReader = new FileReader();
-
       fileReader.onload = (e) => {
         try {
           const buffer = e.target?.result;
@@ -721,7 +636,6 @@ async function calculateSHA256(file, onProgress) {
             total: file.size,
             percentage: (processed / file.size) * 100,
           });
-
           if (currentChunk < chunks) {
             loadNext();
           } else {
@@ -731,47 +645,58 @@ async function calculateSHA256(file, onProgress) {
           reject(error);
         }
       };
-
       fileReader.onerror = () => {
         reject(new Error("文件读取失败"));
       };
-
       function loadNext() {
         const start = currentChunk * chunkSize;
         const end = Math.min(start + chunkSize, file.size);
         const blob = file.slice(start, end);
         fileReader.readAsArrayBuffer(blob);
       }
-
       loadNext();
     });
   }
-
   console.warn(
     "hash-wasm and js-sha256 not found, using Web Crypto API (may consume high memory for large files)"
   );
   const hash = await calculateHash(file);
   onProgress?.({ loaded: file.size, total: file.size, percentage: 100 });
-  return hash;
+  return hash.toUpperCase();
 }
-
 async function calculateSHA256WithWorker(file, onProgress) {
   const workerUrl = new URL("./hash-worker.js", import.meta.url);
   return new Promise((resolve, reject) => {
     const worker = new Worker(workerUrl);
-    let aborted = false;
-
+    let settled = false;
+    // Throttle progress updates: at most every 100ms or every 1% progress
+    let lastProgressTime = 0;
+    let lastProgressPercent = 0;
     worker.onmessage = (event) => {
       const message = event.data;
       switch (message.type) {
-        case "progress":
-          onProgress?.({
-            loaded: message.loaded,
-            total: message.total,
-            percentage: (message.loaded / message.total) * 100,
-          });
+        case "progress": {
+          const now = Date.now();
+          const percent = (message.loaded / message.total) * 100;
+          if (!onProgress) {
+            // do nothing
+          } else if (
+            now - lastProgressTime > 100 ||
+            percent - lastProgressPercent >= 1 ||
+            percent === 100
+          ) {
+            onProgress({
+              loaded: message.loaded,
+              total: message.total,
+              percentage: percent,
+            });
+            lastProgressTime = now;
+            lastProgressPercent = percent;
+          }
           break;
+        }
         case "done":
+          settled = true;
           worker.terminate();
           resolve(message.hash.toUpperCase());
           break;
@@ -783,26 +708,24 @@ async function calculateSHA256WithWorker(file, onProgress) {
           break;
       }
     };
-
     worker.onerror = (err) => {
-      if (!aborted) {
+      if (!settled) {
         reject(err);
       }
       worker.terminate();
     };
-
     worker.postMessage({ type: "start", size: file.size });
-
     (async () => {
       const reader = file.stream().getReader();
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        worker.postMessage({ type: "chunk", chunk: value }, [value.buffer]);
+        const copy = value.slice(); // Creates a copy with its own buffer
+        worker.postMessage({ type: "chunk", chunk: copy }, [copy.buffer]);
       }
       worker.postMessage({ type: "finalize" });
     })().catch((err) => {
-      aborted = true;
+      settled = true;
       worker.terminate();
       reject(err);
     });
