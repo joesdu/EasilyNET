@@ -72,6 +72,8 @@ public class BigNumberTest
         var f = BigNumber.FromBigInteger(new(2), new(3));
         var fpow = BigNumber.Pow(f, 2);
         Assert.AreEqual(BigNumber.FromBigInteger(new(4), new(9)), fpow);
+        // 负指数应抛异常
+        ExpectException<ArgumentOutOfRangeException>(() => BigNumber.Pow(a, new BigInteger(-1)));
     }
 
     [TestMethod]
@@ -84,6 +86,9 @@ public class BigNumberTest
         var f = BigNumber.FromBigInteger(new(-2), new(3));
         var fabs = BigNumber.Abs(f);
         Assert.AreEqual(BigNumber.FromBigInteger(new(2), new(3)), fabs);
+        // 不应修改原始实例
+        Assert.AreEqual(BigNumber.FromBigInteger(new(-10)), a);
+        Assert.AreEqual(BigNumber.FromBigInteger(new(-2), new(3)), f);
     }
 
     [TestMethod]
@@ -126,6 +131,8 @@ public class BigNumberTest
         var fmod = f1 % f2;
         // 2又1/3 = 7/3, 1/2 = 1/2, 7/3 % 1/2 = 1/3
         Assert.AreEqual(BigNumber.FromBigInteger(new(1), new(3)), fmod);
+        // 除零检测
+        ExpectException<DivideByZeroException>(() => _ = a % BigNumber.Zero);
     }
 
     [TestMethod]
@@ -140,5 +147,57 @@ public class BigNumberTest
         Assert.IsTrue(a > BigNumber.FromBigInteger(new(1), new(4)));
         Assert.IsTrue(a <= b);
         Assert.IsTrue(a >= b);
+        // CompareTo null
+        Assert.AreEqual(1, a.CompareTo(null));
+        // 哈希一致性
+        Assert.AreEqual(a.GetHashCode(), b.GetHashCode());
+        // 原始实例不变
+        var c = BigNumber.FromBigInteger(new(1), new(2));
+        _ = c + BigNumber.FromBigInteger(new(1), new(3));
+        Assert.AreEqual(BigNumber.FromBigInteger(new(1), new(2)), c);
+    }
+
+    [TestMethod]
+    public void TestToStringFormats()
+    {
+        var integer = BigNumber.FromBigInteger(new(5));
+        Assert.AreEqual("5", integer.ToString());
+        var fraction = BigNumber.FromBigInteger(new(5), new(6));
+        Assert.AreEqual("5/6", fraction.ToString());
+        var mixed = BigNumber.FromBigInteger(new(7), new(3)); // 2又1/3
+        Assert.AreEqual("2 1/3", mixed.ToString());
+        var negative = BigNumber.FromBigInteger(new(-7), new(3));
+        Assert.AreEqual("-2 1/3", negative.ToString());
+    }
+
+    [TestMethod]
+    public void TestDivisionAndCtorGuardrails()
+    {
+        var one = BigNumber.FromBigInteger(new(1));
+        ExpectException<DivideByZeroException>(() => BigNumber.Divide(one, BigNumber.Zero));
+        ExpectException<DivideByZeroException>(() => _ = new BigNumber(1, 0));
+    }
+
+    [TestMethod]
+    public void TestIsInteger()
+    {
+        var integer = BigNumber.FromBigInteger(new(42));
+        Assert.IsTrue(integer.IsInteger(out var intVal));
+        Assert.AreEqual(new(42), intVal);
+        var nonInteger = BigNumber.FromBigInteger(new(7), new(3));
+        Assert.IsFalse(nonInteger.IsInteger(out _));
+    }
+
+    private static void ExpectException<TException>(Action action) where TException : Exception
+    {
+        try
+        {
+            action();
+            Assert.Fail($"Expected exception of type {typeof(TException).Name}.");
+        }
+        catch (TException)
+        {
+            // OK
+        }
     }
 }
