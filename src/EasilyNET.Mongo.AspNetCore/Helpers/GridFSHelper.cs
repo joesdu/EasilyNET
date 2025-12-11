@@ -333,8 +333,8 @@ public sealed class GridFSHelper
             {
                 return ObjectId.Parse(session.FileId!);
             }
+            // Use client-provided hash if available, otherwise fall back to session hash
             var expectedHash = (verifyHash ?? session.FileHash)?.ToUpperInvariant();
-
             // 1. 尝试通过 verifyHash 进行去重 (如果提供了 hash)
             if (!string.IsNullOrEmpty(expectedHash))
             {

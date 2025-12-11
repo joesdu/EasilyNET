@@ -55,7 +55,7 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// <summary>
     /// 基于当前值创建浅拷贝
     /// </summary>
-    private BigNumber CloneRaw() =>
+    private BigNumber ShallowCopy() =>
         new()
         {
             Whole = Whole,
@@ -69,7 +69,7 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// </summary>
     private (BigInteger numerator, BigInteger denominator) AsFraction()
     {
-        var copy = CloneRaw();
+        var copy = ShallowCopy();
         copy.Simplify();
         var numerator = (copy.Whole * copy.Denominator) + copy.Numerator;
         var denominator = copy.Denominator;
@@ -1025,7 +1025,7 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     /// <returns></returns>
     public static BigNumber Abs(BigNumber a)
     {
-        var clone = a.CloneRaw();
+        var clone = a.ShallowCopy();
         clone.ToAbs();
         return clone;
     }
