@@ -668,7 +668,7 @@ async function calculateSHA256WithWorker(file, onProgress) {
   const workerUrl = new URL("./hash-worker.js", import.meta.url);
   return new Promise((resolve, reject) => {
     const worker = new Worker(workerUrl);
-    let aborted = false;
+    let settled = false;
     // Throttle progress updates: at most every 100ms or every 1% progress
     let lastProgressTime = 0;
     let lastProgressPercent = 0;
@@ -696,7 +696,7 @@ async function calculateSHA256WithWorker(file, onProgress) {
           break;
         }
         case "done":
-          aborted = true;
+          settled = true;
           worker.terminate();
           resolve(message.hash.toUpperCase());
           break;
@@ -709,7 +709,7 @@ async function calculateSHA256WithWorker(file, onProgress) {
       }
     };
     worker.onerror = (err) => {
-      if (!aborted) {
+      if (!settled) {
         reject(err);
       }
       worker.terminate();
@@ -725,7 +725,7 @@ async function calculateSHA256WithWorker(file, onProgress) {
       }
       worker.postMessage({ type: "finalize" });
     })().catch((err) => {
-      aborted = true;
+      settled = true;
       worker.terminate();
       reject(err);
     });

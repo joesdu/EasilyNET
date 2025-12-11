@@ -880,7 +880,7 @@ async function calculateSHA256WithWorker(
   const workerUrl = new URL("./hash-worker.js", import.meta.url);
   return new Promise((resolve, reject) => {
     const worker = new Worker(workerUrl);
-    let aborted = false;
+    let settled = false;
 
     type WorkerMessage =
       | { type: "ready"; impl: string }
@@ -915,7 +915,7 @@ async function calculateSHA256WithWorker(
           break;
         }
         case "done":
-          aborted = true;
+          settled = true;
           worker.terminate();
           resolve(message.hash.toUpperCase());
           break;
@@ -929,7 +929,7 @@ async function calculateSHA256WithWorker(
     };
 
     worker.onerror = (err) => {
-      if (!aborted) {
+      if (!settled) {
         reject(err);
       }
       worker.terminate();
@@ -947,7 +947,7 @@ async function calculateSHA256WithWorker(
       }
       worker.postMessage({ type: "finalize" });
     })().catch((err) => {
-      aborted = true;
+      settled = true;
       worker.terminate();
       reject(err);
     });
