@@ -132,7 +132,7 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
                 }
                 try
                 {
-                    await Task.Delay(TimeSpan.FromMilliseconds(200), linkedCts.Token).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromMilliseconds(200), ct).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
