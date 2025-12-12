@@ -478,16 +478,19 @@ internal sealed class EventPublisher : IAsyncDisposable
                     continue;
                 }
                 tcs.SetResult(!nack);
-                if (nack && _outstandingMessages.TryRemove(seqNo, out var messageInfo))
+                switch (nack)
                 {
-                    var nextRetryTime = DateTime.UtcNow + CalcBackoff(messageInfo.RetryCount);
-                    NackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
-                    RabbitBusMetrics.RetryEnqueued.Add(1);
-                }
-                else if (!nack)
-                {
-                    // 仅在ACK时移除消息
-                    _outstandingMessages.TryRemove(seqNo, out _);
+                    case true when _outstandingMessages.TryRemove(seqNo, out var messageInfo):
+                    {
+                        var nextRetryTime = DateTime.UtcNow + CalcBackoff(messageInfo.RetryCount);
+                        NackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
+                        RabbitBusMetrics.RetryEnqueued.Add(1);
+                        break;
+                    }
+                    case false:
+                        // 仅在ACK时移除消息
+                        _outstandingMessages.TryRemove(seqNo, out _);
+                        break;
                 }
                 RabbitBusMetrics.OutstandingConfirms.Add(-1);
                 _throttleSemaphore?.Release();
@@ -515,6 +518,7 @@ internal sealed class EventPublisher : IAsyncDisposable
 
     private async Task DeclareExchangeSafelyAsync(IChannel channel, EventConfiguration config, IDictionary<string, object?>? arguments, bool passive, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(config);
         if (ShouldSkipExchangeDeclare(config))
         {
             if (_logger.IsEnabled(LogLevel.Debug))

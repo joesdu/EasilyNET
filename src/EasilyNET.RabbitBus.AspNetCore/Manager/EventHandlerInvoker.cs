@@ -53,12 +53,9 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             {
                 processed = await ProcessEventAsync(eventType, bodyBytes, consumerIndex, eventHandlerCache, ct).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (logger.IsEnabled(LogLevel.Error))
             {
-                if (logger.IsEnabled(LogLevel.Error))
-                {
-                    logger.LogError(ex, "Error processing message, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
-                }
+                logger.LogError(ex, "Error processing message, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
             }
             if (processed)
             {
@@ -83,7 +80,10 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
                 }
             }
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException ex) when (logger.IsEnabled(LogLevel.Debug))
+        {
+            logger.LogDebug(ex, "Event handling was canceled.");
+        }
     }
 
     private async Task<bool> ProcessEventAsync(Type eventType, byte[] message, int consumerIndex, ConcurrentDictionary<Type, List<Type>> eventHandlerCache, CancellationToken ct)
