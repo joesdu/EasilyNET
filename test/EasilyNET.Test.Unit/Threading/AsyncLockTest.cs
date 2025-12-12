@@ -166,6 +166,63 @@ public class AsyncLockTests
     }
 
     /// <summary>
+    /// Tests that a pre-canceled token causes immediate cancellation and does not acquire the lock.
+    /// </summary>
+    [TestMethod]
+    public async Task LockAsync_PreCanceledToken_ShouldThrowWithoutAcquiring()
+    {
+        using var asyncLock = new AsyncLock();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsExactlyAsync<TaskCanceledException>(() => asyncLock.LockAsync(cts.Token));
+        Assert.IsFalse(asyncLock.IsHeld);
+        Assert.AreEqual(0, asyncLock.WaitingCount);
+    }
+
+    /// <summary>
+    /// Tests cancellation while queued removes the waiter and frees the lock for subsequent waiters.
+    /// </summary>
+    [TestMethod]
+    public async Task LockAsync_CancellationWhileQueued_ShouldRemoveWaiter()
+    {
+        using var asyncLock = new AsyncLock();
+        using var holder = await asyncLock.LockAsync();
+
+        using var cts = new CancellationTokenSource();
+        var queuedTask = asyncLock.LockAsync(cts.Token);
+
+        // Wait until the waiter is enqueued, or timeout after 1 second
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (asyncLock.WaitingCount != 1 && sw.ElapsedMilliseconds < 1000)
+        {
+            await Task.Delay(5);
+        }
+        Assert.AreEqual(1, asyncLock.WaitingCount, "Waiter was not enqueued within timeout.");
+
+        cts.Cancel();
+
+        var ex = await Assert.ThrowsExactlyAsync<TaskCanceledException>(async () => await queuedTask);
+        Assert.AreEqual(cts.Token, ex.CancellationToken);
+        Assert.AreEqual(0, asyncLock.WaitingCount);
+
+        var thirdAcquired = false;
+        var thirdTask = Task.Run(async () =>
+        {
+            using (await asyncLock.LockAsync())
+            {
+                thirdAcquired = true;
+            }
+        });
+
+        holder.Dispose();
+        await thirdTask;
+
+        Assert.IsTrue(thirdAcquired);
+        Assert.IsFalse(asyncLock.IsHeld);
+    }
+
+    /// <summary>
     /// Tests cancellation of LockAsync(Func&lt;Task&gt; action, CancellationToken) before the lock is acquired.
     /// </summary>
     [TestMethod]
