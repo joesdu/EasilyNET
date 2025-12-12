@@ -80,6 +80,12 @@ public sealed class RabbitConfig
     public ushort ConsumerDispatchConcurrency { get; set; } = 10;
 
     /// <summary>
+    ///     <para xml:lang="en">Maximum concurrent consumer channels. 0 means no cap.</para>
+    ///     <para xml:lang="zh">最大并发消费者通道数，0 表示不限制。</para>
+    /// </summary>
+    public int ConsumerChannelLimit { get; set; }
+
+    /// <summary>
     ///     <para xml:lang="en">Maximum degree of parallelism for event handler execution. Default is 4</para>
     ///     <para xml:lang="zh">事件处理器执行的最大并行度。默认是 4</para>
     /// </summary>

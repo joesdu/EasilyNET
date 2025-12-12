@@ -69,10 +69,11 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
         while (!ct.IsCancellationRequested)
         {
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            IChannel? channel = null;
+            PersistentConnection.ChannelLease? lease = null;
             try
             {
-                channel = await conn.CreateDedicatedChannelAsync(linkedCts.Token).ConfigureAwait(false);
+                lease = await conn.CreateDedicatedChannelAsync(linkedCts.Token).ConfigureAwait(false);
+                var channel = lease.Channel;
                 await DeclareExchangeIfNeeded(config, channel, linkedCts.Token).ConfigureAwait(false);
                 await channel.QueueDeclareAsync(config.Queue.Name, config.Queue.Durable, config.Queue.Exclusive, config.Queue.AutoDelete, config.Queue.Arguments, cancellationToken: linkedCts.Token).ConfigureAwait(false);
                 if (config.Exchange.Type != EModel.None)
@@ -140,9 +141,9 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
             }
             finally
             {
-                if (channel is not null)
+                if (lease is not null)
                 {
-                    await channel.DisposeAsync().ConfigureAwait(false);
+                    await lease.DisposeAsync().ConfigureAwait(false);
                 }
             }
         }

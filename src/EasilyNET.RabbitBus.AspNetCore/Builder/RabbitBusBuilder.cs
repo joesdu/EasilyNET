@@ -60,12 +60,20 @@ public sealed class RabbitBusBuilder
     ///     <para xml:lang="en">Whether QoS is global</para>
     ///     <para xml:lang="zh">QoS是否全局</para>
     /// </param>
-    public RabbitBusBuilder WithConsumerSettings(ushort dispatchConcurrency = 10, ushort prefetchCount = 100, uint prefetchSize = 0, bool global = false)
+    /// <param name="consumerChannelLimit">
+    ///     <para xml:lang="en">Maximum number of consumer channels</para>
+    ///     <para xml:lang="zh">消费者通道的最大数量</para>
+    /// </param>
+    public RabbitBusBuilder WithConsumerSettings(ushort dispatchConcurrency = 10, ushort prefetchCount = 100, uint prefetchSize = 0, bool global = false, int consumerChannelLimit = 0)
     {
         Config.ConsumerDispatchConcurrency = dispatchConcurrency;
         Config.Qos.PrefetchCount = prefetchCount;
         Config.Qos.PrefetchSize = prefetchSize;
         Config.Qos.Global = global;
+        if (consumerChannelLimit > 0)
+        {
+            Config.ConsumerChannelLimit = consumerChannelLimit;
+        }
         return this;
     }
 
