@@ -24,7 +24,7 @@ public sealed class AsyncLock : IDisposable
     private readonly Lock _sync = new();
     private readonly LinkedList<Waiter> _waiters = [];
 
-    private bool _disposed;
+    private volatile bool _disposed;
 
     // 0 = free, 1 = held
     private int _state;
@@ -192,6 +192,10 @@ public sealed class AsyncLock : IDisposable
     public Task<Release> LockAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromCanceled<Release>(cancellationToken);
+        }
 
         // Fast uncontended path: try to set state from 0 -> 1.
         if (Interlocked.CompareExchange(ref _state, 1, 0) == 0)
@@ -200,7 +204,7 @@ public sealed class AsyncLock : IDisposable
         }
 
         // Contended path: enqueue a waiter.
-        var waiter = new Waiter(this);
+        var waiter = new Waiter(this) { CancellationToken = cancellationToken };
 
         // Cancellation registration (installed before enqueue to avoid missed cancellation windows).
         if (cancellationToken.CanBeCanceled)
@@ -336,6 +340,7 @@ public sealed class AsyncLock : IDisposable
         private readonly AsyncLock _owner;
         internal readonly TaskCompletionSource<Release> Tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal CancellationTokenRegistration CancellationRegistration;
+        internal CancellationToken CancellationToken;
         internal LinkedListNode<Waiter>? Node;
 
         internal Waiter(AsyncLock owner)
@@ -355,8 +360,9 @@ public sealed class AsyncLock : IDisposable
                     _owner._waiterCount--;
                 }
             }
+            CancellationRegistration.Dispose();
             // Always complete as canceled so producers can observe and avoid enqueuing or awaiting forever.
-            Tcs.TrySetCanceled();
+            Tcs.TrySetCanceled(CancellationToken);
         }
     }
 }
