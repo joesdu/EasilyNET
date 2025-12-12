@@ -15,7 +15,6 @@ function Exec {
     [Parameter(Position = 0, Mandatory = 1)][scriptblock]$cmd,
     [Parameter(Position = 1, Mandatory = 0)][string]$errorMessage
   )
-  $LASTEXITCODE = 0
   & $cmd
   $exitCode = $LASTEXITCODE
   if ($exitCode -ne 0) {
