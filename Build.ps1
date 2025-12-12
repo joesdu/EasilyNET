@@ -18,7 +18,7 @@ function Exec {
   & $cmd
   $exitCode = $LASTEXITCODE
   if ($exitCode -ne 0) {
-    $fallbackMessage = "Command failed with exit code $exitCode: $cmd"
+    $fallbackMessage = "Command failed with exit code ${exitCode}: $cmd"
     $message = if ([string]::IsNullOrWhiteSpace($errorMessage)) { $fallbackMessage } else { $errorMessage }
     throw ("Exec: " + $message)
   }
