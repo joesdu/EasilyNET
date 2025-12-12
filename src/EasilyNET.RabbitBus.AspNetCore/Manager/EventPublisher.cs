@@ -97,7 +97,7 @@ internal sealed class EventPublisher : IAsyncDisposable
             var channel = await _conn.GetChannelAsync(ct).ConfigureAwait(false);
             try
             {
-                await DeclareExchangeSafelyAsync(channel, config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, args, passive, ct).ConfigureAwait(false);
+                await DeclareExchangeSafelyAsync(channel, config, args, passive, ct).ConfigureAwait(false);
                 return channel; // 成功
             }
             catch (Exception ex) when (IsTransientChannelError(ex))
@@ -111,7 +111,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         }
         // 多次尝试后仍失败，最后一次再拿到一个通道抛出 Declare 的异常，由调用方处理（入队重试）
         var lastChannel = await _conn.GetChannelAsync(ct).ConfigureAwait(false);
-        await DeclareExchangeSafelyAsync(lastChannel, config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, args, passive, ct).ConfigureAwait(false);
+        await DeclareExchangeSafelyAsync(lastChannel, config, args, passive, ct).ConfigureAwait(false);
         return lastChannel;
     }
 
@@ -478,16 +478,19 @@ internal sealed class EventPublisher : IAsyncDisposable
                     continue;
                 }
                 tcs.SetResult(!nack);
-                if (nack && _outstandingMessages.TryRemove(seqNo, out var messageInfo))
+                switch (nack)
                 {
-                    var nextRetryTime = DateTime.UtcNow + CalcBackoff(messageInfo.RetryCount);
-                    NackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
-                    RabbitBusMetrics.RetryEnqueued.Add(1);
-                }
-                else if (!nack)
-                {
-                    // 仅在ACK时移除消息
-                    _outstandingMessages.TryRemove(seqNo, out _);
+                    case true when _outstandingMessages.TryRemove(seqNo, out var messageInfo):
+                    {
+                        var nextRetryTime = DateTime.UtcNow + CalcBackoff(messageInfo.RetryCount);
+                        NackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
+                        RabbitBusMetrics.RetryEnqueued.Add(1);
+                        break;
+                    }
+                    case false:
+                        // 仅在ACK时移除消息
+                        _outstandingMessages.TryRemove(seqNo, out _);
+                        break;
                 }
                 RabbitBusMetrics.OutstandingConfirms.Add(-1);
                 _throttleSemaphore?.Release();
@@ -511,19 +514,22 @@ internal sealed class EventPublisher : IAsyncDisposable
         }
     }
 
-    private async Task DeclareExchangeSafelyAsync(IChannel channel, string exchangeName, string exchangeType, bool durable, bool autoDelete, IDictionary<string, object?>? arguments, bool passive, CancellationToken cancellationToken)
+    private bool ShouldSkipExchangeDeclare(EventConfiguration config) => config.SkipExchangeDeclare ?? _rabbitConfig.SkipExchangeDeclare;
+
+    private async Task DeclareExchangeSafelyAsync(IChannel channel, EventConfiguration config, IDictionary<string, object?>? arguments, bool passive, CancellationToken cancellationToken)
     {
-        if (_rabbitConfig.SkipExchangeDeclare)
+        ArgumentNullException.ThrowIfNull(config);
+        if (ShouldSkipExchangeDeclare(config))
         {
             if (_logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug("Skipping exchange declaration for {ExchangeName} as SkipExchangeDeclare is enabled", exchangeName);
+                _logger.LogDebug("Skipping exchange declaration for {ExchangeName} as SkipExchangeDeclare is enabled", config.Exchange.Name);
             }
             return;
         }
         try
         {
-            await channel.ExchangeDeclareAsync(exchangeName, exchangeType, durable, autoDelete, arguments, passive, false, cancellationToken);
+            await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, arguments, passive, false, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -531,15 +537,15 @@ internal sealed class EventPublisher : IAsyncDisposable
             {
                 if (_logger.IsEnabled(LogLevel.Error))
                 {
-                    _logger.LogError(ex, "Exchange {ExchangeName} type mismatch detected. Expected: {ExpectedType}. Consider fixing configuration or setting SkipExchangeDeclare=true", exchangeName, exchangeType);
+                    _logger.LogError(ex, "Exchange {ExchangeName} type mismatch detected. Expected: {ExpectedType}. Consider fixing configuration or setting SkipExchangeDeclare=true", config.Exchange.Name, config.Exchange.Type.Description);
                 }
-                throw new InvalidOperationException($"Exchange '{exchangeName}' type mismatch. Expected: {exchangeType}. Please fix the exchange configuration or set SkipExchangeDeclare=true", ex);
+                throw new InvalidOperationException($"Exchange '{config.Exchange.Name}' type mismatch. Expected: {config.Exchange.Type.Description}. Please fix the exchange configuration or set SkipExchangeDeclare=true", ex);
             }
             if (_logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning(ex, "Exchange {ExchangeName} not found or other error, declaring with type {Type}", exchangeName, exchangeType);
+                _logger.LogWarning(ex, "Exchange {ExchangeName} not found or other error, declaring with type {Type}", config.Exchange.Name, config.Exchange.Type.Description);
             }
-            await channel.ExchangeDeclareAsync(exchangeName, exchangeType, durable, autoDelete, arguments, false, false, cancellationToken);
+            await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, arguments, false, false, cancellationToken);
         }
     }
 

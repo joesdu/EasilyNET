@@ -9,28 +9,27 @@
 .EXAMPLE
   exec { svn info $repository_trunk } "Error executing SVN. Please verify SVN command-line client is installed"
 #>
-function Exec
-{
+function Exec {
   [CmdletBinding()]
   param(
     [Parameter(Position = 0, Mandatory = 1)][scriptblock]$cmd,
-    [Parameter(Position = 1, Mandatory = 0)][string]$errorMessage = ($msgs.error_bad_command -f $cmd)
+    [Parameter(Position = 1, Mandatory = 0)][string]$errorMessage
   )
   & $cmd
-  if ($lastexitcode -ne 0)
-  {
-    throw ("Exec: " + $errorMessage)
+  $exitCode = $LASTEXITCODE
+  if ($exitCode -ne 0) {
+    $fallbackMessage = "Command failed with exit code ${exitCode}: $cmd"
+    $message = if ([string]::IsNullOrWhiteSpace($errorMessage)) { $fallbackMessage } else { $errorMessage }
+    throw ("Exec: " + $message)
   }
 }
 
 $ARTIFACTS = $env:ARTIFACTS
-if (-not $ARTIFACTS)
-{
+if (-not $ARTIFACTS) {
   $ARTIFACTS = ".\artifacts"
 }
 
-if (Test-Path $ARTIFACTS)
-{
+if (Test-Path $ARTIFACTS) {
   Remove-Item $ARTIFACTS -Force -Recurse
 }
 

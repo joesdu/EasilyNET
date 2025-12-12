@@ -133,8 +133,8 @@ public static class RabbitServiceExtension
                                                                 : throw new InvalidOperationException("Configuration error: Unable to create a connection from the provided configuration."));
                 factory.ConsumerDispatchConcurrency = config.ConsumerDispatchConcurrency;
                 const double HeartbeatIntervalSeconds = 10d;
-                factory.RequestedHeartbeat = TimeSpan.FromSeconds(HeartbeatIntervalSeconds);      // 心跳间隔
-                factory.ContinuationTimeout = TimeSpan.FromSeconds(HeartbeatIntervalSeconds * 2); // 请求超时时间 (should be >= 1.5-2x heartbeat)
+                factory.RequestedHeartbeat = TimeSpan.FromSeconds(HeartbeatIntervalSeconds);
+                factory.ContinuationTimeout = TimeSpan.FromSeconds(HeartbeatIntervalSeconds * 2);
                 return factory;
             });
 
@@ -175,7 +175,7 @@ public static class RabbitServiceExtension
                                    .Handle<TimeoutException>()
                                    .Handle<ConnectFailureException>()
                                    .Handle<AuthenticationFailureException>(),
-                    MaxRetryAttempts = Math.Min(3, config.RetryCount), // Limit initial connection retries
+                    MaxRetryAttempts = Math.Min(3, config.RetryCount),
                     Delay = TimeSpan.FromSeconds(1),
                     BackoffType = DelayBackoffType.Exponential,
                     UseJitter = true,
@@ -190,7 +190,34 @@ public static class RabbitServiceExtension
                         return ValueTask.CompletedTask;
                     }
                 });
-                builder.AddTimeout(TimeSpan.FromSeconds(30)); // Shorter timeout for initial connection
+                builder.AddTimeout(TimeSpan.FromSeconds(30));
+            });
+
+            // Handler pipeline: keep minimal retries, primarily guard against transient infrastructure issues
+            services.AddResiliencePipeline(Constant.HandlerPipelineName, (builder, context) =>
+            {
+                var logger = context.ServiceProvider.GetRequiredService<ILogger<EventBus>>();
+                builder.AddRetry(new()
+                {
+                    ShouldHandle = new PredicateBuilder()
+                                   .Handle<BrokerUnreachableException>()
+                                   .Handle<SocketException>()
+                                   .Handle<TimeoutException>(),
+                    MaxRetryAttempts = 2,
+                    Delay = TimeSpan.FromSeconds(1),
+                    BackoffType = DelayBackoffType.Exponential,
+                    UseJitter = true,
+                    OnRetry = args =>
+                    {
+                        var ex = args.Outcome.Exception!;
+                        if (logger.IsEnabled(LogLevel.Warning))
+                        {
+                            logger.LogWarning(ex, "Handler transient failure, retrying attempt {Attempt}", args.AttemptNumber);
+                        }
+                        return ValueTask.CompletedTask;
+                    }
+                });
+                builder.AddTimeout(TimeSpan.FromSeconds(30));
             });
             services.AddSingleton<PersistentConnection>();
         }

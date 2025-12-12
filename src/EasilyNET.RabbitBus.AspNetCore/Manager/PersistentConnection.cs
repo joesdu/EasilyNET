@@ -15,6 +15,7 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
     private readonly AsyncLock _asyncLock = new();
     private readonly ResiliencePipeline _connectionPipeline = pp.GetPipeline(Constant.ConnectionPipelineName);
     private readonly RabbitConfig config = options.Get(Constant.OptionName);
+    private SemaphoreSlim? _consumerChannelSlots;
 
     // 用于让并发调用等待连接就绪，避免频繁抛出异常
     private TaskCompletionSource<bool> _connectionReadyTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -104,10 +105,36 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
 
             // 让等待方尽快结束
             _connectionReadyTcs.TrySetCanceled();
+
+            try
+            {
+                _consumerChannelSlots?.Dispose();
+            }
+            catch
+            {
+                // ignore
+            }
         }
         catch (Exception ex) when (logger.IsEnabled(LogLevel.Critical))
         {
             logger.LogCritical(ex, "清理RabbitMQ连接时发生严重错误");
+        }
+    }
+
+    public sealed class ChannelLease(IChannel inner, SemaphoreSlim? slots) : IAsyncDisposable
+    {
+        public IChannel Channel => inner;
+
+        public async ValueTask DisposeAsync()
+        {
+            try
+            {
+                await inner.DisposeAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                slots?.Release();
+            }
         }
     }
 
@@ -169,6 +196,34 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
         }
     }
 
+    /// <summary>
+    /// 为消费者创建独立通道，受限于 ConsumerChannelLimit。
+    /// </summary>
+    public async ValueTask<ChannelLease> CreateDedicatedChannelAsync(CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, nameof(PersistentConnection));
+        var slots = _consumerChannelSlots;
+        if (slots is not null)
+        {
+            await slots.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        try
+        {
+            if (_currentConnection is not { IsOpen: true })
+            {
+                await InitializeConnectionAsync(cancellationToken).ConfigureAwait(false);
+            }
+            var connection = _currentConnection ?? throw new InvalidOperationException("RabbitMQ connection is not available.");
+            var channel = await CreateChannelAsync(connection, cancellationToken).ConfigureAwait(false);
+            return new ChannelLease(channel, slots);
+        }
+        catch
+        {
+            slots?.Release();
+            throw;
+        }
+    }
+
     // 事件
     public event EventHandler? ConnectionDisconnected;
 
@@ -195,6 +250,11 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
                     _currentConnection = await CreateConnectionAsync(ct).ConfigureAwait(false);
                     RegisterConnectionEvents(ct);
                     _currentChannel = await CreateChannelAsync(ct).ConfigureAwait(false);
+                    if (_consumerChannelSlots is null && config.ConsumerChannelLimit > 0)
+                    {
+                        // 初始化槽位限制，只在首个成功连接时创建
+                        _consumerChannelSlots = new SemaphoreSlim(config.ConsumerChannelLimit, config.ConsumerChannelLimit);
+                    }
                 }, cancellationToken, cancellationToken).ConfigureAwait(false);
                 _connectionReadyTcs.TrySetResult(true);
                 RabbitBusMetrics.ConnectionReconnects.Add(1);

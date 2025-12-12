@@ -20,7 +20,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
 
     // 缓存 (HandlerType, EventType) -> 开放委托: (object handler, object evt) => Task
     private static readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Func<object, object, Task>> _openDelegateCache = new();
-    private readonly ResiliencePipeline _pipeline = pipelineProvider.GetPipeline(Constant.PublishPipelineName);
+    private readonly ResiliencePipeline _pipeline = pipelineProvider.GetPipeline(Constant.HandlerPipelineName);
 
     // 作用域工厂与管道缓存，减少每次消息的服务解析开销
     private readonly IServiceScopeFactory? _scopeFactory = sp.GetService<IServiceScopeFactory>();
@@ -48,32 +48,45 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
         {
             // 尽量避免重复拷贝 Body
             var bodyBytes = GetBodyBytes(ea.Body);
-            await ProcessEventAsync(eventType, bodyBytes, async () =>
+            var processed = false;
+            try
+            {
+                processed = await ProcessEventAsync(eventType, bodyBytes, consumerIndex, eventHandlerCache, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Error processing message, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
+            }
+            if (processed)
             {
                 try
                 {
                     await channel.BasicAckAsync(ea.DeliveryTag, false, ct).ConfigureAwait(false);
                 }
-                catch (ObjectDisposedException ex)
+                catch (ObjectDisposedException ex) when (logger.IsEnabled(LogLevel.Warning))
                 {
-                    if (logger.IsEnabled(LogLevel.Warning))
-                    {
-                        logger.LogWarning(ex, "Channel disposed before ACK, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
-                    }
+                    logger.LogWarning(ex, "Channel disposed before ACK, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
                 }
-            }, consumerIndex, eventHandlerCache, ct).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception ex)
-        {
-            if (logger.IsEnabled(LogLevel.Error))
-            {
-                logger.LogError(ex, "Error processing message, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
             }
+            else
+            {
+                try
+                {
+                    await channel.BasicNackAsync(ea.DeliveryTag, false, false, ct).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning(ex, "NACK failed for DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
+                }
+            }
+        }
+        catch (OperationCanceledException ex) when (logger.IsEnabled(LogLevel.Debug))
+        {
+            logger.LogDebug(ex, "Event handling was canceled.");
         }
     }
 
-    private async Task ProcessEventAsync(Type eventType, byte[] message, Func<ValueTask> ackAsync, int consumerIndex, ConcurrentDictionary<Type, List<Type>> eventHandlerCache, CancellationToken ct)
+    private async Task<bool> ProcessEventAsync(Type eventType, byte[] message, int consumerIndex, ConcurrentDictionary<Type, List<Type>> eventHandlerCache, CancellationToken ct)
     {
         if (!eventHandlerCache.TryGetValue(eventType, out var handlerTypes) || handlerTypes.Count == 0)
         {
@@ -81,7 +94,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             {
                 logger.LogError("No subscriptions for event: {EventName}", eventType.Name);
             }
-            return;
+            return false;
         }
         if (logger.IsEnabled(LogLevel.Trace))
         {
@@ -97,7 +110,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
                 {
                     logger.LogError("Failed to deserialize event: {EventName}", eventType.Name);
                 }
-                return;
+                return false;
             }
         }
         catch (Exception ex)
@@ -106,7 +119,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             {
                 logger.LogError(ex, "Deserialization failure for event: {EventName}", eventType.Name);
             }
-            return;
+            return false;
         }
         using var scope = _scopeFactory?.CreateScope();
         var provider = scope?.ServiceProvider ?? sp; // 无作用域时回退到根容器
@@ -123,9 +136,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
                 await InvokeHandlerAsync(handlerType, eventType, provider, @event, consumerIndex, ct).ConfigureAwait(false);
             }
         }
-
-        // 全部成功后 ACK
-        await ackAsync().ConfigureAwait(false);
+        return true;
     }
 
     private async Task InvokeHandlerAsync(Type handlerType, Type eventType, IServiceProvider provider, object @event, int consumerIndex, CancellationToken ct)

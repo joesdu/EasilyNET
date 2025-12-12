@@ -7,4 +7,6 @@ internal static class Constant
     internal const string PublishPipelineName = "easilynet-rabbitbus-publish-resilience-pipeline";
 
     internal const string ConnectionPipelineName = "easilynet-rabbitbus-connection-resilience-pipeline";
+
+    internal const string HandlerPipelineName = "easilynet-rabbitbus-handler-resilience-pipeline";
 }
