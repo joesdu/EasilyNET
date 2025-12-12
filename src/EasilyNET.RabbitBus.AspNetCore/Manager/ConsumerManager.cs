@@ -132,7 +132,7 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
                 }
                 try
                 {
-                    await Task.Delay(TimeSpan.FromMilliseconds(200), linkedCts.Token).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromMilliseconds(200), ct).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -143,7 +143,17 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
             {
                 if (lease is not null)
                 {
-                    await lease.DisposeAsync().ConfigureAwait(false);
+                    try
+                    {
+                        await lease.DisposeAsync().ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (logger.IsEnabled(LogLevel.Warning))
+                        {
+                            logger.LogWarning(ex, "Exception occurred while disposing channel lease for consumer {ConsumerIndex} for event {EventName}", consumerIndex, eventType.Name);
+                        }
+                    }
                 }
             }
         }
