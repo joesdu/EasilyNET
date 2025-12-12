@@ -192,8 +192,13 @@ public class AsyncLockTests
         using var cts = new CancellationTokenSource();
         var queuedTask = asyncLock.LockAsync(cts.Token);
 
-        await Task.Delay(20); // Allow time for the waiter to enqueue
-        Assert.AreEqual(1, asyncLock.WaitingCount);
+        // Wait until the waiter is enqueued, or timeout after 1 second
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (asyncLock.WaitingCount != 1 && sw.ElapsedMilliseconds < 1000)
+        {
+            await Task.Delay(5);
+        }
+        Assert.AreEqual(1, asyncLock.WaitingCount, "Waiter was not enqueued within timeout.");
 
         cts.Cancel();
 
