@@ -66,92 +66,83 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
     /// </summary>
     private async Task StartConsumerAsync(EventConfiguration config, Type eventType, int consumerIndex, Func<Type, BasicDeliverEventArgs, IChannel, int, CancellationToken, Task> handleReceivedEvent, CancellationToken ct)
     {
-        try
+        while (!ct.IsCancellationRequested)
         {
-            await using var channel = await conn.GetChannelAsync(ct).ConfigureAwait(false);
-            await DeclareExchangeIfNeeded(config, channel, ct).ConfigureAwait(false);
-            await channel.QueueDeclareAsync(config.Queue.Name, config.Queue.Durable, config.Queue.Exclusive, config.Queue.AutoDelete, config.Queue.Arguments, cancellationToken: ct).ConfigureAwait(false);
-
-            // 绑定并开始消费
-            if (config.Exchange.Type != EModel.None)
-            {
-                await channel.QueueBindAsync(config.Queue.Name, config.Exchange.Name, config.Exchange.RoutingKey, cancellationToken: ct).ConfigureAwait(false);
-            }
-            await StartBasicConsume(eventType, config, channel, consumerIndex, handleReceivedEvent, ct).ConfigureAwait(false);
-
-            // 当通道关闭或异常时，自动重建消费者
-            channel.CallbackExceptionAsync += async (_, ea) =>
-            {
-                if (logger.IsEnabled(LogLevel.Warning))
-                {
-                    logger.LogWarning(ea.Exception, "Consumer channel callback exception for event {EventName} (idx={Index}), restarting consumer", eventType.Name, consumerIndex);
-                }
-                try
-                {
-                    if (!ct.IsCancellationRequested)
-                    {
-                        await StartConsumerAsync(config, eventType, consumerIndex, handleReceivedEvent, ct).ConfigureAwait(false);
-                    }
-                }
-                catch
-                {
-                    /* ignore */
-                }
-            };
-            channel.ChannelShutdownAsync += async (_, ea) =>
-            {
-                if (logger.IsEnabled(LogLevel.Warning))
-                {
-                    logger.LogWarning("Consumer channel shutdown for event {EventName} (idx={Index}). ReplyCode={ReplyCode}, ReplyText={ReplyText}. Restarting...", eventType.Name, consumerIndex, ea.ReplyCode, ea.ReplyText);
-                }
-                try
-                {
-                    if (!ct.IsCancellationRequested)
-                    {
-                        await StartConsumerAsync(config, eventType, consumerIndex, handleReceivedEvent, ct).ConfigureAwait(false);
-                    }
-                }
-                catch
-                {
-                    /* ignore */
-                }
-            };
-
-            // 等待取消信号，而不是轮询
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            IChannel? channel = null;
             try
             {
-                await Task.Delay(Timeout.InfiniteTimeSpan, ct).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // 取消信号，正常退出
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // 正常取消，无需记录
-        }
-        catch (Exception ex)
-        {
-            if (logger.IsEnabled(LogLevel.Error))
-            {
-                logger.LogError(ex, "Failed to start consumer {ConsumerIndex} for event {EventName}", consumerIndex, eventType.Name);
-            }
-            // 可选择性地延迟并尝试重启
-            try
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(200), ct).ConfigureAwait(false);
-                if (!ct.IsCancellationRequested)
+                channel = await conn.CreateDedicatedChannelAsync(linkedCts.Token).ConfigureAwait(false);
+                await DeclareExchangeIfNeeded(config, channel, linkedCts.Token).ConfigureAwait(false);
+                await channel.QueueDeclareAsync(config.Queue.Name, config.Queue.Durable, config.Queue.Exclusive, config.Queue.AutoDelete, config.Queue.Arguments, cancellationToken: linkedCts.Token).ConfigureAwait(false);
+                if (config.Exchange.Type != EModel.None)
                 {
-                    await StartConsumerAsync(config, eventType, consumerIndex, handleReceivedEvent, ct).ConfigureAwait(false);
+                    await channel.QueueBindAsync(config.Queue.Name, config.Exchange.Name, config.Exchange.RoutingKey, cancellationToken: linkedCts.Token).ConfigureAwait(false);
+                }
+                await StartBasicConsume(eventType, config, channel, consumerIndex, handleReceivedEvent, linkedCts.Token).ConfigureAwait(false);
+
+                Task CallbackExceptionAsync(object? _, CallbackExceptionEventArgs ea)
+                {
+                    if (logger.IsEnabled(LogLevel.Warning))
+                    {
+                        logger.LogWarning(ea.Exception, "Consumer channel callback exception for event {EventName} (idx={Index}), restarting consumer", eventType.Name, consumerIndex);
+                    }
+                    // ReSharper disable once AccessToDisposedClosure
+                    linkedCts.Cancel();
+                    return Task.CompletedTask;
+                }
+
+                Task ChannelShutdownAsync(object? _, ShutdownEventArgs ea)
+                {
+                    if (logger.IsEnabled(LogLevel.Warning))
+                    {
+                        logger.LogWarning("Consumer channel shutdown for event {EventName} (idx={Index}). ReplyCode={ReplyCode}, ReplyText={ReplyText}. Restarting...", eventType.Name, consumerIndex, ea.ReplyCode, ea.ReplyText);
+                    }
+                    // ReSharper disable once AccessToDisposedClosure
+                    linkedCts.Cancel();
+                    return Task.CompletedTask;
+                }
+
+                channel.CallbackExceptionAsync += CallbackExceptionAsync;
+                channel.ChannelShutdownAsync += ChannelShutdownAsync;
+                try
+                {
+                    await Task.Delay(Timeout.InfiniteTimeSpan, linkedCts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // 取消或通道事件触发，跳出循环以重建
+                }
+                finally
+                {
+                    channel.CallbackExceptionAsync -= CallbackExceptionAsync;
+                    channel.ChannelShutdownAsync -= ChannelShutdownAsync;
                 }
             }
-            catch (OperationCanceledException) { }
-            catch (Exception oex)
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                break; // 全局取消
+            }
+            catch (Exception ex)
             {
                 if (logger.IsEnabled(LogLevel.Error))
                 {
-                    logger.LogError(oex, "Failed to restart consumer {ConsumerIndex} for event {EventName}", consumerIndex, eventType.Name);
+                    logger.LogError(ex, "Failed to start consumer {ConsumerIndex} for event {EventName}", consumerIndex, eventType.Name);
+                }
+                try
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(200), linkedCts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+            }
+            finally
+            {
+                if (channel is not null)
+                {
+                    await channel.DisposeAsync().ConfigureAwait(false);
                 }
             }
         }

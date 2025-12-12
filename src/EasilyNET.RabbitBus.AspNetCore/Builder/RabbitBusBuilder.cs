@@ -610,8 +610,11 @@ public sealed class RabbitBusBuilder
         /// </param>
         public EventConfigurator<TEvent> WithExchangeSettings(bool skipExchangeDeclare = false, bool validateExchangeOnStartup = false)
         {
-            _builder.Config.SkipExchangeDeclare = skipExchangeDeclare;
-            _builder.Config.ValidateExchangesOnStartup = validateExchangeOnStartup;
+            _builder.EventRegistry.Configure<TEvent>(config =>
+            {
+                config.SkipExchangeDeclare = skipExchangeDeclare;
+                config.ValidateExchangeOnStartup = validateExchangeOnStartup;
+            });
             return this;
         }
     }

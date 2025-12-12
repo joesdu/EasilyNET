@@ -67,4 +67,16 @@ public sealed class EventConfiguration
     ///     <para xml:lang="zh">用于处理事件处理器的线程数。1或小于1表示单线程，大于1表示多线程</para>
     /// </summary>
     public int HandlerThreadCount { get; set; } = 1;
+
+    /// <summary>
+    ///     <para xml:lang="en">Override: skip exchange declare for this event</para>
+    ///     <para xml:lang="zh">可选覆盖：此事件是否跳过交换机声明</para>
+    /// </summary>
+    public bool? SkipExchangeDeclare { get; set; }
+
+    /// <summary>
+    ///     <para xml:lang="en">Override: validate exchange on startup for this event</para>
+    ///     <para xml:lang="zh">可选覆盖：启动时是否验证此事件的交换机</para>
+    /// </summary>
+    public bool? ValidateExchangeOnStartup { get; set; }
 }

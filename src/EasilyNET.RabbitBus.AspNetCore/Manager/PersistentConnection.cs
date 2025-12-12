@@ -241,6 +241,29 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
         return await connection.CreateChannelAsync(channelOptions, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// 为消费者创建独立通道，避免与发布者共享同一通道。
+    /// </summary>
+    public async ValueTask<IChannel> CreateDedicatedChannelAsync(CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, nameof(PersistentConnection));
+        // 确保连接就绪
+        if (_currentConnection is not { IsOpen: true })
+        {
+            await InitializeConnectionAsync(cancellationToken).ConfigureAwait(false);
+        }
+        var connection = _currentConnection ?? throw new InvalidOperationException("RabbitMQ connection is not available.");
+        try
+        {
+            return await CreateChannelAsync(connection, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            StartReconnectProcess(cancellationToken);
+            throw;
+        }
+    }
+
     private void RegisterConnectionEvents(CancellationToken ct)
     {
         if (_currentConnection == null || _eventsRegistered)

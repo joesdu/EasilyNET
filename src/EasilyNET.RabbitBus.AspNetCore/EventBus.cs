@@ -4,6 +4,7 @@ using EasilyNET.RabbitBus.AspNetCore.Manager;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Enums;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace EasilyNET.RabbitBus.AspNetCore;
 
@@ -13,8 +14,11 @@ internal sealed class EventBus(
     ConsumerManager consumerManager,
     EventPublisher eventPublisher,
     EventHandlerInvoker handlerInvoker,
-    ILogger<EventBus> logger) : IBus
+    ILogger<EventBus> logger,
+    IOptionsMonitor<RabbitConfig> options) : IBus
 {
+    private readonly RabbitConfig _config = options.Get(Constant.OptionName);
+
     public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, null, cancellationToken).ConfigureAwait(false);
 
     public async Task Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, ttl, cancellationToken).ConfigureAwait(false);
@@ -118,6 +122,12 @@ internal sealed class EventBus(
             var validatedExchanges = new HashSet<string>();
             foreach (var config in configurations.Where(c => c.Exchange.Type != EModel.None))
             {
+                var shouldSkip = config.SkipExchangeDeclare ?? _config.SkipExchangeDeclare;
+                var shouldValidate = config.ValidateExchangeOnStartup ?? _config.ValidateExchangesOnStartup;
+                if (shouldSkip || !shouldValidate)
+                {
+                    continue;
+                }
                 var exchangeKey = $"{config.Exchange.Name}:{config.Exchange.Type}";
                 if (validatedExchanges.Contains(exchangeKey))
                 {
@@ -126,7 +136,7 @@ internal sealed class EventBus(
                 try
                 {
                     // 使用passive模式验证交换机是否存在且类型匹配
-                    await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, config.Exchange.Arguments, true, false, CancellationToken.None).ConfigureAwait(false);
+                    await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, config.Exchange.Arguments, true, false, ct).ConfigureAwait(false);
                     validatedExchanges.Add(exchangeKey);
                     if (logger.IsEnabled(LogLevel.Debug))
                     {
