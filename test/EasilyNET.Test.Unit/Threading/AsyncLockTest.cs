@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using EasilyNET.Core.Threading;
 
 namespace EasilyNET.Test.Unit.Threading;
@@ -174,7 +175,6 @@ public class AsyncLockTests
         using var asyncLock = new AsyncLock();
         using var cts = new CancellationTokenSource();
         cts.Cancel();
-
         await Assert.ThrowsExactlyAsync<TaskCanceledException>(() => asyncLock.LockAsync(cts.Token));
         Assert.IsFalse(asyncLock.IsHeld);
         Assert.AreEqual(0, asyncLock.WaitingCount);
@@ -188,24 +188,20 @@ public class AsyncLockTests
     {
         using var asyncLock = new AsyncLock();
         using var holder = await asyncLock.LockAsync();
-
         using var cts = new CancellationTokenSource();
         var queuedTask = asyncLock.LockAsync(cts.Token);
 
         // Wait until the waiter is enqueued, or timeout after 1 second
-        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var sw = Stopwatch.StartNew();
         while (asyncLock.WaitingCount != 1 && sw.ElapsedMilliseconds < 1000)
         {
             await Task.Delay(5);
         }
         Assert.AreEqual(1, asyncLock.WaitingCount, "Waiter was not enqueued within timeout.");
-
         cts.Cancel();
-
         var ex = await Assert.ThrowsExactlyAsync<TaskCanceledException>(async () => await queuedTask);
         Assert.AreEqual(cts.Token, ex.CancellationToken);
         Assert.AreEqual(0, asyncLock.WaitingCount);
-
         var thirdAcquired = false;
         var thirdTask = Task.Run(async () =>
         {
@@ -214,10 +210,8 @@ public class AsyncLockTests
                 thirdAcquired = true;
             }
         });
-
         holder.Dispose();
         await thirdTask;
-
         Assert.IsTrue(thirdAcquired);
         Assert.IsFalse(asyncLock.IsHeld);
     }
