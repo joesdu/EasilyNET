@@ -46,9 +46,8 @@ builder.Host.UseSerilog((hbc, lc) =>
           {
               wt.Map(le => (le.Timestamp.DateTime, le.Level), (key, log) =>
                   log.Async(o => o.File(Path.Combine(AppContext.BaseDirectory, "logs", key.Level.ToString(), ".log"),
-                      shared: true, formatProvider: CultureInfo.CurrentCulture, retainedFileTimeLimit: TimeSpan.FromDays(7),
-                      outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}",
-                      rollingInterval: RollingInterval.Day)));
+                      shared: true, formatProvider: CultureInfo.CurrentCulture,
+                      retainedFileTimeLimit: TimeSpan.FromDays(7), rollingInterval: RollingInterval.Day)));
           }
           var otel = hbc.Configuration.GetSection("OpenTelemetry");
           wt.OpenTelemetry(c =>

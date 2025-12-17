@@ -21,7 +21,7 @@ internal sealed class OpenTelemetryModule : AppModule
         var otel = context.ServiceProvider.GetConfiguration().GetSection("OpenTelemetry");
         var env = context.ServiceProvider.GetRequiredService<IWebHostEnvironment>() ?? throw new("获取服务出错");
         context.Services.AddOpenTelemetry()
-               .ConfigureResource(c => c.AddService(Constant.InstanceName))
+               .ConfigureResource(c => c.AddService(Constant.InstanceName, autoGenerateServiceInstanceId: false))
                .WithMetrics(c =>
                {
                    c.AddRuntimeInstrumentation();
