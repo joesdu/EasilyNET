@@ -34,6 +34,8 @@
         <File Path="Test.ps1" />
     </Folder>
     <Folder Name="/src/">
+        <File Path="src/Directory.Build.props" />
+        <File Path="src/Directory.Build.targets" />
         <File Path="src/Directory.Packages.props" />
     </Folder>
     <Folder Name="/src/Core/">
