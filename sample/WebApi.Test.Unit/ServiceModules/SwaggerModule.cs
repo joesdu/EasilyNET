@@ -135,10 +135,8 @@ internal sealed class SwaggerModule : AppModule
                 c.SwaggerEndpoint($"/swagger/{key}/swagger.json", value.Title);
             }
             c.RoutePrefix = "swagger";
-            // 设置 Swagger UI 支持深色模式
-            c.InjectStylesheet("/swagger-ui/custom.css");
-            // 注入主题切换脚本
-            c.InjectJavascript("/swagger-ui/theme-toggle.js");
+            // 注入Swagger UI返回顶部功能脚本
+            c.InjectJavascript("/swagger-ui/back-top.js");
         });
         await base.ApplicationInitialization(context);
     }
