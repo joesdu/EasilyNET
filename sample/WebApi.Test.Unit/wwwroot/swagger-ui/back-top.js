@@ -125,6 +125,8 @@
       };
 
       window.addEventListener("scroll", throttle(handleScroll, 100));
+      // Ensure correct initial visibility even if the page loads scrolled down
+      handleScroll();
     };
 
     if (document.readyState === "loading") {
