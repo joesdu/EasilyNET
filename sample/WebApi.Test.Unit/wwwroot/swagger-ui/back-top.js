@@ -63,17 +63,13 @@
         transform: translateY(0);
       }
 
-      body.dark .back-to-top-btn, 
-      html.dark .back-to-top-btn,
-      [data-theme="dark"] .back-to-top-btn {
+      .swagger-ui-dark .back-to-top-btn {
         background-color: rgba(255, 255, 255, 0.9);
         color: #333 !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
       }
 
-      body.dark .back-to-top-btn:hover, 
-      html.dark .back-to-top-btn:hover,
-      [data-theme="dark"] .back-to-top-btn:hover {
+      .swagger-ui-dark .back-to-top-btn:hover {
         background-color: #fff;
         transform: translateY(-2px);
       }
