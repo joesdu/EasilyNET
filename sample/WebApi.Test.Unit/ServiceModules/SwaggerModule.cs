@@ -135,7 +135,7 @@ internal sealed class SwaggerModule : AppModule
                 c.SwaggerEndpoint($"/swagger/{key}/swagger.json", value.Title);
             }
             c.RoutePrefix = "swagger";
-            // 注入JS脚本
+            // 注入Swagger UI返回顶部功能脚本
             c.InjectJavascript("/swagger-ui/back-top.js");
         });
         await base.ApplicationInitialization(context);
