@@ -21,7 +21,8 @@ namespace WebApi.Test.Unit;
     typeof(MongoFSModule),
     typeof(RabbitModule),
     typeof(SwaggerModule),
-    typeof(OpenTelemetryModule))]
+    typeof(OpenTelemetryModule),
+    typeof(WebSocketServerModule))]
 internal sealed class AppWebModule : AppModule
 {
     /// <inheritdoc />

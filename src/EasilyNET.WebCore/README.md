@@ -47,3 +47,9 @@ app.UseResponseTime(); // 全局Action执行时间
 ...
 app.Run();
 ```
+
+### WebSocket Server
+
+高性能 WebSocket 服务端支持。
+
+- [使用文档](.\WebSocket\README.md)

@@ -1,0 +1,171 @@
+using System.Buffers;
+using System.Net.WebSockets;
+using System.Text;
+using System.Threading.Channels;
+using EasilyNET.Core.WebSocket;
+
+namespace EasilyNET.WebCore.WebSocket;
+
+internal sealed class WebSocketSession : IWebSocketSession
+{
+    private const int ReceiveBufferSize = 1024 * 4;
+    private readonly CancellationTokenSource _cts = new();
+    private readonly WebSocketHandler _handler;
+    private readonly Channel<WebSocketMessage> _sendChannel;
+    private readonly System.Net.WebSockets.WebSocket _socket;
+
+    public WebSocketSession(string id, System.Net.WebSockets.WebSocket socket, WebSocketHandler handler)
+    {
+        Id = id;
+        _socket = socket;
+        _handler = handler;
+        var channelOptions = new BoundedChannelOptions(1000)
+        {
+            FullMode = BoundedChannelFullMode.Wait,
+            SingleReader = true,
+            SingleWriter = false
+        };
+        _sendChannel = Channel.CreateBounded<WebSocketMessage>(channelOptions);
+    }
+
+    public string Id { get; }
+
+    public WebSocketState State => _socket.State;
+
+    public async Task SendAsync(ReadOnlyMemory<byte> message, WebSocketMessageType messageType = WebSocketMessageType.Text, bool endOfMessage = true, CancellationToken cancellationToken = default)
+    {
+        if (_socket.State != WebSocketState.Open)
+        {
+            return;
+        }
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var msg = new WebSocketMessage(message, messageType, endOfMessage, tcs);
+        await _sendChannel.Writer.WriteAsync(msg, cancellationToken).ConfigureAwait(false);
+        // await tcs.Task.ConfigureAwait(false); // Optional: wait for actual send
+    }
+
+    public Task SendTextAsync(string text, CancellationToken cancellationToken = default)
+    {
+        var bytes = Encoding.UTF8.GetBytes(text);
+        return SendAsync(bytes, WebSocketMessageType.Text, true, cancellationToken);
+    }
+
+    public Task SendBinaryAsync(byte[] bytes, CancellationToken cancellationToken = default) => SendAsync(bytes, WebSocketMessageType.Binary, true, cancellationToken);
+
+    public async Task CloseAsync(WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken = default)
+    {
+        if (_socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
+        {
+            await _socket.CloseAsync(closeStatus, statusDescription, cancellationToken).ConfigureAwait(false);
+        }
+        await _cts.CancelAsync();
+    }
+
+    internal async Task ProcessAsync(CancellationToken cancellationToken)
+    {
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
+        var token = linkedCts.Token;
+        var sendTask = SendLoopAsync(token);
+        var receiveTask = ReceiveLoopAsync(token);
+        try
+        {
+            await _handler.OnConnectedAsync(this).ConfigureAwait(false);
+            await Task.WhenAny(sendTask, receiveTask).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            await _handler.OnErrorAsync(this, ex).ConfigureAwait(false);
+        }
+        finally
+        {
+            await _cts.CancelAsync();
+            await _handler.OnDisconnectedAsync(this).ConfigureAwait(false);
+
+            // Ensure socket is closed
+            if (_socket.State != WebSocketState.Closed && _socket.State != WebSocketState.Aborted)
+            {
+                try
+                {
+                    await _socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Session ended", CancellationToken.None).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Ignore
+                }
+            }
+            _socket.Dispose();
+        }
+    }
+
+    private async Task ReceiveLoopAsync(CancellationToken token)
+    {
+        var buffer = ArrayPool<byte>.Shared.Rent(ReceiveBufferSize);
+        try
+        {
+            while (!token.IsCancellationRequested && _socket.State == WebSocketState.Open)
+            {
+                ValueWebSocketReceiveResult result;
+                using var ms = new MemoryStream();
+                do
+                {
+                    result = await _socket.ReceiveAsync(new Memory<byte>(buffer), token).ConfigureAwait(false);
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        if (_socket.State == WebSocketState.CloseReceived)
+                        {
+                            // Echo close
+                            await _socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Acknowledge Close", CancellationToken.None).ConfigureAwait(false);
+                        }
+                        return;
+                    }
+                    ms.Write(buffer, 0, result.Count);
+                } while (!result.EndOfMessage);
+                ms.Seek(0, SeekOrigin.Begin);
+                var data = ms.ToArray();
+                await _handler.OnMessageAsync(this, new(data, result.MessageType, true)).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (WebSocketException) { } // Connection lost
+        catch (Exception ex)
+        {
+            await _handler.OnErrorAsync(this, ex).ConfigureAwait(false);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    private async Task SendLoopAsync(CancellationToken token)
+    {
+        try
+        {
+            while (await _sendChannel.Reader.WaitToReadAsync(token).ConfigureAwait(false))
+            {
+                while (_sendChannel.Reader.TryRead(out var message))
+                {
+                    if (_socket.State != WebSocketState.Open)
+                    {
+                        return;
+                    }
+                    try
+                    {
+                        await _socket.SendAsync(message.Data, message.MessageType, message.EndOfMessage, token).ConfigureAwait(false);
+                        message.CompletionSource?.TrySetResult(true);
+                    }
+                    catch (Exception ex)
+                    {
+                        message.CompletionSource?.TrySetException(ex);
+                        throw;
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception)
+        {
+            // Send loop error usually means connection issue
+        }
+    }
+}
