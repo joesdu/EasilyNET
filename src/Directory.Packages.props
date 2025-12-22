@@ -1,53 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <Project>
-  <PropertyGroup>
-    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
-  </PropertyGroup>
-  <ItemGroup>
-    <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
-  </ItemGroup>
-  <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-  </PropertyGroup>
-  <PropertyGroup>
-    <NoWarn>$(NoWarn);</NoWarn>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageVersion Include="Backport.System.Threading.Lock" Version="3.1.5" />
-    <PackageVersion Include="BouncyCastle.Cryptography" Version="2.7.0-beta.98" />
-    <PackageVersion Include="MongoDB.Analyzer" Version="2.0.0" />
-    <PackageVersion Include="MongoDB.Driver" Version="3.5.2" />
-    <PackageVersion Include="RabbitMQ.Client" Version="7.2.0" />
-    <PackageVersion Include="Spectre.Console.Json" Version="0.54.1-alpha.0.10" />
-    <!--microsoft asp.net core -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.1" />
-    <PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.1.0" />
-    <!--microsoft source generator-->
-    <!--<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.12.0-beta1.25218.8" />-->
-    <!--<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />-->
-  </ItemGroup>
-  <!-- 自定义任务来检查 TargetFramework -->
-  <PropertyGroup>
-    <IsVisualStudioMSBuild Condition="'$(MSBuildRuntimeType)' == 'Full'">true</IsVisualStudioMSBuild>
-  </PropertyGroup>
-  <UsingTask TaskName="CheckTargetFrameworkTask" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" Condition="'$(IsVisualStudioMSBuild)' == 'true' &#xD;&#xA;			 and '$(UseWPF)' != 'true' &#xD;&#xA;			 and '$(UseWindowsForms)' != 'true'&#xD;&#xA;			 and '$(IsRoslynComponent)' != 'true'">
-    <ParameterGroup>
-      <ProjectFile ParameterType="System.String" Required="true" />
-    </ParameterGroup>
-    <Task>
-      <Using Namespace="System.IO" />
-      <Code Type="Fragment" Language="cs"><![CDATA[
-                var content = File.ReadAllText(ProjectFile);
-                if (content.Contains("<TargetFramework>"))
-                {
-                    Log.LogError("在启用按文件夹自定义生成的情况下,已指定目标框架,项目文件中不应显式定义 TargetFramework 属性,请删除. 文件:" + ProjectFile, ProjectFile);
-                }
-                ]]></Code>
-    </Task>
-  </UsingTask>
-  <Target Name="CheckTargetFramework" BeforeTargets="BeforeBuild" Condition="'$(IsVisualStudioMSBuild)' == 'true' &#xD;&#xA;		  and '$(UseWPF)' != 'true' &#xD;&#xA;		  and '$(UseWindowsForms)' != 'true'&#xD;&#xA;		  and '$(IsRoslynComponent)' != 'true'">
-    <CheckTargetFrameworkTask ProjectFile="$(MSBuildProjectFullPath)" />
-  </Target>
+	<PropertyGroup>
+		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+		<PackageLicenseFile>LICENSE</PackageLicenseFile>
+	</PropertyGroup>
+	<PropertyGroup>
+		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="..\..\LICENSE" Pack="true" PackagePath="" />
+	</ItemGroup>
+	<PropertyGroup>
+		<NoWarn>$(NoWarn);</NoWarn>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageVersion Include="Backport.System.Threading.Lock" Version="3.1.5" />
+		<PackageVersion Include="BouncyCastle.Cryptography" Version="2.7.0-beta.98" />
+		<PackageVersion Include="MongoDB.Analyzer" Version="2.0.0" />
+		<PackageVersion Include="MongoDB.Driver" Version="3.5.2" />
+		<PackageVersion Include="RabbitMQ.Client" Version="7.2.0" />
+		<PackageVersion Include="Spectre.Console.Json" Version="0.54.1-alpha.0.10" />
+		<!--microsoft asp.net core -->
+		<PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.1" />
+		<PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.1.0" />
+		<!--microsoft source generator-->
+		<!--<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.12.0-beta1.25218.8" />-->
+		<!--<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />-->
+	</ItemGroup>
 </Project>

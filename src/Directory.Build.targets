@@ -1,0 +1,9 @@
+<Project>
+	<!-- 自定义任务来检查 TargetFramework 和 TargetFrameworks -->
+	<Target Name="CheckTargetFramework" BeforeTargets="BeforeBuild" Condition="'$(UseWPF)' != 'true' and '$(UseWindowsForms)' != 'true' and '$(IsRoslynComponent)' != 'true'">
+		<XmlPeek XmlInputPath="$(MSBuildProjectFullPath)" Query="//*[local-name()='TargetFramework' or local-name()='TargetFrameworks']">
+			<Output TaskParameter="Result" ItemName="ExplicitTargetFramework" />
+		</XmlPeek>
+		<Error Condition="'@(ExplicitTargetFramework)' != ''" File="$(MSBuildProjectFullPath)" Text="在启用按文件夹自定义生成的情况下,已指定目标框架.项目文件中不应显式定义 TargetFramework 或 TargetFrameworks 属性,请删除." />
+	</Target>
+</Project>
