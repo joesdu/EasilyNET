@@ -452,13 +452,29 @@ public sealed class ManagedWebSocketClient : IDisposable
 
     private async Task HandleConnectionLoss(Exception _)
     {
-        if (State == WebSocketClientState.Reconnecting || _disposeCts.IsCancellationRequested)
+        // If the client is being disposed, do not attempt to reconnect.
+        if (_disposeCts.IsCancellationRequested)
         {
             return;
         }
 
-        // Ensure we transition to a state that allows reconnection
-        State = WebSocketClientState.Disconnected;
+        // Serialize the decision to start reconnecting to avoid race conditions
+        await _connectionLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (State == WebSocketClientState.Reconnecting || _disposeCts.IsCancellationRequested)
+            {
+                // Another caller already initiated reconnection or we are disposing
+                return;
+            }
+
+            // Transition to a state that allows reconnection; ReconnectAsync will perform the actual reconnect.
+            State = WebSocketClientState.Reconnecting;
+        }
+        finally
+        {
+            _connectionLock.Release();
+        }
         if (Options.AutoReconnect)
         {
             await ReconnectAsync().ConfigureAwait(false);
