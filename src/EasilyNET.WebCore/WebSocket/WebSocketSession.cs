@@ -14,12 +14,12 @@ internal sealed class WebSocketSession : IWebSocketSession
     private readonly Channel<WebSocketMessage> _sendChannel;
     private readonly System.Net.WebSockets.WebSocket _socket;
 
-    public WebSocketSession(string id, System.Net.WebSockets.WebSocket socket, WebSocketHandler handler)
+    public WebSocketSession(string id, System.Net.WebSockets.WebSocket socket, WebSocketHandler handler, WebSocketSessionOptions options)
     {
         Id = id;
         _socket = socket;
         _handler = handler;
-        var channelOptions = new BoundedChannelOptions(1000)
+        var channelOptions = new BoundedChannelOptions(options.SendQueueCapacity)
         {
             FullMode = BoundedChannelFullMode.Wait,
             SingleReader = true,
@@ -67,9 +67,11 @@ internal sealed class WebSocketSession : IWebSocketSession
         var token = linkedCts.Token;
         var sendTask = SendLoopAsync(token);
         var receiveTask = ReceiveLoopAsync(token);
+        var isConnected = false;
         try
         {
             await _handler.OnConnectedAsync(this).ConfigureAwait(false);
+            isConnected = true;
             await Task.WhenAny(sendTask, receiveTask).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -79,7 +81,10 @@ internal sealed class WebSocketSession : IWebSocketSession
         finally
         {
             await _cts.CancelAsync();
-            await _handler.OnDisconnectedAsync(this).ConfigureAwait(false);
+            if (isConnected)
+            {
+                await _handler.OnDisconnectedAsync(this).ConfigureAwait(false);
+            }
 
             // Ensure socket is closed
             if (_socket.State != WebSocketState.Closed && _socket.State != WebSocketState.Aborted)

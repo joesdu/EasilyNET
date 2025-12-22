@@ -14,11 +14,15 @@ namespace EasilyNET.WebCore.WebSocket;
 ///     <para xml:lang="en">The next middleware in the pipeline.</para>
 ///     <para xml:lang="zh">管道中的下一个中间件。</para>
 /// </param>
+/// <param name="options">
+///     <para xml:lang="en">The WebSocket session options.</para>
+///     <para xml:lang="zh">WebSocket 会话选项。</para>
+/// </param>
 /// <param name="handler">
 ///     <para xml:lang="en">The WebSocket handler.</para>
 ///     <para xml:lang="zh">WebSocket 处理程序。</para>
 /// </param>
-public class WebSocketMiddleware<THandler>(RequestDelegate next, THandler handler) where THandler : WebSocketHandler
+internal sealed class WebSocketMiddleware<THandler>(RequestDelegate next, WebSocketSessionOptions options, THandler handler) where THandler : WebSocketHandler
 {
     /// <summary>
     ///     <para xml:lang="en">Invokes the middleware.</para>
@@ -33,7 +37,7 @@ public class WebSocketMiddleware<THandler>(RequestDelegate next, THandler handle
         if (context.WebSockets.IsWebSocketRequest)
         {
             using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-            var session = new WebSocketSession(context.TraceIdentifier, webSocket, handler);
+            var session = new WebSocketSession(context.TraceIdentifier, webSocket, handler, options);
             await session.ProcessAsync(context.RequestAborted);
         }
         else

@@ -52,8 +52,10 @@ internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService>
         for (var i = 0; i < 5; i++)
         {
             if (stoppingToken.IsCancellationRequested)
+            {
                 break;
-            var msg = $"Seq Message {++counter}";
+            }
+            var msg = $"Seq Message {Interlocked.Increment(ref counter)}";
             await _client.SendTextAsync(msg, stoppingToken);
             await Task.Delay(100, stoppingToken);
         }
@@ -62,7 +64,7 @@ internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService>
         logger.LogInformation("Starting Concurrent Test...");
         var tasks = Enumerable.Range(0, 10).Select(i =>
         {
-            var msg = $"Concurrent Message {++counter}-{i}";
+            var msg = $"Concurrent Message {Interlocked.Increment(ref counter)}-{i}";
             return _client.SendTextAsync(msg, stoppingToken);
         });
         await Task.WhenAll(tasks);

@@ -28,12 +28,16 @@ public static class WebSocketExtensions
     ///     <para xml:lang="en">The path to map.</para>
     ///     <para xml:lang="zh">要映射的路径。</para>
     /// </param>
+    /// <param name="options">
+    ///     <para xml:lang="en">The WebSocket session options.</para>
+    ///     <para xml:lang="zh">WebSocket 会话选项。</para>
+    /// </param>
     /// <returns>
     ///     <para xml:lang="en">The application builder.</para>
     ///     <para xml:lang="zh">应用程序构建器。</para>
     /// </returns>
-    public static IApplicationBuilder MapWebSocketHandler<THandler>(this IApplicationBuilder app, PathString path) where THandler : WebSocketHandler
+    public static IApplicationBuilder MapWebSocketHandler<THandler>(this IApplicationBuilder app, PathString path, WebSocketSessionOptions? options = null) where THandler : WebSocketHandler
     {
-        return app.Map(path, branch => branch.UseMiddleware<WebSocketMiddleware<THandler>>());
+        return app.Map(path, branch => branch.UseMiddleware<WebSocketMiddleware<THandler>>(options ?? new()));
     }
 }
