@@ -388,21 +388,43 @@ public sealed class ManagedWebSocketClient : IDisposable
                             continue;
                         }
                         await HandleConnectionLoss(ex).ConfigureAwait(false);
+                        FailPendingSends(ex);
                         return; // Exit loop, let reconnection handle restart
                     }
                 }
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException oce)
         {
             // Normal cancellation
+            FailPendingSends(oce);
         }
         catch (Exception ex)
         {
             OnError(new(ex, "SendLoop"));
+            FailPendingSends(ex);
         }
     }
 
+    private void FailPendingSends(Exception exception)
+    {
+        while (_sendChannel.Reader.TryRead(out var pendingMessage))
+        {
+            if (pendingMessage.CompletionSource is null)
+            {
+                continue;
+            }
+
+            if (exception is OperationCanceledException)
+            {
+                pendingMessage.CompletionSource.TrySetCanceled();
+            }
+            else
+            {
+                pendingMessage.CompletionSource.TrySetException(exception);
+            }
+        }
+    }
     private async Task HeartbeatLoop(CancellationToken token)
     {
         try
