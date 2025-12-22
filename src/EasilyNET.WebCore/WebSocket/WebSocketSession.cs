@@ -32,22 +32,14 @@ internal sealed class WebSocketSession : IWebSocketSession
 
     public WebSocketState State => _socket.State;
 
-    public async Task SendAsync(ReadOnlyMemory<byte> message, WebSocketMessageType messageType = WebSocketMessageType.Text, bool endOfMessage = true, CancellationToken cancellationToken = default)
-    {
-        if (_socket.State != WebSocketState.Open)
-        {
-            return;
-        }
-        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var msg = new WebSocketMessage(message, messageType, endOfMessage, tcs);
-        await _sendChannel.Writer.WriteAsync(msg, cancellationToken).ConfigureAwait(false);
-        // await tcs.Task.ConfigureAwait(false); // Optional: wait for actual send
-    }
+    public Task SendAsync(ReadOnlyMemory<byte> message, WebSocketMessageType messageType = WebSocketMessageType.Text, bool endOfMessage = true, CancellationToken cancellationToken = default) => SendAsyncInternal(message, messageType, endOfMessage, cancellationToken, null);
 
     public Task SendTextAsync(string text, CancellationToken cancellationToken = default)
     {
-        var bytes = Encoding.UTF8.GetBytes(text);
-        return SendAsync(bytes, WebSocketMessageType.Text, true, cancellationToken);
+        var byteCount = Encoding.UTF8.GetByteCount(text);
+        var rented = ArrayPool<byte>.Shared.Rent(byteCount);
+        var bytesUsed = Encoding.UTF8.GetBytes(text, rented);
+        return SendAsyncInternal(new(rented, 0, bytesUsed), WebSocketMessageType.Text, true, cancellationToken, rented);
     }
 
     public Task SendBinaryAsync(byte[] bytes, CancellationToken cancellationToken = default) => SendAsync(bytes, WebSocketMessageType.Binary, true, cancellationToken);
@@ -58,7 +50,41 @@ internal sealed class WebSocketSession : IWebSocketSession
         {
             await _socket.CloseAsync(closeStatus, statusDescription, cancellationToken).ConfigureAwait(false);
         }
-        await _cts.CancelAsync();
+        try
+        {
+            await _cts.CancelAsync();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Ignore
+        }
+    }
+
+    private async Task SendAsyncInternal(ReadOnlyMemory<byte> message, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken, byte[]? rentedArray)
+    {
+        if (_socket.State != WebSocketState.Open)
+        {
+            if (rentedArray != null)
+            {
+                ArrayPool<byte>.Shared.Return(rentedArray);
+            }
+            throw new WebSocketException(WebSocketError.InvalidState, "WebSocket is not open.");
+        }
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var msg = new WebSocketMessage(message, messageType, endOfMessage, tcs, rentedArray);
+        try
+        {
+            await _sendChannel.Writer.WriteAsync(msg, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            if (rentedArray != null)
+            {
+                ArrayPool<byte>.Shared.Return(rentedArray);
+            }
+            throw;
+        }
+        // await tcs.Task.ConfigureAwait(false); // Optional: wait for actual send
     }
 
     internal async Task ProcessAsync(CancellationToken cancellationToken)
@@ -99,6 +125,7 @@ internal sealed class WebSocketSession : IWebSocketSession
                 }
             }
             _socket.Dispose();
+            _cts.Dispose();
         }
     }
 
@@ -130,8 +157,14 @@ internal sealed class WebSocketSession : IWebSocketSession
                 await _handler.OnMessageAsync(this, new(data, result.MessageType, true)).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException) { }
-        catch (WebSocketException) { } // Connection lost
+        catch (OperationCanceledException)
+        {
+            // Ignore
+        }
+        catch (WebSocketException ex) // Connection lost
+        {
+            await _handler.OnErrorAsync(this, ex).ConfigureAwait(false);
+        }
         catch (Exception ex)
         {
             await _handler.OnErrorAsync(this, ex).ConfigureAwait(false);
@@ -144,33 +177,73 @@ internal sealed class WebSocketSession : IWebSocketSession
 
     private async Task SendLoopAsync(CancellationToken token)
     {
+        Exception? exception = null;
         try
         {
             while (await _sendChannel.Reader.WaitToReadAsync(token).ConfigureAwait(false))
             {
                 while (_sendChannel.Reader.TryRead(out var message))
                 {
-                    if (_socket.State != WebSocketState.Open)
-                    {
-                        return;
-                    }
                     try
                     {
-                        await _socket.SendAsync(message.Data, message.MessageType, message.EndOfMessage, token).ConfigureAwait(false);
-                        message.CompletionSource?.TrySetResult(true);
+                        if (_socket.State != WebSocketState.Open)
+                        {
+                            exception = new WebSocketException(WebSocketError.InvalidState, "WebSocket is not open.");
+                            message.CompletionSource?.TrySetException(exception);
+                            return;
+                        }
+                        try
+                        {
+                            await _socket.SendAsync(message.Data, message.MessageType, message.EndOfMessage, token).ConfigureAwait(false);
+                            message.CompletionSource?.TrySetResult(true);
+                        }
+                        catch (Exception ex)
+                        {
+                            message.CompletionSource?.TrySetException(ex);
+                            throw;
+                        }
                     }
-                    catch (Exception ex)
+                    finally
                     {
-                        message.CompletionSource?.TrySetException(ex);
-                        throw;
+                        if (message.RentedArray != null)
+                        {
+                            ArrayPool<byte>.Shared.Return(message.RentedArray);
+                        }
                     }
                 }
             }
         }
-        catch (OperationCanceledException) { }
-        catch (Exception)
+        catch (OperationCanceledException)
         {
-            // Send loop error usually means connection issue
+            // Cancellation is expected when the provided token is signaled; rethrow if it comes from another source.
+            if (!token.IsCancellationRequested)
+            {
+                throw;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Send loop error usually means connection issue; log and let the loop terminate.
+            await Console.Error.WriteLineAsync($"[WebSocketSession:{Id}] Send loop error: {ex}");
+            exception = ex;
+        }
+        finally
+        {
+            while (_sendChannel.Reader.TryRead(out var message))
+            {
+                if (message.RentedArray != null)
+                {
+                    ArrayPool<byte>.Shared.Return(message.RentedArray);
+                }
+                if (exception != null)
+                {
+                    message.CompletionSource?.TrySetException(exception);
+                }
+                else
+                {
+                    message.CompletionSource?.TrySetCanceled();
+                }
+            }
         }
     }
 }

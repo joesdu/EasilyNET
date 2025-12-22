@@ -28,12 +28,17 @@ public readonly struct WebSocketMessage
     ///     <para xml:lang="en">The completion source for tracking send completion.</para>
     ///     <para xml:lang="zh">用于跟踪发送完成的完成源。</para>
     /// </param>
-    public WebSocketMessage(ReadOnlyMemory<byte> data, WebSocketMessageType messageType, bool endOfMessage, TaskCompletionSource<bool>? completionSource = null)
+    /// <param name="rentedArray">
+    ///     <para xml:lang="en">The rented array that needs to be returned to the pool.</para>
+    ///     <para xml:lang="zh">获取需要返回到池的租用数组。</para>
+    /// </param>
+    public WebSocketMessage(ReadOnlyMemory<byte> data, WebSocketMessageType messageType, bool endOfMessage, TaskCompletionSource<bool>? completionSource = null, byte[]? rentedArray = null)
     {
         Data = data;
         MessageType = messageType;
         EndOfMessage = endOfMessage;
         CompletionSource = completionSource;
+        RentedArray = rentedArray;
     }
 
     /// <summary>
@@ -59,4 +64,10 @@ public readonly struct WebSocketMessage
     ///     <para xml:lang="zh">获取用于跟踪发送完成的完成源。</para>
     /// </summary>
     public TaskCompletionSource<bool>? CompletionSource { get; }
+
+    /// <summary>
+    ///     <para xml:lang="en">Gets the rented array that needs to be returned to the pool.</para>
+    ///     <para xml:lang="zh">获取需要返回到池的租用数组。</para>
+    /// </summary>
+    public byte[]? RentedArray { get; }
 }

@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading.Channels;
@@ -18,8 +19,9 @@ public sealed class ManagedWebSocketClient : IDisposable
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly CancellationTokenSource _disposeCts = new();
     private readonly Channel<WebSocketMessage> _sendChannel;
+    private readonly Lock _stateLock = new();
     private CancellationTokenSource? _connectionCts;
-    private bool _disposed;
+    private volatile bool _disposed;
     private int _reconnectAttempts;
     private ClientWebSocket? _socket;
 
@@ -57,16 +59,25 @@ public sealed class ManagedWebSocketClient : IDisposable
     /// </summary>
     public WebSocketClientState State
     {
-        get;
+        get
+        {
+            lock (_stateLock)
+            {
+                return field;
+            }
+        }
         private set
         {
-            if (field == value)
+            lock (_stateLock)
             {
-                return;
+                if (field == value)
+                {
+                    return;
+                }
+                var oldState = field;
+                field = value;
+                OnStateChanged(new(oldState, value));
             }
-            var oldState = field;
-            field = value;
-            OnStateChanged(new(oldState, value));
         }
     } = WebSocketClientState.Disconnected;
 
@@ -98,7 +109,18 @@ public sealed class ManagedWebSocketClient : IDisposable
                 // Ignore
             }
         }
-        _connectionLock.Dispose();
+        try
+        {
+            // Wait for the lock to be released by any pending operation to avoid ObjectDisposedException
+            if (_connectionLock.Wait(TimeSpan.FromSeconds(5)))
+            {
+                _connectionLock.Dispose();
+            }
+        }
+        catch
+        {
+            // Ignore
+        }
         _disposeCts.Dispose();
         _connectionCts?.Dispose();
         State = WebSocketClientState.Disposed;
@@ -157,7 +179,7 @@ public sealed class ManagedWebSocketClient : IDisposable
                 return;
             }
             State = WebSocketClientState.Connecting;
-            _reconnectAttempts = 0;
+            Interlocked.Exchange(ref _reconnectAttempts, 0);
             await StartConnectionAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -234,17 +256,34 @@ public sealed class ManagedWebSocketClient : IDisposable
     ///     <para xml:lang="en">The cancellation token.</para>
     ///     <para xml:lang="zh">取消令牌。</para>
     /// </param>
-    public async Task SendAsync(ReadOnlyMemory<byte> message, WebSocketMessageType messageType = WebSocketMessageType.Text, bool endOfMessage = true, CancellationToken cancellationToken = default)
+    public Task SendAsync(ReadOnlyMemory<byte> message, WebSocketMessageType messageType = WebSocketMessageType.Text, bool endOfMessage = true, CancellationToken cancellationToken = default) => SendAsyncInternal(message, messageType, endOfMessage, cancellationToken, null);
+
+    private async Task SendAsyncInternal(ReadOnlyMemory<byte> message, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken, byte[]? rentedArray)
     {
         ObjectDisposedException.ThrowIf(_disposed, typeof(ManagedWebSocketClient));
         // If not connected and not auto-reconnect, throw
         if (State != WebSocketClientState.Connected && !Options.AutoReconnect)
         {
+            if (rentedArray != null)
+            {
+                ArrayPool<byte>.Shared.Return(rentedArray);
+            }
             throw new InvalidOperationException("Client is not connected.");
         }
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var msg = new WebSocketMessage(message, messageType, endOfMessage, tcs);
-        await _sendChannel.Writer.WriteAsync(msg, cancellationToken).ConfigureAwait(false);
+        var msg = new WebSocketMessage(message, messageType, endOfMessage, tcs, rentedArray);
+        try
+        {
+            await _sendChannel.Writer.WriteAsync(msg, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            if (rentedArray != null)
+            {
+                ArrayPool<byte>.Shared.Return(rentedArray);
+            }
+            throw;
+        }
 
         // Wait for the message to be sent if we want to ensure delivery order or catch send errors immediately
         // However, for high performance, we might not want to await the actual send here if we trust the queue.
@@ -263,8 +302,10 @@ public sealed class ManagedWebSocketClient : IDisposable
     /// </summary>
     public Task SendTextAsync(string text, CancellationToken cancellationToken = default)
     {
-        var bytes = Encoding.UTF8.GetBytes(text);
-        return SendAsync(bytes, WebSocketMessageType.Text, true, cancellationToken);
+        var byteCount = Encoding.UTF8.GetByteCount(text);
+        var rented = ArrayPool<byte>.Shared.Rent(byteCount);
+        var bytesUsed = Encoding.UTF8.GetBytes(text, rented);
+        return SendAsyncInternal(new(rented, 0, bytesUsed), WebSocketMessageType.Text, true, cancellationToken, rented);
     }
 
     /// <summary>
@@ -296,11 +337,14 @@ public sealed class ManagedWebSocketClient : IDisposable
             State = WebSocketClientState.Connected;
 
             // Start background loops
-            _ = Task.Factory.StartNew(() => ReceiveLoop(_connectionCts.Token), _connectionCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-            _ = Task.Factory.StartNew(() => SendLoop(_connectionCts.Token), _connectionCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            var receiveTask = Task.Factory.StartNew(() => ReceiveLoop(_connectionCts.Token), _connectionCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
+            _ = receiveTask.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+            var sendTask = Task.Factory.StartNew(() => SendLoop(_connectionCts.Token), _connectionCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
+            _ = sendTask.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
             if (Options.HeartbeatEnabled)
             {
-                _ = Task.Factory.StartNew(() => HeartbeatLoop(_connectionCts.Token), _connectionCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                var heartbeatTask = Task.Factory.StartNew(() => HeartbeatLoop(_connectionCts.Token), _connectionCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
+                _ = heartbeatTask.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
             }
         }
         catch (Exception)
@@ -391,6 +435,13 @@ public sealed class ManagedWebSocketClient : IDisposable
                         FailPendingSends(ex);
                         return; // Exit loop, let reconnection handle restart
                     }
+                    finally
+                    {
+                        if (message.RentedArray != null)
+                        {
+                            ArrayPool<byte>.Shared.Return(message.RentedArray);
+                        }
+                    }
                 }
             }
         }
@@ -410,11 +461,14 @@ public sealed class ManagedWebSocketClient : IDisposable
     {
         while (_sendChannel.Reader.TryRead(out var pendingMessage))
         {
+            if (pendingMessage.RentedArray != null)
+            {
+                ArrayPool<byte>.Shared.Return(pendingMessage.RentedArray);
+            }
             if (pendingMessage.CompletionSource is null)
             {
                 continue;
             }
-
             if (exception is OperationCanceledException)
             {
                 pendingMessage.CompletionSource.TrySetCanceled();
@@ -425,6 +479,7 @@ public sealed class ManagedWebSocketClient : IDisposable
             }
         }
     }
+
     private async Task HeartbeatLoop(CancellationToken token)
     {
         try
@@ -521,21 +576,21 @@ public sealed class ManagedWebSocketClient : IDisposable
                 return;
             }
             State = WebSocketClientState.Reconnecting;
-            while (Options.MaxReconnectAttempts == -1 || _reconnectAttempts < Options.MaxReconnectAttempts)
+            while (Options.MaxReconnectAttempts == -1 || Volatile.Read(ref _reconnectAttempts) < Options.MaxReconnectAttempts)
             {
                 if (_disposeCts.IsCancellationRequested)
                 {
                     return;
                 }
-                _reconnectAttempts++;
+                var attempts = Interlocked.Increment(ref _reconnectAttempts);
 
                 // Calculate delay
                 var delay = Options.ReconnectDelayMs;
                 if (Options.UseExponentialBackoff)
                 {
-                    delay = (int)Math.Min(Options.ReconnectDelayMs * Math.Pow(2, _reconnectAttempts - 1), Options.MaxReconnectDelayMs);
+                    delay = (int)Math.Min(Options.ReconnectDelayMs * Math.Pow(2, attempts - 1), Options.MaxReconnectDelayMs);
                 }
-                var args = new WebSocketReconnectingEventArgs(_reconnectAttempts, TimeSpan.FromMilliseconds(delay), null);
+                var args = new WebSocketReconnectingEventArgs(attempts, TimeSpan.FromMilliseconds(delay), null);
                 OnReconnecting(args);
                 if (args.Cancel)
                 {
@@ -547,12 +602,12 @@ public sealed class ManagedWebSocketClient : IDisposable
                 {
                     await StartConnectionAsync(_disposeCts.Token).ConfigureAwait(false);
                     // If successful
-                    _reconnectAttempts = 0;
+                    Interlocked.Exchange(ref _reconnectAttempts, 0);
                     return;
                 }
                 catch (Exception ex)
                 {
-                    OnError(new(ex, $"Reconnection attempt {_reconnectAttempts} failed"));
+                    OnError(new(ex, $"Reconnection attempt {attempts} failed"));
                 }
             }
 
