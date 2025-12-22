@@ -2,12 +2,12 @@
 
 | 功能                   | 描述                                                                  | 使用文档                                  |
 | ---------------------- | --------------------------------------------------------------------- | ----------------------------------------- |
-| SimpleEventAggregator  | 简单的事件发布和订阅,用于解耦多个类之间的消息传递                     | [使用文档](.\Aggregator\README.md)        |
-| CoordinateConvert      | 百度坐标(BD09)、国测局坐标(火星坐标,GCJ02)、和 WGS84 坐标系之间的转换 | [使用文档](.\CoordinateConvert\README.md) |
-| DeepCopy               | 基于表达式树和 Reflection 的 DeepCopy                                 | [使用文档](.\DeepCopy\README.md)          |
-| IDCardValidation       | 中国身份证验证,支持 15 位和 18 位身份证号码验证                       | [使用文档](.\IDCard\README.md)            |
-| Compression            | 压缩帮助类                                                            | [使用文档](.\IO\README.md)                |
-| ManagedWebSocketClient | 托管的 WebSocket 客户端,支持自动重连、心跳和高性能发送队列            | [使用文档](.\WebSocket\README.md)         |
+| SimpleEventAggregator  | 简单的事件发布和订阅,用于解耦多个类之间的消息传递                     | [使用文档](./Aggregator/README.md)        |
+| CoordinateConvert      | 百度坐标(BD09)、国测局坐标(火星坐标,GCJ02)、和 WGS84 坐标系之间的转换 | [使用文档](./CoordinateConvert/README.md) |
+| DeepCopy               | 基于表达式树和 Reflection 的 DeepCopy                                 | [使用文档](./DeepCopy/README.md)          |
+| IDCardValidation       | 中国身份证验证,支持 15 位和 18 位身份证号码验证                       | [使用文档](./IDCard/README.md)            |
+| Compression            | 压缩帮助类                                                            | [使用文档](./IO/README.md)                |
+| ManagedWebSocketClient | 托管的 WebSocket 客户端,支持自动重连、心跳和高性能发送队列            | [使用文档](./WebSocket/README.md)         |
 
 > 其他一些内容
 
