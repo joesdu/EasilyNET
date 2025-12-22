@@ -1,5 +1,5 @@
 <Project>
-	<!-- 自定义任务来检查 TargetFramework -->
+	<!-- 自定义任务来检查 TargetFramework 和 TargetFrameworks -->
 	<Target Name="CheckTargetFramework" BeforeTargets="BeforeBuild" Condition="'$(UseWPF)' != 'true' and '$(UseWindowsForms)' != 'true' and '$(IsRoslynComponent)' != 'true'">
 		<XmlPeek XmlInputPath="$(MSBuildProjectFullPath)" Query="//*[local-name()='TargetFramework' or local-name()='TargetFrameworks']">
 			<Output TaskParameter="Result" ItemName="ExplicitTargetFramework" />
