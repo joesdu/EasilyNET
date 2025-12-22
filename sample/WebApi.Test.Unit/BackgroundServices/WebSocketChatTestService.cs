@@ -93,10 +93,17 @@ internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService>
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        if (_client.State != WebSocketClientState.Disposed)
+        try
         {
-            await _client.DisconnectAsync();
-            _client.Dispose();
+            if (_client.State != WebSocketClientState.Disposed)
+            {
+                await _client.DisconnectAsync();
+                _client.Dispose();
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+            // The client was disposed concurrently; safely ignore as we're stopping anyway.
         }
         await base.StopAsync(cancellationToken);
     }
