@@ -18,7 +18,7 @@
 ```csharp
 public class ChatHandler : WebSocketHandler
 {
-    // 可以在这里注入服务，如 ConnectionManager
+    // 可以在这里通过构造函数注入所需的服务
 
     public override async Task OnConnectedAsync(IWebSocketSession session)
     {
