@@ -112,7 +112,11 @@ public sealed class ManagedWebSocketClient : IDisposable
         try
         {
             // Wait for the lock to be released by any pending operation to avoid ObjectDisposedException
-            if (_connectionLock.Wait(TimeSpan.FromSeconds(5)))
+            try
+            {
+                _connectionLock.Wait(TimeSpan.FromSeconds(5));
+            }
+            finally
             {
                 _connectionLock.Dispose();
             }
