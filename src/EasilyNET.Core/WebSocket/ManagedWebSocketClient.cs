@@ -124,10 +124,6 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         }
         try
         {
-            // Best-effort wait for in-flight operations to exit their critical sections.
-            // Important: DO NOT dispose the semaphore here.
-            // If another thread currently owns the semaphore and will call Release() in its finally,
-            // disposing it first can cause ObjectDisposedException during shutdown.
             await _connectionLock.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
         }
         catch
@@ -136,6 +132,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         }
         _disposeCts.Dispose();
         _connectionCts?.Dispose();
+        _connectionLock.Dispose();
     }
 
     /// <summary>
