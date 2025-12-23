@@ -160,7 +160,6 @@ internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService>
         {
             if (_client is not null && _client.State != WebSocketClientState.Disposed)
             {
-                await _client.DisconnectAsync();
                 await _client.DisposeAsync();
             }
         }
