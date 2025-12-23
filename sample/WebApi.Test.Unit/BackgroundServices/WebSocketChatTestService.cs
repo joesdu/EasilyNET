@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 
 namespace WebApi.Test.Unit.BackgroundServices;
 
-internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService> logger, IServer server) : BackgroundService
+internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService> logger, IServer server, IHostApplicationLifetime appLifetime) : BackgroundService
 {
     private ManagedWebSocketClient? _client;
 
@@ -66,12 +66,14 @@ internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService>
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, appLifetime.ApplicationStopping);
+        var token = cts.Token;
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Waiting for server to start...");
         }
         // 延迟启动,避免服务端还未准备好就连接造成异常
-        await Task.Delay(3000, stoppingToken);
+        await Task.Delay(3000, token);
         var addresses = server.Features.Get<IServerAddressesFeature>()?.Addresses;
         if (addresses is null || addresses.Count == 0)
         {
@@ -90,7 +92,7 @@ internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService>
             logger.LogInformation("Connecting to {Uri}...", serverUri);
         }
         _client = CreateClient(logger, serverUri);
-        await _client.ConnectAsync(stoppingToken);
+        await _client.ConnectAsync(token);
         var counter = 0;
 
         // Test 1: Sequential Messaging
@@ -100,13 +102,13 @@ internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService>
         }
         for (var i = 0; i < 5; i++)
         {
-            if (stoppingToken.IsCancellationRequested)
+            if (token.IsCancellationRequested)
             {
                 break;
             }
             var msg = $"Seq Message {Interlocked.Increment(ref counter)}";
-            await _client.SendTextAsync(msg, stoppingToken);
-            await Task.Delay(100, stoppingToken);
+            await _client.SendTextAsync(msg, token);
+            await Task.Delay(100, token);
         }
 
         // Test 2: Concurrent Messaging (High Load)
@@ -117,7 +119,7 @@ internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService>
         var tasks = Enumerable.Range(0, 10).Select(i =>
         {
             var msg = $"Concurrent Message {Interlocked.Increment(ref counter)}-{i}";
-            return _client.SendTextAsync(msg, stoppingToken);
+            return _client.SendTextAsync(msg, token);
         });
         await Task.WhenAll(tasks);
 
@@ -127,7 +129,7 @@ internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService>
             logger.LogInformation("Starting Binary Test...");
         }
         var bytes = new byte[] { 0xDE, 0xAD, 0xBE, 0xEF };
-        await _client.SendBinaryAsync(bytes, stoppingToken);
+        await _client.SendBinaryAsync(bytes, token);
 
         // Test 4: Reconnection (Manual)
         if (logger.IsEnabled(LogLevel.Information))
@@ -135,38 +137,46 @@ internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService>
             logger.LogInformation("Testing Manual Reconnect...");
         }
         await _client.DisconnectAsync();
-        await Task.Delay(1000, stoppingToken);
-        await _client.ConnectAsync(stoppingToken);
-        await _client.SendTextAsync("I'm back!", stoppingToken);
+        await Task.Delay(1000, token);
+        await _client.ConnectAsync(token);
+        await _client.SendTextAsync("I'm back!", token);
 
         // Keep alive loop
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Entering Keep-Alive Loop...");
         }
-        while (!stoppingToken.IsCancellationRequested)
+        while (!token.IsCancellationRequested)
         {
             if (_client.State == WebSocketClientState.Connected)
             {
-                await _client.SendTextAsync($"Ping {DateTime.Now}", stoppingToken);
+                await _client.SendTextAsync($"Ping {DateTime.Now}", token);
             }
-            await Task.Delay(5000, stoppingToken);
+            await Task.Delay(5000, token);
         }
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("WebSocketChatTestService is stopping...");
+        }
+        await base.StopAsync(cancellationToken);
         try
         {
-            if (_client is not null && _client.State != WebSocketClientState.Disposed)
+            if (_client is not null)
             {
                 await _client.DisposeAsync();
             }
         }
-        catch (ObjectDisposedException)
+        catch (Exception ex)
         {
-            // The client was disposed concurrently; safely ignore as we're stopping anyway.
+            logger.LogError(ex, "Error disposing client during stop");
         }
-        await base.StopAsync(cancellationToken);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("WebSocketChatTestService stopped.");
+        }
     }
 }
