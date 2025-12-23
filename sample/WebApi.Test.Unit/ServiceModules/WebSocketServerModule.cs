@@ -12,7 +12,7 @@ internal sealed class WebSocketServerModule : AppModule
     public override Task ConfigureServices(ConfigureServicesContext context)
     {
         context.Services.AddSingleton<ChatHandler>();
-        context.Services.AddHostedService<WebSocketChatTestService>();
+        context.Services.AddHostedService<WebSocketClientTestService>();
         return Task.CompletedTask;
     }
 

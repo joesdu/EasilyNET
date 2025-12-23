@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 
 namespace WebApi.Test.Unit.BackgroundServices;
 
-internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService> logger, IServer server, IHostApplicationLifetime appLifetime) : BackgroundService
+internal sealed class WebSocketClientTestService(ILogger<WebSocketClientTestService> logger, IServer server, IHostApplicationLifetime appLifetime) : BackgroundService
 {
     private ManagedWebSocketClient? _client;
 
