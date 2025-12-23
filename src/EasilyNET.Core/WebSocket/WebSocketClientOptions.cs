@@ -57,12 +57,34 @@ public sealed class WebSocketClientOptions
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the heartbeat timeout in milliseconds. Default is 10000ms.</para>
     ///     <para xml:lang="zh">获取或设置心跳超时（毫秒）。默认为 10000 毫秒。</para>
+    ///     <remarks>
+    ///         <para xml:lang="en">
+    ///         This timeout is evaluated against the time since the last successfully received message.
+    ///         If no data is received within this window, the client considers the connection stale and may trigger reconnection.
+    ///         Set to 0 or a negative value to disable the timeout check.
+    ///         </para>
+    ///         <para xml:lang="zh">
+    ///         该超时基于“距离上次成功接收消息”的时间进行判断。
+    ///         若在该时间窗口内未收到任何数据，客户端将认为连接可能已失活并可能触发重连。
+    ///         设置为 0 或负数可禁用该超时检测。
+    ///         </para>
+    ///     </remarks>
     /// </summary>
     public int HeartbeatTimeoutMs { get; set; } = 10000;
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets the factory function to create heartbeat messages. Returns null to use default ping frame.</para>
-    ///     <para xml:lang="zh">获取或设置创建心跳消息的工厂函数。返回 null 则使用默认的 ping 帧。</para>
+    ///     <para xml:lang="en">Gets or sets the factory function to create heartbeat messages. Returns null to send an empty payload.</para>
+    ///     <para xml:lang="zh">获取或设置创建心跳消息的工厂函数。返回 null 则发送空负载。</para>
+    ///     <remarks>
+    ///         <para xml:lang="en">
+    ///         Note: <see cref="ClientWebSocket" /> does not expose protocol-level Ping/Pong control frames.
+    ///         Heartbeats here are application-level messages (typically small binary payloads) and require server-side cooperation if you expect a reply.
+    ///         </para>
+    ///         <para xml:lang="zh">
+    ///         注意：<see cref="ClientWebSocket" /> 不直接暴露协议层的 Ping/Pong 控制帧。
+    ///         此处心跳属于应用层消息（通常为较小的二进制负载），若希望收到回应，需要服务端配合实现。
+    ///         </para>
+    ///     </remarks>
     /// </summary>
     public Func<ReadOnlyMemory<byte>>? HeartbeatMessageFactory { get; set; }
 
@@ -97,8 +119,20 @@ public sealed class WebSocketClientOptions
     public bool UseExponentialBackoff { get; set; } = true;
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets whether to keep the message order when sending. Default is <c>true</c>.</para>
-    ///     <para xml:lang="zh">获取或设置发送时是否保持消息顺序。默认为 <c>true</c>。</para>
+    ///     <para xml:lang="en">Gets or sets whether to wait for the send operation to complete and propagate errors synchronously. Default is <c>true</c>.</para>
+    ///     <para xml:lang="zh">获取或设置是否等待发送操作完成并同步传播错误。默认为 <c>true</c>。</para>
+    ///     <remarks>
+    ///         <para xml:lang="en">
+    ///         The internal channel always maintains message order regardless of this setting.
+    ///         When set to <c>true</c>, <c>SendAsync</c> will await the actual socket send operation and throw any exceptions that occur.
+    ///         When set to <c>false</c>, <c>SendAsync</c> returns as soon as the message is enqueued, and send errors are handled by the background loop (and raised via the Error event).
+    ///         </para>
+    ///         <para xml:lang="zh">
+    ///         无论此设置如何，内部通道始终保持消息顺序。
+    ///         当设置为 <c>true</c> 时，<c>SendAsync</c> 将等待实际的套接字发送操作，并抛出发生的任何异常。
+    ///         当设置为 <c>false</c> 时，<c>SendAsync</c> 在消息入队后立即返回，发送错误由后台循环处理（并通过 Error 事件引发）。
+    ///         </para>
+    ///     </remarks>
     /// </summary>
-    public bool KeepMessageOrder { get; set; } = true;
+    public bool WaitForSendCompletion { get; set; } = true;
 }

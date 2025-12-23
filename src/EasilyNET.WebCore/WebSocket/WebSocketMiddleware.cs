@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace EasilyNET.WebCore.WebSocket;
 
@@ -22,7 +23,11 @@ namespace EasilyNET.WebCore.WebSocket;
 ///     <para xml:lang="en">The WebSocket handler.</para>
 ///     <para xml:lang="zh">WebSocket 处理程序。</para>
 /// </param>
-internal sealed class WebSocketMiddleware<THandler>(RequestDelegate next, WebSocketSessionOptions options, THandler handler) where THandler : WebSocketHandler
+/// <param name="logger">
+///     <para xml:lang="en">The logger.</para>
+///     <para xml:lang="zh">日志记录器。</para>
+/// </param>
+internal sealed class WebSocketMiddleware<THandler>(RequestDelegate next, WebSocketSessionOptions options, THandler handler, ILogger<WebSocketSession> logger) where THandler : WebSocketHandler
 {
     /// <summary>
     ///     <para xml:lang="en">Invokes the middleware.</para>
@@ -37,7 +42,7 @@ internal sealed class WebSocketMiddleware<THandler>(RequestDelegate next, WebSoc
         if (context.WebSockets.IsWebSocketRequest)
         {
             using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-            var session = new WebSocketSession(context.TraceIdentifier, webSocket, handler, options);
+            var session = new WebSocketSession(context.TraceIdentifier, webSocket, handler, options, logger);
             await session.ProcessAsync(context.RequestAborted);
         }
         else

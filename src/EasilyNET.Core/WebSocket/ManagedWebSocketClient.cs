@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading.Channels;
@@ -14,7 +15,7 @@ namespace EasilyNET.Core.WebSocket;
 ///     <para xml:lang="en">A managed WebSocket client that handles reconnection, heartbeats, and message queueing.</para>
 ///     <para xml:lang="zh">一个托管的 WebSocket 客户端，处理重连、心跳和消息队列。</para>
 /// </summary>
-public sealed class ManagedWebSocketClient : IDisposable
+public sealed class ManagedWebSocketClient : IAsyncDisposable
 {
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly CancellationTokenSource _disposeCts = new();
@@ -22,6 +23,7 @@ public sealed class ManagedWebSocketClient : IDisposable
     private readonly Lock _stateLock = new();
     private CancellationTokenSource? _connectionCts;
     private volatile bool _disposed;
+    private long _lastReceiveTimestamp;
     private int _reconnectAttempts;
     private ClientWebSocket? _socket;
 
@@ -45,6 +47,10 @@ public sealed class ManagedWebSocketClient : IDisposable
             SingleWriter = false
         };
         _sendChannel = Channel.CreateBounded<WebSocketMessage>(channelOptions);
+
+        // Initialize last receive time to "now" so heartbeat timeout doesn't immediately fire
+        // before any connection/receive activity happens.
+        _lastReceiveTimestamp = Stopwatch.GetTimestamp();
     }
 
     /// <summary>
@@ -82,15 +88,19 @@ public sealed class ManagedWebSocketClient : IDisposable
     } = WebSocketClientState.Disconnected;
 
     /// <inheritdoc />
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (_disposed)
         {
             return;
         }
         _disposed = true;
-        _disposeCts.Cancel();
-        _connectionCts?.Cancel();
+        await _disposeCts.CancelAsync().ConfigureAwait(false);
+        if (_connectionCts is not null)
+        {
+            await _connectionCts.CancelAsync().ConfigureAwait(false);
+        }
+        State = WebSocketClientState.Disposed;
 
         // Close socket if open
         if (_socket is not null)
@@ -99,27 +109,26 @@ public sealed class ManagedWebSocketClient : IDisposable
             {
                 if (_socket.State == WebSocketState.Open)
                 {
-                    // Fire and forget close
-                    _socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Disposing", CancellationToken.None);
+                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    await _socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Disposing", timeoutCts.Token).ConfigureAwait(false);
                 }
-                _socket.Dispose();
             }
             catch
             {
                 // Ignore
             }
+            finally
+            {
+                _socket.Dispose();
+            }
         }
         try
         {
-            // Wait for the lock to be released by any pending operation to avoid ObjectDisposedException
-            try
-            {
-                _connectionLock.Wait(TimeSpan.FromSeconds(5));
-            }
-            finally
-            {
-                _connectionLock.Dispose();
-            }
+            // Best-effort wait for in-flight operations to exit their critical sections.
+            // Important: DO NOT dispose the semaphore here.
+            // If another thread currently owns the semaphore and will call Release() in its finally,
+            // disposing it first can cause ObjectDisposedException during shutdown.
+            await _connectionLock.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
         }
         catch
         {
@@ -127,7 +136,6 @@ public sealed class ManagedWebSocketClient : IDisposable
         }
         _disposeCts.Dispose();
         _connectionCts?.Dispose();
-        State = WebSocketClientState.Disposed;
     }
 
     /// <summary>
@@ -260,9 +268,9 @@ public sealed class ManagedWebSocketClient : IDisposable
     ///     <para xml:lang="en">The cancellation token.</para>
     ///     <para xml:lang="zh">取消令牌。</para>
     /// </param>
-    public Task SendAsync(ReadOnlyMemory<byte> message, WebSocketMessageType messageType = WebSocketMessageType.Text, bool endOfMessage = true, CancellationToken cancellationToken = default) => SendAsyncInternal(message, messageType, endOfMessage, cancellationToken, null);
+    public Task SendAsync(ReadOnlyMemory<byte> message, WebSocketMessageType messageType = WebSocketMessageType.Text, bool endOfMessage = true, CancellationToken cancellationToken = default) => SendAsyncInternal(message, messageType, endOfMessage, null, cancellationToken);
 
-    private async Task SendAsyncInternal(ReadOnlyMemory<byte> message, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken, byte[]? rentedArray)
+    private async Task SendAsyncInternal(ReadOnlyMemory<byte> message, WebSocketMessageType messageType, bool endOfMessage, byte[]? rentedArray, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, typeof(ManagedWebSocketClient));
         // If not connected and not auto-reconnect, throw
@@ -294,7 +302,7 @@ public sealed class ManagedWebSocketClient : IDisposable
         // But the user might expect SendAsync to mean "sent to socket".
         // Given the requirement for "High performance sending queue", we usually just enqueue.
         // But if we want to propagate errors, we should await the TCS.
-        if (Options.KeepMessageOrder)
+        if (Options.WaitForSendCompletion)
         {
             await tcs.Task.ConfigureAwait(false);
         }
@@ -309,7 +317,7 @@ public sealed class ManagedWebSocketClient : IDisposable
         var byteCount = Encoding.UTF8.GetByteCount(text);
         var rented = ArrayPool<byte>.Shared.Rent(byteCount);
         var bytesUsed = Encoding.UTF8.GetBytes(text, rented);
-        return SendAsyncInternal(new(rented, 0, bytesUsed), WebSocketMessageType.Text, true, cancellationToken, rented);
+        return SendAsyncInternal(new(rented, 0, bytesUsed), WebSocketMessageType.Text, true, rented, cancellationToken);
     }
 
     /// <summary>
@@ -340,15 +348,18 @@ public sealed class ManagedWebSocketClient : IDisposable
             await _socket.ConnectAsync(Options.ServerUri, linkedCts.Token).ConfigureAwait(false);
             State = WebSocketClientState.Connected;
 
+            // Mark the connection as alive at the moment we become connected.
+            Volatile.Write(ref _lastReceiveTimestamp, Stopwatch.GetTimestamp());
+
             // Start background loops
             var receiveTask = Task.Factory.StartNew(() => ReceiveLoop(_connectionCts.Token), _connectionCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
-            _ = receiveTask.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+            _ = receiveTask.ContinueWith(t => OnError(new(t.Exception?.InnerException ?? t.Exception!, "ReceiveLoop background task failed")), TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
             var sendTask = Task.Factory.StartNew(() => SendLoop(_connectionCts.Token), _connectionCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
-            _ = sendTask.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+            _ = sendTask.ContinueWith(t => OnError(new(t.Exception?.InnerException ?? t.Exception!, "SendLoop background task failed")), TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
             if (Options.HeartbeatEnabled)
             {
                 var heartbeatTask = Task.Factory.StartNew(() => HeartbeatLoop(_connectionCts.Token), _connectionCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
-                _ = heartbeatTask.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+                _ = heartbeatTask.ContinueWith(t => OnError(new(t.Exception?.InnerException ?? t.Exception!, "HeartbeatLoop background task failed")), TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
             }
         }
         catch (Exception)
@@ -390,6 +401,9 @@ public sealed class ManagedWebSocketClient : IDisposable
                 } while (!result.EndOfMessage);
                 ms.Seek(0, SeekOrigin.Begin);
                 var data = ms.ToArray();
+
+                // Any successfully received message indicates the connection is alive.
+                Volatile.Write(ref _lastReceiveTimestamp, Stopwatch.GetTimestamp());
                 OnMessageReceived(new(data, result.MessageType, true));
             }
         }
@@ -495,6 +509,21 @@ public sealed class ManagedWebSocketClient : IDisposable
                 {
                     continue;
                 }
+
+                // Heartbeat timeout check: if we haven't received anything for too long,
+                // treat the connection as stale/dead and trigger reconnection.
+                if (Options.HeartbeatTimeoutMs > 0)
+                {
+                    var lastReceive = Volatile.Read(ref _lastReceiveTimestamp);
+                    var elapsedSinceReceive = Stopwatch.GetElapsedTime(lastReceive);
+                    if (elapsedSinceReceive.TotalMilliseconds > Options.HeartbeatTimeoutMs)
+                    {
+                        var ex = new TimeoutException($"WebSocket heartbeat timeout: no data received for {elapsedSinceReceive.TotalMilliseconds:N0}ms (timeout={Options.HeartbeatTimeoutMs}ms).");
+                        OnError(new(ex, "HeartbeatLoop timeout"));
+                        await HandleConnectionLoss(ex).ConfigureAwait(false);
+                        return;
+                    }
+                }
                 try
                 {
                     // Send ping
@@ -575,7 +604,7 @@ public sealed class ManagedWebSocketClient : IDisposable
         }
         try
         {
-            if (State == WebSocketClientState.Reconnecting || State == WebSocketClientState.Connected || _disposeCts.IsCancellationRequested)
+            if (State == WebSocketClientState.Connected || _disposeCts.IsCancellationRequested)
             {
                 return;
             }

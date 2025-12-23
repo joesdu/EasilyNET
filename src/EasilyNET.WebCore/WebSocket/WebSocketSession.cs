@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading.Channels;
 using EasilyNET.Core.WebSocket;
+using Microsoft.Extensions.Logging;
 
 namespace EasilyNET.WebCore.WebSocket;
 
@@ -11,14 +12,16 @@ internal sealed class WebSocketSession : IWebSocketSession
     private const int ReceiveBufferSize = 1024 * 4;
     private readonly CancellationTokenSource _cts = new();
     private readonly WebSocketHandler _handler;
+    private readonly ILogger _logger;
     private readonly Channel<WebSocketMessage> _sendChannel;
     private readonly System.Net.WebSockets.WebSocket _socket;
 
-    public WebSocketSession(string id, System.Net.WebSockets.WebSocket socket, WebSocketHandler handler, WebSocketSessionOptions options)
+    public WebSocketSession(string id, System.Net.WebSockets.WebSocket socket, WebSocketHandler handler, WebSocketSessionOptions options, ILogger logger)
     {
         Id = id;
         _socket = socket;
         _handler = handler;
+        _logger = logger;
         var channelOptions = new BoundedChannelOptions(options.SendQueueCapacity)
         {
             FullMode = BoundedChannelFullMode.Wait,
@@ -46,17 +49,30 @@ internal sealed class WebSocketSession : IWebSocketSession
 
     public async Task CloseAsync(WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken = default)
     {
-        if (_socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
-        {
-            await _socket.CloseAsync(closeStatus, statusDescription, cancellationToken).ConfigureAwait(false);
-        }
+        // First, signal cancellation so any background loops can observe it and stop.
         try
         {
-            await _cts.CancelAsync();
+            await _cts.CancelAsync().ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {
-            // Ignore
+            // Ignore: the CTS has already been disposed.
+        }
+        // Then, attempt to close the WebSocket if it is in a state where closing makes sense.
+        if (_socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
+        {
+            try
+            {
+                await _socket.CloseAsync(closeStatus, statusDescription, cancellationToken).ConfigureAwait(false);
+            }
+            catch (WebSocketException)
+            {
+                // Ignore: the socket may have been closed or aborted concurrently.
+            }
+            catch (ObjectDisposedException)
+            {
+                // Ignore: the socket was disposed concurrently.
+            }
         }
     }
 
@@ -224,7 +240,10 @@ internal sealed class WebSocketSession : IWebSocketSession
         catch (Exception ex)
         {
             // Send loop error usually means connection issue; log and let the loop terminate.
-            await Console.Error.WriteLineAsync($"[WebSocketSession:{Id}] Send loop error: {ex}");
+            if (_logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, "[WebSocketSession:{Id}] Send loop error", Id);
+            }
             exception = ex;
         }
         finally

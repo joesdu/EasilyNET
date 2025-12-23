@@ -1,18 +1,20 @@
 using System.Net.WebSockets;
 using System.Text;
 using EasilyNET.Core.WebSocket;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 
 namespace WebApi.Test.Unit.BackgroundServices;
 
-internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService> logger) : BackgroundService
+internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService> logger, IServer server) : BackgroundService
 {
-    private readonly ManagedWebSocketClient _client = CreateClient(logger);
+    private ManagedWebSocketClient? _client;
 
-    private static ManagedWebSocketClient CreateClient(ILogger logger)
+    private static ManagedWebSocketClient CreateClient(ILogger logger, Uri serverUri)
     {
         var options = new WebSocketClientOptions
         {
-            ServerUri = new("ws://localhost:5046/ws/chat"),
+            ServerUri = serverUri,
             AutoReconnect = true,
             ReconnectDelayMs = 1000,
             HeartbeatEnabled = true,
@@ -24,31 +26,78 @@ internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService>
             if (e.MessageType == WebSocketMessageType.Text)
             {
                 var message = Encoding.UTF8.GetString(e.Data.Span);
-                logger.LogInformation("Client Received: {Message}", message);
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Client Received: {Message}", message);
+                }
             }
             else
             {
-                logger.LogInformation("Client Received Binary: {Length} bytes", e.Data.Length);
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Client Received Binary: {Length} bytes", e.Data.Length);
+                }
             }
         };
-        client.StateChanged += (_, e) => logger.LogInformation("Client State: {Previous} -> {Current}", e.PreviousState, e.CurrentState);
-        client.Error += (_, e) => logger.LogError(e.Exception, "Client Error");
-        client.Reconnecting += (_, e) => logger.LogWarning("Client Reconnecting: Attempt {Attempt}", e.AttemptNumber);
+        client.StateChanged += (_, e) =>
+        {
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Client State: {Previous} -> {Current}", e.PreviousState, e.CurrentState);
+            }
+        };
+        client.Error += (_, e) =>
+        {
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(e.Exception, "Client Error");
+            }
+        };
+        client.Reconnecting += (_, e) =>
+        {
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Client Reconnecting: Attempt {Attempt}", e.AttemptNumber);
+            }
+        };
         return client;
     }
 
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        logger.LogInformation("Waiting for server to start...");
-        // 延迟启动,避免服务端还未准备好就链接造成异常
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Waiting for server to start...");
+        }
+        // 延迟启动,避免服务端还未准备好就连接造成异常
         await Task.Delay(3000, stoppingToken);
-        logger.LogInformation("Connecting...");
+        var addresses = server.Features.Get<IServerAddressesFeature>()?.Addresses;
+        if (addresses is null || addresses.Count == 0)
+        {
+            logger.LogError("No server addresses found.");
+            return;
+        }
+        var address = addresses.First();
+        // 处理通配符地址
+        address = address.Replace("://*", "://localhost").Replace("://+", "://localhost");
+        var uriBuilder = new UriBuilder(address);
+        uriBuilder.Scheme = uriBuilder.Scheme == "https" ? "wss" : "ws";
+        uriBuilder.Path = "ws/chat";
+        var serverUri = uriBuilder.Uri;
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Connecting to {Uri}...", serverUri);
+        }
+        _client = CreateClient(logger, serverUri);
         await _client.ConnectAsync(stoppingToken);
         var counter = 0;
 
         // Test 1: Sequential Messaging
-        logger.LogInformation("Starting Sequential Test...");
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Starting Sequential Test...");
+        }
         for (var i = 0; i < 5; i++)
         {
             if (stoppingToken.IsCancellationRequested)
@@ -61,7 +110,10 @@ internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService>
         }
 
         // Test 2: Concurrent Messaging (High Load)
-        logger.LogInformation("Starting Concurrent Test...");
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Starting Concurrent Test...");
+        }
         var tasks = Enumerable.Range(0, 10).Select(i =>
         {
             var msg = $"Concurrent Message {Interlocked.Increment(ref counter)}-{i}";
@@ -70,19 +122,28 @@ internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService>
         await Task.WhenAll(tasks);
 
         // Test 3: Binary Messaging
-        logger.LogInformation("Starting Binary Test...");
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Starting Binary Test...");
+        }
         var bytes = new byte[] { 0xDE, 0xAD, 0xBE, 0xEF };
         await _client.SendBinaryAsync(bytes, stoppingToken);
 
         // Test 4: Reconnection (Manual)
-        logger.LogInformation("Testing Manual Reconnect...");
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Testing Manual Reconnect...");
+        }
         await _client.DisconnectAsync();
         await Task.Delay(1000, stoppingToken);
         await _client.ConnectAsync(stoppingToken);
         await _client.SendTextAsync("I'm back!", stoppingToken);
 
         // Keep alive loop
-        logger.LogInformation("Entering Keep-Alive Loop...");
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Entering Keep-Alive Loop...");
+        }
         while (!stoppingToken.IsCancellationRequested)
         {
             if (_client.State == WebSocketClientState.Connected)
@@ -97,10 +158,10 @@ internal sealed class WebSocketChatTestService(ILogger<WebSocketChatTestService>
     {
         try
         {
-            if (_client.State != WebSocketClientState.Disposed)
+            if (_client is not null && _client.State != WebSocketClientState.Disposed)
             {
                 await _client.DisconnectAsync();
-                _client.Dispose();
+                await _client.DisposeAsync();
             }
         }
         catch (ObjectDisposedException)

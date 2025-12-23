@@ -15,6 +15,8 @@ public static class WebSocketExtensions
     /// <summary>
     ///     <para xml:lang="en">Maps a WebSocket handler to a specific path.</para>
     ///     <para xml:lang="zh">将 WebSocket 处理程序映射到特定路径。</para>
+    ///     <para xml:lang="en">Note: The handler type <typeparamref name="THandler" /> must be registered in the dependency injection container.</para>
+    ///     <para xml:lang="zh">注意：处理程序类型 <typeparamref name="THandler" /> 必须在依赖注入容器中注册。</para>
     /// </summary>
     /// <typeparam name="THandler">
     ///     <para xml:lang="en">The type of the handler.</para>
@@ -38,6 +40,10 @@ public static class WebSocketExtensions
     /// </returns>
     public static IApplicationBuilder MapWebSocketHandler<THandler>(this IApplicationBuilder app, PathString path, WebSocketSessionOptions? options = null) where THandler : WebSocketHandler
     {
+        if (app.ApplicationServices.GetService(typeof(THandler)) is null)
+        {
+            throw new InvalidOperationException($"WebSocket handler type '{typeof(THandler).FullName}' is not registered in the dependency injection container. Please register it in ConfigureServices.");
+        }
         return app.Map(path, branch => branch.UseMiddleware<WebSocketMiddleware<THandler>>(options ?? new()));
     }
 }
