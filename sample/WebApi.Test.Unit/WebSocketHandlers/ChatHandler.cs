@@ -1,13 +1,17 @@
 using System.Net.WebSockets;
 using System.Text;
+using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.Core.WebSocket;
 using EasilyNET.WebCore.WebSocket;
+
+// ReSharper disable ClassNeverInstantiated.Global
 
 namespace WebApi.Test.Unit.WebSocketHandlers;
 
 /// <summary>
 /// 写一个简单的聊天处理器来测试 WebSocket 连接
 /// </summary>
+[DependencyInjection(ServiceLifetime.Singleton)]
 public sealed class ChatHandler(ILogger<ChatHandler> logger) : WebSocketHandler
 {
     /// <inheritdoc />
