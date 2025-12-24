@@ -1,6 +1,3 @@
-using System.Collections.Concurrent;
-using System.Linq.Expressions;
-using System.Reflection;
 using EasilyNET.RabbitBus.AspNetCore.Abstractions;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Manager;
@@ -24,8 +21,6 @@ internal sealed class MessageConfirmService(
     IDeadLetterStore deadLetterStore) : BackgroundService
 {
     private const double DropTargetRatio = 0.5;
-    private readonly ConcurrentDictionary<Type, Func<IBus, IEvent, string?, byte?, CancellationToken, Task>?> _publishDelegateCache = [];
-    private readonly ConcurrentDictionary<Type, MethodInfo?> _publishMethodCache = [];
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -108,14 +103,8 @@ internal sealed class MessageConfirmService(
                     try
                     {
                         var eventType = item.Event.GetType();
-                        var del = _publishDelegateCache.GetOrAdd(eventType, CreatePublishDelegate);
-                        if (del is null)
-                        {
-                            Reschedule(item);
-                            continue;
-                        }
-                        // 直接调用 IBus.Publish，避免全局超时打断等待连接恢复
-                        await del(iBus, item.Event, item.RoutingKey, item.Priority, stoppingToken);
+                        // 直接调用 IBus.Publish (非泛型重载)，避免反射和动态代码生成，支持 AOT
+                        await iBus.Publish(item.Event, eventType, item.RoutingKey, item.Priority, stoppingToken);
                         RabbitBusMetrics.PublishRetried.Add(1);
                     }
                     catch (Exception ex)
@@ -182,34 +171,5 @@ internal sealed class MessageConfirmService(
         }
         var calculated = (int)Math.Clamp(budget / est, 1_000, 500_000);
         return calculated;
-    }
-
-    private Func<IBus, IEvent, string?, byte?, CancellationToken, Task>? CreatePublishDelegate(Type eventType)
-    {
-        try
-        {
-            var method = _publishMethodCache.GetOrAdd(eventType, et => typeof(IBus).GetMethod(nameof(IBus.Publish), [et, typeof(string), typeof(byte?), typeof(CancellationToken)]));
-            if (method is null)
-            {
-                return null;
-            }
-            var instanceParam = Expression.Parameter(typeof(IBus), "instance");
-            var eventParam = Expression.Parameter(typeof(IEvent), "event");
-            var routingKeyParam = Expression.Parameter(typeof(string), "routingKey");
-            var priorityParam = Expression.Parameter(typeof(byte?), "priority");
-            var cancellationTokenParam = Expression.Parameter(typeof(CancellationToken), "cancellationToken");
-            var convertedEvent = Expression.Convert(eventParam, eventType);
-            var methodCall = Expression.Call(instanceParam, method, convertedEvent, routingKeyParam, priorityParam, cancellationTokenParam);
-            var lambda = Expression.Lambda<Func<IBus, IEvent, string?, byte?, CancellationToken, Task>>(methodCall, instanceParam, eventParam, routingKeyParam, priorityParam, cancellationTokenParam);
-            return lambda.Compile();
-        }
-        catch (Exception ex)
-        {
-            if (logger.IsEnabled(LogLevel.Error))
-            {
-                logger.LogError(ex, "Failed to create publish delegate for event type {EventType}", eventType.Name);
-            }
-            return null;
-        }
     }
 }

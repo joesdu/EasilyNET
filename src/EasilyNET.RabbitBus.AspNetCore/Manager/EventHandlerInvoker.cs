@@ -53,36 +53,77 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             {
                 processed = await ProcessEventAsync(eventType, bodyBytes, consumerIndex, eventHandlerCache, ct).ConfigureAwait(false);
             }
-            catch (Exception ex) when (logger.IsEnabled(LogLevel.Error))
+            catch (OperationCanceledException)
             {
-                logger.LogError(ex, "Error processing message, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
+                throw; // 重新抛出以便外层处理
             }
+            catch (Exception ex)
+            {
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(ex, "Error processing message, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
+                }
+            }
+
             if (processed)
             {
-                try
-                {
-                    await channel.BasicAckAsync(ea.DeliveryTag, false, ct).ConfigureAwait(false);
-                }
-                catch (ObjectDisposedException ex) when (logger.IsEnabled(LogLevel.Warning))
-                {
-                    logger.LogWarning(ex, "Channel disposed before ACK, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
-                }
+                await AckAsync(channel, ea.DeliveryTag, ct).ConfigureAwait(false);
             }
             else
             {
-                try
-                {
-                    await channel.BasicNackAsync(ea.DeliveryTag, false, false, ct).ConfigureAwait(false);
-                }
-                catch (Exception ex) when (logger.IsEnabled(LogLevel.Warning))
-                {
-                    logger.LogWarning(ex, "NACK failed for DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
-                }
+                await NackAsync(channel, ea.DeliveryTag, ct).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException ex) when (logger.IsEnabled(LogLevel.Debug))
+        catch (OperationCanceledException ex)
         {
-            logger.LogDebug(ex, "Event handling was canceled.");
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug(ex, "Event handling was canceled.");
+            }
+        }
+    }
+
+    private async Task AckAsync(IChannel channel, ulong deliveryTag, CancellationToken ct)
+    {
+        try
+        {
+            await channel.BasicAckAsync(deliveryTag, false, ct).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning(ex, "Channel disposed before ACK, DeliveryTag: {DeliveryTag}", deliveryTag);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning(ex, "ACK failed for DeliveryTag: {DeliveryTag}", deliveryTag);
+            }
+        }
+    }
+
+    private async Task NackAsync(IChannel channel, ulong deliveryTag, CancellationToken ct)
+    {
+        try
+        {
+            await channel.BasicNackAsync(deliveryTag, false, false, ct).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning(ex, "Channel disposed before NACK, DeliveryTag: {DeliveryTag}", deliveryTag);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning(ex, "NACK failed for DeliveryTag: {DeliveryTag}", deliveryTag);
+            }
         }
     }
 
@@ -144,6 +185,10 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
         var handler = provider.GetService(handlerType);
         if (handler is null)
         {
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Handler {HandlerType} not found in DI container for event {EventName}", handlerType.Name, eventType.Name);
+            }
             return; // 可能未注册
         }
         var openDelegate = GetOrAddOpenDelegate(handlerType, eventType);

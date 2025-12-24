@@ -1,5 +1,6 @@
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
+using EasilyNET.RabbitBus.AspNetCore.Utilities;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Enums;
 using Microsoft.Extensions.Logging;
@@ -66,6 +67,7 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
     /// </summary>
     private async Task StartConsumerAsync(EventConfiguration config, Type eventType, int consumerIndex, Func<Type, BasicDeliverEventArgs, IChannel, int, CancellationToken, Task> handleReceivedEvent, CancellationToken ct)
     {
+        var retryCount = 0;
         while (!ct.IsCancellationRequested)
         {
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -81,6 +83,9 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
                     await channel.QueueBindAsync(config.Queue.Name, config.Exchange.Name, config.Exchange.RoutingKey, cancellationToken: linkedCts.Token).ConfigureAwait(false);
                 }
                 await StartBasicConsume(eventType, config, channel, consumerIndex, handleReceivedEvent, linkedCts.Token).ConfigureAwait(false);
+
+                // 成功启动后重置重试计数
+                retryCount = 0;
 
                 Task CallbackExceptionAsync(object? _, CallbackExceptionEventArgs ea)
                 {
@@ -130,9 +135,13 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
                 {
                     logger.LogError(ex, "Failed to start consumer {ConsumerIndex} for event {EventName}", consumerIndex, eventType.Name);
                 }
+                
+                // 指数退避
+                var delay = BackoffUtility.Exponential(retryCount, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30));
+                retryCount++;
                 try
                 {
-                    await Task.Delay(TimeSpan.FromMilliseconds(200), ct).ConfigureAwait(false);
+                    await Task.Delay(delay, ct).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
