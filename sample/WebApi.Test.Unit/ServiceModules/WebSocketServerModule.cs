@@ -1,6 +1,5 @@
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.WebCore.WebSocket;
 using WebApi.Test.Unit.BackgroundServices;
 using WebApi.Test.Unit.WebSocketHandlers;
 
