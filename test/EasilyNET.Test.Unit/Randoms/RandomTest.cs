@@ -9,7 +9,7 @@ public class RandomTest
     public void StrictNext_ShouldReturnValueWithinRange()
     {
         // Act
-        var result = RandomExtensions.StrictNext();
+        var result = Random.StrictNext();
 
         // Assert
         Assert.IsTrue(result is >= 0 and < int.MaxValue);
@@ -19,6 +19,6 @@ public class RandomTest
     public void StrictNext2_ShouldThrowArgumentOutOfRangeException_WhenStartIndexIsGreaterThanOrEqualToMaxValue()
     {
         // Act
-        Assert.Throws<ArgumentOutOfRangeException>(() => RandomExtensions.StrictNext(10, 5));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Random.StrictNext(10, 5));
     }
 }

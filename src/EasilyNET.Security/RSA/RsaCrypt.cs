@@ -446,7 +446,7 @@ public static class RsaCrypt
             nameof(HashAlgorithmName.SHA384) => SHA384.HashData(data),
             nameof(HashAlgorithmName.SHA512) => SHA512.HashData(data),
             nameof(HashAlgorithmName.MD5)    => MD5.HashData(data),
-            _ => throw new ArgumentException($"不支持的哈希算法: {algorithmName.Name}", nameof(algorithmName))
+            _                                => throw new ArgumentException($"不支持的哈希算法: {algorithmName.Name}", nameof(algorithmName))
         };
 
     #endregion

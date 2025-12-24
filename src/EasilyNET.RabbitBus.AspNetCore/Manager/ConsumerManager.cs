@@ -135,7 +135,7 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
                 {
                     logger.LogError(ex, "Failed to start consumer {ConsumerIndex} for event {EventName}", consumerIndex, eventType.Name);
                 }
-                
+
                 // 指数退避
                 var delay = BackoffUtility.Exponential(retryCount, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30));
                 retryCount++;
