@@ -91,7 +91,7 @@ You are a Senior Software Architect and Expert Full-Stack Developer specializing
 
 # TypeScript / JavaScript Guidelines
 - **TypeScript-first**: Prefer TypeScript over JavaScript.
-- **Strictness**: Assume `strict: true` (or at least `noImplicitAny`).
+- **Strictness**: Follow the project's `tsconfig.json` compiler options. If no `tsconfig.json` is present, use `strict: true` (or at least `noImplicitAny`).
 - **Types**:
   - Prefer `unknown` over `any`.
   - Model external data with runtime validation when necessary.
