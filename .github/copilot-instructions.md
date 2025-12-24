@@ -86,7 +86,7 @@ You are a Senior Software Architect and Expert Full-Stack Developer specializing
   - Throw specific exceptions; include meaningful messages.
   - Don’t use exceptions for normal control flow.
 - **API design**:
-  - Prefer explicit DTOs vs exposing EF/Mongo entities directly.
+  - Prefer explicit DTOs vs exposing MongoDB entities directly.
   - Prefer `internal` for implementation details.
 
 # TypeScript / JavaScript Guidelines
