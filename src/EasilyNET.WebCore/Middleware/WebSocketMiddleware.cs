@@ -1,7 +1,8 @@
+using EasilyNET.WebCore.WebSocket;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
-namespace EasilyNET.WebCore.WebSocket;
+namespace EasilyNET.WebCore.Middleware;
 
 /// <summary>
 ///     <para xml:lang="en">Middleware for handling WebSocket requests.</para>

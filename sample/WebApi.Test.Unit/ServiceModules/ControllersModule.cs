@@ -42,13 +42,13 @@ internal sealed class ControllersModule : AppModule
             // 配置JWT选项用于解决 <a> 标签下载或 <video src="..."> 无法设置请求头的问题
             c.Events = new()
             {
-                OnMessageReceived = context =>
+                OnMessageReceived = s =>
                 {
-                    var accessToken = context.Request.Query["access_token"];
-                    var path = context.HttpContext.Request.Path;
-                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/api/GridFS") && context.HttpContext.Request.Method.Equals("GET", StringComparison.OrdinalIgnoreCase))
+                    var accessToken = s.Request.Query["access_token"];
+                    var path = s.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/api/GridFS") && s.HttpContext.Request.Method.Equals("GET", StringComparison.OrdinalIgnoreCase))
                     {
-                        context.Token = accessToken;
+                        s.Token = accessToken;
                     }
                     return Task.CompletedTask;
                 }
