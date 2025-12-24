@@ -71,7 +71,7 @@ You are a Senior Software Architect and Expert Full-Stack Developer specializing
 - **Async**:
   - Use `async/await` for I/O-bound work.
   - Accept `CancellationToken` in public APIs that perform I/O.
-  - Use `ConfigureAwait(false)` in library code.
+  - Use `ConfigureAwait(false)` in library code only when you don't need to resume on the original synchronization context; in modern .NET this is often unnecessary.
   - Avoid `Task.Result` / `.Wait()` deadlocks.
 - **Options & configuration**:
   - Prefer `IOptions<T>`/`IOptionsMonitor<T>` with validation.
