@@ -1,5 +1,4 @@
 using System.Diagnostics.Metrics;
-using System.Reflection;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Metrics;
 
@@ -9,20 +8,20 @@ namespace EasilyNET.RabbitBus.AspNetCore.Metrics;
 internal static class RabbitBusMetrics
 {
     private static readonly Meter Meter = new("EasilyNET.RabbitBus", GetVersion());
-    private static string s_appName = Assembly.GetEntryAssembly()?.GetName().Name ?? "unknown";
+
+    // 使用 AppDomain.CurrentDomain.FriendlyName 作为后备，避免依赖 Assembly.GetEntryAssembly()
+    private static string s_appName = AppDomain.CurrentDomain.FriendlyName;
     private static bool s_connectionState;
 
     // 发布相关
     public static readonly Counter<long> PublishedNormal = Meter.CreateCounter<long>("rabbitmq.publish.normal.total", description: "Total normal events published");
     public static readonly Counter<long> PublishedDelayed = Meter.CreateCounter<long>("rabbitmq.publish.delayed.total", description: "Total delayed events published");
-    public static readonly Counter<long> PublishedBatch = Meter.CreateCounter<long>("rabbitmq.publish.batch.total", description: "Total events published in batch mode");
     public static readonly Counter<long> PublishRetried = Meter.CreateCounter<long>("rabbitmq.publish.retried.total", description: "Total messages successfully re-published from the retry queue");
     public static readonly Counter<long> PublishDiscarded = Meter.CreateCounter<long>("rabbitmq.publish.discarded.total", description: "Total messages discarded from the retry queue after exceeding max retries");
 
     // Publisher Confirm
     public static readonly Counter<long> ConfirmAck = Meter.CreateCounter<long>("rabbitmq.publish.confirm.ack.total", description: "Total publisher confirms acknowledged");
     public static readonly Counter<long> ConfirmNack = Meter.CreateCounter<long>("rabbitmq.publish.confirm.nack.total", description: "Total publisher confirms negatively acknowledged");
-    public static readonly Counter<long> ConfirmTimeout = Meter.CreateCounter<long>("rabbitmq.publish.confirm.timeout.total", description: "Total publisher confirm timeouts");
     public static readonly UpDownCounter<long> OutstandingConfirms = Meter.CreateUpDownCounter<long>("rabbitmq.publish.outstanding.confirms", description: "Current outstanding publisher confirms count");
 
     // 重试相关
@@ -46,21 +45,11 @@ internal static class RabbitBusMetrics
 
     private static string GetVersion()
     {
+        // 直接使用 AssemblyName.Version，避免使用 GetCustomAttribute 反射
+        // 这在 AOT 环境下是安全的，因为它是直接读取元数据
         try
         {
-            var asm = typeof(RabbitBusMetrics).Assembly;
-            // 优先使用 InformationalVersion (可包含预发布/commit 信息)
-            var info = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-            if (!string.IsNullOrWhiteSpace(info))
-            {
-                return info;
-            }
-            var file = asm.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
-            if (!string.IsNullOrWhiteSpace(file))
-            {
-                return file;
-            }
-            var ver = asm.GetName().Version?.ToString();
+            var ver = typeof(RabbitBusMetrics).Assembly.GetName().Version?.ToString();
             return string.IsNullOrWhiteSpace(ver) ? "0.0.0" : ver;
         }
         catch

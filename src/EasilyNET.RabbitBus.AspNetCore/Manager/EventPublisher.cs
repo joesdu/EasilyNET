@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Threading.Channels;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.AspNetCore.Metrics;
@@ -11,7 +12,6 @@ using Polly;
 using Polly.Registry;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using RabbitMQ.Client.Exceptions;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 
@@ -20,17 +20,18 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// </summary>
 internal sealed class EventPublisher : IAsyncDisposable
 {
-    private const int LocalDeclareMaxAttempts = 5;
     private static readonly TimeSpan MinRetryDelay = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan MaxRetryDelay = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan LocalDeclareRetryDelay = TimeSpan.FromMilliseconds(200);
     private readonly SemaphoreSlim _confirmSemaphore = new(1, 1);
 
     private readonly PersistentConnection _conn;
+    private readonly CancellationTokenSource _cts = new();
     private readonly ILogger<EventBus> _logger;
     private readonly ConcurrentDictionary<ulong, TaskCompletionSource<bool>> _outstandingConfirms = [];
     private readonly ConcurrentDictionary<ulong, (IEvent Event, string? RoutingKey, byte? Priority, int RetryCount)> _outstandingMessages = [];
     private readonly ResiliencePipeline _pipeline;
+    private readonly Task _processQueueTask;
+    private readonly Channel<PublishContext> _publishChannel;
     private readonly RabbitConfig _rabbitConfig;
     private readonly IBusSerializer _serializer;
     private readonly SemaphoreSlim? _throttleSemaphore;
@@ -47,15 +48,33 @@ internal sealed class EventPublisher : IAsyncDisposable
         {
             _throttleSemaphore = new(_rabbitConfig.MaxOutstandingConfirms, _rabbitConfig.MaxOutstandingConfirms);
         }
+        // 创建无界通道，因为我们使用信号量进行背压控制
+        _publishChannel = Channel.CreateUnbounded<PublishContext>(new()
+        {
+            SingleReader = true,
+            SingleWriter = false,
+            AllowSynchronousContinuations = false
+        });
+        _processQueueTask = ProcessQueueAsync();
     }
 
     public ConcurrentQueue<(IEvent Event, string? RoutingKey, byte? Priority, int RetryCount, DateTime NextRetryTime)> NackedMessages { get; } = [];
 
     public async ValueTask DisposeAsync()
     {
+        _publishChannel.Writer.TryComplete();
+        await _cts.CancelAsync();
+        try
+        {
+            await _processQueueTask;
+        }
+        catch (OperationCanceledException)
+        {
+            // ignore
+        }
+        _cts.Dispose();
         _confirmSemaphore.Dispose();
         _throttleSemaphore?.Dispose();
-        await ValueTask.CompletedTask;
     }
 
     // 计算指数退避时间 2^n * 1s 带上限
@@ -86,43 +105,97 @@ internal sealed class EventPublisher : IAsyncDisposable
         return bp;
     }
 
-    private static bool IsTransientChannelError(Exception ex) => ex is ObjectDisposedException || ex is AlreadyClosedException || (ex is OperationInterruptedException oi && (oi.InnerException is EndOfStreamException || oi.Message.Contains("End of stream", StringComparison.OrdinalIgnoreCase)));
-
-    private async Task<IChannel> GetChannelAndEnsureExchangeAsync(EventConfiguration config, IDictionary<string, object?> args, bool passive, CancellationToken ct)
+    private async Task ProcessQueueAsync()
     {
-        // 在交换机声明阶段进行本地快速重试，避免因通道热切换导致的 ObjectDisposedException 消耗全局重试次数
-        for (var attempt = 1; attempt <= LocalDeclareMaxAttempts; attempt++)
+        var reader = _publishChannel.Reader;
+        var declaredExchanges = new HashSet<string>();
+        IChannel? lastChannel = null;
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            var channel = await _conn.GetChannelAsync(ct).ConfigureAwait(false);
-            try
+            while (await reader.WaitToReadAsync(_cts.Token))
             {
-                await DeclareExchangeSafelyAsync(channel, config, args, passive, ct).ConfigureAwait(false);
-                return channel; // 成功
-            }
-            catch (Exception ex) when (IsTransientChannelError(ex))
-            {
-                if (_logger.IsEnabled(LogLevel.Debug))
+                while (reader.TryRead(out var context))
                 {
-                    _logger.LogDebug(ex, "Transient channel error while declaring exchange {Exchange}, attempt {Attempt}/{MaxAttempts}", config.Exchange.Name, attempt, LocalDeclareMaxAttempts);
+                    ulong sequenceNumber = 0;
+                    var registered = false;
+                    try
+                    {
+                        // 1. 获取通道
+                        var channel = await _conn.GetChannelAsync(_cts.Token).ConfigureAwait(false);
+                        if (channel != lastChannel)
+                        {
+                            declaredExchanges.Clear();
+                            lastChannel = channel;
+                        }
+
+                        // 2. 确保交换机
+                        if (context.Config.Exchange.Type != EModel.None && !declaredExchanges.Contains(context.Config.Exchange.Name))
+                        {
+                            await EnsureExchangeAsync(channel, context.Config, _cts.Token).ConfigureAwait(false);
+                            declaredExchanges.Add(context.Config.Exchange.Name);
+                        }
+
+                        // 3. 注册发布确认 (信号量已在 Publish 中获取)
+                        sequenceNumber = await channel.GetNextPublishSequenceNumberAsync(_cts.Token).ConfigureAwait(false);
+                        _outstandingConfirms[sequenceNumber] = context.Tcs;
+                        _outstandingMessages[sequenceNumber] = (context.Event, context.RoutingKey, context.Properties.Priority, 0);
+                        RabbitBusMetrics.OutstandingConfirms.Add(1);
+                        registered = true;
+
+                        // 4. 发布消息
+                        var item = context;
+                        await _pipeline.ExecuteAsync(async ct =>
+                        {
+                            if (_logger.IsEnabled(LogLevel.Trace))
+                            {
+                                _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}, Sequence: {Sequence}", item.Event.GetType().Name, item.Event.EventId, sequenceNumber);
+                            }
+                            await channel.BasicPublishAsync(item.Config.Exchange.Name, item.RoutingKey ?? item.Config.Exchange.RoutingKey, false, item.Properties, item.Body, ct).ConfigureAwait(false);
+                        }, _cts.Token).ConfigureAwait(false);
+                        if (context.IsDelayed)
+                        {
+                            RabbitBusMetrics.PublishedDelayed.Add(1);
+                        }
+                        else
+                        {
+                            RabbitBusMetrics.PublishedNormal.Add(1);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing publish context for event {EventId}", context.Event.EventId);
+                        context.Tcs.TrySetException(ex);
+                        if (registered)
+                        {
+                            // 如果已经注册，使用标准失败处理（它会释放信号量）
+                            HandlePublishFailure(sequenceNumber, ex, context.Event.GetType().Name, context.Event.EventId, context.IsDelayed);
+                        }
+                        else
+                        {
+                            // 如果还没注册就失败了（例如 GetChannel 失败），我们需要手动释放信号量
+                            _throttleSemaphore?.Release();
+                        }
+                    }
                 }
-                await Task.Delay(LocalDeclareRetryDelay, ct).ConfigureAwait(false);
             }
         }
-        // 多次尝试后仍失败，最后一次再拿到一个通道抛出 Declare 的异常，由调用方处理（入队重试）
-        var lastChannel = await _conn.GetChannelAsync(ct).ConfigureAwait(false);
-        await DeclareExchangeSafelyAsync(lastChannel, config, args, passive, ct).ConfigureAwait(false);
-        return lastChannel;
+        catch (OperationCanceledException)
+        {
+            // ignore
+        }
+        catch (Exception ex)
+        {
+            _logger.LogCritical(ex, "EventPublisher background task failed unexpectedly");
+        }
     }
 
-    private async Task<(ulong Sequence, TaskCompletionSource<bool> Tcs)> RegisterPendingAsync(IChannel channel, IEvent @event, string? routingKey, byte priority, CancellationToken ct)
+    private async Task EnsureExchangeAsync(IChannel channel, EventConfiguration config, CancellationToken ct)
     {
-        var sequenceNumber = await channel.GetNextPublishSequenceNumberAsync(ct).ConfigureAwait(false);
-        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _outstandingConfirms[sequenceNumber] = tcs;
-        _outstandingMessages[sequenceNumber] = (@event, routingKey, priority, 0);
-        RabbitBusMetrics.OutstandingConfirms.Add(1);
-        return (sequenceNumber, tcs);
+        var args = config.Exchange.Arguments;
+        // 对于延迟队列，需要特殊处理参数
+        var hasDelayedType = args.TryGetValue("x-delayed-type", out var delayedType);
+        args["x-delayed-type"] = !hasDelayedType || delayedType is null ? "direct" : delayedType;
+        await DeclareExchangeSafelyAsync(channel, config, args, false, ct).ConfigureAwait(false);
     }
 
     private async Task ThrottleIfNeededAsync(CancellationToken ct)
@@ -145,7 +218,6 @@ internal sealed class EventPublisher : IAsyncDisposable
             var completed = await tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(cfg.ConfirmTimeoutMs), ct).ConfigureAwait(false);
             if (!completed)
             {
-                // This case happens if the TCS was marked as failed from another thread, e.g. due to connection loss.
                 throw new TimeoutException($"Publisher confirm was cancelled for {eventName} with ID: {eventId}. This may be due to a connection loss.");
             }
         }
@@ -155,64 +227,29 @@ internal sealed class EventPublisher : IAsyncDisposable
             {
                 _logger.LogWarning("Timeout waiting for publisher confirm for {Kind} event: {EventName} with ID: {EventId}", delayed ? "delayed" : "normal", eventName, eventId);
             }
-            throw; // Re-throw to be caught by the Publish method.
+            throw;
         }
     }
 
     public async Task Publish<T>(EventConfiguration config, T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
     {
         cancellationToken.ThrowIfCancellationRequested();
-        // 1) 交换机声明
-        var args = config.Exchange.Arguments;
-        IChannel channel;
-        try
-        {
-            channel = config.Exchange.Type != EModel.None
-                          ? await GetChannelAndEnsureExchangeAsync(config, args, false, cancellationToken).ConfigureAwait(false)
-                          : await _conn.GetChannelAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            if (_logger.IsEnabled(LogLevel.Warning))
-            {
-                _logger.LogWarning(ex, "Exchange declare failed for event {EventType} ID {EventId}", @event.GetType().Name, @event.EventId);
-            }
-            throw new InvalidOperationException($"Failed to declare exchange for event {@event.GetType().Name} with ID {@event.EventId}", ex);
-        }
-        // 2) 背压
+
+        // 先获取信号量
         await ThrottleIfNeededAsync(cancellationToken).ConfigureAwait(false);
-        ulong sequenceNumber = 0;
         try
         {
-            // 3) 注册发布确认并发布
-            var properties = BuildBasicProperties(config, priority.GetValueOrDefault());
-            var (seq, tcs) = await RegisterPendingAsync(channel, @event, routingKey, properties.Priority, cancellationToken).ConfigureAwait(false);
-            sequenceNumber = seq;
             var body = _serializer.Serialize(@event, @event.GetType());
-            await _pipeline.ExecuteAsync(async ct =>
-            {
-                if (_logger.IsEnabled(LogLevel.Trace))
-                {
-                    _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, sequenceNumber);
-                }
-                await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
-            }, cancellationToken).ConfigureAwait(false);
+            var properties = BuildBasicProperties(config, priority.GetValueOrDefault());
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var context = new PublishContext(@event, routingKey, properties, body, tcs, false, config);
+            await _publishChannel.Writer.WriteAsync(context, cancellationToken).ConfigureAwait(false);
             await WaitForConfirmIfNeededAsync(tcs, _rabbitConfig, @event.GetType().Name, @event.EventId, false, cancellationToken).ConfigureAwait(false);
-            RabbitBusMetrics.PublishedNormal.Add(1);
         }
-        catch (Exception ex)
+        catch
         {
-            // 任何异常都意味着这个在途消息的生命周期结束了
-            if (ex is TimeoutException)
-            {
-                RabbitBusMetrics.ConfirmTimeout.Add(1);
-                HandlePublishTimeout(sequenceNumber);
-            }
-            else
-            {
-                HandlePublishFailure(sequenceNumber, ex, @event.GetType().Name, @event.EventId);
-            }
-            // 向上抛出异常，让调用方知道失败了
+            // 如果写入通道失败或序列化失败，释放信号量
+            _throttleSemaphore?.Release();
             throw;
         }
     }
@@ -220,188 +257,82 @@ internal sealed class EventPublisher : IAsyncDisposable
     public async Task PublishDelayed<T>(EventConfiguration config, T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
     {
         cancellationToken.ThrowIfCancellationRequested();
-        // 1) 交换机声明
-        var exchangeArgs = new Dictionary<string, object?>(config.Exchange.Arguments);
-        var hasDelayedType = exchangeArgs.TryGetValue("x-delayed-type", out var delayedType);
-        exchangeArgs["x-delayed-type"] = !hasDelayedType || delayedType is null ? "direct" : delayedType;
-        IChannel channel;
-        try
-        {
-            channel = await GetChannelAndEnsureExchangeAsync(config, exchangeArgs, false, cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            if (_logger.IsEnabled(LogLevel.Warning))
-            {
-                _logger.LogWarning(ex, "Exchange declare failed for delayed event {EventType} ID {EventId}", @event.GetType().Name, @event.EventId);
-            }
-            throw new InvalidOperationException($"Failed to declare exchange for delayed event {@event.GetType().Name} with ID {@event.EventId}", ex);
-        }
-        // 2) 背压
         await ThrottleIfNeededAsync(cancellationToken).ConfigureAwait(false);
-        ulong sequenceNumber = 0;
         try
         {
-            // 3) 发布
-            var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), true, ttl);
-            var (seq, tcs) = await RegisterPendingAsync(channel, @event, routingKey, properties.Priority, cancellationToken).ConfigureAwait(false);
-            sequenceNumber = seq;
             var body = _serializer.Serialize(@event, @event.GetType());
-            await _pipeline.ExecuteAsync(async ct =>
-            {
-                if (_logger.IsEnabled(LogLevel.Trace))
-                {
-                    _logger.LogTrace("Publishing delayed event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, sequenceNumber);
-                }
-                await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
-            }, cancellationToken).ConfigureAwait(false);
+            var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), true, ttl);
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var context = new PublishContext(@event, routingKey, properties, body, tcs, true, config);
+            await _publishChannel.Writer.WriteAsync(context, cancellationToken).ConfigureAwait(false);
             await WaitForConfirmIfNeededAsync(tcs, _rabbitConfig, @event.GetType().Name, @event.EventId, true, cancellationToken).ConfigureAwait(false);
-            RabbitBusMetrics.PublishedDelayed.Add(1);
         }
-        catch (Exception ex)
+        catch
         {
-            if (ex is TimeoutException)
-            {
-                RabbitBusMetrics.ConfirmTimeout.Add(1);
-                HandlePublishTimeout(sequenceNumber);
-            }
-            else
-            {
-                HandlePublishFailure(sequenceNumber, ex, @event.GetType().Name, @event.EventId, true);
-            }
+            _throttleSemaphore?.Release();
             throw;
         }
     }
 
-    public async Task PublishBatch<T>(EventConfiguration config, IEnumerable<T> events, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent
+    public async Task PublishBatch<T>(EventConfiguration config, IEnumerable<T> events, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
     {
         var list = events.ToList();
         if (list.Count is 0)
         {
             return;
-        }
-        // 预先确保交换机
-        IChannel channel;
-        if (config.Exchange.Type != EModel.None)
-        {
-            try
-            {
-                channel = await GetChannelAndEnsureExchangeAsync(config, config.Exchange.Arguments, false, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                if (_logger.IsEnabled(LogLevel.Warning))
-                {
-                    _logger.LogWarning(ex, "Exchange declare failed for batch, failing batch publish");
-                }
-                throw new InvalidOperationException("Failed to declare exchange for batch publish", ex);
-            }
-        }
-        else
-        {
-            channel = await _conn.GetChannelAsync(cancellationToken).ConfigureAwait(false);
         }
         var properties = BuildBasicProperties(config, priority.GetValueOrDefault());
-        var effectiveBatchSize = Math.Min(_rabbitConfig.BatchSize, list.Count);
-        foreach (var batch in list.Chunk(effectiveBatchSize))
+        foreach (var @event in list)
         {
-            // 为批处理中的每条消息获取信号量
-            for (var i = 0; i < batch.Length; i++)
-            {
-                await ThrottleIfNeededAsync(cancellationToken).ConfigureAwait(false);
-            }
+            cancellationToken.ThrowIfCancellationRequested();
+            await ThrottleIfNeededAsync(cancellationToken).ConfigureAwait(false);
+            var written = false;
             try
             {
-                await PublishBatchInternal(channel, config, batch, properties, routingKey, multiThread, cancellationToken);
+                var body = _serializer.Serialize(@event, @event.GetType());
+                var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var context = new PublishContext(@event, routingKey, properties, body, tcs, false, config);
+                await _publishChannel.Writer.WriteAsync(context, cancellationToken).ConfigureAwait(false);
+                written = true;
             }
-            catch
+            finally
             {
-                // 如果批量发布内部失败，我们需要释放已获取的信号量
-                for (var i = 0; i < batch.Length; i++)
+                if (!written)
                 {
                     _throttleSemaphore?.Release();
                 }
-                throw;
             }
         }
     }
 
-    public async Task PublishBatchDelayed<T>(EventConfiguration config, IEnumerable<T> events, uint ttl, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent
+    public async Task PublishBatchDelayed<T>(EventConfiguration config, IEnumerable<T> events, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
     {
         var list = events.ToList();
         if (list.Count is 0)
         {
             return;
         }
-        var exchangeArgs = new Dictionary<string, object?>(config.Exchange.Arguments);
-        var xDelayedType = exchangeArgs.TryGetValue("x-delayed-type", out var delayedType);
-        exchangeArgs["x-delayed-type"] = !xDelayedType || delayedType is null ? "direct" : delayedType;
-        IChannel channel;
-        try
-        {
-            channel = await GetChannelAndEnsureExchangeAsync(config, exchangeArgs, false, cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            if (_logger.IsEnabled(LogLevel.Warning))
-            {
-                _logger.LogWarning(ex, "Exchange declare failed for delayed batch, failing batch publish");
-            }
-            throw new InvalidOperationException("Failed to declare exchange for delayed batch publish", ex);
-        }
         var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), true, ttl);
-        var batchSize = Math.Min(_rabbitConfig.BatchSize, list.Count);
-        foreach (var batch in list.Chunk(batchSize))
+        foreach (var @event in list)
         {
-            for (var i = 0; i < batch.Length; i++)
-            {
-                await ThrottleIfNeededAsync(cancellationToken).ConfigureAwait(false);
-            }
+            cancellationToken.ThrowIfCancellationRequested();
+            await ThrottleIfNeededAsync(cancellationToken).ConfigureAwait(false);
+            var written = false;
             try
             {
-                await PublishBatchInternal(channel, config, batch, properties, routingKey, multiThread, cancellationToken);
+                var body = _serializer.Serialize(@event, @event.GetType());
+                var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var context = new PublishContext(@event, routingKey, properties, body, tcs, true, config);
+                await _publishChannel.Writer.WriteAsync(context, cancellationToken).ConfigureAwait(false);
+                written = true;
             }
-            catch
+            finally
             {
-                for (var i = 0; i < batch.Length; i++)
+                if (!written)
                 {
                     _throttleSemaphore?.Release();
                 }
-                throw;
             }
-        }
-    }
-
-    private async Task PublishBatchInternal<T>(IChannel channel, EventConfiguration config, T[] batch, BasicProperties properties, string? routingKey, bool? multiThread, CancellationToken cancellationToken) where T : IEvent
-    {
-        if (multiThread is true && batch.Length > 1 && _logger.IsEnabled(LogLevel.Debug))
-        {
-            _logger.LogDebug("Batch publish requested multiThread but using sequential publish on single channel for safety. BatchSize={Size}", batch.Length);
-        }
-        foreach (var @event in batch)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var (seq, _) = await RegisterPendingAsync(channel, @event, routingKey, properties.Priority, cancellationToken).ConfigureAwait(false);
-            var body = _serializer.Serialize(@event, @event.GetType());
-            try
-            {
-                await _pipeline.ExecuteAsync(async ct =>
-                {
-                    if (_logger.IsEnabled(LogLevel.Trace))
-                    {
-                        _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}, Sequence: {Sequence}", @event.GetType().Name, @event.EventId, seq);
-                    }
-                    await channel.BasicPublishAsync(config.Exchange.Name, routingKey ?? config.Exchange.RoutingKey, false, properties, body, ct).ConfigureAwait(false);
-                }, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                HandlePublishFailure(seq, ex, @event.GetType().Name, @event.EventId);
-                // 在批量模式下，一个失败不应阻止其他消息，但需要向上抛出以触发外部的信号量释放
-                throw new InvalidOperationException($"Failed to publish event {@event.GetType().Name} with ID {@event.EventId} in batch", ex);
-            }
-            RabbitBusMetrics.PublishedBatch.Add(1);
-            // 批量模式下不等待单条confirm，所以信号量由ACK/NACK回调处理
         }
     }
 
@@ -428,7 +359,6 @@ internal sealed class EventPublisher : IAsyncDisposable
 
     public async Task OnConnectionReconnected()
     {
-        // 重连后所有旧确认失效
         await CleanExpiredConfirms();
     }
 
@@ -447,7 +377,7 @@ internal sealed class EventPublisher : IAsyncDisposable
                 tcs.TrySetResult(false); // 标记失败
                 if (_outstandingMessages.TryRemove(sequenceNumber, out var messageInfo))
                 {
-                    var nextRetryTime = DateTime.UtcNow + MinRetryDelay; // 1 秒后重试
+                    var nextRetryTime = DateTime.UtcNow + MinRetryDelay;
                     NackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
                     RabbitBusMetrics.RetryEnqueued.Add(1);
                 }
@@ -554,7 +484,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         if (_outstandingConfirms.TryRemove(sequenceNumber, out _))
         {
             RabbitBusMetrics.OutstandingConfirms.Add(-1);
-            _throttleSemaphore?.Release(); // 失败时，必须释放信号量
+            _throttleSemaphore?.Release();
         }
         _outstandingMessages.TryRemove(sequenceNumber, out _);
         if (_logger.IsEnabled(LogLevel.Warning))
@@ -563,24 +493,5 @@ internal sealed class EventPublisher : IAsyncDisposable
         }
     }
 
-    private void HandlePublishTimeout(ulong sequenceNumber)
-    {
-        if (_outstandingConfirms.TryRemove(sequenceNumber, out var tcs))
-        {
-            tcs.TrySetResult(false); // Mark as failed
-            RabbitBusMetrics.OutstandingConfirms.Add(-1);
-            _throttleSemaphore?.Release(); // 超时也必须释放信号量
-        }
-        if (!_outstandingMessages.TryRemove(sequenceNumber, out var messageInfo))
-        {
-            return;
-        }
-        var nextRetryTime = DateTime.UtcNow + CalcBackoff(messageInfo.RetryCount);
-        NackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
-        RabbitBusMetrics.RetryEnqueued.Add(1);
-        if (_logger.IsEnabled(LogLevel.Information))
-        {
-            _logger.LogInformation("Event {EventId} enqueued for retry due to publisher confirm timeout.", messageInfo.Event.EventId);
-        }
-    }
+    private record PublishContext(IEvent Event, string? RoutingKey, BasicProperties Properties, ReadOnlyMemory<byte> Body, TaskCompletionSource<bool> Tcs, bool IsDelayed, EventConfiguration Config);
 }

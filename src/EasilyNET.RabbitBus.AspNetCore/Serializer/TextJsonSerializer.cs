@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -17,48 +16,32 @@ internal sealed class TextJsonSerializer : IBusSerializer
     // 静态只读配置一次, 并在 .NET 8+ 上调用 MakeReadOnly() 以获得更好的性能
     private static readonly JsonSerializerOptions options = CreateOptions();
 
-    // 缓存泛型委托, 避免每次根据 Type 走非泛型重载的反射/转换路径
-    private static readonly ConcurrentDictionary<Type, Func<object?, byte[]>> serializeCache = new();
-    private static readonly ConcurrentDictionary<Type, Func<byte[], object?>> deserializeCache = new();
+    // 缓存 JsonTypeInfo, 避免每次 GetTypeInfo 的开销
+    // 使用非泛型 JsonTypeInfo 基类，避免协变转换失败
+    private static readonly ConcurrentDictionary<Type, JsonTypeInfo> typeInfoCache = new();
 
     /// <inheritdoc />
     public byte[] Serialize(object? obj, Type type)
     {
-        // null 直接序列化为 JSON null
         if (obj is null)
         {
             return JsonSerializer.SerializeToUtf8Bytes<object?>(null, options);
         }
-        // 使用已缓存的泛型委托
-        var del = serializeCache.GetOrAdd(type, static t => BuildSerializeDelegate(t));
-        return del(obj);
+        var typeInfo = GetTypeInfo(type);
+        return JsonSerializer.SerializeToUtf8Bytes(obj, typeInfo);
     }
 
     /// <inheritdoc />
     public object? Deserialize(byte[] data, Type type)
     {
-        var del = deserializeCache.GetOrAdd(type, static t => BuildDeserializeDelegate(t));
-        return del(data);
+        var typeInfo = GetTypeInfo(type);
+        return JsonSerializer.Deserialize(data, typeInfo);
     }
 
-    // 生成序列化委托
-    private static Func<object?, byte[]> BuildSerializeDelegate(Type type)
+    private static JsonTypeInfo GetTypeInfo(Type type)
     {
-        var method = typeof(TextJsonSerializer).GetMethod(nameof(SerializeGeneric), BindingFlags.NonPublic | BindingFlags.Static)!
-                                               .MakeGenericMethod(type);
-        return method.CreateDelegate<Func<object?, byte[]>>();
+        return typeInfoCache.GetOrAdd(type, static t => options.GetTypeInfo(t));
     }
-
-    // 生成反序列化委托
-    private static Func<byte[], object?> BuildDeserializeDelegate(Type type)
-    {
-        var method = typeof(TextJsonSerializer).GetMethod(nameof(DeserializeGeneric), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(type);
-        return method.CreateDelegate<Func<byte[], object?>>();
-    }
-
-    // 泛型静态方法供委托绑定 (JIT 后走最快路径)
-    private static byte[] SerializeGeneric<T>(object? obj) => JsonSerializer.SerializeToUtf8Bytes((T?)obj, options);
-    private static object? DeserializeGeneric<T>(byte[] data) => JsonSerializer.Deserialize<T>(data, options);
 
     private static JsonSerializerOptions CreateOptions()
     {

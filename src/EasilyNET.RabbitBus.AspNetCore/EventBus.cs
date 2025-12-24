@@ -25,11 +25,11 @@ internal sealed class EventBus(
 
     public async Task Publish<T>(T @event, TimeSpan ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await Publish(@event, (uint)ttl.TotalMilliseconds, routingKey, priority, cancellationToken);
 
-    public async Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatchInternal(events, routingKey, priority, multiThread, null, cancellationToken).ConfigureAwait(false);
+    public async Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatchInternal(events, routingKey, priority, null, cancellationToken).ConfigureAwait(false);
 
-    public async Task PublishBatch<T>(IEnumerable<T> events, uint ttl, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatchInternal(events, routingKey, priority, multiThread, ttl, cancellationToken).ConfigureAwait(false);
+    public async Task PublishBatch<T>(IEnumerable<T> events, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatchInternal(events, routingKey, priority, ttl, cancellationToken).ConfigureAwait(false);
 
-    public async Task PublishBatch<T>(IEnumerable<T> events, TimeSpan ttl, string? routingKey = null, byte? priority = 0, bool? multiThread = true, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatch(events, (uint)ttl.TotalMilliseconds, routingKey, priority, multiThread, cancellationToken);
+    public async Task PublishBatch<T>(IEnumerable<T> events, TimeSpan ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatch(events, (uint)ttl.TotalMilliseconds, routingKey, priority, cancellationToken);
 
     /// <summary>
     /// 异步初始化EventBus
@@ -108,11 +108,18 @@ internal sealed class EventBus(
     /// </summary>
     private async Task ValidateExchangesOnStartupAsync(CancellationToken ct)
     {
-        // 这里需要访问RabbitConfig来检查ValidateExchangesOnStartup设置
-        // 但是EventBus没有直接访问配置的途径，我们可以通过依赖注入或者其他方式获取
-        // 暂时先实现基本的校验逻辑，之后可以优化
-        var configurations = eventRegistry.GetAllConfigurations().ToList();
+        var configurations = eventRegistry.GetAllConfigurations().ToHashSet();
         if (configurations.Count == 0)
+        {
+            return;
+        }
+        // 过滤出需要验证的配置
+        var configsToValidate = configurations
+                                .Where(c => c.Exchange.Type != EModel.None &&
+                                            !(c.SkipExchangeDeclare ?? _config.SkipExchangeDeclare) &&
+                                            (c.ValidateExchangeOnStartup ?? _config.ValidateExchangesOnStartup))
+                                .ToList();
+        if (configsToValidate.Count == 0)
         {
             return;
         }
@@ -120,24 +127,12 @@ internal sealed class EventBus(
         {
             var channel = await conn.GetChannelAsync(ct).ConfigureAwait(false);
             var validatedExchanges = new HashSet<string>();
-            foreach (var config in configurations.Where(c => c.Exchange.Type != EModel.None))
+            foreach (var config in from config in configsToValidate let exchangeKey = $"{config.Exchange.Name}:{config.Exchange.Type}" where validatedExchanges.Add(exchangeKey) select config)
             {
-                var shouldSkip = config.SkipExchangeDeclare ?? _config.SkipExchangeDeclare;
-                var shouldValidate = config.ValidateExchangeOnStartup ?? _config.ValidateExchangesOnStartup;
-                if (shouldSkip || !shouldValidate)
-                {
-                    continue;
-                }
-                var exchangeKey = $"{config.Exchange.Name}:{config.Exchange.Type}";
-                if (validatedExchanges.Contains(exchangeKey))
-                {
-                    continue; // 已经验证过这个交换机
-                }
                 try
                 {
                     // 使用passive模式验证交换机是否存在且类型匹配
                     await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, config.Exchange.Arguments, true, false, ct).ConfigureAwait(false);
-                    validatedExchanges.Add(exchangeKey);
                     if (logger.IsEnabled(LogLevel.Debug))
                     {
                         logger.LogDebug("Exchange {ExchangeName} validated successfully with type {Type}", config.Exchange.Name, config.Exchange.Type.Description);
@@ -145,36 +140,7 @@ internal sealed class EventBus(
                 }
                 catch (Exception ex)
                 {
-                    if (ex.Message.Contains("inequivalent arg 'type'", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var errorMessage = $"""
-                                            Exchange '{config.Exchange.Name}' type mismatch detected during startup validation. 
-                                            Expected: {config.Exchange.Type.Description}. 
-                                            This will cause connection closures during runtime. 
-                                            Please fix the exchange configuration or set SkipExchangeDeclare=true.
-                                            """;
-                        if (logger.IsEnabled(LogLevel.Error))
-                        {
-                            logger.LogError(ex, "{ErrorMessage}", errorMessage);
-                        }
-
-                        // 在启动阶段发现类型不匹配时，抛出异常让应用fail fast
-                        throw new InvalidOperationException(errorMessage, ex);
-                    }
-                    if (ex.Message.Contains("NOT_FOUND", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (logger.IsEnabled(LogLevel.Warning))
-                        {
-                            logger.LogWarning("Exchange {ExchangeName} does not exist. It will be created during first publish operation.", config.Exchange.Name);
-                        }
-                    }
-                    else
-                    {
-                        if (logger.IsEnabled(LogLevel.Warning))
-                        {
-                            logger.LogWarning(ex, "Failed to validate exchange {ExchangeName}", config.Exchange.Name);
-                        }
-                    }
+                    HandleExchangeValidationException(ex, config);
                 }
             }
         }
@@ -192,6 +158,40 @@ internal sealed class EventBus(
         }
     }
 
+    private void HandleExchangeValidationException(Exception ex, EventConfiguration config)
+    {
+        if (ex.Message.Contains("inequivalent arg 'type'", StringComparison.OrdinalIgnoreCase))
+        {
+            var errorMessage = $"""
+                                Exchange '{config.Exchange.Name}' type mismatch detected during startup validation. 
+                                Expected: {config.Exchange.Type.Description}. 
+                                This will cause connection closures during runtime. 
+                                Please fix the exchange configuration or set SkipExchangeDeclare=true.
+                                """;
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "{ErrorMessage}", errorMessage);
+            }
+
+            // 在启动阶段发现类型不匹配时，抛出异常让应用fail fast
+            throw new InvalidOperationException(errorMessage, ex);
+        }
+        if (ex.Message.Contains("NOT_FOUND", StringComparison.OrdinalIgnoreCase))
+        {
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Exchange {ExchangeName} does not exist. It will be created during first publish operation.", config.Exchange.Name);
+            }
+        }
+        else
+        {
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning(ex, "Failed to validate exchange {ExchangeName}", config.Exchange.Name);
+            }
+        }
+    }
+
     #region Internal Publish Helpers
 
     private async Task PublishInternal<T>(T @event, string? routingKey, byte? priority, uint? ttl, CancellationToken ct) where T : IEvent
@@ -200,6 +200,10 @@ internal sealed class EventBus(
         var config = eventRegistry.GetConfiguration<T>();
         if (config is null || !config.Enabled)
         {
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Event {EventType} is not registered or disabled.", typeof(T).Name);
+            }
             return;
         }
         try
@@ -231,10 +235,14 @@ internal sealed class EventBus(
         }
     }
 
-    private async Task PublishBatchInternal<T>(IEnumerable<T> events, string? routingKey, byte? priority, bool? multiThread, uint? ttl, CancellationToken ct) where T : IEvent
+    private async Task PublishBatchInternal<T>(IEnumerable<T> events, string? routingKey, byte? priority, uint? ttl, CancellationToken ct) where T : IEvent
     {
         ct.ThrowIfCancellationRequested();
-        var list = events as IList<T> ?? [.. events];
+        // 避免多次枚举
+        if (events is not ICollection<T> list)
+        {
+            list = [.. events];
+        }
         if (list.Count == 0)
         {
             return;
@@ -242,6 +250,10 @@ internal sealed class EventBus(
         var config = eventRegistry.GetConfiguration<T>();
         if (config is null || !config.Enabled)
         {
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Event {EventType} is not registered or disabled.", typeof(T).Name);
+            }
             return;
         }
         try
@@ -252,11 +264,11 @@ internal sealed class EventBus(
                 {
                     throw new InvalidOperationException($"The exchange type for the delayed queue must be '{nameof(EModel.Delayed)}'. Event: '{typeof(T).Name}'");
                 }
-                await eventPublisher.PublishBatchDelayed(config, list, ttl.Value, routingKey, priority, multiThread, ct).ConfigureAwait(false);
+                await eventPublisher.PublishBatchDelayed(config, list, ttl.Value, routingKey, priority, ct).ConfigureAwait(false);
             }
             else
             {
-                await eventPublisher.PublishBatch(config, list, routingKey, priority, multiThread, ct).ConfigureAwait(false);
+                await eventPublisher.PublishBatch(config, list, routingKey, priority, ct).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -273,4 +285,37 @@ internal sealed class EventBus(
     }
 
     #endregion
+
+    public async Task Publish(object @event, Type eventType, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (@event is not IEvent evt)
+        {
+            throw new ArgumentException("Event must implement IEvent", nameof(@event));
+        }
+        var config = eventRegistry.GetConfiguration(eventType);
+        if (config is null || !config.Enabled)
+        {
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Event {EventType} is not registered or disabled.", eventType.Name);
+            }
+            return;
+        }
+        try
+        {
+            await eventPublisher.Publish(config, evt, routingKey, priority, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Failed to publish event {EventType} ID {EventId}", eventType.Name, evt.EventId);
+            }
+        }
+    }
 }
