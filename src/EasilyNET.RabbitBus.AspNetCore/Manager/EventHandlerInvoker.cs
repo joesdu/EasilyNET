@@ -64,7 +64,6 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
                     logger.LogError(ex, "Error processing message, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
                 }
             }
-
             if (processed)
             {
                 await AckAsync(channel, ea.DeliveryTag, ct).ConfigureAwait(false);

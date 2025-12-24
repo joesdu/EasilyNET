@@ -98,7 +98,7 @@ public static class StreamExtensions
             }
             var position = stream.Position;
             stream.Position = stream.Length;
-            var buffer = new byte[RandomExtensions.StrictNext(1, 20)];
+            var buffer = new byte[Random.StrictNext(1, 20)];
             stream.Write(buffer, 0, buffer.Length);
             stream.Flush();
             stream.Position = position;

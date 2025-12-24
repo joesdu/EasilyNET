@@ -116,20 +116,20 @@ public static partial class NumberExtensions
             {
                 var floatA = a.ConvertTo<float>();
                 var floatB = b.ConvertTo<float>();
-                return floatA > floatB && !AreAlmostEqual(floatA, floatB, epsilon);
+                return floatA > floatB && !floatA.AreAlmostEqual(floatB, epsilon);
             }
             if (typeof(T) == typeof(double))
             {
                 var doubleA = a.ConvertTo<double>();
                 var doubleB = b.ConvertTo<double>();
-                return doubleA > doubleB && !AreAlmostEqual(doubleA, doubleB, epsilon);
+                return doubleA > doubleB && !doubleA.AreAlmostEqual(doubleB, epsilon);
             }
             // ReSharper disable once InvertIf
             if (typeof(T) == typeof(decimal))
             {
                 var decimalA = a.ConvertTo<decimal>();
                 var decimalB = b.ConvertTo<decimal>();
-                return decimalA > decimalB && !AreAlmostEqual(decimalA, decimalB, epsilon);
+                return decimalA > decimalB && !decimalA.AreAlmostEqual(decimalB, epsilon);
             }
             throw new NotSupportedException("Unsupported types, only the following types are supported: float, double, and decimal.");
         }

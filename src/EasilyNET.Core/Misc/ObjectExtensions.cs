@@ -242,7 +242,7 @@ public static class ObjectExtensions
         [RequiresUnreferencedCode("This method uses reflection and may not be compatible with AOT.")]
         public bool TrySetProperty<TValue>(Expression<Func<T, TValue>> propertySelector, Func<TValue> valueFactory)
         {
-            return TrySetProperty(value, propertySelector, _ => valueFactory());
+            return value.TrySetProperty(propertySelector, _ => valueFactory());
         }
 
         /// <summary>

@@ -734,7 +734,7 @@ public static partial class TextWriterExtensions
         /// ]]></code>
         /// </remarks>
         /// <param name="msg">消息 / Message</param>
-        public void SafeWriteLine(string msg) => SafeWriteLine(writer, msg, false);
+        public void SafeWriteLine(string msg) => writer.SafeWriteLine(msg, false);
 
         /// <summary>
         ///     <para xml:lang="en">Same as SafeWriteLine, force write even if text equals previous.</para>
@@ -774,7 +774,7 @@ public static partial class TextWriterExtensions
         /// ]]></code>
         /// </remarks>
         /// <param name="msg">消息 / Message</param>
-        public async Task SafeWriteAsync(string msg) => await SafeWriteAsync(writer, msg, false);
+        public async Task SafeWriteAsync(string msg) => await writer.SafeWriteAsync(msg, false);
 
         /// <summary>
         ///     <para xml:lang="en">Same as SafeWriteAsync, force write even if text equals previous.</para>
@@ -814,54 +814,54 @@ public static partial class TextWriterExtensions
         /// ]]></code>
         /// </remarks>
         /// <param name="msg">消息 / Message</param>
-        public void SafeWrite(string msg) => SafeWrite(writer, msg, false);
+        public void SafeWrite(string msg) => writer.SafeWrite(msg, false);
     }
 
     #region SafeWriteLine / SafeWrite (force overload)
 
-    /// <summary>
-    ///     <para xml:lang="en">Thread-safe output message on the same line in the console, and wrap (distinct output).</para>
-    ///     <para xml:lang="zh">线程安全的在控制台同一行输出消息,并换行(相同文本将被忽略)</para>
-    /// </summary>
-    /// <remarks>
-    /// Usage:
-    /// <code><![CDATA[
-    /// await Console.Out.SafeWriteLineAsync("Hello World!");
-    /// ]]></code>
-    /// </remarks>
     /// <param name="writer">
     ///     <see cref="TextWriter" />
     /// </param>
-    /// <param name="msg">消息 / Message</param>
-    public static async Task SafeWriteLineAsync(this TextWriter writer, string msg) => await SafeWriteLineAsync(writer, msg, false);
-
-    /// <summary>
-    ///     <para xml:lang="en">Same as SafeWrite, force write even if text equals previous.</para>
-    ///     <para xml:lang="zh">同 SafeWrite, 即使与上次输出相同也强制输出</para>
-    /// </summary>
-    /// <param name="writer">
-    ///     <see cref="TextWriter" />
-    /// </param>
-    /// <param name="msg">消息 / Message</param>
-    /// <param name="force">true: 强制输出 / force output</param>
-    public static void SafeWrite(this TextWriter writer, string msg, bool force)
+    extension(TextWriter writer)
     {
-        lock (_syncLock)
+        /// <summary>
+        ///     <para xml:lang="en">Thread-safe output message on the same line in the console, and wrap (distinct output).</para>
+        ///     <para xml:lang="zh">线程安全的在控制台同一行输出消息,并换行(相同文本将被忽略)</para>
+        /// </summary>
+        /// <remarks>
+        /// Usage:
+        /// <code><![CDATA[
+        /// await Console.Out.SafeWriteLineAsync("Hello World!");
+        /// ]]></code>
+        /// </remarks>
+        /// <param name="msg">消息 / Message</param>
+        public async Task SafeWriteLineAsync(string msg) => await writer.SafeWriteLineAsync(msg, false);
+
+        /// <summary>
+        ///     <para xml:lang="en">Same as SafeWrite, force write even if text equals previous.</para>
+        ///     <para xml:lang="zh">同 SafeWrite, 即使与上次输出相同也强制输出</para>
+        /// </summary>
+        /// <param name="msg">消息 / Message</param>
+        /// <param name="force">true: 强制输出 / force output</param>
+        public void SafeWrite(string msg, bool force)
         {
-            if (!force && _lastOutput == msg)
+            lock (_syncLock)
             {
-                return;
+                if (!force && _lastOutput == msg)
+                {
+                    return;
+                }
+                if (IsAnsiSupported())
+                {
+                    writer.Write($"\e[2K\e[1G{msg}");
+                }
+                else
+                {
+                    writer.ClearCurrentLine();
+                    writer.Write(msg);
+                }
+                UpdateLastOutput(msg);
             }
-            if (IsAnsiSupported())
-            {
-                writer.Write($"\e[2K\e[1G{msg}");
-            }
-            else
-            {
-                writer.ClearCurrentLine();
-                writer.Write(msg);
-            }
-            UpdateLastOutput(msg);
         }
     }
 
