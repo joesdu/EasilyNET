@@ -110,6 +110,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         var reader = _publishChannel.Reader;
         var declaredExchanges = new HashSet<string>();
         IChannel? lastChannel = null;
+        var consecutiveErrors = 0; // 连续错误计数
         try
         {
             while (await reader.WaitToReadAsync(_cts.Token))
@@ -160,10 +161,17 @@ internal sealed class EventPublisher : IAsyncDisposable
                         {
                             RabbitBusMetrics.PublishedNormal.Add(1);
                         }
+
+                        // 成功处理，重置错误计数
+                        consecutiveErrors = 0;
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Error processing publish context for event {EventId}", context.Event.EventId);
+                        consecutiveErrors++;
+                        if (_logger.IsEnabled(LogLevel.Error))
+                        {
+                            _logger.LogError(ex, "Error processing publish context for event {EventId}", context.Event.EventId);
+                        }
                         context.Tcs.TrySetException(ex);
                         if (registered)
                         {
@@ -175,6 +183,21 @@ internal sealed class EventPublisher : IAsyncDisposable
                             // 如果还没注册就失败了（例如 GetChannel 失败），我们需要手动释放信号量
                             _throttleSemaphore?.Release();
                         }
+
+                        // 指数退避，防止 CPU 空转和日志泛滥
+                        var delay = BackoffUtility.Exponential(consecutiveErrors, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100), TimeSpan.FromSeconds(5));
+                        if (_logger.IsEnabled(LogLevel.Warning))
+                        {
+                            _logger.LogWarning("ProcessQueueAsync encountered error. Backing off for {Delay}ms (Attempt {Attempt})", delay.TotalMilliseconds, consecutiveErrors);
+                        }
+                        try
+                        {
+                            await Task.Delay(delay, _cts.Token).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            break; // 退出循环
+                        }
                     }
                 }
             }
@@ -183,7 +206,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         {
             // ignore
         }
-        catch (Exception ex)
+        catch (Exception ex) when (_logger.IsEnabled(LogLevel.Critical))
         {
             _logger.LogCritical(ex, "EventPublisher background task failed unexpectedly");
         }
@@ -191,7 +214,10 @@ internal sealed class EventPublisher : IAsyncDisposable
 
     private async Task EnsureExchangeAsync(IChannel channel, EventConfiguration config, CancellationToken ct)
     {
-        var args = config.Exchange.Arguments;
+        // 创建参数字典的副本，避免修改共享配置对象
+        var args = config.Exchange.Arguments.Count > 0
+                       ? new Dictionary<string, object?>(config.Exchange.Arguments)
+                       : [];
         // 对于延迟队列，需要特殊处理参数
         var hasDelayedType = args.TryGetValue("x-delayed-type", out var delayedType);
         args["x-delayed-type"] = !hasDelayedType || delayedType is null ? "direct" : delayedType;
@@ -282,6 +308,7 @@ internal sealed class EventPublisher : IAsyncDisposable
             return;
         }
         var properties = BuildBasicProperties(config, priority.GetValueOrDefault());
+        var tcsList = new List<(TaskCompletionSource<bool> Tcs, string EventId)>(list.Count);
         foreach (var @event in list)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -294,6 +321,10 @@ internal sealed class EventPublisher : IAsyncDisposable
                 var context = new PublishContext(@event, routingKey, properties, body, tcs, false, config);
                 await _publishChannel.Writer.WriteAsync(context, cancellationToken).ConfigureAwait(false);
                 written = true;
+                if (_rabbitConfig.PublisherConfirms)
+                {
+                    tcsList.Add((tcs, @event.EventId));
+                }
             }
             finally
             {
@@ -302,6 +333,10 @@ internal sealed class EventPublisher : IAsyncDisposable
                     _throttleSemaphore?.Release();
                 }
             }
+        }
+        if (_rabbitConfig.PublisherConfirms && tcsList.Count > 0)
+        {
+            await WaitForBatchConfirmsAsync(tcsList, false, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -313,6 +348,7 @@ internal sealed class EventPublisher : IAsyncDisposable
             return;
         }
         var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), true, ttl);
+        var tcsList = new List<(TaskCompletionSource<bool> Tcs, string EventId)>(list.Count);
         foreach (var @event in list)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -325,6 +361,10 @@ internal sealed class EventPublisher : IAsyncDisposable
                 var context = new PublishContext(@event, routingKey, properties, body, tcs, true, config);
                 await _publishChannel.Writer.WriteAsync(context, cancellationToken).ConfigureAwait(false);
                 written = true;
+                if (_rabbitConfig.PublisherConfirms)
+                {
+                    tcsList.Add((tcs, @event.EventId));
+                }
             }
             finally
             {
@@ -333,6 +373,52 @@ internal sealed class EventPublisher : IAsyncDisposable
                     _throttleSemaphore?.Release();
                 }
             }
+        }
+        if (_rabbitConfig.PublisherConfirms && tcsList.Count > 0)
+        {
+            await WaitForBatchConfirmsAsync(tcsList, true, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task WaitForBatchConfirmsAsync(List<(TaskCompletionSource<bool> Tcs, string EventId)> tcsList, bool delayed, CancellationToken ct)
+    {
+        try
+        {
+            var tasks = tcsList.Select(x => x.Tcs.Task).ToList();
+            // 等待所有任务完成，或者超时
+            var allTask = Task.WhenAll(tasks);
+            var completedTask = await Task.WhenAny(allTask, Task.Delay(TimeSpan.FromMilliseconds(_rabbitConfig.ConfirmTimeoutMs), ct)).ConfigureAwait(false);
+            if (completedTask != allTask)
+            {
+                // 超时处理
+                // 找出未完成的任务并记录日志
+                var pendingCount = tcsList.Count(x => !x.Tcs.Task.IsCompleted);
+                if (_logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning("Timeout waiting for batch publisher confirms. {PendingCount}/{TotalCount} messages pending. Kind: {Kind}", pendingCount, tcsList.Count, delayed ? "delayed" : "normal");
+                }
+                throw new TimeoutException($"Batch publisher confirm timed out. {pendingCount} messages unconfirmed.");
+            }
+
+            // 检查是否有被取消/失败的任务 (Task.WhenAll 如果有异常会抛出，但这里我们检查结果)
+            // 注意：Tcs.Task 返回 bool，如果 SetResult(false) 表示 Nack
+            var results = await allTask.ConfigureAwait(false); // 这里应该已经完成了
+            if (results.Any(r => !r))
+            {
+                throw new IOException("One or more messages in the batch were nacked by the broker.");
+            }
+        }
+        catch (TimeoutException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            if (_logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, "Error waiting for batch publisher confirms");
+            }
+            throw;
         }
     }
 

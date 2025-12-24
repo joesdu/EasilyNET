@@ -31,6 +31,39 @@ internal sealed class EventBus(
 
     public async Task PublishBatch<T>(IEnumerable<T> events, TimeSpan ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatch(events, (uint)ttl.TotalMilliseconds, routingKey, priority, cancellationToken);
 
+    public async Task Publish(object @event, Type eventType, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (@event is not IEvent evt)
+        {
+            throw new ArgumentException("Event must implement IEvent", nameof(@event));
+        }
+        var config = eventRegistry.GetConfiguration(eventType);
+        if (config is null || !config.Enabled)
+        {
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Event {EventType} is not registered or disabled.", eventType.Name);
+            }
+            return;
+        }
+        try
+        {
+            await eventPublisher.Publish(config, evt, routingKey, priority, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Failed to publish event {EventType} ID {EventId}", eventType.Name, evt.EventId);
+            }
+        }
+    }
+
     /// <summary>
     /// 异步初始化EventBus
     /// </summary>
@@ -285,37 +318,4 @@ internal sealed class EventBus(
     }
 
     #endregion
-
-    public async Task Publish(object @event, Type eventType, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (@event is not IEvent evt)
-        {
-            throw new ArgumentException("Event must implement IEvent", nameof(@event));
-        }
-        var config = eventRegistry.GetConfiguration(eventType);
-        if (config is null || !config.Enabled)
-        {
-            if (logger.IsEnabled(LogLevel.Warning))
-            {
-                logger.LogWarning("Event {EventType} is not registered or disabled.", eventType.Name);
-            }
-            return;
-        }
-        try
-        {
-            await eventPublisher.Publish(config, evt, routingKey, priority, cancellationToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            if (logger.IsEnabled(LogLevel.Error))
-            {
-                logger.LogError(ex, "Failed to publish event {EventType} ID {EventId}", eventType.Name, evt.EventId);
-            }
-        }
-    }
 }

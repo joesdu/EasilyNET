@@ -230,12 +230,18 @@ public interface IBus
     ///     <para xml:lang="zh">事件类型</para>
     /// </param>
     /// <param name="routingKey">
-    ///     <para xml:lang="en">The routing key</para>
-    ///     <para xml:lang="zh">路由键</para>
+    ///     <para xml:lang="en">
+    ///     The routing key. If not provided, the value from the event configuration is used. If provided, the event is routed based on
+    ///     this value to support multi-routing key producers in Topic mode
+    ///     </para>
+    ///     <para xml:lang="zh">路由键。默认使用事件配置中的值,若是显式传入,则根据传入的值路由,以适配Topic模式下多路由键生产者的发信模式</para>
     /// </param>
     /// <param name="priority">
-    ///     <para xml:lang="en">The priority</para>
-    ///     <para xml:lang="zh">优先级</para>
+    ///     <para xml:lang="en">
+    ///     The priority. To use priority, declare the "x-max-priority" parameter for the queue using event configuration,
+    ///     otherwise it will not take effect. It is recommended to set a value between 0-9
+    ///     </para>
+    ///     <para xml:lang="zh">优先级。使用优先级需要先使用事件配置为队列声明"x-max-priority"参数否则也不会生效,推荐设置0-9之间的数值</para>
     /// </param>
     /// <param name="cancellationToken">
     ///     <para xml:lang="en">CancellationToken</para>

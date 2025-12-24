@@ -38,7 +38,7 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
         }
         _disposed = true;
 
-        // 立即取消所有正在进行的重连尝试
+        // 1. 立即取消所有正在进行的重连尝试
         try
         {
             await _reconnectCts.CancelAsync().ConfigureAwait(false);
@@ -47,9 +47,26 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
         {
             // ignore
         }
+
+        // 2. 尽早断开事件注册，避免在后续清理过程中触发回调
+        if (_currentConnection is not null && _eventsRegistered)
+        {
+            try
+            {
+                // 注意：RabbitMQ Client 的事件移除可能不完全可靠（如果是匿名委托），
+                // 但我们已经在事件处理器内部加了 _disposed 检查作为双重保障。
+                _currentConnection.ConnectionShutdownAsync -= null;
+                _currentConnection.ConnectionBlockedAsync -= null;
+            }
+            catch
+            {
+                // ignore
+            }
+            _eventsRegistered = false;
+        }
         try
         {
-            // 等待重连任务完成
+            // 3. 等待重连任务完成
             if (_reconnectTask is not null)
             {
                 try
@@ -63,22 +80,7 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
             }
             _reconnectCts.Dispose();
 
-            // 断开事件注册，避免回调在清理后触发
-            if (_currentConnection is not null && _eventsRegistered)
-            {
-                try
-                {
-                    _currentConnection.ConnectionShutdownAsync -= null; // 无法逐一移除匿名订阅，仅通过置位避免重复注册
-                    _currentConnection.ConnectionBlockedAsync -= null;
-                }
-                catch
-                {
-                    // ignore
-                }
-                _eventsRegistered = false;
-            }
-
-            // 清理资源
+            // 4. 清理资源
             if (_currentChannel is not null)
             {
                 await SafeDisposeAsync(_currentChannel, "RabbitMQ通道").ConfigureAwait(false);
@@ -102,8 +104,14 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
             {
                 // ignore
             }
-
-            // 最后清理锁
+        }
+        catch (Exception ex) when (logger.IsEnabled(LogLevel.Critical))
+        {
+            logger.LogCritical(ex, "清理RabbitMQ连接时发生严重错误");
+        }
+        finally
+        {
+            // 最后清理锁，确保所有可能使用锁的操作都已停止
             try
             {
                 _asyncLock.Dispose();
@@ -115,10 +123,6 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
                     logger.LogWarning(ex, "清理{ResourceName}时发生错误", nameof(_asyncLock));
                 }
             }
-        }
-        catch (Exception ex) when (logger.IsEnabled(LogLevel.Critical))
-        {
-            logger.LogCritical(ex, "清理RabbitMQ连接时发生严重错误");
         }
     }
 
@@ -300,6 +304,10 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
         }
         _currentConnection.ConnectionShutdownAsync += async (_, args) =>
         {
+            if (_disposed)
+            {
+                return; // 尽早检查，避免在处置过程中触发重连
+            }
             if (logger.IsEnabled(LogLevel.Warning))
             {
                 logger.LogWarning("RabbitMQ connection shutdown, reason: {Reason}", args.ReplyText);
@@ -307,10 +315,13 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
             RabbitBusMetrics.SetConnectionState(false);
             ConnectionDisconnected?.Invoke(this, EventArgs.Empty); // 触发断开事件
             await StartReconnectProcess(ct);                       // 启动重连流程
-            await Task.CompletedTask;
         };
         _currentConnection.ConnectionBlockedAsync += async (_, args) =>
         {
+            if (_disposed)
+            {
+                return; // 尽早检查
+            }
             if (logger.IsEnabled(LogLevel.Warning))
             {
                 logger.LogWarning("RabbitMQ connection blocked: {Reason}", args.Reason);
