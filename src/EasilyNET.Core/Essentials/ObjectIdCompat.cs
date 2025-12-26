@@ -18,8 +18,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using EasilyNET.Core.Misc;
 
-#pragma warning disable IDE0048
-
 // ReSharper disable UnusedMember.Global
 
 namespace EasilyNET.Core.Essentials;
@@ -193,6 +191,7 @@ public readonly struct ObjectIdCompat : IComparable<ObjectIdCompat>, IEquatable<
     /// <param name="s"></param>
     /// <param name="snowId"></param>
     /// <returns></returns>
+    [SkipLocalsInit]
     public static bool TryParse(ReadOnlySpan<char> s, out ObjectIdCompat snowId)
     {
         snowId = default;
@@ -201,30 +200,13 @@ public readonly struct ObjectIdCompat : IComparable<ObjectIdCompat>, IEquatable<
             return false;
         }
         Span<byte> bytes = stackalloc byte[12];
-        for (var i = 0; i < 12; i++)
+        if (!HexConverter.TryFromHexString(s, bytes, out _))
         {
-            var c1 = s[i * 2];
-            var c2 = s[(i * 2) + 1];
-            var v1 = HexCharToVal(c1);
-            var v2 = HexCharToVal(c2);
-            if (v1 == -1 || v2 == -1)
-            {
-                return false;
-            }
-            bytes[i] = (byte)((v1 << 4) | v2);
+            return false;
         }
         snowId = new(bytes);
         return true;
     }
-
-    private static int HexCharToVal(char c) =>
-        c switch
-        {
-            >= '0' and <= '9' => c - '0',
-            >= 'a' and <= 'f' => (c - 'a') + 10,
-            >= 'A' and <= 'F' => (c - 'A') + 10,
-            _                 => -1
-        };
 
     private static long CalculateRandomValue()
     {
@@ -234,6 +216,7 @@ public readonly struct ObjectIdCompat : IComparable<ObjectIdCompat>, IEquatable<
         return combined & 0xffffffffff; // low order 5 bytes
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ObjectIdCompat Create(int timestamp, long random, int increment)
     {
         if (random is < 0 or > 0xffffffffff)
@@ -251,7 +234,7 @@ public readonly struct ObjectIdCompat : IComparable<ObjectIdCompat>, IEquatable<
 
     private static int GetTimestampFromDateTime(DateTime timestamp)
     {
-        var secondsSinceEpoch = (long)Math.Floor((timestamp.ToUniversalTime() - DateTime.UnixEpoch).TotalSeconds);
+        var secondsSinceEpoch = new DateTimeOffset(timestamp).ToUnixTimeSeconds();
         return secondsSinceEpoch is < uint.MinValue or > uint.MaxValue ? throw new ArgumentOutOfRangeException(nameof(timestamp)) : (int)(uint)secondsSinceEpoch;
     }
 
@@ -301,14 +284,7 @@ public readonly struct ObjectIdCompat : IComparable<ObjectIdCompat>, IEquatable<
     ///     <para xml:lang="en">Gets the hash code</para>
     ///     <para xml:lang="zh">获取哈希代码</para>
     /// </summary>
-    public override int GetHashCode()
-    {
-        var hash = 17;
-        hash = (37 * hash) + Timestamp.GetHashCode();
-        hash = (37 * hash) + _b.GetHashCode();
-        hash = (37 * hash) + _c.GetHashCode();
-        return hash;
-    }
+    public override int GetHashCode() => HashCode.Combine(Timestamp, _b, _c);
 
     /// <summary>
     ///     <para xml:lang="en">Converts the <see cref="ObjectIdCompat" /> to a byte array</para>
@@ -367,19 +343,20 @@ public readonly struct ObjectIdCompat : IComparable<ObjectIdCompat>, IEquatable<
     ///     <para xml:lang="zh">返回值的字符串表示形式</para>
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [SkipLocalsInit]
     public override string ToString()
     {
         return string.Create(24, this, static (chars, id) =>
         {
-            ReadOnlySpan<char> hexChars = "0123456789abcdef";
             Span<byte> bytes = stackalloc byte[12];
             id.ToByteArray(bytes);
-            for (var i = 0; i < bytes.Length; i++)
+            const string HexChars = "0123456789abcdef";
+            for (var i = 0; i < 12; i++)
             {
                 var b = bytes[i];
                 var i2 = i * 2;
-                chars[i2] = hexChars[b >> 4];
-                chars[i2 + 1] = hexChars[b & 0x0F];
+                chars[i2] = HexChars[b >> 4];
+                chars[i2 + 1] = HexChars[b & 0x0F];
             }
         });
     }

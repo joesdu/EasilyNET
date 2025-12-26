@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Reflection;
 
 // ReSharper disable UnusedMember.Global
-
 // ReSharper disable UnusedType.Global
 
 namespace EasilyNET.Core.Aggregator;
@@ -13,10 +12,7 @@ namespace EasilyNET.Core.Aggregator;
 /// </summary>
 public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
 {
-    private readonly Lock _lock = new();
-
-    // Changed WeakReference to object for the key of the inner dictionary
-    private readonly ConcurrentDictionary<Type, ConcurrentDictionary<object, Delegate>> _recipients = [];
+    private readonly ConcurrentDictionary<Type, IMessageSubscriptions> _subscriptions = new();
     private bool _disposed;
 
     /// <summary>
@@ -25,44 +21,28 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
     /// </summary>
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        if (_disposed)
+        {
+            return;
+        }
+        _subscriptions.Clear();
+        _disposed = true;
     }
 
     /// <inheritdoc />
     public void Register<TMessage>(object recipient, Action<TMessage> action) where TMessage : class
     {
-        // Default to weak reference
-        RegisterInternal(recipient, action, false);
+        Register(recipient, action, false);
     }
 
     /// <inheritdoc />
     public void Unregister<TMessage>(object recipient) where TMessage : class
     {
         ArgumentNullException.ThrowIfNull(recipient);
-        var messageType = typeof(TMessage);
-        lock (_lock)
+        ThrowIfDisposed();
+        if (_subscriptions.TryGetValue(typeof(TMessage), out var wrapper))
         {
-            if (!_recipients.TryGetValue(messageType, out var subscribers))
-            {
-                return;
-            }
-            var keyToRemove = subscribers.Keys.FirstOrDefault(key =>
-            {
-                if (key is WeakReference wr)
-                {
-                    return wr.IsAlive && ReferenceEquals(wr.Target, recipient);
-                }
-                return ReferenceEquals(key, recipient); // Handles strong references
-            });
-            if (keyToRemove is not null)
-            {
-                subscribers.TryRemove(keyToRemove, out _);
-            }
-            if (subscribers.IsEmpty)
-            {
-                _recipients.TryRemove(messageType, out _);
-            }
+            wrapper.Unregister(recipient);
         }
     }
 
@@ -70,71 +50,10 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
     public void Send<TMessage>(TMessage message) where TMessage : class
     {
         ArgumentNullException.ThrowIfNull(message);
-        var messageType = typeof(TMessage);
-        List<Action<TMessage>>? actionsToInvoke = null;
-        List<object>? deadKeysToRemove = null; // Stores keys (WeakReference or recipient object) to remove
-        lock (_lock)
+        ThrowIfDisposed();
+        if (_subscriptions.TryGetValue(typeof(TMessage), out var wrapper))
         {
-            if (_recipients.TryGetValue(messageType, out var subscribers))
-            {
-                actionsToInvoke = [];
-                // Iterate over a copy of KeyValuePairs for safe removal from subscribers
-                foreach (var (key, handlerDelegate) in subscribers.ToList())
-                {
-                    if (key is WeakReference weakRef)
-                    {
-                        var target = weakRef.Target;
-                        if (!weakRef.IsAlive || target is null) // Check IsAlive and if target is null (collected)
-                        {
-                            deadKeysToRemove ??= [];
-                            deadKeysToRemove.Add(key); // Add the WeakReference itself for removal
-                            continue;                  // Skip to next subscriber
-                        }
-                    }
-                    if (handlerDelegate is Action<TMessage> action)
-                    {
-                        actionsToInvoke.Add(action);
-                    }
-                    else
-                    {
-                        // This case should ideally not happen if registration is correct
-                        // but good for robustness to remove invalid delegates/keys
-                        deadKeysToRemove ??= [];
-                        deadKeysToRemove.Add(key);
-                    }
-                }
-
-                // Cleanup dead references or invalid entries
-                if (deadKeysToRemove is not null && deadKeysToRemove.Count > 0)
-                {
-                    foreach (var deadKey in deadKeysToRemove)
-                    {
-                        subscribers.TryRemove(deadKey, out _);
-                    }
-                    if (subscribers.IsEmpty)
-                    {
-                        _recipients.TryRemove(messageType, out _);
-                    }
-                }
-            }
-        }
-        if (actionsToInvoke is null)
-        {
-            return;
-        }
-        foreach (var action in actionsToInvoke)
-        {
-            try
-            {
-                action(message);
-            }
-            catch (TargetInvocationException ex) when (ex.InnerException is ObjectDisposedException)
-            {
-                // Handle cases where the target object is disposed between check and invocation
-                // This is more likely with UI elements or other IDisposable recipients
-                // Optionally log this occurrence
-            }
-            // Consider adding more generic catch or specific error handling if one subscriber error shouldn't stop others
+            ((MessageSubscriptions<TMessage>)wrapper).Send(message);
         }
     }
 
@@ -161,27 +80,14 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
     ///     </para>
     ///     <para xml:lang="zh">如果为 <see langword="true" />，<see cref="SimpleEventAggregator" /> 将保留对订阅者的强引用，否则将保留弱引用。</para>
     /// </param>
+    // ReSharper disable once MemberCanBePrivate.Global
     public void Register<TMessage>(object recipient, Action<TMessage> action, bool keepSubscriberReferenceAlive) where TMessage : class
-    {
-        RegisterInternal(recipient, action, keepSubscriberReferenceAlive);
-    }
-
-    private void RegisterInternal<TMessage>(object recipient, Action<TMessage> action, bool keepSubscriberReferenceAlive) where TMessage : class
     {
         ArgumentNullException.ThrowIfNull(recipient);
         ArgumentNullException.ThrowIfNull(action);
-        var messageType = typeof(TMessage);
-        // targetReference is now correctly an object, which can be the recipient itself or a WeakReference
-        var targetReference = keepSubscriberReferenceAlive ? recipient : new WeakReference(recipient);
-        lock (_lock)
-        {
-            if (!_recipients.TryGetValue(messageType, out var subscribers))
-            {
-                subscribers = new();
-                _recipients[messageType] = subscribers;
-            }
-            subscribers[targetReference] = action; // This is now type-correct
-        }
+        ThrowIfDisposed();
+        var subscriptions = (MessageSubscriptions<TMessage>)_subscriptions.GetOrAdd(typeof(TMessage), _ => new MessageSubscriptions<TMessage>());
+        subscriptions.Add(recipient, action, keepSubscriberReferenceAlive);
     }
 
     /// <summary>
@@ -195,57 +101,148 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
     public void Unregister(object recipient)
     {
         ArgumentNullException.ThrowIfNull(recipient);
-        lock (_lock)
+        ThrowIfDisposed();
+        foreach (var wrapper in _subscriptions.Values)
         {
-            // Iterate over a copy of keys for safe removal from _recipients
-            foreach (var messageType in _recipients.Keys.ToList())
-            {
-                if (!_recipients.TryGetValue(messageType, out var subscribers))
-                {
-                    continue;
-                }
-                var keyToRemove = subscribers.Keys.FirstOrDefault(key =>
-                {
-                    if (key is WeakReference wr)
-                    {
-                        return wr.IsAlive && ReferenceEquals(wr.Target, recipient);
-                    }
-                    return ReferenceEquals(key, recipient); // Handles strong references
-                });
-                if (keyToRemove is not null)
-                {
-                    subscribers.TryRemove(keyToRemove, out _);
-                }
-                if (subscribers.IsEmpty)
-                {
-                    _recipients.TryRemove(messageType, out _);
-                }
-            }
+            wrapper.Unregister(recipient);
         }
     }
 
-    private void Dispose(bool disposing)
+    private void ThrowIfDisposed()
     {
-        if (_disposed)
-        {
-            return;
-        }
-        if (disposing)
+        ObjectDisposedException.ThrowIf(_disposed, typeof(SimpleEventAggregator));
+    }
+
+    private interface IMessageSubscriptions
+    {
+        void Unregister(object recipient);
+    }
+
+    private sealed class MessageSubscriptions<TMessage> : IMessageSubscriptions where TMessage : class
+    {
+        private readonly Lock _lock = new();
+        private readonly List<Subscription> _subscribers = [];
+
+        public void Unregister(object recipient)
         {
             lock (_lock)
             {
-                _recipients.Clear();
+                for (var i = _subscribers.Count - 1; i >= 0; i--)
+                {
+                    if (_subscribers[i].Matches(recipient))
+                    {
+                        _subscribers.RemoveAt(i);
+                    }
+                }
             }
         }
-        _disposed = true;
-    }
 
-    /// <summary>
-    ///     <para xml:lang="en">Finalizes an instance of the <see cref="SimpleEventAggregator" /> class.</para>
-    ///     <para xml:lang="zh">释放 <see cref="SimpleEventAggregator" /> 类的实例。</para>
-    /// </summary>
-    ~SimpleEventAggregator()
-    {
-        Dispose(false);
+        public void Add(object recipient, Action<TMessage> action, bool strong)
+        {
+            lock (_lock)
+            {
+                _subscribers.Add(new(recipient, action, strong));
+            }
+        }
+
+        public void Send(TMessage message)
+        {
+            List<Subscription> snapshot;
+            lock (_lock)
+            {
+                snapshot = [.. _subscribers];
+            }
+            var deadSubscribers = snapshot.Where(sub => !sub.Invoke(message)).ToList();
+            if (deadSubscribers.Count <= 0)
+            {
+                return;
+            }
+            lock (_lock)
+            {
+                foreach (var dead in deadSubscribers)
+                {
+                    _subscribers.Remove(dead);
+                }
+            }
+        }
+
+        private sealed class Subscription
+        {
+            private readonly Action<TMessage>? _action;
+            private readonly MethodInfo? _method;
+            private readonly object? _strongRecipient;
+            private readonly WeakReference? _weakRecipient;
+
+            public Subscription(object recipient, Action<TMessage> action, bool strong)
+            {
+                if (strong)
+                {
+                    _strongRecipient = recipient;
+                    _action = action;
+                }
+                else
+                {
+                    _weakRecipient = new(recipient);
+                    // If the action's target is the recipient, we must not hold the action strongly
+                    // to avoid a memory leak (Action -> Target -> Recipient).
+                    // We store the MethodInfo instead and invoke it via reflection.
+                    if (action.Target == recipient)
+                    {
+                        _method = action.Method;
+                    }
+                    else
+                    {
+                        // If the target is not the recipient (e.g. a closure or static method),
+                        // we store the action. Note that if the closure captures the recipient,
+                        // it will still leak, but we can't easily detect that.
+                        _action = action;
+                    }
+                }
+            }
+
+            public bool Matches(object recipient) =>
+                _strongRecipient != null
+                    ? ReferenceEquals(_strongRecipient, recipient)
+                    : _weakRecipient?.Target is { } target && ReferenceEquals(target, recipient);
+
+            public bool Invoke(TMessage message)
+            {
+                if (_strongRecipient != null)
+                {
+                    _action!(message);
+                    return true;
+                }
+                var target = _weakRecipient?.Target;
+                if (target is null)
+                {
+                    return false;
+                }
+                if (_action != null)
+                {
+                    _action(message);
+                    return true;
+                }
+                if (_method == null)
+                {
+                    return true;
+                }
+                try
+                {
+                    _method.Invoke(target, [message]);
+                    return true;
+                }
+                catch (TargetInvocationException)
+                {
+                    // If the target method throws, we propagate or swallow?
+                    // Usually event aggregators swallow or log.
+                    // Here we swallow to avoid breaking other subscribers.
+                }
+                catch
+                {
+                    // Ignore other errors
+                }
+                return true;
+            }
+        }
     }
 }

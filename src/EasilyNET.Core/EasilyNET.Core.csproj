@@ -5,8 +5,7 @@
 		<AssemblyName>$(PackagePrefix).Core</AssemblyName>
 		<PackageId>$(PackagePrefix).Core</PackageId>
 		<PackageTags>Core</PackageTags>
-		<PackageReleaseNotes>
-		</PackageReleaseNotes>
+		<PackageReleaseNotes></PackageReleaseNotes>
 		<RootNamespace>EasilyNET.Core</RootNamespace>
 	</PropertyGroup>
 
