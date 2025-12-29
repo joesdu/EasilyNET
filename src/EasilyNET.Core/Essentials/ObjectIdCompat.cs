@@ -265,10 +265,7 @@ public readonly struct ObjectIdCompat : IComparable<ObjectIdCompat>, IEquatable<
     ///     <para xml:lang="en">The other <see cref="ObjectIdCompat" /></para>
     ///     <para xml:lang="zh">另一个 <see cref="ObjectIdCompat" /></para>
     /// </param>
-    public bool Equals(ObjectIdCompat rhs) =>
-        Timestamp == rhs.Timestamp &&
-        _b == rhs._b &&
-        _c == rhs._c;
+    public bool Equals(ObjectIdCompat rhs) => Timestamp == rhs.Timestamp && _b == rhs._b && _c == rhs._c;
 
     /// <summary>
     ///     <para xml:lang="en">Compares this <see cref="ObjectIdCompat" /> to another object</para>

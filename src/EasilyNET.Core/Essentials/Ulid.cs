@@ -10,7 +10,7 @@ using System.Runtime.Serialization;
 using System.Security.Cryptography;
 using System.Text;
 
-#pragma warning disable IDE0046
+#pragma warning disable IDE0046 // 转换为条件表达式
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedType.Global
@@ -40,7 +40,7 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
         255, 10, 11, 12, 13, 14, 15, 16, 17, 255, 18, 19, 255, 20, 21, 255, 22, 23, 24, 25, 26, 255, 27, 28, 29, 30, 31
     ];
 
-    private static readonly DateTimeOffset UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTimeOffset UnixEpoch = DateTime.UnixEpoch;
 
     /// <summary>
     ///     <para xml:lang="en">MinValue</para>

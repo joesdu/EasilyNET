@@ -17,14 +17,20 @@ public sealed class ChatHandler(ILogger<ChatHandler> logger) : WebSocketHandler
     /// <inheritdoc />
     public override async Task OnConnectedAsync(IWebSocketSession session)
     {
-        logger.LogInformation("Client connected: {SessionId}", session.Id);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Client connected: {SessionId}", session.Id);
+        }
         await session.SendTextAsync("Welcome to the chat!");
     }
 
     /// <inheritdoc />
     public override Task OnDisconnectedAsync(IWebSocketSession session)
     {
-        logger.LogInformation("Client disconnected: {SessionId}", session.Id);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Client disconnected: {SessionId}", session.Id);
+        }
         return Task.CompletedTask;
     }
 
@@ -34,7 +40,10 @@ public sealed class ChatHandler(ILogger<ChatHandler> logger) : WebSocketHandler
         if (message.MessageType == WebSocketMessageType.Text)
         {
             var text = Encoding.UTF8.GetString(message.Data.Span);
-            logger.LogInformation("Received: {Text}", text);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Received: {Text}", text);
+            }
 
             // Echo back
             await session.SendTextAsync($"Echo: {text}");
