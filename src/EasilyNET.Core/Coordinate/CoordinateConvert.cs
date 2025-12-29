@@ -141,8 +141,6 @@ public static class CoordinateConvert
     /// <summary>
     ///     <para xml:lang="en">Convert BD09 to GCJ02</para>
     ///     <para xml:lang="zh">百度坐标系(BD-09) 与 火星坐标系(GCJ-02)的转换,即 百度 转 谷歌、高德</para>
-    ///     <para xml:lang="en">Convert BD09 to GCJ02</para>
-    ///     <para xml:lang="zh">百度坐标系(BD-09) 与 火星坐标系(GCJ-02)的转换,即 百度 转 谷歌、高德</para>
     /// </summary>
     /// <param name="bdLon">
     ///     <para xml:lang="en">Longitude in BD09</para>
