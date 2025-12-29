@@ -79,7 +79,7 @@ public static class HexConverter
             var val1 = Unsafe.Add(ref lookupRef, c1);
             var val2 = Unsafe.Add(ref lookupRef, c2);
 
-            if ((val1 | val2) == 0xFF)
+            if (val1 == 0xFF || val2 == 0xFF)
             {
                 return false;
             }
