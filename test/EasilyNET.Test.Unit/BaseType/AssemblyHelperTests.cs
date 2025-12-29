@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.Loader;
 using EasilyNET.Core.Attributes;
 using EasilyNET.Core.Misc;
@@ -12,6 +13,18 @@ namespace EasilyNET.Test.Unit.BaseType;
 [TestClass]
 public class AssemblyHelperTests
 {
+    [TestInitialize]
+    public void Init()
+    {
+        AssemblyHelper.Configure(o =>
+        {
+            o.ScanAllRuntimeLibraries = false;
+            o.AllowDirectoryProbe = false;
+        });
+        AssemblyHelper.AddIncludePatterns("EasilyNET.*");
+        AssemblyHelper.ClearCaches();
+    }
+
     /// <summary>
     /// 通过名称获取程序集
     /// </summary>
@@ -20,15 +33,14 @@ public class AssemblyHelperTests
     {
         // Arrange
         var assemblyNames = new[] { "EasilyNET.Core" };
-        var expectedAssemblies = assemblyNames.Select(o => AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(AppContext.BaseDirectory, $"{o}.dll")));
+        var expectedPath = Path.Combine(AppContext.BaseDirectory, $"{assemblyNames[0]}.dll");
+        _ = AssemblyLoadContext.Default.LoadFromAssemblyPath(expectedPath);
 
         // Act
-        var actualAssemblies = AssemblyHelper.GetAssembliesByName(assemblyNames);
+        var actualAssemblies = AssemblyHelper.GetAssembliesByName(assemblyNames).Where(a => a is not null).Cast<Assembly>().ToArray();
 
         // Assert
-        Assert.IsNotNull(expectedAssemblies);
-        Assert.IsNotNull(actualAssemblies);
-        Assert.IsFalse(expectedAssemblies.Equals(actualAssemblies));
+        Assert.IsTrue(actualAssemblies.Any(a => string.Equals(a.GetName().Name, "EasilyNET.Core", StringComparison.OrdinalIgnoreCase)));
     }
 
     /// <summary>
@@ -37,15 +49,12 @@ public class AssemblyHelperTests
     [TestMethod]
     public void FindTypesByAttribute_ReturnsCorrectTypes()
     {
-        // Arrange
-        var expectedTypes = new[] { typeof(MyClass1), typeof(MyClass2) };
-
         // Act
-        var actualTypes = AssemblyHelper.FindTypesByAttribute<TestAttribute>();
+        var actualTypes = AssemblyHelper.FindTypesByAttribute<TestAttribute>().ToArray();
 
         // Assert
-        Assert.IsNotNull(actualTypes);
-        Assert.IsFalse(expectedTypes.Equals(actualTypes));
+        Assert.IsTrue(actualTypes.Contains(typeof(MyClass1)));
+        Assert.IsTrue(actualTypes.Contains(typeof(MyClass2)));
     }
 
     /// <summary>
@@ -55,14 +64,14 @@ public class AssemblyHelperTests
     public void FindAllItems_ReturnsCorrectAssemblies()
     {
         // Arrange
-        var expectedAssemblies = new[] { typeof(AssemblyHelper).Assembly };
+        var target = typeof(AssemblyHelper).Assembly;
 
         // Act
-        var actualAssemblies = AssemblyHelper.FindAllItems(a => expectedAssemblies.Contains(a));
+        var actualAssemblies = AssemblyHelper.FindAllItems(a => a == target).ToArray();
 
         // Assert
-        Assert.IsNotNull(actualAssemblies);
-        Assert.IsFalse(expectedAssemblies.Equals(actualAssemblies));
+        Assert.IsGreaterThanOrEqualTo(1, actualAssemblies.Length);
+        Assert.IsTrue(actualAssemblies.Contains(target));
     }
 }
 

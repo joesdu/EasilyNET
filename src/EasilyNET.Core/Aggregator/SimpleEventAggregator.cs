@@ -159,10 +159,7 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
             }
             lock (_lock)
             {
-                foreach (var dead in deadSubscribers)
-                {
-                    _subscribers.Remove(dead);
-                }
+                _subscribers.RemoveAll(c => deadSubscribers.Contains(c));
             }
         }
 
@@ -233,6 +230,7 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
                 }
                 catch (TargetInvocationException)
                 {
+                    throw;
                     // If the target method throws, we propagate or swallow?
                     // Usually event aggregators swallow or log.
                     // Here we swallow to avoid breaking other subscribers.

@@ -11,6 +11,8 @@ using Microsoft.Extensions.DependencyModel;
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
 
+#pragma warning disable IDE0046 // 转换为条件表达式
+
 namespace EasilyNET.Core.Misc;
 
 /// <summary>
@@ -318,7 +320,7 @@ public static class AssemblyHelper
         {
             yield break;
         }
-        foreach (var asm in ProbeAssembliesFromDisk(patterns))
+        foreach (var asm in ProbeAssembliesFromDisk(patterns, Options.CompiledExcludePatterns))
         {
             var fullName = asm.FullName;
             if (fullName is not null && yieldedFullNames.Add(fullName))
@@ -401,17 +403,14 @@ public static class AssemblyHelper
             catch (ReflectionTypeLoadException rtle)
             {
                 var loadedTypes = rtle.Types;
-                var count = loadedTypes.OfType<Type>().Count();
-                var filtered = new Type[count];
-                var idx = 0;
-                foreach (var t in loadedTypes)
+                if (loadedTypes.Length == 0)
                 {
-                    if (t is not null)
-                    {
-                        filtered[idx++] = t;
-                    }
+                    typeArrays[i] = [];
+                    return;
                 }
-                typeArrays[i] = filtered;
+                var filtered = new List<Type>(loadedTypes.Length);
+                filtered.AddRange(loadedTypes.OfType<Type>());
+                typeArrays[i] = filtered.Count == 0 ? [] : [.. filtered];
             }
             catch (Exception ex)
             {
@@ -421,6 +420,10 @@ public static class AssemblyHelper
         });
         // Calculate total count and merge all type arrays into single result
         var totalCount = typeArrays.Sum(arr => arr.Length);
+        if (totalCount == 0)
+        {
+            return [];
+        }
         var result = new Type[totalCount];
         var offset = 0;
         foreach (var arr in typeArrays)
@@ -442,10 +445,18 @@ public static class AssemblyHelper
     private static IEnumerable<Assembly> LoadAssembliesInternal(AssemblyScanOptions options)
     {
         var result = new ConcurrentDictionary<string, Assembly>(StringComparer.OrdinalIgnoreCase);
+
+        // Take consistent snapshots to avoid concurrent `HashSet<T>` enumeration during Configure/Add* calls.
+        var includeSnapshot = options.IncludePatterns.ToArray();
+        var excludeSnapshot = options.ExcludePatterns.ToArray();
+        var compiledIncludes = CompileWildcardPatterns(includeSnapshot);
+        var compiledExcludes = CompileWildcardPatterns(excludeSnapshot);
+        var scanAll = options.ScanAllRuntimeLibraries;
+
         // 1) Already loaded assemblies
         foreach (var asm in AssemblyLoadContext.Default.Assemblies)
         {
-            if (!MatchAssembly(asm.GetName(), options))
+            if (!MatchAssembly(asm.GetName(), scanAll, compiledIncludes, compiledExcludes))
             {
                 continue;
             }
@@ -455,40 +466,45 @@ public static class AssemblyHelper
             }
         }
 
-        // 2) Assemblies from DependencyContext (fast path) - DependencyContext scanning now happens unconditionally, always consider DependencyContext and filter via include/exclude
-        IEnumerable<AssemblyName> candidateNames = [];
-        try
+        // 2) Assemblies from DependencyContext
+        if (scanAll)
         {
-            var dc = DependencyContext.Default;
-            if (dc is not null)
+            AssemblyName[] filteredNames;
+            try
             {
-                candidateNames = dc.GetDefaultAssemblyNames();
+                var dc = DependencyContext.Default;
+                var candidateNames = dc?.GetDefaultAssemblyNames() ?? [];
+                filteredNames = candidateNames.Where(name => MatchAssembly(name, scanAll, compiledIncludes, compiledExcludes)).ToArray();
             }
+            catch
+            {
+                filteredNames = [];
+            }
+            Parallel.ForEach(filteredNames, parallelOptions, name =>
+            {
+                if (!TryLoadByName(name, out var asm))
+                {
+                    return;
+                }
+                if (asm is not null && asm.FullName.IsNotNullOrWhiteSpace())
+                {
+                    result.TryAdd(asm.FullName, asm);
+                }
+            });
         }
-        catch
-        {
-            // ignore
-        }
-        var filteredNames = candidateNames.Where(name => MatchAssembly(name, options)).ToArray();
-        Parallel.ForEach(filteredNames, parallelOptions, name =>
-        {
-            if (!TryLoadByName(name, out var asm))
-            {
-                return;
-            }
-            if (asm is not null && asm.FullName.IsNotNullOrWhiteSpace())
-            {
-                result.TryAdd(asm.FullName, asm);
-            }
-        });
 
         // 3) Optionally probe disk
         if (!options.AllowDirectoryProbe)
         {
             return result.Values;
         }
-        var patterns = CompileWildcardPatterns(options.IncludePatterns);
-        foreach (var asm in ProbeAssembliesFromDisk(patterns))
+
+        // Use include patterns for disk probing; if no include patterns, probing becomes too expensive and usually unwanted.
+        if (compiledIncludes.Count == 0)
+        {
+            return result.Values;
+        }
+        foreach (var asm in ProbeAssembliesFromDisk(compiledIncludes, compiledExcludes))
         {
             if (asm.FullName.IsNotNullOrWhiteSpace())
             {
@@ -526,35 +542,20 @@ public static class AssemblyHelper
         }
     }
 
-    /// <summary>
-    ///     <para xml:lang="en">Check whether the assembly name matches include/exclude patterns under the given options.</para>
-    ///     <para xml:lang="zh">判断程序集名称是否在给定选项下匹配包含/排除模式。</para>
-    /// </summary>
-    private static bool MatchAssembly(AssemblyName name, AssemblyScanOptions options)
+    private static bool MatchAssembly(AssemblyName name, bool scanAll, FrozenSet<string> include, FrozenSet<string> exclude)
     {
         var simple = name.Name ?? string.Empty;
-        if (options.IncludePatterns.Count == 0 && options.ExcludePatterns.Count == 0)
+        if (include.Count == 0 && exclude.Count == 0)
         {
-            return options.ScanAllRuntimeLibraries;
+            return scanAll;
         }
-        var excludePatterns = options.CompiledExcludePatterns;
-        if (excludePatterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, simple)))
+        if (MatchesAnyPattern(simple, exclude))
         {
             return false;
         }
-        // Then include
-        if (options.IncludePatterns.Count == 0)
-        {
-            return true;
-        }
-        var includePatterns = options.CompiledIncludePatterns;
-        return includePatterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, simple));
+        return include.Count == 0 || MatchesAnyPattern(simple, include);
     }
 
-    /// <summary>
-    ///     <para xml:lang="en">Check if name matches any pattern in the set (avoids LINQ delegate overhead).</para>
-    ///     <para xml:lang="zh">检查名称是否匹配集合中的任何模式（避免 LINQ 委托开销）。</para>
-    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool MatchesAnyPattern(string name, FrozenSet<string> patterns) => patterns.Any(pattern => FileSystemName.MatchesSimpleExpression(pattern, name));
 
@@ -575,21 +576,17 @@ public static class AssemblyHelper
     ///     <para xml:lang="en">Probe application directory for assemblies and load those whose names match provided patterns.</para>
     ///     <para xml:lang="zh">在应用目录中探测程序集并加载与给定模式匹配的程序集。</para>
     /// </summary>
-    private static IEnumerable<Assembly> ProbeAssembliesFromDisk(FrozenSet<string> patterns)
+    private static IEnumerable<Assembly> ProbeAssembliesFromDisk(FrozenSet<string> includePatterns, FrozenSet<string> excludePatterns)
     {
-        IEnumerable<string> files = [];
-        try
-        {
-            files = Directory.GetFiles(AppContext.BaseDirectory, "*.dll", SearchOption.AllDirectories);
-        }
-        catch
-        {
-            // ignore
-        }
-        foreach (var file in files)
+        var baseDir = AppContext.BaseDirectory;
+        foreach (var file in Directory.EnumerateFiles(baseDir, "*.dll", SearchOption.AllDirectories))
         {
             var fileName = Path.GetFileNameWithoutExtension(file);
-            if (!MatchesAnyPattern(fileName, patterns))
+            if (excludePatterns.Count != 0 && MatchesAnyPattern(fileName, excludePatterns))
+            {
+                continue;
+            }
+            if (!MatchesAnyPattern(fileName, includePatterns))
             {
                 continue;
             }
