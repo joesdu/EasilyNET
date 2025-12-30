@@ -10,6 +10,8 @@ internal sealed class WebSocketClientTestService(ILogger<WebSocketClientTestServ
 {
     private ManagedWebSocketClient? _client;
 
+    private static bool TestMode => false;
+
     private static ManagedWebSocketClient CreateClient(ILogger logger, Uri serverUri)
     {
         var options = new WebSocketClientOptions
@@ -66,6 +68,10 @@ internal sealed class WebSocketClientTestService(ILogger<WebSocketClientTestServ
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!TestMode)
+        {
+            return;
+        }
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, appLifetime.ApplicationStopping);
         var token = cts.Token;
         if (logger.IsEnabled(LogLevel.Information))

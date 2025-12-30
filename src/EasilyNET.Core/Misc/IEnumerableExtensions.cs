@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 // ReSharper disable UnusedMember.Global
@@ -14,30 +15,6 @@ namespace EasilyNET.Core.Misc;
 /// </summary>
 public static class IEnumerableExtensions
 {
-    private static IEnumerable<TSource> IntersectByIterator<TSource, TKey>(IEnumerable<TSource> first, IEnumerable<TSource> second, Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer)
-    {
-        var set = new HashSet<TKey>(second.Select(keySelector), comparer);
-        foreach (var source in first)
-        {
-            if (set.Remove(keySelector(source)))
-            {
-                yield return source;
-            }
-        }
-    }
-
-    private static IEnumerable<TSource> IntersectByIterator<TSource, TKey>(IEnumerable<TSource> first, IEnumerable<TKey> second, Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer)
-    {
-        var set = new HashSet<TKey>(second, comparer);
-        foreach (var source in first)
-        {
-            if (set.Remove(keySelector(source)))
-            {
-                yield return source;
-            }
-        }
-    }
-
     /// <summary>
     ///     <para xml:lang="en">Standard deviation</para>
     ///     <para xml:lang="zh">标准差</para>
@@ -56,17 +33,18 @@ public static class IEnumerableExtensions
     /// <param name="source"></param>
     public static double StandardDeviation(this IEnumerable<double> source)
     {
-        double result = 0;
-        var list = source as ICollection<double> ?? [.. source];
-        var count = list.Count;
-        if (count <= 1)
+        double count = 0;
+        double mean = 0;
+        double m2 = 0;
+        foreach (var value in source)
         {
-            return result;
+            count++;
+            var delta = value - mean;
+            mean += delta / count;
+            m2 += delta * (value - mean);
         }
-        var avg = list.Average();
-        var sum = list.Sum(d => (d - avg) * (d - avg));
-        result = Math.Sqrt(sum / count);
-        return result;
+        // 使用样本标准差（Bessel 校正），当 count <= 1 时返回 0 保持既有行为
+        return count <= 1 ? 0 : Math.Sqrt(m2 / (count - 1));
     }
 
     /// <summary>
@@ -75,6 +53,7 @@ public static class IEnumerableExtensions
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="list"></param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static List<T> AsNotNull<T>(this List<T>? list) => list ?? [];
 
     private static void ChangeIndexInternal<T>(IList<T> list, T item, int index)
@@ -98,37 +77,96 @@ public static class IEnumerableExtensions
     public static List<T> ToTree<T>(this List<T> list, Func<T, T, bool> rootWhere, Func<T, T, bool> childrenWhere, Action<T, IEnumerable<T>> addChildren, T? entity = default)
     {
         var treeList = new List<T>();
-        //空树
         if (list.Count == 0)
         {
             return treeList;
         }
-        if (!list.Any(e => rootWhere(entity!, e)))
+        var roots = list.Where(e => rootWhere(entity!, e)).ToList();
+        if (roots.Count == 0)
         {
             return treeList;
         }
-        //树根
-        if (list.Any(e => rootWhere(entity!, e)))
-        {
-            treeList.AddRange(list.Where(e => rootWhere(entity!, e)));
-        }
-        //树叶
+        treeList.AddRange(roots);
         foreach (var item in treeList)
         {
-            if (!list.Any(e => childrenWhere(item, e)))
+            var nodeData = list.Where(e => childrenWhere(item, e)).ToList();
+            if (nodeData.Count == 0)
             {
                 continue;
             }
-            var nodeData = list.Where(e => childrenWhere(item, e)).ToList();
             foreach (var child in nodeData)
             {
-                //添加子集
                 var data = list.ToTree(childrenWhere, childrenWhere, addChildren, child);
                 addChildren(child, data);
             }
             addChildren(item, nodeData);
         }
         return treeList;
+    }
+
+    /// <param name="items">The enumerable to search.</param>
+    /// <typeparam name="T"></typeparam>
+    extension<T>(IEnumerable<T> items)
+    {
+        /// <summary>
+        /// Finds the index of the first item matching an expression in an enumerable.
+        /// </summary>
+        /// <param name="predicate">The expression to test the items against.</param>
+        /// <returns>The index of the first matching item, or -1 if no items match.</returns>
+        /// <exception cref="ArgumentNullException">
+        /// items
+        /// or
+        /// predicate
+        /// </exception>
+        public int IndexOf(Func<T, bool> predicate)
+        {
+            ArgumentNullException.ThrowIfNull(items);
+            ArgumentNullException.ThrowIfNull(predicate);
+            var retVal = 0;
+            foreach (var item in items)
+            {
+                if (predicate(item))
+                {
+                    return retVal;
+                }
+                retVal++;
+            }
+            return -1;
+        }
+
+        /// <summary>
+        /// Finds the index of the first item matching an expression in an enumerable.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when one or more required arguments are null. </exception>
+        /// <param name="predicate">The expression to test the items against. </param>
+        /// <returns>
+        /// The index of the first matching item, or -1 if no items match.
+        /// </returns>
+        public int IndexOf(Func<T, int, bool> predicate)
+        {
+            ArgumentNullException.ThrowIfNull(items);
+            ArgumentNullException.ThrowIfNull(predicate);
+            var retVal = 0;
+            foreach (var item in items)
+            {
+                if (predicate(item, retVal))
+                {
+                    return retVal;
+                }
+                retVal++;
+            }
+            return -1;
+        }
+
+        /// <summary>
+        /// Finds the index of the first occurence of an item in an enumerable.
+        /// </summary>
+        /// <param name="item">The item to find.</param>
+        /// <returns>The index of the first matching item, or -1 if the item was not found.</returns>
+        public int IndexOf(T item)
+        {
+            return items.IndexOf(i => EqualityComparer<T>.Default.Equals(i, item));
+        }
     }
 
     /// <param name="first"></param>
@@ -154,7 +192,7 @@ public static class IEnumerableExtensions
         /// <typeparam name="TKey"></typeparam>
         /// <param name="second"></param>
         /// <param name="keySelector"></param>
-        public IEnumerable<TFirst> IntersectBy<TKey>(IEnumerable<TFirst> second, Func<TFirst, TKey> keySelector) => first.IntersectBy(second, keySelector, null);
+        public IEnumerable<TFirst> IntersectBy<TKey>(IEnumerable<TFirst> second, Func<TFirst, TKey> keySelector) => first.AsNotNull().IntersectBy(second.Select(keySelector), keySelector);
 
         /// <summary>
         ///     <para xml:lang="en">Get intersection by field property</para>
@@ -164,14 +202,7 @@ public static class IEnumerableExtensions
         /// <param name="second"></param>
         /// <param name="keySelector"></param>
         /// <param name="comparer"></param>
-        public IEnumerable<TFirst> IntersectBy<TKey>(IEnumerable<TFirst> second, Func<TFirst, TKey> keySelector, IEqualityComparer<TKey>? comparer) =>
-            first is null
-                ? throw new ArgumentNullException(nameof(first))
-                : second is null
-                    ? throw new ArgumentNullException(nameof(second))
-                    : keySelector is null
-                        ? throw new ArgumentNullException(nameof(keySelector))
-                        : IntersectByIterator(first, second, keySelector, comparer);
+        public IEnumerable<TFirst> IntersectBy<TKey>(IEnumerable<TFirst> second, Func<TFirst, TKey> keySelector, IEqualityComparer<TKey>? comparer) => first.AsNotNull().IntersectBy(second.Select(keySelector), keySelector, comparer);
 
         /// <summary>
         ///     <para xml:lang="en">Get difference by field property</para>
@@ -195,7 +226,7 @@ public static class IEnumerableExtensions
         {
             ArgumentNullException.ThrowIfNull(first);
             ArgumentNullException.ThrowIfNull(keySelector);
-            return first.GroupBy(keySelector).Select(x => x.First());
+            return Enumerable.DistinctBy(first, keySelector);
         }
 
         /// <summary>
@@ -205,7 +236,7 @@ public static class IEnumerableExtensions
         /// <typeparam name="TKey"></typeparam>
         /// <param name="second"></param>
         /// <param name="keySelector"></param>
-        public IEnumerable<TFirst> IntersectBy<TKey>(IEnumerable<TKey> second, Func<TFirst, TKey> keySelector) => first.IntersectBy(second, keySelector, null);
+        public IEnumerable<TFirst> IntersectBy<TKey>(IEnumerable<TKey> second, Func<TFirst, TKey> keySelector) => Enumerable.IntersectBy(first.AsNotNull(), second, keySelector);
 
         /// <summary>
         ///     <para xml:lang="en">Get intersection by field property</para>
@@ -221,7 +252,7 @@ public static class IEnumerableExtensions
             ArgumentNullException.ThrowIfNull(first);
             ArgumentNullException.ThrowIfNull(second);
             ArgumentNullException.ThrowIfNull(keySelector);
-            return IntersectByIterator(first, second, keySelector, comparer);
+            return Enumerable.IntersectBy(first, second, keySelector, comparer);
         }
 
         /// <summary>
@@ -231,7 +262,7 @@ public static class IEnumerableExtensions
         /// <typeparam name="TKey"></typeparam>
         /// <param name="second"></param>
         /// <param name="keySelector"></param>
-        public IEnumerable<TFirst> ExceptBy<TKey>(IEnumerable<TKey> second, Func<TFirst, TKey> keySelector) => first.ExceptBy(second, keySelector, null);
+        public IEnumerable<TFirst> ExceptBy<TKey>(IEnumerable<TKey> second, Func<TFirst, TKey> keySelector) => Enumerable.ExceptBy(first.AsNotNull(), second, keySelector);
 
         /// <summary>
         ///     <para xml:lang="en">Get difference by field property</para>
@@ -247,8 +278,7 @@ public static class IEnumerableExtensions
             ArgumentNullException.ThrowIfNull(first);
             ArgumentNullException.ThrowIfNull(second);
             ArgumentNullException.ThrowIfNull(keySelector);
-            var set = new HashSet<TKey>(second, comparer);
-            return first.Where(item => set.Add(keySelector(item)));
+            return Enumerable.ExceptBy(first, second, keySelector, comparer);
         }
 
         /// <summary>
@@ -257,12 +287,7 @@ public static class IEnumerableExtensions
         /// </summary>
         /// <typeparam name="TResult"></typeparam>
         /// <param name="selector"></param>
-        public HashSet<TResult> ToHashSet<TResult>(Func<TFirst, TResult> selector)
-        {
-            var set = new HashSet<TResult>();
-            set.UnionWith(first.AsNotNull().Select(selector));
-            return set;
-        }
+        public HashSet<TResult> ToHashSet<TResult>(Func<TFirst, TResult> selector) => [.. first.AsNotNull().Select(selector)];
 
         /// <summary>
         ///     <para xml:lang="en">Iterate IEnumerable</para>
@@ -284,34 +309,18 @@ public static class IEnumerableExtensions
         /// <param name="maxParallelCount">最大并行数</param>
         /// <param name="action"></param>
         /// <param name="cancellationToken"></param>
-        public async Task ForeachAsync(Func<TFirst, Task> action, int maxParallelCount, CancellationToken cancellationToken = default)
+        public Task ForeachAsync(Func<TFirst, Task> action, int maxParallelCount, CancellationToken cancellationToken = default)
         {
             if (Debugger.IsAttached)
             {
-                foreach (var item in first.AsNotNull())
-                {
-                    await action(item);
-                }
-                return;
+                maxParallelCount = 1;
             }
-            var list = new List<Task>();
-            foreach (var item in first.AsNotNull())
+            var options = new ParallelOptions
             {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    return;
-                }
-                list.Add(action(item));
-                if (list.Count(t => !t.IsCompleted) < maxParallelCount)
-                {
-                    continue;
-                }
-                {
-                    await Task.WhenAny(list);
-                    list.RemoveAll(t => t.IsCompleted);
-                }
-            }
-            await Task.WhenAll(list);
+                MaxDegreeOfParallelism = maxParallelCount,
+                CancellationToken = cancellationToken
+            };
+            return Parallel.ForEachAsync(first.AsNotNull(), options, async (item, _) => await action(item));
         }
 
         /// <summary>
@@ -355,23 +364,15 @@ public static class IEnumerableExtensions
         /// <param name="maxParallelCount">最大并行数</param>
         public async Task<List<TResult>> SelectAsync<TResult>(Func<TFirst, Task<TResult>> selector, int maxParallelCount)
         {
-            var results = new List<TResult>();
-            var tasks = new List<Task<TResult>>();
-            foreach (var item in first.AsNotNull())
+            var source = first.AsNotNull().ToList();
+            if (source.Count == 0)
             {
-                var task = selector(item);
-                tasks.Add(task);
-                if (tasks.Count < maxParallelCount)
-                {
-                    continue;
-                }
-                await Task.WhenAny(tasks);
-                var completedTasks = tasks.Where(t => t.IsCompleted).ToArray();
-                results.AddRange(completedTasks.Select(t => t.Result));
-                tasks.RemoveWhere(t => completedTasks.Contains(t));
+                return [];
             }
-            results.AddRange(await Task.WhenAll(tasks));
-            return results;
+            var results = new TResult[source.Count];
+            var options = new ParallelOptions { MaxDegreeOfParallelism = maxParallelCount };
+            await Parallel.ForEachAsync(Enumerable.Range(0, source.Count), options, async (i, _) => results[i] = await selector(source[i]));
+            return [.. results];
         }
 
         /// <summary>
@@ -383,25 +384,15 @@ public static class IEnumerableExtensions
         /// <param name="maxParallelCount">最大并行数</param>
         public async Task<List<TResult>> SelectAsync<TResult>(Func<TFirst, int, Task<TResult>> selector, int maxParallelCount)
         {
-            var results = new List<TResult>();
-            var tasks = new List<Task<TResult>>();
-            var index = 0;
-            foreach (var item in first.AsNotNull())
+            var source = first.AsNotNull().ToList();
+            if (source.Count == 0)
             {
-                var task = selector(item, index);
-                tasks.Add(task);
-                Interlocked.Add(ref index, 1);
-                if (tasks.Count < maxParallelCount)
-                {
-                    continue;
-                }
-                await Task.WhenAny(tasks);
-                var completedTasks = tasks.Where(t => t.IsCompleted).ToArray();
-                results.AddRange(completedTasks.Select(t => t.Result));
-                tasks.RemoveWhere(t => completedTasks.Contains(t));
+                return [];
             }
-            results.AddRange(await Task.WhenAll(tasks));
-            return results;
+            var results = new TResult[source.Count];
+            var options = new ParallelOptions { MaxDegreeOfParallelism = maxParallelCount };
+            await Parallel.ForEachAsync(Enumerable.Range(0, source.Count), options, async (i, _) => results[i] = await selector(source[i], i));
+            return [.. results];
         }
 
         /// <summary>
@@ -411,35 +402,19 @@ public static class IEnumerableExtensions
         /// <param name="selector"></param>
         /// <param name="maxParallelCount">最大并行数</param>
         /// <param name="cancellationToken">取消口令</param>
-        public async Task ForAsync(Func<TFirst, int, Task> selector, int maxParallelCount, CancellationToken cancellationToken = default)
+        public Task ForAsync(Func<TFirst, int, Task> selector, int maxParallelCount, CancellationToken cancellationToken = default)
         {
-            var index = 0;
             if (Debugger.IsAttached)
             {
-                foreach (var item in first.AsNotNull())
-                {
-                    await selector(item, index);
-                    index++;
-                }
-                return;
+                maxParallelCount = 1;
             }
-            var list = new List<Task>();
-            foreach (var item in first.AsNotNull())
+            var source = first.AsNotNull().ToList();
+            var options = new ParallelOptions
             {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    return;
-                }
-                list.Add(selector(item, index));
-                Interlocked.Add(ref index, 1);
-                if (list.Count < maxParallelCount)
-                {
-                    continue;
-                }
-                await Task.WhenAny(list);
-                list.RemoveAll(t => t.IsCompleted);
-            }
-            await Task.WhenAll(list);
+                MaxDegreeOfParallelism = maxParallelCount,
+                CancellationToken = cancellationToken
+            };
+            return Parallel.ForEachAsync(Enumerable.Range(0, source.Count), options, async (i, _) => await selector(source[i], i));
         }
 
         /// <summary>
@@ -643,14 +618,20 @@ public static class IEnumerableExtensions
         /// <returns>返回组装好的值，例如"'a','b'"</returns>
         public string ToSqlIn(string separator = ",", string left = "'", string right = "'")
         {
-            StringBuilder sb = new();
-            var enumerable = first as TFirst[] ?? [.. first.AsNotNull()];
-            if (enumerable.Length == 0)
+            if (first is null)
             {
                 return string.Empty;
             }
-            enumerable.ToList().ForEach(o => _ = sb.Append($"{left}{o}{right}{separator}"));
-            return sb.ToString().TrimEnd($"{separator}".ToCharArray());
+            var sb = new StringBuilder();
+            foreach (var item in first)
+            {
+                if (sb.Length > 0)
+                {
+                    sb.Append(separator);
+                }
+                sb.Append(left).Append(item).Append(right);
+            }
+            return sb.ToString();
         }
 
         /// <summary>
@@ -662,13 +643,31 @@ public static class IEnumerableExtensions
         /// <param name="condition">对比因素条件</param>
         public (List<TFirst> adds, List<T2> remove, List<TFirst> updates) CompareChanges<T2>(IEnumerable<T2>? second, Func<TFirst, T2, bool> condition)
         {
-            first ??= [];
-            second ??= [];
-            var firstSource = first as ICollection<TFirst> ?? [.. first];
-            var secondSource = second as ICollection<T2> ?? [.. second];
-            var add = firstSource.ExceptBy(secondSource, condition).ToList();
-            var remove = secondSource.ExceptBy(firstSource, (s, f) => condition(f, s)).ToList();
-            var update = firstSource.IntersectBy(secondSource, condition).ToList();
+            var firstSource = first.AsNotNull().ToList();
+            var secondSource = (second ?? Enumerable.Empty<T2>()).ToList();
+
+            // 记录所有匹配成功的元素，避免在多个 LINQ 查询中重复遍历
+            var matchedFirst = new HashSet<TFirst>();
+            var matchedSecond = new HashSet<T2>();
+
+            foreach (var f in firstSource)
+            {
+                foreach (var s in secondSource)
+                {
+                    if (condition(f, s))
+                    {
+                        matchedFirst.Add(f);
+                        matchedSecond.Add(s);
+                    }
+                }
+            }
+
+            // add: 在 first 中但从未与 second 中任何元素匹配的元素
+            var add = firstSource.Where(f => !matchedFirst.Contains(f)).ToList();
+            // remove: 在 second 中但从未与 first 中任何元素匹配的元素
+            var remove = secondSource.Where(s => !matchedSecond.Contains(s)).ToList();
+            // update: 至少与 second 中一个元素匹配过的 first 元素
+            var update = matchedFirst.ToList();
             return (add, remove, update);
         }
 
@@ -676,6 +675,7 @@ public static class IEnumerableExtensions
         ///     <para xml:lang="en">Declare collection as non-null</para>
         ///     <para xml:lang="zh">将集合声明为非null集合</para>
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IEnumerable<TFirst> AsNotNull() => first ?? [];
     }
 
@@ -700,7 +700,7 @@ public static class IEnumerableExtensions
         /// <param name="keySelector"></param>
         public IEnumerable<T> IntersectAll<TKey>(Func<T, TKey> keySelector)
         {
-            return source.Aggregate((current, item) => current.IntersectBy(item, keySelector));
+            return source.Aggregate((current, item) => current.IntersectBy(item.Select(keySelector), keySelector));
         }
 
         /// <summary>
@@ -712,7 +712,7 @@ public static class IEnumerableExtensions
         /// <param name="comparer"></param>
         public IEnumerable<T> IntersectAll<TKey>(Func<T, TKey> keySelector, IEqualityComparer<TKey> comparer)
         {
-            return source.Aggregate((current, item) => current.IntersectBy(item, keySelector, comparer));
+            return source.Aggregate((current, item) => current.IntersectBy(item.Select(keySelector), keySelector, comparer));
         }
 
         /// <summary>
@@ -885,19 +885,11 @@ public static class IEnumerableExtensions
         /// <param name="value">值</param>
         public void InsertAfter(Func<T, bool> condition, T value)
         {
-            foreach (var item in list.Select((item, index) => new
-                     {
-                         item,
-                         index
-                     }).Where(p => condition(p.item)).OrderByDescending(p => p.index))
+            for (var i = list.Count - 1; i >= 0; i--)
             {
-                if (item.index + 1 == list.Count)
+                if (condition(list[i]))
                 {
-                    list.Add(value);
-                }
-                else
-                {
-                    list.Insert(item.index + 1, value);
+                    list.Insert(i + 1, value);
                 }
             }
         }
@@ -910,19 +902,11 @@ public static class IEnumerableExtensions
         /// <param name="value">值</param>
         public void InsertAfter(int index, T value)
         {
-            foreach (var item in list.Select((v, i) => new
-                     {
-                         Value = v,
-                         Index = i
-                     }).Where(p => p.Index == index).OrderByDescending(p => p.Index))
+            for (var i = list.Count - 1; i >= 0; i--)
             {
-                if (item.Index + 1 == list.Count)
+                if (i == index)
                 {
-                    list.Add(value);
-                }
-                else
-                {
-                    list.Insert(item.Index + 1, value);
+                    list.Insert(i + 1, value);
                 }
             }
         }

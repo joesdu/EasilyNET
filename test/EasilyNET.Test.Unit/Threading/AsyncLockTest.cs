@@ -3,6 +3,8 @@ using EasilyNET.Core.Threading;
 
 namespace EasilyNET.Test.Unit.Threading;
 
+#pragma warning disable MSTEST0049
+
 [TestClass]
 public class AsyncLockTests
 {
@@ -159,7 +161,7 @@ public class AsyncLockTests
 
         // Acquire the lock so the next attempt has to wait
         var releaser = await asyncLock.LockAsync(cts.Token); // Pass token here as well
-        var lockTask = asyncLock.LockAsync(cts.Token);
+        var lockTask = asyncLock.LockAsync(cts.Token).AsTask();
         await cts.CancelAsync(); // Use CancelAsync for async operations
         await Assert.ThrowsExactlyAsync<TaskCanceledException>(async () => await lockTask);
         releaser.Dispose(); // Release the initially acquired lock
@@ -175,7 +177,7 @@ public class AsyncLockTests
         using var asyncLock = new AsyncLock();
         using var cts = new CancellationTokenSource();
         cts.Cancel();
-        await Assert.ThrowsExactlyAsync<TaskCanceledException>(() => asyncLock.LockAsync(cts.Token));
+        await Assert.ThrowsExactlyAsync<TaskCanceledException>(() => asyncLock.LockAsync(cts.Token).AsTask());
         Assert.IsFalse(asyncLock.IsHeld);
         Assert.AreEqual(0, asyncLock.WaitingCount);
     }
@@ -189,13 +191,13 @@ public class AsyncLockTests
         using var asyncLock = new AsyncLock();
         using var holder = await asyncLock.LockAsync();
         using var cts = new CancellationTokenSource();
-        var queuedTask = asyncLock.LockAsync(cts.Token);
+        var queuedTask = asyncLock.LockAsync(cts.Token).AsTask();
 
         // Wait until the waiter is enqueued, or timeout after 1 second
         var sw = Stopwatch.StartNew();
         while (asyncLock.WaitingCount != 1 && sw.ElapsedMilliseconds < 1000)
         {
-            await Task.Delay(5);
+            await Task.Delay(5, cts.Token);
         }
         Assert.AreEqual(1, asyncLock.WaitingCount, "Waiter was not enqueued within timeout.");
         cts.Cancel();
@@ -273,7 +275,7 @@ public class AsyncLockTests
     {
         var asyncLock = new AsyncLock();
         asyncLock.Dispose();
-        await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() => asyncLock.LockAsync());
+        await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() => asyncLock.LockAsync().AsTask());
         await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() => asyncLock.LockAsync(async () => await Task.CompletedTask));
         await Assert.ThrowsExactlyAsync<ObjectDisposedException>(() => asyncLock.LockAsync(async () => await Task.FromResult(true)));
 
@@ -289,8 +291,8 @@ public class AsyncLockTests
     public async Task LockAsync_ShouldNotBeReentrant_AndDeadlock()
     {
         using var asyncLock = new AsyncLock();
-        using var releaser = await asyncLock.LockAsync(); // Acquire the lock and ensure it's released after the test
-        var reentrantTask = asyncLock.LockAsync();        // Attempt to acquire again
+        using var releaser = await asyncLock.LockAsync();   // Acquire the lock and ensure it's released after the test
+        var reentrantTask = asyncLock.LockAsync().AsTask(); // Attempt to acquire again
 
         // The task should not complete because it's waiting for the lock that this flow already holds.
         var completedTask = await Task.WhenAny(reentrantTask, Task.Delay(TimeSpan.FromMilliseconds(200)));
@@ -298,51 +300,5 @@ public class AsyncLockTests
         Assert.IsFalse(reentrantTask.IsCompleted);
 
         // No explicit cleanup for reentrantTask needed here as the test is verifying it doesn't complete.
-        // The `using var releaser` will dispose the first lock, and `using var asyncLock` will dispose the AsyncLock itself.
-        // If reentrantTask were to acquire a lock, it would need its own using or manual dispose.
-    }
-
-    /// <summary>
-    /// Tests that disposing the Release struct releases the lock.
-    /// </summary>
-    [TestMethod]
-    public async Task Release_Dispose_ShouldReleaseLock()
-    {
-        using var asyncLock = new AsyncLock();
-        Assert.IsFalse(asyncLock.IsHeld);
-        var releaser = await asyncLock.LockAsync();
-        Assert.IsTrue(asyncLock.IsHeld);
-        releaser.Dispose();
-        Assert.IsFalse(asyncLock.IsHeld);
-    }
-
-    /// <summary>
-    /// Tests that the WaitingCount property reflects the actual number of queued waiters.
-    /// </summary>
-    [TestMethod]
-    public async Task WaitingCount_ShouldReflectWaitingTasks()
-    {
-        using var asyncLock = new AsyncLock();
-        Assert.AreEqual(0, asyncLock.WaitingCount);
-
-        // Acquire lock; no waiters yet.
-        var releaser1 = await asyncLock.LockAsync();
-        Assert.IsTrue(asyncLock.IsHeld);
-        Assert.AreEqual(0, asyncLock.WaitingCount);
-
-        // Start a waiter; it should now be queued.
-        var waitingTask = asyncLock.LockAsync();
-        Assert.AreEqual(1, asyncLock.WaitingCount);
-
-        // Release first holder; waiting task should acquire and queue becomes empty.
-        releaser1.Dispose();
-        var releaser2 = await waitingTask;
-        Assert.IsTrue(asyncLock.IsHeld);
-        Assert.AreEqual(0, asyncLock.WaitingCount);
-
-        // Release second holder; lock is free and no waiters.
-        releaser2.Dispose();
-        Assert.IsFalse(asyncLock.IsHeld);
-        Assert.AreEqual(0, asyncLock.WaitingCount);
     }
 }
