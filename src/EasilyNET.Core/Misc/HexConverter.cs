@@ -16,9 +16,12 @@ public static class HexConverter
     {
         // Initialize lookup table
         CharToHexLookup.AsSpan().Fill(0xFF);
-        for (var i = '0'; i <= '9'; i++) CharToHexLookup[i] = (byte)(i - '0');
-        for (var i = 'a'; i <= 'f'; i++) CharToHexLookup[i] = (byte)(i - 'a' + 10);
-        for (var i = 'A'; i <= 'F'; i++) CharToHexLookup[i] = (byte)(i - 'A' + 10);
+        for (var i = '0'; i <= '9'; i++)
+            CharToHexLookup[i] = (byte)(i - '0');
+        for (var i = 'a'; i <= 'f'; i++)
+            CharToHexLookup[i] = (byte)((i - 'a') + 10);
+        for (var i = 'A'; i <= 'F'; i++)
+            CharToHexLookup[i] = (byte)((i - 'A') + 10);
     }
 
     /// <summary>
@@ -49,16 +52,13 @@ public static class HexConverter
         {
             return true;
         }
-
         if (chars.Length % 2 != 0 || bytes.Length < chars.Length / 2)
         {
             return false;
         }
-
         ref var charRef = ref MemoryMarshal.GetReference(chars);
         ref var byteRef = ref MemoryMarshal.GetReference(bytes);
         ref var lookupRef = ref MemoryMarshal.GetReference(CharToHexLookup.AsSpan());
-
         var length = chars.Length;
         var i = 0;
         var j = 0;
@@ -75,20 +75,16 @@ public static class HexConverter
             {
                 return false;
             }
-
             var val1 = Unsafe.Add(ref lookupRef, c1);
             var val2 = Unsafe.Add(ref lookupRef, c2);
-
             if (val1 == 0xFF || val2 == 0xFF)
             {
                 return false;
             }
-
             Unsafe.Add(ref byteRef, j) = (byte)((val1 << 4) | val2);
             i += 2;
             j++;
         }
-
         charsProcessed = length;
         return true;
     }

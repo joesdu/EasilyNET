@@ -20,23 +20,6 @@ namespace EasilyNET.Core.Misc;
 /// </summary>
 public static partial class StringExtensions
 {
-    /// <summary>
-    /// Determines whether the string value is not null, empty, or consists only of white-space characters.
-    /// </summary>
-    /// <returns>
-    /// <see langword="true" /> if the string value is not null, not empty, and does not consist solely of
-    /// white-space characters; otherwise, <see langword="false" />.
-    /// </returns>
-    public static bool IsNotNullOrWhiteSpace([NotNullWhen(true)] this string? val) => !string.IsNullOrWhiteSpace(val);
-
-    /// <summary>
-    /// Determines whether the string is not null or empty.
-    /// </summary>
-    /// <returns>
-    /// <see langword="true" /> if the string is not null or empty; otherwise, <see langword="false" />.
-    /// </returns>
-    public static bool IsNotNullOrEmpty([NotNullWhen(true)] this string? val) => !string.IsNullOrEmpty(val);
-
     [GeneratedRegex(@"\s")]
     private static partial Regex RemoveWhiteSpaceRegex();
 
@@ -96,6 +79,26 @@ public static partial class StringExtensions
                 value = 0;
                 return false;
         }
+    }
+
+    extension([NotNullWhen(true)] string? val)
+    {
+        /// <summary>
+        /// Determines whether the string value is not null, empty, or consists only of white-space characters.
+        /// </summary>
+        /// <returns>
+        /// <see langword="true" /> if the string value is not null, not empty, and does not consist solely of
+        /// white-space characters; otherwise, <see langword="false" />.
+        /// </returns>
+        public bool IsNotNullOrWhiteSpace() => !string.IsNullOrWhiteSpace(val);
+
+        /// <summary>
+        /// Determines whether the string is not null or empty.
+        /// </summary>
+        /// <returns>
+        /// <see langword="true" /> if the string is not null or empty; otherwise, <see langword="false" />.
+        /// </returns>
+        public bool IsNotNullOrEmpty() => !string.IsNullOrEmpty(val);
     }
 
     /// <param name="value">

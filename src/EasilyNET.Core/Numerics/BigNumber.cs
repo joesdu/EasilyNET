@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 
 #pragma warning disable IDE0079
@@ -1076,12 +1075,13 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
     public override bool Equals(object? obj) => obj is not null && (ReferenceEquals(this, obj) || (obj is BigNumber other && Equals(other)));
 
     /// <inheritdoc />
-    [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
     public override int GetHashCode()
     {
         Simplify();
+        // ReSharper disable NonReadonlyMemberInGetHashCode
         var num = (Whole * Denominator) + Numerator;
         return HashCode.Combine(num, Denominator);
+        // ReSharper restore NonReadonlyMemberInGetHashCode
     }
 
     /// <inheritdoc />

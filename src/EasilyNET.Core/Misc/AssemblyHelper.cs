@@ -474,7 +474,7 @@ public static class AssemblyHelper
             {
                 var dc = DependencyContext.Default;
                 var candidateNames = dc?.GetDefaultAssemblyNames() ?? [];
-                filteredNames = candidateNames.Where(name => MatchAssembly(name, scanAll, compiledIncludes, compiledExcludes)).ToArray();
+                filteredNames = [.. candidateNames.Where(name => MatchAssembly(name, scanAll, compiledIncludes, compiledExcludes))];
             }
             catch
             {
