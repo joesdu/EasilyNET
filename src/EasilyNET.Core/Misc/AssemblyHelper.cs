@@ -579,7 +579,28 @@ public static class AssemblyHelper
     private static IEnumerable<Assembly> ProbeAssembliesFromDisk(FrozenSet<string> includePatterns, FrozenSet<string> excludePatterns)
     {
         var baseDir = AppContext.BaseDirectory;
-        foreach (var file in Directory.EnumerateFiles(baseDir, "*.dll", SearchOption.AllDirectories))
+        IEnumerable<string> files;
+        try
+        {
+            files = Directory.EnumerateFiles(baseDir, "*.dll", SearchOption.AllDirectories);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Debug.WriteLine($"Failed to enumerate assemblies in base directory '{baseDir}' due to unauthorized access: {ex.Message}");
+            yield break;
+        }
+        catch (DirectoryNotFoundException ex)
+        {
+            Debug.WriteLine($"Failed to enumerate assemblies because base directory '{baseDir}' was not found: {ex.Message}");
+            yield break;
+        }
+        catch (IOException ex)
+        {
+            Debug.WriteLine($"I/O error while enumerating assemblies in base directory '{baseDir}': {ex.Message}");
+            yield break;
+        }
+
+        foreach (var file in files)
         {
             var fileName = Path.GetFileNameWithoutExtension(file);
             if (excludePatterns.Count != 0 && MatchesAnyPattern(fileName, excludePatterns))
