@@ -348,7 +348,7 @@ public readonly struct ObjectIdCompat : IComparable<ObjectIdCompat>, IEquatable<
             Span<byte> bytes = stackalloc byte[12];
             id.ToByteArray(bytes);
             const string HexChars = "0123456789abcdef";
-            for (var i = 0; i < 12; i++)
+            for (var i = 0; i < bytes.Length; i++)
             {
                 var b = bytes[i];
                 var i2 = i * 2;

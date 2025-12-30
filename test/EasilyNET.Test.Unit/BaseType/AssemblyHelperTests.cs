@@ -70,7 +70,7 @@ public class AssemblyHelperTests
         var actualAssemblies = AssemblyHelper.FindAllItems(a => a == target).ToArray();
 
         // Assert
-        Assert.IsGreaterThanOrEqualTo(1, actualAssemblies.Length);
+        Assert.IsGreaterThanOrEqualTo(actualAssemblies.Length, 1);
         Assert.IsTrue(actualAssemblies.Contains(target));
     }
 }
