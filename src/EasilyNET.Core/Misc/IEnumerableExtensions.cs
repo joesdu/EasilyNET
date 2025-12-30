@@ -43,7 +43,8 @@ public static class IEnumerableExtensions
             mean += delta / count;
             m2 += delta * (value - mean);
         }
-        return count <= 1 ? 0 : Math.Sqrt(m2 / count);
+        // 使用样本标准差（Bessel 校正），当 count <= 1 时返回 0 保持既有行为
+        return count <= 1 ? 0 : Math.Sqrt(m2 / (count - 1));
     }
 
     /// <summary>
