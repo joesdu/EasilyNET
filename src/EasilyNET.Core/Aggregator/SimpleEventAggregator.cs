@@ -230,10 +230,8 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
                 }
                 catch (TargetInvocationException)
                 {
-                    throw;
-                    // If the target method throws, we propagate or swallow?
-                    // Usually event aggregators swallow or log.
-                    // Here we swallow to avoid breaking other subscribers.
+                    // Swallow the exception from the target method to avoid
+                    // breaking the notification flow for other subscribers.
                 }
                 catch
                 {
