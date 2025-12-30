@@ -644,13 +644,30 @@ public static class IEnumerableExtensions
         public (List<TFirst> adds, List<T2> remove, List<TFirst> updates) CompareChanges<T2>(IEnumerable<T2>? second, Func<TFirst, T2, bool> condition)
         {
             var firstSource = first.AsNotNull().ToList();
-            var secondSource = second ?? [];
-            // ReSharper disable once PossibleMultipleEnumeration
-            var add = firstSource.Where(f => !secondSource.Any(s => condition(f, s))).ToList();
-            // ReSharper disable once PossibleMultipleEnumeration
-            var remove = secondSource.Where(s => !firstSource.Any(f => condition(f, s))).ToList();
-            // ReSharper disable once PossibleMultipleEnumeration
-            var update = firstSource.Where(f => secondSource.Any(s => condition(f, s))).ToList();
+            var secondSource = (second ?? Enumerable.Empty<T2>()).ToList();
+
+            // 记录所有匹配成功的元素，避免在多个 LINQ 查询中重复遍历
+            var matchedFirst = new HashSet<TFirst>();
+            var matchedSecond = new HashSet<T2>();
+
+            foreach (var f in firstSource)
+            {
+                foreach (var s in secondSource)
+                {
+                    if (condition(f, s))
+                    {
+                        matchedFirst.Add(f);
+                        matchedSecond.Add(s);
+                    }
+                }
+            }
+
+            // add: 在 first 中但从未与 second 中任何元素匹配的元素
+            var add = firstSource.Where(f => !matchedFirst.Contains(f)).ToList();
+            // remove: 在 second 中但从未与 first 中任何元素匹配的元素
+            var remove = secondSource.Where(s => !matchedSecond.Contains(s)).ToList();
+            // update: 至少与 second 中一个元素匹配过的 first 元素
+            var update = matchedFirst.ToList();
             return (add, remove, update);
         }
 
