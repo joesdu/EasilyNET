@@ -55,7 +55,9 @@ public sealed class EnumKeyDictionarySerializer<TKey, TValue> : SerializerBase<D
     ///     保留一份查找表来提升性能，同样属于“用内存换速度”的优化。
     ///     </para>
     /// </summary>
-    private static readonly Dictionary<string, TKey> _stringToEnum = Enum.GetValues<TKey>().ToDictionary(k => k.ToString(), k => k);
+    // Cache String to Enum mapping to avoid repeated Enum.TryParse calls.
+    // Use a custom factory to safely handle potential duplicate string representations.
+    private static readonly Dictionary<string, TKey> _stringToEnum = CreateStringToEnumMap();
 
     private readonly IBsonSerializer<TValue> _valueSerializer = BsonSerializer.LookupSerializer<TValue>();
 
@@ -102,5 +104,35 @@ public sealed class EnumKeyDictionarySerializer<TKey, TValue> : SerializerBase<D
         }
         context.Reader.ReadEndDocument();
         return dictionary;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Builds the string-to-enum map for <typeparamref name="TKey" /> in a safe way, avoiding
+    ///     <see cref="ArgumentException" /> during type initialization when duplicate string
+    ///     representations exist.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     为 <typeparamref name="TKey" /> 构建字符串到枚举值的映射，并在存在重复字符串表示时
+    ///     通过忽略后续重复项来避免在类型初始化期间抛出 <see cref="ArgumentException" />。
+    ///     </para>
+    /// </summary>
+    /// <returns>
+    ///     <para xml:lang="en">A dictionary mapping enum string representations to their values.</para>
+    ///     <para xml:lang="zh">一个将枚举字符串表示映射到其对应值的字典。</para>
+    /// </returns>
+    private static Dictionary<string, TKey> CreateStringToEnumMap()
+    {
+        // Use Ordinal for deterministic, case-sensitive matching.
+        var map = new Dictionary<string, TKey>(StringComparer.Ordinal);
+        foreach (var value in Enum.GetValues<TKey>())
+        {
+            var key = value.ToString();
+            // If multiple enum members share the same string representation,
+            // keep the first occurrence and ignore subsequent ones to avoid
+            // throwing during static initialization.
+            map.TryAdd(key, value);
+        }
+        return map;
     }
 }
