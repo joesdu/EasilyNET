@@ -1,11 +1,11 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.Core.Misc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 
@@ -16,6 +16,7 @@ internal class ModuleApplicationBase : IModuleApplication
 {
     // Cache compiled constructors to avoid repeated Expression.Compile() overhead
     private static readonly ConcurrentDictionary<Type, Func<object>> ConstructorCache = new();
+    private readonly ILogger _logger;
     private readonly Type _startModuleType;
 
     /// <summary>
@@ -37,6 +38,11 @@ internal class ModuleApplicationBase : IModuleApplication
         _startModuleType = startModuleType;
         Services = services;
         ServiceProvider = services.BuildServiceProvider();
+        _logger = ServiceProvider.GetAutoDILogger();
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Initializing module application with startup module: {ModuleType}", startModuleType.Name);
+        }
         LoadModules();
     }
 
@@ -105,7 +111,11 @@ internal class ModuleApplicationBase : IModuleApplication
         var types = AssemblyHelper.AllTypes.Where(AppModule.IsAppModule).ToArray();
         var context = new ConfigureServicesContext(Services, ServiceProvider);
         var source = new List<IAppModule>(types.Length);
-        source.AddRange(types.Select(type => CreateModule(type, context)).OfType<IAppModule>());
+        source.AddRange(types.Select(type => CreateModule(type, context, _logger)).OfType<IAppModule>());
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Found {Count} enabled modules", source.Count);
+        }
         return source;
     }
 
@@ -121,8 +131,12 @@ internal class ModuleApplicationBase : IModuleApplication
     ///     <para xml:lang="en">Configure services context</para>
     ///     <para xml:lang="zh">配置服务上下文</para>
     /// </param>
+    /// <param name="logger">
+    ///     <para xml:lang="en">Logger instance</para>
+    ///     <para xml:lang="zh">日志记录器实例</para>
+    /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IAppModule? CreateModule(Type moduleType, ConfigureServicesContext context)
+    private static IAppModule? CreateModule(Type moduleType, ConfigureServicesContext context, ILogger logger)
     {
         try
         {
@@ -135,12 +149,23 @@ internal class ModuleApplicationBase : IModuleApplication
             });
             var module = factory() as IAppModule;
             ArgumentNullException.ThrowIfNull(module, nameof(moduleType));
-            return module.GetEnable(context) ? module : null;
+            if (module.GetEnable(context))
+            {
+                return module;
+            }
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Module {ModuleType} is disabled", moduleType.Name);
+            }
+            return null;
         }
         catch (Exception ex)
         {
             // Log the error but don't break other modules
-            Debug.WriteLine($"Failed to create module {moduleType.FullName}: {ex.Message}");
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning(ex, "Failed to create module {ModuleType}", moduleType.FullName);
+            }
             return null;
         }
     }
@@ -149,13 +174,58 @@ internal class ModuleApplicationBase : IModuleApplication
     ///     <para xml:lang="en">Initialize all modules</para>
     ///     <para xml:lang="zh">初始化所有模块</para>
     /// </summary>
+    // TODO?: [Obsolete("Use InitializeModulesAsync instead")]
     protected void InitializeModules()
     {
         ArgumentNullException.ThrowIfNull(ServiceProvider);
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Starting synchronous initialization of {Count} modules", Modules.Count);
+        }
         var ctx = new ApplicationContext(ServiceProvider);
         foreach (var cfg in Modules)
         {
-            cfg.ApplicationInitialization(ctx);
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace("Initializing module: {ModuleType}", cfg.GetType().Name);
+            }
+            // 同步等待模块初始化完成，确保初始化顺序正确
+            cfg.ApplicationInitialization(ctx).ConfigureAwait(false).GetAwaiter().GetResult();
+        }
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Completed initialization of all modules");
+        }
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Initialize all modules asynchronously</para>
+    ///     <para xml:lang="zh">异步初始化所有模块</para>
+    /// </summary>
+    /// <param name="cancellationToken">
+    ///     <para xml:lang="en">Cancellation token</para>
+    ///     <para xml:lang="zh">取消令牌</para>
+    /// </param>
+    protected async Task InitializeModulesAsync(CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ServiceProvider);
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Starting async initialization of {Count} modules", Modules.Count);
+        }
+        var ctx = new ApplicationContext(ServiceProvider);
+        foreach (var cfg in Modules)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace("Initializing module: {ModuleType}", cfg.GetType().Name);
+            }
+            await cfg.ApplicationInitialization(ctx).ConfigureAwait(false);
+        }
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Completed async initialization of all modules");
         }
     }
 }

@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-using System.Reflection;
 using EasilyNET.AutoDependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -8,12 +6,6 @@ namespace EasilyNET.Test.Unit.AutoDependencyInjection;
 [TestClass]
 public sealed class ServiceProviderExtensionTests
 {
-    [TestInitialize]
-    public void Setup() => ClearRegistries();
-
-    [TestCleanup]
-    public void Cleanup() => ClearRegistries();
-
     [TestMethod]
     public void Resolve_ShouldReturnRegisteredService()
     {
@@ -27,21 +19,17 @@ public sealed class ServiceProviderExtensionTests
     [TestMethod]
     public void Resolve_WithParameters_ShouldOverrideConstructorArguments()
     {
-        try
-        {
-            var services = new ServiceCollection();
-            services.AddTransient<IWelcomeService, WelcomeService>();
-            using var provider = services.BuildServiceProvider();
-            RegisterImplementation(typeof(IWelcomeService), typeof(WelcomeService));
-            // Cast to the base type to satisfy nullable analysis for the params array.
-            // ReSharper disable once RedundantExplicitParamsArrayCreation
-            var welcome = provider.Resolve<IWelcomeService>([new NamedParameter("name", "Rose")]);
-            Assert.AreEqual("Hello, Rose", welcome.Greet());
-        }
-        finally
-        {
-            ClearRegistries();
-        }
+        var services = new ServiceCollection();
+        // 注册 ServiceRegistry 以支持参数覆盖
+        var registry = new ServiceRegistry();
+        registry.RegisterImplementation(typeof(IWelcomeService), typeof(WelcomeService));
+        services.AddSingleton(registry);
+        services.AddTransient<IWelcomeService, WelcomeService>();
+        using var provider = services.BuildServiceProvider();
+        // 使用 NamedParameter 覆盖构造函数参数
+        var parameters = new[] { new NamedParameter("name", "Rose") };
+        var welcome = provider.Resolve<IWelcomeService>(parameters);
+        Assert.AreEqual("Hello, Rose", welcome.Greet());
     }
 
     [TestMethod]
@@ -64,30 +52,79 @@ public sealed class ServiceProviderExtensionTests
         Assert.IsNull(instance);
     }
 
-    private static void ClearRegistries()
+    [TestMethod]
+    public void TryResolve_Generic_ShouldReturnTrueForRegisteredService()
     {
-        GetServiceImplementations().Clear();
-        ClearNamedServices();
+        var services = new ServiceCollection();
+        services.AddTransient<IGreetingService, GreetingService>();
+        using var provider = services.BuildServiceProvider();
+        var resolved = provider.TryResolve<IGreetingService>(out var instance);
+        Assert.IsTrue(resolved);
+        Assert.IsNotNull(instance);
+        Assert.AreEqual("Hello", instance.SayHello());
     }
 
-    private static void RegisterImplementation(Type serviceType, Type implementationType)
+    [TestMethod]
+    public void ResolveOptional_ShouldReturnNullForMissingService()
     {
-        var serviceImplementations = GetServiceImplementations();
-        serviceImplementations[serviceType] = implementationType;
+        var services = new ServiceCollection();
+        using var provider = services.BuildServiceProvider();
+        var instance = provider.ResolveOptional<IGreetingService>();
+        Assert.IsNull(instance);
     }
 
-    private static ConcurrentDictionary<Type, Type> GetServiceImplementations()
+    [TestMethod]
+    public void ResolveOptional_ShouldReturnInstanceForRegisteredService()
     {
-        var field = typeof(ServiceProviderExtension).GetField("ServiceImplementations", BindingFlags.NonPublic | BindingFlags.Static);
-        return field?.GetValue(null) as ConcurrentDictionary<Type, Type> ?? throw new InvalidOperationException("Unable to read ServiceImplementations dictionary via reflection.");
+        var services = new ServiceCollection();
+        services.AddTransient<IGreetingService, GreetingService>();
+        using var provider = services.BuildServiceProvider();
+        var instance = provider.ResolveOptional<IGreetingService>();
+        Assert.IsNotNull(instance);
+        Assert.AreEqual("Hello", instance.SayHello());
     }
 
-    private static void ClearNamedServices()
+    [TestMethod]
+    public void ResolveAll_ShouldReturnAllRegistrations()
     {
-        var field = typeof(ServiceProviderExtension).GetField("NamedServices", BindingFlags.NonPublic | BindingFlags.Static);
-        var dictionary = field?.GetValue(null);
-        var clearMethod = dictionary?.GetType().GetMethod("Clear", BindingFlags.Public | BindingFlags.Instance);
-        clearMethod?.Invoke(dictionary, null);
+        var services = new ServiceCollection();
+        services.AddTransient<IGreetingService, GreetingService>();
+        services.AddTransient<IGreetingService>(_ => new KeyedGreetingService("Hi"));
+        using var provider = services.BuildServiceProvider();
+        var all = provider.ResolveAll<IGreetingService>().ToList();
+        Assert.HasCount(2, all);
+    }
+
+    [TestMethod]
+    public void CreateResolver_ShouldReturnValidResolver()
+    {
+        var services = new ServiceCollection();
+        services.AddTransient<IGreetingService, GreetingService>();
+        using var provider = services.BuildServiceProvider();
+        using var resolver = provider.CreateResolver();
+        var greeting = resolver.Resolve<IGreetingService>();
+        Assert.AreEqual("Hello", greeting.SayHello());
+    }
+
+    [TestMethod]
+    public void BeginResolverScope_ShouldCreateScopedResolver()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped<IGreetingService, GreetingService>();
+        using var provider = services.BuildServiceProvider();
+        using var scopedResolver = provider.BeginResolverScope();
+        var greeting = scopedResolver.Resolve<IGreetingService>();
+        Assert.AreEqual("Hello", greeting.SayHello());
+    }
+
+    [TestMethod]
+    public void ResolveNamed_ShouldWorkWithKeyedServices()
+    {
+        var services = new ServiceCollection();
+        services.AddKeyedTransient<IGreetingService>("morning", (_, _) => new KeyedGreetingService("Good Morning"));
+        using var provider = services.BuildServiceProvider();
+        var greeting = provider.ResolveNamed<IGreetingService>("morning");
+        Assert.AreEqual("Good Morning", greeting.SayHello());
     }
 
     private interface IGreetingService

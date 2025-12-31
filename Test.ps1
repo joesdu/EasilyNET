@@ -23,6 +23,6 @@ function Exec
   }
 }
 
-exec { & dotnet clean -c Release }
-exec { & dotnet build -c Release }
-exec { & dotnet test -c Release --no-build -l trx --verbosity=normal }
+exec { & dotnet clean -c Debug }
+exec { & dotnet build -c Debug }
+exec { & dotnet test -c Debug --no-build -l trx --verbosity=normal }
