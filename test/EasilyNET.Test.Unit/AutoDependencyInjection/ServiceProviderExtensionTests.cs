@@ -27,7 +27,8 @@ public sealed class ServiceProviderExtensionTests
         services.AddTransient<IWelcomeService, WelcomeService>();
         using var provider = services.BuildServiceProvider();
         // 使用 NamedParameter 覆盖构造函数参数
-        var welcome = provider.Resolve<IWelcomeService>(new NamedParameter("name", "Rose"));
+        var parameters = new[] { new NamedParameter("name", "Rose") };
+        var welcome = provider.Resolve<IWelcomeService>(parameters);
         Assert.AreEqual("Hello, Rose", welcome.Greet());
     }
 
