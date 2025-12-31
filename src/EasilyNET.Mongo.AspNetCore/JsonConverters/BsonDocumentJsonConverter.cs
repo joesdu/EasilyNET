@@ -25,10 +25,67 @@ internal sealed class BsonDocumentJsonConverter : JsonConverter<BsonDocument?>
     /// <inheritdoc />
     public override BsonDocument? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        using var jsonDoc = JsonDocument.ParseValue(ref reader);
-        var succeed = BsonDocument.TryParse(jsonDoc.RootElement.GetRawText(), out var result);
-        return succeed ? result : null;
+        // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
+        return reader.TokenType switch
+        {
+            JsonTokenType.Null        => null,
+            JsonTokenType.StartObject => ReadBsonDocument(ref reader),
+            _                         => throw new JsonException($"Unexpected token type: {reader.TokenType} when parsing BsonDocument.")
+        };
     }
+
+    private static BsonDocument ReadBsonDocument(ref Utf8JsonReader reader)
+    {
+        var doc = new BsonDocument();
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndObject)
+            {
+                return doc;
+            }
+            if (reader.TokenType != JsonTokenType.PropertyName)
+            {
+                throw new JsonException("Expected PropertyName token");
+            }
+            var name = reader.GetString()!;
+            reader.Read(); // Move to value
+            var value = ReadBsonValue(ref reader);
+            doc.Add(name, value);
+        }
+        throw new JsonException("Unexpected end of JSON input while parsing BsonDocument.");
+    }
+
+    private static BsonArray ReadBsonArray(ref Utf8JsonReader reader)
+    {
+        var array = new BsonArray();
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndArray)
+            {
+                return array;
+            }
+            array.Add(ReadBsonValue(ref reader));
+        }
+        throw new JsonException("Unexpected end of JSON input while parsing BsonArray.");
+    }
+
+    private static BsonValue ReadBsonValue(ref Utf8JsonReader reader) =>
+        // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
+        reader.TokenType switch
+        {
+            JsonTokenType.StartObject => ReadBsonDocument(ref reader),
+            JsonTokenType.StartArray  => ReadBsonArray(ref reader),
+            JsonTokenType.String      => new BsonString(reader.GetString()),
+            JsonTokenType.Number => reader.TryGetInt32(out var i)
+                                        ? new BsonInt32(i)
+                                        : reader.TryGetInt64(out var l)
+                                            ? new BsonInt64(l)
+                                            : new BsonDouble(reader.GetDouble()),
+            JsonTokenType.True  => BsonBoolean.True,
+            JsonTokenType.False => BsonBoolean.False,
+            JsonTokenType.Null  => BsonNull.Value,
+            _                   => throw new JsonException($"Unsupported token type: {reader.TokenType}")
+        };
 
     /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, BsonDocument? value, JsonSerializerOptions options)
@@ -43,7 +100,7 @@ internal sealed class BsonDocumentJsonConverter : JsonConverter<BsonDocument?>
         }
     }
 
-    private void WriteJson(Utf8JsonWriter writer, BsonDocument bson)
+    private static void WriteJson(Utf8JsonWriter writer, BsonDocument bson)
     {
         writer.WriteStartObject();
         foreach (var element in bson)
@@ -53,12 +110,13 @@ internal sealed class BsonDocumentJsonConverter : JsonConverter<BsonDocument?>
         writer.WriteEndObject();
     }
 
-    private void WriteProperty(Utf8JsonWriter writer, BsonValue bsonValue, string? propertyName = null)
+    private static void WriteProperty(Utf8JsonWriter writer, BsonValue bsonValue, string? propertyName = null)
     {
-        if (propertyName != null)
+        if (propertyName is not null)
         {
             writer.WritePropertyName(propertyName);
         }
+        // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
         switch (bsonValue.BsonType)
         {
             case BsonType.Int32:
@@ -88,7 +146,7 @@ internal sealed class BsonDocumentJsonConverter : JsonConverter<BsonDocument?>
                 writer.WriteBooleanValue(bsonValue.AsBoolean);
                 break;
             case BsonType.DateTime:
-                writer.WriteStringValue(bsonValue.ToLocalTime());
+                writer.WriteStringValue(bsonValue.ToUniversalTime());
                 break;
             case BsonType.Null:
                 writer.WriteNullValue();
@@ -96,17 +154,9 @@ internal sealed class BsonDocumentJsonConverter : JsonConverter<BsonDocument?>
             case BsonType.ObjectId:
                 writer.WriteStringValue(bsonValue.AsObjectId.ToString());
                 break;
-            case BsonType.EndOfDocument:
-            case BsonType.Binary:
-            case BsonType.Undefined:
-            case BsonType.RegularExpression:
-            case BsonType.JavaScript:
-            case BsonType.Symbol:
-            case BsonType.JavaScriptWithScope:
-            case BsonType.Timestamp:
             case BsonType.Decimal128:
-            case BsonType.MinKey:
-            case BsonType.MaxKey:
+                writer.WriteStringValue(bsonValue.AsDecimal128.ToString());
+                break;
             default:
                 writer.WriteStringValue(bsonValue.ToString());
                 break;

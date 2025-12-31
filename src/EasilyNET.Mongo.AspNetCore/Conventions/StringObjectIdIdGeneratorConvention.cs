@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Concurrent;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
@@ -105,6 +106,59 @@ internal sealed class StringToObjectIdIdGeneratorConvention : ConventionBase, IP
 file class CustomStringObjectIdGenerator : IIdGenerator
 {
     /// <summary>
+    ///     <para xml:lang="en">
+    ///         Cache for document types and their collection members that may contain items requiring Id processing.
+    ///         The key is the document <see cref="Type" />, and the value is the list of <see cref="BsonMemberMap" />
+    ///         representing enumerable members (e.g. child collections) on that document.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///         文档类型与其需要处理的集合成员的缓存。
+    ///         键为文档的 <see cref="Type" />，值为该文档上表示可枚举成员（如子集合）的 <see cref="BsonMemberMap" /> 列表。
+    ///     </para>
+    /// </summary>
+    /// <remarks>
+    ///     <para xml:lang="en">
+    ///         Backed by <see cref="ConcurrentDictionary{TKey,TValue}" /> and declared as <c>static</c>, this cache is
+    ///         shared across all instances of <see cref="CustomStringObjectIdGenerator" /> and is safe for concurrent
+    ///         reads and writes from multiple threads. It avoids repeatedly inspecting class maps and reflection for
+    ///         each generated Id.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///         使用 <see cref="ConcurrentDictionary{TKey,TValue}" /> 实现，并声明为 <c>static</c>，
+    ///         在所有 <see cref="CustomStringObjectIdGenerator" /> 实例之间共享，支持多线程并发读写。
+    ///         通过缓存集合成员映射，避免在每次生成 Id 时重复执行 ClassMap 分析和反射操作，从而提升性能。
+    ///     </para>
+    /// </remarks>
+    private static readonly ConcurrentDictionary<Type, List<BsonMemberMap>> _documentCollectionMembersCache = new();
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///         Cache for item types and their Id member map used when generating Ids for elements inside collections.
+    ///         The key is the item <see cref="Type" />, and the value is the <see cref="BsonMemberMap" /> of the
+    ///         string-typed Id member, or <see langword="null" /> when the type has no applicable Id member.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///         子项类型与其 Id 成员映射的缓存，用于为集合中的元素生成 Id。
+    ///         键为子项的 <see cref="Type" />，值为其字符串类型 Id 成员对应的 <see cref="BsonMemberMap" />；
+    ///         如果该类型不存在可用的 Id 成员，则缓存为 <see langword="null" />。
+    ///     </para>
+    /// </summary>
+    /// <remarks>
+    ///     <para xml:lang="en">
+    ///         Implemented with <see cref="ConcurrentDictionary{TKey,TValue}" /> as a <c>static</c> field, this cache is
+    ///         thread-safe and shared globally for all uses of <see cref="CustomStringObjectIdGenerator" />. It prevents
+    ///         repeated lookup of the Id member map for the same item type while ensuring correctness under concurrent
+    ///         access.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///         该缓存由 <see cref="ConcurrentDictionary{TKey,TValue}" /> 实现，并作为 <c>static</c> 字段在全局共享，
+    ///         可安全地在多线程环境下并发访问。通过缓存子项类型对应的 Id 成员映射，避免对同一类型重复查询，
+    ///         在保证正确性的同时降低运行时开销。
+    ///     </para>
+    /// </remarks>
+    private static readonly ConcurrentDictionary<Type, BsonMemberMap?> _itemIdMemberMapCache = new();
+
+    /// <summary>
     ///     <para xml:lang="en">Generate new Id</para>
     ///     <para xml:lang="zh">生成新的Id</para>
     /// </summary>
@@ -118,30 +172,37 @@ file class CustomStringObjectIdGenerator : IIdGenerator
     /// </param>
     public object GenerateId(object container, object document)
     {
-        var classMap = BsonClassMap.LookupClassMap(document.GetType());
-        // 递归处理所有成员映射
-        foreach (var memberMap in classMap.AllMemberMaps)
+        var docType = document.GetType();
+
+        // 获取或计算该文档类型的集合成员列表
+        var collectionMembers = _documentCollectionMembersCache.GetOrAdd(docType, type =>
         {
-            // 如果成员类型是泛型集合，则处理集合中的项
-            if (!typeof(IEnumerable).IsAssignableFrom(memberMap.MemberType) || !memberMap.MemberType.IsGenericType)
-            {
-                continue;
-            }
-            var itemType = memberMap.MemberType.GetGenericArguments().FirstOrDefault();
-            if (itemType is null)
-            {
-                continue;
-            }
+            var classMap = BsonClassMap.LookupClassMap(type);
+            return [.. classMap.AllMemberMaps.Where(memberMap => typeof(IEnumerable).IsAssignableFrom(memberMap.MemberType) && memberMap.MemberType.IsGenericType && memberMap.MemberType.GetGenericArguments().Length > 0)];
+        });
+        foreach (var memberMap in collectionMembers)
+        {
             if (memberMap.Getter(document) is not IEnumerable items)
             {
                 continue;
             }
             foreach (var item in items)
             {
-                var itemClassMap = BsonClassMap.LookupClassMap(item.GetType());
-                var itemIdMemberMap = itemClassMap.IdMemberMap;
+                if (item is null)
+                {
+                    continue;
+                }
+                var itemType = item.GetType();
+                // 获取或计算该项类型的Id成员映射
+                var itemIdMemberMap = _itemIdMemberMapCache.GetOrAdd(itemType, type =>
+                {
+                    var itemClassMap = BsonClassMap.LookupClassMap(type);
+                    var idMap = itemClassMap.IdMemberMap;
+                    // 仅当Id类型为string时才缓存
+                    return idMap is { MemberType: not null } && idMap.MemberType == typeof(string) ? idMap : null;
+                });
                 // 如果子对象的Id字段为空，则为其生成新的ObjectId
-                if (itemIdMemberMap is not null && itemIdMemberMap.MemberType == typeof(string) && IsEmpty(itemIdMemberMap.Getter(item)))
+                if (itemIdMemberMap is not null && IsEmpty(itemIdMemberMap.Getter(item)))
                 {
                     itemIdMemberMap.Setter(item, ObjectId.GenerateNewId().ToString());
                 }

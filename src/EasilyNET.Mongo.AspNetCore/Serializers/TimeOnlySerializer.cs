@@ -1,4 +1,5 @@
 using System.Globalization;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 
@@ -34,17 +35,19 @@ namespace EasilyNET.Mongo.AspNetCore.Serializers;
 /// </param>
 public sealed class TimeOnlySerializerAsString(string format = "HH:mm:ss.ffffff") : StructSerializerBase<TimeOnly>
 {
-    private readonly StringSerializer InnerSerializer = new();
-
     /// <inheritdoc />
-    public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, TimeOnly value) => InnerSerializer.Serialize(context, args, value.ToString(format, CultureInfo.CurrentCulture));
+    public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, TimeOnly value)
+    {
+        context.Writer.WriteString(value.ToString(format, CultureInfo.InvariantCulture));
+    }
 
     /// <inheritdoc />
     public override TimeOnly Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
-        var time = InnerSerializer.Deserialize(context, args);
-        var success = TimeOnly.TryParseExact(time, format, CultureInfo.CurrentCulture, DateTimeStyles.None, out var result);
-        return success ? result : throw new("unsupported data formats.");
+        var time = context.Reader.ReadString();
+        return TimeOnly.TryParseExact(time, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result)
+                   ? result
+                   : throw new BsonSerializationException($"Invalid TimeOnly format: {time}. Expected format: {format}");
     }
 }
 
@@ -72,15 +75,24 @@ public sealed class TimeOnlySerializerAsString(string format = "HH:mm:ss.ffffff"
 /// </summary>
 public sealed class TimeOnlySerializerAsTicks : StructSerializerBase<TimeOnly>
 {
-    private readonly Int64Serializer InnerSerializer = new();
-
     /// <inheritdoc />
-    public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, TimeOnly value) => InnerSerializer.Serialize(context, args, value.Ticks);
+    public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, TimeOnly value)
+    {
+        context.Writer.WriteInt64(value.Ticks);
+    }
 
     /// <inheritdoc />
     public override TimeOnly Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
-        var ticks = InnerSerializer.Deserialize(context, args);
-        return TimeOnly.FromTimeSpan(TimeSpan.FromTicks(ticks));
+        var ticks = context.Reader.ReadInt64();
+        try
+        {
+            var timeSpan = TimeSpan.FromTicks(ticks);
+            return TimeOnly.FromTimeSpan(timeSpan);
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            throw new BsonSerializationException($"Invalid TimeOnly ticks value: {ticks}", ex);
+        }
     }
 }

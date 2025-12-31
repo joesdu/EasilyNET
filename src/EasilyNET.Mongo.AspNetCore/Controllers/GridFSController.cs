@@ -164,17 +164,24 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
         }
         catch (InvalidOperationException ex)
         {
-            logger.LogError("FinalizeUpload InvalidOperationException: {ExMessage}", ex.Message);
-            logger.LogError("StackTrace: {ExStackTrace}", ex.StackTrace);
+            // ReSharper disable once InvertIf
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError("FinalizeUpload InvalidOperationException: {ExMessage}", ex.Message);
+                logger.LogError("StackTrace: {ExStackTrace}", ex.StackTrace);
+            }
             return BadRequest(ex.Message);
         }
         catch (Exception ex)
         {
-            logger.LogError("FinalizeUpload Exception: {Name}", ex.GetType().Name);
-            logger.LogError("Message: {ExMessage}", ex.Message);
-            logger.LogError("StackTrace: {ExStackTrace}", ex.StackTrace);
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError("FinalizeUpload Exception: {Name}", ex.GetType().Name);
+                logger.LogError("Message: {ExMessage}", ex.Message);
+                logger.LogError("StackTrace: {ExStackTrace}", ex.StackTrace);
+            }
             // ReSharper disable once InvertIf
-            if (ex.InnerException is not null)
+            if (ex.InnerException is not null && logger.IsEnabled(LogLevel.Error))
             {
                 logger.LogError("InnerException: {InnerExceptionMessage}", ex.InnerException.Message);
                 logger.LogError("InnerException StackTrace: {InnerExceptionStackTrace}", ex.InnerException.StackTrace);
@@ -268,7 +275,10 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
             // 客户端取消请求(正常行为,如视频快进/快退)
             // Sanitize 'id' to prevent log forging by removing newlines/carriage returns.
             var sanitizedId = id.Replace("\r", "").Replace("\n", "");
-            logger.LogDebug("Range request cancelled by client for file {FileId}", sanitizedId);
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Range request cancelled by client for file {FileId}", sanitizedId);
+            }
             return StatusCode(499); // Client Closed Request
         }
     }

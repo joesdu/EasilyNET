@@ -30,6 +30,35 @@ namespace EasilyNET.Mongo.AspNetCore.Serializers;
 /// </typeparam>
 public sealed class EnumKeyDictionarySerializer<TKey, TValue> : SerializerBase<Dictionary<TKey, TValue>> where TKey : struct, Enum
 {
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Static cache mapping enum values to their string representations to avoid repeated <see cref="Enum.ToString()" /> calls
+    ///     during serialization. This trades a small amount of memory per <typeparamref name="TKey" /> for faster lookups
+    ///     and reduced allocations on hot paths.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     按 <typeparamref name="TKey" /> 进行静态缓存的枚举到字符串映射，用于在序列化期间避免重复调用
+    ///     <see cref="Enum.ToString()" />。这是一个典型的“以空间换时间”的优化：为每个枚举类型占用少量额外内存，
+    ///     以换取更快的查找速度和更少的临时分配。
+    ///     </para>
+    /// </summary>
+    private static readonly Dictionary<TKey, string> _enumToString = Enum.GetValues<TKey>().ToDictionary(k => k, k => k.ToString());
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Static cache mapping string representations back to enum values to avoid repeated calls during deserialization. This improves performance at the cost of keeping a per-
+    ///     <typeparamref name="TKey" />
+    ///     lookup table in memory.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     按 <typeparamref name="TKey" /> 进行静态缓存的字符串到枚举映射，用于在反序列化期间避免重复调用（及类似解析方法）。通过在内存中为每个枚举类型
+    ///     保留一份查找表来提升性能，同样属于“用内存换速度”的优化。
+    ///     </para>
+    /// </summary>
+    // Cache String to Enum mapping to avoid repeated Enum.TryParse calls.
+    // Use a custom factory to safely handle potential duplicate string representations.
+    private static readonly Dictionary<string, TKey> _stringToEnum = CreateStringToEnumMap();
+
     private readonly IBsonSerializer<TValue> _valueSerializer = BsonSerializer.LookupSerializer<TValue>();
 
     /// <inheritdoc />
@@ -38,7 +67,12 @@ public sealed class EnumKeyDictionarySerializer<TKey, TValue> : SerializerBase<D
         context.Writer.WriteStartDocument();
         foreach (var kvp in value)
         {
-            context.Writer.WriteName(kvp.Key.ToString());
+            // Use cached string if available, otherwise fallback to ToString() (e.g. for flags or invalid values)
+            if (!_enumToString.TryGetValue(kvp.Key, out var keyStr))
+            {
+                keyStr = kvp.Key.ToString();
+            }
+            context.Writer.WriteName(keyStr);
             _valueSerializer.Serialize(context, kvp.Value);
         }
         context.Writer.WriteEndDocument();
@@ -52,7 +86,13 @@ public sealed class EnumKeyDictionarySerializer<TKey, TValue> : SerializerBase<D
         while (context.Reader.ReadBsonType() != BsonType.EndOfDocument)
         {
             var keyString = context.Reader.ReadName();
-            if (Enum.TryParse(keyString, out TKey key))
+            // Use cached enum value if available
+            if (_stringToEnum.TryGetValue(keyString, out var key))
+            {
+                var value = _valueSerializer.Deserialize(context);
+                dictionary.Add(key, value);
+            }
+            else if (Enum.TryParse(keyString, out key))
             {
                 var value = _valueSerializer.Deserialize(context);
                 dictionary.Add(key, value);
@@ -64,5 +104,35 @@ public sealed class EnumKeyDictionarySerializer<TKey, TValue> : SerializerBase<D
         }
         context.Reader.ReadEndDocument();
         return dictionary;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Builds the string-to-enum map for <typeparamref name="TKey" /> in a safe way, avoiding
+    ///     <see cref="ArgumentException" /> during type initialization when duplicate string
+    ///     representations exist.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     为 <typeparamref name="TKey" /> 构建字符串到枚举值的映射，并在存在重复字符串表示时
+    ///     通过忽略后续重复项来避免在类型初始化期间抛出 <see cref="ArgumentException" />。
+    ///     </para>
+    /// </summary>
+    /// <returns>
+    ///     <para xml:lang="en">A dictionary mapping enum string representations to their values.</para>
+    ///     <para xml:lang="zh">一个将枚举字符串表示映射到其对应值的字典。</para>
+    /// </returns>
+    private static Dictionary<string, TKey> CreateStringToEnumMap()
+    {
+        // Use Ordinal for deterministic, case-sensitive matching.
+        var map = new Dictionary<string, TKey>(StringComparer.Ordinal);
+        foreach (var value in Enum.GetValues<TKey>())
+        {
+            var key = value.ToString();
+            // If multiple enum members share the same string representation,
+            // keep the first occurrence and ignore subsequent ones to avoid
+            // throwing during static initialization.
+            map.TryAdd(key, value);
+        }
+        return map;
     }
 }

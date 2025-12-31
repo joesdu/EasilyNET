@@ -16,7 +16,10 @@ internal sealed class GridFSBackgroundCleanupService(IServiceProvider sp, ILogge
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        logger.LogInformation("GridFS Cleanup Service is starting.");
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("GridFS Cleanup Service is starting.");
+        }
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -25,7 +28,10 @@ internal sealed class GridFSBackgroundCleanupService(IServiceProvider sp, ILogge
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error occurred while cleaning up GridFS resources.");
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(ex, "Error occurred while cleaning up GridFS resources.");
+                }
             }
 
             // Wait for next cleanup cycle
@@ -38,7 +44,10 @@ internal sealed class GridFSBackgroundCleanupService(IServiceProvider sp, ILogge
                 break;
             }
         }
-        logger.LogInformation("GridFS Cleanup Service is stopping.");
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("GridFS Cleanup Service is stopping.");
+        }
     }
 
     private async Task CleanupAsync(CancellationToken stoppingToken)
@@ -48,18 +57,21 @@ internal sealed class GridFSBackgroundCleanupService(IServiceProvider sp, ILogge
         var cleanupHelper = scope.ServiceProvider.GetService<GridFSCleanupHelper>();
         if (cleanupHelper == null)
         {
-            logger.LogWarning("GridFSCleanupHelper is not registered. Skipping cleanup.");
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("GridFSCleanupHelper is not registered. Skipping cleanup.");
+            }
             return;
         }
         // 1. Cleanup expired sessions (DB + Temp files)
         var deletedSessions = await cleanupHelper.CleanupExpiredSessionsAsync(stoppingToken);
-        if (deletedSessions > 0)
+        if (deletedSessions > 0 && logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Cleaned up {Count} expired upload sessions.", deletedSessions);
         }
         // 2. Cleanup orphaned chunks (GridFS)
         var deletedChunks = await cleanupHelper.CleanupOrphanedChunksAsync(stoppingToken);
-        if (deletedChunks > 0)
+        if (deletedChunks > 0 && logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Cleaned up {Count} orphaned GridFS chunks.", deletedChunks);
         }

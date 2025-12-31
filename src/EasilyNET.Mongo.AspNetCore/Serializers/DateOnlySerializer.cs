@@ -1,4 +1,5 @@
 using System.Globalization;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 
@@ -34,17 +35,19 @@ namespace EasilyNET.Mongo.AspNetCore.Serializers;
 /// </param>
 public sealed class DateOnlySerializerAsString(string format = "yyyy-MM-dd") : StructSerializerBase<DateOnly>
 {
-    private readonly StringSerializer InnerSerializer = new();
-
     /// <inheritdoc />
-    public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, DateOnly value) => InnerSerializer.Serialize(context, args, value.ToString(format, CultureInfo.CurrentCulture));
+    public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, DateOnly value)
+    {
+        context.Writer.WriteString(value.ToString(format, CultureInfo.InvariantCulture));
+    }
 
     /// <inheritdoc />
     public override DateOnly Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
-        var str = InnerSerializer.Deserialize(context, args);
-        var success = DateOnly.TryParseExact(str, format, CultureInfo.CurrentCulture, DateTimeStyles.None, out var result);
-        return success ? result : throw new("unsupported data formats.");
+        var str = context.Reader.ReadString();
+        return DateOnly.TryParseExact(str, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result)
+                   ? result
+                   : throw new BsonSerializationException($"Invalid DateOnly format: {str}. Expected format: {format}");
     }
 }
 
@@ -72,15 +75,16 @@ public sealed class DateOnlySerializerAsString(string format = "yyyy-MM-dd") : S
 /// </summary>
 public sealed class DateOnlySerializerAsTicks : StructSerializerBase<DateOnly>
 {
-    private readonly Int64Serializer InnerSerializer = new();
-
     /// <inheritdoc />
-    public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, DateOnly value) => InnerSerializer.Serialize(context, args, value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).Ticks);
+    public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, DateOnly value)
+    {
+        context.Writer.WriteInt64(value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc).Ticks);
+    }
 
     /// <inheritdoc />
     public override DateOnly Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
-        var ticks = InnerSerializer.Deserialize(context, args);
-        return DateOnly.FromDateTime(new(ticks, DateTimeKind.Local));
+        var ticks = context.Reader.ReadInt64();
+        return DateOnly.FromDateTime(new(ticks, DateTimeKind.Utc));
     }
 }
