@@ -105,10 +105,57 @@ internal sealed class StringToObjectIdIdGeneratorConvention : ConventionBase, IP
 /// </summary>
 file class CustomStringObjectIdGenerator : IIdGenerator
 {
-    // 缓存文档类型及其需要处理的集合成员
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///         Cache for document types and their collection members that may contain items requiring Id processing.
+    ///         The key is the document <see cref="Type" />, and the value is the list of <see cref="BsonMemberMap" />
+    ///         representing enumerable members (e.g. child collections) on that document.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///         文档类型与其需要处理的集合成员的缓存。
+    ///         键为文档的 <see cref="Type" />，值为该文档上表示可枚举成员（如子集合）的 <see cref="BsonMemberMap" /> 列表。
+    ///     </para>
+    /// </summary>
+    /// <remarks>
+    ///     <para xml:lang="en">
+    ///         Backed by <see cref="ConcurrentDictionary{TKey,TValue}" /> and declared as <c>static</c>, this cache is
+    ///         shared across all instances of <see cref="CustomStringObjectIdGenerator" /> and is safe for concurrent
+    ///         reads and writes from multiple threads. It avoids repeatedly inspecting class maps and reflection for
+    ///         each generated Id.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///         使用 <see cref="ConcurrentDictionary{TKey,TValue}" /> 实现，并声明为 <c>static</c>，
+    ///         在所有 <see cref="CustomStringObjectIdGenerator" /> 实例之间共享，支持多线程并发读写。
+    ///         通过缓存集合成员映射，避免在每次生成 Id 时重复执行 ClassMap 分析和反射操作，从而提升性能。
+    ///     </para>
+    /// </remarks>
     private static readonly ConcurrentDictionary<Type, List<BsonMemberMap>> _documentCollectionMembersCache = new();
 
-    // 缓存项类型及其Id成员映射
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///         Cache for item types and their Id member map used when generating Ids for elements inside collections.
+    ///         The key is the item <see cref="Type" />, and the value is the <see cref="BsonMemberMap" /> of the
+    ///         string-typed Id member, or <see langword="null" /> when the type has no applicable Id member.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///         子项类型与其 Id 成员映射的缓存，用于为集合中的元素生成 Id。
+    ///         键为子项的 <see cref="Type" />，值为其字符串类型 Id 成员对应的 <see cref="BsonMemberMap" />；
+    ///         如果该类型不存在可用的 Id 成员，则缓存为 <see langword="null" />。
+    ///     </para>
+    /// </summary>
+    /// <remarks>
+    ///     <para xml:lang="en">
+    ///         Implemented with <see cref="ConcurrentDictionary{TKey,TValue}" /> as a <c>static</c> field, this cache is
+    ///         thread-safe and shared globally for all uses of <see cref="CustomStringObjectIdGenerator" />. It prevents
+    ///         repeated lookup of the Id member map for the same item type while ensuring correctness under concurrent
+    ///         access.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///         该缓存由 <see cref="ConcurrentDictionary{TKey,TValue}" /> 实现，并作为 <c>static</c> 字段在全局共享，
+    ///         可安全地在多线程环境下并发访问。通过缓存子项类型对应的 Id 成员映射，避免对同一类型重复查询，
+    ///         在保证正确性的同时降低运行时开销。
+    ///     </para>
+    /// </remarks>
     private static readonly ConcurrentDictionary<Type, BsonMemberMap?> _itemIdMemberMapCache = new();
 
     /// <summary>
