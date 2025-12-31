@@ -32,13 +32,13 @@ public sealed class EnumKeyDictionarySerializer<TKey, TValue> : SerializerBase<D
 {
     /// <summary>
     ///     <para xml:lang="en">
-    ///     Static cache mapping enum values to their string representations to avoid repeated <see cref="Enum.ToString()"/> calls
-    ///     during serialization. This trades a small amount of memory per <typeparamref name="TKey"/> for faster lookups
+    ///     Static cache mapping enum values to their string representations to avoid repeated <see cref="Enum.ToString()" /> calls
+    ///     during serialization. This trades a small amount of memory per <typeparamref name="TKey" /> for faster lookups
     ///     and reduced allocations on hot paths.
     ///     </para>
     ///     <para xml:lang="zh">
-    ///     按 <typeparamref name="TKey"/> 进行静态缓存的枚举到字符串映射，用于在序列化期间避免重复调用
-    ///     <see cref="Enum.ToString()"/>。这是一个典型的“以空间换时间”的优化：为每个枚举类型占用少量额外内存，
+    ///     按 <typeparamref name="TKey" /> 进行静态缓存的枚举到字符串映射，用于在序列化期间避免重复调用
+    ///     <see cref="Enum.ToString()" />。这是一个典型的“以空间换时间”的优化：为每个枚举类型占用少量额外内存，
     ///     以换取更快的查找速度和更少的临时分配。
     ///     </para>
     /// </summary>
@@ -46,17 +46,17 @@ public sealed class EnumKeyDictionarySerializer<TKey, TValue> : SerializerBase<D
 
     /// <summary>
     ///     <para xml:lang="en">
-    ///     Static cache mapping string representations back to enum values to avoid repeated <see cref="Enum.TryParse(string, out System.Enum)"/>
-    ///     (and related) calls during deserialization. This improves performance at the cost of keeping a per-<typeparamref name="TKey"/>
+    ///     Static cache mapping string representations back to enum values to avoid repeated calls during deserialization. This improves performance at the cost of keeping a per-
+    ///     <typeparamref name="TKey" />
     ///     lookup table in memory.
     ///     </para>
     ///     <para xml:lang="zh">
-    ///     按 <typeparamref name="TKey"/> 进行静态缓存的字符串到枚举映射，用于在反序列化期间避免重复调用
-    ///     <see cref="Enum.TryParse(string, out System.Enum)"/>（及类似解析方法）。通过在内存中为每个枚举类型
+    ///     按 <typeparamref name="TKey" /> 进行静态缓存的字符串到枚举映射，用于在反序列化期间避免重复调用（及类似解析方法）。通过在内存中为每个枚举类型
     ///     保留一份查找表来提升性能，同样属于“用内存换速度”的优化。
     ///     </para>
     /// </summary>
     private static readonly Dictionary<string, TKey> _stringToEnum = Enum.GetValues<TKey>().ToDictionary(k => k.ToString(), k => k);
+
     private readonly IBsonSerializer<TValue> _valueSerializer = BsonSerializer.LookupSerializer<TValue>();
 
     /// <inheritdoc />

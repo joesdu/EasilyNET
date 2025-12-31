@@ -47,7 +47,7 @@ public sealed class TimeOnlySerializerAsString(string format = "HH:mm:ss.ffffff"
         var time = context.Reader.ReadString();
         return TimeOnly.TryParseExact(time, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result)
                    ? result
-                   : throw new BsonSerializationException($"Invalid TimeOnly format: {time}");
+                   : throw new BsonSerializationException($"Invalid TimeOnly format: {time}. Expected format: {format}");
     }
 }
 
@@ -85,6 +85,14 @@ public sealed class TimeOnlySerializerAsTicks : StructSerializerBase<TimeOnly>
     public override TimeOnly Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
         var ticks = context.Reader.ReadInt64();
-        return new(ticks);
+        try
+        {
+            var timeSpan = TimeSpan.FromTicks(ticks);
+            return TimeOnly.FromTimeSpan(timeSpan);
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            throw new BsonSerializationException($"Invalid TimeOnly ticks value: {ticks}", ex);
+        }
     }
 }

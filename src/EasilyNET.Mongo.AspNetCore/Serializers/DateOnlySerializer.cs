@@ -47,7 +47,7 @@ public sealed class DateOnlySerializerAsString(string format = "yyyy-MM-dd") : S
         var str = context.Reader.ReadString();
         return DateOnly.TryParseExact(str, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result)
                    ? result
-                   : throw new BsonSerializationException($"Invalid DateOnly format: {str}");
+                   : throw new BsonSerializationException($"Invalid DateOnly format: {str}. Expected format: {format}");
     }
 }
 
@@ -78,13 +78,13 @@ public sealed class DateOnlySerializerAsTicks : StructSerializerBase<DateOnly>
     /// <inheritdoc />
     public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, DateOnly value)
     {
-        context.Writer.WriteInt64(value.ToDateTime(TimeOnly.MinValue).Ticks);
+        context.Writer.WriteInt64(value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc).Ticks);
     }
 
     /// <inheritdoc />
     public override DateOnly Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
         var ticks = context.Reader.ReadInt64();
-        return DateOnly.FromDateTime(new(ticks));
+        return DateOnly.FromDateTime(new(ticks, DateTimeKind.Utc));
     }
 }

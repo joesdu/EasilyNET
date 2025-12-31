@@ -10,8 +10,10 @@ namespace EasilyNET.Mongo.Core;
 ///     <para xml:lang="en">MongoDB basic DbContext</para>
 ///     <para xml:lang="zh">MongoDB基础DbContext</para>
 /// </summary>
-public class MongoContext : IDisposable
+public class MongoContext : IDisposable, IAsyncDisposable
 {
+    private bool _disposed;
+
     /// <summary>
     ///     <see cref="IMongoClient" />
     /// </summary>
@@ -24,8 +26,17 @@ public class MongoContext : IDisposable
     public IMongoDatabase Database { get; private set; }
 
     /// <inheritdoc />
-    void IDisposable.Dispose()
+    public ValueTask DisposeAsync()
     {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+        return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        Dispose(true);
         GC.SuppressFinalize(this);
     }
 
@@ -90,5 +101,23 @@ public class MongoContext : IDisposable
         t.Client = new MongoClient(settings);
         t.Database = t.Client.GetDatabase(dbName);
         return t;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Dispose resources</para>
+    ///     <para xml:lang="zh">释放资源</para>
+    /// </summary>
+    /// <param name="disposing"></param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        if (disposing)
+        {
+            Client?.Dispose();
+        }
+        _disposed = true;
     }
 }

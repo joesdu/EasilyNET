@@ -103,7 +103,7 @@ public static class CollectionIndexExtensions
             PropertyCache.TryAdd(dbContextType, properties);
         }
         // 预先获取所有集合信息，避免循环中多次查询
-        var collectionOptions = dbContext.Database.ListCollections().ToList().ToDictionary(doc => doc["name"].AsString,
+        var collectionOptions = dbContext.Database.ListCollections().ToEnumerable().ToDictionary(doc => doc["name"].AsString,
             doc => doc.Contains("options") && doc["options"].AsBsonDocument.Contains("timeseries"));
         foreach (var prop in properties)
         {
