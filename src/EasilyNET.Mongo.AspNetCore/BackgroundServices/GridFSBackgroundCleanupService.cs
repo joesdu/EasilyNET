@@ -26,9 +26,12 @@ internal sealed class GridFSBackgroundCleanupService(IServiceProvider sp, ILogge
             {
                 await CleanupAsync(stoppingToken);
             }
-            catch (Exception ex)when (logger.IsEnabled(LogLevel.Error))
+            catch (Exception ex)
             {
-                logger.LogError(ex, "Error occurred while cleaning up GridFS resources.");
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(ex, "Error occurred while cleaning up GridFS resources.");
+                }
             }
 
             // Wait for next cleanup cycle
