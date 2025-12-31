@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using EasilyNET.Core.Misc;
 using EasilyNET.Mongo.AspNetCore.Options;
 using EasilyNET.Mongo.Core;
@@ -25,6 +27,7 @@ public static class CollectionIndexExtensions
 {
     private static readonly ConcurrentDictionary<string, byte> CollectionCache = [];
     private static readonly ConcurrentDictionary<Type, PropertyInfo[]> PropertyCache = [];
+    private static readonly Lazy<HashSet<Type>> TimeSeriesTypes = new(() => AssemblyHelper.FindTypesByAttribute<TimeSeriesCollectionAttribute>(o => o is { IsClass: true, IsAbstract: false }, false).ToHashSet());
 
     /// <summary>
     /// 对标记 MongoContext 的实体对象，自动创建 MongoDB 索引
@@ -99,11 +102,13 @@ public static class CollectionIndexExtensions
             ];
             PropertyCache.TryAdd(dbContextType, properties);
         }
-        var timeSeriesTypes = AssemblyHelper.FindTypesByAttribute<TimeSeriesCollectionAttribute>(o => o is { IsClass: true, IsAbstract: false }, false).ToHashSet();
+        // 预先获取所有集合信息，避免循环中多次查询
+        var collectionOptions = dbContext.Database.ListCollections().ToList().ToDictionary(doc => doc["name"].AsString,
+            doc => doc.Contains("options") && doc["options"].AsBsonDocument.Contains("timeseries"));
         foreach (var prop in properties)
         {
             var entityType = prop.PropertyType.GetGenericArguments()[0];
-            if (timeSeriesTypes.Contains(entityType))
+            if (TimeSeriesTypes.Value.Contains(entityType))
             {
                 continue;
             }
@@ -114,22 +119,11 @@ public static class CollectionIndexExtensions
                 continue;
             }
             string? collectionName;
-            if (prop.GetValue(dbContext) is IMongoCollection<BsonDocument> collection)
+            IMongoCollection<BsonDocument>? collection = null;
+            if (prop.GetValue(dbContext) is IMongoCollection<BsonDocument> c)
             {
-                collectionName = collection.CollectionNamespace.CollectionName;
-                if (collectionName.StartsWith("system.", StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-                if (CollectionCache.TryAdd(collectionName, 0))
-                {
-                    dbContext.Database.CreateCollection(collectionName);
-                    if (logger is not null && logger.IsEnabled(LogLevel.Information))
-                    {
-                        logger.LogInformation("Created collection {CollectionName}.", collectionName);
-                    }
-                }
-                EnsureIndexesForCollection(collection, entityType, useCamelCase, logger);
+                collection = c;
+                collectionName = c.CollectionNamespace.CollectionName;
             }
             else if (prop.GetValue(dbContext) is not null)
             {
@@ -137,30 +131,50 @@ public static class CollectionIndexExtensions
                 var collectionNamespace = collectionNameProp?.GetValue(prop.GetValue(dbContext));
                 var nameProp = collectionNamespace?.GetType().GetProperty(nameof(IMongoCollection<>.CollectionNamespace.CollectionName));
                 collectionName = nameProp?.GetValue(collectionNamespace)?.ToString();
-                if (string.IsNullOrEmpty(collectionName) || collectionName.StartsWith("system.", StringComparison.OrdinalIgnoreCase))
+                if (!string.IsNullOrEmpty(collectionName))
                 {
-                    continue;
+                    collection = dbContext.Database.GetCollection<BsonDocument>(collectionName);
                 }
-                if (CollectionCache.TryAdd(collectionName, 0))
+            }
+            else
+            {
+                continue;
+            }
+            if (string.IsNullOrEmpty(collectionName) || collectionName.StartsWith("system.", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+            if (CollectionCache.TryAdd(collectionName, 0))
+            {
+                // 检查集合是否已存在于数据库中
+                if (!collectionOptions.ContainsKey(collectionName))
                 {
-                    dbContext.Database.CreateCollection(collectionName);
-                    if (logger is not null && logger.IsEnabled(LogLevel.Information))
+                    try
                     {
-                        logger.LogInformation("Created collection {CollectionName}.", collectionName);
+                        dbContext.Database.CreateCollection(collectionName);
+                        if (logger is not null && logger.IsEnabled(LogLevel.Information))
+                        {
+                            logger.LogInformation("Created collection {CollectionName}.", collectionName);
+                        }
+                        // 更新本地缓存的集合信息
+                        collectionOptions[collectionName] = false;
+                    }
+                    catch (MongoCommandException ex) when (ex.CodeName == "NamespaceExists")
+                    {
+                        // 忽略集合已存在的异常
                     }
                 }
-                var bsonCollection = dbContext.Database.GetCollection<BsonDocument>(collectionName);
-                EnsureIndexesForCollection(bsonCollection, entityType, useCamelCase, logger);
             }
+            var isTimeSeries = collectionOptions.TryGetValue(collectionName, out var isTs) && isTs;
+            EnsureIndexesForCollection(collection!, entityType, useCamelCase, logger, isTimeSeries);
         }
     }
 
-    private static void EnsureIndexesForCollection(IMongoCollection<BsonDocument> collection, Type type, bool useCamelCase, ILogger? logger)
+    private static void EnsureIndexesForCollection(IMongoCollection<BsonDocument> collection, Type type, bool useCamelCase, ILogger? logger, bool isTimeSeries)
     {
         var collectionName = collection.CollectionNamespace.CollectionName;
 
-        // 检查是否为时序集合并获取时序字段信息
-        var isTimeSeries = IsTimeSeriesCollection(collection.Database, collectionName);
+        // 获取时序字段信息
         var timeSeriesFields = GetTimeSeriesFields(type);
         if (isTimeSeries && timeSeriesFields.Count > 0)
         {
@@ -322,6 +336,8 @@ public static class CollectionIndexExtensions
     private static void ManageIndexes(IMongoCollection<BsonDocument> collection, Dictionary<string, IndexDefinition> existingIndexes, List<IndexDefinition> requiredIndexes, ILogger? logger)
     {
         var collectionName = collection.CollectionNamespace.CollectionName;
+        var processedExistingIndexes = new HashSet<string>();
+
         // 1. 检查需要创建或更新的索引
         foreach (var requiredIndex in requiredIndexes)
         {
@@ -329,6 +345,7 @@ public static class CollectionIndexExtensions
             var matchingIndex = FindMatchingIndex(existingIndexes.Values, requiredIndex);
             if (matchingIndex is not null)
             {
+                processedExistingIndexes.Add(matchingIndex.Name);
                 // 找到相同字段的索引，比较定义
                 if (matchingIndex.Equals(requiredIndex))
                 {
@@ -347,34 +364,7 @@ public static class CollectionIndexExtensions
                     }
                     try
                     {
-                        if (existingIndexes.ContainsKey(matchingIndex.Name))
-                        {
-                            try
-                            {
-                                collection.Indexes.DropOne(matchingIndex.Name);
-                            }
-                            catch (MongoCommandException ex) when (ex.Message.Contains("index not found"))
-                            {
-                                if (logger is not null && logger.IsEnabled(LogLevel.Warning))
-                                {
-                                    logger.LogWarning("索引 {IndexName} 在集合 {CollectionName} 中不存在,跳过删除.", matchingIndex.Name, collectionName);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                if (logger is not null && logger.IsEnabled(LogLevel.Warning))
-                                {
-                                    logger.LogWarning(ex, "Failed to drop unused index {IndexName} from collection {CollectionName}.", matchingIndex.Name, collectionName);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (logger is not null && logger.IsEnabled(LogLevel.Warning))
-                            {
-                                logger.LogWarning("Index {IndexName} not found in collection {CollectionName}, skip drop.", matchingIndex.Name, collectionName);
-                            }
-                        }
+                        DropIndex(collection, matchingIndex.Name, logger);
                         CreateIndex(collection, requiredIndex, logger);
                     }
                     catch (Exception ex)
@@ -389,6 +379,27 @@ public static class CollectionIndexExtensions
             }
             else
             {
+                // 检查是否存在同名但字段不同的索引（名称冲突）
+                if (existingIndexes.ContainsKey(requiredIndex.Name))
+                {
+                    processedExistingIndexes.Add(requiredIndex.Name);
+                    if (logger is not null && logger.IsEnabled(LogLevel.Warning))
+                    {
+                        logger.LogWarning("Index name collision detected for {IndexName} in collection {CollectionName}. Dropping existing index with different keys.", requiredIndex.Name, collectionName);
+                    }
+                    try
+                    {
+                        DropIndex(collection, requiredIndex.Name, logger);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (logger is not null && logger.IsEnabled(LogLevel.Error))
+                        {
+                            logger.LogError(ex, "Failed to drop colliding index {IndexName} in collection {CollectionName}.", requiredIndex.Name, collectionName);
+                        }
+                        throw;
+                    }
+                }
                 if (logger is not null && logger.IsEnabled(LogLevel.Information))
                 {
                     // 索引不存在，需要创建
@@ -408,24 +419,33 @@ public static class CollectionIndexExtensions
                 }
             }
         }
-        // 2. 检查需要删除的索引（存在于数据库但不在需要的索引中）
-        var requiredIndexNames = requiredIndexes.Select(idx => idx.Name).ToHashSet();
-        foreach (var existingIndexName in existingIndexes.Keys.Where(existingIndexName => !requiredIndexNames.Contains(existingIndexName)))
+
+        // 2. 检查需要删除的索引（存在于数据库但不在需要的索引中且未被处理过）
+        foreach (var existingIndexName in existingIndexes.Keys.Where(existingIndexName => !processedExistingIndexes.Contains(existingIndexName)))
         {
             if (logger is not null && logger.IsEnabled(LogLevel.Information))
             {
                 logger.LogInformation("Dropping unused index {IndexName} from collection {CollectionName}.", existingIndexName, collectionName);
             }
-            try
+            DropIndex(collection, existingIndexName, logger);
+        }
+    }
+
+    private static void DropIndex(IMongoCollection<BsonDocument> collection, string indexName, ILogger? logger)
+    {
+        try
+        {
+            collection.Indexes.DropOne(indexName);
+        }
+        catch (MongoCommandException ex) when (ex.CodeName == "IndexNotFound" || ex.Message.Contains("index not found"))
+        {
+            // Ignore
+        }
+        catch (Exception ex)
+        {
+            if (logger is not null && logger.IsEnabled(LogLevel.Warning))
             {
-                collection.Indexes.DropOne(existingIndexName);
-            }
-            catch (Exception ex)
-            {
-                if (logger is not null && logger.IsEnabled(LogLevel.Warning))
-                {
-                    logger.LogWarning(ex, "Failed to drop unused index {IndexName} from collection {CollectionName}.", existingIndexName, collectionName);
-                }
+                logger.LogWarning(ex, "Failed to drop index {IndexName} from collection {CollectionName}.", indexName, collection.CollectionNamespace.CollectionName);
             }
         }
     }
@@ -954,30 +974,14 @@ public static class CollectionIndexExtensions
         // 保留前缀和后缀，中间用哈希值填充
         var prefix = indexName[..(maxLength / 3)];
         var suffix = indexName[^(maxLength / 3)..];
-        var hash = indexName.GetHashCode().ToString("X")[..Math.Min(8, maxLength - prefix.Length - suffix.Length)];
+        var hash = GetDeterministicHash(indexName)[..Math.Min(8, maxLength - prefix.Length - suffix.Length)];
         return $"{prefix}_{hash}_{suffix}";
     }
 
-    /// <summary>
-    /// 检测集合是否为时序集合
-    /// </summary>
-    /// <param name="database">数据库</param>
-    /// <param name="collectionName">集合名称</param>
-    /// <returns>是否为时序集合</returns>
-    private static bool IsTimeSeriesCollection(IMongoDatabase database, string collectionName)
+    private static string GetDeterministicHash(string input)
     {
-        try
-        {
-            var collectionInfo = database.ListCollections(new ListCollectionsOptions
-            {
-                Filter = Builders<BsonDocument>.Filter.Eq("name", collectionName)
-            }).FirstOrDefault();
-            return collectionInfo?.Contains("options") == true && collectionInfo["options"].AsBsonDocument.Contains("timeseries");
-        }
-        catch
-        {
-            return false;
-        }
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        return BitConverter.ToString(hashBytes).Replace("-", "");
     }
 
     /// <summary>

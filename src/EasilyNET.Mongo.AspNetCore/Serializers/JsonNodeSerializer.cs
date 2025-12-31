@@ -1,7 +1,6 @@
-using System.Text.Json;
 using System.Text.Json.Nodes;
-using EasilyNET.Mongo.AspNetCore.Converters;
 using MongoDB.Bson;
+using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 
@@ -33,121 +32,169 @@ public sealed class JsonNodeSerializer : SerializerBase<JsonNode?>
     /// <inheritdoc />
     public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, JsonNode? value)
     {
-        switch (value)
+        if (value is null)
         {
-            case null:
-                context.Writer.WriteNull();
-                return;
-            case JsonValue jsonValue:
-                // Handle scalar values directly
-                switch (jsonValue.GetValue<object>())
-                {
-                    case string strValue:
-                        context.Writer.WriteString(strValue);
-                        break;
-                    case int intValue:
-                        context.Writer.WriteInt32(intValue);
-                        break;
-                    case long longValue:
-                        context.Writer.WriteInt64(longValue);
-                        break;
-                    case double doubleValue:
-                        context.Writer.WriteDouble(doubleValue);
-                        break;
-                    case bool boolValue:
-                        context.Writer.WriteBoolean(boolValue);
-                        break;
-                    case decimal decimalValue:
-                        context.Writer.WriteDecimal128(decimalValue);
-                        break;
-                    default:
-                        throw new BsonSerializationException($"Unsupported scalar value type: {jsonValue.GetValue<object?>()?.GetType()}");
-                }
-                return;
-            case JsonArray jsonArray:
-                // Handle JsonArray using BsonArraySerializer
-                var bsonArray = new BsonArray();
-                foreach (var item in jsonArray)
-                {
-                    bsonArray.Add(BsonValue.Create(item));
-                }
-                BsonArraySerializer.Instance.Serialize(context, bsonArray);
-                return;
+            context.Writer.WriteNull();
+            return;
         }
-        var jsonString = value.ToJsonString();
-        var bsonDocument = BsonDocument.Parse(jsonString);
-        BsonDocumentSerializer.Instance.Serialize(context, bsonDocument);
+        WriteJsonNode(context.Writer, value);
     }
 
     /// <inheritdoc />
-    public override JsonNode? Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
+    public override JsonNode? Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args) => ReadJsonNode(context.Reader);
+
+    internal static void WriteJsonNode(IBsonWriter writer, JsonNode node)
     {
-        var currentBsonType = context.Reader.GetCurrentBsonType();
+        switch (node)
+        {
+            case JsonObject obj:
+                writer.WriteStartDocument();
+                foreach (var kvp in obj)
+                {
+                    writer.WriteName(kvp.Key);
+                    if (kvp.Value is null)
+                    {
+                        writer.WriteNull();
+                    }
+                    else
+                    {
+                        WriteJsonNode(writer, kvp.Value);
+                    }
+                }
+                writer.WriteEndDocument();
+                break;
+            case JsonArray arr:
+                writer.WriteStartArray();
+                foreach (var item in arr)
+                {
+                    if (item is null)
+                    {
+                        writer.WriteNull();
+                    }
+                    else
+                    {
+                        WriteJsonNode(writer, item);
+                    }
+                }
+                writer.WriteEndArray();
+                break;
+            case JsonValue val:
+                WriteJsonValue(writer, val);
+                break;
+            default:
+                throw new BsonSerializationException($"Unsupported JsonNode type: {node.GetType()}");
+        }
+    }
+
+    private static void WriteJsonValue(IBsonWriter writer, JsonValue val)
+    {
+        if (val.TryGetValue(out int i))
+        {
+            writer.WriteInt32(i);
+        }
+        else if (val.TryGetValue(out long l))
+        {
+            writer.WriteInt64(l);
+        }
+        else if (val.TryGetValue(out double d))
+        {
+            writer.WriteDouble(d);
+        }
+        else if (val.TryGetValue(out bool b))
+        {
+            writer.WriteBoolean(b);
+        }
+        else if (val.TryGetValue(out string? s))
+        {
+            writer.WriteString(s);
+        }
+        else if (val.TryGetValue(out decimal dec))
+        {
+            writer.WriteDecimal128(dec);
+        }
+        else if (val.TryGetValue(out DateTime dt))
+        {
+            writer.WriteString(dt.ToString("o"));
+        }
+        else if (val.TryGetValue(out DateTimeOffset dto))
+        {
+            writer.WriteString(dto.ToString("o"));
+        }
+        else if (val.TryGetValue(out Guid g))
+        {
+            writer.WriteString(g.ToString());
+        }
+        else
+        {
+            writer.WriteString(val.ToString());
+        }
+    }
+
+    internal static JsonNode? ReadJsonNode(IBsonReader reader)
+    {
+        var currentBsonType = reader.GetCurrentBsonType();
         switch (currentBsonType)
         {
             case BsonType.Null:
-                context.Reader.ReadNull();
+                reader.ReadNull();
                 return null;
             case BsonType.Document:
-            {
-                var bsonDocument = BsonDocumentSerializer.Instance.Deserialize(context, args);
-                return BsonJsonNodeConverter.BsonToJsonNode(bsonDocument);
-            }
-            case BsonType.String:
-            {
-                var jsonString = context.Reader.ReadString();
-                try
+                reader.ReadStartDocument();
+                var obj = new JsonObject();
+                while (reader.ReadBsonType() != BsonType.EndOfDocument)
                 {
-                    return JsonNode.Parse(jsonString);
+                    var name = reader.ReadName();
+                    obj[name] = ReadJsonNode(reader);
                 }
-                catch (JsonException)
-                {
-                    return new JsonObject { ["value"] = jsonString };
-                }
-            }
+                reader.ReadEndDocument();
+                return obj;
             case BsonType.Array:
-            {
-                var bsonArray = BsonArraySerializer.Instance.Deserialize(context, args);
-                return BsonJsonNodeConverter.BsonToJsonNode(bsonArray);
-            }
+                reader.ReadStartArray();
+                var arr = new JsonArray();
+                while (reader.ReadBsonType() != BsonType.EndOfDocument)
+                {
+                    arr.Add(ReadJsonNode(reader));
+                }
+                reader.ReadEndArray();
+                return arr;
+            case BsonType.String:
+                return JsonValue.Create(reader.ReadString());
             case BsonType.Boolean:
-                return context.Reader.ReadBoolean();
-            case BsonType.DateTime:
-                return context.Reader.ReadDateTime().ToString("o");
-            case BsonType.Double:
-                return context.Reader.ReadDouble();
+                return JsonValue.Create(reader.ReadBoolean());
             case BsonType.Int32:
-                return context.Reader.ReadInt32();
+                return JsonValue.Create(reader.ReadInt32());
             case BsonType.Int64:
-                return context.Reader.ReadInt64();
+                return JsonValue.Create(reader.ReadInt64());
+            case BsonType.Double:
+                return JsonValue.Create(reader.ReadDouble());
             case BsonType.Decimal128:
-                return (decimal)context.Reader.ReadDecimal128();
+                return JsonValue.Create((decimal)reader.ReadDecimal128());
+            case BsonType.DateTime:
+                return JsonValue.Create(reader.ReadDateTime().ToString("o"));
             case BsonType.ObjectId:
-                return context.Reader.ReadObjectId().ToString();
+                return JsonValue.Create(reader.ReadObjectId().ToString());
             case BsonType.Binary:
-                return Convert.ToBase64String(context.Reader.ReadBinaryData().Bytes);
-            case BsonType.RegularExpression:
-                return context.Reader.ReadRegularExpression().Pattern;
-            case BsonType.JavaScript:
-                return context.Reader.ReadJavaScript();
-            case BsonType.Symbol:
-                return context.Reader.ReadSymbol();
-            case BsonType.JavaScriptWithScope:
-                return context.Reader.ReadJavaScriptWithScope();
+                return JsonValue.Create(Convert.ToBase64String(reader.ReadBinaryData().Bytes));
             case BsonType.Timestamp:
-            {
-                var bsonTimestamp = context.Reader.ReadTimestamp();
+                var bsonTimestamp = reader.ReadTimestamp();
                 var timestampDateTime = DateTimeOffset.FromUnixTimeSeconds(bsonTimestamp).UtcDateTime;
-                return timestampDateTime.ToString("o"); // ISO 8601 format
-            }
+                return JsonValue.Create(timestampDateTime.ToString("o"));
+            case BsonType.RegularExpression:
+                return JsonValue.Create(reader.ReadRegularExpression().Pattern);
+            case BsonType.JavaScript:
+                return JsonValue.Create(reader.ReadJavaScript());
+            case BsonType.Symbol:
+                return JsonValue.Create(reader.ReadSymbol());
+            case BsonType.JavaScriptWithScope:
+                return JsonValue.Create(reader.ReadJavaScriptWithScope());
             case BsonType.MinKey:
-                context.Reader.ReadMinKey();
-                return "MinKey";
+                reader.ReadMinKey();
+                return JsonValue.Create("MinKey");
             case BsonType.MaxKey:
-                context.Reader.ReadMaxKey();
-                return "MaxKey";
+                reader.ReadMaxKey();
+                return JsonValue.Create("MaxKey");
             case BsonType.Undefined:
-                context.Reader.ReadUndefined();
+                reader.ReadUndefined();
                 return null;
             case BsonType.EndOfDocument:
             default:

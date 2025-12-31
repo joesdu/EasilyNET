@@ -30,6 +30,11 @@ namespace EasilyNET.Mongo.AspNetCore.Serializers;
 /// </typeparam>
 public sealed class EnumKeyDictionarySerializer<TKey, TValue> : SerializerBase<Dictionary<TKey, TValue>> where TKey : struct, Enum
 {
+    // Cache Enum string representations to avoid repeated ToString() calls
+    private static readonly Dictionary<TKey, string> _enumToString = Enum.GetValues<TKey>().ToDictionary(k => k, k => k.ToString());
+
+    // Cache String to Enum mapping to avoid repeated Enum.TryParse calls
+    private static readonly Dictionary<string, TKey> _stringToEnum = Enum.GetValues<TKey>().ToDictionary(k => k.ToString(), k => k);
     private readonly IBsonSerializer<TValue> _valueSerializer = BsonSerializer.LookupSerializer<TValue>();
 
     /// <inheritdoc />
@@ -38,7 +43,12 @@ public sealed class EnumKeyDictionarySerializer<TKey, TValue> : SerializerBase<D
         context.Writer.WriteStartDocument();
         foreach (var kvp in value)
         {
-            context.Writer.WriteName(kvp.Key.ToString());
+            // Use cached string if available, otherwise fallback to ToString() (e.g. for flags or invalid values)
+            if (!_enumToString.TryGetValue(kvp.Key, out var keyStr))
+            {
+                keyStr = kvp.Key.ToString();
+            }
+            context.Writer.WriteName(keyStr);
             _valueSerializer.Serialize(context, kvp.Value);
         }
         context.Writer.WriteEndDocument();
@@ -52,7 +62,13 @@ public sealed class EnumKeyDictionarySerializer<TKey, TValue> : SerializerBase<D
         while (context.Reader.ReadBsonType() != BsonType.EndOfDocument)
         {
             var keyString = context.Reader.ReadName();
-            if (Enum.TryParse(keyString, out TKey key))
+            // Use cached enum value if available
+            if (_stringToEnum.TryGetValue(keyString, out var key))
+            {
+                var value = _valueSerializer.Deserialize(context);
+                dictionary.Add(key, value);
+            }
+            else if (Enum.TryParse(keyString, out key))
             {
                 var value = _valueSerializer.Deserialize(context);
                 dictionary.Add(key, value);

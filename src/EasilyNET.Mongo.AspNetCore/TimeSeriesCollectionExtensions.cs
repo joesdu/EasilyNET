@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Reflection;
 using EasilyNET.Core.Misc;
 using EasilyNET.Mongo.Core;
@@ -30,7 +29,9 @@ public static class TimeSeriesCollectionExtensions
     /// </summary>
     private const string IllegalName = "system.profile";
 
-    private static readonly ConcurrentBag<string> CollectionCache = [];
+    // Cache the types with TimeSeriesCollectionAttribute to avoid repeated reflection scanning.
+    // 缓存带有 TimeSeriesCollectionAttribute 的类型，以避免重复的反射扫描。
+    private static readonly Lazy<HashSet<Type>> CachedTimeSeriesTypes = new(() => AssemblyHelper.FindTypesByAttribute<TimeSeriesCollectionAttribute>(o => o is { IsClass: true, IsAbstract: false }, false).ToHashSet());
 
     /// <summary>
     ///     <para xml:lang="en">
@@ -55,16 +56,10 @@ public static class TimeSeriesCollectionExtensions
             var logger = loggerFactory?.CreateLogger(nameof(TimeSeriesCollectionExtensions));
             try
             {
-                var collections = db.Database.ListCollectionNames().ToList();
-                // Ensure CollectionCache is thread-safe for additions if accessed by multiple EnsureTimeSeriesCollections calls concurrently.
-                // ConcurrentBag is already thread-safe for Add.
-                // 确保 CollectionCache 在并发调用 EnsureTimeSeriesCollections 时对于添加操作是线程安全的。
-                // ConcurrentBag 本身对于 Add 操作就是线程安全的。
-                foreach (var colName in collections.Where(colName => !CollectionCache.Contains(colName)))
-                {
-                    CollectionCache.Add(colName);
-                }
-                EnsureTimeSeriesCollections(db.Database, logger);
+                // Fetch existing collection names for the current database.
+                // 获取当前数据库的现有集合名称。
+                var existingCollections = new HashSet<string>(db.Database.ListCollectionNames().ToList(), StringComparer.Ordinal);
+                EnsureTimeSeriesCollections(db.Database, existingCollections, logger);
             }
             catch (Exception ex)
             {
@@ -81,22 +76,23 @@ public static class TimeSeriesCollectionExtensions
                 return;
             }
             var globalLogger = loggerFactory.CreateLogger("MongoTimeSeriesCreationTask");
-            globalLogger.LogError(t.Exception, "Background task for creating MongoDB time-series collections failed.");
+            if (globalLogger.IsEnabled(LogLevel.Error))
+            {
+                globalLogger.LogError(t.Exception, "Background task for creating MongoDB time-series collections failed.");
+            }
         }, TaskScheduler.Default);
         return app;
     }
 
-    private static void EnsureTimeSeriesCollections(IMongoDatabase db, ILogger? logger)
+    private static void EnsureTimeSeriesCollections(IMongoDatabase db, HashSet<string> existingCollections, ILogger? logger)
     {
-        var types = AssemblyHelper.FindTypesByAttribute<TimeSeriesCollectionAttribute>(o => o is { IsClass: true, IsAbstract: false }, false);
-        foreach (var type in types)
+        foreach (var type in CachedTimeSeriesTypes.Value)
         {
-            var tsCollectionAttrs = type.GetCustomAttributes<TimeSeriesCollectionAttribute>(false).ToArray();
-            if (tsCollectionAttrs.Length == 0)
+            var attribute = type.GetCustomAttribute<TimeSeriesCollectionAttribute>(false);
+            if (attribute is null)
             {
                 continue;
             }
-            var attribute = tsCollectionAttrs[0];
             var collectionName = attribute.CollectionName;
             if (IllegalName.Equals(collectionName, StringComparison.OrdinalIgnoreCase))
             {
@@ -106,8 +102,7 @@ public static class TimeSeriesCollectionExtensions
                 }
                 continue;
             }
-            var collectionExists = CollectionCache.Contains(collectionName);
-            if (!collectionExists)
+            if (!existingCollections.Contains(collectionName))
             {
                 try
                 {
@@ -120,19 +115,15 @@ public static class TimeSeriesCollectionExtensions
                     {
                         logger.LogInformation("Successfully created time-series collection: {CollectionName}", collectionName);
                     }
-                    CollectionCache.Add(collectionName);
+                    existingCollections.Add(collectionName);
                 }
-                catch (MongoCommandException ex) when (ex.Message.Contains("already exists"))
+                catch (MongoCommandException ex) when (ex.CodeName == "NamespaceExists" || ex.Message.Contains("already exists"))
                 {
                     if (logger is not null && logger.IsEnabled(LogLevel.Warning))
                     {
                         logger.LogWarning("Time-series collection {CollectionName} already exists. Skipping creation.", collectionName);
                     }
-                    // Ensure it's in the cache if it already exists // 如果集合已存在，确保它在缓存中
-                    if (!CollectionCache.Contains(collectionName))
-                    {
-                        CollectionCache.Add(collectionName);
-                    }
+                    existingCollections.Add(collectionName);
                 }
                 catch (Exception ex)
                 {
@@ -214,7 +205,7 @@ public static class TimeSeriesCollectionExtensions
                         logger.LogInformation("Successfully created index {IndexName} on metaField and timeField for collection {CollectionName}.", indexName, collectionName);
                     }
                 }
-                catch (MongoCommandException ex) when (ex.Message.Contains("already exists") || ex.Message.Contains("would create a duplicate index"))
+                catch (MongoCommandException ex) when (ex.CodeName == "IndexOptionsConflict" || ex.CodeName == "IndexKeySpecsConflict" || ex.Message.Contains("already exists"))
                 {
                     if (logger is not null && logger.IsEnabled(LogLevel.Warning))
                     {

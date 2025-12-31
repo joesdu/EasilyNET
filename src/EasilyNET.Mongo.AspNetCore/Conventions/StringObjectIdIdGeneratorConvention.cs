@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Concurrent;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
@@ -104,6 +105,12 @@ internal sealed class StringToObjectIdIdGeneratorConvention : ConventionBase, IP
 /// </summary>
 file class CustomStringObjectIdGenerator : IIdGenerator
 {
+    // 缓存文档类型及其需要处理的集合成员
+    private static readonly ConcurrentDictionary<Type, List<BsonMemberMap>> _documentCollectionMembersCache = new();
+
+    // 缓存项类型及其Id成员映射
+    private static readonly ConcurrentDictionary<Type, BsonMemberMap?> _itemIdMemberMapCache = new();
+
     /// <summary>
     ///     <para xml:lang="en">Generate new Id</para>
     ///     <para xml:lang="zh">生成新的Id</para>
@@ -118,30 +125,37 @@ file class CustomStringObjectIdGenerator : IIdGenerator
     /// </param>
     public object GenerateId(object container, object document)
     {
-        var classMap = BsonClassMap.LookupClassMap(document.GetType());
-        // 递归处理所有成员映射
-        foreach (var memberMap in classMap.AllMemberMaps)
+        var docType = document.GetType();
+
+        // 获取或计算该文档类型的集合成员列表
+        var collectionMembers = _documentCollectionMembersCache.GetOrAdd(docType, type =>
         {
-            // 如果成员类型是泛型集合，则处理集合中的项
-            if (!typeof(IEnumerable).IsAssignableFrom(memberMap.MemberType) || !memberMap.MemberType.IsGenericType)
-            {
-                continue;
-            }
-            var itemType = memberMap.MemberType.GetGenericArguments().FirstOrDefault();
-            if (itemType is null)
-            {
-                continue;
-            }
+            var classMap = BsonClassMap.LookupClassMap(type);
+            return [.. classMap.AllMemberMaps.Where(memberMap => typeof(IEnumerable).IsAssignableFrom(memberMap.MemberType) && memberMap.MemberType.IsGenericType && memberMap.MemberType.GetGenericArguments().Length > 0)];
+        });
+        foreach (var memberMap in collectionMembers)
+        {
             if (memberMap.Getter(document) is not IEnumerable items)
             {
                 continue;
             }
             foreach (var item in items)
             {
-                var itemClassMap = BsonClassMap.LookupClassMap(item.GetType());
-                var itemIdMemberMap = itemClassMap.IdMemberMap;
+                if (item is null)
+                {
+                    continue;
+                }
+                var itemType = item.GetType();
+                // 获取或计算该项类型的Id成员映射
+                var itemIdMemberMap = _itemIdMemberMapCache.GetOrAdd(itemType, type =>
+                {
+                    var itemClassMap = BsonClassMap.LookupClassMap(type);
+                    var idMap = itemClassMap.IdMemberMap;
+                    // 仅当Id类型为string时才缓存
+                    return idMap is { MemberType: not null } && idMap.MemberType == typeof(string) ? idMap : null;
+                });
                 // 如果子对象的Id字段为空，则为其生成新的ObjectId
-                if (itemIdMemberMap is not null && itemIdMemberMap.MemberType == typeof(string) && IsEmpty(itemIdMemberMap.Getter(item)))
+                if (itemIdMemberMap is not null && IsEmpty(itemIdMemberMap.Getter(item)))
                 {
                     itemIdMemberMap.Setter(item, ObjectId.GenerateNewId().ToString());
                 }
