@@ -114,11 +114,13 @@ public sealed class JsonNodeSerializer : SerializerBase<JsonNode?>
         }
         else if (val.TryGetValue(out DateTime dt))
         {
-            writer.WriteString(dt.ToString("o"));
+            // Store DateTime as BSON DateTime (milliseconds since Unix epoch, UTC)
+            writer.WriteDateTime(BsonUtils.ToMillisecondsSinceEpoch(dt.ToUniversalTime()));
         }
         else if (val.TryGetValue(out DateTimeOffset dto))
         {
-            writer.WriteString(dto.ToString("o"));
+            // Store DateTimeOffset as BSON DateTime using its UTC instant
+            writer.WriteDateTime(BsonUtils.ToMillisecondsSinceEpoch(dto.UtcDateTime));
         }
         else if (val.TryGetValue(out Guid g))
         {
