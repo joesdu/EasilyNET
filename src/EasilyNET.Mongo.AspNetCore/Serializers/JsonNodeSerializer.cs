@@ -178,8 +178,9 @@ public sealed class JsonNodeSerializer : SerializerBase<JsonNode?>
             case BsonType.Binary:
                 return JsonValue.Create(Convert.ToBase64String(reader.ReadBinaryData().Bytes));
             case BsonType.Timestamp:
-                var bsonTimestamp = reader.ReadTimestamp();
-                var timestampDateTime = DateTimeOffset.FromUnixTimeSeconds(bsonTimestamp).UtcDateTime;
+                var rawTimestamp = reader.ReadTimestamp();
+                var bsonTimestamp = new BsonTimestamp(rawTimestamp);
+                var timestampDateTime = BsonUtils.ToDateTimeFromMillisecondsSinceEpoch(bsonTimestamp.Timestamp);
                 return JsonValue.Create(timestampDateTime.ToString("o"));
             case BsonType.RegularExpression:
                 return JsonValue.Create(reader.ReadRegularExpression().Pattern);
