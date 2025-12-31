@@ -27,6 +27,12 @@ public static class CollectionIndexExtensions
 {
     private static readonly ConcurrentDictionary<string, byte> CollectionCache = [];
     private static readonly ConcurrentDictionary<Type, PropertyInfo[]> PropertyCache = [];
+    /// <summary>
+    /// 缓存所有带有 <see cref="TimeSeriesCollectionAttribute"/> 特性的时间序列集合类型。
+    /// 使用 <see cref="Lazy{T}"/> 进行延迟初始化，默认线程安全，可在多个线程间安全共享。
+    /// 作为 <c>static</c> 字段，该缓存在整个应用程序生命周期内仅初始化一次，并在所有
+    /// <see cref="MongoContext"/> 实例之间复用，以减少重复的反射扫描开销。
+    /// </summary>
     private static readonly Lazy<HashSet<Type>> TimeSeriesTypes = new(() => AssemblyHelper.FindTypesByAttribute<TimeSeriesCollectionAttribute>(o => o is { IsClass: true, IsAbstract: false }, false).ToHashSet());
 
     /// <summary>
