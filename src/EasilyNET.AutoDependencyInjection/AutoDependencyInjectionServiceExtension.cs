@@ -5,6 +5,8 @@ using EasilyNET.AutoDependencyInjection.Factories;
 using EasilyNET.AutoDependencyInjection.Modules;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 // ReSharper disable UnusedMember.Global
 
@@ -28,31 +30,64 @@ public static class AutoDependencyInjectionServiceExtension
     /// </param>
     public static IHost GetApplicationHost(this ApplicationContext context) => context.ServiceProvider.GetRequiredService<IObjectAccessor<IHost>>().Value ?? throw new ArgumentNullException(nameof(context));
 
-    /// <summary>
-    ///     <para xml:lang="en">Initialize the application and configure middleware</para>
-    ///     <para xml:lang="zh">初始化应用，配置中间件</para>
-    /// </summary>
-    /// <param name="host">
-    ///     <para xml:lang="en">The application host</para>
-    ///     <para xml:lang="zh">应用程序构建器</para>
-    /// </param>
-    public static IHost InitializeApplication(this IHost host)
-    {
-        host.Services.GetRequiredService<IObjectAccessor<IHost>>().Value = host;
-        var runner = host.Services.GetRequiredService<IStartupModuleRunner>();
-        runner.Initialize();
-        return host;
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Get the <see cref="IConfiguration" /> service</para>
-    ///     <para xml:lang="zh">获取 <see cref="IConfiguration" /> 服务</para>
-    /// </summary>
     /// <param name="provider">
     ///     <para xml:lang="en">Service provider</para>
     ///     <para xml:lang="zh">服务提供者</para>
     /// </param>
-    public static IConfiguration GetConfiguration(this IServiceProvider provider) => provider.GetRequiredService<IConfiguration>();
+    extension(IServiceProvider provider)
+    {
+        /// <summary>
+        ///     <para xml:lang="en">Get the <see cref="IConfiguration" /> service</para>
+        ///     <para xml:lang="zh">获取 <see cref="IConfiguration" /> 服务</para>
+        /// </summary>
+        public IConfiguration GetConfiguration() => provider.GetRequiredService<IConfiguration>();
+
+        /// <summary>
+        ///     <para xml:lang="en">Get the logger for auto dependency injection</para>
+        ///     <para xml:lang="zh">获取自动依赖注入的日志记录器</para>
+        /// </summary>
+        internal ILogger GetAutoDILogger()
+        {
+            var factory = provider.GetService<ILoggerFactory>();
+            return factory?.CreateLogger(nameof(EasilyNET.AutoDependencyInjection)) ?? NullLogger.Instance;
+        }
+    }
+
+    /// <param name="host">
+    ///     <para xml:lang="en">The application host</para>
+    ///     <para xml:lang="zh">应用程序构建器</para>
+    /// </param>
+    extension(IHost host)
+    {
+        /// <summary>
+        ///     <para xml:lang="en">Initialize the application and configure middleware</para>
+        ///     <para xml:lang="zh">初始化应用，配置中间件</para>
+        /// </summary>
+        // TODO?: [Obsolete("Use InitializeApplicationAsync instead")]
+        public IHost InitializeApplication()
+        {
+            host.Services.GetRequiredService<IObjectAccessor<IHost>>().Value = host;
+            var runner = host.Services.GetRequiredService<IStartupModuleRunner>();
+            runner.Initialize();
+            return host;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Initialize the application and configure middleware asynchronously</para>
+        ///     <para xml:lang="zh">异步初始化应用，配置中间件</para>
+        /// </summary>
+        /// <param name="cancellationToken">
+        ///     <para xml:lang="en">Cancellation token</para>
+        ///     <para xml:lang="zh">取消令牌</para>
+        /// </param>
+        public async Task<IHost> InitializeApplicationAsync(CancellationToken cancellationToken = default)
+        {
+            host.Services.GetRequiredService<IObjectAccessor<IHost>>().Value = host;
+            var runner = host.Services.GetRequiredService<IStartupModuleRunner>();
+            await runner.InitializeAsync(cancellationToken).ConfigureAwait(false);
+            return host;
+        }
+    }
 
     /// <param name="services">
     ///     <para xml:lang="en"><see cref="IServiceCollection" /> to configure services</para>
@@ -71,8 +106,10 @@ public static class AutoDependencyInjectionServiceExtension
         public IServiceCollection AddApplicationModules<T>() where T : AppModule
         {
             ArgumentNullException.ThrowIfNull(services);
+            // 确保 ServiceRegistry 首先被注册
+            _ = services.GetOrCreateRegistry();
             services.AddSingleton<IObjectAccessor<IHost>>(new ObjectAccessor<IHost>());
-            services.AddScoped<IResolver>(sp => new Resolver(sp));
+            services.AddScoped<IResolver>(sp => new Resolver(sp, sp.GetRequiredService<ServiceRegistry>()));
             services.AddSingleton(typeof(INamedServiceFactory<>), typeof(NamedServiceFactory<>));
             ApplicationFactory.Create<T>(services);
             return services;
@@ -84,23 +121,39 @@ public static class AutoDependencyInjectionServiceExtension
             ArgumentNullException.ThrowIfNull(services);
             ArgumentNullException.ThrowIfNull(serviceType);
             ArgumentNullException.ThrowIfNull(implementationType);
-            var descriptor = new NamedServiceDescriptor(serviceType, implementationType, lifetime);
-            ServiceProviderExtension.NamedServices[(key, serviceType)] = descriptor;
+            var registry = services.GetOrCreateRegistry();
+            registry.RegisterNamedService(key, serviceType, implementationType, lifetime);
             switch (lifetime)
             {
                 case ServiceLifetime.Singleton:
-                    services.AddKeyedSingleton(descriptor.ServiceType, key, (p, _) => p.CreateInstance(descriptor.ImplementationType));
+                    services.AddKeyedSingleton(serviceType, key, (p, _) => p.CreateInstance(implementationType));
                     break;
                 case ServiceLifetime.Scoped:
-                    services.AddKeyedScoped(descriptor.ServiceType, key, (p, _) => p.CreateInstance(descriptor.ImplementationType));
+                    services.AddKeyedScoped(serviceType, key, (p, _) => p.CreateInstance(implementationType));
                     break;
                 case ServiceLifetime.Transient:
-                    services.AddKeyedTransient(descriptor.ServiceType, key, (p, _) => p.CreateInstance(descriptor.ImplementationType));
+                    services.AddKeyedTransient(serviceType, key, (p, _) => p.CreateInstance(implementationType));
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(lifetime), lifetime, null);
             }
             return services;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Get or create the <see cref="ServiceRegistry" /> for the service collection</para>
+        ///     <para xml:lang="zh">获取或创建服务集合的 <see cref="ServiceRegistry" /></para>
+        /// </summary>
+        internal ServiceRegistry GetOrCreateRegistry()
+        {
+            var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(ServiceRegistry));
+            if (descriptor?.ImplementationInstance is ServiceRegistry existing)
+            {
+                return existing;
+            }
+            var registry = new ServiceRegistry();
+            services.AddSingleton(registry);
+            return registry;
         }
     }
 }

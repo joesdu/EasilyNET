@@ -31,7 +31,7 @@ public static class TimeSeriesCollectionExtensions
 
     // Cache the types with TimeSeriesCollectionAttribute to avoid repeated reflection scanning.
     // 缓存带有 TimeSeriesCollectionAttribute 的类型，以避免重复的反射扫描。
-    private static readonly Lazy<HashSet<Type>> CachedTimeSeriesTypes = new(() => AssemblyHelper.FindTypesByAttribute<TimeSeriesCollectionAttribute>(o => o is { IsClass: true, IsAbstract: false }, false).ToHashSet());
+    private static readonly Lazy<HashSet<Type>> CachedTimeSeriesTypes = new(() => [.. AssemblyHelper.FindTypesByAttribute<TimeSeriesCollectionAttribute>(o => o is { IsClass: true, IsAbstract: false }, false)]);
 
     /// <summary>
     ///     <para xml:lang="en">

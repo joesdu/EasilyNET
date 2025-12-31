@@ -1,31 +1,50 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using EasilyNET.AutoDependencyInjection.Abstractions;
+using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EasilyNET.AutoDependencyInjection;
 
-internal sealed class Resolver(IServiceProvider provider, IServiceScope? scope = null) : IResolver
+/// <summary>
+///     <para xml:lang="en">Creates a new resolver instance</para>
+///     <para xml:lang="zh">创建新的解析器实例</para>
+/// </summary>
+/// <param name="provider">
+///     <para xml:lang="en">The service provider</para>
+///     <para xml:lang="zh">服务提供者</para>
+/// </param>
+/// <param name="registry">
+///     <para xml:lang="en">The service registry (optional, will try to resolve from provider if not provided)</para>
+///     <para xml:lang="zh">服务注册表（可选，如果未提供将尝试从提供者解析）</para>
+/// </param>
+/// <param name="scope">
+///     <para xml:lang="en">The service scope (optional)</para>
+///     <para xml:lang="zh">服务作用域（可选）</para>
+/// </param>
+internal sealed class Resolver(IServiceProvider provider, ServiceRegistry? registry = null, IServiceScope? scope = null) : IResolver
 {
-    private static readonly ConcurrentDictionary<Type, ConstructorInfo> CtorCache = new();
+    // 缓存构造函数及其参数信息，避免重复反射
+    private static readonly ConcurrentDictionary<Type, ConstructorCache> CtorCache = [];
+    private readonly ServiceRegistry? _registry = registry ?? provider.GetService<ServiceRegistry>();
 
+    /// <inheritdoc />
     public void Dispose()
     {
         scope?.Dispose();
     }
 
+    /// <inheritdoc />
     public T Resolve<T>() => (T)Resolve(typeof(T));
 
-    public object Resolve(Type serviceType)
-    {
-        var service = provider.GetService(serviceType) ?? throw new InvalidOperationException($"Unable to resolve service of type '{serviceType}'.");
-        return service;
-    }
+    /// <inheritdoc />
+    public object Resolve(Type serviceType) => provider.GetService(serviceType) ?? throw new InvalidOperationException($"Unable to resolve service of type '{serviceType.Name}'.");
 
+    /// <inheritdoc />
     public T Resolve<T>(params Parameter[] parameters) => (T)Resolve(typeof(T), parameters);
 
+    /// <inheritdoc />
     public object Resolve(Type serviceType, params Parameter[]? parameters)
     {
         if (parameters is null || parameters.Length == 0)
@@ -33,14 +52,17 @@ internal sealed class Resolver(IServiceProvider provider, IServiceScope? scope =
             return Resolve(serviceType);
         }
         // 使用参数覆盖创建实例：必须找到实现类型
-        var implType = GetImplementationType(serviceType) ?? throw new InvalidOperationException($"Unable to determine implementation type for '{serviceType}'. If '{serviceType}' is an abstract class or interface, it must be registered via DependencyInjectionAttribute or manual service registration.");
-        var ctor = SelectConstructor(implType, parameters, CanResolve);
-        var args = BuildArguments(ctor, parameters);
+        var implType = GetImplementationType(serviceType) ?? throw new InvalidOperationException($"Unable to determine implementation type for '{serviceType.Name}'. Register via {nameof(DependencyInjectionAttribute)} or manual registration.");
+        var cache = GetOrCreateCtorCache(implType);
+        var ctor = SelectBestConstructor(cache, parameters);
+        var args = BuildArguments(cache.GetParameterInfos(ctor), parameters);
         return ctor.Invoke(args);
     }
 
-    public IEnumerable<T> ResolveAll<T>() => (IEnumerable<T>)provider.GetServices(typeof(T));
+    /// <inheritdoc />
+    public IEnumerable<T> ResolveAll<T>() => provider.GetServices<T>();
 
+    /// <inheritdoc />
     public bool TryResolve<T>([MaybeNullWhen(false)] out T instance)
     {
         var ok = TryResolve(typeof(T), out var obj);
@@ -48,103 +70,178 @@ internal sealed class Resolver(IServiceProvider provider, IServiceScope? scope =
         return ok;
     }
 
+    /// <inheritdoc />
     public bool TryResolve(Type serviceType, out object? instance)
     {
         instance = provider.GetService(serviceType);
         return instance is not null;
     }
 
+    /// <inheritdoc />
     public T? ResolveOptional<T>() => (T?)provider.GetService(typeof(T));
 
+    /// <inheritdoc />
     public T ResolveNamed<T>(string name, params Parameter[]? parameters) => ResolveKeyed<T>(name, parameters);
 
+    /// <inheritdoc />
     public T ResolveKeyed<T>(object key, params Parameter[]? parameters)
     {
-        try
+        // 无参数时优先使用内置 keyed service
+        if (parameters is null || parameters.Length == 0)
         {
-            if (parameters is null || parameters.Length == 0)
+            try
             {
-                // use built-in keyed services if available
-                var value = provider.GetRequiredKeyedService(typeof(T), key);
-                return (T)value;
+                return (T)provider.GetRequiredKeyedService(typeof(T), key);
+            }
+            catch (InvalidOperationException)
+            {
+                // fallback to our registry below
             }
         }
-        catch (Exception ex)
+        // 从 ServiceRegistry 获取（如果可用）
+        if (_registry is null || !_registry.TryGetNamedService(key, typeof(T), out var descriptor) || descriptor is null)
         {
-            Debug.WriteLine(ex.Message);
-            // fallback to our registry
+            throw new InvalidOperationException($"No keyed service registered for key '{key}' and type '{typeof(T).Name}'.");
         }
-        var tupleKey = (key, typeof(T));
-        if (!ServiceProviderExtension.NamedServices.TryGetValue(tupleKey, out var descriptor))
-        {
-            throw new InvalidOperationException($"No keyed service registered for key '{key}' and type '{typeof(T)}'.");
-        }
-        var ctor = SelectConstructor(descriptor.ImplementationType, parameters ?? [], CanResolve);
-        var args = BuildArguments(ctor, parameters ?? []);
+        var cache = GetOrCreateCtorCache(descriptor.ImplementationType);
+        var ctor = SelectBestConstructor(cache, parameters ?? []);
+        var args = BuildArguments(cache.GetParameterInfos(ctor), parameters ?? []);
         return (T)ctor.Invoke(args);
     }
 
+    /// <inheritdoc />
     public IResolver BeginScope()
     {
         var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
         var serviceScope = scopeFactory.CreateScope();
-        return new Resolver(serviceScope.ServiceProvider, serviceScope);
+        return new Resolver(serviceScope.ServiceProvider, _registry, serviceScope);
     }
 
-    private static ConstructorInfo SelectConstructor(Type implType, Parameter[] parameters, Func<Type, bool> canResolve)
+    /// <summary>
+    /// 获取或创建构造函数缓存
+    /// </summary>
+    private static ConstructorCache GetOrCreateCtorCache(Type implType)
     {
-        if (!CtorCache.TryGetValue(implType, out var ctor))
+        return CtorCache.GetOrAdd(implType, static t =>
         {
-            ctor = implType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
-                           .OrderByDescending(c => c.GetParameters().Length)
-                           .FirstOrDefault() ??
-                   throw new InvalidOperationException($"No public constructor found for type {implType}.");
-            CtorCache[implType] = ctor;
-        }
-        // prefer constructor where all parameters can be satisfied
-        var candidates = implType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
-                                 .OrderByDescending(c => c.GetParameters().Length)
-                                 .ToArray();
-        foreach (var c in candidates)
+            var ctors = t.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
+            return ctors.Length == 0 ? throw new InvalidOperationException($"No public constructor found for type {t.Name}.") : new(ctors);
+        });
+    }
+
+    /// <summary>
+    /// 选择最佳构造函数（所有参数都可满足的优先）
+    /// </summary>
+    private ConstructorInfo SelectBestConstructor(ConstructorCache cache, Parameter[] parameters)
+    {
+        foreach (var ctor in cache.Constructors)
         {
-            if (c.GetParameters().All(p => parameters.Any(prm => prm.CanSupplyValue(p.ParameterType, p.Name)) || canResolve(p.ParameterType)))
+            var paramInfos = cache.GetParameterInfos(ctor);
+            if (CanSatisfyAllParameters(paramInfos, parameters))
             {
-                return c;
+                return ctor;
             }
         }
-        return ctor;
+        // 返回参数最多的构造函数作为 fallback
+        return cache.Constructors[0];
     }
 
-    private object?[] BuildArguments(ConstructorInfo ctor, Parameter[] parameters)
+    /// <summary>
+    /// 检查是否所有参数都可以被满足
+    /// </summary>
+    private bool CanSatisfyAllParameters(CachedParameterInfo[] paramInfos, Parameter[] parameters)
     {
-        return
-        [
-            .. ctor.GetParameters().Select(p =>
+        var any = false;
+        // ReSharper disable once LoopCanBeConvertedToQuery
+        foreach (var p in paramInfos)
+        {
+            var canSupply = parameters.Any(prm => prm.CanSupplyValue(p.ParameterType, p.Name));
+            if (canSupply || provider.GetService(p.ParameterType) is not null)
             {
-                var match = parameters.FirstOrDefault(prm => prm.CanSupplyValue(p.ParameterType, p.Name));
-                if (match is not null)
-                {
-                    return match.GetValue(provider, p.ParameterType, p.Name);
-                }
-                // handle keyed parameter attribute
-                var keyed = p.GetCustomAttributes<FromKeyedServicesAttribute>().FirstOrDefault();
-                if (keyed is null)
-                {
-                    return provider.GetRequiredService(p.ParameterType);
-                }
-                var keyProp = keyed.GetType().GetProperty(nameof(FromKeyedServicesAttribute.Key));
-                var key = keyProp?.GetValue(keyed)!;
-                return provider.GetRequiredKeyedService(p.ParameterType, key);
-            })
-        ];
+                continue;
+            }
+            any = true;
+            break;
+        }
+        return !any;
     }
 
-    private bool CanResolve(Type t) => provider.GetService(t) is not null;
+    /// <summary>
+    /// 构建构造函数参数数组
+    /// </summary>
+    private object?[] BuildArguments(CachedParameterInfo[] paramInfos, Parameter[] parameters)
+    {
+        var args = new object?[paramInfos.Length];
+        for (var i = 0; i < paramInfos.Length; i++)
+        {
+            var p = paramInfos[i];
+            object? value = null;
+            // ReSharper disable once LoopCanBeConvertedToQuery
+            foreach (var prm in parameters)
+            {
+                if (!prm.CanSupplyValue(p.ParameterType, p.Name))
+                {
+                    continue;
+                }
+                value = prm.GetValue(provider, p.ParameterType, p.Name);
+                break;
+            }
+            // 首先检查用户提供的参数覆盖
+            value ??= p.ServiceKey is not null
+                          ? provider.GetRequiredKeyedService(p.ParameterType, p.ServiceKey)
+                          : provider.GetRequiredService(p.ParameterType);
+            args[i] = value;
+        }
+        return args;
+    }
 
-    private static Type? GetImplementationType(Type serviceType) =>
-        serviceType is { IsAbstract: false, IsInterface: false }
-            ? serviceType
-            : ServiceProviderExtension.ServiceImplementations.TryGetValue(serviceType, out var impl)
-                ? impl
-                : null;
+    private Type? GetImplementationType(Type serviceType)
+    {
+        if (serviceType is { IsAbstract: false, IsInterface: false })
+        {
+            return serviceType;
+        }
+        // 优先使用 ServiceRegistry
+        if (_registry is not null && _registry.TryGetImplementationType(serviceType, out var impl))
+        {
+            return impl;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// 缓存参数信息，避免重复调用 GetParameters() 和 GetCustomAttributes()
+    /// </summary>
+    private sealed record CachedParameterInfo(Type ParameterType, string? Name, object? ServiceKey);
+
+    /// <summary>
+    /// 构造函数缓存，按参数数量降序排列
+    /// </summary>
+    private sealed class ConstructorCache(ConstructorInfo[] ctors)
+    {
+        private readonly ConcurrentDictionary<ConstructorInfo, CachedParameterInfo[]> _parameterCache = new();
+
+        public ConstructorInfo[] Constructors { get; } = [.. ctors.OrderByDescending(c => c.GetParameters().Length)];
+
+        public CachedParameterInfo[] GetParameterInfos(ConstructorInfo ctor)
+        {
+            return _parameterCache.GetOrAdd(ctor, static c =>
+            {
+                var ps = c.GetParameters();
+                var result = new CachedParameterInfo[ps.Length];
+                for (var i = 0; i < ps.Length; i++)
+                {
+                    var p = ps[i];
+                    object? serviceKey = null;
+                    var keyedAttr = p.GetCustomAttribute<FromKeyedServicesAttribute>();
+                    if (keyedAttr is not null)
+                    {
+                        serviceKey = keyedAttr.Key;
+                    }
+                    result[i] = new(p.ParameterType, p.Name, serviceKey);
+                }
+                return result;
+            });
+        }
+    }
 }

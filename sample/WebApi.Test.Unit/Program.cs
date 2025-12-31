@@ -71,7 +71,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // Add middleware for automatic injection
-app.InitializeApplication();
+await app.InitializeApplicationAsync();
 app.MapControllers();
 
 // 启动，关闭事件
@@ -79,7 +79,7 @@ app.Lifetime.ApplicationStopping.Register(OnShutdown);
 app.Lifetime.ApplicationStarted.Register(OnStarted);
 
 // .NET 启动
-app.Run();
+await app.RunAsync();
 return;
 
 void OnStarted()

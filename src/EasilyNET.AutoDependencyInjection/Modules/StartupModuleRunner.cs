@@ -7,28 +7,49 @@ namespace EasilyNET.AutoDependencyInjection.Modules;
 /// <inheritdoc cref="IStartupModuleRunner" />
 internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModuleRunner
 {
-    private static readonly Lazy<StartupModuleRunner> _instance = new(() => new(_startModuleType, _services));
+    private static readonly Lock _lock = new();
+    private static StartupModuleRunner? _instance;
 
-    private static Type? _startModuleType;
-    private static IServiceCollection? _services;
-
-    private StartupModuleRunner(Type? startModuleType, IServiceCollection? services) : base(startModuleType, services)
+    private StartupModuleRunner(Type startModuleType, IServiceCollection services) : base(startModuleType, services)
     {
         Services.AddSingleton<IStartupModuleRunner>(this);
         ConfigureServices();
     }
 
+    /// <inheritdoc />
+    // TODO?: [Obsolete("Use InitializeAsync method instead.")]
     public void Initialize() => InitializeModules();
 
+    /// <inheritdoc />
+    public Task InitializeAsync(CancellationToken cancellationToken = default) => InitializeModulesAsync(cancellationToken);
+
+    /// <summary>
+    ///     <para xml:lang="en">Get or create the singleton instance of <see cref="StartupModuleRunner" /></para>
+    ///     <para xml:lang="zh">获取或创建 <see cref="StartupModuleRunner" /> 的单例实例</para>
+    /// </summary>
+    /// <param name="startModuleType">
+    ///     <para xml:lang="en">The type of the startup module</para>
+    ///     <para xml:lang="zh">启动模块的类型</para>
+    /// </param>
+    /// <param name="services">
+    ///     <para xml:lang="en">The service collection</para>
+    ///     <para xml:lang="zh">服务集合</para>
+    /// </param>
     internal static StartupModuleRunner Instance(Type startModuleType, IServiceCollection services)
     {
-        if (_instance.IsValueCreated)
+        ArgumentNullException.ThrowIfNull(startModuleType);
+        ArgumentNullException.ThrowIfNull(services);
+        lock (_lock)
         {
-            return _instance.Value;
+            if (_instance is not null)
+            {
+                return _instance;
+            }
         }
-        Interlocked.CompareExchange(ref _startModuleType, startModuleType ?? throw new ArgumentNullException(nameof(startModuleType)), null);
-        Interlocked.CompareExchange(ref _services, services ?? throw new ArgumentNullException(nameof(services)), null);
-        return _instance.Value;
+        lock (_lock)
+        {
+            return _instance ??= new(startModuleType, services);
+        }
     }
 
     private void ConfigureServices()
@@ -38,7 +59,9 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
         foreach (var module in Modules)
         {
             Services.AddSingleton(module);
-            module.ConfigureServices(context);
+            // ConfigureServices 返回 Task，需要同步等待以确保服务按顺序注册
+            // 注意：这里保持同步调用是因为服务注册必须在 BuildServiceProvider 之前完成
+            module.ConfigureServices(context).GetAwaiter().GetResult();
         }
     }
 }

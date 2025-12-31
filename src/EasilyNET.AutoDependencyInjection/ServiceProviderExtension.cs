@@ -15,13 +15,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class ServiceProviderExtension
 {
-    // Keyed by (key, service type) to avoid collisions when the same key is used for multiple service types
-    internal static readonly ConcurrentDictionary<(object Key, Type ServiceType), NamedServiceDescriptor> NamedServices = new();
-
-    // 非 Keyed 的服务类型到实现类型的映射，用于解析带参数覆盖时确定实现类型
-    internal static readonly ConcurrentDictionary<Type, Type> ServiceImplementations = new();
-
-    private static readonly ConcurrentDictionary<Type, ConstructorInfo> ConstructorCache = new();
+    private static readonly ConcurrentDictionary<Type, ConstructorInfo> ConstructorCache = [];
 
     /// <param name="provider">Service provider.</param>
     extension(IServiceProvider provider)
@@ -32,13 +26,14 @@ public static class ServiceProviderExtension
         /// </summary>
         public IResolver CreateResolver(bool createScope = false)
         {
+            var registry = provider.GetService<ServiceRegistry>();
             if (!createScope)
             {
-                return new Resolver(provider);
+                return new Resolver(provider, registry);
             }
             var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
             var scope = scopeFactory.CreateScope();
-            return new Resolver(scope.ServiceProvider, scope);
+            return new Resolver(scope.ServiceProvider, registry, scope);
         }
 
         /// <summary>

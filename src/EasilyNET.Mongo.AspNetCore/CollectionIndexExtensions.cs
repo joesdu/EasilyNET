@@ -32,7 +32,7 @@ public static class CollectionIndexExtensions
     /// 作为 <c>static</c> 字段，该缓存在整个应用程序生命周期内仅初始化一次，并在所有
     /// <see cref="MongoContext" /> 实例之间复用，以减少重复的反射扫描开销。
     /// </summary>
-    private static readonly Lazy<HashSet<Type>> TimeSeriesTypes = new(() => AssemblyHelper.FindTypesByAttribute<TimeSeriesCollectionAttribute>(o => o is { IsClass: true, IsAbstract: false }, false).ToHashSet());
+    private static readonly Lazy<HashSet<Type>> TimeSeriesTypes = new(() => [.. AssemblyHelper.FindTypesByAttribute<TimeSeriesCollectionAttribute>(o => o is { IsClass: true, IsAbstract: false }, false)]);
 
     /// <summary>
     /// 对标记 MongoContext 的实体对象，自动创建 MongoDB 索引
