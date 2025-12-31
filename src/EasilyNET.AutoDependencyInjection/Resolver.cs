@@ -89,13 +89,11 @@ internal sealed class Resolver(IServiceProvider provider, ServiceRegistry? regis
         // 无参数时优先使用内置 keyed service
         if (parameters is null || parameters.Length == 0)
         {
-            try
+            // 使用 GetKeyedService 避免异常驱动的流程控制
+            var keyedService = provider.GetKeyedService<T>(key);
+            if (keyedService is not null)
             {
-                return (T)provider.GetRequiredKeyedService(typeof(T), key);
-            }
-            catch (InvalidOperationException)
-            {
-                // fallback to our registry below
+                return keyedService;
             }
         }
         // 从 ServiceRegistry 获取（如果可用）
@@ -151,7 +149,7 @@ internal sealed class Resolver(IServiceProvider provider, ServiceRegistry? regis
     /// </summary>
     private bool CanSatisfyAllParameters(CachedParameterInfo[] paramInfos, Parameter[] parameters)
     {
-        var any = false;
+        var hasUnsatisfiedParameter = false;
         // ReSharper disable once LoopCanBeConvertedToQuery
         foreach (var p in paramInfos)
         {
@@ -160,10 +158,10 @@ internal sealed class Resolver(IServiceProvider provider, ServiceRegistry? regis
             {
                 continue;
             }
-            any = true;
+            hasUnsatisfiedParameter = true;
             break;
         }
-        return !any;
+        return !hasUnsatisfiedParameter;
     }
 
     /// <summary>
@@ -186,7 +184,7 @@ internal sealed class Resolver(IServiceProvider provider, ServiceRegistry? regis
                 value = prm.GetValue(provider, p.ParameterType, p.Name);
                 break;
             }
-            // 首先检查用户提供的参数覆盖
+            // 如果用户没有提供参数覆盖，则从服务容器解析
             value ??= p.ServiceKey is not null
                           ? provider.GetRequiredKeyedService(p.ParameterType, p.ServiceKey)
                           : provider.GetRequiredService(p.ParameterType);

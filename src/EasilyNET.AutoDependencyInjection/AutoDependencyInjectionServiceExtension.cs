@@ -146,14 +146,25 @@ public static class AutoDependencyInjectionServiceExtension
         /// </summary>
         internal ServiceRegistry GetOrCreateRegistry()
         {
+            // Fast path: try to get an existing registry without locking.
             var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(ServiceRegistry));
             if (descriptor?.ImplementationInstance is ServiceRegistry existing)
             {
                 return existing;
             }
-            var registry = new ServiceRegistry();
-            services.AddSingleton(registry);
-            return registry;
+            // Slow path: ensure only a single ServiceRegistry is created in concurrent scenarios.
+            lock (services)
+            {
+                // Double-check after acquiring the lock in case another thread already registered it.
+                descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(ServiceRegistry));
+                if (descriptor?.ImplementationInstance is ServiceRegistry existingAfterLock)
+                {
+                    return existingAfterLock;
+                }
+                var registry = new ServiceRegistry();
+                services.AddSingleton(registry);
+                return registry;
+            }
         }
     }
 }

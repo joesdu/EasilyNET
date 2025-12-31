@@ -190,7 +190,7 @@ internal class ModuleApplicationBase : IModuleApplication
                 _logger.LogTrace("Initializing module: {ModuleType}", cfg.GetType().Name);
             }
             // 同步等待模块初始化完成，确保初始化顺序正确
-            cfg.ApplicationInitialization(ctx).GetAwaiter().GetResult();
+            cfg.ApplicationInitialization(ctx).ConfigureAwait(false).GetAwaiter().GetResult();
         }
         if (_logger.IsEnabled(LogLevel.Debug))
         {

@@ -22,7 +22,7 @@ internal sealed class NamedServiceFactory<T>(IServiceProvider provider) : INamed
             return (T)provider.GetRequiredKeyedService(typeof(T), key);
         }
         // 需要参数覆盖时才创建 Resolver
-        using var resolver = new Resolver(provider);
+        using var resolver = new Resolver(provider, provider.GetRequiredService<ServiceRegistry>());
         return resolver.ResolveKeyed<T>(key, parameters);
     }
 }

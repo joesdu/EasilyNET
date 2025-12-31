@@ -41,13 +41,6 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
         ArgumentNullException.ThrowIfNull(services);
         lock (_lock)
         {
-            if (_instance is not null)
-            {
-                return _instance;
-            }
-        }
-        lock (_lock)
-        {
             return _instance ??= new(startModuleType, services);
         }
     }
@@ -61,7 +54,8 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
             Services.AddSingleton(module);
             // ConfigureServices 返回 Task，需要同步等待以确保服务按顺序注册
             // 注意：这里保持同步调用是因为服务注册必须在 BuildServiceProvider 之前完成
-            module.ConfigureServices(context).GetAwaiter().GetResult();
+            // 为降低潜在死锁风险，这里使用 ConfigureAwait(false) 再进行同步阻塞等待
+            module.ConfigureServices(context).ConfigureAwait(false).GetAwaiter().GetResult();
         }
     }
 }
