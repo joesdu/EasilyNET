@@ -24,6 +24,7 @@ public static class CompressionHelper
     public static byte[] Compress(byte[] data)
     {
         ArgumentNullException.ThrowIfNull(data);
+        // 无需线程安全: 方法内局部变量，生命周期完全封闭
         using var memoryStream = new PooledMemoryStream();
         using (var deflateStream = new DeflateStream(memoryStream, CompressionMode.Compress, true))
         {
@@ -39,6 +40,7 @@ public static class CompressionHelper
     public static byte[] Compress(byte[] data, CompressionLevel compressionLevel)
     {
         ArgumentNullException.ThrowIfNull(data);
+        // 无需线程安全: 方法内局部变量，生命周期完全封闭
         using var memoryStream = new PooledMemoryStream();
         using (var deflateStream = new DeflateStream(memoryStream, compressionLevel, true))
         {
@@ -58,6 +60,7 @@ public static class CompressionHelper
     public static byte[] Decompress(byte[] compressedData)
     {
         ArgumentNullException.ThrowIfNull(compressedData);
+        // 无需线程安全: 方法内局部变量，生命周期完全封闭
         using var memoryStream = new PooledMemoryStream(compressedData);
         using var deflateStream = new DeflateStream(memoryStream, CompressionMode.Decompress);
         using var decompressedMemoryStream = new PooledMemoryStream();
@@ -72,6 +75,7 @@ public static class CompressionHelper
     public static async Task<byte[]> CompressAsync(byte[] data, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(data);
+        // 无需线程安全: 异步方法内局部变量，生命周期完全封闭
         await using var memoryStream = new PooledMemoryStream();
         await using (var deflateStream = new DeflateStream(memoryStream, CompressionMode.Compress, true))
         {
@@ -87,6 +91,7 @@ public static class CompressionHelper
     public static async Task<byte[]> CompressAsync(byte[] data, CompressionLevel compressionLevel, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(data);
+        // 无需线程安全: 异步方法内局部变量，生命周期完全封闭
         await using var memoryStream = new PooledMemoryStream();
         await using (var deflateStream = new DeflateStream(memoryStream, compressionLevel, true))
         {
@@ -102,6 +107,7 @@ public static class CompressionHelper
     public static async Task<byte[]> DecompressAsync(byte[] compressedData, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(compressedData);
+        // 无需线程安全: 异步方法内局部变量，生命周期完全封闭
         await using var input = new PooledMemoryStream(compressedData);
         await using var deflateStream = new DeflateStream(input, CompressionMode.Decompress);
         await using var output = new PooledMemoryStream();

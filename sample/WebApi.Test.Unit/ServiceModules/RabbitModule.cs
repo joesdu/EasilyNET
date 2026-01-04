@@ -40,7 +40,7 @@ internal sealed class RabbitModule : AppModule
             c.AddEvent<WorkQueuesEvent>(queueName: "work.queue")
              .ConfigureEvent(ec => ec.SequentialHandlerExecution = false)
              .WithEventQos(1000)
-             .WithHandlerThreadCount(5)
+             .WithHandlerThreadCount(3)
              .WithHandler<WorkQueuesEventOneHandlers>();
             c.AddEvent<FanoutEventOne>(EModel.PublishSubscribe, "fanout_exchange", queueName: "fanout_queue1")
              .WithHandler<FanoutEventOneHandlers>();

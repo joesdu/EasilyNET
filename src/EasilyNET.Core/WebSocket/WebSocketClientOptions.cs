@@ -31,16 +31,16 @@ public sealed class WebSocketClientOptions
     public int MaxReconnectAttempts { get; set; } = 5;
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets the initial delay between reconnection attempts in milliseconds. Default is 1000ms.</para>
-    ///     <para xml:lang="zh">获取或设置重连尝试之间的初始延迟（毫秒）。默认为 1000 毫秒。</para>
+    ///     <para xml:lang="en">Gets or sets the initial delay between reconnection attempts. Default is 1 second.</para>
+    ///     <para xml:lang="zh">获取或设置重连尝试之间的初始延迟。默认为 1 秒。</para>
     /// </summary>
-    public int ReconnectDelayMs { get; set; } = 1000;
+    public TimeSpan ReconnectDelay { get; set; } = TimeSpan.FromSeconds(1);
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets the maximum delay between reconnection attempts in milliseconds. Default is 30000ms.</para>
-    ///     <para xml:lang="zh">获取或设置重连尝试之间的最大延迟（毫秒）。默认为 30000 毫秒。</para>
+    ///     <para xml:lang="en">Gets or sets the maximum delay between reconnection attempts. Default is 30 seconds.</para>
+    ///     <para xml:lang="zh">获取或设置重连尝试之间的最大延迟。默认为 30 秒。</para>
     /// </summary>
-    public int MaxReconnectDelayMs { get; set; } = 30000;
+    public TimeSpan MaxReconnectDelay { get; set; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets whether heartbeat is enabled. Default is <c>true</c>.</para>
@@ -49,28 +49,28 @@ public sealed class WebSocketClientOptions
     public bool HeartbeatEnabled { get; set; } = true;
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets the heartbeat interval in milliseconds. Default is 30000ms.</para>
-    ///     <para xml:lang="zh">获取或设置心跳间隔（毫秒）。默认为 30000 毫秒。</para>
+    ///     <para xml:lang="en">Gets or sets the heartbeat interval. Default is 30 seconds.</para>
+    ///     <para xml:lang="zh">获取或设置心跳间隔。默认为 30 秒。</para>
     /// </summary>
-    public int HeartbeatIntervalMs { get; set; } = 30000;
+    public TimeSpan HeartbeatInterval { get; set; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets the heartbeat timeout in milliseconds. Default is 10000ms.</para>
-    ///     <para xml:lang="zh">获取或设置心跳超时（毫秒）。默认为 10000 毫秒。</para>
+    ///     <para xml:lang="en">Gets or sets the heartbeat timeout. Default is 10 seconds.</para>
+    ///     <para xml:lang="zh">获取或设置心跳超时。默认为 10 秒。</para>
     ///     <remarks>
     ///         <para xml:lang="en">
     ///         This timeout is evaluated against the time since the last successfully received message.
     ///         If no data is received within this window, the client considers the connection stale and may trigger reconnection.
-    ///         Set to 0 or a negative value to disable the timeout check.
+    ///         Set to TimeSpan.Zero or a negative value to disable the timeout check.
     ///         </para>
     ///         <para xml:lang="zh">
     ///         该超时基于“距离上次成功接收消息”的时间进行判断。
     ///         若在该时间窗口内未收到任何数据，客户端将认为连接可能已失活并可能触发重连。
-    ///         设置为 0 或负数可禁用该超时检测。
+    ///         设置为 TimeSpan.Zero 或负数可禁用该超时检测。
     ///         </para>
     ///     </remarks>
     /// </summary>
-    public int HeartbeatTimeoutMs { get; set; } = 10000;
+    public TimeSpan HeartbeatTimeout { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the factory function to create heartbeat messages. Returns null to send an empty payload.</para>
@@ -89,10 +89,10 @@ public sealed class WebSocketClientOptions
     public Func<ReadOnlyMemory<byte>>? HeartbeatMessageFactory { get; set; }
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets the connection timeout in milliseconds. Default is 10000ms.</para>
-    ///     <para xml:lang="zh">获取或设置连接超时（毫秒）。默认为 10000 毫秒。</para>
+    ///     <para xml:lang="en">Gets or sets the connection timeout. Default is 10 seconds.</para>
+    ///     <para xml:lang="zh">获取或设置连接超时。默认为 10 秒。</para>
     /// </summary>
-    public int ConnectionTimeoutMs { get; set; } = 10000;
+    public TimeSpan ConnectionTimeout { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the receive buffer size in bytes. Default is 16384 (16KB).</para>

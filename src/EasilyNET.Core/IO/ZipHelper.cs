@@ -311,6 +311,7 @@ public static class ZipHelper
                     {
                         throw new IOException($"File '{file}' is too large to preload into memory (size: {fi.Length} bytes).");
                     }
+                    // 无需线程安全: 并行任务中每个迭代独立创建实例，无跨线程共享
                     await using var buffer = new PooledMemoryStream(ArrayPool<byte>.Shared, (int)fi.Length);
                     await using (var input = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan))
                     {
@@ -399,6 +400,7 @@ public static class ZipHelper
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(entryName);
         ArgumentNullException.ThrowIfNull(data);
+        // 无需线程安全: 方法内局部变量，生命周期完全封闭
         using var ms = new PooledMemoryStream();
         using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, true))
         {
@@ -417,6 +419,7 @@ public static class ZipHelper
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(entryName);
         ArgumentNullException.ThrowIfNull(data);
+        // 无需线程安全: 异步方法内局部变量，生命周期完全封闭
         await using var ms = new PooledMemoryStream();
         using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, true))
         {
