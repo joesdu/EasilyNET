@@ -18,15 +18,44 @@
 ## 不适用场景
 
 - **极小数据量且生命周期极短的流**：如只存储几十字节的小对象，`MemoryStream` 的分配开销可忽略。
-- **多线程并发访问同一个流实例**：本类不是线程安全的，需自行加锁或每线程独立实例。
+- **多线程并发访问同一个流实例**：本类设计用于单线程使用，与 `MemoryStream`、`FileStream` 等 .NET 流类型保持一致。如需多线程访问，请使用外部锁保护。
 - **需要持久化或跨进程共享的流**：本类仅适合进程内内存操作。
+
+---
+
+## 线程安全说明
+
+`PooledMemoryStream` **不是线程安全的**，这遵循了 .NET 流类型（如 `MemoryStream`、`FileStream`）的设计惯例。
+
+**为什么不提供内置线程安全？**
+
+`IBufferWriter<byte>` 接口的使用模式（`GetSpan()` → 写入 → `Advance()`）从根本上无法实现线程安全：
+
+- `GetSpan()`/`GetMemory()` 返回的是对内部缓冲区的直接引用
+- 如果在使用返回的 `Span`/`Memory` 期间，另一个线程触发了缓冲区扩容，原引用将指向已归还给池的旧数组（use-after-free）
+- 即使在方法内部加锁，锁也会在返回引用时释放，无法保护后续操作
+
+**如果需要多线程访问，请使用外部同步：**
+
+```csharp
+private readonly Lock _lock = new();
+private readonly PooledMemoryStream _stream = new();
+
+public void ThreadSafeWrite(byte[] data)
+{
+    lock (_lock)
+    {
+        _stream.Write(data);
+    }
+}
+```
 
 ---
 
 ## 主要特性
 
 - **自动扩容**：写入超出容量时自动扩容，扩容策略高效。
-- **池化内存**：底层数组来自 `ArrayPool<byte>`，释放时归还池，减少GC。
+- **池化内存**：底层数组来自 `ArrayPool<byte>`，释放时归还池，减少 GC。
 - **支持 `Span<byte>`/`Memory<byte>`**：高效的无分配读写。
 - **与 `Stream` API 兼容**：可用于所有需要 `Stream` 的场景。
 - **Dispose 安全**：释放后自动归还内存，防止重复归还。
@@ -86,21 +115,22 @@ using var stream = new PooledMemoryStream(pool, 4096);
 ## 注意事项
 
 - **必须调用 `Dispose()` 或使用 `using` 释放流**，否则底层数组不会归还池，可能导致内存泄漏。
-- **单线程使用**，如需多线程请自行加锁。
+- **单线程使用**，这与 `MemoryStream`、`FileStream` 等 .NET 流类型保持一致。如需多线程请自行加锁。
 - **Dispose 后访问会抛出 `ObjectDisposedException`**。
-- **ToArray/ToArraySegment 返回的数据仅在流未Dispose前有效**。
+- **`GetSpan()`/`GetMemory()` 返回的引用在缓冲区扩容后失效**：调用 `Write`、`SetLength` 等可能扩容的方法后，之前获取的 `Span`/`Memory` 不再有效。
+- **ToArray/ToArraySegment 返回的数据仅在流未 Dispose 前有效**。
 - **扩容时会分配更大的数组并拷贝原数据，极大数据量下建议预估容量**。
 
 ---
 
 ## 性能对比
 
-- 在大数据量和高频场景下，`PooledMemoryStream` 比 `MemoryStream` 更节省内存分配和GC时间。
+- 在大数据量和高频场景下，`PooledMemoryStream` 比 `MemoryStream` 更节省内存分配和 GC 时间。
 - 小数据量或极短生命周期场景下，两者性能差异不大。
 
 ---
 
 ## 总结
 
-**推荐在需要频繁创建/销毁大内存流、对GC敏感、或有高性能需求的场景下使用 `PooledMemoryStream`。**  
+**推荐在需要频繁创建/销毁大内存流、对 GC 敏感、或有高性能需求的场景下使用 `PooledMemoryStream`。**  
 如仅偶尔用到小内存流，`MemoryStream` 也完全可用。

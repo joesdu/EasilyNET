@@ -18,6 +18,13 @@ internal sealed class WebSocketSession : IWebSocketSession
     private readonly WebSocketSessionOptions _options;
     private readonly Channel<WebSocketMessage> _sendChannel;
     private readonly System.Net.WebSockets.WebSocket _socket;
+
+    /// <summary>
+    /// 最后发送心跳的时间戳。用于确保远端有足够时间响应心跳。
+    /// 初始值为 0 表示尚未发送任何心跳。
+    /// </summary>
+    private long _lastHeartbeatSentTimestamp;
+
     private long _lastReceiveTimestamp;
 
     public WebSocketSession(string id, System.Net.WebSockets.WebSocket socket, WebSocketHandler handler, WebSocketSessionOptions options, ILogger logger)
@@ -35,6 +42,7 @@ internal sealed class WebSocketSession : IWebSocketSession
         };
         _sendChannel = Channel.CreateBounded<WebSocketMessage>(channelOptions);
         _lastReceiveTimestamp = Stopwatch.GetTimestamp();
+        _lastHeartbeatSentTimestamp = 0; // 尚未发送心跳
     }
 
     public string Id { get; }
@@ -249,43 +257,66 @@ internal sealed class WebSocketSession : IWebSocketSession
                     return;
                 }
 
-                // 心跳超时检测
+                // 心跳超时检测：
+                // 仅当已发送过心跳后才检查超时，确保远端有机会响应
+                // 条件：(距离上次发送心跳) > HeartbeatTimeout AND (距离上次接收) > HeartbeatTimeout
                 if (_options.HeartbeatTimeout > TimeSpan.Zero)
                 {
-                    var lastReceive = Volatile.Read(ref _lastReceiveTimestamp);
-                    var elapsedSinceReceive = Stopwatch.GetElapsedTime(lastReceive);
-                    if (elapsedSinceReceive > _options.HeartbeatTimeout)
+                    var lastHeartbeatSent = Volatile.Read(ref _lastHeartbeatSentTimestamp);
+                    // 只有在已发送过心跳后才进行超时检查
+                    if (lastHeartbeatSent > 0)
                     {
-                        if (_logger.IsEnabled(LogLevel.Warning))
+                        var lastReceive = Volatile.Read(ref _lastReceiveTimestamp);
+                        var elapsedSinceHeartbeat = Stopwatch.GetElapsedTime(lastHeartbeatSent);
+                        var elapsedSinceReceive = Stopwatch.GetElapsedTime(lastReceive);
+
+                        // 只有当发送心跳后超过 HeartbeatTimeout 且期间没有收到任何消息时才判定超时
+                        if (elapsedSinceHeartbeat > _options.HeartbeatTimeout && elapsedSinceReceive > _options.HeartbeatTimeout)
                         {
-                            _logger.LogWarning("[WebSocketSession:{Id}] Heartbeat timeout: no data received for {ElapsedMs:N0}ms", Id, elapsedSinceReceive.TotalMilliseconds);
+                            if (_logger.IsEnabled(LogLevel.Warning))
+                            {
+                                _logger.LogWarning("[WebSocketSession:{Id}] Heartbeat timeout: no data received for {ElapsedMs:N0}ms after heartbeat was sent {HeartbeatMs:N0}ms ago",
+                                    Id, elapsedSinceReceive.TotalMilliseconds, elapsedSinceHeartbeat.TotalMilliseconds);
+                            }
+                            // 超时则关闭连接
+                            await CloseAsync(WebSocketCloseStatus.ProtocolError, "Heartbeat timeout", CancellationToken.None).ConfigureAwait(false);
+                            return;
                         }
-                        // 超时则关闭连接
-                        return;
                     }
                 }
 
                 // 发送心跳消息(如果配置了工厂)
-                if (_options.HeartbeatMessageFactory != null)
+                if (_options.HeartbeatMessageFactory is null)
                 {
-                    try
+                    continue;
+                }
+                try
+                {
+                    var pingData = _options.HeartbeatMessageFactory();
+                    if (_socket.State == WebSocketState.Open)
                     {
-                        var pingData = _options.HeartbeatMessageFactory();
-                        if (_socket.State == WebSocketState.Open)
+                        // 心跳消息通过队列发送，由 SendLoop 统一处理，避免并发发送冲突
+                        // 使用 TryWrite 避免在队列满时阻塞心跳循环
+                        if (_sendChannel.Writer.TryWrite(new(pingData, WebSocketMessageType.Binary, true)))
                         {
-                            await _socket.SendAsync(pingData, WebSocketMessageType.Binary, true, token).ConfigureAwait(false);
+                            // 更新最后发送心跳时间戳
+                            Volatile.Write(ref _lastHeartbeatSentTimestamp, Stopwatch.GetTimestamp());
+                        }
+                        else if (_logger.IsEnabled(LogLevel.Debug))
+                        {
+                            _logger.LogDebug("[WebSocketSession:{Id}] Heartbeat skipped: send queue full", Id);
                         }
                     }
-                    catch (OperationCanceledException)
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    if (_logger.IsEnabled(LogLevel.Debug))
                     {
-                        return;
-                    }
-                    catch (Exception ex)
-                    {
-                        if (_logger.IsEnabled(LogLevel.Debug))
-                        {
-                            _logger.LogDebug(ex, "[WebSocketSession:{Id}] Error sending heartbeat", Id);
-                        }
+                        _logger.LogDebug(ex, "[WebSocketSession:{Id}] Error sending heartbeat", Id);
                     }
                 }
             }
@@ -315,6 +346,7 @@ internal sealed class WebSocketSession : IWebSocketSession
                         }
                         try
                         {
+                            // SendLoop 是唯一的发送者，无需加锁
                             await _socket.SendAsync(message.Data, message.MessageType, message.EndOfMessage, token).ConfigureAwait(false);
                             message.CompletionSource?.TrySetResult(true);
                         }
