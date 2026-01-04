@@ -61,8 +61,8 @@ public sealed class RabbitBusBuilder
     ///     <para xml:lang="zh">QoS是否全局</para>
     /// </param>
     /// <param name="consumerChannelLimit">
-    ///     <para xml:lang="en">Maximum number of consumer channels</para>
-    ///     <para xml:lang="zh">消费者通道的最大数量</para>
+    ///     <para xml:lang="en">Maximum number of consumer channels, 0 means unlimited</para>
+    ///     <para xml:lang="zh">消费者通道的最大数量,0表示不限制</para>
     /// </param>
     public RabbitBusBuilder WithConsumerSettings(ushort dispatchConcurrency = 10, ushort prefetchCount = 100, uint prefetchSize = 0, bool global = false, int consumerChannelLimit = 0)
     {
@@ -591,8 +591,8 @@ public sealed class RabbitBusBuilder
         }
 
         /// <summary>
-        ///     <para xml:lang="en">Configure handler thread count for the event</para>
-        ///     <para xml:lang="zh">为事件配置处理器线程数</para>
+        ///     <para xml:lang="en">Configure handler thread count for the event, this will affect the number of channels, please configure it reasonably</para>
+        ///     <para xml:lang="zh">为事件配置处理器线程数,该方法会影响通道数,请合理配置</para>
         /// </summary>
         /// <param name="threadCount">
         ///     <para xml:lang="en">Number of threads to use for processing handlers. 1 or less means single-threaded, greater than 1 means multi-threaded</para>
