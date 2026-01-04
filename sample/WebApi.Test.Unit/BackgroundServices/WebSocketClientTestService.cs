@@ -18,9 +18,9 @@ internal sealed class WebSocketClientTestService(ILogger<WebSocketClientTestServ
         {
             ServerUri = serverUri,
             AutoReconnect = true,
-            ReconnectDelayMs = 1000,
+            ReconnectDelay = TimeSpan.FromSeconds(1),
             HeartbeatEnabled = true,
-            HeartbeatIntervalMs = 5000 // 测试时加快心跳频率
+            HeartbeatInterval = TimeSpan.FromSeconds(5) // 测试时加快心跳频率
         };
         var client = new ManagedWebSocketClient(options);
         client.MessageReceived += (_, e) =>

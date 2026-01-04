@@ -1,8 +1,10 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Net.WebSockets;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Channels;
+using EasilyNET.Core.Essentials;
 
 // ReSharper disable EventNeverSubscribedTo.Global
 // ReSharper disable UnusedType.Global
@@ -321,7 +323,29 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     ///     <para xml:lang="en">Sends a binary message.</para>
     ///     <para xml:lang="zh">发送二进制消息。</para>
     /// </summary>
+    /// <param name="bytes">
+    ///     <para xml:lang="en">The binary data to send.</para>
+    ///     <para xml:lang="zh">要发送的二进制数据。</para>
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     <para xml:lang="en">The cancellation token.</para>
+    ///     <para xml:lang="zh">取消令牌。</para>
+    /// </param>
     public Task SendBinaryAsync(byte[] bytes, CancellationToken cancellationToken = default) => SendAsync(bytes, WebSocketMessageType.Binary, true, cancellationToken);
+
+    /// <summary>
+    ///     <para xml:lang="en">Sends a binary message from a ReadOnlyMemory.</para>
+    ///     <para xml:lang="zh">从 ReadOnlyMemory 发送二进制消息。</para>
+    /// </summary>
+    /// <param name="data">
+    ///     <para xml:lang="en">The binary data to send.</para>
+    ///     <para xml:lang="zh">要发送的二进制数据。</para>
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     <para xml:lang="en">The cancellation token.</para>
+    ///     <para xml:lang="zh">取消令牌。</para>
+    /// </param>
+    public Task SendBinaryAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default) => SendAsync(data, WebSocketMessageType.Binary, true, cancellationToken);
 
     private async Task StartConnectionAsync(CancellationToken cancellationToken)
     {
@@ -336,7 +360,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         Options.ConfigureWebSocket?.Invoke(_socket);
         try
         {
-            using var timeoutCts = new CancellationTokenSource(Options.ConnectionTimeoutMs);
+            using var timeoutCts = new CancellationTokenSource(Options.ConnectionTimeout);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_connectionCts.Token, timeoutCts.Token);
             if (Options.ServerUri == null)
             {
@@ -346,7 +370,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             State = WebSocketClientState.Connected;
 
             // Mark the connection as alive at the moment we become connected.
-            Volatile.Write(ref _lastReceiveTimestamp, Stopwatch.GetTimestamp());
+            UpdateLastReceiveTimestamp();
 
             // Start background loops
             var receiveTask = Task.Factory.StartNew(() => ReceiveLoop(_connectionCts.Token), _connectionCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
@@ -379,28 +403,36 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
     private async Task ReceiveLoop(CancellationToken token)
     {
-        var buffer = new byte[Options.ReceiveBufferSize];
+        // 从 ArrayPool 租借接收缓冲区,避免每次循环分配
+        var buffer = ArrayPool<byte>.Shared.Rent(Options.ReceiveBufferSize);
         try
         {
             while (!token.IsCancellationRequested && _socket?.State == WebSocketState.Open)
             {
-                WebSocketReceiveResult result;
-                using var ms = new MemoryStream();
+                ValueWebSocketReceiveResult result;
+                // 使用 PooledMemoryStream 减少内存分配
+                // 无需线程安全: 此实例仅在当前接收循环内使用，每次循环创建新实例，无跨线程共享
+                await using var ms = new PooledMemoryStream();
                 do
                 {
-                    result = await _socket.ReceiveAsync(new(buffer), token).ConfigureAwait(false);
+                    result = await _socket.ReceiveAsync(buffer.AsMemory(0, Options.ReceiveBufferSize), token).ConfigureAwait(false);
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        await HandleServerClose(result.CloseStatus, result.CloseStatusDescription).ConfigureAwait(false);
+                        // ValueWebSocketReceiveResult 没有 CloseStatus/CloseStatusDescription，需要从 socket 获取
+                        await HandleServerClose(_socket.CloseStatus, _socket.CloseStatusDescription).ConfigureAwait(false);
                         return;
                     }
-                    await ms.WriteAsync(buffer.AsMemory(0, result.Count), token).ConfigureAwait(false);
+                    if (result.Count > 0)
+                    {
+                        ms.Write(buffer.AsSpan(0, result.Count));
+                    }
                 } while (!result.EndOfMessage);
-                ms.Seek(0, SeekOrigin.Begin);
+
+                // 获取完整消息数据
                 var data = ms.ToArray();
 
                 // Any successfully received message indicates the connection is alive.
-                Volatile.Write(ref _lastReceiveTimestamp, Stopwatch.GetTimestamp());
+                UpdateLastReceiveTimestamp();
                 OnMessageReceived(new(data, result.MessageType, true));
             }
         }
@@ -408,12 +440,27 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         {
             // Normal cancellation
         }
+        catch (WebSocketException ex) when (ex.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
+        {
+            // 连接被远端关闭,不视为错误
+            await HandleConnectionLoss(ex).ConfigureAwait(false);
+        }
         catch (Exception ex)
         {
             OnError(new(ex, "ReceiveLoop"));
             await HandleConnectionLoss(ex).ConfigureAwait(false);
         }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
     }
+
+    /// <summary>
+    /// Updates the last receive timestamp using high-resolution timer.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void UpdateLastReceiveTimestamp() => Volatile.Write(ref _lastReceiveTimestamp, Stopwatch.GetTimestamp());
 
     private async Task SendLoop(CancellationToken token)
     {
@@ -497,11 +544,12 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
     private async Task HeartbeatLoop(CancellationToken token)
     {
+        // 使用 PeriodicTimer 替代 Task.Delay,更高效且取消更及时
+        using var timer = new PeriodicTimer(Options.HeartbeatInterval);
         try
         {
-            while (!token.IsCancellationRequested)
+            while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
             {
-                await Task.Delay(Options.HeartbeatIntervalMs, token).ConfigureAwait(false);
                 if (_socket?.State != WebSocketState.Open)
                 {
                     continue;
@@ -509,13 +557,13 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
                 // Heartbeat timeout check: if we haven't received anything for too long,
                 // treat the connection as stale/dead and trigger reconnection.
-                if (Options.HeartbeatTimeoutMs > 0)
+                if (Options.HeartbeatTimeout > TimeSpan.Zero)
                 {
                     var lastReceive = Volatile.Read(ref _lastReceiveTimestamp);
                     var elapsedSinceReceive = Stopwatch.GetElapsedTime(lastReceive);
-                    if (elapsedSinceReceive.TotalMilliseconds > Options.HeartbeatTimeoutMs)
+                    if (elapsedSinceReceive > Options.HeartbeatTimeout)
                     {
-                        var ex = new TimeoutException($"WebSocket heartbeat timeout: no data received for {elapsedSinceReceive.TotalMilliseconds:N0}ms (timeout={Options.HeartbeatTimeoutMs}ms).");
+                        var ex = new TimeoutException($"WebSocket heartbeat timeout: no data received for {elapsedSinceReceive.TotalMilliseconds:N0}ms (timeout={Options.HeartbeatTimeout.TotalMilliseconds:N0}ms).");
                         OnError(new(ex, "HeartbeatLoop timeout"));
                         await HandleConnectionLoss(ex).ConfigureAwait(false);
                         return;
@@ -523,17 +571,18 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                 }
                 try
                 {
-                    // Send ping
-                    // ClientWebSocket doesn't have a direct Ping method exposed in .NET Standard 2.0/2.1 easily without using reflection or specific frames.
-                    // However, .NET 6+ might. But usually sending a small binary message or a specific ping frame if supported.
-                    // Standard ClientWebSocket does not expose Ping/Pong control frames directly.
-                    // Many implementations send a specific application-level heartbeat message.
-                    // Or we can send a 0-byte binary message if the server supports it as ping.
-                    var pingData = Options.HeartbeatMessageFactory?.Invoke() ?? Array.Empty<byte>();
-                    // We use the send channel to ensure thread safety and ordering
-                    // But heartbeat usually needs to bypass the queue if the queue is full? 
-                    // Or just put it in queue.
-                    await SendAsync(pingData, WebSocketMessageType.Binary, true, token).ConfigureAwait(false);
+                    // 直接发送心跳,绕过队列以确保及时性
+                    // 心跳消息应该优先发送,不应被队列阻塞
+                    var pingData = Options.HeartbeatMessageFactory?.Invoke() ?? ReadOnlyMemory<byte>.Empty;
+                    if (_socket?.State == WebSocketState.Open)
+                    {
+                        await _socket.SendAsync(pingData, WebSocketMessageType.Binary, true, token).ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Normal cancellation during heartbeat send
+                    return;
                 }
                 catch (Exception ex)
                 {
@@ -614,13 +663,9 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                 }
                 var attempts = Interlocked.Increment(ref _reconnectAttempts);
 
-                // Calculate delay
-                var delay = Options.ReconnectDelayMs;
-                if (Options.UseExponentialBackoff)
-                {
-                    delay = (int)Math.Min(Options.ReconnectDelayMs * Math.Pow(2, attempts - 1), Options.MaxReconnectDelayMs);
-                }
-                var args = new WebSocketReconnectingEventArgs(attempts, TimeSpan.FromMilliseconds(delay), null);
+                // Calculate delay using TimeSpan
+                var delay = CalculateReconnectDelay(attempts);
+                var args = new WebSocketReconnectingEventArgs(attempts, delay, null);
                 OnReconnecting(args);
                 if (args.Cancel)
                 {
@@ -649,6 +694,21 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         {
             _connectionLock.Release();
         }
+    }
+
+    /// <summary>
+    /// Calculates the reconnection delay based on attempt number and backoff strategy.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private TimeSpan CalculateReconnectDelay(int attempts)
+    {
+        if (!Options.UseExponentialBackoff)
+        {
+            return Options.ReconnectDelay;
+        }
+        var delayMs = Options.ReconnectDelay.TotalMilliseconds * Math.Pow(2, attempts - 1);
+        var maxDelayMs = Options.MaxReconnectDelay.TotalMilliseconds;
+        return TimeSpan.FromMilliseconds(Math.Min(delayMs, maxDelayMs));
     }
 
     private void OnStateChanged(WebSocketStateChangedEventArgs e) => StateChanged?.Invoke(this, e);

@@ -41,6 +41,7 @@ public static class StreamExtensions
                 return pooledMemoryStream;
             }
             stream.Seek(0, SeekOrigin.Begin);
+            // 无需线程安全: 返回给调用方的新实例，调用方负责并发控制
             var ms = new PooledMemoryStream();
             stream.CopyTo(ms);
             ms.Position = 0;
