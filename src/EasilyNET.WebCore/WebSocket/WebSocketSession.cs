@@ -49,14 +49,14 @@ internal sealed class WebSocketSession : IWebSocketSession
 
     public WebSocketState State => _socket.State;
 
-    public Task SendAsync(ReadOnlyMemory<byte> message, WebSocketMessageType messageType = WebSocketMessageType.Text, bool endOfMessage = true, CancellationToken cancellationToken = default) => SendAsyncInternal(message, messageType, endOfMessage, cancellationToken, null);
+    public Task SendAsync(ReadOnlyMemory<byte> message, WebSocketMessageType messageType = WebSocketMessageType.Text, bool endOfMessage = true, CancellationToken cancellationToken = default) => SendAsyncInternal(message, messageType, endOfMessage, null, cancellationToken);
 
     public Task SendTextAsync(string text, CancellationToken cancellationToken = default)
     {
         var byteCount = Encoding.UTF8.GetByteCount(text);
         var rented = ArrayPool<byte>.Shared.Rent(byteCount);
         var bytesUsed = Encoding.UTF8.GetBytes(text, rented);
-        return SendAsyncInternal(new(rented, 0, bytesUsed), WebSocketMessageType.Text, true, cancellationToken, rented);
+        return SendAsyncInternal(new(rented, 0, bytesUsed), WebSocketMessageType.Text, true, rented, cancellationToken);
     }
 
     public Task SendBinaryAsync(byte[] bytes, CancellationToken cancellationToken = default) => SendAsync(bytes, WebSocketMessageType.Binary, true, cancellationToken);
@@ -92,7 +92,7 @@ internal sealed class WebSocketSession : IWebSocketSession
         }
     }
 
-    private async Task SendAsyncInternal(ReadOnlyMemory<byte> message, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken, byte[]? rentedArray)
+    private async Task SendAsyncInternal(ReadOnlyMemory<byte> message, WebSocketMessageType messageType, bool endOfMessage, byte[]? rentedArray, CancellationToken cancellationToken)
     {
         if (_socket.State != WebSocketState.Open)
         {
@@ -157,7 +157,7 @@ internal sealed class WebSocketSession : IWebSocketSession
             }
 
             // Ensure socket is closed
-            if (_socket.State != WebSocketState.Closed && _socket.State != WebSocketState.Aborted)
+            if (_socket.State is not WebSocketState.Closed and not WebSocketState.Aborted)
             {
                 try
                 {
@@ -397,7 +397,7 @@ internal sealed class WebSocketSession : IWebSocketSession
                 }
                 else
                 {
-                    message.CompletionSource?.TrySetCanceled();
+                    message.CompletionSource?.TrySetCanceled(token);
                 }
             }
         }
