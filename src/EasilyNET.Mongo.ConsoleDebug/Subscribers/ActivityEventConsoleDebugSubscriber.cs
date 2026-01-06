@@ -72,11 +72,11 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
     private void WritStatus(int requestId, bool success)
     {
         var duration = Stopwatch.GetElapsedTime(StartTime, EndTime).TotalMilliseconds; // 计算耗时，单位为毫秒
-        var durationColor = duration switch
+        Style durationColor = duration switch
         {
-            < 100 => "[#00af00]", // 绿色
-            < 200 => "[#ffd700]", // 黄色
-            _     => "[#af0000]"  // 红色
+            < 100 => new(new Color(0, 175, 0)),   // 绿色
+            < 200 => new(new Color(255, 215, 0)), // 黄色
+            _     => new(new Color(175, 0, 0))    // 红色
         };
         var table = new Table
         {
@@ -85,7 +85,13 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
         table.AddColumn(new TableColumn("Time").Centered());
         table.AddColumn(new TableColumn("Duration (ms)").Centered());
         table.AddColumn(new TableColumn("Status").Centered());
-        table.AddRow($"[#ffd700]{DateTime.Now:HH:mm:ss.fff}[/]", $"{durationColor}{duration:F4}[/]", success ? "[#00af00]succeed[/]" : "[#af0000]failed[/]");
+        var rowData = new IRenderable[]
+        {
+            new Text($"{DateTime.Now:HH:mm:ss.fff}", new(new Color(255, 215, 0))),
+            new Text($"{duration:F4}", durationColor),
+            new Text(success ? "succeed" : "failed", new(success ? new(0, 175, 0) : new Color(175, 0, 0)))
+        };
+        table.AddRow(rowData);
         var layout = new Layout("Root")
             .SplitColumns(new Layout(new Panel(new Text(CommandJson, new(Color.Purple)))
                 {

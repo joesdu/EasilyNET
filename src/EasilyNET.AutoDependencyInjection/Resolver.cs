@@ -200,11 +200,7 @@ internal sealed class Resolver(IServiceProvider provider, ServiceRegistry? regis
             return serviceType;
         }
         // 优先使用 ServiceRegistry
-        if (_registry is not null && _registry.TryGetImplementationType(serviceType, out var impl))
-        {
-            return impl;
-        }
-        return null;
+        return _registry is not null && _registry.TryGetImplementationType(serviceType, out var impl) ? impl : null;
     }
 
     /// <summary>

@@ -36,7 +36,7 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<VersionMajor>5</VersionMajor>
+		<VersionMajor>6</VersionMajor>
 		<VersionMinor>$([System.DateTime]::Now.ToString("yy"))</VersionMinor>
 		<VersionBuild>$([System.DateTime]::Now.ToString("MMdd").TrimStart('0'))</VersionBuild>
 		<VersionRevision>$([System.DateTime]::Now.ToString("HHmm").Substring(0, 3).TrimStart('0'))</VersionRevision>
