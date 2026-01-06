@@ -34,7 +34,6 @@ if (Test-Path $ARTIFACTS) {
 }
 
 exec { & dotnet clean -c Release }
-exec { & dotnet build -c Release }
 
 # Core
 exec { & dotnet pack .\src\EasilyNET.Core\EasilyNET.Core.csproj -c Release -o $ARTIFACTS --include-symbols -p:SymbolPackageFormat=snupkg --no-build }

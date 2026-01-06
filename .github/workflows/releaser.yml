@@ -75,8 +75,8 @@ jobs:
             9.0.x
             10.0.x
 
-      - name: Build and Test
-        run: ./Build.ps1
+      - name: Pack NuGet Package
+        run: ./Pack.ps1
         shell: pwsh
 
       - name: Push to NuGet

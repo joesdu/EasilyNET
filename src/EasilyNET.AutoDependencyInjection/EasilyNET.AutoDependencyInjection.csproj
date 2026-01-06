@@ -10,11 +10,6 @@
 		<RootNamespace>EasilyNET.AutoDependencyInjection</RootNamespace>
 	</PropertyGroup>
 
-	<!-- Allow test project to access internal types -->
-	<ItemGroup>
-		<InternalsVisibleTo Include="$(PackagePrefix).Test.Unit" />
-	</ItemGroup>
-
 	<PropertyGroup>
 		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection</PackageProjectUrl>
 		<Description>服务模块化注入.让服务注入拥有清晰的逻辑和结构</Description>
