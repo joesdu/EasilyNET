@@ -10,7 +10,7 @@
 		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 		<Copyright>© joesdu. All rights reserved.</Copyright>
 		<!-- see https://github.com/dotnet/sdk/issues/2679 -->
-		<DebugType>embedded</DebugType>
+		<DebugType>portable</DebugType>
 		<DelaySign>False</DelaySign>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
 		<NoWarn>$(NoWarn);</NoWarn>
