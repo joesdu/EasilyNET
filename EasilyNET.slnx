@@ -24,7 +24,6 @@
         <File Path="Directory.Build.props" />
         <File Path="docker-compose.basic.service.yml" />
         <File Path="docker-compose.mongo.rs.yml" />
-        <File Path="EasilyNET.snk" />
         <File Path="gitemoji.md" />
         <File Path="LICENSE" />
         <File Path="otel-collector-config.yaml" />
@@ -34,6 +33,7 @@
         <File Path="Test.ps1" />
     </Folder>
     <Folder Name="/src/">
+        <File Path="src/EasilyNET.snk" />
         <File Path="src/Directory.Build.props" />
         <File Path="src/Directory.Build.targets" />
         <File Path="src/Directory.Packages.props" />

@@ -27,21 +27,6 @@
 		<!--<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>-->
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
-		<AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)EasilyNET.snk</AssemblyOriginatorKeyFile>
-		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-		<Copyright>© joesdu. All rights reserved.</Copyright>
-		<!-- see https://github.com/dotnet/sdk/issues/2679 -->
-		<DebugType>embedded</DebugType>
-		<DelaySign>False</DelaySign>
-		<EmbedUntrackedSources>true</EmbedUntrackedSources>
-		<NoWarn>$(NoWarn);</NoWarn>
-		<Optimize>True</Optimize>
-		<SignAssembly>True</SignAssembly>
-		<SignAssembly>True</SignAssembly>
-		<TreatSpecificWarningsAsErrors />
-	</PropertyGroup>
-
 	<PropertyGroup>
 		<VersionMajor>6</VersionMajor>
 		<VersionMinor>$([System.DateTime]::Now.ToString("yy"))</VersionMinor>
