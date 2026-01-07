@@ -5,8 +5,6 @@
 		<AssemblyName>$(PackagePrefix).AutoDependencyInjection</AssemblyName>
 		<PackageId>$(PackagePrefix).AutoDependencyInjection</PackageId>
 		<PackageTags>AutoDependencyInjection</PackageTags>
-		<PackageReleaseNotes>
-		</PackageReleaseNotes>
 		<RootNamespace>EasilyNET.AutoDependencyInjection</RootNamespace>
 	</PropertyGroup>
 

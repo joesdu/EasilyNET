@@ -5,8 +5,6 @@
     <AssemblyName>$(PackagePrefix).Security</AssemblyName>
     <PackageId>$(PackagePrefix).Security</PackageId>
     <PackageTags>AES;DES;RC4;TripleDES;RSA;SM2;SM3;SM4</PackageTags>
-    <PackageReleaseNotes>
-    </PackageReleaseNotes>
     <RootNamespace>EasilyNET.Security</RootNamespace>
   </PropertyGroup>
 

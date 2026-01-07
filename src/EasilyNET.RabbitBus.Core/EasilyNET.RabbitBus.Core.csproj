@@ -5,8 +5,6 @@
     <AssemblyName>$(PackagePrefix).RabbitBus.Core</AssemblyName>
     <PackageId>$(PackagePrefix).RabbitBus.Core</PackageId>
     <PackageTags>RabbitMQ;EventBus</PackageTags>
-    <PackageReleaseNotes>
-    </PackageReleaseNotes>
     <RootNamespace>EasilyNET.RabbitBus.Core</RootNamespace>
   </PropertyGroup>
 

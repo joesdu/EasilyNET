@@ -5,8 +5,6 @@
 		<AssemblyName>$(PackagePrefix).WebCore</AssemblyName>
 		<PackageId>$(PackagePrefix).WebCore</PackageId>
 		<PackageTags>Filter;Middleware;JsonConverters</PackageTags>
-		<PackageReleaseNotes>
-		</PackageReleaseNotes>
 		<RootNamespace>EasilyNET.WebCore</RootNamespace>
 	</PropertyGroup>
 
