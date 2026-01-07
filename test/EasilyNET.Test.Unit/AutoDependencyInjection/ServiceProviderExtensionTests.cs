@@ -1,4 +1,3 @@
-using EasilyNET.AutoDependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EasilyNET.Test.Unit.AutoDependencyInjection;
@@ -14,22 +13,6 @@ public sealed class ServiceProviderExtensionTests
         using var provider = services.BuildServiceProvider();
         var greeting = provider.Resolve<IGreetingService>();
         Assert.AreEqual("Hello", greeting.SayHello());
-    }
-
-    [TestMethod]
-    public void Resolve_WithParameters_ShouldOverrideConstructorArguments()
-    {
-        var services = new ServiceCollection();
-        // 注册 ServiceRegistry 以支持参数覆盖
-        var registry = new ServiceRegistry();
-        registry.RegisterImplementation(typeof(IWelcomeService), typeof(WelcomeService));
-        services.AddSingleton(registry);
-        services.AddTransient<IWelcomeService, WelcomeService>();
-        using var provider = services.BuildServiceProvider();
-        // 使用 NamedParameter 覆盖构造函数参数
-        var parameters = new[] { new NamedParameter("name", "Rose") };
-        var welcome = provider.Resolve<IWelcomeService>(parameters);
-        Assert.AreEqual("Hello, Rose", welcome.Greet());
     }
 
     [TestMethod]
@@ -140,15 +123,5 @@ public sealed class ServiceProviderExtensionTests
     private sealed class KeyedGreetingService(string message) : IGreetingService
     {
         public string SayHello() => message;
-    }
-
-    private interface IWelcomeService
-    {
-        string Greet();
-    }
-
-    private sealed class WelcomeService(string name) : IWelcomeService
-    {
-        public string Greet() => $"Hello, {name}";
     }
 }

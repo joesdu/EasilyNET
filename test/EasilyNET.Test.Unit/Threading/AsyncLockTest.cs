@@ -47,38 +47,70 @@ public class AsyncLockTests
         var task3LockAcquired = new TaskCompletionSource<bool>();
         var task1 = Task.Run(async () =>
         {
-            using (await asyncLock.LockAsync())
+            try
             {
-                task1LockAcquired.SetResult(true);
-                Assert.IsTrue(asyncLock.IsHeld);
-                await Task.Delay(50); // Hold the lock for a bit
+                using (await asyncLock.LockAsync())
+                {
+                    task1LockAcquired.TrySetResult(true);
+                    Assert.IsTrue(asyncLock.IsHeld);
+                    await Task.Delay(200); // Hold the lock for a bit
+                }
+            }
+            catch (Exception ex)
+            {
+                task1LockAcquired.TrySetException(ex);
+                throw;
             }
         });
         var task2 = Task.Run(async () =>
         {
-            await task1LockAcquired.Task;    // Ensure task1 has acquired the lock
-            await Task.Delay(5);             // Give task1 time to be in the lock
-            Assert.IsTrue(asyncLock.IsHeld); // Lock should still be held by task1
-            using (await asyncLock.LockAsync())
+            try
             {
-                task2LockAcquired.SetResult(true);
-                Assert.IsTrue(asyncLock.IsHeld);
-                await Task.Delay(50); // Hold the lock for a bit
+                await task1LockAcquired.Task;    // Ensure task1 has acquired the lock
+                await Task.Delay(50);            // Give task1 time to be in the lock
+                Assert.IsTrue(asyncLock.IsHeld); // Lock should still be held by task1
+                using (await asyncLock.LockAsync())
+                {
+                    task2LockAcquired.TrySetResult(true);
+                    Assert.IsTrue(asyncLock.IsHeld);
+                    await Task.Delay(200); // Hold the lock for a bit
+                }
+            }
+            catch (Exception ex)
+            {
+                task2LockAcquired.TrySetException(ex);
+                throw;
             }
         });
         var task3 = Task.Run(async () =>
         {
-            await task2LockAcquired.Task;    // Ensure task2 has acquired the lock
-            await Task.Delay(5);             // Give task2 time to be in the lock
-            Assert.IsTrue(asyncLock.IsHeld); // Lock should still be held by task2
-            using (await asyncLock.LockAsync())
+            try
             {
-                task3LockAcquired.SetResult(true);
-                Assert.IsTrue(asyncLock.IsHeld);
-                await Task.Delay(50); // Hold the lock for a bit
+                await task2LockAcquired.Task;    // Ensure task2 has acquired the lock
+                await Task.Delay(50);            // Give task2 time to be in the lock
+                Assert.IsTrue(asyncLock.IsHeld); // Lock should still be held by task2
+                using (await asyncLock.LockAsync())
+                {
+                    task3LockAcquired.TrySetResult(true);
+                    Assert.IsTrue(asyncLock.IsHeld);
+                    await Task.Delay(200); // Hold the lock for a bit
+                }
+            }
+            catch (Exception ex)
+            {
+                task3LockAcquired.TrySetException(ex);
+                throw;
             }
         });
-        await Task.WhenAll(task1, task2, task3);
+        var allTasks = Task.WhenAll(task1, task2, task3);
+        var completedTask = await Task.WhenAny(allTasks, Task.Delay(TimeSpan.FromSeconds(5)));
+        if (completedTask != allTasks)
+        {
+            Assert.Fail("Test timed out - potential deadlock or hang.");
+        }
+
+        // Propagate exceptions if any
+        await allTasks;
         Assert.IsTrue(task1LockAcquired.Task.Result);
         Assert.IsTrue(task2LockAcquired.Task.Result);
         Assert.IsTrue(task3LockAcquired.Task.Result);
@@ -176,7 +208,7 @@ public class AsyncLockTests
     {
         using var asyncLock = new AsyncLock();
         using var cts = new CancellationTokenSource();
-        cts.Cancel();
+        await cts.CancelAsync();
         await Assert.ThrowsExactlyAsync<TaskCanceledException>(() => asyncLock.LockAsync(cts.Token).AsTask());
         Assert.IsFalse(asyncLock.IsHeld);
         Assert.AreEqual(0, asyncLock.WaitingCount);
@@ -189,7 +221,7 @@ public class AsyncLockTests
     public async Task LockAsync_CancellationWhileQueued_ShouldRemoveWaiter()
     {
         using var asyncLock = new AsyncLock();
-        using var holder = await asyncLock.LockAsync();
+        var holder = await asyncLock.LockAsync(); // removing 'using' to handle disposal manually
         using var cts = new CancellationTokenSource();
         var queuedTask = asyncLock.LockAsync(cts.Token).AsTask();
 
@@ -200,19 +232,22 @@ public class AsyncLockTests
             await Task.Delay(5, cts.Token);
         }
         Assert.AreEqual(1, asyncLock.WaitingCount, "Waiter was not enqueued within timeout.");
-        cts.Cancel();
+        await cts.CancelAsync();
         var ex = await Assert.ThrowsExactlyAsync<TaskCanceledException>(async () => await queuedTask);
         Assert.AreEqual(cts.Token, ex.CancellationToken);
         Assert.AreEqual(0, asyncLock.WaitingCount);
         var thirdAcquired = false;
+        // ReSharper disable once MethodSupportsCancellation
         var thirdTask = Task.Run(async () =>
         {
-            using (await asyncLock.LockAsync())
+            // Use a valid token or none, not the cancelled one
+            // ReSharper disable once AccessToDisposedClosure
+            using (await asyncLock.LockAsync(CancellationToken.None))
             {
                 thirdAcquired = true;
             }
-        });
-        holder.Dispose();
+        });               // Removed cts.Token here because it is already cancelled
+        holder.Dispose(); // Release lock so thirdTask can proceed
         await thirdTask;
         Assert.IsTrue(thirdAcquired);
         Assert.IsFalse(asyncLock.IsHeld);

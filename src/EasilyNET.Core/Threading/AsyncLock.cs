@@ -64,12 +64,16 @@ public sealed class AsyncLock : IDisposable
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
         List<Waiter>? toCancel = null;
         lock (_sync)
         {
             if (_disposed)
+            {
                 return;
+            }
             _disposed = true;
             if (_waiters.Count > 0)
             {
@@ -85,7 +89,9 @@ public sealed class AsyncLock : IDisposable
             Volatile.Write(ref _state, 0);
         }
         if (toCancel is null)
+        {
             return;
+        }
         foreach (var w in toCancel)
         {
             w.CancellationRegistration.Dispose();
@@ -145,7 +151,9 @@ public sealed class AsyncLock : IDisposable
         catch (OperationCanceledException)
         {
             if (cancellationToken.IsCancellationRequested)
+            {
                 throw;
+            }
             releaser = default;
             return false; // timeout
         }

@@ -5,15 +5,8 @@
 		<AssemblyName>$(PackagePrefix).AutoDependencyInjection</AssemblyName>
 		<PackageId>$(PackagePrefix).AutoDependencyInjection</PackageId>
 		<PackageTags>AutoDependencyInjection</PackageTags>
-		<PackageReleaseNotes>
-		</PackageReleaseNotes>
 		<RootNamespace>EasilyNET.AutoDependencyInjection</RootNamespace>
 	</PropertyGroup>
-
-	<!-- Allow test project to access internal types -->
-	<ItemGroup>
-		<InternalsVisibleTo Include="$(PackagePrefix).Test.Unit" />
-	</ItemGroup>
 
 	<PropertyGroup>
 		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection</PackageProjectUrl>

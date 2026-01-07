@@ -649,16 +649,12 @@ public static class IEnumerableExtensions
             // 记录所有匹配成功的元素，避免在多个 LINQ 查询中重复遍历
             var matchedFirst = new HashSet<TFirst>();
             var matchedSecond = new HashSet<T2>();
-
             foreach (var f in firstSource)
             {
-                foreach (var s in secondSource)
+                foreach (var s in secondSource.Where(s => condition(f, s)))
                 {
-                    if (condition(f, s))
-                    {
-                        matchedFirst.Add(f);
-                        matchedSecond.Add(s);
-                    }
+                    matchedFirst.Add(f);
+                    matchedSecond.Add(s);
                 }
             }
 

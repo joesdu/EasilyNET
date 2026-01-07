@@ -5,8 +5,6 @@
 		<AssemblyName>$(PackagePrefix).Mongo.AspNetCore</AssemblyName>
 		<PackageId>$(PackagePrefix).Mongo.AspNetCore</PackageId>
 		<PackageTags>MongoDB</PackageTags>
-		<PackageReleaseNotes>
-		</PackageReleaseNotes>
 		<RootNamespace>EasilyNET.Mongo.AspNetCore</RootNamespace>
 	</PropertyGroup>
 

@@ -157,10 +157,9 @@ internal sealed class ServiceRegistry
         var getHashCodeMethod = keyType.GetMethod(nameof(GetHashCode), Type.EmptyTypes);
         if (equalsMethod?.DeclaringType == typeof(object) || getHashCodeMethod?.DeclaringType == typeof(object))
         {
-            throw new ArgumentException(
-                $"The key type '{keyType.Name}' does not override Equals and/or GetHashCode. " +
-                "Service keys must be value types, strings, or reference types with proper equality implementation. " +
-                "This is required for correct dictionary lookups.",
+            throw new ArgumentException($"The key type '{keyType.Name}' does not override Equals and/or GetHashCode. " +
+                                        "Service keys must be value types, strings, or reference types with proper equality implementation. " +
+                                        "This is required for correct dictionary lookups.",
                 nameof(key));
         }
     }

@@ -599,7 +599,6 @@ public static class AssemblyHelper
             Debug.WriteLine($"I/O error while enumerating assemblies in base directory '{baseDir}': {ex.Message}");
             yield break;
         }
-
         foreach (var file in files)
         {
             var fileName = Path.GetFileNameWithoutExtension(file);

@@ -5,8 +5,6 @@
 		<AssemblyName>$(PackagePrefix).RabbitBus.AspNetCore</AssemblyName>
 		<PackageId>$(PackagePrefix).RabbitBus.AspNetCore</PackageId>
 		<PackageTags>RabbitMQ;EventBus</PackageTags>
-		<PackageReleaseNotes>
-		</PackageReleaseNotes>
 		<RootNamespace>EasilyNET.RabbitBus.AspNetCore</RootNamespace>
 	</PropertyGroup>
 

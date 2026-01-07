@@ -3,4 +3,19 @@
 	<PropertyGroup>
 		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
 	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\EasilyNET.snk</AssemblyOriginatorKeyFile>
+		<DelaySign>false</DelaySign>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+		<Copyright>© joesdu. All rights reserved.</Copyright>
+		<!-- see https://github.com/dotnet/sdk/issues/2679 -->
+		<DebugType>embedded</DebugType>
+		<DelaySign>False</DelaySign>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<NoWarn>$(NoWarn);</NoWarn>
+		<Optimize>True</Optimize>
+		<SignAssembly>True</SignAssembly>
+		<TreatSpecificWarningsAsErrors />
+	</PropertyGroup>
 </Project>
