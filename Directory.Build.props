@@ -21,7 +21,6 @@
 		<LangVersion>preview</LangVersion>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
 		<NoWarn>$(NoWarn);IDE0047;</NoWarn>
 		<!--控制生成产物目录-->
 		<!--<ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>-->
