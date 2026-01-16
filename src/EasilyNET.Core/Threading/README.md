@@ -98,19 +98,118 @@ private sealed class Waiter
 waiter.CancellationRegistration = cancellationToken.UnsafeRegister(..., waiter);
 ```
 
-## 使用场景
+## 📖 使用指南 (User Guide)
 
-虽然 C# 提供了 `SemaphoreSlim(1, 1)` 可以作为异步锁，但 `AsyncLock` 提供了更明确的语义（Disposability 用于释放）和针对性的性能优化。
+`AsyncLock` 旨在替代 Python/C# 中常见的 `SemaphoreSlim(1, 1)` 模式，提供更安全、更易用的 API。
+
+### 1. 基础用法 (Basic Usage)
+
+最常见的模式是使用 `using` 语句块，确保锁在作用域结束时自动释放：
 
 ```csharp
 private readonly AsyncLock _mutex = new();
 
-public async Task DoSafeWorkAsync()
+public async Task ProcessDataAsync()
 {
-    // 使用 using 语法糖自动释放
+    // 获取锁
     using (await _mutex.LockAsync())
     {
-        await DoSomethingCritical();
+        // 临界区代码：同一时间只有一个线程能执行此处
+        await DoSomethingCriticalAsync();
+    }
+    // 锁在此处自动释放
+}
+```
+
+### 2. 带超时控制 (With Timeout)
+
+防止因死锁或长时间等待导致的系统卡死：
+
+```csharp
+public async Task ProcessWithTimeoutAsync()
+{
+    // 尝试在 3 秒内获取锁
+    var result = await _mutex.WaitAsync(TimeSpan.FromSeconds(3));
+
+    if (result.Acquired)
+    {
+        using (result.Releaser) // 务必释放等待结果中的 Releaser
+        {
+            await DoWorkAsync();
+        }
+    }
+    else
+    {
+        // 获取锁超时处理逻辑
+        Console.WriteLine("获取锁超时！");
     }
 }
 ```
+
+### 3. 支持取消 (Cancellation)
+
+完全支持 `CancellationToken`，适合 Web API 请求处理：
+
+```csharp
+public async Task ProcessRequestAsync(CancellationToken token)
+{
+    try
+    {
+        // 如果 token 被取消，这里会抛出 OperationCanceledException
+        using (await _mutex.LockAsync(token))
+        {
+            await DoWorkAsync(token);
+        }
+    }
+    catch (OperationCanceledException)
+    {
+        // 处理取消逻辑
+    }
+}
+```
+
+### 4. 同步上下文中使用 (Synchronous Usage)
+
+虽然推荐在异步代码中使用，但也支持同步尝试获取（非阻塞）：
+
+```csharp
+public void TryUpdateData()
+{
+    // 尝试立即获取锁，不等待
+    if (_mutex.TryLock(out var releaser))
+    {
+        using (releaser)
+        {
+            // 只有获取到锁才会执行
+            UpdateData();
+        }
+    }
+    else
+    {
+        Console.WriteLine("当前正忙，请稍后再试");
+    }
+}
+```
+
+## ⚠️ 最佳实践与注意事项
+
+1.  **非可重入 (Non-Reentrant)**:
+
+    - 与 `Monitor` (`lock`) 不同，`AsyncLock` 是不可重入的。
+    - **错误示例**:
+      ```csharp
+      using (await _mutex.LockAsync())
+      {
+          using (await _mutex.LockAsync()) // 死锁！永远在等待自己释放
+          { ... }
+      }
+      ```
+
+2.  **结构体释放 (struct Dispose)**:
+
+    - `LockAsync` 返回的是一个 `struct Release`，分配在栈上，零 GC 开销。
+    - 务必使用 `using` 或 `try-finally` 确保 `Dispose` 被调用，否则锁将永远不会释放。
+
+3.  **性能极佳**:
+    - 在无竞争情况下，`AsyncLock` 使用 `Interlocked` 操作，性能远超 `SemaphoreSlim`。
+    - 在高并发竞争下，基于 FIFO 队列调度，保证公平性，避免线程饥饿。
