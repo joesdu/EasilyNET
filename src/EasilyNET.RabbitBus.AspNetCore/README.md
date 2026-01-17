@@ -420,7 +420,7 @@ builder.Services.AddRabbitBus(c =>
 | `IgnoreHandler`          | -                                | -                     | 忽略指定的处理器                      |
 | `WithSerializer`         | -                                | System.Text.Json      | 自定义消息序列化器                    |
 | 全局                     | `SkipExchangeDeclare`            | false                 | 跳过交换机声明(外部已声明时可启用)    |
-| 全局                     | `ValidateExchangesOnStartup`     | true                  | 启动阶段验证交换机类型与存在性        |
+| 全局                     | `ValidateExchangesOnStartup`     | false                 | 启动阶段验证交换机类型与存在性        |
 
 #### 最佳实践
 
