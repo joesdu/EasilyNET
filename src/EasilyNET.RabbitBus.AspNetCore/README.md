@@ -189,7 +189,7 @@ builder.Services.AddRabbitBus(c =>
 #### 注意事项
 
 - **事件必须注册处理器**：仅通过 `WithHandler<THandler>()` 明确注册的处理器才会创建消费者并注入 DI。
-- **处理器执行顺序**：同一消息的多个处理器按注册顺序串行执行（`SequentialHandlerExecution` 当前未生效，后续版本可能启用）。
+- **处理器执行顺序**：当前同一消息的多个处理器仅保证在同一消费管线内串行处理，但**不承诺严格的注册顺序**；`SequentialHandlerExecution` 目前为预留配置，后续版本可能用于启用确定性顺序控制。
 - **并发方式**：提高 `HandlerThreadCount`（每事件消费者数量）以及 `ConsumerDispatchConcurrency` 以提升并发；`ConsumerChannelLimit` 可限制通道数量。
 - **延迟队列**：必须安装 rabbitmq-delayed-message-exchange 插件；框架会自动为延迟交换机声明 `x-delayed-type=direct`。
 - **优先级队列**：使用优先级需设置队列参数 `x-max-priority`。
