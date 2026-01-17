@@ -1,55 +1,76 @@
 # EasilyNET.WebCore
 
-一些.Net 6+ 的 WebApi 一些中间件以及部分数据类型到 Json 的转换
+面向 .NET 6+ 的 WebAPI 组件集合：中间件、异常处理与 JSON 转换器。
 
-### Changelog
+## 功能概览
 
-- 新增 BusinessExceptionHandler 用于适应.NET8 新增的全局异常处理
-- 移除 ResultObject.cs 因为这种统一返回格式属于特殊的要求,正常的 HTTP 请求应该直接返回数据,而请求是否成功以及产生的异常应该由
-  HTTP 状态码反应.
-- 同时将涉及到该类的 Filter 和中间件移动到 Api 例子中.
+- **JSON 转换器**：DateTime/DateOnly/TimeOnly/Decimal/Int/Bool
+- **异常处理**：`BusinessExceptionHandler`（基于 .NET 8 `IExceptionHandler`）
+- **中间件**：`UseResponseTime()` 输出 `X-Response-Time`
+- **WebSocket 服务端**：高性能会话与处理器模型
 
-### EasilyNET.WebCore JsonConverter 使用?
+## JSON Converter 使用
 
-- 该库目前补充的 Converter 有: DateTimeConverter, DateTimeNullConverter, TimeSpanJsonConverter, TimeOnly, DateOnly
-- 其中 TimeOnly 和 DateOnly 仅支持.Net6+ API 内部使用,传入和传出 Json 仅支持固定格式字符串
-- 如: **`DateOnly👉"2021-11-11"`**, **`TimeOnly👉"23:59:25"`**
+当前提供的 Converter：
 
-- 使用 Nuget 安装 EasilyNET.WebCore
-- 然后在上述 Program.cs 中添加如下内容
-
-- .Net 6 +
+- `DateTimeJsonConverter`（格式：`yyyy-MM-dd HH:mm:ss`）
+- `DateOnlyJsonConverter`（格式：`yyyy-MM-dd`）
+- `TimeOnlyJsonConverter`（格式：`HH:mm:ss`）
+- `DecimalJsonConverter`（读数值/字符串，写出为字符串）
+- `IntJsonConverter`（读数值/字符串，写出为数值）
+- `BoolJsonConverter`（读 true/false/"true"/"false"/数值）
 
 ```csharp
-// Add services to the container.
+using EasilyNET.WebCore.JsonConverters;
+
 builder.Services.AddControllers().AddJsonOptions(c =>
 {
-    c.JsonSerializerOptions.Converters.Add(new SystemTextJsonConvert.DateTimeConverter());
-    c.JsonSerializerOptions.Converters.Add(new SystemTextJsonConvert.DateTimeNullConverter());
+    c.JsonSerializerOptions.Converters.Add(new DateTimeJsonConverter());
+    c.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
+    c.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
+    c.JsonSerializerOptions.Converters.Add(new DecimalJsonConverter());
+    c.JsonSerializerOptions.Converters.Add(new IntJsonConverter());
+    c.JsonSerializerOptions.Converters.Add(new BoolJsonConverter());
 });
 ```
 
-### EasilyNET.WebCore 中间件使用?
+## 业务异常处理（.NET 8+）
 
-目前支持全局 API 执行时间中间件
-
-- 新增限流中间件(防抖),用于避免短时间内,重复请求
-- 使用 Nuget 安装 # EasilyNET.WebCore
-- 然后在 Program.cs 中添加如下内容
-
-- .Net 6 +
+`BusinessExceptionHandler` 仅处理 `BusinessException`，并输出 `ProblemDetails`。
 
 ```csharp
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
+using EasilyNET.WebCore.Handlers;
 
-app.UseResponseTime(); // 全局Action执行时间
-...
-app.Run();
+builder.Services.AddExceptionHandler<BusinessExceptionHandler>();
+
+var app = builder.Build();
+app.UseExceptionHandler();
 ```
 
-### WebSocket Server
+## 中间件
 
-高性能 WebSocket 服务端支持。
+### Response Time
+
+在响应头添加 `X-Response-Time`，建议尽量靠前放置：
+
+```csharp
+app.UseResponseTime();
+```
+
+## WebSocket Server
+
+高性能 WebSocket 服务端支持：
 
 - [使用文档](./WebSocket/README.md)
+
+快速接入：
+
+```csharp
+using EasilyNET.WebCore.WebSocket;
+
+builder.Services.AddSingleton<ChatHandler>();
+
+var app = builder.Build();
+app.UseWebSockets();
+app.MapWebSocketHandler<ChatHandler>("/ws");
+```
