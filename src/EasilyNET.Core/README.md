@@ -120,7 +120,7 @@
 
 #### 对象扩展 (ObjectExtensions)
 
-- 对象深拷贝（基于表达式树）
+- 对象深拷贝（基于表达式树），详见 [DeepCopy 使用文档](./DeepCopy/README.md)
 - 对象转换
 
 #### 枚举扩展 (EnumExtensions)
