@@ -404,7 +404,7 @@ builder.Services.AddRabbitBus(c =>
 | `WithRetryQueueSizing`   | `maxSize`                        | -                     | 固定最大重试队列长度(>0 生效)         |
 |                          | `memoryRatio`                    | 0.02                  | 估算队列内存占比(0-0.25)              |
 |                          | `avgEntryBytes`                  | 2048                  | 单条重试项估算字节数                  |
-| `WithApplication`        | `appName`                        | MachineName,EasilyNET | 应用标识,用于日志与指标标签           |
+| `WithApplication`        | `appName`                        | `MachineName, EasilyNET` | 应用标识,用于日志与指标标签           |
 | `WithHandlerConcurrency` | `handlerMaxDegreeOfParallelism`  | 4                     | 预留配置,当前版本未实际使用           |
 | `WithEventQos`           | `prefetchCount`                  | -                     | 事件级 QoS 设置(覆盖全局设置)         |
 |                          | `prefetchSize`                   | -                     | 事件级 QoS 预取大小                   |
