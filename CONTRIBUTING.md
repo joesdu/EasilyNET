@@ -101,7 +101,7 @@ dotnet run
 
 ### C# Specific
 
-- Use C# 12 features where appropriate (project targets .NET 9).
+- Use C# 14 features where appropriate (project targets .NET 10).
 - Prefer `async/await` for asynchronous operations.
 - Use pattern matching and modern language features.
 - Follow the [Microsoft C# Coding Conventions](https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/inside-a-csharp/coding-conventions).

@@ -1,220 +1,559 @@
 #### EasilyNET.AutoDependencyInjection
 
-- 新增 KeyedService 支持,可在 `DependencyInjectionAttribute` 中看到对应的 `ServiceKey` 属性,用于标识服务的 Key 值.
-- 新增 WPF, WinForms, WinUI3 项目支持.(仅限于 .NET 的项目,不支持 .NET Framework)
-- 经测试是支持 WinUI 3 类型的项目的,但是需要注意的是,WinUI 3 项目的启动方式和 WPF 项目不一样,需要自行调整.
-- [WPF 例子](https://github.com/joesdu/WpfAutoDISample) 已同步到最新代码.
-- [WinForms 例子](https://github.com/joesdu/WinFormAutoDISample) 已同步到最新代码.
-- [WinUI3 例子](https://github.com/joesdu/WinUIAutoDISample) 暂时没同步到最新版本,可以自己更新一下,目前暂时没有 WinUI 环境所以没更新.
-
-##### 新增特性
-
-- 新增 `GetEnable` 函数,该函数未重写的情况下默认返回 `true`,可通过重写该函数,实现从配置文件中读取是否启用服务.<br/>比如
-  `SwaggerUI` 服务,我们可能仅希望在预发布模式中启用,为前端工程师提供 `SwaggerUI`,当部署到生产环境后,通过直接修改配置文件,即可关闭
-  `SwaggerUI`.
-- 移除掉原有 `Enable` 属性,改为 `GetEnable` 函数,用于更灵活的配置服务.
-
-#### 中断性变更
-
-- 调整 `ConfigureServices` 和 `ApplicationInitialization` 为异步方式,便于在某些时候初始化服务的时候使用异步版本.
-
-##### Resolver 使用说明
-
-- 通过 `IResolver` 或 `IServiceProvider.CreateResolver()` 可获得更灵活的服务解析能力,支持 KeyedService、带参数构造等高级场景.
-- 典型用法：
-
-```csharp
-var resolver = provider.CreateResolver(); 
-var service = resolver.ResolveKeyed<IMyService>("MyKey", new NamedParameter("param1", "example"));
-```
-
-- 支持通过参数名和实例动态注入构造参数,适合无默认构造函数或需要运行时参数的服务.
+一个功能强大的自动依赖注入模块系统，提供模块化的服务配置和中间件管理能力。
 
 ---
 
-##### 注意事项
+### **核心特性**
 
-- Resolver 支持 KeyedService 及参数注入,适合复杂依赖场景.
+#### 1. **模块化架构 (AppModule)**
+
+- 基于 `AppModule` 的模块系统，支持依赖关系声明 (`DependsOn`)
+- 模块加载顺序自动解析，确保依赖模块优先初始化
+- 支持通过 `GetEnable` 方法动态控制模块启用/禁用（可从配置文件读取）
+
+#### 2. **KeyedService 支持**
+
+- 完整支持 .NET 的 KeyedService 功能
+- 可在 `DependencyInjectionAttribute` 中使用 `ServiceKey` 属性标识服务键值
+- 支持通过 `ResolveKeyed<T>(key)` 解析键控服务
+
+#### 3. **高级服务解析器 (IResolver)**
+
+- 提供类似 Autofac 的动态解析能力，同时基于 `Microsoft.Extensions.DependencyInjection`
+- 支持构造函数参数覆盖 (NamedParameter, TypedParameter, ResolvedParameter)
+- 支持可选解析、批量解析、命名解析、键控解析
+- 支持创建独立作用域 (`BeginScope`)
+
+#### 4. **多平台支持**
+
+- **Web 应用**: ASP.NET Core (WebApplication, IApplicationBuilder)
+- **桌面应用**: WPF, WinForms, WinUI3 (.NET 项目，不支持 .NET Framework)
+- 统一的 API 接口，便于跨平台项目复用模块
+
+#### 5. **异步优先设计**
+
+- `ConfigureServices` 和 `ApplicationInitialization` 均为异步方法
+- 支持 `InitializeApplicationAsync` 用于异步初始化
+- 支持 `CancellationToken` 取消操作
 
 ---
 
-##### WPF 中的使用
+### **示例项目**
 
-由于新增了 WPF 项目支持,所以在使用时需要注意以下几点:
-WPF 项目中,使用依赖注入,需要在 App.xaml.cs 中添加如下代码:
+| 平台     | 示例项目                                                       | 状态      |
+| -------- | -------------------------------------------------------------- | --------- |
+| WPF      | [WPF 示例](https://github.com/joesdu/WpfAutoDISample)          | ✅ 最新   |
+| WinForms | [WinForms 示例](https://github.com/joesdu/WinFormAutoDISample) | ✅ 最新   |
+| WinUI3   | [WinUI3 示例](https://github.com/joesdu/WinUIAutoDISample)     | ⚠️ 待更新 |
+
+---
+
+### **Resolver 高级解析器**
+
+`IResolver` 提供比原生 `IServiceProvider` 更强大的服务解析能力。
+
+#### 核心方法
+
+| 方法                     | 说明                         |
+| ------------------------ | ---------------------------- |
+| `Resolve<T>()`           | 解析服务，失败抛异常         |
+| `TryResolve<T>(out var)` | 尝试解析服务，失败返回 false |
+| `ResolveOptional<T>()`   | 解析可选服务，失败返回 null  |
+| `ResolveAll<T>()`        | 解析所有已注册的 T 服务      |
+| `ResolveKeyed<T>(key)`   | 解析键控服务（KeyedService） |
+| `ResolveNamed<T>(name)`  | 解析命名服务                 |
+| `BeginScope()`           | 创建子作用域                 |
+
+#### 构造函数参数注入
+
+支持三种参数类型：
+
+1. **NamedParameter**: 按参数名匹配
+2. **TypedParameter**: 按参数类型匹配
+3. **ResolvedParameter**: 自定义匹配逻辑和值提供
+
+#### 使用示例
 
 ```csharp
-[STAThread]
-public static void Main(string[] args)
-{
-    using var host = CreateHostBuilder(args).Build();
-    host.InitializeApplication();
-    host.Start();
-    var app = new App();
-    app.InitializeComponent();
-    app.MainWindow = host.Services.GetRequiredService<MainWindow>();
-    app.MainWindow.Visibility = Visibility.Visible;
-    app.Run();
-}
+// 1. 基本解析
+var resolver = provider.CreateResolver();
+var service = resolver.Resolve<IMyService>();
 
-private static IHostBuilder CreateHostBuilder(string[] args)
+// 2. 带参数覆盖的解析
+var service = resolver.Resolve<IMyService>(
+    new NamedParameter("connectionString", "Server=localhost"),
+    new TypedParameter(typeof(ILogger), logger)
+);
+
+// 3. 键控服务解析
+var keyedService = resolver.ResolveKeyed<ICache>("redis",
+    new NamedParameter("endpoint", "127.0.0.1:6379")
+);
+
+// 4. 批量解析
+var allHandlers = resolver.ResolveAll<IEventHandler>();
+
+// 5. 可选解析
+var optional = resolver.ResolveOptional<IOptionalService>();
+
+// 6. 作用域解析
+using var scopedResolver = resolver.BeginScope();
+var scopedService = scopedResolver.Resolve<IScopedService>();
+```
+
+#### IServiceProvider 扩展方法
+
+也可以直接在 `IServiceProvider` 上使用这些能力：
+
+```csharp
+// 创建 Resolver（可选择是否创建作用域）
+var resolver = provider.CreateResolver(createScope: true);
+
+// 或者直接使用扩展方法
+var service = provider.Resolve<IMyService>();
+var keyed = provider.ResolveKeyed<ICache>("redis");
+var withParams = provider.Resolve<MyService>(
+    new NamedParameter("config", configuration)
+);
+```
+
+#### 性能优化
+
+- 构造函数信息和参数元数据被缓存，避免重复反射
+- 优先选择能满足所有参数的构造函数
+- 支持 `[FromKeyedServices]` 特性注入键控依赖
+
+---
+
+### **WPF/WinForms 桌面应用集成**
+
+#### WPF 项目配置
+
+**1. 修改 App.xaml.cs**
+
+```csharp
+public partial class App : Application
 {
-    return Host.CreateDefaultBuilder(args)
-               .ConfigureServices(sc => { sc.AddApplicationModules<AppServiceModules>(); });
+    [STAThread]
+    public static void Main(string[] args)
+    {
+        using var host = CreateHostBuilder(args).Build();
+        host.InitializeApplication();
+        host.Start();
+
+        var app = new App();
+        app.InitializeComponent();
+        app.MainWindow = host.Services.GetRequiredService<MainWindow>();
+        app.MainWindow.Visibility = Visibility.Visible;
+        app.Run();
+    }
+
+    private static IHostBuilder CreateHostBuilder(string[] args)
+    {
+        return Host.CreateDefaultBuilder(args)
+                   .ConfigureServices(sc =>
+                   {
+                       sc.AddApplicationModules<AppServiceModules>();
+                   });
+    }
 }
 ```
 
-同时还需要调整 `.csproj` 文件,添加如下代码:
+**2. 调整 .csproj 文件**
 
 ```xml
 <ItemGroup>
-	<ApplicationDefinition Remove="App.xaml" />
-	<Page Include="App.xaml" />
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
 </ItemGroup>
 ```
 
-再在 WPF 项目中,使用依赖注入,需要在 `AppServiceModules.cs` 中添加如下代码: 该类的使用方法和 Web 项目中的
-`AppWebModule.cs`
-一样.
+**3. 创建模块类 (AppServiceModules.cs)**
 
 ```csharp
 [DependsOn(typeof(DependencyAppModule))]
-internal sealed class AppServiceModules : AppModule { }
-```
-
-在 WPF 项目中,使用依赖注入,需要在 `MainWindow.xaml.cs` 中继承接口或者添加 `DependencyInjection` 特性如下代码:
-
-```csharp
-// 使用特性配置注入信息
-[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true, SelfOnly = true)]
-public partial class MainWindow : Window
-
-```
-
-##### 注意事项
-
-- 需要注意的是,在 WPF 项目中,请将 AddSelf 属性设置为 true,否则会出现服务无法找到的问题,因为默认会注册实现类的父类,导致使用
-  `host.Services.GetRequiredService<MainWindow>()` 的方式无法找到服务.WinForm 项目中,没有测试,但是理论上也是一样的.
-- 由于新增 WPF 项目支持,所以调整了 IApplicationBuilder 为 IHost,因此 WEB 项目中的使用方式有细微的变化.
-
-```csharp
-// 之前的使用方式
-IApplicationBuilder app = context.GetApplicationBuilder();
-// 现在的使用方式
-IApplicationBuilder app = context.GetApplicationHost() as IApplicationBuilder;
-// 或者如下方式,根据实际情况选择
-WebApplication app = context.GetApplicationHost() as WebApplication;
-// 在 WPF 或者 WinForm 项目中,使用如下方式
-IHost app = context.GetApplicationHost();
-```
-
-##### 如何使用
-
-- 使用 Nuget 包管理工具添加依赖包 EasilyNET.AutoDependencyInjection
-- 使用特性注入服务
-
-```csharp
-[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true, SelfOnly = true)]
-public class XXXService : IXXXService
+internal sealed class AppServiceModules : AppModule
 {
-    // TODO: do something
-    Console.WriteLine("使用特性注入服务");
-    ...
+    public override async Task ConfigureServices(ConfigureServicesContext context)
+    {
+        // 注册应用服务
+        await base.ConfigureServices(context);
+    }
 }
 ```
 
-- 3.继承 AppModule 类,然后显示加入到 AppWebModule 配置中
-- Step1.创建 CorsModule.cs
+**4. 注册窗口和服务**
 
 ```csharp
-// 这里以跨域服务注册为例
-/// <summary>
-/// 配置跨域服务及中间件
-/// </summary>
+// 使用特性注册窗口（注意需要 AddSelf = true）
+[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true, SelfOnly = true)]
+public partial class MainWindow : Window
+{
+    public MainWindow()
+    {
+        InitializeComponent();
+    }
+}
+```
+
+#### ⚠️ 桌面应用注意事项
+
+1. **AddSelf 必须设置为 true**
+   - 默认情况下会注册实现类的父类（如 Window），导致无法通过 `GetRequiredService<MainWindow>()` 获取
+   - 设置 `AddSelf = true, SelfOnly = true` 确保注册具体的窗口类型
+
+2. **获取 IHost 的方式不同**
+
+   ```csharp
+   // Web 项目
+   var app = context.GetApplicationHost() as WebApplication;
+   // 或
+   var app = context.GetApplicationHost() as IApplicationBuilder;
+
+   // 桌面项目（WPF/WinForms）
+   var host = context.GetApplicationHost() as IHost;
+   ```
+
+---
+
+### **Web 应用集成 (ASP.NET Core)**
+
+#### 快速开始
+
+**1. 使用特性注入服务**
+
+```csharp
+// 标记服务类，自动注入到容器
+[DependencyInjection(ServiceLifetime.Scoped)]
+public class OrderService : IOrderService
+{
+    private readonly IRepository _repository;
+
+    public OrderService(IRepository repository)
+    {
+        _repository = repository;
+    }
+}
+
+// 支持 KeyedService
+[DependencyInjection(ServiceLifetime.Singleton, ServiceKey = "redis")]
+public class RedisCache : ICache
+{
+    // ...
+}
+```
+
+**2. 创建模块 (AppModule)**
+
+```csharp
+// Step 1: 创建功能模块（如 CORS 配置模块）
 public class CorsModule : AppModule
 {
-    // 新增函数,用于可从配置文件读取是否启用服务
+    // 可从配置文件读取是否启用此模块
     public override bool GetEnable(ConfigureServicesContext context)
     {
         var config = context.ServiceProvider.GetConfiguration();
         return config.GetSection("ServicesEnable").GetValue<bool>("Cors");
     }
 
-    /// <summary>
-    /// 注册和配置服务
-    /// </summary>
-    /// <param name="context"></param>
+    // 注册服务
     public override async Task ConfigureServices(ConfigureServicesContext context)
     {
         var config = context.ServiceProvider.GetConfiguration();
         var allow = config["AllowedHosts"] ?? "*";
-        _ = context.Services.AddCors(c => c.AddPolicy("AllowedHosts", s => s.WithOrigins(allow.Split(",")).AllowAnyMethod().AllowAnyHeader()));
+
+        context.Services.AddCors(c =>
+            c.AddPolicy("AllowedHosts", s =>
+                s.WithOrigins(allow.Split(","))
+                 .AllowAnyMethod()
+                 .AllowAnyHeader()));
+
         await Task.CompletedTask;
     }
-    /// <summary>
-    /// 注册中间件
-    /// </summary>
-    /// <param name="context"></param>
+
+    // 配置中间件
     public override async Task ApplicationInitialization(ApplicationContext context)
     {
-        var app = context.GetApplicationBuilder() as IApplicationBuilder;
-        _ = app.UseCors("AllowedHosts");
+        var app = context.GetApplicationHost() as IApplicationBuilder;
+        app?.UseCors("AllowedHosts");
+
         await Task.CompletedTask;
     }
 }
 ```
 
-- Step2.创建 AppWebModule.cs
+**3. 创建根模块**
 
 ```csharp
-/**
- * 要实现自动注入,一定要在这个地方添加
- */
+// Step 2: 使用 DependsOn 声明模块依赖关系
 [DependsOn(
-    typeof(DependencyAppModule),
-    typeof(CorsModule)
+    typeof(DependencyAppModule),  // 必须依赖，提供自动注入功能
+    typeof(CorsModule)             // 自定义模块
 )]
 public class AppWebModule : AppModule
 {
-    /// <summary>
-    /// 注册和配置服务
-    /// </summary>
-    /// <param name="context"></param>
     public override async Task ConfigureServices(ConfigureServicesContext context)
     {
-        _ = context.Services.AddHttpContextAccessor();
+        context.Services.AddHttpContextAccessor();
+        // 其他服务注册
         await base.ConfigureServices(context);
     }
-    /// <summary>
-    /// 注册中间件
-    /// </summary>
-    /// <param name="context"></param>
+
     public override async Task ApplicationInitialization(ApplicationContext context)
     {
-        var app = context.GetApplicationBuilder() as IApplicationBuilder;
-        _ = app.UseAuthorization();
-        // 这里可添加自己的中间件
+        var app = context.GetApplicationHost() as IApplicationBuilder;
+        app?.UseAuthorization();
+        // 其他中间件配置
         await base.ApplicationInitialization(context);
     }
 }
 ```
 
-- Step3.最后再 Program.cs 中添加如下内容.
+**4. 在 Program.cs 中启用**
 
 ```csharp
-// Add services to the container.
-// 自动注入服务模块
-builder.Services.AddApplication<AppWebModule>();
+var builder = WebApplication.CreateBuilder(args);
+
+// 注册模块系统
+builder.Services.AddApplicationModules<AppWebModule>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment()) _ = app.UseDeveloperExceptionPage();
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
 
-// 添加自动化注入的一些中间件.
+// 初始化模块（执行所有模块的 ApplicationInitialization）
 app.InitializeApplication();
 
-app.MapControllers();
+// 或使用异步版本
+// await app.InitializeApplicationAsync();
 
+app.MapControllers();
 app.Run();
 ```
+
+---
+
+### **模块化架构最佳实践**
+
+#### 模块依赖顺序
+
+模块的 `DependsOn` 顺序决定了初始化顺序。被依赖的模块会先执行：
+
+```csharp
+[DependsOn(
+    typeof(DependencyAppModule),    // 第 1 个初始化
+    typeof(DatabaseModule),         // 第 2 个初始化
+    typeof(CachingModule),          // 第 3 个初始化
+    typeof(AuthenticationModule)    // 第 4 个初始化
+)]
+public class AppWebModule : AppModule  // 最后初始化
+{
+    // ...
+}
+```
+
+#### 模块职责划分
+
+建议按功能领域划分模块：
+
+```csharp
+// 数据库模块
+public class DatabaseModule : AppModule
+{
+    public override async Task ConfigureServices(ConfigureServicesContext context)
+    {
+        // 注册 DbContext, Repository 等
+    }
+}
+
+// 认证模块
+public class AuthenticationModule : AppModule
+{
+    public override async Task ConfigureServices(ConfigureServicesContext context)
+    {
+        // 注册 JWT, Identity 等
+    }
+
+    public override async Task ApplicationInitialization(ApplicationContext context)
+    {
+        var app = context.GetApplicationHost() as IApplicationBuilder;
+        app?.UseAuthentication();
+        app?.UseAuthorization();
+    }
+}
+
+// Swagger 文档模块
+public class SwaggerModule : AppModule
+{
+    public override bool GetEnable(ConfigureServicesContext context)
+    {
+        var config = context.ServiceProvider.GetConfiguration();
+        return config.GetValue<bool>("Swagger:Enabled");
+    }
+
+    public override async Task ConfigureServices(ConfigureServicesContext context)
+    {
+        context.Services.AddSwaggerGen();
+        await Task.CompletedTask;
+    }
+
+    public override async Task ApplicationInitialization(ApplicationContext context)
+    {
+        var app = context.GetApplicationHost() as IApplicationBuilder;
+        app?.UseSwagger();
+        app?.UseSwaggerUI();
+        await Task.CompletedTask;
+    }
+}
+```
+
+#### 配置驱动的模块启用
+
+在 `appsettings.json` 中配置模块开关：
+
+```json
+{
+  "ServicesEnable": {
+    "Cors": true,
+    "Swagger": true,
+    "HealthChecks": false
+  }
+}
+```
+
+在模块中读取配置：
+
+```csharp
+public override bool GetEnable(ConfigureServicesContext context)
+{
+    var config = context.ServiceProvider.GetConfiguration();
+    return config.GetSection("ServicesEnable").GetValue<bool>("Swagger");
+}
+```
+
+---
+
+### **DependencyInjection 特性说明**
+
+#### 特性属性
+
+| 属性         | 类型            | 说明                                       | 默认值 |
+| ------------ | --------------- | ------------------------------------------ | ------ |
+| `Lifetime`   | ServiceLifetime | 服务生命周期（Singleton/Scoped/Transient） | Scoped |
+| `ServiceKey` | object?         | 键控服务的键值（KeyedService）             | null   |
+| `AddSelf`    | bool            | 是否注册实现类自身                         | false  |
+| `SelfOnly`   | bool            | 是否仅注册实现类（不注册接口）             | false  |
+
+#### 使用示例
+
+```csharp
+// 基础用法：注册接口
+[DependencyInjection(ServiceLifetime.Scoped)]
+public class UserService : IUserService
+{
+    // 会注册 IUserService -> UserService
+}
+
+// 键控服务
+[DependencyInjection(ServiceLifetime.Singleton, ServiceKey = "primary")]
+public class PrimaryDatabase : IDatabase
+{
+    // 会注册 Keyed Service: "primary" -> PrimaryDatabase
+}
+
+// 同时注册接口和实现类
+[DependencyInjection(ServiceLifetime.Scoped, AddSelf = true)]
+public class ProductService : IProductService
+{
+    // 会注册两个：
+    // 1. IProductService -> ProductService
+    // 2. ProductService -> ProductService
+}
+
+// 仅注册实现类（常用于 Window/Page）
+[DependencyInjection(ServiceLifetime.Singleton, AddSelf = true, SelfOnly = true)]
+public partial class MainWindow : Window
+{
+    // 仅注册 MainWindow -> MainWindow
+    // 不注册 Window -> MainWindow
+}
+```
+
+---
+
+### **中断性变更说明**
+
+#### v3.x → v4.x
+
+1. **异步方法**
+   - `ConfigureServices` 和 `ApplicationInitialization` 改为异步
+   - 需要返回 `Task`，使用 `await Task.CompletedTask` 结束同步方法
+
+2. **GetEnable 函数**
+   - 移除 `Enable` 属性
+   - 新增 `GetEnable` 方法，支持运行时动态判断
+
+3. **IHost 统一**
+   - `GetApplicationBuilder()` 已弃用
+   - 使用 `GetApplicationHost()` 并根据平台转换类型
+
+---
+
+### **常见问题 (FAQ)**
+
+#### Q: 如何在模块中使用配置？
+
+```csharp
+var config = context.ServiceProvider.GetConfiguration();
+var connectionString = config.GetConnectionString("Default");
+```
+
+#### Q: 如何在运行时获取 Scoped 服务？
+
+```csharp
+// 方式 1: 使用 IServiceScopeFactory
+var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
+using var scope = scopeFactory.CreateScope();
+var service = scope.ServiceProvider.GetRequiredService<IScopedService>();
+
+// 方式 2: 使用 Resolver
+using var resolver = provider.CreateResolver(createScope: true);
+var service = resolver.Resolve<IScopedService>();
+```
+
+#### Q: 模块的初始化顺序是怎样的？
+
+按照 `DependsOn` 的声明顺序，依赖模块先执行：
+
+1. 执行所有模块的 `ConfigureServices`（按依赖顺序）
+2. 构建 ServiceProvider
+3. 执行所有模块的 `ApplicationInitialization`（按依赖顺序）
+
+#### Q: 如何禁用某个模块？
+
+重写 `GetEnable` 方法返回 `false`：
+
+```csharp
+public override bool GetEnable(ConfigureServicesContext context) => false;
+```
+
+---
+
+### **性能优化建议**
+
+1. **缓存构造函数信息**: Resolver 已内置构造函数缓存，避免重复反射
+2. **合理使用作用域**: 避免在 Singleton 中注入 Scoped 服务
+3. **延迟初始化**: 不需要的模块通过 `GetEnable` 返回 false 禁用
+4. **异步操作**: 充分利用异步方法，避免阻塞初始化
+
+---
+
+### **技术支持**
+
+- 📖 示例项目: [WPF](https://github.com/joesdu/WpfAutoDISample) | [WinForms](https://github.com/joesdu/WinFormAutoDISample) | [WinUI3](https://github.com/joesdu/WinUIAutoDISample)
+- 🐛 问题反馈: [GitHub Issues](https://github.com/joesdu/EasilyNET/issues)
+- 💡 功能建议: 欢迎提交 Pull Request
