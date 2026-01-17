@@ -290,12 +290,14 @@ builder.Services.AddRabbitBus(c =>
 
 - 指标（基于 System.Diagnostics.Metrics）
   - Meter 名称: `EasilyNET.RabbitBus`
-    - 关键指标（实际名称）：
+    - 关键指标（Meter 实际名称，已采用点分式命名规范）：
       - 发布: `rabbitmq.publish.normal.total`, `rabbitmq.publish.delayed.total`, `rabbitmq.publish.retried.total`, `rabbitmq.publish.discarded.total`
       - 确认: `rabbitmq.publish.confirm.ack.total`, `rabbitmq.publish.confirm.nack.total`, `rabbitmq.publish.outstanding.confirms`
       - 重试: `rabbitmq.retry.enqueued.total`
       - 连接: `rabbitmq.connection.reconnects.total`, `rabbitmq.connection.active`, `rabbitmq.channel.active`, `rabbitmq.connection.state`
       - 死信: `rabbitmq.deadletter.total`
+      > 说明（EN）：These are the latest dot-separated metric names. Older versions used underscore-based names (for example: `rabbitmq_published_normal_total`). If you previously collected metrics via the old names, please update your dashboards/alerts accordingly.
+      > 说明（中文）：以上为最新的点分式指标命名规范，已从旧的下划线风格（例如：`rabbitmq_published_normal_total`）迁移而来。如你已基于旧名称配置监控/告警，请同步更新对应配置。
 
   - 快速观察(开发):
 
