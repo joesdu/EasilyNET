@@ -28,7 +28,7 @@ var plain = AesCrypt.DecryptFromBase64(cipher, "pwd", AesKeyModel.AES256);
 
 - 支持 AES128/192/256（通过 `AesKeyModel`）
 - 默认模式：CBC + PKCS7
-- 提供字符串便捷方法（Base64/Hex）
+- 提供字符串便捷方法（Base64、Hex）
 
 #### DES / TripleDES（兼容性用途）
 
