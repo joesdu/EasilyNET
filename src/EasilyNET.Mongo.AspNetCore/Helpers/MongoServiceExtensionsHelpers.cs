@@ -21,42 +21,18 @@ internal static class MongoServiceExtensionsHelpers
         {
             return;
         }
-        if (resilience.ServerSelectionTimeout.HasValue)
-        {
-            settings.ServerSelectionTimeout = resilience.ServerSelectionTimeout.Value;
-        }
-        if (resilience.ConnectTimeout.HasValue)
-        {
-            settings.ConnectTimeout = resilience.ConnectTimeout.Value;
-        }
-        if (resilience.SocketTimeout.HasValue)
-        {
-            settings.SocketTimeout = resilience.SocketTimeout.Value;
-        }
-        if (resilience.WaitQueueTimeout.HasValue)
-        {
-            settings.WaitQueueTimeout = resilience.WaitQueueTimeout.Value;
-        }
-        if (resilience.HeartbeatInterval.HasValue)
-        {
-            settings.HeartbeatInterval = resilience.HeartbeatInterval.Value;
-        }
-        if (resilience.MaxConnectionPoolSize.HasValue)
-        {
-            settings.MaxConnectionPoolSize = resilience.MaxConnectionPoolSize.Value;
-        }
+        settings.ServerSelectionTimeout = resilience.ServerSelectionTimeout;
+        settings.ConnectTimeout = resilience.ConnectTimeout;
+        settings.SocketTimeout = resilience.SocketTimeout;
+        settings.WaitQueueTimeout = resilience.WaitQueueTimeout;
+        settings.HeartbeatInterval = resilience.HeartbeatInterval;
+        settings.MaxConnectionPoolSize = resilience.MaxConnectionPoolSize;
         if (resilience.MinConnectionPoolSize.HasValue)
         {
             settings.MinConnectionPoolSize = resilience.MinConnectionPoolSize.Value;
         }
-        if (resilience.RetryReads.HasValue)
-        {
-            settings.RetryReads = resilience.RetryReads.Value;
-        }
-        if (resilience.RetryWrites.HasValue)
-        {
-            settings.RetryWrites = resilience.RetryWrites.Value;
-        }
+        settings.RetryReads = resilience.RetryReads;
+        settings.RetryWrites = resilience.RetryWrites;
     }
 
     /// <summary>
