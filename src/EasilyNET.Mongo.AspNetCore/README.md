@@ -120,7 +120,7 @@ builder.Services.AddMongoContext<DbContext>(builder.Configuration, c =>
     c.Resilience.WaitQueueTimeout = TimeSpan.FromMinutes(1);         // 连接池等待超时
     c.Resilience.HeartbeatInterval = TimeSpan.FromSeconds(10);       // 心跳检测间隔
     c.Resilience.MaxConnectionPoolSize = 100;                        // 连接池最大连接数
-    c.Resilience.MinConnectionPoolSize = null;                       // 连接池最小连接数（null = 不设置）
+    c.Resilience.MinConnectionPoolSize = null;                       // 连接池最小连接数（null = 使用驱动默认值，不覆盖驱动默认配置）
     c.Resilience.RetryReads = true;                                  // 自动重试读操作
     c.Resilience.RetryWrites = true;                                 // 自动重试写操作
 });
