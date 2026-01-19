@@ -1,13 +1,12 @@
 using EasilyNET.Core.Misc;
 using EasilyNET.Mongo.AspNetCore.Common;
-using EasilyNET.Mongo.AspNetCore.Conventions;
+using EasilyNET.Mongo.AspNetCore.Helpers;
 using EasilyNET.Mongo.AspNetCore.JsonConverters;
 using EasilyNET.Mongo.AspNetCore.Options;
 using EasilyNET.Mongo.Core;
 using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 
@@ -42,7 +41,7 @@ public static class MongoServiceExtensions
     ///     </para>
     ///     <para xml:lang="zh">Lazy&lt;T&gt; 提供了线程安全的延迟初始化机制，确保全局序列化器的注册逻辑只执行一次。该变量用于在第一次访问时注册全局的 DateTime 和 Decimal 序列化器。</para>
     /// </summary>
-    private static readonly Lazy<bool> FirstInitialization = new(() =>
+    internal static readonly Lazy<bool> FirstInitialization = new(() =>
     {
         // 注册全局 DateTime 序列化器，将 DateTime 序列化为本地时间
         BsonSerializer.RegisterSerializer(new DateTimeSerializer(DateTimeKind.Local));
@@ -50,30 +49,6 @@ public static class MongoServiceExtensions
         BsonSerializer.RegisterSerializer(new DecimalSerializer(BsonType.Decimal128));
         return true;
     });
-
-    private static void RegistryConventionPack(BasicClientOptions options)
-    {
-        if (options.DefaultConventionRegistry)
-        {
-            ConventionRegistry.Register($"{Constant.Pack}-{ObjectId.GenerateNewId()}", new ConventionPack
-            {
-                new CamelCaseElementNameConvention(),
-                new IgnoreExtraElementsConvention(true),
-                new NamedIdMemberConvention("Id", "ID"),
-                new EnumRepresentationConvention(BsonType.String)
-            }, _ => true);
-        }
-        foreach (var item in options.ConventionRegistry)
-        {
-            ConventionRegistry.Register(item.Key, item.Value, _ => true);
-        }
-        ConventionRegistry.Register($"easily-id-pack-{ObjectId.GenerateNewId()}", new ConventionPack
-        {
-            new StringToObjectIdIdGeneratorConvention() //ObjectId → String mapping ObjectId
-        }, x => !options.ObjectIdToStringTypes.Contains(x));
-        // 确保全局序列化器只注册一次
-        _ = FirstInitialization.Value;
-    }
 
     /// <param name="services">
     ///     <see cref="IServiceCollection" />
@@ -136,6 +111,7 @@ public static class MongoServiceExtensions
                 c.ObjectIdToStringTypes = options.ObjectIdToStringTypes;
                 c.DefaultConventionRegistry = options.DefaultConventionRegistry;
                 c.ConventionRegistry.AddRange(options.ConventionRegistry);
+                c.Resilience = options.Resilience;
                 c.DatabaseName = dbName;
             });
         }
@@ -158,7 +134,8 @@ public static class MongoServiceExtensions
         {
             var options = new BasicClientOptions();
             option?.Invoke(options);
-            RegistryConventionPack(options);
+            MongoServiceExtensionsHelpers.RegistryConventionPack(options);
+            MongoServiceExtensionsHelpers.ApplyResilienceOptions(settings, options.Resilience);
             var context = MongoContext.CreateInstance<T>(settings, options.DatabaseName ?? Constant.DefaultDbName);
             services.AddSingleton(context.Client);
             services.AddSingleton(context.Database);
