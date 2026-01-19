@@ -80,7 +80,75 @@ CONNECTIONSTRINGS_MONGO=mongodb://localhost:27017/your-database
 
 ---
 
+### **常见问题排查**
+
+#### MongoConnectionPoolPausedException: "The connection pool is in paused state"
+
+出现该异常通常意味着驱动已将目标服务器标记为不可用并暂停连接池，常见原因与解决方式如下：
+
+- **网络不可达/防火墙拦截**：确认应用所在机器能访问 `host:port`，安全组/防火墙已放行。
+- **认证或 TLS 配置错误**：确认用户名、密码、`authSource`、`tls/ssl` 参数正确。
+- **单节点/代理访问**：若只暴露单节点或通过负载均衡代理访问，请在连接串中添加 `directConnection=true` 或 `loadBalanced=true`。
+- **副本集名称不匹配**：连接串中的 `replicaSet` 必须与服务端一致。
+- **连接池激增导致服务端拒绝**：避免在客户端强制设置过大的 `MinConnectionPoolSize`，必要时降低并发或限制 `MaxConnectionPoolSize`。
+
+推荐在连接串中显式设置超时，避免长时间阻塞：
+
+```
+mongodb://user:pwd@host:27017/db?serverSelectionTimeoutMS=5000&connectTimeoutMS=5000&socketTimeoutMS=30000
+```
+
+若问题仍持续，请开启驱动日志（`MongoDB.SERVERSELECTION` / `MongoDB.CONNECTION`）以定位具体原因。
+
 ### **MongoDB Context 配置**
+
+#### 弹性与自动恢复（推荐）
+
+MongoDB 驱动自带连接自动恢复机制，配合合理的超时与连接池配置可显著降低“连接池暂停”等问题出现概率。
+本库通过 `Resilience.Enable` 提供开箱即用的弹性默认值（符合 MongoDB 官方推荐），这些设置与驱动内置的自动恢复机制协同工作，你可以按需启用和调整：
+
+```csharp
+builder.Services.AddMongoContext<DbContext>(builder.Configuration, c =>
+{
+    // 启用弹性默认配置（与驱动内置自动恢复机制配合使用）
+    c.Resilience.Enable = true;
+
+    // 可选：针对特定场景调整（以下为默认值）
+    c.Resilience.ServerSelectionTimeout = TimeSpan.FromSeconds(10);  // 服务器选择超时
+    c.Resilience.ConnectTimeout = TimeSpan.FromSeconds(10);          // TCP 连接建立超时
+    c.Resilience.SocketTimeout = TimeSpan.FromSeconds(60);           // Socket 读写超时
+    c.Resilience.WaitQueueTimeout = TimeSpan.FromMinutes(1);         // 连接池等待超时
+    c.Resilience.HeartbeatInterval = TimeSpan.FromSeconds(10);       // 心跳检测间隔
+    c.Resilience.MaxConnectionPoolSize = 100;                        // 连接池最大连接数
+    c.Resilience.MinConnectionPoolSize = null;                       // 连接池最小连接数（null = 使用驱动默认值，不覆盖驱动默认配置）
+    c.Resilience.RetryReads = true;                                  // 自动重试读操作
+    c.Resilience.RetryWrites = true;                                 // 自动重试写操作
+});
+```
+
+**场景化调整建议**：
+
+1. **低延迟网络（同区域部署）**：
+   - `ConnectTimeout = 5s`, `ServerSelectionTimeout = 5s` 可以更快速失败
+   - 适合微服务间通信
+
+2. **跨区域/高延迟网络**：
+   - 保持默认值或适当提高：`ConnectTimeout = 20s`, `ServerSelectionTimeout = 30s`
+   - 适合多地域分布式部署
+
+3. **高并发/连接池瓶颈场景**：
+   - 提高 `MaxConnectionPoolSize = 200` 或更高
+   - 降低 `WaitQueueTimeout = 30s` 快速失败，避免雪崩
+
+4. **代理/单节点访问**：
+   - 必须在连接串中添加 `directConnection=true` 或 `loadBalanced=true`
+   - 示例：`mongodb://user:pwd@host:27017/db?directConnection=true`
+
+5. **Atlas/云托管 MongoDB**：
+   - 保持默认值即可，云服务已优化连接行为
+   - 确保开启 `RetryReads` 和 `RetryWrites`
+
+> ⚠️ **重要**：弹性配置不会自动解决网络/认证/拓扑配置问题，请先确认连接串与服务端配置一致。
 
 #### 方式 1: 使用 IConfiguration (推荐)
 

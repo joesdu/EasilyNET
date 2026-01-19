@@ -1,6 +1,5 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
-using MongoDB.Driver;
 
 namespace EasilyNET.Mongo.AspNetCore.Options;
 
@@ -10,6 +9,12 @@ namespace EasilyNET.Mongo.AspNetCore.Options;
 /// </summary>
 public class BasicClientOptions
 {
+    /// <summary>
+    ///     <para xml:lang="en">Resilience options for connection and retry behavior</para>
+    ///     <para xml:lang="zh">连接与重试行为的弹性配置</para>
+    /// </summary>
+    public MongoResilienceOptions Resilience { get; set; } = new();
+
     /// <summary>
     ///     <para xml:lang="en">Database name <see langword="string" /></para>
     ///     <para xml:lang="zh">数据库名称 <see langword="string" /></para>
@@ -73,20 +78,4 @@ public class BasicClientOptions
     ///     <para xml:lang="zh">添加自己的一些Convention配置,用于设置mongodb序列化反序列化的一些表现</para>
     /// </summary>
     public Dictionary<string, ConventionPack> ConventionRegistry { get; } = [];
-}
-
-/// <summary>
-///     <para xml:lang="en">
-///     <see cref="MongoClientSettings" /> configuration, can add some features through this object when not using
-///     <see cref="MongoClientSettings" /> configuration
-///     </para>
-///     <para xml:lang="zh"><see cref="MongoClientSettings" /> 配置,在不适用 <see cref="MongoClientSettings" /> 配置时可通过该对象添加一些特性</para>
-/// </summary>
-public sealed class ClientOptions : BasicClientOptions
-{
-    /// <summary>
-    ///     <para xml:lang="en">Configure <see cref="MongoClientSettings" /></para>
-    ///     <para xml:lang="zh">配置 <see cref="MongoClientSettings" /></para>
-    /// </summary>
-    public Action<MongoClientSettings>? ClientSettings { get; set; }
 }
