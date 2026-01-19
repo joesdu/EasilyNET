@@ -1,252 +1,110 @@
 ##### EasilyNET.Security
 
-一个.Net 中常用的加密算法的封装.降低加密解密的使用复杂度.
+常用加密/哈希算法封装，降低使用复杂度，面向 .NET 高性能与易用性。
 
-- 目前有的算法:AES,DES,RC4,TripleDES,RSA,SM2,SM3,SM4
-- 支持 RSA XML 结构的 SecurityKey 和 Base64 格式的互转.
+- 算法：AES、DES、RC4、TripleDES、RSA、SM2、SM3、SM4、RIPEMD(128/160/256/320)
+- RSA 支持 XML/Base64/PEM 互转，提供签名验签与文件 SHA256
+- 国密算法基于 BouncyCastle 实现（SM2/SM3/RIPEMD）
 
-- 本库不是去实现加密算法,而是基于.Net 提供的接口封装,为了方便使用
+> 说明：本库不“重写算法”，而是对 .NET/BouncyCastle 做轻量封装。
 
-- 未经测试的预测,若是遇到了解密乱码,可能是需要引入一个包.
-- 在主项目中添加 System.Text.Encoding.CodePages 库,并在程序入口处添加注册代码. Programe.cs
+#### 可能的编码问题
+
+若你使用了非 UTF-8 的旧编码（如 GBK），可能需要注册 CodePages 编码提供器：
 
 ```csharp
-var builder = WebApplication.CreateBuilder(args);
-
 System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 ```
 
-###### RC4
+#### 快速开始
 
 ```csharp
-/// <summary>
-/// RC4
-/// </summary>
-public void Rc4()
-{
-    const string data = "Microsoft";
-    var key = "123456"u8.ToArray();
-    var byte_data = Encoding.UTF8.GetBytes(data);
-    var secret = Rc4Crypt.Encrypt(byte_data, key);
-    var base64 = secret.ToBase64();
-    // TZEdFUtAevoL
-    var data_result = Rc4Crypt.Decrypt(secret, key);
-    var result = Encoding.UTF8.GetString(data_result);
-    // result == data
-}
+// AES (注意：本库会对密钥做 hash 处理，密文仅与本库兼容)
+var cipher = AesCrypt.EncryptToBase64("hello", "pwd", AesKeyModel.AES256);
+var plain = AesCrypt.DecryptFromBase64(cipher, "pwd", AesKeyModel.AES256);
 ```
 
-###### RSA
+#### AES
+
+- 支持 AES128/192/256（通过 `AesKeyModel`）
+- 默认模式：CBC + PKCS7
+- 提供字符串便捷方法（Base64、Hex）
+
+#### DES / TripleDES（兼容性用途）
+
+- 已标记为不安全/遗留算法，仅建议用于兼容旧系统
+- 默认模式：CBC + PKCS7
+- **注意**：密钥会被内部 hash 处理，密文仅能用本库解密
+
+#### RC4（不安全，仅兼容）
+
+- **强烈不推荐用于新系统**
+- 支持原始字节与“密码派生”的便捷方法
 
 ```csharp
-private const string PublicKey =
-    "<RSAKeyValue><Modulus>p0H+4fFMZFIQq6LAhXNf3Zml3imiOCU6mzMiMcqRu/x5x08X3pWF6m+v+1T7fOo4P/2GYluZiuQzKveJnRLxV0O6kRdVivApZ6C/Lb8vnsnocaSlmEOoswdOZvmhe3s4tAQ4KlZerWdRYx3dUgoH862IUv6FNiSyF/z3TP4M50E=</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
-
-private const string PrivateKey =
-    "<RSAKeyValue><Modulus>p0H+4fFMZFIQq6LAhXNf3Zml3imiOCU6mzMiMcqRu/x5x08X3pWF6m+v+1T7fOo4P/2GYluZiuQzKveJnRLxV0O6kRdVivApZ6C/Lb8vnsnocaSlmEOoswdOZvmhe3s4tAQ4KlZerWdRYx3dUgoH862IUv6FNiSyF/z3TP4M50E=</Modulus><Exponent>AQAB</Exponent><P>2Nhp0/mM3qRkTqzUe5DeI5r5hmDS24XYsSteHKLNuD66sa0K1EFprTstw96+ZJdXW/bJ+R58j78YP1frkLFVpw==</P><Q>xXVq4nyP7UppDXXyKTjWindWmMTuD0v9el6EnyWiqaoaGRF6IAL1nKOcrh5O/BiFgBZm5cTn0knUNE8BzaFI1w==</Q><DP>T4ur3qe3pmC1ryq1U5LD+lm6WTIhh4flArD++BA82O6h+9WXmF9ajcKcujJ2s13VHRY95xXo6a5XDb2J221CFw==</DP><DQ>JpxaJSV0Q1MsjZxFmPfrQ7IoNcE0R7t1OktnJXOHhiOj7Mj1F3NcsZ9wkL+OdE8bM7utrTo+lmknXH8ifCIQiw==</DQ><InverseQ>VvMW94/iyBgKNH8N1Xdikn17BLC0a8tYsm/H/VDMXjaVngAXGqeN370Hd1Zukj0EGVw/vEl2YsAoJ6o9KmQgNA==</InverseQ><D>CkO8lrUuUQHQUBg+5HG+MmVZjpbTg8qVHC05LgEWjIjkGF08Q8a9XzPXgv8mJ/Zf2V1/v82LUMDMexiR83fUI8NxNuZjD+ldR1ZqmtE96+4laA0/WUH0fb1nBA6foVS+WB643nN01dJs0/3IV65k35GfkuqKDct6gld8/UFaN1k=</D></RSAKeyValue>";
-
-private static readonly RsaSecretKey key = new(PrivateKey, PublicKey);
-
-/// <summary>
-/// 转换Key,Base64和XML格式互转. Java和其他语言里一般使用base64格式,.Net中一般为XML格式
-/// </summary>
-public void XmlToBase64Key()
-{
-    // 私钥转换为Base64格式
-    var pri = RsaKeyConverter.ToBase64PrivateKey(PrivateKey);
-    // MIICdQIBADANBgkqhkiG9w0BAQEFAASCAl8wggJbAgEAAoGBAKdB/uHxTGRSEKuiwIVzX92Zpd4pojglOpszIjHKkbv8ecdPF96Vhepvr/tU+3zqOD/9hmJbmYrkMyr3iZ0S8VdDupEXVYrwKWegvy2/L57J6HGkpZhDqLMHTmb5oXt7OLQEOCpWXq1nUWMd3VIKB/OtiFL+hTYkshf890z+DOdBAgMBAAECgYAKQ7yWtS5RAdBQGD7kcb4yZVmOltODypUcLTkuARaMiOQYXTxDxr1fM9eC/yYn9l/ZXX+/zYtQwMx7GJHzd9Qjw3E25mMP6V1HVmqa0T3r7iVoDT9ZQfR9vWcEDp+hVL5YHrjec3TV0mzT/chXrmTfkZ+S6ooNy3qCV3z9QVo3WQJBANjYadP5jN6kZE6s1HuQ3iOa+YZg0tuF2LErXhyizbg+urGtCtRBaa07LcPevmSXV1v2yfkefI+/GD9X65CxVacCQQDFdWrifI/tSmkNdfIpONaKd1aYxO4PS/16XoSfJaKpqhoZEXogAvWco5yuHk78GIWAFmblxOfSSdQ0TwHNoUjXAkBPi6vep7emYLWvKrVTksP6WbpZMiGHh+UCsP74EDzY7qH71ZeYX1qNwpy6MnazXdUdFj3nFejprlcNvYnbbUIXAkAmnFolJXRDUyyNnEWY9+tDsig1wTRHu3U6S2clc4eGI6PsyPUXc1yxn3CQv450Txszu62tOj6WaSdcfyJ8IhCLAkBW8xb3j+LIGAo0fw3Vd2KSfXsEsLRry1iyb8f9UMxeNpWeABcap43fvQd3Vm6SPQQZXD+8SXZiwCgnqj0qZCA0
-
-    // 公钥转换为Base64格式
-    var pub = RsaKeyConverter.ToBase64PublicKey(PublicKey);
-    // MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCnQf7h8UxkUhCrosCFc1/dmaXeKaI4JTqbMyIxypG7/HnHTxfelYXqb6/7VPt86jg//YZiW5mK5DMq94mdEvFXQ7qRF1WK8ClnoL8tvy+eyehxpKWYQ6izB05m+aF7ezi0BDgqVl6tZ1FjHd1SCgfzrYhS/oU2JLIX/PdM/gznQQIDAQAB
-
-    // 一样可以将Base64格式转换为XML格式
-    var xml_pri = RsaKeyConverter.ToXmlPrivateKey(pri);
-    // xml_pri == PrivateKey
-    var xml_pub = RsaKeyConverter.ToXmlPublicKey(pub);
-    // xml_pub == PublicKey
-}
-
-/// <summary>
-/// RSA加密解密测试
-/// </summary>
-public void RsaEncryptAndDecrypt()
-{
-    const string data = "Microsoft";
-    // 将原文解析到二进制数组格式
-    var byte_data = Encoding.UTF8.GetBytes(data);
-    RsaCrypt.Encrypt(key.PublicKey, byte_data, out var secret_data);
-    var secret_str = secret_data.ToBase64();
-    Console.WriteLine(secret_str);
-    RsaCrypt.Decrypt(key.PrivateKey, secret_str.FromBase64(), out var data_byte);
-    var result = Encoding.UTF8.GetString(data_byte);
-    // result == data
-}
+var cipher = Rc4Crypt.EncryptToBase64("hello", "pwd");
+var plain = Rc4Crypt.DecryptFromBase64(cipher, "pwd");
 ```
 
-###### SM3
+#### RSA
+
+- 生成密钥：`RsaCrypt.GenerateKey(ERsaKeyLength)`
+- 加解密：默认 `OaepSHA256`（推荐）
+- 大数据分段加解密：`Encrypt/Decrypt` 带 `out` 重载
+- 签名验签：默认 `SHA256 + Pkcs1`
+- 支持 XML/Base64/PEM 格式互转
 
 ```csharp
-private const string data = "Microsoft";
+var key = RsaCrypt.GenerateKey(ERsaKeyLength.Bit2048);
+RsaCrypt.Encrypt(key.PublicKey, "hello"u8.ToArray(), out var secret);
+RsaCrypt.Decrypt(key.PrivateKey, secret, out var plainBytes);
 
-/// <summary>
-/// SM3测试 - 直接返回16进制字符串
-/// </summary>
-public void SM3HexString()
-{
-    // 方法1: 使用便捷方法直接获取十六进制字符串(小写)
-    var hex = Sm3Signature.Hash(data);
-    hex.Should().Be("1749ce3e4ef7622f1ebabb52078ec86309cabd5a6073c8a0711bf35e19ba51b8");
+var sign = RsaCrypt.Signature(key.PrivateKey, "hello"u8.ToArray());
+var ok = RsaCrypt.Verification(key.PublicKey, "hello"u8.ToArray(), sign);
 
-    // 方法2: 使用便捷方法获取大写十六进制字符串
-    var hexUpper = Sm3Signature.HashToHex(data, upperCase: true);
-    hexUpper.Should().Be("1749CE3E4EF7622F1EBABB52078EC86309CABD5A6073C8A0711BF35E19BA51B8");
-
-    // 方法3: 传统方式 - 先获取字节数组再转换
-    var byte_data = Sm3Signature.Hash(data);
-    var hex2 = Convert.ToHexString(byte_data);
-    hex2.ToUpper().Should().Be("1749CE3E4EF7622F1EBABB52078EC86309CABD5A6073C8A0711BF35E19BA51B8");
-}
-
-/// <summary>
-/// SM3测试 - 直接返回Base64字符串
-/// </summary>
-public void SM3Base64()
-{
-    // 方法1: 使用便捷方法直接获取Base64字符串
-    var base64 = Sm3Signature.HashToBase64(data);
-    base64.ToUpper().Should().Be("F0NOPK73YI8EURTSB47IYWNKVVPGC8IGCRVZXHM6UBG=");
-
-    // 方法2: 传统方式 - 先获取字节数组再转换
-    var byte_data = Sm3Signature.Hash(data);
-    var base64_2 = Convert.ToBase64String(byte_data);
-    base64_2.ToUpper().Should().Be("F0NOPK73YI8EURTSB47IYWNKVVPGC8IGCRVZXHM6UBG=");
-}
-
-/// <summary>
-/// SM3测试 - 对字节数组进行哈希
-/// </summary>
-public void SM3FromByteArray()
-{
-    var inputBytes = Encoding.UTF8.GetBytes(data);
-
-    // 直接获取十六进制字符串
-    var hex = Sm3Signature.HashToHex(inputBytes, upperCase: true);
-    hex.Should().Be("1749CE3E4EF7622F1EBABB52078EC86309CABD5A6073C8A0711BF35E19BA51B8");
-
-    // 直接获取Base64字符串
-    var base64 = Sm3Signature.HashToBase64(inputBytes);
-    base64.ToUpper().Should().Be("F0NOPK73YI8EURTSB47IYWNKVVPGC8IGCRVZXHM6UBG=");
-}
+var pemPri = RsaCrypt.ExportPrivateKeyToPem(key.PrivateKey);
+var pemPub = RsaCrypt.ExportPublicKeyToPem(key.PublicKey);
 ```
 
-###### SM4
+#### SM2
+
+- 支持密钥生成、加解密、签名/验签
+- 默认模式：C1C3C2（可选 C1C2C3）
 
 ```csharp
-/// <summary>
-/// SM4ECB模式加密到Base64格式
-/// </summary>
-public void Sm4EncryptECBToBase64()
-{
-    const string data = "Microsoft";
-    // 将原文解析到二进制数组格式
-    var byte_data = Encoding.UTF8.GetBytes(data);
-    // 进制格式密钥加密数据
-    var result = Sm4Crypt.EncryptECB("701d1cc0cfbe7ee11824df718855c0c6", true, byte_data);
-    // 获取Base64格式的字符串结果
-    var base64 = result.ToBase64();
-    // ThRruxZZm1GrHE5KkP4UmQ==
-}
-
-/// <summary>
-/// SM4ECB模式解密Base64格式到字符串
-/// </summary>
-public void Sm4DecryptECBTest()
-{
-    // Base64格式的
-    const string data = "ThRruxZZm1GrHE5KkP4UmQ==";
-    // 将Base64格式字符串转为 byte[]
-    var byte_data = Convert.FromBase64String(data);
-    // 通过16进制格式密钥解密数据
-    var result = Sm4Crypt.DecryptECB("701d1cc0cfbe7ee11824df718855c0c6", true, byte_data);
-    // 解析结果获取字符串
-    var str = Encoding.UTF8.GetString(result);
-    // Microsoft
-}
-
-/// <summary>
-/// SM4ECB模式加密到16进制字符串
-/// </summary>
-public void Sm4EncryptECBToHex16()
-{
-    const string data = "Microsoft";
-    // 将原文解析到二进制数组格式
-    var byte_data = Encoding.UTF8.GetBytes(data);
-    // 使用16位长度的密钥加密
-    var result = Sm4Crypt.EncryptECB("1cc0cfbe7ee11824", false, byte_data);
-    // 将结果转为16进制字符串
-    var hex = result.ToHexString();
-    // D265DF0510C05FE836D3113B3ACEC714
-}
-
-/// <summary>
-/// SM4ECB模式解密16进制字符串格式密文
-/// </summary>
-public void Sm4DecryptECBTest2()
-{
-    const string data = "D265DF0510C05FE836D3113B3ACEC714";
-    var byte_data = data.FromHex();
-    var result = Sm4Crypt.DecryptECB("1cc0cfbe7ee11824", false, byte_data);
-    // 解析结果获取字符串
-    var str = Encoding.UTF8.GetString(result);
-    // Microsoft
-}
-
-/// <summary>
-/// SM4CBC模式加密到Base64格式
-/// </summary>
-public void Sm4EncryptCBCTest()
-{
-    const string data = "Microsoft";
-    var byte_data = Encoding.UTF8.GetBytes(data);
-    var result = Sm4Crypt.EncryptCBC("701d1cc0cfbe7ee11824df718855c0c6", true, "701d1cc0cfbe7ee11824df718855c0c5", byte_data);
-    var base64 = result.ToBase64();
-    // Q2iUaMuSHjLvq6GhUQnGTg==
-}
-
-/// <summary>
-/// SM4CBC模式从Base64解密
-/// </summary>
-public void Sm4DecryptCBCTest()
-{
-    const string data = "Q2iUaMuSHjLvq6GhUQnGTg==";
-    var byte_data = Convert.FromBase64String(data);
-    var result = Sm4Crypt.DecryptCBC("701d1cc0cfbe7ee11824df718855c0c6", true, "701d1cc0cfbe7ee11824df718855c0c5", byte_data);
-    var str = Encoding.UTF8.GetString(result);
-    // Microsoft
-}
-
-/// <summary>
-/// SM4CBC模式加密到16进制字符串
-/// </summary>
-public void Sm4EncryptCBCTest2()
-{
-    const string data = "Microsoft";
-    var byte_data = Encoding.UTF8.GetBytes(data);
-    var result = Sm4Crypt.EncryptCBC("1cc0cfbe7ee11824", false, "1cc0cfbe7ee12824", byte_data);
-    var hex = result.ToHexString();
-    // 1BD7A32E49B60B17698AAC9D1E4FEE4A
-}
-
-/// <summary>
-/// SM4CBC模式从Hex16解密到字符串
-/// </summary>
-public void Sm4DecryptCBCTest2()
-{
-    const string data = "1BD7A32E49B60B17698AAC9D1E4FEE4A";
-    var byte_data = data.FromHex();
-    var result = Sm4Crypt.DecryptCBC("1cc0cfbe7ee11824", false, "1cc0cfbe7ee12824", byte_data);
-    var str = Encoding.UTF8.GetString(result);
-    // Microsoft
-}
+Sm2Crypt.GenerateKey(out var pub, out var pri);
+var cipher = Sm2Crypt.Encrypt(pub, "hello"u8.ToArray());
+var plain = Sm2Crypt.Decrypt(pri, cipher);
+var sig = Sm2Crypt.Signature(pri, "hello"u8.ToArray());
+var ok = Sm2Crypt.Verify(pub, "hello"u8.ToArray(), sig);
 ```
+
+#### SM3
+
+```csharp
+var hex = Sm3Signature.HashToHex("hello", upperCase: true);
+var base64 = Sm3Signature.HashToBase64("hello");
+```
+
+#### SM4
+
+- 128-bit key / block
+- 传参 `hexString=true` 表示 key/iv 为 16 进制字符串
+
+```csharp
+var cipherHex = Sm4Crypt.EncryptECBToHex("701d1cc0cfbe7ee11824df718855c0c6", true, "hello");
+var plain = Sm4Crypt.DecryptECBFromHex("701d1cc0cfbe7ee11824df718855c0c6", true, cipherHex);
+
+var cipherBase64 = Sm4Crypt.EncryptCBCToBase64("701d1cc0cfbe7ee11824df718855c0c6", true, "701d1cc0cfbe7ee11824df718855c0c5", "hello");
+var plain2 = Sm4Crypt.DecryptCBCFromBase64("701d1cc0cfbe7ee11824df718855c0c6", true, "701d1cc0cfbe7ee11824df718855c0c5", cipherBase64);
+```
+
+#### RIPEMD
+
+支持 128/160/256/320 变体：`RipeMD128/160/256/320`，提供 `Hash/HashToHex/HashToBase64`。
+
+#### 注意事项
+
+- AES/DES/TripleDES 会对密钥进行内部 hash 派生，**密文仅能用本库解密**。
+- RC4/DES/TripleDES 为遗留算法，仅用于兼容旧系统。
+- 所有字符串 API 默认使用 UTF-8。

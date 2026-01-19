@@ -1,58 +1,68 @@
 ### EasilyNET.Mongo.AspNetCore
 
-一个强大的 MongoDB 驱动服务包，为 ASP.NET Core 应用提供便捷的 MongoDB 数据库操作支持。
+一个强大的 MongoDB 驱动服务包，为 ASP.NET Core 应用提供便捷的 MongoDB 数据库操作和 GridFS 文件存储支持。
 
-#### 核心特性
+---
 
-- **字段命名转换**: 数据库中字段名自动驼峰命名，ID/Id 字段自动转换为 ObjectId
-- **灵活 ID 配置**: 可配置部分类的 Id 字段存储为 string 类型而非 ObjectId，支持子对象和集合成员
-- **时间类型本地化**: 自动本地化 MongoDB 时间类型
-- **.NET 6+ 支持**: 添加 DateOnly/TimeOnly 类型支持，可序列化为 String 或 long
-- **索引管理**: 支持通过特性方式自动创建和更新索引
-- **GridFS 文件存储**: 完整的文件存储解决方案
+### **核心特性**
 
-## 📋 更新日志 (ChangeLogs)
+#### 1. **智能字段映射**
 
-- **自定义格式化**: 支持自定义 TimeOnly 和 DateOnly 的格式化格式
-  - 支持转换为字符串格式存储
-  - 支持转换为 Ticks (long) 方式存储
-  - 可自定义实现其他类型转换，如 ulong
-- **动态类型支持**: 添加 object 和 dynamic 类型支持 (2.20 版本后官方已支持 JsonArray)
-- **JsonNode 支持**: 添加 JsonNode 和 JsonObject 类型支持
+- **驼峰命名转换**: 自动将 C# PascalCase 字段转为数据库中的 camelCase
+- **ID 字段映射**: 自动将 `_id` 映射到实体中的 `Id` 或 `ID` 字段，反之亦然
+- **灵活类型配置**: 可配置特定类的 Id 字段存储为 string 而非 ObjectId
 
-##### 添加自定义序列化支持(可选)
+#### 2. **现代类型支持**
 
--
+- **.NET 6+ 类型**: 完整支持 `DateOnly` 和 `TimeOnly`
+- **多种序列化方案**: 支持字符串格式或 Ticks (long) 存储
+- **动态类型**: 支持 `object`、`dynamic` 和匿名类型
+- **JSON 类型**: 支持 `JsonNode` 和 `JsonObject`
+- **枚举字典**: 支持以枚举为键的字典类型
 
-JsonNode 类型因为反序列化时不支持 Unicode 字符，如果需要序列化插入至其他地方（例如 Redis），在序列化时需要将
-JsonSerializerOptions 的 Encoder 属性设置为 System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping.
+#### 3. **时间类型本地化**
 
-```csharp
-builder.Services.AddMongoContext<DbContext>(builder.Configuration)
-// 添加自定义序列化
-builder.Services.RegisterSerializer(new DateOnlySerializerAsString());
-builder.Services.RegisterSerializer(new TimeOnlySerializerAsString());
-// 或者将他们存储为long类型的Ticks,也可以自己组合使用.
-builder.Services.RegisterSerializer(new DateOnlySerializerAsTicks());
-builder.Services.RegisterSerializer(new TimeOnlySerializerAsTicks());
-// 添加JsonNode支持
-builder.Services.RegisterSerializer(new JsonNodeSerializer());
-builder.Services.RegisterSerializer(new JsonObjectSerializer());
-```
+- 自动本地化 MongoDB 的 DateTime 类型
+- 默认将 DateTime 序列化为本地时间（DateTimeKind.Local）
+- Decimal 类型自动序列化为 Decimal128
 
-## 🚀 快速开始
+#### 4. **索引管理**
 
-### 安装
+- 支持通过特性方式声明索引
+- 自动创建和更新索引
+- 支持复合索引、唯一索引、文本索引等
 
-通过 NuGet 安装 EasilyNET.Mongo.AspNetCore：
+#### 5. **GridFS 分布式文件系统**
+
+- 完整的断点续传文件上传/下载
+- HTTP Range 请求支持，完美支持视频/音频流式播放
+- 分块上传优化（默认 255KB），提升流式传输性能
+- 秒传功能（基于文件哈希去重）
+- 自动清理过期会话
+- 内置 REST API 控制器
+
+#### 6. **APM 监控支持**
+
+- 集成 SkyAPM 探针支持
+- 支持自定义事件订阅器
+
+---
+
+### **安装**
+
+通过 NuGet 安装：
 
 ```bash
 dotnet add package EasilyNET.Mongo.AspNetCore
 ```
 
-### 配置连接字符串
+---
 
-在系统环境变量、Docker 容器或 `appsettings.json` 中设置 MongoDB 连接字符串：
+### **快速开始**
+
+#### 配置连接字符串
+
+在 `appsettings.json` 或环境变量中配置：
 
 ```json
 {
@@ -62,21 +72,17 @@ dotnet add package EasilyNET.Mongo.AspNetCore
 }
 ```
 
-或者使用环境变量：
+或使用环境变量：
 
 ```bash
 CONNECTIONSTRINGS_MONGO=mongodb://localhost:27017/your-database
 ```
 
-### APM 监控支持
-
-支持 APM 探针监控，基于 [SkyAPM.Diagnostics.MongoDB](https://github.com/SkyAPM/SkyAPM-dotnet/tree/main/src/SkyApm.Diagnostics.MongoDB)。
-
 ---
 
-## 📖 使用方法
+### **MongoDB Context 配置**
 
-### 方法 1: 使用默认依赖注入
+#### 方式 1: 使用 IConfiguration (推荐)
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
@@ -84,229 +90,331 @@ var builder = WebApplication.CreateBuilder(args);
 // 添加 MongoDB 数据库服务
 builder.Services.AddMongoContext<DbContext>(builder.Configuration, c =>
 {
-    // 配置数据库名称，覆盖连接字符串中的数据库名称
+    // 配置数据库名称（可选，覆盖连接字符串中的数据库名）
     c.DatabaseName = "your-database";
 
     // 配置不需要将 Id 字段存储为 ObjectId 的类型
-    // 使用 $unwind 操作符时，ObjectId 在转换上会有问题，所以调整为字符串
+    // 使用 $unwind 操作符时，ObjectId 转换可能有问题，可调整为字符串
     c.ObjectIdToStringTypes = new()
     {
         typeof(YourEntityType)
     };
 
-    // 是否使用默认转换配置，包含以下内容：
+    // 是否使用默认转换配置（推荐启用）
+    // 包含以下功能：
     // 1. 小驼峰字段名称，如: pageSize, linkPhone
     // 2. 忽略代码中未定义的字段
-    // 3. 将 ObjectId 字段 _id 映射到实体中的 ID 或 Id 字段，反之亦然
-    // 4. 将枚举类型存储为字符串，如: Gender.男 存储为 "男" 而非 int 类型
+    // 3. 将 ObjectId 字段 _id 映射到实体中的 ID 或 Id 字段
+    // 4. 将枚举类型存储为字符串，如: Gender.男 存储为 "男" 而非 int
     c.DefaultConventionRegistry = true;
 
-    // 配置自定义 Convention
+    // 配置自定义 Convention（可选）
     c.ConventionRegistry = new()
     {
         {
-            $"{SnowId.GenerateNewId()}",
-            new() { new IgnoreIfDefaultConvention(true) }
+            "custom-convention",
+            new ConventionPack { new IgnoreIfDefaultConvention(true) }
         }
     };
 
-    // 通过 ClientSettings 配置特殊功能
+    // 通过 ClientSettings 配置特殊功能（可选）
     c.ClientSettings = cs =>
     {
-        // 对接 SkyAPM 的 MongoDB 探针或其他事件订阅器
-        cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber());
+        // 对接 SkyAPM 的 MongoDB 探针
+        cs.ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber());
+
+        // 其他高级配置...
     };
 });
 
-// 添加 .NET 6+ 新 TimeOnly 和 DateOnly 数据类型的序列化方案
+var app = builder.Build();
+app.Run();
+```
+
+#### 方式 2: 使用连接字符串
+
+```csharp
+builder.Services.AddMongoContext<DbContext>(
+    "mongodb://localhost:27017/test-db",
+    c =>
+{
+    c.DatabaseName = "test-db";
+    c.DefaultConventionRegistry = true;
+});
+```
+
+#### 方式 3: 使用 MongoClientSettings
+
+```csharp
+builder.Services.AddMongoContext<DbContext>(
+    new MongoClientSettings
+    {
+        Servers = new List<MongoServerAddress>
+        {
+            new("127.0.0.1", 27017)
+        },
+        Credential = MongoCredential.CreateCredential("admin", "username", "password"),
+        ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber())
+    },
+    c =>
+    {
+        c.DatabaseName = "test-db";
+        c.DefaultConventionRegistry = true;
+    }
+);
+```
+
+---
+
+### **自定义序列化器**
+
+#### DateOnly / TimeOnly 序列化
+
+支持两种存储方式：
+
+**1. 字符串格式（推荐，便于人类阅读）**
+
+```csharp
+// 使用默认格式（yyyy-MM-dd 和 HH:mm:ss）
 builder.Services.RegisterSerializer(new DateOnlySerializerAsString());
 builder.Services.RegisterSerializer(new TimeOnlySerializerAsString());
 
-// 注册其他序列化方案
-builder.Services.RegisterSerializer(new DoubleSerializer(BsonType.Double));
-
-var app = builder.Build();
+// 使用自定义格式
+builder.Services.RegisterSerializer(new DateOnlySerializerAsString("yyyy/MM/dd"));
+builder.Services.RegisterSerializer(new TimeOnlySerializerAsString("HH:mm:ss.fff"));
 ```
 
-### 方法 2: 使用 EasilyNET.AutoDependencyInjection
-
-1. **安装依赖包**:
-
-   ```bash
-   dotnet add package EasilyNET.AutoDependencyInjection
-   ```
-
-2. **创建 EasilyNETMongoModule.cs**:
+**2. Ticks 格式（long 类型，节省空间）**
 
 ```csharp
-public class EasilyNETMongoModule : AppModule
-{
-    /// <summary>
-    /// 配置和注册服务
-    /// </summary>
-    /// <param name="context"></param>
-    public override void ConfigureServices(ConfigureServicesContext context)
-    {
-        var config = context.Services.GetConfiguration();
-        // 使用 IConfiguration 的方式注册例子,使用链接字符串,仅需将config替换成连接字符即可.
-        //context.Services.AddMongoContext<DbContext>(config, c =>
-        //{
-        //    // 配置数据库名称,覆盖掉连接字符串中的数据库名称
-        //    c.DatabaseName = "test23";
-        //    // 配置不需要将Id字段存储为ObjectID的类型.使用$unwind操作符的时候,ObjectId在转换上会有一些问题,所以需要将其调整为字符串.
-        //    c.ObjectIdToStringTypes = new()
-        //    {
-        //        typeof(MongoTest2)
-        //    };
-        //    // 是否使用默认转换配置.包含如下内容:
-        //    // 1.小驼峰字段名称 如: pageSize ,linkPhone
-        //    // 2.忽略代码中未定义的字段
-        //    // 3.将ObjectID字段 _id 映射到实体中的ID或者Id字段,反之亦然.在存入数据的时候将Id或者ID映射为 _id
-        //    // 4.将枚举类型存储为字符串, 如: Gender.男 存储到数据中为 男,而不是 int 类型
-        //    c.DefaultConventionRegistry = true;
-        //    c.ConventionRegistry= new()
-        //    {
-        //        {
-        //            $"{SnowId.GenerateNewId()}",
-        //            new() { new IgnoreIfDefaultConvention(true) }
-        //        }
-        //    };
-        //    // 通过ClientSettings来配置一些使用特殊的东西
-        //    c.ClientSettings = cs =>
-        //    {
-        //        // 对接 SkyAPM 的 MongoDB探针或者别的事件订阅器
-        //        cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber());
-        //    };
-        //});
-        //context.Services.AddMongoContext<DbContext2>(config);
-        //context.Services.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+builder.Services.RegisterSerializer(new DateOnlySerializerAsTicks());
+builder.Services.RegisterSerializer(new TimeOnlySerializerAsTicks());
+```
 
-        // 例子二:使用MongoClientSettings配置
-        context.Services.AddMongoContext<DbContext>(new MongoClientSettings
+⚠️ **注意**: 同一类型全局只能注册一种序列化方案，String 和 Ticks 方式会冲突。
+
+#### JsonNode / JsonObject 支持
+
+```csharp
+builder.Services.RegisterSerializer(new JsonNodeSerializer());
+builder.Services.RegisterSerializer(new JsonObjectSerializer());
+```
+
+> ⚠️ JsonNode 反序列化不支持 Unicode 字符。如需序列化到 Redis 等其他存储，需要将 `JsonSerializerOptions.Encoder` 设置为 `JavaScriptEncoder.UnsafeRelaxedJsonEscaping`。
+
+#### 动态类型支持
+
+```csharp
+// 支持 object、dynamic 和匿名类型
+builder.Services.RegisterDynamicSerializer();
+```
+
+#### 枚举键字典支持
+
+```csharp
+// 支持 Dictionary<TEnum, TValue> 类型
+builder.Services.RegisterGlobalEnumKeyDictionarySerializer();
+```
+
+#### 其他自定义序列化器
+
+```csharp
+// Double 类型
+builder.Services.RegisterSerializer(new DoubleSerializer(BsonType.Double));
+
+// Guid 类型
+builder.Services.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+```
+
+---
+
+### **使用 EasilyNET.AutoDependencyInjection 集成**
+
+#### 1. 安装依赖包
+
+```bash
+dotnet add package EasilyNET.AutoDependencyInjection
+```
+
+#### 2. 创建 Mongo 模块
+
+```csharp
+public class MongoModule : AppModule
+{
+    public override async Task ConfigureServices(ConfigureServicesContext context)
+    {
+        var config = context.ServiceProvider.GetConfiguration();
+
+        // 方式 1: 使用 IConfiguration
+        context.Services.AddMongoContext<DbContext>(config, c =>
         {
-            Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
-            Credential = MongoCredential.CreateCredential("admin", "guest", "guest"),
-            // 对接 SkyAPM 的 MongoDB探针
-            ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber())
-        }, c =>
-        {
-            // 配置数据库名称,覆盖掉连接字符串中的数据库名称
-            c.DatabaseName = "test23";
-            // 配置不需要将Id字段存储为ObjectID的类型.使用$unwind操作符的时候,ObjectId在转换上会有一些问题.
-            c.ObjectIdToStringTypes = new()
-            {
-                typeof(MongoTest2)
-            };
-            // 是否使用默认转换配置.包含如下内容:
-            // 1.小驼峰字段名称 如: pageSize ,linkPhone
-            // 2.忽略代码中未定义的字段
-            // 3.将ObjectID字段 _id 映射到实体中的ID或者Id字段,反之亦然.在存入数据的时候将Id或者ID映射为 _id
-            // 4.将枚举类型存储为字符串, 如: Gender.男 存储到数据中为 男,而不是 int 类型
+            c.DatabaseName = "test-db";
             c.DefaultConventionRegistry = true;
-            c.ConventionRegistry= new()
-            {
-                {
-                    $"{SnowId.GenerateNewId()}",
-                    new() { new IgnoreIfDefaultConvention(true) }
-                }
-            };
+            c.ObjectIdToStringTypes = new() { typeof(SomeEntity) };
         });
-        // 注册另一个DbContext
-        context.Services.AddMongoContext<DbContext2>(config, c =>
-        {
-            c.DefaultConventionRegistry = true;
-            c.ConventionRegistry = new()
-            {
-                {
-                    $"{SnowId.GenerateNewId()}",
-                    new() { new IgnoreIfDefaultConvention(true) }
-                }
-            };
-        });
+
+        // 注册序列化器
+        context.Services.RegisterSerializer(new DateOnlySerializerAsString());
+        context.Services.RegisterSerializer(new TimeOnlySerializerAsString());
+
+        await base.ConfigureServices(context);
     }
 }
 ```
 
-- 创建 AppWebModule.cs 并添加 EasilyNETMongoModule
+#### 3. 创建根模块
 
 ```csharp
-/**
- * 要实现自动注入,一定要在这个地方添加
- */
 [DependsOn(
     typeof(DependencyAppModule),
-    typeof(EasilyNETMongoModule)
+    typeof(MongoModule)
 )]
 public class AppWebModule : AppModule
 {
-    /// <summary>
-    /// 注册和配置服务
-    /// </summary>
-    /// <param name="context"></param>
-    public override void ConfigureServices(ConfigureServicesContext context)
+    public override async Task ConfigureServices(ConfigureServicesContext context)
     {
-        base.ConfigureServices(context);
-        _ = context.Services.AddHttpContextAccessor();
+        context.Services.AddHttpContextAccessor();
+        await base.ConfigureServices(context);
     }
-    /// <summary>
-    /// 注册中间件
-    /// </summary>
-    /// <param name="context"></param>
-    public override void ApplicationInitialization(ApplicationContext context)
+
+    public override async Task ApplicationInitialization(ApplicationContext context)
     {
-        base.ApplicationInitialization(context);
-        var app = context.GetApplicationBuilder();
-        _ = app.UseAuthorization();
+        var app = context.GetApplicationHost() as IApplicationBuilder;
+        app?.UseAuthorization();
+        await base.ApplicationInitialization(context);
     }
 }
 ```
 
-- 最后在 Program.cs 中添加如下内容
+#### 4. Program.cs 配置
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// 自动注入服务模块
-builder.Services.AddApplication<AppWebModule>();
+// 注册模块系统
+builder.Services.AddApplicationModules<AppWebModule>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment()) _ = app.UseDeveloperExceptionPage();
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
 
-// 添加自动化注入的一些中间件.
+// 初始化模块
 app.InitializeApplication();
 
 app.MapControllers();
-
 app.Run();
 ```
 
 ---
 
-## 📁 GridFS 文件存储
+### **GridFS 分布式文件系统**
 
-GridFS 是 MongoDB 的分布式文件系统,支持存储超过 16MB 的文件.本实现经过优化,支持高效的流式传输和范围读取.
+GridFS 是 MongoDB 的分布式文件系统，支持存储超过 16MB 的大文件。本实现经过优化，支持高效的流式传输和断点续传。
 
-### 基础使用
+#### 核心特性
 
-1. **注册服务**:
+- ✅ **断点续传**: 分块上传，支持暂停/恢复
+- ✅ **秒传功能**: 基于文件哈希（SHA256）自动去重
+- ✅ **流式传输**: 支持 HTTP Range 请求，完美支持视频/音频播放
+- ✅ **自动清理**: 自动清理过期的上传会话
+- ✅ **性能优化**: 默认 255KB 分块大小，优化流式性能
+- ✅ **REST API**: 内置完整的上传/下载 API
+
+#### 快速配置
+
+**方式 1: 使用容器中的 IMongoDatabase（推荐）**
 
 ```csharp
-// 需要提前注册 IMongoDatabase，或使用其他重载
+// 需要先注册 MongoContext
+builder.Services.AddMongoContext<DbContext>(builder.Configuration);
+
+// 添加 GridFS 支持
 builder.Services.AddMongoGridFS(options =>
 {
-    options.ChunkSizeBytes = 255 * 1024; // 255KB - 优化流式传输性能
+    options.BucketName = "fs";           // 自定义 Bucket 名称
+    options.ChunkSizeBytes = 255 * 1024; // 255KB，优化流式性能
+}, serverOptions =>
+{
+    serverOptions.EnableController = true; // 是否启用内置 API（默认 true）
+
+    // 可选：添加授权策略
+    // serverOptions.AuthorizeData.Add(new AuthorizeAttribute { Policy = "FileUpload" });
 });
 ```
 
-### 🎬 流式传输 - 视频/音频播放
+**方式 2: 使用 IConfiguration**
 
-- 支持 HTTP Range 请求的流式传输,完美支持(音)视频播放器的进度拖动和断点续传.
-- 支持超大文件的分块上传和断点续传,适合不稳定网络环境.前后端配合实现真正的断点续传.
+```csharp
+builder.Services.AddMongoGridFS(
+    builder.Configuration,
+    options =>
+    {
+        options.ChunkSizeBytes = 255 * 1024;
+    }
+);
+```
 
-##### 使用 JavaScript SDK
+**方式 3: 使用 MongoClientSettings**
+
+```csharp
+builder.Services.AddMongoGridFS(
+    new MongoClientSettings
+    {
+        Servers = new List<MongoServerAddress> { new("127.0.0.1", 27017) }
+    },
+    dbName: "test-db",
+    configure: options =>
+    {
+        options.ChunkSizeBytes = 255 * 1024;
+    }
+);
+```
+
+#### 内置 REST API
+
+启用 GridFS 后，自动注册以下 API 端点：
+
+| 端点                                    | 方法   | 说明                         |
+| --------------------------------------- | ------ | ---------------------------- |
+| `POST /api/GridFS/CreateSession`        | POST   | 创建上传会话（支持秒传检测） |
+| `POST /api/GridFS/UploadChunk`          | POST   | 上传文件块                   |
+| `GET /api/GridFS/Session/{sessionId}`   | GET    | 获取会话信息                 |
+| `GET /api/GridFS/MissingChunks/{id}`    | GET    | 获取缺失的块编号             |
+| `POST /api/GridFS/Finalize/{sessionId}` | POST   | 完成上传                     |
+| `DELETE /api/GridFS/Cancel/{sessionId}` | DELETE | 取消上传会话                 |
+| `GET /api/GridFS/Download/{fileId}`     | GET    | 下载文件（支持 Range）       |
+| `GET /api/GridFS/Info/{fileId}`         | GET    | 获取文件信息                 |
+| `DELETE /api/GridFS/Delete/{fileId}`    | DELETE | 删除文件                     |
+| `GET /api/GridFS/StorageStats`          | GET    | 获取存储统计信息             |
+
+#### 控制器配置
+
+可以配置授权策略和过滤器：
+
+```csharp
+builder.Services.AddMongoGridFS(
+    builder.Configuration,
+    serverConfigure: options =>
+    {
+        // 禁用内置控制器（如果需要自定义实现）
+        options.EnableController = false;
+
+        // 添加授权策略
+        options.AuthorizeData.Add(new AuthorizeAttribute
+        {
+            Policy = "FileUpload"
+        });
+
+        // 添加自定义过滤器
+        options.Filters.Add(new CustomActionFilter());
+    }
+);
+```
+
+#### 使用 JavaScript SDK
 
 ```javascript
 import {
