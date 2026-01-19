@@ -105,12 +105,12 @@ mongodb://user:pwd@host:27017/db?serverSelectionTimeoutMS=5000&connectTimeoutMS=
 #### 弹性与自动恢复（推荐）
 
 MongoDB 驱动自带连接自动恢复机制，配合合理的超时与连接池配置可显著降低“连接池暂停”等问题出现概率。
-本库提供开箱即用的弹性默认值（符合 MongoDB 官方推荐），你可以按需启用和调整：
+本库通过 `Resilience.Enable` 提供开箱即用的弹性默认值（符合 MongoDB 官方推荐），这些设置与驱动内置的自动恢复机制协同工作，你可以按需启用和调整：
 
 ```csharp
 builder.Services.AddMongoContext<DbContext>(builder.Configuration, c =>
 {
-    // 启用弹性默认配置
+    // 启用弹性默认配置（与驱动内置自动恢复机制配合使用）
     c.Resilience.Enable = true;
 
     // 可选：针对特定场景调整（以下为默认值）
