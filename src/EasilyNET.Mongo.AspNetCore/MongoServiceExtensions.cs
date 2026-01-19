@@ -159,7 +159,6 @@ public static class MongoServiceExtensions
             var options = new BasicClientOptions();
             option?.Invoke(options);
             RegistryConventionPack(options);
-            settings.MinConnectionPoolSize = Environment.ProcessorCount;
             var context = MongoContext.CreateInstance<T>(settings, options.DatabaseName ?? Constant.DefaultDbName);
             services.AddSingleton(context.Client);
             services.AddSingleton(context.Database);

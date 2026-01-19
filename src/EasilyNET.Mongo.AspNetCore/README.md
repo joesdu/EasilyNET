@@ -80,6 +80,26 @@ CONNECTIONSTRINGS_MONGO=mongodb://localhost:27017/your-database
 
 ---
 
+### **常见问题排查**
+
+#### MongoConnectionPoolPausedException: "The connection pool is in paused state"
+
+出现该异常通常意味着驱动已将目标服务器标记为不可用并暂停连接池，常见原因与解决方式如下：
+
+- **网络不可达/防火墙拦截**：确认应用所在机器能访问 `host:port`，安全组/防火墙已放行。
+- **认证或 TLS 配置错误**：确认用户名、密码、`authSource`、`tls/ssl` 参数正确。
+- **单节点/代理访问**：若只暴露单节点或通过负载均衡代理访问，请在连接串中添加 `directConnection=true` 或 `loadBalanced=true`。
+- **副本集名称不匹配**：连接串中的 `replicaSet` 必须与服务端一致。
+- **连接池激增导致服务端拒绝**：避免在客户端强制设置过大的 `MinConnectionPoolSize`，必要时降低并发或限制 `MaxConnectionPoolSize`。
+
+推荐在连接串中显式设置超时，避免长时间阻塞：
+
+```
+mongodb://user:pwd@host:27017/db?serverSelectionTimeoutMS=5000&connectTimeoutMS=5000&socketTimeoutMS=30000
+```
+
+若问题仍持续，请开启驱动日志（`MongoDB.SERVERSELECTION` / `MongoDB.CONNECTION`）以定位具体原因。
+
 ### **MongoDB Context 配置**
 
 #### 方式 1: 使用 IConfiguration (推荐)
