@@ -26,7 +26,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
     private readonly EventConfigurationRegistry _eventRegistry = eventRegistry;
     private readonly ResiliencePipeline _pipeline = pipelineProvider.GetPipeline(Constant.HandlerPipelineName);
 
-    //作用域工厂与管道缓存，减少每次消息的服务解析开销
+    // 作用域工厂与管道缓存，减少每次消息的服务解析开销
     private readonly IServiceScopeFactory? _scopeFactory = sp.GetService<IServiceScopeFactory>();
 
     public ConcurrentDictionary<Type, List<Type>> EventHandlerCache { get; } = [];
