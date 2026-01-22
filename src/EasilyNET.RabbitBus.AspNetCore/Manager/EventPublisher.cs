@@ -16,6 +16,22 @@ using RabbitMQ.Client.Events;
 namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 
 /// <summary>
+/// 重试消息（使用 struct 减少 GC 压力）
+/// </summary>
+internal readonly struct RetryMessage
+{
+    public IEvent Event { get; init; }
+
+    public string? RoutingKey { get; init; }
+
+    public byte? Priority { get; init; }
+
+    public int RetryCount { get; init; }
+
+    public DateTime NextRetryTime { get; init; }
+}
+
+/// <summary>
 /// 事件发布器，负责处理所有事件发布相关逻辑
 /// </summary>
 internal sealed class EventPublisher : IAsyncDisposable
@@ -33,8 +49,14 @@ internal sealed class EventPublisher : IAsyncDisposable
     private readonly Task _processQueueTask;
     private readonly Channel<PublishContext> _publishChannel;
     private readonly RabbitConfig _rabbitConfig;
+
+    // 重试 Channel（使用 Channel<T> 替代 ConcurrentQueue）
+    private readonly Channel<RetryMessage> _retryChannel;
     private readonly IBusSerializer _serializer;
     private readonly SemaphoreSlim? _throttleSemaphore;
+
+    // 确认超时的序列号（用于超时后重试）
+    private readonly ConcurrentDictionary<ulong, bool> _timedOutConfirms = [];
 
     // 构造函数中初始化信号量
     public EventPublisher(PersistentConnection conn, ResiliencePipelineProvider<string> pipelineProvider, IBusSerializer serializer, ILogger<EventBus> logger, IOptionsMonitor<RabbitConfig> options)
@@ -55,10 +77,20 @@ internal sealed class EventPublisher : IAsyncDisposable
             SingleWriter = false,
             AllowSynchronousContinuations = false
         });
+        // 创建重试通道（单读多写）
+        _retryChannel = Channel.CreateUnbounded<RetryMessage>(new()
+        {
+            SingleReader = true,
+            SingleWriter = false,
+            AllowSynchronousContinuations = false
+        });
         _processQueueTask = ProcessQueueAsync();
     }
 
-    public ConcurrentQueue<(IEvent Event, string? RoutingKey, byte? Priority, int RetryCount, DateTime NextRetryTime)> NackedMessages { get; } = [];
+    /// <summary>
+    /// 重试消息读取器（用于 MessageConfirmService）
+    /// </summary>
+    public ChannelReader<RetryMessage> RetryMessageReader => _retryChannel.Reader;
 
     public async ValueTask DisposeAsync()
     {
@@ -76,6 +108,11 @@ internal sealed class EventPublisher : IAsyncDisposable
         _confirmSemaphore.Dispose();
         _throttleSemaphore?.Dispose();
     }
+
+    /// <summary>
+    /// 异步入队重试消息
+    /// </summary>
+    public ValueTask EnqueueRetryAsync(RetryMessage message, CancellationToken ct = default) => _retryChannel.Writer.WriteAsync(message, ct);
 
     // 计算指数退避时间 2^n * 1s 带上限
     private static TimeSpan CalcBackoff(int retryCount) => BackoffUtility.Exponential(retryCount, MinRetryDelay, MinRetryDelay, MaxRetryDelay);
@@ -175,8 +212,18 @@ internal sealed class EventPublisher : IAsyncDisposable
                         context.Tcs.TrySetException(ex);
                         if (registered)
                         {
-                            // 如果已经注册，使用标准失败处理（它会释放信号量）
-                            HandlePublishFailure(sequenceNumber, ex, context.Event.GetType().Name, context.Event.EventId, context.IsDelayed);
+                            // 区分确认超时和真正的失败
+                            if (ex is TimeoutException)
+                            {
+                                // 确认超时：不释放信号量，消息将在后台被重新入队
+                                // CleanOutstandingConfirms 会处理超时的消息并释放信号量
+                                HandleConfirmTimeout(sequenceNumber, context.Event.GetType().Name, context.Event.EventId, context.IsDelayed);
+                            }
+                            else
+                            {
+                                // 真正失败：使用标准失败处理
+                                HandlePublishFailure(sequenceNumber, ex, context.Event.GetType().Name, context.Event.EventId, context.IsDelayed);
+                            }
                         }
                         else
                         {
@@ -239,21 +286,22 @@ internal sealed class EventPublisher : IAsyncDisposable
         {
             return;
         }
-        try
+        // 尝试获取序列号（如果已注册）
+        var sequenceNumber = _outstandingConfirms.FirstOrDefault(kvp => kvp.Value == tcs).Key;
+        var completed = await tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(cfg.ConfirmTimeoutMs), ct).ConfigureAwait(false);
+        if (!completed)
         {
-            var completed = await tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(cfg.ConfirmTimeoutMs), ct).ConfigureAwait(false);
-            if (!completed)
+            // 超时：标记为超时，消息将在后台被重新入队
+            if (sequenceNumber > 0)
             {
-                throw new TimeoutException($"Publisher confirm was cancelled for {eventName} with ID: {eventId}. This may be due to a connection loss.");
+                _timedOutConfirms.TryAdd(sequenceNumber, true);
             }
-        }
-        catch (TimeoutException)
-        {
             if (_logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning("Timeout waiting for publisher confirm for {Kind} event: {EventName} with ID: {EventId}", delayed ? "delayed" : "normal", eventName, eventId);
+                _logger.LogWarning("Timeout waiting for publisher confirm for {Kind} event: {EventName} with ID: {EventId}, Sequence: {Seq}. Message will be retried.",
+                    delayed ? "delayed" : "normal", eventName, eventId, sequenceNumber);
             }
-            throw;
+            throw new TimeoutException($"Publisher confirm timed out for {eventName} with ID: {eventId}. Message will be retried.");
         }
     }
 
@@ -464,7 +512,15 @@ internal sealed class EventPublisher : IAsyncDisposable
                 if (_outstandingMessages.TryRemove(sequenceNumber, out var messageInfo))
                 {
                     var nextRetryTime = DateTime.UtcNow + MinRetryDelay;
-                    NackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
+                    // 使用 Channel 入队
+                    _ = _retryChannel.Writer.TryWrite(new()
+                    {
+                        Event = messageInfo.Event,
+                        RoutingKey = messageInfo.RoutingKey,
+                        Priority = messageInfo.Priority,
+                        RetryCount = messageInfo.RetryCount + 1,
+                        NextRetryTime = nextRetryTime
+                    });
                     RabbitBusMetrics.RetryEnqueued.Add(1);
                 }
                 RabbitBusMetrics.OutstandingConfirms.Add(-1);
@@ -493,20 +549,56 @@ internal sealed class EventPublisher : IAsyncDisposable
                 {
                     continue;
                 }
-                tcs.SetResult(!nack);
-                switch (nack)
+
+                // 检查是否是确认超时
+                var isTimeout = _timedOutConfirms.TryRemove(seqNo, out _);
+                if (isTimeout)
                 {
-                    case true when _outstandingMessages.TryRemove(seqNo, out var messageInfo):
+                    // 确认超时：将消息重新入队
+                    if (_outstandingMessages.TryRemove(seqNo, out var messageInfo))
                     {
                         var nextRetryTime = DateTime.UtcNow + CalcBackoff(messageInfo.RetryCount);
-                        NackedMessages.Enqueue((messageInfo.Event, messageInfo.RoutingKey, messageInfo.Priority, messageInfo.RetryCount + 1, nextRetryTime));
+                        _ = _retryChannel.Writer.TryWrite(new()
+                        {
+                            Event = messageInfo.Event,
+                            RoutingKey = messageInfo.RoutingKey,
+                            Priority = messageInfo.Priority,
+                            RetryCount = messageInfo.RetryCount + 1,
+                            NextRetryTime = nextRetryTime
+                        });
                         RabbitBusMetrics.RetryEnqueued.Add(1);
-                        break;
+                        if (_logger.IsEnabled(LogLevel.Information))
+                        {
+                            _logger.LogInformation("Retrying message after confirm timeout: {EventType} ID {EventId}, Sequence {Seq}, RetryCount {Retry}",
+                                messageInfo.Event.GetType().Name, messageInfo.Event.EventId, seqNo, messageInfo.RetryCount + 1);
+                        }
                     }
-                    case false:
-                        // 仅在ACK时移除消息
-                        _outstandingMessages.TryRemove(seqNo, out _);
-                        break;
+                }
+                else
+                {
+                    // 正常确认（ACK/NACK）
+                    tcs.SetResult(!nack);
+                    switch (nack)
+                    {
+                        case true when _outstandingMessages.TryRemove(seqNo, out var messageInfo):
+                        {
+                            var nextRetryTime = DateTime.UtcNow + CalcBackoff(messageInfo.RetryCount);
+                            _ = _retryChannel.Writer.TryWrite(new()
+                            {
+                                Event = messageInfo.Event,
+                                RoutingKey = messageInfo.RoutingKey,
+                                Priority = messageInfo.Priority,
+                                RetryCount = messageInfo.RetryCount + 1,
+                                NextRetryTime = nextRetryTime
+                            });
+                            RabbitBusMetrics.RetryEnqueued.Add(1);
+                            break;
+                        }
+                        case false:
+                            // 仅在ACK时移除消息
+                            _outstandingMessages.TryRemove(seqNo, out _);
+                            break;
+                    }
                 }
                 RabbitBusMetrics.OutstandingConfirms.Add(-1);
                 _throttleSemaphore?.Release();
@@ -576,6 +668,20 @@ internal sealed class EventPublisher : IAsyncDisposable
         if (_logger.IsEnabled(LogLevel.Warning))
         {
             _logger.LogWarning(ex, "Publish failed for {Kind} event {EventType} ID {EventId}", isDelayed ? "delayed" : "normal", eventType, eventId);
+        }
+    }
+
+    /// <summary>
+    /// 处理确认超时：消息将在后台被重新入队，此时不释放信号量
+    /// </summary>
+    private void HandleConfirmTimeout(ulong sequenceNumber, string eventType, string eventId, bool isDelayed = false)
+    {
+        // 标记为超时（已在 WaitForConfirmIfNeededAsync 中完成）
+        // 不释放信号量，消息将在后台被重新入队后释放
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Marking confirm timeout for {Kind} event {EventType} ID {EventId}, Sequence {Seq}",
+                isDelayed ? "delayed" : "normal", eventType, eventId, sequenceNumber);
         }
     }
 

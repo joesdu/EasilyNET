@@ -12,6 +12,7 @@ using EasilyNET.RabbitBus.AspNetCore.Stores;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.Extensions.Logging;
 using Polly;
+using Polly.Registry;
 using Polly.Timeout;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
@@ -78,7 +79,11 @@ public static class RabbitServiceExtension
             services.InjectConfiguredHandlers(eventRegistry);
             services.AddSingleton(config.BusSerializer);
             services.AddSingleton<EventPublisher>();
-            services.AddSingleton<EventHandlerInvoker>();
+            services.AddSingleton(sp => new EventHandlerInvoker(sp,
+                sp.GetRequiredService<IBusSerializer>(),
+                sp.GetRequiredService<ILogger<EventBus>>(),
+                sp.GetRequiredService<ResiliencePipelineProvider<string>>(),
+                eventRegistry));
             services.AddSingleton<ConsumerManager>();
             services.AddSingleton<IDeadLetterStore, InMemoryDeadLetterStore>();
             services.AddSingleton<IBus, EventBus>();

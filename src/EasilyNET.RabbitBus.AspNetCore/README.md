@@ -2,14 +2,14 @@
 
 支持延时队列（需要启用 rabbitmq-delayed-message-exchange 插件）
 
-- 支持同一个消息被多个 Handler 消费（按注册顺序串行执行）
+- 支持同一个消息被多个 Handler 消费（可配置并发或顺序执行）
 - 支持忽略指定 Handler
 - 支持事件级 QoS、Headers、交换机/队列参数、优先级队列
 - 支持发布确认（Publisher Confirms）与发布背压
 - 支持批量发布提升吞吐量
 - 现代流式配置：无需在事件/处理器上标注特性
 - 内建发布失败重试（Nack/Confirm 超时）后台调度器：指数退避 + 抖动
-- 死信存储：超过最大重试后写入死信（内存实现）
+- 死信存储：超过最大重试后写入死信存储（内置内存实现，支持自定义）
 - 健康检查与可观测性：连接/发布/重试等指标 + 健康检查
 
 ##### 如何使用
@@ -189,7 +189,9 @@ builder.Services.AddRabbitBus(c =>
 #### 注意事项
 
 - **事件必须注册处理器**：仅通过 `WithHandler<THandler>()` 明确注册的处理器才会创建消费者并注入 DI。
-- **处理器执行顺序**：当前同一消息的多个处理器仅保证在同一消费管线内串行处理，但**不承诺严格的注册顺序**；`SequentialHandlerExecution` 目前为预留配置，后续版本可能用于启用确定性顺序控制。
+- **处理器执行顺序**：同一事件的多个处理器支持两种执行模式：
+  - **并发执行**（默认）：处理器并行执行，提高吞吐量
+  - **顺序执行**：通过 `SequentialHandlerExecution = true` 配置，确保处理器按注册顺序依次执行
 - **并发方式**：提高 `HandlerThreadCount`（每事件消费者数量）以及 `ConsumerDispatchConcurrency` 以提升并发；`ConsumerChannelLimit` 可限制通道数量。
 - **延迟队列**：必须安装 rabbitmq-delayed-message-exchange 插件；框架会自动为延迟交换机声明 `x-delayed-type=direct`。
 - **优先级队列**：使用优先级需设置队列参数 `x-max-priority`。
@@ -199,7 +201,112 @@ builder.Services.AddRabbitBus(c =>
 - **批量发布**：使用 `PublishBatch` 减少网络往返；根据消息大小调整 `BatchSize`（默认 100，建议 50-500）。
 - **交换机验证**：默认启动阶段验证交换机存在且类型匹配（`ValidateExchangesOnStartup=true`）；若外部统一声明交换机，可设 `SkipExchangeDeclare=true` 跳过声明。
 - **发布背压**：启用发布确认时，未确认数量达到 `MaxOutstandingConfirms` 会等待以保护内存。
-- **重试与死信**：确认 Nack 或确认超时会进入后台重试队列（指数退避 + 抖动）；超过 `RetryCount` 后写入内存死信存储。
+- **重试与死信**：确认 Nack 或确认超时会进入后台重试队列（指数退避 + 抖动）；超过 `RetryCount` 后写入死信存储。可通过实现 `IDeadLetterStore` 接口自定义死信存储（如数据库、Redis 等）。
+
+#### 处理器执行模式
+
+支持两种处理器执行模式，通过事件配置中的 `SequentialHandlerExecution` 属性控制：
+
+```csharp
+// 顺序执行：处理器按注册顺序依次执行（适用于有执行顺序依赖的场景）
+c.AddEvent<OrderEvent>(EModel.Routing, "order.exchange", "order.key", "order.queue")
+ .ConfigureEvent(cfg => cfg.SequentialHandlerExecution = true)
+ .WithHandler<OrderValidationHandler>()   // 第一步：验证
+ .WithHandler<OrderProcessingHandler>()   // 第二步：处理
+ .WithHandler<OrderNotificationHandler>() // 第三步：通知
+ .And();
+
+// 并发执行（默认）：处理器并行执行，提高吞吐量
+c.AddEvent<LogEvent>(EModel.Routing, "log.exchange", "log.key", "log.queue")
+ .WithHandler<ConsoleLogHandler>()
+ .WithHandler<FileLogHandler>()
+ .WithHandler<DatabaseLogHandler>()
+ .And();
+```
+
+| 模式 | 配置 | 特点 | 适用场景 |
+|------|------|------|----------|
+| 并发执行 | `SequentialHandlerExecution = false`（默认） | 处理器并行执行，高吞吐 | 处理器之间无依赖关系 |
+| 顺序执行 | `SequentialHandlerExecution = true` | 按注册顺序依次执行 | 处理器有执行顺序依赖 |
+
+#### 自定义死信存储
+
+`IDeadLetterStore` 是公开接口，可实现自定义死信存储（如 Redis、数据库等）：
+
+```csharp
+using EasilyNET.RabbitBus.AspNetCore.Abstractions;
+using EasilyNET.RabbitBus.Core.Abstraction;
+
+/// <summary>
+/// Redis 死信存储示例
+/// </summary>
+public class RedisDeadLetterStore : IDeadLetterStore
+{
+    private readonly IConnectionMultiplexer _redis;
+
+    public RedisDeadLetterStore(IConnectionMultiplexer redis) => _redis = redis;
+
+    public async ValueTask StoreAsync(IDeadLetterMessage message, CancellationToken cancellationToken = default)
+    {
+        var db = _redis.GetDatabase();
+        var key = $"deadletter:{message.EventType}:{message.EventId}";
+        var value = JsonSerializer.Serialize(new
+        {
+            message.EventType,
+            message.EventId,
+            message.CreatedUtc,
+            message.RetryCount,
+            OriginalEvent = message.OriginalEvent
+        });
+        await db.StringSetAsync(key, value);
+    }
+
+    public async IAsyncEnumerable<IDeadLetterMessage> GetAllAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var db = _redis.GetDatabase();
+        var server = _redis.GetServer(_redis.GetEndPoints().First());
+        await foreach (var key in server.KeysAsync(pattern: "deadletter:*"))
+        {
+            if (cancellationToken.IsCancellationRequested) yield break;
+            var value = await db.StringGetAsync(key);
+            if (value.HasValue)
+            {
+                // 反序列化并返回 IDeadLetterMessage 实例
+                yield return DeserializeMessage(value!);
+            }
+        }
+    }
+
+    public async ValueTask ClearAsync(CancellationToken cancellationToken = default)
+    {
+        var db = _redis.GetDatabase();
+        var server = _redis.GetServer(_redis.GetEndPoints().First());
+        await foreach (var key in server.KeysAsync(pattern: "deadletter:*"))
+        {
+            await db.KeyDeleteAsync(key);
+        }
+    }
+
+    private static IDeadLetterMessage DeserializeMessage(string json)
+    {
+        // 实现反序列化逻辑...
+        throw new NotImplementedException();
+    }
+}
+
+// 注册自定义死信存储（替换内置的 InMemoryDeadLetterStore）
+builder.Services.AddSingleton<IDeadLetterStore, RedisDeadLetterStore>();
+```
+
+**IDeadLetterMessage 接口成员**：
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| `EventType` | `string` | 事件类型名称 |
+| `EventId` | `string` | 事件唯一标识 |
+| `CreatedUtc` | `DateTime` | 消息创建时间（UTC） |
+| `RetryCount` | `int` | 进入死信前的重试次数 |
+| `OriginalEvent` | `IEvent` | 原始事件实例 |
 
 #### 高级配置示例
 
@@ -415,11 +522,51 @@ builder.Services.AddRabbitBus(c =>
 | `WithEventExchangeArgs`  | `args`                           | -                     | 交换机声明参数                        |
 | `WithHandler`            | `THandler`                       | -                     | 注册事件处理器(必须)                  |
 | `WithHandlerThreadCount` | `threadCount`                    | 1                     | 该事件消费者数量(并行度)              |
-| `ConfigureEvent`         | `Exchange/Queue/Qos/Headers/...` | -                     | 事件高级配置入口                      |
+| `ConfigureEvent`         | `SequentialHandlerExecution`     | false                 | 是否按顺序执行处理器                  |
+|                          | `Exchange/Queue/Qos/Headers/...` | -                     | 事件高级配置入口                      |
 | `IgnoreHandler`          | -                                | -                     | 忽略指定的处理器                      |
 | `WithSerializer`         | -                                | System.Text.Json      | 自定义消息序列化器                    |
 | 全局                     | `SkipExchangeDeclare`            | false                 | 跳过交换机声明(外部已声明时可启用)    |
 | 全局                     | `ValidateExchangesOnStartup`     | false                 | 启动阶段验证交换机类型与存在性        |
+
+#### 内部架构说明
+
+> 以下为高级内容，普通使用者无需关注。
+
+##### Channel<T> 重试队列
+
+框架内部使用 `System.Threading.Channels.Channel<T>` 实现高性能的重试消息队列：
+
+- **无锁设计**：相比 `ConcurrentQueue<T>`，Channel 提供更好的异步消费体验
+- **背压支持**：结合信号量实现发布限流，防止内存溢出
+- **零分配热路径**：使用 `struct RetryMessage` 减少 GC 压力
+
+##### Polly ResiliencePipeline
+
+框架使用 Polly v8+ 的 `ResiliencePipeline` 实现弹性策略：
+
+- **PublishPipeline**：发布操作的重试、超时策略
+- **ConnectionPipeline**：连接建立的重试策略
+- **HandlerPipeline**：消息处理器的重试、超时策略
+
+```csharp
+// 内部注册示例（仅供参考）
+services.AddResiliencePipeline(Constant.HandlerPipelineName, (builder, context) =>
+{
+    builder.AddRetry(new()
+    {
+        ShouldHandle = new PredicateBuilder()
+                       .Handle<BrokerUnreachableException>()
+                       .Handle<SocketException>()
+                       .Handle<TimeoutException>(),
+        MaxRetryAttempts = 2,
+        Delay = TimeSpan.FromSeconds(1),
+        BackoffType = DelayBackoffType.Exponential,
+        UseJitter = true
+    });
+    builder.AddTimeout(TimeSpan.FromSeconds(30));
+});
+```
 
 #### 最佳实践
 

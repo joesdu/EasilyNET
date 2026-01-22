@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Runtime.InteropServices;
+using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -14,15 +15,18 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <summary>
 /// 事件处理器调用器，负责事件处理逻辑
 /// </summary>
-internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer serializer, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pipelineProvider)
+internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer serializer, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pipelineProvider, EventConfigurationRegistry eventRegistry)
 {
     private const string HandleName = nameof(IEventHandler<>.HandleAsync); // 名称解析一次
 
     // 缓存 (HandlerType, EventType) -> 开放委托: (object handler, object evt) => Task
     private static readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Func<object, object, Task>> _openDelegateCache = new();
+
+    // 事件配置注册器
+    private readonly EventConfigurationRegistry _eventRegistry = eventRegistry;
     private readonly ResiliencePipeline _pipeline = pipelineProvider.GetPipeline(Constant.HandlerPipelineName);
 
-    // 作用域工厂与管道缓存，减少每次消息的服务解析开销
+    //作用域工厂与管道缓存，减少每次消息的服务解析开销
     private readonly IServiceScopeFactory? _scopeFactory = sp.GetService<IServiceScopeFactory>();
 
     public ConcurrentDictionary<Type, List<Type>> EventHandlerCache { get; } = [];
@@ -164,19 +168,51 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
         using var scope = _scopeFactory?.CreateScope();
         var provider = scope?.ServiceProvider ?? sp; // 无作用域时回退到根容器
 
+        // 检查是否要求顺序执行
+        var config = _eventRegistry.GetConfiguration(eventType);
+        var shouldExecuteSequentially = config?.SequentialHandlerExecution == true;
+
         // 快速路径: 单个处理器
         if (handlerTypes.Count == 1)
         {
             await InvokeHandlerAsync(handlerTypes[0], eventType, provider, @event, consumerIndex, ct).ConfigureAwait(false);
         }
+        else if (shouldExecuteSequentially)
+        {
+            // 顺序执行：确保处理器按注册顺序执行
+            await ProcessHandlersSequentially(handlerTypes, eventType, provider, @event, consumerIndex, ct).ConfigureAwait(false);
+        }
         else
         {
-            foreach (var handlerType in handlerTypes)
-            {
-                await InvokeHandlerAsync(handlerType, eventType, provider, @event, consumerIndex, ct).ConfigureAwait(false);
-            }
+            // 并发执行：处理器并行执行（默认行为）
+            await ProcessHandlersConcurrently(handlerTypes, eventType, provider, @event, consumerIndex, ct).ConfigureAwait(false);
         }
         return true;
+    }
+
+    /// <summary>
+    /// 顺序执行所有处理器（保证执行顺序）
+    /// </summary>
+    private async Task ProcessHandlersSequentially(List<Type> handlerTypes, Type eventType, IServiceProvider provider, object @event, int consumerIndex, CancellationToken ct)
+    {
+        foreach (var handlerType in handlerTypes)
+        {
+            await InvokeHandlerAsync(handlerType, eventType, provider, @event, consumerIndex, ct).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// 并发执行所有处理器（提高吞吐量）
+    /// </summary>
+    private async Task ProcessHandlersConcurrently(List<Type> handlerTypes, Type eventType, IServiceProvider provider, object @event, int consumerIndex, CancellationToken ct)
+    {
+        var tasks = new List<Task>(handlerTypes.Count);
+        foreach (var handlerType in handlerTypes)
+        {
+            var task = InvokeHandlerAsync(handlerType, eventType, provider, @event, consumerIndex, ct);
+            tasks.Add(task);
+        }
+        await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
     private async Task InvokeHandlerAsync(Type handlerType, Type eventType, IServiceProvider provider, object @event, int consumerIndex, CancellationToken ct)
