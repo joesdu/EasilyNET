@@ -213,6 +213,7 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
         }
         catch
         {
+            // 确保在所有异常路径（包括 InitializeConnectionAsync 失败）释放信号量
             slots?.Release();
             throw;
         }
