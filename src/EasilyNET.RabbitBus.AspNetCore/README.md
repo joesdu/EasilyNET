@@ -234,8 +234,19 @@ c.AddEvent<LogEvent>(EModel.Routing, "log.exchange", "log.key", "log.queue")
 `IDeadLetterStore` 是公开接口，可实现自定义死信存储（如 Redis、数据库等）：
 
 ```csharp
+// ✅ 可复制使用的 Redis 死信存储示例（同时也是一个模板）：
+// - 该实现会把死信消息序列化后存入 Redis String
+// - 读取时会根据 OriginalEventType 反序列化回具体事件类型（要求事件类型在当前应用可加载）
+// - 注意：示例中使用 server.KeysAsync(pattern) 扫描 key，生产环境建议改为 Set/SortedSet + Scan 维护索引
+//
+// NuGet:
+// - StackExchange.Redis
+
+using System.Runtime.CompilerServices;
+using System.Text.Json;
 using EasilyNET.RabbitBus.AspNetCore.Abstractions;
 using EasilyNET.RabbitBus.Core.Abstraction;
+using StackExchange.Redis;
 
 /// <summary>
 /// Redis 死信存储示例
@@ -243,36 +254,87 @@ using EasilyNET.RabbitBus.Core.Abstraction;
 public class RedisDeadLetterStore : IDeadLetterStore
 {
     private readonly IConnectionMultiplexer _redis;
+    private readonly JsonSerializerOptions _jsonOptions;
 
-    public RedisDeadLetterStore(IConnectionMultiplexer redis) => _redis = redis;
+    public RedisDeadLetterStore(IConnectionMultiplexer redis, JsonSerializerOptions? jsonOptions = null)
+    {
+        _redis = redis;
+        _jsonOptions = jsonOptions ?? new(JsonSerializerDefaults.Web);
+    }
+
+    private const string KeyPrefix = "deadletter:";
+
+    private static string BuildKey(string eventType, string eventId) => $"{KeyPrefix}{eventType}:{eventId}";
+
+    private sealed record DeadLetterEnvelope(
+        string EventType,
+        string EventId,
+        DateTime CreatedUtc,
+        int RetryCount,
+        string OriginalEventType,
+        string OriginalEventJson);
+
+    private sealed class RedisDeadLetterMessage(string eventType, string eventId, DateTime createdUtc, int retryCount, IEvent originalEvent) : IDeadLetterMessage
+    {
+        public string EventType { get; } = eventType;
+        public string EventId { get; } = eventId;
+        public DateTime CreatedUtc { get; } = createdUtc;
+        public int RetryCount { get; } = retryCount;
+        public IEvent OriginalEvent { get; } = originalEvent;
+    }
 
     public async ValueTask StoreAsync(IDeadLetterMessage message, CancellationToken cancellationToken = default)
     {
         var db = _redis.GetDatabase();
-        var key = $"deadletter:{message.EventType}:{message.EventId}";
-        var value = JsonSerializer.Serialize(new
+
+        var originalEventType = message.OriginalEvent.GetType().AssemblyQualifiedName;
+        if (string.IsNullOrWhiteSpace(originalEventType))
         {
+            throw new InvalidOperationException("OriginalEvent type must have a valid AssemblyQualifiedName.");
+        }
+
+        var envelope = new DeadLetterEnvelope(
             message.EventType,
             message.EventId,
             message.CreatedUtc,
             message.RetryCount,
-            OriginalEvent = message.OriginalEvent
-        });
-        await db.StringSetAsync(key, value);
+            originalEventType,
+            JsonSerializer.Serialize(message.OriginalEvent, message.OriginalEvent.GetType(), _jsonOptions));
+
+        var key = BuildKey(message.EventType, message.EventId);
+        var value = JsonSerializer.Serialize(envelope, _jsonOptions);
+        await db.StringSetAsync(key, value).ConfigureAwait(false);
     }
 
     public async IAsyncEnumerable<IDeadLetterMessage> GetAllAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var db = _redis.GetDatabase();
         var server = _redis.GetServer(_redis.GetEndPoints().First());
-        await foreach (var key in server.KeysAsync(pattern: "deadletter:*"))
+        await foreach (var key in server.KeysAsync(pattern: $"{KeyPrefix}*").WithCancellation(cancellationToken))
         {
             if (cancellationToken.IsCancellationRequested) yield break;
             var value = await db.StringGetAsync(key);
             if (value.HasValue)
             {
-                // 反序列化并返回 IDeadLetterMessage 实例
-                yield return DeserializeMessage(value!);
+                var envelope = JsonSerializer.Deserialize<DeadLetterEnvelope>(value!, _jsonOptions);
+                if (envelope is null)
+                {
+                    continue;
+                }
+
+                var evtType = Type.GetType(envelope.OriginalEventType);
+                if (evtType is null)
+                {
+                    continue;
+                }
+
+                var evt = JsonSerializer.Deserialize(envelope.OriginalEventJson, evtType, _jsonOptions) as IEvent;
+                if (evt is null)
+                {
+                    continue;
+                }
+
+                yield return new RedisDeadLetterMessage(envelope.EventType, envelope.EventId, envelope.CreatedUtc, envelope.RetryCount, evt);
             }
         }
     }
@@ -281,16 +343,14 @@ public class RedisDeadLetterStore : IDeadLetterStore
     {
         var db = _redis.GetDatabase();
         var server = _redis.GetServer(_redis.GetEndPoints().First());
-        await foreach (var key in server.KeysAsync(pattern: "deadletter:*"))
+        await foreach (var key in server.KeysAsync(pattern: $"{KeyPrefix}*").WithCancellation(cancellationToken))
         {
-            await db.KeyDeleteAsync(key);
+            if (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+            await db.KeyDeleteAsync(key).ConfigureAwait(false);
         }
-    }
-
-    private static IDeadLetterMessage DeserializeMessage(string json)
-    {
-        // 实现反序列化逻辑...
-        throw new NotImplementedException();
     }
 }
 

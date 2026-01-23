@@ -34,16 +34,8 @@ internal sealed class MessageConfirmService(EventPublisher eventPublisher, IBus 
                     {
                         await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
                     }
-                    // 重新放回队列头部
-                    await eventPublisher.EnqueueRetryAsync(new()
-                    {
-                        Event = msg.Event,
-                        RoutingKey = msg.RoutingKey,
-                        Priority = msg.Priority,
-                        RetryCount = msg.RetryCount,
-                        NextRetryTime = msg.NextRetryTime
-                    }, stoppingToken).ConfigureAwait(false);
-                    continue;
+                    // 延迟完成后直接继续处理本条消息即可。
+                    // Channel<T> 没有“放回队列头部”的语义，且重新入队会引入额外调度/循环。
                 }
 
                 // 处理重试消息

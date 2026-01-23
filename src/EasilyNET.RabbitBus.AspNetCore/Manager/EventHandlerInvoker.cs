@@ -23,7 +23,6 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
     private static readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Func<object, object, Task>> _openDelegateCache = new();
 
     // 事件配置注册器
-    private readonly EventConfigurationRegistry _eventRegistry = eventRegistry;
     private readonly ResiliencePipeline _pipeline = pipelineProvider.GetPipeline(Constant.HandlerPipelineName);
 
     // 作用域工厂与管道缓存，减少每次消息的服务解析开销
@@ -169,7 +168,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
         var provider = scope?.ServiceProvider ?? sp; // 无作用域时回退到根容器
 
         // 检查是否要求顺序执行
-        var config = _eventRegistry.GetConfiguration(eventType);
+        var config = eventRegistry.GetConfiguration(eventType);
         var shouldExecuteSequentially = config?.SequentialHandlerExecution == true;
 
         // 快速路径: 单个处理器
@@ -207,12 +206,23 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
     private async Task ProcessHandlersConcurrently(List<Type> handlerTypes, Type eventType, IServiceProvider provider, object @event, int consumerIndex, CancellationToken ct)
     {
         var tasks = new List<Task>(handlerTypes.Count);
-        foreach (var handlerType in handlerTypes)
+        tasks.AddRange(handlerTypes.Select(handlerType => InvokeHandlerAsync(handlerType, eventType, provider, @event, consumerIndex, ct)));
+        try
         {
-            var task = InvokeHandlerAsync(handlerType, eventType, provider, @event, consumerIndex, ct);
-            tasks.Add(task);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
-        await Task.WhenAll(tasks).ConfigureAwait(false);
+        catch
+        {
+            // 详细异常信息会在 InvokeHandlerAsync 中逐个记录。
+            // 这里仅做汇总，避免重复打印异常栈，但让并发失败更容易定位。
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                var failedHandlers = tasks.Count(static t => t.IsFaulted);
+                logger.LogError("Concurrent handlers failed for event {EventName} on consumer {ConsumerIndex}. FailedHandlers={FailedHandlers}/{TotalHandlers}",
+                    eventType.Name, consumerIndex, failedHandlers, handlerTypes.Count);
+            }
+            throw;
+        }
     }
 
     private async Task InvokeHandlerAsync(Type handlerType, Type eventType, IServiceProvider provider, object @event, int consumerIndex, CancellationToken ct)

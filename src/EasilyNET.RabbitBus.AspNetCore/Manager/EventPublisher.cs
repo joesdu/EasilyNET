@@ -38,7 +38,11 @@ internal sealed class EventPublisher : IAsyncDisposable
 {
     private static readonly TimeSpan MinRetryDelay = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan MaxRetryDelay = TimeSpan.FromSeconds(30);
+
+    // 确认超时截止时间（由后台统一处理超时清理/重试/释放背压）
+    private readonly ConcurrentDictionary<ulong, DateTime> _confirmDeadlines = [];
     private readonly SemaphoreSlim _confirmSemaphore = new(1, 1);
+    private readonly Task _confirmTimeoutTask;
 
     private readonly PersistentConnection _conn;
     private readonly CancellationTokenSource _cts = new();
@@ -54,9 +58,6 @@ internal sealed class EventPublisher : IAsyncDisposable
     private readonly Channel<RetryMessage> _retryChannel;
     private readonly IBusSerializer _serializer;
     private readonly SemaphoreSlim? _throttleSemaphore;
-
-    // 确认超时的序列号（用于超时后重试）
-    private readonly ConcurrentDictionary<ulong, bool> _timedOutConfirms = [];
 
     // 构造函数中初始化信号量
     public EventPublisher(PersistentConnection conn, ResiliencePipelineProvider<string> pipelineProvider, IBusSerializer serializer, ILogger<EventBus> logger, IOptionsMonitor<RabbitConfig> options)
@@ -85,6 +86,7 @@ internal sealed class EventPublisher : IAsyncDisposable
             AllowSynchronousContinuations = false
         });
         _processQueueTask = ProcessQueueAsync();
+        _confirmTimeoutTask = MonitorConfirmTimeoutsAsync();
     }
 
     /// <summary>
@@ -95,10 +97,12 @@ internal sealed class EventPublisher : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         _publishChannel.Writer.TryComplete();
+        _retryChannel.Writer.TryComplete();
         await _cts.CancelAsync();
         try
         {
             await _processQueueTask;
+            await _confirmTimeoutTask;
         }
         catch (OperationCanceledException)
         {
@@ -150,7 +154,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         var consecutiveErrors = 0; // 连续错误计数
         try
         {
-            while (await reader.WaitToReadAsync(_cts.Token))
+            while (await reader.WaitToReadAsync(_cts.Token).ConfigureAwait(false))
             {
                 while (reader.TryRead(out var context))
                 {
@@ -174,11 +178,15 @@ internal sealed class EventPublisher : IAsyncDisposable
                         }
 
                         // 3. 注册发布确认 (信号量已在 Publish 中获取)
-                        sequenceNumber = await channel.GetNextPublishSequenceNumberAsync(_cts.Token).ConfigureAwait(false);
-                        _outstandingConfirms[sequenceNumber] = context.Tcs;
-                        _outstandingMessages[sequenceNumber] = (context.Event, context.RoutingKey, context.Properties.Priority, 0);
-                        RabbitBusMetrics.OutstandingConfirms.Add(1);
-                        registered = true;
+                        if (_rabbitConfig.PublisherConfirms)
+                        {
+                            sequenceNumber = await channel.GetNextPublishSequenceNumberAsync(_cts.Token).ConfigureAwait(false);
+                            _outstandingConfirms[sequenceNumber] = context.Tcs;
+                            _outstandingMessages[sequenceNumber] = (context.Event, context.RoutingKey, context.Properties.Priority, 0);
+                            _confirmDeadlines[sequenceNumber] = DateTime.UtcNow + TimeSpan.FromMilliseconds(_rabbitConfig.ConfirmTimeoutMs);
+                            RabbitBusMetrics.OutstandingConfirms.Add(1);
+                            registered = true;
+                        }
 
                         // 4. 发布消息
                         var item = context;
@@ -212,18 +220,8 @@ internal sealed class EventPublisher : IAsyncDisposable
                         context.Tcs.TrySetException(ex);
                         if (registered)
                         {
-                            // 区分确认超时和真正的失败
-                            if (ex is TimeoutException)
-                            {
-                                // 确认超时：不释放信号量，消息将在后台被重新入队
-                                // CleanOutstandingConfirms 会处理超时的消息并释放信号量
-                                HandleConfirmTimeout(sequenceNumber, context.Event.GetType().Name, context.Event.EventId, context.IsDelayed);
-                            }
-                            else
-                            {
-                                // 真正失败：使用标准失败处理
-                                HandlePublishFailure(sequenceNumber, ex, context.Event.GetType().Name, context.Event.EventId, context.IsDelayed);
-                            }
+                            // 真正失败：使用标准失败处理
+                            HandlePublishFailure(sequenceNumber, ex, context.Event.GetType().Name, context.Event.EventId, context.IsDelayed);
                         }
                         else
                         {
@@ -280,28 +278,96 @@ internal sealed class EventPublisher : IAsyncDisposable
         await _throttleSemaphore.WaitAsync(ct).ConfigureAwait(false);
     }
 
-    private async Task WaitForConfirmIfNeededAsync(TaskCompletionSource<bool> tcs, RabbitConfig cfg, string eventName, string eventId, bool delayed, CancellationToken ct)
+    private async Task MonitorConfirmTimeoutsAsync()
     {
-        if (!cfg.PublisherConfirms)
+        // 统一由后台处理确认超时：清理 outstanding、入重试队列、更新指标、释放背压。
+        // 避免在发布线程超时释放导致的 double-release / SemaphoreFullException。
+        var tick = TimeSpan.FromMilliseconds(200);
+        try
         {
-            return;
+            while (!_cts.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(tick, _cts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (_cts.IsCancellationRequested)
+                {
+                    break;
+                }
+                if (_confirmDeadlines.IsEmpty)
+                {
+                    continue;
+                }
+                var now = DateTime.UtcNow;
+                foreach (var (seqNo, deadline) in _confirmDeadlines)
+                {
+                    if (deadline > now)
+                    {
+                        continue;
+                    }
+                    await HandleConfirmTimeoutAsync(seqNo, now).ConfigureAwait(false);
+                }
+            }
         }
-        // 尝试获取序列号（如果已注册）
-        var sequenceNumber = _outstandingConfirms.FirstOrDefault(kvp => kvp.Value == tcs).Key;
-        var completed = await tcs.Task.WaitAsync(TimeSpan.FromMilliseconds(cfg.ConfirmTimeoutMs), ct).ConfigureAwait(false);
-        if (!completed)
+        catch (OperationCanceledException)
         {
-            // 超时：标记为超时，消息将在后台被重新入队
-            if (sequenceNumber > 0)
+            // ignore
+        }
+        catch (Exception ex) when (_logger.IsEnabled(LogLevel.Critical))
+        {
+            _logger.LogCritical(ex, "EventPublisher confirm-timeout monitor failed unexpectedly");
+        }
+    }
+
+    private async Task HandleConfirmTimeoutAsync(ulong seqNo, DateTime now)
+    {
+        // 与 ack/nack/reconnect 清理保持一致：统一在 _confirmSemaphore 下做原子移除与释放。
+        await _confirmSemaphore.WaitAsync(_cts.Token).ConfigureAwait(false);
+        try
+        {
+            if (!_confirmDeadlines.TryGetValue(seqNo, out var deadline) || deadline > now)
             {
-                _timedOutConfirms.TryAdd(sequenceNumber, true);
+                return;
             }
-            if (_logger.IsEnabled(LogLevel.Warning))
+            // 先移除 deadline，避免同一 seqNo 重复处理
+            _confirmDeadlines.TryRemove(seqNo, out _);
+            if (!_outstandingConfirms.TryRemove(seqNo, out var tcs))
             {
-                _logger.LogWarning("Timeout waiting for publisher confirm for {Kind} event: {EventName} with ID: {EventId}, Sequence: {Seq}. Message will be retried.",
-                    delayed ? "delayed" : "normal", eventName, eventId, sequenceNumber);
+                // 可能已被 ack/nack/reconnect 清理
+                _outstandingMessages.TryRemove(seqNo, out _);
+                return;
             }
-            throw new TimeoutException($"Publisher confirm timed out for {eventName} with ID: {eventId}. Message will be retried.");
+
+            // 超时：将消息重新入队（若仍可获取到消息信息）。
+            // 若重试队列已完成/不可写，TryWrite 会返回 false，此处无需额外处理。
+            if (_outstandingMessages.TryRemove(seqNo, out var messageInfo))
+            {
+                var nextRetryTime = now + CalcBackoff(messageInfo.RetryCount);
+                _ = _retryChannel.Writer.TryWrite(new()
+                {
+                    Event = messageInfo.Event,
+                    RoutingKey = messageInfo.RoutingKey,
+                    Priority = messageInfo.Priority,
+                    RetryCount = messageInfo.RetryCount + 1,
+                    NextRetryTime = nextRetryTime
+                });
+                RabbitBusMetrics.RetryEnqueued.Add(1);
+                if (_logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning("Publisher confirm timeout. Re-enqueued message for retry: {EventType} ID {EventId}, Sequence {Seq}, RetryCount {Retry}",
+                        messageInfo.Event.GetType().Name, messageInfo.Event.EventId, seqNo, messageInfo.RetryCount + 1);
+                }
+            }
+
+            // 对等待方抛出超时异常（保持原有语义：超时=异常）
+            tcs.TrySetException(new TimeoutException($"Publisher confirm timed out. Sequence={seqNo}. Message will be retried."));
+            RabbitBusMetrics.OutstandingConfirms.Add(-1);
+            _throttleSemaphore?.Release();
+        }
+        finally
+        {
+            _confirmSemaphore.Release();
         }
     }
 
@@ -311,6 +377,7 @@ internal sealed class EventPublisher : IAsyncDisposable
 
         // 先获取信号量
         await ThrottleIfNeededAsync(cancellationToken).ConfigureAwait(false);
+        var written = false;
         try
         {
             var body = _serializer.Serialize(@event, @event.GetType());
@@ -318,12 +385,20 @@ internal sealed class EventPublisher : IAsyncDisposable
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var context = new PublishContext(@event, routingKey, properties, body, tcs, false, config);
             await _publishChannel.Writer.WriteAsync(context, cancellationToken).ConfigureAwait(false);
-            await WaitForConfirmIfNeededAsync(tcs, _rabbitConfig, @event.GetType().Name, @event.EventId, false, cancellationToken).ConfigureAwait(false);
+            written = true;
+            if (_rabbitConfig.PublisherConfirms)
+            {
+                _ = await tcs.Task.ConfigureAwait(false);
+            }
         }
         catch
         {
-            // 如果写入通道失败或序列化失败，释放信号量
-            _throttleSemaphore?.Release();
+            // 仅在未成功写入通道时释放：
+            // - 若已写入，背压释放由 ACK/NACK/timeout/reconnect/发布失败统一处理，避免 double-release。
+            if (!written)
+            {
+                _throttleSemaphore?.Release();
+            }
             throw;
         }
     }
@@ -332,6 +407,7 @@ internal sealed class EventPublisher : IAsyncDisposable
     {
         cancellationToken.ThrowIfCancellationRequested();
         await ThrottleIfNeededAsync(cancellationToken).ConfigureAwait(false);
+        var written = false;
         try
         {
             var body = _serializer.Serialize(@event, @event.GetType());
@@ -339,11 +415,18 @@ internal sealed class EventPublisher : IAsyncDisposable
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var context = new PublishContext(@event, routingKey, properties, body, tcs, true, config);
             await _publishChannel.Writer.WriteAsync(context, cancellationToken).ConfigureAwait(false);
-            await WaitForConfirmIfNeededAsync(tcs, _rabbitConfig, @event.GetType().Name, @event.EventId, true, cancellationToken).ConfigureAwait(false);
+            written = true;
+            if (_rabbitConfig.PublisherConfirms)
+            {
+                _ = await tcs.Task.ConfigureAwait(false);
+            }
         }
         catch
         {
-            _throttleSemaphore?.Release();
+            if (!written)
+            {
+                _throttleSemaphore?.Release();
+            }
             throw;
         }
     }
@@ -384,7 +467,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         }
         if (_rabbitConfig.PublisherConfirms && tcsList.Count > 0)
         {
-            await WaitForBatchConfirmsAsync(tcsList, false, cancellationToken).ConfigureAwait(false);
+            await WaitForBatchConfirmsAsync(tcsList).ConfigureAwait(false);
         }
     }
 
@@ -424,41 +507,23 @@ internal sealed class EventPublisher : IAsyncDisposable
         }
         if (_rabbitConfig.PublisherConfirms && tcsList.Count > 0)
         {
-            await WaitForBatchConfirmsAsync(tcsList, true, cancellationToken).ConfigureAwait(false);
+            await WaitForBatchConfirmsAsync(tcsList).ConfigureAwait(false);
         }
     }
 
-    private async Task WaitForBatchConfirmsAsync(List<(TaskCompletionSource<bool> Tcs, string EventId)> tcsList, bool delayed, CancellationToken ct)
+    private async Task WaitForBatchConfirmsAsync(List<(TaskCompletionSource<bool> Tcs, string EventId)> tcsList)
     {
         try
         {
             var tasks = tcsList.Select(x => x.Tcs.Task).ToList();
-            // 等待所有任务完成，或者超时
-            var allTask = Task.WhenAll(tasks);
-            var completedTask = await Task.WhenAny(allTask, Task.Delay(TimeSpan.FromMilliseconds(_rabbitConfig.ConfirmTimeoutMs), ct)).ConfigureAwait(false);
-            if (completedTask != allTask)
-            {
-                // 超时处理
-                // 找出未完成的任务并记录日志
-                var pendingCount = tcsList.Count(x => !x.Tcs.Task.IsCompleted);
-                if (_logger.IsEnabled(LogLevel.Warning))
-                {
-                    _logger.LogWarning("Timeout waiting for batch publisher confirms. {PendingCount}/{TotalCount} messages pending. Kind: {Kind}", pendingCount, tcsList.Count, delayed ? "delayed" : "normal");
-                }
-                throw new TimeoutException($"Batch publisher confirm timed out. {pendingCount} messages unconfirmed.");
-            }
-
-            // 检查是否有被取消/失败的任务 (Task.WhenAll 如果有异常会抛出，但这里我们检查结果)
-            // 注意：Tcs.Task 返回 bool，如果 SetResult(false) 表示 Nack
-            var results = await allTask.ConfigureAwait(false); // 这里应该已经完成了
+            // 等待所有任务完成。确认超时由后台 MonitorConfirmTimeoutsAsync 负责：
+            // - 超时会对对应 TCS 设置 TimeoutException，使这里解除阻塞并抛出
+            // - 且会原子清理 outstanding 并释放背压，避免 double-release
+            var results = await Task.WhenAll(tasks).ConfigureAwait(false);
             if (results.Any(r => !r))
             {
                 throw new IOException("One or more messages in the batch were nacked by the broker.");
             }
-        }
-        catch (TimeoutException)
-        {
-            throw;
         }
         catch (Exception ex)
         {
@@ -508,6 +573,7 @@ internal sealed class EventPublisher : IAsyncDisposable
                 {
                     continue;
                 }
+                _confirmDeadlines.TryRemove(sequenceNumber, out _);
                 tcs.TrySetResult(false); // 标记失败
                 if (_outstandingMessages.TryRemove(sequenceNumber, out var messageInfo))
                 {
@@ -549,13 +615,13 @@ internal sealed class EventPublisher : IAsyncDisposable
                 {
                     continue;
                 }
+                _confirmDeadlines.TryRemove(seqNo, out _);
 
-                // 检查是否是确认超时
-                var isTimeout = _timedOutConfirms.TryRemove(seqNo, out _);
-                if (isTimeout)
+                // 正常确认（ACK/NACK）
+                tcs.SetResult(!nack);
+                switch (nack)
                 {
-                    // 确认超时：将消息重新入队
-                    if (_outstandingMessages.TryRemove(seqNo, out var messageInfo))
+                    case true when _outstandingMessages.TryRemove(seqNo, out var messageInfo):
                     {
                         var nextRetryTime = DateTime.UtcNow + CalcBackoff(messageInfo.RetryCount);
                         _ = _retryChannel.Writer.TryWrite(new()
@@ -567,38 +633,12 @@ internal sealed class EventPublisher : IAsyncDisposable
                             NextRetryTime = nextRetryTime
                         });
                         RabbitBusMetrics.RetryEnqueued.Add(1);
-                        if (_logger.IsEnabled(LogLevel.Information))
-                        {
-                            _logger.LogInformation("Retrying message after confirm timeout: {EventType} ID {EventId}, Sequence {Seq}, RetryCount {Retry}",
-                                messageInfo.Event.GetType().Name, messageInfo.Event.EventId, seqNo, messageInfo.RetryCount + 1);
-                        }
+                        break;
                     }
-                }
-                else
-                {
-                    // 正常确认（ACK/NACK）
-                    tcs.SetResult(!nack);
-                    switch (nack)
-                    {
-                        case true when _outstandingMessages.TryRemove(seqNo, out var messageInfo):
-                        {
-                            var nextRetryTime = DateTime.UtcNow + CalcBackoff(messageInfo.RetryCount);
-                            _ = _retryChannel.Writer.TryWrite(new()
-                            {
-                                Event = messageInfo.Event,
-                                RoutingKey = messageInfo.RoutingKey,
-                                Priority = messageInfo.Priority,
-                                RetryCount = messageInfo.RetryCount + 1,
-                                NextRetryTime = nextRetryTime
-                            });
-                            RabbitBusMetrics.RetryEnqueued.Add(1);
-                            break;
-                        }
-                        case false:
-                            // 仅在ACK时移除消息
-                            _outstandingMessages.TryRemove(seqNo, out _);
-                            break;
-                    }
+                    case false:
+                        // 仅在ACK时移除消息
+                        _outstandingMessages.TryRemove(seqNo, out _);
+                        break;
                 }
                 RabbitBusMetrics.OutstandingConfirms.Add(-1);
                 _throttleSemaphore?.Release();
@@ -661,6 +701,7 @@ internal sealed class EventPublisher : IAsyncDisposable
     {
         if (_outstandingConfirms.TryRemove(sequenceNumber, out _))
         {
+            _confirmDeadlines.TryRemove(sequenceNumber, out _);
             RabbitBusMetrics.OutstandingConfirms.Add(-1);
             _throttleSemaphore?.Release();
         }
@@ -671,19 +712,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         }
     }
 
-    /// <summary>
-    /// 处理确认超时：消息将在后台被重新入队，此时不释放信号量
-    /// </summary>
-    private void HandleConfirmTimeout(ulong sequenceNumber, string eventType, string eventId, bool isDelayed = false)
-    {
-        // 标记为超时（已在 WaitForConfirmIfNeededAsync 中完成）
-        // 不释放信号量，消息将在后台被重新入队后释放
-        if (_logger.IsEnabled(LogLevel.Debug))
-        {
-            _logger.LogDebug("Marking confirm timeout for {Kind} event {EventType} ID {EventId}, Sequence {Seq}",
-                isDelayed ? "delayed" : "normal", eventType, eventId, sequenceNumber);
-        }
-    }
+    // Confirm timeout is handled by MonitorConfirmTimeoutsAsync
 
     private record PublishContext(IEvent Event, string? RoutingKey, BasicProperties Properties, ReadOnlyMemory<byte> Body, TaskCompletionSource<bool> Tcs, bool IsDelayed, EventConfiguration Config);
 }
