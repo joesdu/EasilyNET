@@ -51,8 +51,39 @@ public static class GridFSCollectionExtensions
         /// </param>
         public IServiceCollection AddMongoGridFS(Action<GridFSBucketOptions>? configure = null, Action<GridFSServerOptions>? serverConfigure = null)
         {
-            var db = services.BuildServiceProvider().GetService<IMongoDatabase>() ?? throw new("请先注册IMongoDatabase服务");
-            services.AddMongoGridFS(db, configure, serverConfigure);
+            services.TryAddSingleton<IGridFSBucketFactory, GridFSBucketFactory>();
+            services.TryAddSingleton(sp => sp.GetRequiredService<IGridFSBucketFactory>().CreateBucket(sp.GetRequiredService<IMongoDatabase>()));
+            services.TryAddSingleton<GridFSCleanupHelper>();
+            services.AddHostedService<GridFSBackgroundCleanupService>();
+            services.AddOptions<UploadValidationOptions>();
+            services.TryAddSingleton<IUploadValidator, DefaultUploadValidator>();
+            services.AddSingleton<GridFSHelper>(sp =>
+            {
+                var bucket = sp.GetRequiredService<IGridFSBucket>();
+                var validator = sp.GetRequiredService<IUploadValidator>();
+                var logger = sp.GetRequiredService<ILogger<GridFSHelper>>();
+                return new(bucket, validator, logger);
+            });
+            services.AddSingleton<IGridFSUploadService>(sp => sp.GetRequiredService<GridFSHelper>());
+            services.Configure<MvcOptions>(c => c.Conventions.Add(new GridFSControllerConvention(new())));
+            services.Configure<FormOptions>(c =>
+                    {
+                        c.MultipartHeadersLengthLimit = int.MaxValue;
+                        c.MultipartBodyLengthLimit = long.MaxValue;
+                        c.ValueLengthLimit = int.MaxValue;
+                    })
+                    .Configure<KestrelServerOptions>(c => c.Limits.MaxRequestBodySize = null)
+                    .Configure<IISServerOptions>(c => c.MaxRequestBodySize = null);
+            services.AddOptions<GridFSBucketOptions>(Constant.ConfigName).Configure(options =>
+            {
+                options.BucketName = Constant.BucketName;
+                options.ChunkSizeBytes = GridFSDefaults.StreamingChunkSize;
+                options.ReadConcern = new();
+                options.ReadPreference = ReadPreference.Primary;
+                options.WriteConcern = WriteConcern.Unacknowledged;
+                configure?.Invoke(options);
+            });
+            services.AddOptions<GridFSServerOptions>(Constant.ConfigName).Configure(options => { serverConfigure?.Invoke(options); });
             return services;
         }
 
@@ -74,9 +105,8 @@ public static class GridFSCollectionExtensions
         /// </param>
         public IServiceCollection AddMongoGridFS(Action<GridFSBucketOptions>? configure, Action<GridFSServerOptions>? serverConfigure, Action<UploadValidationOptions> validationConfigure)
         {
-            var db = services.BuildServiceProvider().GetService<IMongoDatabase>() ?? throw new("请先注册IMongoDatabase服务");
-            services.AddMongoGridFS(db, configure, serverConfigure, validationConfigure);
-            return services;
+            services.Configure(validationConfigure);
+            return services.AddMongoGridFS(configure, serverConfigure);
         }
 
         /// <summary>
@@ -101,9 +131,9 @@ public static class GridFSCollectionExtensions
         /// </param>
         public IServiceCollection AddMongoGridFS(MongoClientSettings mongoSettings, string? dbName = null, Action<GridFSBucketOptions>? configure = null, Action<GridFSServerOptions>? serverConfigure = null)
         {
-            var db = new MongoClient(mongoSettings).GetDatabase(dbName ?? Constant.DefaultDbName);
-            services.AddMongoGridFS(db, configure, serverConfigure);
-            return services;
+            services.TryAddSingleton<IMongoClient>(_ => new MongoClient(mongoSettings));
+            services.TryAddSingleton(sp => sp.GetRequiredService<IMongoClient>().GetDatabase(dbName ?? Constant.DefaultDbName));
+            return services.AddMongoGridFS(configure, serverConfigure);
         }
 
         /// <summary>
@@ -132,9 +162,8 @@ public static class GridFSCollectionExtensions
         /// </param>
         public IServiceCollection AddMongoGridFS(MongoClientSettings mongoSettings, string? dbName, Action<GridFSBucketOptions>? configure, Action<GridFSServerOptions>? serverConfigure, Action<UploadValidationOptions> validationConfigure)
         {
-            var db = new MongoClient(mongoSettings).GetDatabase(dbName ?? Constant.DefaultDbName);
-            services.AddMongoGridFS(db, configure, serverConfigure, validationConfigure);
-            return services;
+            services.Configure(validationConfigure);
+            return services.AddMongoGridFS(mongoSettings, dbName, configure, serverConfigure);
         }
 
         /// <summary>
@@ -165,9 +194,9 @@ public static class GridFSCollectionExtensions
             }
             var url = MongoUrl.Create(connStr);
             var name = string.IsNullOrWhiteSpace(url.DatabaseName) ? Constant.DefaultDbName : url.DatabaseName;
-            var db = new MongoClient(url).GetDatabase(name);
-            services.AddMongoGridFS(db, configure, serverConfigure);
-            return services;
+            services.TryAddSingleton<IMongoClient>(_ => new MongoClient(url));
+            services.TryAddSingleton(sp => sp.GetRequiredService<IMongoClient>().GetDatabase(name));
+            return services.AddMongoGridFS(configure, serverConfigure);
         }
 
         /// <summary>
@@ -197,11 +226,8 @@ public static class GridFSCollectionExtensions
             {
                 throw new("💔: appsettings.json中无ConnectionStrings.Mongo配置或环境变量中不存在CONNECTIONSTRINGS_MONGO");
             }
-            var url = MongoUrl.Create(connStr);
-            var name = string.IsNullOrWhiteSpace(url.DatabaseName) ? Constant.DefaultDbName : url.DatabaseName;
-            var db = new MongoClient(url).GetDatabase(name);
-            services.AddMongoGridFS(db, configure, serverConfigure, validationConfigure);
-            return services;
+            services.Configure(validationConfigure);
+            return services.AddMongoGridFS(configuration, configure, serverConfigure);
         }
 
         /// <summary>
@@ -222,15 +248,44 @@ public static class GridFSCollectionExtensions
         /// </param>
         public IServiceCollection AddMongoGridFS(IMongoDatabase db, Action<GridFSBucketOptions>? configure = null, Action<GridFSServerOptions>? serverConfigure = null)
         {
-            services.AddMongoGridFS(db, Constant.ConfigName, c =>
+            services.AddOptions<GridFSBucketOptions>(Constant.ConfigName).Configure(options =>
             {
-                c.BucketName = Constant.BucketName;
-                c.ChunkSizeBytes = GridFSDefaults.StreamingChunkSize; // 255KB - 优化流式传输性能
-                c.ReadConcern = new();
-                c.ReadPreference = ReadPreference.Primary;
-                c.WriteConcern = WriteConcern.Unacknowledged;
-                configure?.Invoke(c);
-            }, serverConfigure);
+                options.BucketName = Constant.BucketName;
+                options.ChunkSizeBytes = GridFSDefaults.StreamingChunkSize; // 255KB - 优化流式传输性能
+                options.ReadConcern = new();
+                options.ReadPreference = ReadPreference.Primary;
+                options.WriteConcern = WriteConcern.Unacknowledged;
+                configure?.Invoke(options);
+            });
+            services.AddOptions<GridFSServerOptions>(Constant.ConfigName).Configure(options => serverConfigure?.Invoke(options));
+            services.Configure<MvcOptions>(c =>
+            {
+                var serverOptions = new GridFSServerOptions();
+                serverConfigure?.Invoke(serverOptions);
+                c.Conventions.Add(new GridFSControllerConvention(serverOptions));
+            });
+            services.Configure<FormOptions>(c =>
+                    {
+                        c.MultipartHeadersLengthLimit = int.MaxValue;
+                        c.MultipartBodyLengthLimit = long.MaxValue;
+                        c.ValueLengthLimit = int.MaxValue;
+                    })
+                    .Configure<KestrelServerOptions>(c => c.Limits.MaxRequestBodySize = null)
+                    .Configure<IISServerOptions>(c => c.MaxRequestBodySize = null);
+            services.TryAddSingleton<IGridFSBucketFactory, GridFSBucketFactory>();
+            services.TryAddSingleton(sp => sp.GetRequiredService<IGridFSBucketFactory>().CreateBucket(db));
+            services.TryAddSingleton<GridFSCleanupHelper>();
+            services.AddHostedService<GridFSBackgroundCleanupService>();
+            services.AddOptions<UploadValidationOptions>();
+            services.TryAddSingleton<IUploadValidator, DefaultUploadValidator>();
+            services.AddSingleton<GridFSHelper>(sp =>
+            {
+                var bucket = sp.GetRequiredService<IGridFSBucket>();
+                var validator = sp.GetRequiredService<IUploadValidator>();
+                var logger = sp.GetRequiredService<ILogger<GridFSHelper>>();
+                return new(bucket, validator, logger);
+            });
+            services.AddSingleton<IGridFSUploadService>(sp => sp.GetRequiredService<GridFSHelper>());
             return services;
         }
 
@@ -256,16 +311,8 @@ public static class GridFSCollectionExtensions
         /// </param>
         public IServiceCollection AddMongoGridFS(IMongoDatabase db, Action<GridFSBucketOptions>? configure, Action<GridFSServerOptions>? serverConfigure, Action<UploadValidationOptions> validationConfigure)
         {
-            services.AddMongoGridFS(db, Constant.ConfigName, c =>
-            {
-                c.BucketName = Constant.BucketName;
-                c.ChunkSizeBytes = GridFSDefaults.StreamingChunkSize; // 255KB - 优化流式传输性能
-                c.ReadConcern = new();
-                c.ReadPreference = ReadPreference.Primary;
-                c.WriteConcern = WriteConcern.Unacknowledged;
-                configure?.Invoke(c);
-            }, serverConfigure, validationConfigure);
-            return services;
+            services.Configure(validationConfigure);
+            return services.AddMongoGridFS(db, configure, serverConfigure);
         }
 
         /// <summary>

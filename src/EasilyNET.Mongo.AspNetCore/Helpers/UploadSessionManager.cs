@@ -93,7 +93,7 @@ internal sealed class UploadSessionManager
             var existingFile = await (await _bucket.FindAsync(filter, cancellationToken: cancellationToken)).FirstOrDefaultAsync(cancellationToken);
             if (existingFile != null)
             {
-                _logger.LogInformation("Instant upload (deduplication) for file: {Filename}, hash: {FileHash}", filename, fileHash);
+                _logger.LogInformation("Instant upload (deduplication) for file hash {FileHash}", fileHash);
                 // 增加引用计数
                 await IncrementRefCountAsync(existingFile.Id, cancellationToken);
                 var completedSession = new GridFSUploadSession

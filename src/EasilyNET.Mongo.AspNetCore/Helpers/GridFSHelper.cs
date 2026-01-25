@@ -142,8 +142,11 @@ public sealed class GridFSHelper : IGridFSUploadService
             throw new InvalidOperationException($"Session {sessionId} is not in progress (status: {session.Status})");
         }
         await _uploadValidator.ValidateChunkAsync(session, chunkNumber, data, chunkHash, cancellationToken);
-        await _uploadValidator.ValidateContentTypeAsync(session.Filename, session.ContentType, cancellationToken);
-        await _uploadValidator.ValidateMagicNumberAsync(session.Filename, data, cancellationToken);
+        if (chunkNumber == 0)
+        {
+            await _uploadValidator.ValidateContentTypeAsync(session.Filename, session.ContentType, cancellationToken);
+            await _uploadValidator.ValidateMagicNumberAsync(session.Filename, data, cancellationToken);
+        }
         // 检查块是否已上传 - 从数据库中查询而不是依赖内存中的 session.UploadedChunks
         // 注意: 由于我们现在直接写入 fs.chunks, 这里的 n 是 GridFS 的块索引, 而不是上传分片的索引
         // 一个上传分片可能对应多个 GridFS 块
@@ -236,7 +239,7 @@ public sealed class GridFSHelper : IGridFSUploadService
             // 从数据库中查询实际上传的块,而不是依赖 session.UploadedChunks
             var fileIdObj = ObjectId.Parse(session.FileId!);
             var actualUploadedChunks = await _chunkProcessor.GetUploadedChunkIndicesAsync(fileIdObj, session.ChunkSize, cancellationToken);
-            _logger.LogDebug("Actual uploaded chunks (mapped): [{UploadedChunks}]", string.Join(", ", actualUploadedChunks));
+            _logger.LogDebug("Actual uploaded chunks (mapped): {UploadedChunks}", actualUploadedChunks);
 
             // 检查是否所有块都已上传
             if (actualUploadedChunks.Count != totalChunks)
@@ -319,7 +322,7 @@ public sealed class GridFSHelper : IGridFSUploadService
             _logger.LogError(ex, "FinalizeUploadAsync failed: {ExceptionType}", ex.GetType().Name);
             if (ex.InnerException != null)
             {
-                _logger.LogError(ex.InnerException, "FinalizeUploadAsync InnerException: {InnerExceptionMessage}", ex.InnerException.Message);
+                _logger.LogError(ex.InnerException, "FinalizeUploadAsync InnerException: {InnerExceptionType}", ex.InnerException.GetType().Name);
             }
             throw;
         }

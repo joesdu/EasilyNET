@@ -161,11 +161,19 @@ internal sealed class DefaultUploadValidator(IOptions<UploadValidationOptions> o
         ],
         [".heic"] =
         [
-            "ftypheic"u8.ToArray()
+            "ftypheic"u8.ToArray(),
+            "ftypheix"u8.ToArray(),
+            "ftypmif1"u8.ToArray(),
+            "ftypmsf1"u8.ToArray(),
+            "ftyphevc"u8.ToArray()
         ],
         [".heif"] =
         [
-            "ftypheic"u8.ToArray()
+            "ftypheic"u8.ToArray(),
+            "ftypheix"u8.ToArray(),
+            "ftypmif1"u8.ToArray(),
+            "ftypmsf1"u8.ToArray(),
+            "ftyphevc"u8.ToArray()
         ],
         [".svg"] =
         [
@@ -387,13 +395,19 @@ internal sealed class DefaultUploadValidator(IOptions<UploadValidationOptions> o
             return Task.CompletedTask;
         }
         var normalizedContentType = contentType.Trim();
-        return _options.AllowedContentTypes.Count <= 0 || _options.AllowedContentTypes.Contains(normalizedContentType)
-                   ? string.IsNullOrEmpty(extension) || !ExtensionContentTypeMap.TryGetValue(extension, out var expectedType)
-                         ? Task.CompletedTask
-                         : !string.Equals(expectedType, normalizedContentType, StringComparison.OrdinalIgnoreCase)
-                             ? throw new ArgumentException($"Content type '{normalizedContentType}' does not match extension '{extension}'.", nameof(contentType))
-                             : Task.CompletedTask
-                   : throw new ArgumentException($"Content type '{normalizedContentType}' is not allowed.", nameof(contentType));
+        if (_options.AllowedContentTypes.Count > 0 && !_options.AllowedContentTypes.Contains(normalizedContentType))
+        {
+            throw new ArgumentException($"Content type '{normalizedContentType}' is not allowed.", nameof(contentType));
+        }
+        if (string.IsNullOrEmpty(extension) || !ExtensionContentTypeMap.TryGetValue(extension, out var expectedType))
+        {
+            return Task.CompletedTask;
+        }
+        if (!string.Equals(expectedType, normalizedContentType, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException($"Content type '{normalizedContentType}' does not match extension '{extension}'.", nameof(contentType));
+        }
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
@@ -423,9 +437,9 @@ internal sealed class DefaultUploadValidator(IOptions<UploadValidationOptions> o
                     return Task.CompletedTask;
                 }
             }
-            if (extension.Equals(".tar", StringComparison.OrdinalIgnoreCase))
+            if (extension.Equals(".tar", StringComparison.OrdinalIgnoreCase) && headerLength >= 257 + signature.Length)
             {
-                if (headerLength > 265 && header.Slice(257, signature.Length).SequenceEqual(signature))
+                if (header.Slice(257, signature.Length).SequenceEqual(signature))
                 {
                     return Task.CompletedTask;
                 }
@@ -507,14 +521,24 @@ internal sealed class DefaultUploadValidator(IOptions<UploadValidationOptions> o
             }
             if (extension is ".heic" or ".heif")
             {
-                if (headerLength >= 12 && header.Slice(4, 8).SequenceEqual("ftypheic"u8))
+                if (headerLength >= 12)
                 {
-                    return Task.CompletedTask;
+                    var brandLength = Math.Min(8, headerLength - 4);
+                    var brand = header.Slice(4, brandLength);
+                    foreach (var sig in MagicNumberSignatures[extension])
+                    {
+                        if (brandLength == sig.Length && brand.SequenceEqual(sig))
+                        {
+                            return Task.CompletedTask;
+                        }
+                    }
                 }
             }
             if (extension.Equals(".mobi", StringComparison.OrdinalIgnoreCase))
             {
-                if (headerLength >= 68 && header.Slice(60, 8).SequenceEqual("BOOKMOBI"u8))
+                const int mobiOffset = 60;
+                const int mobiLength = 8;
+                if (headerLength >= mobiOffset + mobiLength && header.Slice(mobiOffset, mobiLength).SequenceEqual("BOOKMOBI"u8))
                 {
                     return Task.CompletedTask;
                 }
@@ -595,7 +619,8 @@ internal sealed class DefaultUploadValidator(IOptions<UploadValidationOptions> o
             // ReSharper disable once InvertIf
             if (extension.Equals(".iso", StringComparison.OrdinalIgnoreCase))
             {
-                if (headerLength >= 9 && header.Slice(1, 5).SequenceEqual("CD001"u8))
+                const int isoOffset = 0x8001; // 32769
+                if (data.Length >= isoOffset + 5 && new ReadOnlySpan<byte>(data, isoOffset, 5).SequenceEqual("CD001"u8))
                 {
                     return Task.CompletedTask;
                 }
