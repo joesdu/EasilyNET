@@ -550,47 +550,41 @@ internal sealed class DefaultUploadValidator(IOptions<UploadValidationOptions> o
                     return Task.CompletedTask;
                 }
             }
-            if (extension.Equals(".psd", StringComparison.OrdinalIgnoreCase))
+            if (extension.Equals(".psd", StringComparison.OrdinalIgnoreCase) &&
+                headerLength >= 4 &&
+                header[..4].SequenceEqual("8BPS"u8))
             {
-                if (headerLength >= 4 && header[..4].SequenceEqual("8BPS"u8))
-                {
-                    return Task.CompletedTask;
-                }
+                return Task.CompletedTask;
             }
-            if (extension.Equals(".ai", StringComparison.OrdinalIgnoreCase))
+            if (extension.Equals(".ai", StringComparison.OrdinalIgnoreCase) &&
+                headerLength >= 5 &&
+                header[..5].SequenceEqual("%PDF-"u8))
             {
-                if (headerLength >= 5 && header[..5].SequenceEqual("%PDF-"u8))
-                {
-                    return Task.CompletedTask;
-                }
+                return Task.CompletedTask;
             }
-            if (extension.Equals(".dwg", StringComparison.OrdinalIgnoreCase))
+            if (extension.Equals(".dwg", StringComparison.OrdinalIgnoreCase) &&
+                headerLength >= 4 &&
+                header[..4].SequenceEqual("AC10"u8))
             {
-                if (headerLength >= 4 && header[..4].SequenceEqual("AC10"u8))
-                {
-                    return Task.CompletedTask;
-                }
+                return Task.CompletedTask;
             }
-            if (extension.Equals(".dxf", StringComparison.OrdinalIgnoreCase))
+            if (extension.Equals(".dxf", StringComparison.OrdinalIgnoreCase) &&
+                headerLength >= 2 &&
+                header[..2].SequenceEqual("0 "u8))
             {
-                if (headerLength >= 2 && header[..2].SequenceEqual("0 "u8))
-                {
-                    return Task.CompletedTask;
-                }
+                return Task.CompletedTask;
             }
-            if (extension.Equals(".cab", StringComparison.OrdinalIgnoreCase))
+            if (extension.Equals(".cab", StringComparison.OrdinalIgnoreCase) &&
+                headerLength >= 4 &&
+                header[..4].SequenceEqual("MSCF"u8))
             {
-                if (headerLength >= 4 && header[..4].SequenceEqual("MSCF"u8))
-                {
-                    return Task.CompletedTask;
-                }
+                return Task.CompletedTask;
             }
-            if (extension.Equals(".elf", StringComparison.OrdinalIgnoreCase))
+            if (extension.Equals(".elf", StringComparison.OrdinalIgnoreCase) &&
+                headerLength >= 4 &&
+                header[..4].SequenceEqual(new byte[] { 0x7F, 0x45, 0x4C, 0x46 }))
             {
-                if (headerLength >= 4 && header[..4].SequenceEqual(new byte[] { 0x7F, 0x45, 0x4C, 0x46 }))
-                {
-                    return Task.CompletedTask;
-                }
+                return Task.CompletedTask;
             }
             // 扩展类型的特殊魔数检查仅在最后一个签名迭代时执行，避免在多签名扩展上重复执行
             if (ReferenceEquals(signature, signatures[signatures.Count - 1]))
