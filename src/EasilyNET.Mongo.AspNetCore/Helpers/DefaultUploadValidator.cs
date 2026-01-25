@@ -465,26 +465,23 @@ internal sealed class DefaultUploadValidator(IOptions<UploadValidationOptions> o
                     return Task.CompletedTask;
                 }
             }
-            if (extension.Equals(".webp", StringComparison.OrdinalIgnoreCase))
+            if (extension.Equals(".webp", StringComparison.OrdinalIgnoreCase) &&
+                headerLength >= 12 &&
+                header.Slice(8, 4).SequenceEqual("WEBP"u8))
             {
-                if (headerLength >= 12 && header.Slice(8, 4).SequenceEqual("WEBP"u8))
-                {
-                    return Task.CompletedTask;
-                }
+                return Task.CompletedTask;
             }
-            if (extension.Equals(".wav", StringComparison.OrdinalIgnoreCase))
+            if (extension.Equals(".wav", StringComparison.OrdinalIgnoreCase) &&
+                headerLength >= 12 &&
+                header.Slice(8, 4).SequenceEqual("WAVE"u8))
             {
-                if (headerLength >= 12 && header.Slice(8, 4).SequenceEqual("WAVE"u8))
-                {
-                    return Task.CompletedTask;
-                }
+                return Task.CompletedTask;
             }
-            if (extension.Equals(".avi", StringComparison.OrdinalIgnoreCase))
+            if (extension.Equals(".avi", StringComparison.OrdinalIgnoreCase) &&
+                headerLength >= 12 &&
+                header.Slice(8, 4).SequenceEqual("AVI "u8))
             {
-                if (headerLength >= 12 && header.Slice(8, 4).SequenceEqual("AVI "u8))
-                {
-                    return Task.CompletedTask;
-                }
+                return Task.CompletedTask;
             }
             // ReSharper disable once ConvertIfStatementToSwitchStatement
             if (extension is ".docx" or ".xlsx" or ".pptx")
