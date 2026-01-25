@@ -506,36 +506,30 @@ internal sealed class DefaultUploadValidator(IOptions<UploadValidationOptions> o
                     return Task.CompletedTask;
                 }
             }
-            if (extension is ".heic" or ".heif")
+            if (extension is ".heic" or ".heif" && headerLength >= 12)
             {
-                if (headerLength >= 12)
+                var brandLength = Math.Min(8, headerLength - 4);
+                var brand = header.Slice(4, brandLength);
+                foreach (var sig in MagicNumberSignatures[extension])
                 {
-                    var brandLength = Math.Min(8, headerLength - 4);
-                    var brand = header.Slice(4, brandLength);
-                    foreach (var sig in MagicNumberSignatures[extension])
+                    if (brandLength == sig.Length && brand.SequenceEqual(sig))
                     {
-                        if (brandLength == sig.Length && brand.SequenceEqual(sig))
-                        {
-                            return Task.CompletedTask;
-                        }
+                        return Task.CompletedTask;
                     }
                 }
             }
-            if (extension.Equals(".mobi", StringComparison.OrdinalIgnoreCase))
+            const int mobiOffset = 60;
+            const int mobiLength = 8;
+            if (extension.Equals(".mobi", StringComparison.OrdinalIgnoreCase) &&
+                headerLength >= mobiOffset + mobiLength &&
+                header.Slice(mobiOffset, mobiLength).SequenceEqual("BOOKMOBI"u8))
             {
-                const int mobiOffset = 60;
-                const int mobiLength = 8;
-                if (headerLength >= mobiOffset + mobiLength && header.Slice(mobiOffset, mobiLength).SequenceEqual("BOOKMOBI"u8))
-                {
-                    return Task.CompletedTask;
-                }
+                return Task.CompletedTask;
             }
-            if (extension.Equals(".svg", StringComparison.OrdinalIgnoreCase))
+            if (extension.Equals(".svg", StringComparison.OrdinalIgnoreCase) &&
+                header.IndexOf("<svg"u8) >= 0)
             {
-                if (header.IndexOf("<svg"u8) >= 0)
-                {
-                    return Task.CompletedTask;
-                }
+                return Task.CompletedTask;
             }
             if (extension.Equals(".psd", StringComparison.OrdinalIgnoreCase) &&
                 headerLength >= 4 &&
