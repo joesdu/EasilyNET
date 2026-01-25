@@ -195,7 +195,8 @@ internal sealed class UploadSessionManager
                                                   .Set(s => s.UpdatedAt, DateTime.UtcNow)
                                                   .Set(s => s.ExpiresAt, DateTime.MaxValue); // 设置为永不过期(持久化)
         await SessionCollection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
-        _logger.LogDebug("Session updated for sessionId: {SessionId}", sessionId);
+        var safeSessionId = sessionId.Replace("\r", string.Empty).Replace("\n", string.Empty);
+        _logger.LogDebug("Session updated for sessionId: {SessionId}", safeSessionId);
     }
 
     /// <summary>
