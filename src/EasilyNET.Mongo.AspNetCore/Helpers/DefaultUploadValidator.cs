@@ -430,19 +430,16 @@ internal sealed class DefaultUploadValidator(IOptions<UploadValidationOptions> o
             {
                 return Task.CompletedTask;
             }
-            if (extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase))
+            if (extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase) &&
+                header.IndexOf(signature) >= 0)
             {
-                if (header.IndexOf(signature) >= 0)
-                {
-                    return Task.CompletedTask;
-                }
+                return Task.CompletedTask;
             }
-            if (extension.Equals(".tar", StringComparison.OrdinalIgnoreCase) && headerLength >= 257 + signature.Length)
+            if (extension.Equals(".tar", StringComparison.OrdinalIgnoreCase) &&
+                headerLength >= 257 + signature.Length &&
+                header.Slice(257, signature.Length).SequenceEqual(signature))
             {
-                if (header.Slice(257, signature.Length).SequenceEqual(signature))
-                {
-                    return Task.CompletedTask;
-                }
+                return Task.CompletedTask;
             }
             if (extension.Equals(".mp4", StringComparison.OrdinalIgnoreCase))
             {
