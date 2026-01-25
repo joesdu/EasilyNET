@@ -6,558 +6,884 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GridFS 示例</title>
     <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-            body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                padding: 20px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                min-height: 100vh;
-            }
+        :root {
+            color-scheme: light;
+            --bg: #0f172a;
+            --surface: #0b1220;
+            --card: #111827;
+            --card-alt: #0f172a;
+            --text: #e5e7eb;
+            --muted: #94a3b8;
+            --primary: #60a5fa;
+            --primary-strong: #3b82f6;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #1f2937;
+            --ring: rgba(96, 165, 250, 0.35);
+        }
 
-            .container {
-                max-width: 800px;
-                margin: 0 auto;
-                background: white;
-                border-radius: 12px;
-                padding: 30px;
-                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 32px 20px 60px;
+            background: radial-gradient(1200px 600px at 10% 10%, rgba(96, 165, 250, 0.2), transparent), radial-gradient(900px 500px at 90% 10%, rgba(34, 197, 94, 0.15), transparent), #0b1120;
+            min-height: 100vh;
+            color: var(--text);
+        }
 
-            h1 {
-                color: #333;
-                margin-bottom: 10px;
-                font-size: 28px;
-            }
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+            background: var(--surface);
+            border-radius: 18px;
+            padding: 32px;
+            box-shadow: 0 18px 50px rgba(8, 15, 31, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+        }
 
-            .subtitle {
-                color: #666;
-                margin-bottom: 30px;
-                font-size: 14px;
-            }
+        h1 {
+            color: var(--text);
+            margin-bottom: 8px;
+            font-size: 30px;
+            letter-spacing: 0.3px;
+        }
 
-            .upload-section,
-            .download-section {
-                margin-bottom: 40px;
-                padding: 20px;
-                background: #f8f9fa;
-                border-radius: 8px;
-            }
+        .subtitle {
+            color: var(--muted);
+            margin-bottom: 28px;
+            font-size: 14px;
+        }
 
-            h2 {
-                color: #667eea;
-                margin-bottom: 20px;
-                font-size: 20px;
-            }
+        .upload-section,
+        .download-section,
+        .video-section {
+            margin-bottom: 26px;
+            padding: 22px 22px 20px;
+            background: var(--card);
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+        }
 
-            .file-input-wrapper {
-                position: relative;
-                overflow: hidden;
-                display: inline-block;
-                margin-bottom: 20px;
-            }
+        h2 {
+            color: var(--primary);
+            margin-bottom: 18px;
+            font-size: 20px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            margin-bottom: 18px;
+        }
 
             .file-input-wrapper input[type=file] {
                 position: absolute;
                 left: -9999px;
             }
 
-            .file-input-label {
-                padding: 12px 24px;
-                background: #667eea;
-                color: white;
-                border-radius: 6px;
-                cursor: pointer;
-                transition: background 0.3s;
-                display: inline-block;
+        .drop-zone {
+            border: 1px dashed rgba(148, 163, 184, 0.4);
+            border-radius: 14px;
+            padding: 22px;
+            background: var(--card-alt);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+        }
+
+            .drop-zone.dragover {
+                border-color: var(--primary);
+                box-shadow: 0 0 0 3px var(--ring);
+                background: rgba(59, 130, 246, 0.08);
             }
+
+        .file-input-label {
+            padding: 12px 20px;
+            background: var(--primary);
+            color: #0b1120;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
 
             .file-input-label:hover {
-                background: #5568d3;
+                background: var(--primary-strong);
+                transform: translateY(-1px);
+                box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35);
             }
 
-            .file-name {
-                display: inline-block;
-                margin-left: 15px;
-                color: #666;
-                font-size: 14px;
-            }
+        .file-name {
+            color: var(--text);
+            font-size: 14px;
+        }
 
-            .controls {
-                margin-top: 20px;
-                display: flex;
-                gap: 10px;
-                flex-wrap: wrap;
-            }
+        .file-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
 
-            button {
-                padding: 10px 20px;
-                border: none;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 14px;
-                transition: all 0.3s;
-                font-weight: 500;
-            }
+        .file-sub {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .controls {
+            margin-top: 16px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
 
             button:disabled {
                 opacity: 0.5;
                 cursor: not-allowed;
             }
 
-            .btn-primary {
-                background: #667eea;
-                color: white;
-            }
+        .btn-primary {
+            background: var(--primary);
+            color: #0b1120;
+        }
 
             .btn-primary:hover:not(:disabled) {
-                background: #5568d3;
+                background: var(--primary-strong);
                 transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+                box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
             }
 
-            .btn-warning {
-                background: #f59e0b;
-                color: white;
-            }
+        .btn-warning {
+            background: var(--warning);
+            color: #0b1120;
+        }
 
             .btn-warning:hover:not(:disabled) {
                 background: #d97706;
             }
 
-            .btn-success {
-                background: #10b981;
-                color: white;
-            }
+        .btn-success {
+            background: var(--success);
+            color: #0b1120;
+        }
 
             .btn-success:hover:not(:disabled) {
                 background: #059669;
             }
 
-            .btn-danger {
-                background: #ef4444;
-                color: white;
-            }
+        .btn-danger {
+            background: var(--danger);
+            color: #0b1120;
+        }
 
             .btn-danger:hover:not(:disabled) {
                 background: #dc2626;
             }
 
-            .progress-container {
-                margin-top: 20px;
-            }
+        .progress-container {
+            margin-top: 20px;
+        }
 
-            .progress-bar-wrapper {
-                width: 100%;
-                height: 30px;
-                background: #e5e7eb;
-                border-radius: 15px;
-                overflow: hidden;
-                margin-bottom: 15px;
-                position: relative;
-            }
+        .progress-bar-wrapper {
+            width: 100%;
+            height: 30px;
+            background: #111827;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            position: relative;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
 
-            .progress-bar {
-                height: 100%;
-                background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-                width: 0%;
-                transition: width 0.3s;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-size: 12px;
-                font-weight: bold;
-            }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #60a5fa 0%, #22c55e 100%);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0b1120;
+            font-size: 12px;
+            font-weight: bold;
+        }
 
-            .status-info {
-                background: white;
-                padding: 15px;
-                border-radius: 6px;
-                border-left: 4px solid #667eea;
-            }
+        .status-info {
+            background: rgba(15, 23, 42, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
 
             .status-info div {
-                margin: 5px 0;
+                margin: 6px 0;
                 font-size: 14px;
-                color: #333;
+                color: var(--text);
+                display: flex;
+                justify-content: space-between;
+                gap: 12px;
             }
 
             .status-info strong {
-                color: #667eea;
-                min-width: 100px;
+                color: var(--primary);
+                min-width: 90px;
                 display: inline-block;
             }
 
-            .download-input {
-                width: 100%;
-                padding: 12px;
-                border: 2px solid #e5e7eb;
-                border-radius: 6px;
-                font-size: 14px;
-                margin-bottom: 15px;
-                transition: border-color 0.3s;
-            }
+        .download-input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 12px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: rgba(15, 23, 42, 0.8);
+            color: var(--text);
+        }
 
             .download-input:focus {
                 outline: none;
-                border-color: #667eea;
+                border-color: var(--primary);
+                box-shadow: 0 0 0 3px var(--ring);
             }
 
-            .video-section {
-                margin-top: 30px;
+        .video-section {
+            margin-top: 26px;
+        }
+
+        video {
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+        }
+
+        .alert {
+            padding: 12px 14px;
+            border-radius: 10px;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.18);
+            color: #bbf7d0;
+            border: 1px solid rgba(34, 197, 94, 0.4);
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.16);
+            color: #fecaca;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.15);
+            color: #bfdbfe;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            background: rgba(96, 165, 250, 0.15);
+            color: #bfdbfe;
+            border: 1px solid rgba(96, 165, 250, 0.3);
+        }
+
+        .hint-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .link-button {
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 0;
+        }
+
+            .link-button:hover {
+                color: var(--primary-strong);
+                text-decoration: underline;
             }
 
-            video {
-                width: 100%;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            background: rgba(15, 23, 42, 0.7);
+            color: var(--muted);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+            .chip strong {
+                color: var(--text);
             }
 
-            .alert {
-                padding: 12px;
-                border-radius: 6px;
-                margin-top: 15px;
-                font-size: 14px;
+        .error-details {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 10px;
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px dashed rgba(239, 68, 68, 0.4);
+            color: #fecaca;
+            display: none;
+            font-size: 13px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .error-details-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #fecaca;
+        }
+
+        .error-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .ghost-button {
+            padding: 4px 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(239, 68, 68, 0.45);
+            background: rgba(239, 68, 68, 0.15);
+            color: #fecaca;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+            .ghost-button:hover {
+                background: rgba(239, 68, 68, 0.25);
             }
 
-            .alert-success {
-                background: #d1fae5;
-                color: #065f46;
-                border: 1px solid #10b981;
+        .muted {
+            color: var(--muted);
+        }
+
+        @media (max-width: 640px) {
+            .controls {
+                flex-direction: column;
             }
 
-            .alert-error {
-                background: #fee2e2;
-                color: #991b1b;
-                border: 1px solid #ef4444;
+            .drop-zone {
+                flex-direction: column;
+                align-items: flex-start;
             }
-
-            .alert-info {
-                background: #dbeafe;
-                color: #1e40af;
-                border: 1px solid #3b82f6;
-            }
-        </style>
+        }
+    </style>
 </head>
 
 <body>
-<div class="container">
-    <h1>📤 GridFS 示例</h1>
-    <p class="subtitle">支持大文件分块上传、暂停恢复、断点续传</p>
+    <div class="container">
+        <h1>📤 GridFS 示例</h1>
+        <p class="subtitle">支持大文件分块上传、暂停恢复、断点续传</p>
 
-    <!-- 上传部分 -->
-    <div class="upload-section">
-        <h2>文件上传</h2>
-
-        <div class="file-input-wrapper">
-            <input type="file" id="fileInput"/>
-            <label for="fileInput" class="file-input-label">📁 选择文件</label>
-            <span class="file-name" id="fileName">未选择文件</span>
-        </div>
-
-        <div class="controls">
-            <button id="startBtn" class="btn-primary">开始上传</button>
-            <button id="pauseBtn" class="btn-warning" disabled>暂停</button>
-            <button id="resumeBtn" class="btn-success" disabled>恢复</button>
-            <button id="cancelBtn" class="btn-danger" disabled>取消</button>
-        </div>
-
-        <div class="progress-container" id="uploadProgress" style="display: none;">
-            <div class="progress-bar-wrapper">
-                <div class="progress-bar" id="progressBar">0%</div>
+        <!-- 上传部分 -->
+        <div class="upload-section">
+            <div class="section-header">
+                <h2>文件上传</h2>
+                <span class="badge">支持断点续传</span>
             </div>
-            <div class="status-info">
-                <div>
-                    <strong>状态:</strong> <span id="uploadStatus">准备中...</span>
-                </div>
-                <div>
-                    <strong>进度:</strong> <span id="uploadPercentage">0%</span>
-                </div>
-                <div>
-                    <strong>已上传:</strong> <span id="uploadedSize">0 B</span> / <span id="totalSize">0 B</span>
-                </div>
-                <div>
-                    <strong>上传速度:</strong> <span id="uploadSpeed">0 B/s</span>
-                </div>
-                <div>
-                    <strong>预计剩余:</strong> <span id="remainingTime">--</span>
+
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput" />
+                <div class="drop-zone" id="dropZone">
+                    <label for="fileInput" class="file-input-label">📁 选择文件</label>
+                    <div class="file-meta">
+                        <span class="file-name" id="fileName">未选择文件</span>
+                        <span class="file-sub">拖拽文件到此处上传</span>
+                    </div>
                 </div>
             </div>
+
+            <div class="hint">默认启用魔数校验；扩展名与内容类型不一致会提示失败。</div>
+            <div class="hint-row">
+                <span class="chip">最大大小：<strong id="maxFileSizeHint">512 MB</strong></span>
+                <span class="chip">允许扩展名：<strong id="allowedExtensionsHint">加载中...</strong></span>
+                <button class="link-button" id="toggleExtensions">展开全部</button>
+            </div>
+
+            <div class="controls">
+                <button id="startBtn" class="btn-primary">开始上传</button>
+                <button id="pauseBtn" class="btn-warning" disabled>暂停</button>
+                <button id="resumeBtn" class="btn-success" disabled>恢复</button>
+                <button id="cancelBtn" class="btn-danger" disabled>取消</button>
+            </div>
+
+            <div class="progress-container" id="uploadProgress" style="display: none;">
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar" id="progressBar">0%</div>
+                </div>
+                <div class="status-info">
+                    <div>
+                        <strong>状态:</strong> <span id="uploadStatus">准备中...</span>
+                    </div>
+                    <div>
+                        <strong>进度:</strong> <span id="uploadPercentage">0%</span>
+                    </div>
+                    <div>
+                        <strong>已上传:</strong> <span id="uploadedSize">0 B</span> / <span id="totalSize">0 B</span>
+                    </div>
+                    <div>
+                        <strong>上传速度:</strong> <span id="uploadSpeed">0 B/s</span>
+                    </div>
+                    <div>
+                        <strong>预计剩余:</strong> <span id="remainingTime">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="uploadAlert" style="display: none;"></div>
+            <div id="uploadErrorDetails" class="error-details">
+                <div class="error-details-header">
+                    <span>详细错误</span>
+                    <div class="error-actions">
+                        <button class="ghost-button" id="copyErrorBtn">复制</button>
+                    </div>
+                </div>
+                <div id="uploadErrorText"></div>
+            </div>
         </div>
 
-        <div id="uploadAlert" style="display: none;"></div>
+        <!-- 下载部分 -->
+        <div class="download-section">
+            <div class="section-header">
+                <h2>文件下载 (断点续传)</h2>
+                <span class="badge">Range 支持</span>
+            </div>
+
+            <input type="text" id="fileIdInput" class="download-input"
+                   placeholder="输入文件 ID (如: 507f1f77bcf86cd799439011)" />
+
+            <div class="controls">
+                <button id="downloadBtn" class="btn-primary">开始下载</button>
+                <button id="cancelDownloadBtn" class="btn-danger" disabled>取消下载</button>
+            </div>
+
+            <div class="progress-container" id="downloadProgress" style="display: none;">
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar" id="downloadProgressBar">0%</div>
+                </div>
+                <div class="status-info">
+                    <div>
+                        <strong>已下载:</strong> <span id="downloadedSize">0 B</span> /
+                        <span id="downloadTotalSize">
+                            0
+                            B
+                        </span>
+                    </div>
+                    <div>
+                        <strong>进度:</strong> <span id="downloadPercentage">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="downloadAlert" style="display: none;"></div>
+        </div>
+
+        <!-- 视频播放测试 -->
+        <div class="video-section">
+            <div class="section-header">
+                <h2>🎬 视频流式播放测试</h2>
+                <span class="badge">Streaming</span>
+            </div>
+            <p class="subtitle">输入视频文件 ID,测试范围请求和拖动功能</p>
+
+            <input type="text" id="videoFileId" class="download-input" placeholder="输入视频文件 ID" />
+
+            <button id="loadVideoBtn" class="btn-primary">加载视频</button>
+
+            <video id="videoPlayer" controls style="margin-top: 20px; display: none;">
+                您的浏览器不支持视频播放
+            </video>
+        </div>
     </div>
 
-    <!-- 下载部分 -->
-    <div class="download-section">
-        <h2>文件下载 (断点续传)</h2>
+    <script type="module">
+        import {
+            GridFSUploader,
+            GridFSDownloader,
+            formatFileSize,
+            formatTime
+        } from './easilynet-gridfs-sdk.js';
 
-        <input type="text" id="fileIdInput" class="download-input"
-               placeholder="输入文件 ID (如: 507f1f77bcf86cd799439011)"/>
+        let uploader = null;
+        let downloader = null;
 
-        <div class="controls">
-            <button id="downloadBtn" class="btn-primary">开始下载</button>
-            <button id="cancelDownloadBtn" class="btn-danger" disabled>取消下载</button>
-        </div>
+        // DOM 元素
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resumeBtn = document.getElementById('resumeBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressBar = document.getElementById('progressBar');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const uploadPercentage = document.getElementById('uploadPercentage');
+        const uploadedSize = document.getElementById('uploadedSize');
+        const totalSize = document.getElementById('totalSize');
+        const uploadSpeed = document.getElementById('uploadSpeed');
+        const remainingTime = document.getElementById('remainingTime');
+        const uploadAlert = document.getElementById('uploadAlert');
+        const dropZone = document.getElementById('dropZone');
+        const uploadErrorDetails = document.getElementById('uploadErrorDetails');
+        const uploadErrorText = document.getElementById('uploadErrorText');
+        const maxFileSizeHint = document.getElementById('maxFileSizeHint');
+        const allowedExtensionsHint = document.getElementById('allowedExtensionsHint');
+        const toggleExtensions = document.getElementById('toggleExtensions');
+        const copyErrorBtn = document.getElementById('copyErrorBtn');
 
-        <div class="progress-container" id="downloadProgress" style="display: none;">
-            <div class="progress-bar-wrapper">
-                <div class="progress-bar" id="downloadProgressBar">0%</div>
-            </div>
-            <div class="status-info">
-                <div>
-                    <strong>已下载:</strong> <span id="downloadedSize">0 B</span> /
-                    <span id="downloadTotalSize">
-                        0
-                        B
-                    </span>
-                </div>
-                <div>
-                    <strong>进度:</strong> <span id="downloadPercentage">0%</span>
-                </div>
-            </div>
-        </div>
+        // 下载相关元素
+        const fileIdInput = document.getElementById('fileIdInput');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const cancelDownloadBtn = document.getElementById('cancelDownloadBtn');
+        const downloadProgress = document.getElementById('downloadProgress');
+        const downloadProgressBar = document.getElementById('downloadProgressBar');
+        const downloadedSize = document.getElementById('downloadedSize');
+        const downloadTotalSize = document.getElementById('downloadTotalSize');
+        const downloadPercentage = document.getElementById('downloadPercentage');
+        const downloadAlert = document.getElementById('downloadAlert');
 
-        <div id="downloadAlert" style="display: none;"></div>
-    </div>
+        // 视频相关元素
+        const videoFileId = document.getElementById('videoFileId');
+        const loadVideoBtn = document.getElementById('loadVideoBtn');
+        const videoPlayer = document.getElementById('videoPlayer');
 
-    <!-- 视频播放测试 -->
-    <div class="video-section">
-        <h2>🎬 视频流式播放测试</h2>
-        <p class="subtitle">输入视频文件 ID,测试范围请求和拖动功能</p>
+        const maxFileSize = 512 * 1024 * 1024; // 512MB 示例限制
+        const allowedExtensions = [
+            '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tif', '.tiff', '.heic', '.heif', '.svg', '.psd', '.ai',
+            '.pdf',
+            '.mp3', '.wav', '.flac', '.ogg', '.oga', '.opus', '.aac',
+            '.mp4', '.m4v', '.mov', '.avi', '.mkv', '.webm', '.flv',
+            '.zip', '.7z', '.rar', '.gz', '.tar', '.apk', '.jar', '.war', '.epub',
+            '.docx', '.xlsx', '.pptx', '.mobi',
+            '.exe', '.dll', '.msi', '.cab', '.elf', '.macho', '.wasm',
+            '.iso', '.dmg', '.dwg', '.dxf'
+        ];
 
-        <input type="text" id="videoFileId" class="download-input" placeholder="输入视频文件 ID"/>
+        maxFileSizeHint.textContent = formatFileSize(maxFileSize);
+        let extensionsExpanded = false;
+        function renderExtensionsHint() {
+            if (extensionsExpanded) {
+                allowedExtensionsHint.textContent = allowedExtensions.join(', ');
+                toggleExtensions.textContent = '收起';
+            } else {
+                allowedExtensionsHint.textContent = allowedExtensions.slice(0, 10).join(', ') + '...';
+                toggleExtensions.textContent = '展开全部';
+            }
+        }
+        renderExtensionsHint();
 
-        <button id="loadVideoBtn" class="btn-primary">加载视频</button>
+        toggleExtensions.addEventListener('click', () => {
+            extensionsExpanded = !extensionsExpanded;
+            renderExtensionsHint();
+        });
 
-        <video id="videoPlayer" controls style="margin-top: 20px; display: none;">
-            您的浏览器不支持视频播放
-        </video>
-    </div>
-</div>
+        function normalizeExt(name) {
+            const index = name.lastIndexOf('.');
+            if (index === -1) return '';
+            return name.slice(index).toLowerCase();
+        }
 
-<script type="module">
-            import {
-                GridFSUploader,
-                GridFSDownloader,
-                formatFileSize,
-                formatTime
-            } from './easilynet-gridfs-sdk.js';
+        function validateFile(file) {
+            if (file.size > maxFileSize) {
+                return `文件超过限制: ${formatFileSize(maxFileSize)}`;
+            }
+            const ext = normalizeExt(file.name);
+            if (allowedExtensions.length > 0 && ext && !allowedExtensions.includes(ext)) {
+                return `不支持的文件类型: ${ext}`;
+            }
+            return '';
+        }
 
-            let uploader = null;
-            let downloader = null;
+        function handleFileSelection(file) {
+            if (!file) return;
+            const error = validateFile(file);
+            if (error) {
+                showAlert(uploadAlert, error, 'error');
+                showErrorDetails(error);
+                startBtn.disabled = true;
+                return;
+            }
+            hideErrorDetails();
+            fileName.textContent = `${file.name} (${formatFileSize(file.size)})`;
+            startBtn.disabled = false;
+        }
 
-            // DOM 元素
-            const fileInput = document.getElementById('fileInput');
-            const fileName = document.getElementById('fileName');
-            const startBtn = document.getElementById('startBtn');
-            const pauseBtn = document.getElementById('pauseBtn');
-            const resumeBtn = document.getElementById('resumeBtn');
-            const cancelBtn = document.getElementById('cancelBtn');
-            const uploadProgress = document.getElementById('uploadProgress');
-            const progressBar = document.getElementById('progressBar');
-            const uploadStatus = document.getElementById('uploadStatus');
-            const uploadPercentage = document.getElementById('uploadPercentage');
-            const uploadedSize = document.getElementById('uploadedSize');
-            const totalSize = document.getElementById('totalSize');
-            const uploadSpeed = document.getElementById('uploadSpeed');
-            const remainingTime = document.getElementById('remainingTime');
-            const uploadAlert = document.getElementById('uploadAlert');
+        // 文件选择
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            handleFileSelection(file);
+        });
 
-            // 下载相关元素
-            const fileIdInput = document.getElementById('fileIdInput');
-            const downloadBtn = document.getElementById('downloadBtn');
-            const cancelDownloadBtn = document.getElementById('cancelDownloadBtn');
-            const downloadProgress = document.getElementById('downloadProgress');
-            const downloadProgressBar = document.getElementById('downloadProgressBar');
-            const downloadedSize = document.getElementById('downloadedSize');
-            const downloadTotalSize = document.getElementById('downloadTotalSize');
-            const downloadPercentage = document.getElementById('downloadPercentage');
-            const downloadAlert = document.getElementById('downloadAlert');
+        // 拖拽上传
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
 
-            // 视频相关元素
-            const videoFileId = document.getElementById('videoFileId');
-            const loadVideoBtn = document.getElementById('loadVideoBtn');
-            const videoPlayer = document.getElementById('videoPlayer');
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
 
-            // 文件选择
-            fileInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    fileName.textContent = `${file.name} (${formatFileSize(file.size)})`;
-                    startBtn.disabled = false;
-                }
-            });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelection(file);
+            }
+        });
 
-            // 开始上传
-            startBtn.addEventListener('click', async () => {
-                const file = fileInput.files[0];
-                if (!file) return;
+        // 开始上传
+        startBtn.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            if (!file) return;
 
-                uploader = new GridFSUploader(file, {
-                    // url: 'https://api.example.com', // 可选: 如果后端不在当前域,请填写域名
-                    chunkSize: 1024 * 1024, // 1MB
-                    maxConcurrent: 3,
-                    onProgress: (progress) => {
-                        uploadProgress.style.display = 'block';
-                        const percentValue = (progress.status === 'hashing' && typeof progress.hashPercentage === 'number')
-                            ? progress.hashPercentage
-                            : progress.percentage;
-                        const percent = percentValue.toFixed(2);
-                        progressBar.style.width = `${percent}%`;
-                        progressBar.textContent = `${percent}%`;
+            uploader = new GridFSUploader(file, {
+                // url: 'https://api.example.com', // 可选: 如果后端不在当前域,请填写域名
+                chunkSize: 1024 * 1024, // 1MB
+                maxConcurrent: 3,
+                maxFileSize,
+                allowedExtensions,
+                enableMagicNumberValidation: true,
+                onProgress: (progress) => {
+                    uploadProgress.style.display = 'block';
+                    const percentValue = (progress.status === 'hashing' && typeof progress.hashPercentage === 'number')
+                        ? progress.hashPercentage
+                        : progress.percentage;
+                    const percent = percentValue.toFixed(2);
+                    progressBar.style.width = `${percent}%`;
+                    progressBar.textContent = `${percent}%`;
 
-                        // 根据状态显示不同的文本
-                        if (progress.status === 'merging') {
-                            uploadStatus.textContent = '合并文件中,请稍候...';
-                            uploadSpeed.textContent = '--';
-                            remainingTime.textContent = '正在处理';
-                        } else if (progress.status === 'hashing') {
-                            uploadStatus.textContent = `正在计算文件特征值(Hash)... ${percent}%`;
-                            uploadSpeed.textContent = '--';
-                            remainingTime.textContent = '请稍候';
-                        } else if (progress.status === 'completed') {
-                            uploadStatus.textContent = '秒传成功!';
-                            uploadSpeed.textContent = '--';
-                            remainingTime.textContent = '完成';
-                        } else {
-                            uploadStatus.textContent = '上传中...';
-                            uploadSpeed.textContent = `${formatFileSize(progress.speed)}/s`;
-                            remainingTime.textContent = formatTime(progress.remainingTime);
-                        }
-
-                        uploadPercentage.textContent = `${percent}%`;
-                        uploadedSize.textContent = formatFileSize(progress.loaded);
-                        totalSize.textContent = formatFileSize(progress.total);
-                    },
-                    onError: (error) => {
-                        showAlert(uploadAlert, `上传失败: ${error.message}`, 'error');
-                        resetUploadButtons();
-                    },
-                    onComplete: (fileId) => {
-                        uploadStatus.textContent = '上传完成!';
-                        showAlert(uploadAlert, `上传成功! 文件 ID: ${fileId}`, 'success');
-                        resetUploadButtons();
+                    // 根据状态显示不同的文本
+                    if (progress.status === 'merging') {
+                        uploadStatus.textContent = '合并文件中,请稍候...';
+                        uploadSpeed.textContent = '--';
+                        remainingTime.textContent = '正在处理';
+                    } else if (progress.status === 'hashing') {
+                        uploadStatus.textContent = `正在计算文件特征值(Hash)... ${percent}%`;
+                        uploadSpeed.textContent = '--';
+                        remainingTime.textContent = '请稍候';
+                    } else if (progress.status === 'completed') {
+                        uploadStatus.textContent = '秒传成功!';
+                        uploadSpeed.textContent = '--';
+                        remainingTime.textContent = '完成';
+                    } else {
+                        uploadStatus.textContent = '上传中...';
+                        uploadSpeed.textContent = `${formatFileSize(progress.speed)}/s`;
+                        remainingTime.textContent = formatTime(progress.remainingTime);
                     }
-                });
 
-                try {
-                    startBtn.disabled = true;
-                    pauseBtn.disabled = false;
-                    cancelBtn.disabled = false;
-                    await uploader.start();
-                } catch (error) {
-                    console.error('上传错误:', error);
+                    uploadPercentage.textContent = `${percent}%`;
+                    uploadedSize.textContent = formatFileSize(progress.loaded);
+                    totalSize.textContent = formatFileSize(progress.total);
+                },
+                onValidationError: (message) => {
+                    showAlert(uploadAlert, message, 'error');
+                    showErrorDetails(message);
+                    resetUploadButtons();
+                },
+                onError: (error) => {
+                    showAlert(uploadAlert, `上传失败: ${error.message}`, 'error');
+                    showErrorDetails(error.message);
+                    resetUploadButtons();
+                },
+                onComplete: (fileId) => {
+                    uploadStatus.textContent = '上传完成!';
+                    showAlert(uploadAlert, `上传成功! 文件 ID: ${fileId}`, 'success');
+                    resetUploadButtons();
                 }
             });
 
-            // 暂停上传
-            pauseBtn.addEventListener('click', () => {
-                uploader?.pause();
-                uploadStatus.textContent = '已暂停';
-                pauseBtn.disabled = true;
-                resumeBtn.disabled = false;
-            });
-
-            // 恢复上传
-            resumeBtn.addEventListener('click', async () => {
-                await uploader?.resume();
+            try {
+                startBtn.disabled = true;
                 pauseBtn.disabled = false;
-                resumeBtn.disabled = true;
-            });
+                cancelBtn.disabled = false;
+                await uploader.start();
+            } catch (error) {
+                console.error('上传错误:', error);
+            }
+        });
 
-            // 取消上传
-            cancelBtn.addEventListener('click', async () => {
-                await uploader?.cancel();
-                uploadStatus.textContent = '已取消';
-                showAlert(uploadAlert, '上传已取消', 'info');
-                resetUploadButtons();
-            });
+        // 暂停上传
+        pauseBtn.addEventListener('click', () => {
+            uploader?.pause();
+            uploadStatus.textContent = '已暂停';
+            pauseBtn.disabled = true;
+            resumeBtn.disabled = false;
+        });
 
-            // 开始下载
-            downloadBtn.addEventListener('click', async () => {
-                const fileId = fileIdInput.value.trim();
-                if (!fileId) {
-                    showAlert(downloadAlert, '请输入文件 ID', 'error');
-                    return;
-                }
+        // 恢复上传
+        resumeBtn.addEventListener('click', async () => {
+            await uploader?.resume();
+            pauseBtn.disabled = false;
+            resumeBtn.disabled = true;
+        });
 
-                downloader = new GridFSDownloader({
-                    // url: 'https://api.example.com', // 可选: 如果后端不在当前域,请填写域名
-                    fileId: fileId,
-                    onProgress: (progress) => {
-                        downloadProgress.style.display = 'block';
-                        const percent = progress.percentage.toFixed(2);
-                        downloadProgressBar.style.width = `${percent}%`;
-                        downloadProgressBar.textContent = `${percent}%`;
+        // 取消上传
+        cancelBtn.addEventListener('click', async () => {
+            await uploader?.cancel();
+            uploadStatus.textContent = '已取消';
+            showAlert(uploadAlert, '上传已取消', 'info');
+            resetUploadButtons();
+        });
 
-                        downloadedSize.textContent = formatFileSize(progress.loaded);
-                        downloadTotalSize.textContent = formatFileSize(progress.total);
-                        downloadPercentage.textContent = `${percent}%`;
-                    },
-                    onError: (error) => {
-                        showAlert(downloadAlert, `下载失败: ${error.message}`, 'error');
-                        downloadBtn.disabled = false;
-                        cancelDownloadBtn.disabled = true;
-                    }
-                });
+        // 开始下载
+        downloadBtn.addEventListener('click', async () => {
+            const fileId = fileIdInput.value.trim();
+            if (!fileId) {
+                showAlert(downloadAlert, '请输入文件 ID', 'error');
+                return;
+            }
 
-                try {
-                    downloadBtn.disabled = true;
-                    cancelDownloadBtn.disabled = false;
-                    await downloader.downloadAndSave();
-                    showAlert(downloadAlert, '下载完成!', 'success');
+            downloader = new GridFSDownloader({
+                // url: 'https://api.example.com', // 可选: 如果后端不在当前域,请填写域名
+                fileId: fileId,
+                onProgress: (progress) => {
+                    downloadProgress.style.display = 'block';
+                    const percent = progress.percentage.toFixed(2);
+                    downloadProgressBar.style.width = `${percent}%`;
+                    downloadProgressBar.textContent = `${percent}%`;
+
+                    downloadedSize.textContent = formatFileSize(progress.loaded);
+                    downloadTotalSize.textContent = formatFileSize(progress.total);
+                    downloadPercentage.textContent = `${percent}%`;
+                },
+                onError: (error) => {
+                    showAlert(downloadAlert, `下载失败: ${error.message}`, 'error');
                     downloadBtn.disabled = false;
                     cancelDownloadBtn.disabled = true;
-                } catch (error) {
-                    console.error('下载错误:', error);
                 }
             });
 
-            // 取消下载
-            cancelDownloadBtn.addEventListener('click', () => {
-                downloader?.cancel();
-                showAlert(downloadAlert, '下载已取消', 'info');
+            try {
+                downloadBtn.disabled = true;
+                cancelDownloadBtn.disabled = false;
+                await downloader.downloadAndSave();
+                showAlert(downloadAlert, '下载完成!', 'success');
                 downloadBtn.disabled = false;
                 cancelDownloadBtn.disabled = true;
-            });
+            } catch (error) {
+                console.error('下载错误:', error);
+            }
+        });
 
-            // 加载视频
-            loadVideoBtn.addEventListener('click', () => {
-                const fileId = videoFileId.value.trim();
-                if (!fileId) {
-                    alert('请输入视频文件 ID');
-                    return;
-                }
+        // 取消下载
+        cancelDownloadBtn.addEventListener('click', () => {
+            downloader?.cancel();
+            showAlert(downloadAlert, '下载已取消', 'info');
+            downloadBtn.disabled = false;
+            cancelDownloadBtn.disabled = true;
+        });
 
-                videoPlayer.src = GridFSDownloader.getUrl(fileId);
-                videoPlayer.style.display = 'block';
-                videoPlayer.load();
-            });
-
-            // 辅助函数
-            function resetUploadButtons() {
-                startBtn.disabled = false;
-                pauseBtn.disabled = true;
-                resumeBtn.disabled = true;
-                cancelBtn.disabled = true;
+        // 加载视频
+        loadVideoBtn.addEventListener('click', () => {
+            const fileId = videoFileId.value.trim();
+            if (!fileId) {
+                alert('请输入视频文件 ID');
+                return;
             }
 
-            function showAlert(element, message, type) {
-                element.textContent = message;
-                element.className = `alert alert-${type}`;
-                element.style.display = 'block';
+            videoPlayer.src = GridFSDownloader.getUrl(fileId);
+            videoPlayer.style.display = 'block';
+            videoPlayer.load();
+        });
 
+        // 辅助函数
+        function resetUploadButtons() {
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            resumeBtn.disabled = true;
+            cancelBtn.disabled = true;
+        }
+
+        function showAlert(element, message, type) {
+            element.textContent = message;
+            element.className = `alert alert-${type}`;
+            element.style.display = 'block';
+
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+
+        function showErrorDetails(message) {
+            uploadErrorText.textContent = message;
+            uploadErrorDetails.style.display = 'block';
+        }
+
+        function hideErrorDetails() {
+            uploadErrorDetails.style.display = 'none';
+            uploadErrorText.textContent = '';
+        }
+
+        copyErrorBtn.addEventListener('click', async () => {
+            const text = uploadErrorText.textContent || '';
+            if (!text) return;
+            try {
+                await navigator.clipboard.writeText(text);
+                copyErrorBtn.textContent = '已复制';
                 setTimeout(() => {
-                    element.style.display = 'none';
-                }, 5000);
+                    copyErrorBtn.textContent = '复制';
+                }, 1200);
+            } catch (err) {
+                console.error('复制失败', err);
             }
-        </script>
+        });
+    </script>
 </body>
 
 </html>

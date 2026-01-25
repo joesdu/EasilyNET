@@ -27,6 +27,16 @@ export interface UploadOptions {
   retryCount?: number;
   /** 是否在服务器端执行最终哈希校验, 默认 true(安全但更慢); 设为 false 可跳过服务端全量哈希以换取速度 */
   verifyOnServer?: boolean;
+  /** 是否启用客户端校验, 默认 true */
+  enableClientValidation?: boolean;
+  /** 是否启用魔数校验, 默认 true */
+  enableMagicNumberValidation?: boolean;
+  /** 允许的扩展名(可选, 空数组表示全部允许) */
+  allowedExtensions?: string[];
+  /** 允许的内容类型(可选, 空数组表示全部允许) */
+  allowedContentTypes?: string[];
+  /** 最大文件大小(字节), 0 表示不限制 */
+  maxFileSize?: number;
   /** 额外的请求头 */
   headers?: Record<string, string>;
   /** 文件元数据 */
@@ -35,6 +45,8 @@ export interface UploadOptions {
   onProgress?: (progress: UploadProgress) => void;
   /** 错误回调 */
   onError?: (error: Error) => void;
+  /** 校验错误回调 */
+  onValidationError?: (message: string) => void;
   /** 完成回调 */
   onComplete?: (fileId: string) => void;
 }
@@ -126,10 +138,16 @@ export class GridFSUploader {
       ),
       retryCount: 3,
       verifyOnServer: true,
+      enableClientValidation: true,
+      enableMagicNumberValidation: true,
+      allowedExtensions: [],
+      allowedContentTypes: [],
+      maxFileSize: 0,
       headers: {},
       metadata: {},
       onProgress: () => {},
       onError: () => {},
+      onValidationError: () => {},
       onComplete: () => {},
       url: "",
       ...options,
@@ -169,6 +187,7 @@ export class GridFSUploader {
     this.uploadedBytes = 0;
 
     try {
+      await this.validateFileBeforeUpload();
       // 0. 预先计算文件哈希 (用于秒传), 在独立线程中避免阻塞 UI
       this.hashPromise = calculateSHA256(this.file, (hashProgress) => {
         this.options.onProgress?.({
@@ -250,7 +269,7 @@ export class GridFSUploader {
       this.options.onComplete(finalFileId);
       return finalFileId;
     } catch (error) {
-      this.options.onError(error as Error);
+      this.handleError(error);
       throw error;
     }
   }
@@ -290,7 +309,7 @@ export class GridFSUploader {
       const fileId = await this.completeUpload(fileHash);
       this.options.onComplete(fileId);
     } catch (error) {
-      this.options.onError(error as Error);
+      this.handleError(error);
       throw error;
     }
   }
@@ -337,7 +356,10 @@ export class GridFSUploader {
     );
 
     if (!response.ok) {
-      throw new Error(`初始化上传失败: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(
+        `初始化上传失败: ${errorText || response.statusText}`
+      );
     }
 
     const { sessionId, chunkSize, status, fileId } = await response.json();
@@ -435,18 +457,18 @@ export class GridFSUploader {
 
     if (!response.ok) {
       const errorText = await response.text();
-      // 检查是否是哈希校验失败 (状态码 400 且错误信息包含 hash)
-      if (
-        response.status === 400 &&
-        errorText.toLowerCase().includes("hash") &&
-        internalRetry < 3
-      ) {
+      if (isHashError(errorText) && internalRetry < 3) {
         console.warn(
-          `分块 ${chunk.index} 哈希校验失败，正在重试 (${
+          `分块 ${chunk.index} 哈希校验失败，正在重试 (${ 
             internalRetry + 1
           }/3)...`
         );
         return this.uploadChunk(chunk, internalRetry + 1);
+      }
+      if (isValidationError(errorText, response.status)) {
+        throw createValidationError(
+          `文件校验失败: ${errorText || response.statusText}`
+        );
       }
       throw new Error(
         `上传分块 ${chunk.index} 失败: ${response.status} ${response.statusText} - ${errorText}`
@@ -485,7 +507,8 @@ export class GridFSUploader {
     });
 
     if (!response.ok) {
-      throw new Error(`完成上传失败: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`完成上传失败: ${errorText || response.statusText}`);
     }
 
     const { fileId } = await response.json();
@@ -524,6 +547,52 @@ export class GridFSUploader {
     };
 
     this.options.onProgress(progress);
+  }
+
+  private async validateFileBeforeUpload(): Promise<void> {
+    if (!this.options.enableClientValidation) return;
+
+    const extension = normalizeExtension(getFileExtension(this.file.name));
+    const contentType = (this.file.type || "").trim();
+
+    if (this.options.maxFileSize > 0 && this.file.size > this.options.maxFileSize) {
+      throw createValidationError(
+        `文件大小超过限制: ${formatFileSize(this.options.maxFileSize)}`
+      );
+    }
+
+    if (this.options.allowedExtensions.length > 0 && extension) {
+      if (!this.options.allowedExtensions.includes(extension)) {
+        throw createValidationError(`不允许的文件扩展名: ${extension}`);
+      }
+    }
+
+    if (this.options.allowedContentTypes.length > 0 && contentType) {
+      if (!this.options.allowedContentTypes.includes(contentType)) {
+        throw createValidationError(`不允许的内容类型: ${contentType}`);
+      }
+    }
+
+    const mappedContentType = ExtensionContentTypeMap[extension];
+    if (mappedContentType && contentType && mappedContentType !== contentType) {
+      throw createValidationError(
+        `内容类型与扩展名不一致: ${extension} -> ${contentType}`
+      );
+    }
+
+    if (!this.options.enableMagicNumberValidation) return;
+    const header = await readFileHeader(this.file, 512);
+    if (!isMagicNumberValid(extension, header)) {
+      throw createValidationError(`文件签名与扩展名不一致: ${extension}`);
+    }
+  }
+
+  private handleError(error: unknown): void {
+    const err = error as Error;
+    if (err?.name === "ValidationError") {
+      this.options.onValidationError?.(err.message);
+    }
+    this.options.onError(err);
   }
 }
 
@@ -736,6 +805,236 @@ export function formatTime(seconds: number): string {
   return `${Math.floor(seconds / 3600)}时${Math.floor(
     (seconds % 3600) / 60
   )}分`;
+}
+
+const ExtensionContentTypeMap: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".bmp": "image/bmp",
+  ".webp": "image/webp",
+  ".tif": "image/tiff",
+  ".tiff": "image/tiff",
+  ".heic": "image/heic",
+  ".heif": "image/heif",
+  ".svg": "image/svg+xml",
+  ".psd": "image/vnd.adobe.photoshop",
+  ".ai": "application/postscript",
+  ".pdf": "application/pdf",
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+  ".flac": "audio/flac",
+  ".ogg": "audio/ogg",
+  ".oga": "audio/ogg",
+  ".opus": "audio/opus",
+  ".aac": "audio/aac",
+  ".mp4": "video/mp4",
+  ".m4v": "video/x-m4v",
+  ".mov": "video/quicktime",
+  ".avi": "video/x-msvideo",
+  ".mkv": "video/x-matroska",
+  ".webm": "video/webm",
+  ".flv": "video/x-flv",
+  ".zip": "application/zip",
+  ".7z": "application/x-7z-compressed",
+  ".rar": "application/vnd.rar",
+  ".gz": "application/gzip",
+  ".tar": "application/x-tar",
+  ".apk": "application/vnd.android.package-archive",
+  ".jar": "application/java-archive",
+  ".war": "application/java-archive",
+  ".epub": "application/epub+zip",
+  ".mobi": "application/x-mobipocket-ebook",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ".exe": "application/vnd.microsoft.portable-executable",
+  ".dll": "application/vnd.microsoft.portable-executable",
+  ".msi": "application/x-msi",
+  ".cab": "application/vnd.ms-cab-compressed",
+  ".elf": "application/x-elf",
+  ".macho": "application/x-mach-binary",
+  ".wasm": "application/wasm",
+  ".iso": "application/x-iso9660-image",
+  ".dmg": "application/x-apple-diskimage",
+  ".dwg": "image/vnd.dwg",
+  ".dxf": "image/vnd.dxf",
+};
+
+const MagicNumberSignatures: Record<string, Uint8Array[]> = {
+  ".jpg": [new Uint8Array([0xff, 0xd8, 0xff])],
+  ".jpeg": [new Uint8Array([0xff, 0xd8, 0xff])],
+  ".png": [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
+  ".gif": [
+    new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x37, 0x61]),
+    new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61]),
+  ],
+  ".bmp": [new Uint8Array([0x42, 0x4d])],
+  ".webp": [new Uint8Array([0x52, 0x49, 0x46, 0x46])],
+  ".pdf": [new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d])],
+  ".tif": [new Uint8Array([0x49, 0x49, 0x2a, 0x00]), new Uint8Array([0x4d, 0x4d, 0x00, 0x2a])],
+  ".tiff": [new Uint8Array([0x49, 0x49, 0x2a, 0x00]), new Uint8Array([0x4d, 0x4d, 0x00, 0x2a])],
+  ".mp3": [new Uint8Array([0x49, 0x44, 0x33]), new Uint8Array([0xff, 0xfb])],
+  ".wav": [new Uint8Array([0x52, 0x49, 0x46, 0x46])],
+  ".flac": [new Uint8Array([0x66, 0x4c, 0x61, 0x43])],
+  ".mp4": [new Uint8Array([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70]), new Uint8Array([0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70])],
+  ".m4v": [new Uint8Array([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70]), new Uint8Array([0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70])],
+  ".mov": [new Uint8Array([0x00, 0x00, 0x00, 0x14, 0x66, 0x74, 0x79, 0x70, 0x71, 0x74, 0x20, 0x20])],
+  ".avi": [new Uint8Array([0x52, 0x49, 0x46, 0x46])],
+  ".mkv": [new Uint8Array([0x1a, 0x45, 0xdf, 0xa3])],
+  ".webm": [new Uint8Array([0x1a, 0x45, 0xdf, 0xa3])],
+  ".flv": [new Uint8Array([0x46, 0x4c, 0x56])],
+  ".7z": [new Uint8Array([0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c])],
+  ".rar": [new Uint8Array([0x52, 0x61, 0x72, 0x21, 0x1a, 0x07, 0x00]), new Uint8Array([0x52, 0x61, 0x72, 0x21, 0x1a, 0x07, 0x01, 0x00])],
+  ".zip": [new Uint8Array([0x50, 0x4b, 0x03, 0x04]), new Uint8Array([0x50, 0x4b, 0x05, 0x06]), new Uint8Array([0x50, 0x4b, 0x07, 0x08])],
+  ".gz": [new Uint8Array([0x1f, 0x8b])],
+  ".tar": [new Uint8Array([0x75, 0x73, 0x74, 0x61, 0x72])],
+  ".apk": [new Uint8Array([0x50, 0x4b, 0x03, 0x04])],
+  ".jar": [new Uint8Array([0x50, 0x4b, 0x03, 0x04])],
+  ".war": [new Uint8Array([0x50, 0x4b, 0x03, 0x04])],
+  ".epub": [new Uint8Array([0x50, 0x4b, 0x03, 0x04])],
+  ".docx": [new Uint8Array([0x50, 0x4b, 0x03, 0x04])],
+  ".xlsx": [new Uint8Array([0x50, 0x4b, 0x03, 0x04])],
+  ".pptx": [new Uint8Array([0x50, 0x4b, 0x03, 0x04])],
+  ".mobi": [new Uint8Array([0x42, 0x4f, 0x4f, 0x4b, 0x4d, 0x4f, 0x42, 0x49])],
+  ".exe": [new Uint8Array([0x4d, 0x5a])],
+  ".dll": [new Uint8Array([0x4d, 0x5a])],
+  ".msi": [new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])],
+  ".cab": [new Uint8Array([0x4d, 0x53, 0x43, 0x46])],
+  ".elf": [new Uint8Array([0x7f, 0x45, 0x4c, 0x46])],
+  ".macho": [
+    new Uint8Array([0xfe, 0xed, 0xfa, 0xce]),
+    new Uint8Array([0xfe, 0xed, 0xfa, 0xcf]),
+    new Uint8Array([0xce, 0xfa, 0xed, 0xfe]),
+    new Uint8Array([0xcf, 0xfa, 0xed, 0xfe]),
+  ],
+  ".wasm": [new Uint8Array([0x00, 0x61, 0x73, 0x6d])],
+  ".iso": [new Uint8Array([0x43, 0x44, 0x30, 0x30, 0x31])],
+  ".dmg": [new Uint8Array([0x78, 0x01, 0x73, 0x0d, 0x62, 0x62, 0x60])],
+  ".heic": [new Uint8Array([0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63])],
+  ".heif": [new Uint8Array([0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63])],
+  ".svg": [new Uint8Array([0x3c, 0x73, 0x76, 0x67])],
+  ".psd": [new Uint8Array([0x38, 0x42, 0x50, 0x53])],
+  ".ai": [new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d])],
+  ".dwg": [new Uint8Array([0x41, 0x43, 0x31, 0x30])],
+  ".dxf": [new Uint8Array([0x30, 0x20])],
+  ".ogg": [new Uint8Array([0x4f, 0x67, 0x67, 0x53])],
+  ".oga": [new Uint8Array([0x4f, 0x67, 0x67, 0x53])],
+  ".opus": [new Uint8Array([0x4f, 0x67, 0x67, 0x53])],
+  ".aac": [new Uint8Array([0xff, 0xf1]), new Uint8Array([0xff, 0xf9])],
+};
+
+function normalizeExtension(extension: string): string {
+  if (!extension) return "";
+  const trimmed = extension.trim();
+  return trimmed.startsWith(".") ? trimmed.toLowerCase() : `.${trimmed.toLowerCase()}`;
+}
+
+function getFileExtension(filename: string): string {
+  const lastDot = filename.lastIndexOf(".");
+  if (lastDot === -1) return "";
+  return filename.slice(lastDot);
+}
+
+async function readFileHeader(file: File, length: number): Promise<Uint8Array> {
+  const buffer = await file.slice(0, length).arrayBuffer();
+  return new Uint8Array(buffer);
+}
+
+function isMagicNumberValid(extension: string, header: Uint8Array): boolean {
+  if (!extension) return true;
+  const signatures = MagicNumberSignatures[extension];
+  if (!signatures) return true;
+
+  const headerSlice = header.subarray(0, Math.min(header.length, 512));
+  for (const signature of signatures) {
+    if (headerSlice.length >= signature.length && compareBytes(headerSlice, signature, 0)) {
+      return true;
+    }
+    if (extension === ".pdf" && indexOfSequence(headerSlice, signature) >= 0) {
+      return true;
+    }
+    if (extension === ".tar" && headerSlice.length >= 265 && compareBytes(headerSlice, signature, 257)) {
+      return true;
+    }
+    if ((extension === ".mp4" || extension === ".m4v" || extension === ".mov") && indexOfSequence(headerSlice, new TextEncoder().encode("ftyp")) >= 4) {
+      return true;
+    }
+    if (extension === ".webp" && headerSlice.length >= 12 && compareBytes(headerSlice, new TextEncoder().encode("WEBP"), 8)) {
+      return true;
+    }
+    if (extension === ".wav" && headerSlice.length >= 12 && compareBytes(headerSlice, new TextEncoder().encode("WAVE"), 8)) {
+      return true;
+    }
+    if (extension === ".avi" && headerSlice.length >= 12 && compareBytes(headerSlice, new TextEncoder().encode("AVI "), 8)) {
+      return true;
+    }
+    if ((extension === ".docx" || extension === ".xlsx" || extension === ".pptx" || extension === ".apk" || extension === ".jar" || extension === ".war" || extension === ".epub") && headerSlice.length >= 4) {
+      if (compareBytes(headerSlice, new Uint8Array([0x50, 0x4b, 0x03, 0x04]), 0)) {
+        return true;
+      }
+    }
+    if ((extension === ".ogg" || extension === ".oga" || extension === ".opus") && headerSlice.length >= 4) {
+      if (compareBytes(headerSlice, new TextEncoder().encode("OggS"), 0)) {
+        return true;
+      }
+    }
+    if ((extension === ".heic" || extension === ".heif") && headerSlice.length >= 12) {
+      if (compareBytes(headerSlice, new TextEncoder().encode("ftypheic"), 4)) {
+        return true;
+      }
+    }
+    if (extension === ".svg" && indexOfSequence(headerSlice, new TextEncoder().encode("<svg")) >= 0) {
+      return true;
+    }
+    if (extension === ".mobi" && headerSlice.length >= 68 && compareBytes(headerSlice, new TextEncoder().encode("BOOKMOBI"), 60)) {
+      return true;
+    }
+    if (extension === ".iso" && headerSlice.length >= 9 && compareBytes(headerSlice, new Uint8Array([0x43, 0x44, 0x30, 0x30, 0x31]), 1)) {
+      return true;
+    }
+    if (extension === ".wasm" && headerSlice.length >= 4 && compareBytes(headerSlice, new TextEncoder().encode("\0asm"), 0)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function compareBytes(source: Uint8Array, target: Uint8Array, offset: number): boolean {
+  if (offset + target.length > source.length) return false;
+  for (let i = 0; i < target.length; i++) {
+    if (source[offset + i] !== target[i]) return false;
+  }
+  return true;
+}
+
+function indexOfSequence(source: Uint8Array, target: Uint8Array): number {
+  if (target.length === 0 || source.length < target.length) return -1;
+  for (let i = 0; i <= source.length - target.length; i++) {
+    if (compareBytes(source, target, i)) return i;
+  }
+  return -1;
+}
+
+function isHashError(message: string): boolean {
+  const text = message.toLowerCase();
+  return text.includes("hash") || text.includes("哈希");
+}
+
+function isValidationError(message: string, status?: number): boolean {
+  const text = message.toLowerCase();
+  const keywords = ["signature", "content", "type", "extension", "size", "limit", "magic", "签名", "类型", "扩展名", "大小", "校验"];
+  if (status && [400, 413, 415].includes(status)) {
+    return keywords.some((k) => text.includes(k));
+  }
+  return keywords.some((k) => text.includes(k));
+}
+
+function createValidationError(message: string): Error {
+  const error = new Error(message);
+  error.name = "ValidationError";
+  return error;
 }
 
 /**
