@@ -592,37 +592,41 @@ internal sealed class DefaultUploadValidator(IOptions<UploadValidationOptions> o
                     return Task.CompletedTask;
                 }
             }
-            if (extension.Equals(".macho", StringComparison.OrdinalIgnoreCase))
+            // 扩展类型的特殊魔数检查仅在最后一个签名迭代时执行，避免在多签名扩展上重复执行
+            if (ReferenceEquals(signature, signatures[signatures.Count - 1]))
             {
-                var machoMagic = new[]
+                if (extension.Equals(".macho", StringComparison.OrdinalIgnoreCase))
                 {
-                    new byte[] { 0xFE, 0xED, 0xFA, 0xCE },
-                    new byte[] { 0xFE, 0xED, 0xFA, 0xCF },
-                    new byte[] { 0xCE, 0xFA, 0xED, 0xFE },
-                    new byte[] { 0xCF, 0xFA, 0xED, 0xFE }
-                };
-                foreach (var machoSignature in machoMagic)
+                    var machoMagic = new[]
+                    {
+                        new byte[] { 0xFE, 0xED, 0xFA, 0xCE },
+                        new byte[] { 0xFE, 0xED, 0xFA, 0xCF },
+                        new byte[] { 0xCE, 0xFA, 0xED, 0xFE },
+                        new byte[] { 0xCF, 0xFA, 0xED, 0xFE }
+                    };
+                    foreach (var machoSignature in machoMagic)
+                    {
+                        if (headerLength >= machoSignature.Length && header[..machoSignature.Length].SequenceEqual(machoSignature))
+                        {
+                            return Task.CompletedTask;
+                        }
+                    }
+                }
+                if (extension.Equals(".wasm", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (headerLength >= machoSignature.Length && header[..machoSignature.Length].SequenceEqual(machoSignature))
+                    if (headerLength >= 4 && header[..4].SequenceEqual("\0asm"u8))
                     {
                         return Task.CompletedTask;
                     }
                 }
-            }
-            if (extension.Equals(".wasm", StringComparison.OrdinalIgnoreCase))
-            {
-                if (headerLength >= 4 && header[..4].SequenceEqual("\0asm"u8))
+                // ReSharper disable once InvertIf
+                if (extension.Equals(".iso", StringComparison.OrdinalIgnoreCase))
                 {
-                    return Task.CompletedTask;
-                }
-            }
-            // ReSharper disable once InvertIf
-            if (extension.Equals(".iso", StringComparison.OrdinalIgnoreCase))
-            {
-                const int isoOffset = 0x8001; // 32769
-                if (data.Length >= isoOffset + 5 && new ReadOnlySpan<byte>(data, isoOffset, 5).SequenceEqual("CD001"u8))
-                {
-                    return Task.CompletedTask;
+                    const int isoOffset = 0x8001; // 32769
+                    if (data.Length >= isoOffset + 5 && new ReadOnlySpan<byte>(data, isoOffset, 5).SequenceEqual("CD001"u8))
+                    {
+                        return Task.CompletedTask;
+                    }
                 }
             }
         }
