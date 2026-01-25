@@ -781,8 +781,13 @@ function isMagicNumberValid(extension, header) {
     if (extension === ".mobi" && headerSlice.length >= 68 && compareBytes(headerSlice, new TextEncoder().encode("BOOKMOBI"), 60)) {
       return true;
     }
-    if (extension === ".iso" && headerSlice.length >= 9 && compareBytes(headerSlice, new Uint8Array([0x43, 0x44, 0x30, 0x30, 0x31]), 1)) {
-      return true;
+    if (extension === ".iso") {
+      // ISO 9660 primary volume descriptor magic "CD001" at offset 0x8001 (32769)
+      const isoOffset = 0x8001;
+      const isoSignature = new Uint8Array([0x43, 0x44, 0x30, 0x30, 0x31]); // "CD001"
+      if (header.length >= isoOffset + isoSignature.length && compareBytes(header, isoSignature, isoOffset)) {
+        return true;
+      }
     }
     if (extension === ".wasm" && headerSlice.length >= 4 && compareBytes(headerSlice, new TextEncoder().encode("\0asm"), 0)) {
       return true;
