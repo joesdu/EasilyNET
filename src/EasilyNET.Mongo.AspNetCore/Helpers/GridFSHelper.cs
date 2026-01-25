@@ -214,7 +214,8 @@ public sealed class GridFSHelper : IGridFSUploadService
     {
         try
         {
-            _logger.LogDebug("FinalizeUploadAsync started for session: {SessionId}", sessionId);
+            var safeSessionId = sessionId.Replace("\r", string.Empty).Replace("\n", string.Empty);
+            _logger.LogDebug("FinalizeUploadAsync started for session: {SessionId}", safeSessionId);
             var session = await GetSessionAsync(sessionId, cancellationToken) ?? throw new InvalidOperationException($"Session {sessionId} not found");
             if (session.Status == UploadStatus.Completed)
             {
