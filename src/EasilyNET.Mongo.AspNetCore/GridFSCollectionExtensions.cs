@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
 
@@ -56,6 +57,29 @@ public static class GridFSCollectionExtensions
         }
 
         /// <summary>
+        ///     <para xml:lang="en">Configure MongoGridFS with upload validation options</para>
+        ///     <para xml:lang="zh">配置 MongoGridFS 上传验证选项</para>
+        /// </summary>
+        /// <param name="configure">
+        ///     <para xml:lang="en">Bucket configuration action</para>
+        ///     <para xml:lang="zh">存储桶配置操作</para>
+        /// </param>
+        /// <param name="serverConfigure">
+        ///     <para xml:lang="en">Server configuration action</para>
+        ///     <para xml:lang="zh">服务端配置操作</para>
+        /// </param>
+        /// <param name="validationConfigure">
+        ///     <para xml:lang="en">Upload validation configuration</para>
+        ///     <para xml:lang="zh">上传验证配置</para>
+        /// </param>
+        public IServiceCollection AddMongoGridFS(Action<GridFSBucketOptions>? configure, Action<GridFSServerOptions>? serverConfigure, Action<UploadValidationOptions> validationConfigure)
+        {
+            var db = services.BuildServiceProvider().GetService<IMongoDatabase>() ?? throw new("请先注册IMongoDatabase服务");
+            services.AddMongoGridFS(db, configure, serverConfigure, validationConfigure);
+            return services;
+        }
+
+        /// <summary>
         ///     <para xml:lang="en">Configure MongoGridFS using <see cref="MongoClientSettings" /></para>
         ///     <para xml:lang="zh">使用 <see cref="MongoClientSettings" /> 来配置MongoGridFS</para>
         /// </summary>
@@ -79,6 +103,37 @@ public static class GridFSCollectionExtensions
         {
             var db = new MongoClient(mongoSettings).GetDatabase(dbName ?? Constant.DefaultDbName);
             services.AddMongoGridFS(db, configure, serverConfigure);
+            return services;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Configure MongoGridFS using <see cref="MongoClientSettings" /> with validation options</para>
+        ///     <para xml:lang="zh">使用 <see cref="MongoClientSettings" /> 配置 MongoGridFS 并配置验证选项</para>
+        /// </summary>
+        /// <param name="mongoSettings">
+        ///     <para xml:lang="en">Mongo client settings</para>
+        ///     <para xml:lang="zh">Mongo客户端设置</para>
+        /// </param>
+        /// <param name="dbName">
+        ///     <para xml:lang="en">Database name</para>
+        ///     <para xml:lang="zh">数据库名称</para>
+        /// </param>
+        /// <param name="configure">
+        ///     <para xml:lang="en">Bucket configuration action</para>
+        ///     <para xml:lang="zh">存储桶配置操作</para>
+        /// </param>
+        /// <param name="serverConfigure">
+        ///     <para xml:lang="en">Server configuration action</para>
+        ///     <para xml:lang="zh">服务端配置操作</para>
+        /// </param>
+        /// <param name="validationConfigure">
+        ///     <para xml:lang="en">Upload validation configuration</para>
+        ///     <para xml:lang="zh">上传验证配置</para>
+        /// </param>
+        public IServiceCollection AddMongoGridFS(MongoClientSettings mongoSettings, string? dbName, Action<GridFSBucketOptions>? configure, Action<GridFSServerOptions>? serverConfigure, Action<UploadValidationOptions> validationConfigure)
+        {
+            var db = new MongoClient(mongoSettings).GetDatabase(dbName ?? Constant.DefaultDbName);
+            services.AddMongoGridFS(db, configure, serverConfigure, validationConfigure);
             return services;
         }
 
@@ -116,6 +171,40 @@ public static class GridFSCollectionExtensions
         }
 
         /// <summary>
+        ///     <para xml:lang="en">Configure MongoGridFS using <see cref="IConfiguration" /> with validation options</para>
+        ///     <para xml:lang="zh">使用 <see cref="IConfiguration" /> 配置 MongoGridFS 并配置验证选项</para>
+        /// </summary>
+        /// <param name="configuration">
+        ///     <para xml:lang="en">Configuration from environment variables and appsettings.json</para>
+        ///     <para xml:lang="zh">从环境变量和 appsettings.json 读取配置</para>
+        /// </param>
+        /// <param name="configure">
+        ///     <para xml:lang="en">Bucket configuration action</para>
+        ///     <para xml:lang="zh">存储桶配置操作</para>
+        /// </param>
+        /// <param name="serverConfigure">
+        ///     <para xml:lang="en">Server configuration action</para>
+        ///     <para xml:lang="zh">服务端配置操作</para>
+        /// </param>
+        /// <param name="validationConfigure">
+        ///     <para xml:lang="en">Upload validation configuration</para>
+        ///     <para xml:lang="zh">上传验证配置</para>
+        /// </param>
+        public IServiceCollection AddMongoGridFS(IConfiguration configuration, Action<GridFSBucketOptions>? configure, Action<GridFSServerOptions>? serverConfigure, Action<UploadValidationOptions> validationConfigure)
+        {
+            var connStr = configuration.GetConnectionString("Mongo") ?? Environment.GetEnvironmentVariable("CONNECTIONSTRINGS_MONGO");
+            if (string.IsNullOrWhiteSpace(connStr))
+            {
+                throw new("💔: appsettings.json中无ConnectionStrings.Mongo配置或环境变量中不存在CONNECTIONSTRINGS_MONGO");
+            }
+            var url = MongoUrl.Create(connStr);
+            var name = string.IsNullOrWhiteSpace(url.DatabaseName) ? Constant.DefaultDbName : url.DatabaseName;
+            var db = new MongoClient(url).GetDatabase(name);
+            services.AddMongoGridFS(db, configure, serverConfigure, validationConfigure);
+            return services;
+        }
+
+        /// <summary>
         ///     <para xml:lang="en">Configure MongoGridFS using an existing <see cref="IMongoDatabase" /></para>
         ///     <para xml:lang="zh">使用已有的 <see cref="IMongoDatabase" /> 配置MongoGridFS</para>
         /// </summary>
@@ -136,12 +225,46 @@ public static class GridFSCollectionExtensions
             services.AddMongoGridFS(db, Constant.ConfigName, c =>
             {
                 c.BucketName = Constant.BucketName;
-                c.ChunkSizeBytes = 255 * 1024; // 255KB - 优化流式传输性能
+                c.ChunkSizeBytes = GridFSDefaults.StreamingChunkSize; // 255KB - 优化流式传输性能
                 c.ReadConcern = new();
                 c.ReadPreference = ReadPreference.Primary;
                 c.WriteConcern = WriteConcern.Unacknowledged;
                 configure?.Invoke(c);
             }, serverConfigure);
+            return services;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Configure MongoGridFS using an existing <see cref="IMongoDatabase" /> with validation options</para>
+        ///     <para xml:lang="zh">使用已有的 <see cref="IMongoDatabase" /> 配置MongoGridFS并配置验证选项</para>
+        /// </summary>
+        /// <param name="db">
+        ///     <para xml:lang="en">Mongo database</para>
+        ///     <para xml:lang="zh">Mongo数据库</para>
+        /// </param>
+        /// <param name="configure">
+        ///     <para xml:lang="en">Configuration action</para>
+        ///     <para xml:lang="zh">配置操作</para>
+        /// </param>
+        /// <param name="serverConfigure">
+        ///     <para xml:lang="en">Server configuration action</para>
+        ///     <para xml:lang="zh">服务端配置操作</para>
+        /// </param>
+        /// <param name="validationConfigure">
+        ///     <para xml:lang="en">Upload validation configuration</para>
+        ///     <para xml:lang="zh">上传验证配置</para>
+        /// </param>
+        public IServiceCollection AddMongoGridFS(IMongoDatabase db, Action<GridFSBucketOptions>? configure, Action<GridFSServerOptions>? serverConfigure, Action<UploadValidationOptions> validationConfigure)
+        {
+            services.AddMongoGridFS(db, Constant.ConfigName, c =>
+            {
+                c.BucketName = Constant.BucketName;
+                c.ChunkSizeBytes = GridFSDefaults.StreamingChunkSize; // 255KB - 优化流式传输性能
+                c.ReadConcern = new();
+                c.ReadPreference = ReadPreference.Primary;
+                c.WriteConcern = WriteConcern.Unacknowledged;
+                configure?.Invoke(c);
+            }, serverConfigure, validationConfigure);
             return services;
         }
 
@@ -183,11 +306,72 @@ public static class GridFSCollectionExtensions
             services.TryAddSingleton(sp => sp.GetRequiredService<IGridFSBucketFactory>().CreateBucket(db));
             services.TryAddSingleton<GridFSCleanupHelper>();
             services.AddHostedService<GridFSBackgroundCleanupService>();
+            services.AddOptions<UploadValidationOptions>();
+            services.TryAddSingleton<IUploadValidator, DefaultUploadValidator>();
             services.AddSingleton<GridFSHelper>(sp =>
             {
                 var bucket = sp.GetRequiredService<IGridFSBucket>();
-                return new(bucket);
+                var validator = sp.GetRequiredService<IUploadValidator>();
+                var logger = sp.GetRequiredService<ILogger<GridFSHelper>>();
+                return new(bucket, validator, logger);
             });
+            services.AddSingleton<IGridFSUploadService>(sp => sp.GetRequiredService<GridFSHelper>());
+            return services;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Register <see cref="IGridFSBucket" /> and validation options</para>
+        ///     <para xml:lang="zh">注册 <see cref="IGridFSBucket" /> 并配置验证选项</para>
+        /// </summary>
+        /// <param name="db">
+        ///     <para xml:lang="en">Mongo database</para>
+        ///     <para xml:lang="zh">Mongo数据库</para>
+        /// </param>
+        /// <param name="name">
+        ///     <para xml:lang="en">Configuration name</para>
+        ///     <para xml:lang="zh">配置名称</para>
+        /// </param>
+        /// <param name="configure">
+        ///     <para xml:lang="en">Configuration action</para>
+        ///     <para xml:lang="zh">配置操作</para>
+        /// </param>
+        /// <param name="serverConfigure">
+        ///     <para xml:lang="en">Server configuration action</para>
+        ///     <para xml:lang="zh">服务端配置操作</para>
+        /// </param>
+        /// <param name="validationConfigure">
+        ///     <para xml:lang="en">Upload validation configuration</para>
+        ///     <para xml:lang="zh">上传验证配置</para>
+        /// </param>
+        public IServiceCollection AddMongoGridFS(IMongoDatabase db, string name, Action<GridFSBucketOptions> configure, Action<GridFSServerOptions>? serverConfigure, Action<UploadValidationOptions> validationConfigure)
+        {
+            services.Configure(name, configure);
+            services.Configure(validationConfigure);
+            var serverOptions = new GridFSServerOptions();
+            serverConfigure?.Invoke(serverOptions);
+            services.Configure<MvcOptions>(c => c.Conventions.Add(new GridFSControllerConvention(serverOptions)));
+            services.Configure<FormOptions>(c =>
+                    {
+                        c.MultipartHeadersLengthLimit = int.MaxValue;
+                        c.MultipartBodyLengthLimit = long.MaxValue;
+                        c.ValueLengthLimit = int.MaxValue;
+                    })
+                    .Configure<KestrelServerOptions>(c => c.Limits.MaxRequestBodySize = null)
+                    .Configure<IISServerOptions>(c => c.MaxRequestBodySize = null);
+            services.TryAddSingleton<IGridFSBucketFactory, GridFSBucketFactory>();
+            services.TryAddSingleton(sp => sp.GetRequiredService<IGridFSBucketFactory>().CreateBucket(db));
+            services.TryAddSingleton<GridFSCleanupHelper>();
+            services.AddHostedService<GridFSBackgroundCleanupService>();
+            services.AddOptions<UploadValidationOptions>();
+            services.TryAddSingleton<IUploadValidator, DefaultUploadValidator>();
+            services.AddSingleton<GridFSHelper>(sp =>
+            {
+                var bucket = sp.GetRequiredService<IGridFSBucket>();
+                var validator = sp.GetRequiredService<IUploadValidator>();
+                var logger = sp.GetRequiredService<ILogger<GridFSHelper>>();
+                return new(bucket, validator, logger);
+            });
+            services.AddSingleton<IGridFSUploadService>(sp => sp.GetRequiredService<GridFSHelper>());
             return services;
         }
     }

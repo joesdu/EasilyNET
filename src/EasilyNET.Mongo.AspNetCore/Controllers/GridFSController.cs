@@ -292,7 +292,7 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
     /// <returns></returns>
     [HttpPut("{id}/Rename/{newName}")]
     // ReSharper disable once MemberCanBeProtected.Global
-    public async Task Rename(string id, string newName, CancellationToken cancellationToken = default) => await resumableHelper.Rename(id, newName, cancellationToken);
+    public async Task Rename(string id, string newName, CancellationToken cancellationToken = default) => await resumableHelper.RenameAsync(id, newName, cancellationToken);
 
     /// <summary>
     /// 删除文件
@@ -301,5 +301,5 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
     /// <param name="ids">文件ID集合</param>
     /// <returns></returns>
     [HttpDelete]
-    public async Task<IEnumerable<string>> Delete(string[] ids, CancellationToken cancellationToken = default) => await resumableHelper.Delete(ids, cancellationToken);
+    public async Task<IEnumerable<string>> Delete(string[] ids, CancellationToken cancellationToken = default) => await resumableHelper.DeleteAsync(ids, cancellationToken);
 }

@@ -46,6 +46,21 @@
 - 集成 SkyAPM 探针支持
 - 支持自定义事件订阅器
 
+#### 7. **上传验证**
+
+- **文件安全校验**: 校验文件大小、SHA256 格式、内容类型一致性
+- **魔数验证**: 内置常见图片/音频/视频/压缩/Office/可执行文件等签名
+- **可配置策略**: 通过 `UploadValidationOptions` 配置大小上限、允许扩展名/内容类型、魔数开关
+
+<details>
+<summary>English</summary>
+
+- **Security checks**: validate file size, SHA256 format, and content-type consistency
+- **Magic number validation**: built-in signatures for common images/audio/video/archives/Office/executables
+- **Configurable policy**: configure limits, allowed extensions/content types, and magic-number switch via `UploadValidationOptions`
+
+</details>
+
 ---
 
 ### **安装**
@@ -392,6 +407,67 @@ GridFS 是 MongoDB 的分布式文件系统，支持存储超过 16MB 的大文�
 - ✅ **REST API**: 内置完整的上传/下载 API
 
 #### 快速配置
+
+#### 上传验证（推荐开启）
+
+**默认魔数覆盖范围（部分）**：
+
+- 图片：jpg/jpeg/png/gif/bmp/webp/tif/tiff/heic/heif/svg/psd/ai
+- 音频：mp3/wav/flac/ogg/oga/opus/aac
+- 视频：mp4/m4v/mov/avi/mkv/webm/flv
+- 压缩：zip/7z/rar/gz/tar/apk/jar/war/epub
+- 文档：pdf/docx/xlsx/pptx/mobi
+- 可执行：exe/dll/msi/cab/elf/macho/wasm
+- 磁盘镜像：iso/dmg
+
+<details>
+<summary>English</summary>
+
+**Default magic-number coverage (partial):**
+
+- Images: jpg/jpeg/png/gif/bmp/webp/tif/tiff/heic/heif/svg/psd/ai
+- Audio: mp3/wav/flac/ogg/oga/opus/aac
+- Video: mp4/m4v/mov/avi/mkv/webm/flv
+- Archives: zip/7z/rar/gz/tar/apk/jar/war/epub
+- Documents: pdf/docx/xlsx/pptx/mobi
+- Executables: exe/dll/msi/cab/elf/macho/wasm
+- Disk images: iso/dmg
+
+</details>
+
+GridFS 已内置上传验证器（`IUploadValidator`），默认启用魔数校验。你可以通过 `UploadValidationOptions` 进行配置：
+
+```csharp
+builder.Services.AddMongoGridFS(
+    configure: options =>
+    {
+        options.ChunkSizeBytes = 255 * 1024;
+    },
+    serverConfigure: options =>
+    {
+        options.EnableController = true;
+    },
+    validationConfigure: options =>
+    {
+        options.MaxFileSize = 512 * 1024 * 1024; // 512MB
+        options.AllowedExtensions.Add(".pdf");
+        options.AllowedExtensions.Add(".jpg");
+        options.AllowedContentTypes.Add("application/pdf");
+        options.AllowedContentTypes.Add("image/jpeg");
+        options.EnableMagicNumberValidation = true;
+    });
+```
+
+> ⚠️ **安全建议**：扩展名/Content-Type 仅作为辅助校验，建议保持魔数验证开启。
+
+<details>
+<summary>English</summary>
+
+GridFS includes a built-in upload validator (`IUploadValidator`) with magic-number validation enabled by default. Configure it via `UploadValidationOptions`.
+
+> ⚠️ **Security tip**: extensions/content-type are only auxiliary checks; keep magic-number validation enabled.
+
+</details>
 
 **方式 1: 使用容器中的 IMongoDatabase（推荐）**
 

@@ -1,3 +1,4 @@
+using EasilyNET.Mongo.AspNetCore.Common;
 using EasilyNET.Mongo.AspNetCore.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -32,7 +33,7 @@ internal sealed class GridFSCleanupHelper
         var bucketName = bucket.Options.BucketName;
         _filesCollection = bucket.Database.GetCollection<BsonDocument>($"{bucketName}.files");
         _chunksCollection = bucket.Database.GetCollection<BsonDocument>($"{bucketName}.chunks");
-        _sessionCollection = bucket.Database.GetCollection<GridFSUploadSession>("fs.upload_sessions");
+        _sessionCollection = bucket.Database.GetCollection<GridFSUploadSession>(GridFSDefaults.UploadSessionCollectionName);
     }
 
     /// <summary>
