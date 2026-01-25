@@ -432,7 +432,7 @@ public sealed class GridFSHelper : IGridFSUploadService
     /// </param>
     public async Task RenameAsync(string id, string newName, CancellationToken cancellationToken = default)
     {
-        await _bucket.RenameAsync(ObjectId.Parse(id), newName, cancellationToken).ConfigureAwait(false);
+        await _bucket.RenameAsync(ObjectId.Parse(id), newName, cancellationToken);
     }
 
     /// <summary>
