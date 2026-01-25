@@ -484,14 +484,7 @@ internal sealed class DefaultUploadValidator(IOptions<UploadValidationOptions> o
                 return Task.CompletedTask;
             }
             // ReSharper disable once ConvertIfStatementToSwitchStatement
-            if (extension is ".docx" or ".xlsx" or ".pptx")
-            {
-                if (headerLength >= 4 && header[..4].SequenceEqual(new byte[] { 0x50, 0x4B, 0x03, 0x04 }))
-                {
-                    return Task.CompletedTask;
-                }
-            }
-            if (extension is ".apk" or ".jar" or ".war")
+            if (extension is ".docx" or ".xlsx" or ".pptx" or ".apk" or ".jar" or ".war")
             {
                 if (headerLength >= 4 && header[..4].SequenceEqual(new byte[] { 0x50, 0x4B, 0x03, 0x04 }))
                 {
