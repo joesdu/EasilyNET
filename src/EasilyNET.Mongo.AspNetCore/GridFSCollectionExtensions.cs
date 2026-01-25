@@ -258,9 +258,10 @@ public static class GridFSCollectionExtensions
                 configure?.Invoke(options);
             });
             services.AddOptions<GridFSServerOptions>(Constant.ConfigName).Configure(options => serverConfigure?.Invoke(options));
-            services.TryAddSingleton<GridFSServerOptions>(sp => sp.GetRequiredService<IOptionsSnapshot<GridFSServerOptions>>().Get(Constant.ConfigName));
-            services.Configure<MvcOptions, GridFSServerOptions>((c, serverOptions) =>
+            services.Configure<MvcOptions>(c =>
             {
+                var serverOptions = new GridFSServerOptions();
+                serverConfigure?.Invoke(serverOptions);
                 c.Conventions.Add(new GridFSControllerConvention(serverOptions));
             });
             services.Configure<FormOptions>(c =>
