@@ -234,41 +234,85 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
                 return NotFound($"File or Session {id} not found or not ready.");
             }
         }
-
-        // 解析 Range 头
-        var rangeHeader = Request.Headers[HeaderNames.Range].ToString();
-        long? startByte = null;
-        long? endByte = null;
-        if (!string.IsNullOrEmpty(rangeHeader) && rangeHeader.StartsWith("bytes=", StringComparison.OrdinalIgnoreCase))
-        {
-            var range = rangeHeader[6..].Split('-');
-            if (range.Length == 2)
-            {
-                if (long.TryParse(range[0], out var start))
-                {
-                    startByte = start;
-                }
-                if (!string.IsNullOrEmpty(range[1]) && long.TryParse(range[1], out var end))
-                {
-                    endByte = end;
-                }
-            }
-        }
         try
         {
-            var result = await resumableHelper.DownloadRangeAsync(fileId, startByte ?? 0, endByte, cancellationToken);
-            var contentType = result.FileInfo.Metadata.Contains("contentType")
-                                  ? result.FileInfo.Metadata["contentType"].AsString
-                                  : "application/octet-stream";
-            // 设置响应头
-            Response.Headers[HeaderNames.AcceptRanges] = "bytes";
-            Response.Headers[HeaderNames.ContentRange] = $"bytes {result.RangeStart}-{result.RangeEnd}/{result.TotalLength}";
-            Response.StatusCode = startByte.HasValue ? 206 : 200; // 206 Partial Content
-            return File(result.Stream, contentType, result.FileInfo.Filename, false);
+            // 获取完整的可定位流,让 ASP.NET Core 内置的 Range 处理机制自动处理
+            var result = await resumableHelper.DownloadFullStreamAsync(fileId, cancellationToken);
+            
+            // 调试日志：检查流的属性
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("StreamRange: FileId={FileId}, FileName={FileName}, FileLength={FileLength}, StreamCanSeek={CanSeek}, StreamLength={StreamLength}, StreamPosition={Position}",
+                    fileId, result.FileInfo.Filename, result.FileInfo.Length, 
+                    result.Stream.CanSeek, 
+                    result.Stream.CanSeek ? result.Stream.Length : -1,
+                    result.Stream.CanSeek ? result.Stream.Position : -1);
+            }
+            
+            // 优先从 metadata.contentType 读取，如果没有则尝试从顶层 contentType 字段读取
+            // 最后根据文件扩展名推断
+            string contentType;
+            if (result.FileInfo.Metadata.Contains("contentType"))
+            {
+                contentType = result.FileInfo.Metadata["contentType"].AsString;
+            }
+            else
+            {
+                // 根据文件扩展名推断 MIME 类型
+                var ext = Path.GetExtension(result.FileInfo.Filename)?.ToLowerInvariant();
+                contentType = ext switch
+                {
+                    ".mp4"  => "video/mp4",
+                    ".webm" => "video/webm",
+                    ".ogg"  => "video/ogg",
+                    ".ogv"  => "video/ogg",
+                    ".mov"  => "video/quicktime",
+                    ".avi"  => "video/x-msvideo",
+                    ".mkv"  => "video/x-matroska",
+                    ".mp3"  => "audio/mpeg",
+                    ".wav"  => "audio/wav",
+                    ".flac" => "audio/flac",
+                    ".aac"  => "audio/aac",
+                    ".m4a"  => "audio/mp4",
+                    ".jpg"  => "image/jpeg",
+                    ".jpeg" => "image/jpeg",
+                    ".png"  => "image/png",
+                    ".gif"  => "image/gif",
+                    ".webp" => "image/webp",
+                    ".svg"  => "image/svg+xml",
+                    ".pdf"  => "application/pdf",
+                    ".json" => "application/json",
+                    ".xml"  => "application/xml",
+                    ".zip"  => "application/zip",
+                    ".txt"  => "text/plain",
+                    ".html" => "text/html",
+                    ".css"  => "text/css",
+                    ".js"   => "application/javascript",
+                    _       => "application/octet-stream"
+                };
+            }
+            
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("StreamRange: ContentType={ContentType}, RangeHeader={RangeHeader}",
+                    contentType, Request.Headers.Range.ToString());
+            }
+            
+            // 获取文件的上传时间作为 LastModified
+            var lastModified = new DateTimeOffset(result.FileInfo.UploadDateTime, TimeSpan.Zero);
+            // 使用文件ID和上传时间生成 ETag
+            var etag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{result.FileInfo.Id}_{result.FileInfo.UploadDateTime.Ticks}\"");
+            // 使用 enableRangeProcessing: true 让 ASP.NET Core 自动处理 Range 请求
+            // 框架会自动:
+            // 1. 解析 Range 头
+            // 2. 设置正确的 Content-Range 和 Content-Length
+            // 3. 返回 206 Partial Content 或 200 OK
+            // 4. 只发送请求的字节范围
+            return File(result.Stream, contentType, result.FileInfo.Filename, lastModified, etag, enableRangeProcessing: true);
         }
-        catch (ArgumentOutOfRangeException)
+        catch (FileNotFoundException)
         {
-            return StatusCode(416); // Range Not Satisfiable
+            return NotFound($"File {id} not found.");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
