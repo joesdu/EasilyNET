@@ -720,8 +720,12 @@ async function calculateSHA256WithWorker(file, onProgress) {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const copy = value.slice(); // Creates a copy with its own buffer
-        worker.postMessage({ type: "chunk", chunk: copy }, [copy.buffer]);
+        // 创建一个精确大小的 ArrayBuffer 副本，避免 Transferable 传递时的边界问题
+        // value.slice() 可能返回一个指向更大 ArrayBuffer 的视图
+        // 使用 new Uint8Array(value) 确保创建一个独立的、精确大小的缓冲区
+        const exactCopy = new Uint8Array(value.length);
+        exactCopy.set(value);
+        worker.postMessage({ type: "chunk", chunk: exactCopy }, [exactCopy.buffer]);
       }
       worker.postMessage({ type: "finalize" });
     })().catch((err) => {
