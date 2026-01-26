@@ -466,6 +466,11 @@ public sealed class GridFSHelper
             {
                 fileDoc["metadata"].AsBsonDocument.Add("refCount", 1);
             }
+            // 将 contentType 也保存到 metadata 中，便于后续读取
+            if (!string.IsNullOrEmpty(session.ContentType) && !fileDoc["metadata"].AsBsonDocument.Contains("contentType"))
+            {
+                fileDoc["metadata"].AsBsonDocument.Add("contentType", session.ContentType);
+            }
             await filesCollection.InsertOneAsync(fileDoc, cancellationToken: cancellationToken);
 
             // 更新会话
@@ -625,6 +630,35 @@ public sealed class GridFSHelper
         var rangeLength = (actualEnd - actualStart) + 1;
         var rangeStream = new RangeStream(fullStream, rangeLength);
         return (rangeStream, totalLength, actualStart, actualEnd, fileInfo);
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Downloads a full seekable stream from a GridFS file. Used with ASP.NET Core's built-in Range processing.
+    ///     </para>
+    ///     <para xml:lang="zh">从 GridFS 文件下载完整的可定位流。配合 ASP.NET Core 内置的 Range 处理使用。</para>
+    /// </summary>
+    /// <param name="id">
+    ///     <para xml:lang="en">File ObjectId</para>
+    ///     <para xml:lang="zh">文件 ObjectId</para>
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     <para xml:lang="en">Cancellation token</para>
+    ///     <para xml:lang="zh">取消令牌</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Seekable stream with file info</para>
+    ///     <para xml:lang="zh">可定位流及文件信息</para>
+    /// </returns>
+    public async Task<(Stream Stream, GridFSFileInfo FileInfo)> DownloadFullStreamAsync(ObjectId id, CancellationToken cancellationToken = default)
+    {
+        // 获取文件信息
+        var fileInfo = await (await _bucket.FindAsync(Builders<GridFSFileInfo>.Filter.Eq(f => f.Id, id), cancellationToken: cancellationToken))
+                           .FirstOrDefaultAsync(cancellationToken) ??
+                       throw new FileNotFoundException($"File with ID {id} not found");
+        // 打开可定位的下载流 - ASP.NET Core 的 enableRangeProcessing 需要可定位的流
+        var stream = await _bucket.OpenDownloadStreamAsync(id, new() { Seekable = true }, cancellationToken);
+        return (stream, fileInfo);
     }
 
     /// <summary>

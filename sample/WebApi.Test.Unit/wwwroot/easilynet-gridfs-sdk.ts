@@ -279,6 +279,54 @@ export class GridFSUploader {
     this.startTime = performance.now();
 
     try {
+      // 从服务器获取会话状态，同步已上传的分片信息
+      const sessionInfo = await this.getSessionInfo();
+      
+      // 如果会话已完成，直接返回
+      if (sessionInfo.status === "Completed" && sessionInfo.fileId) {
+        this.options.onProgress?.({
+          loaded: this.file.size,
+          total: this.file.size,
+          percentage: 100,
+          speed: 0,
+          remainingTime: 0,
+          status: "completed",
+        });
+        this.options.onComplete(sessionInfo.fileId);
+        return;
+      }
+
+      // 更新 chunkSize（如果服务器返回了）
+      if (sessionInfo.chunkSize) {
+        this.options.chunkSize = sessionInfo.chunkSize;
+      }
+
+      // 如果 chunks 未初始化，先初始化
+      if (this.chunks.length === 0) {
+        this.initializeChunks();
+      }
+
+      // 根据服务器返回的已上传分片列表，更新本地状态
+      const uploadedChunkSet = new Set(sessionInfo.uploadedChunks || []);
+      let uploadedBytes = 0;
+      for (const chunk of this.chunks) {
+        if (uploadedChunkSet.has(chunk.index)) {
+          chunk.uploaded = true;
+          uploadedBytes += chunk.end - chunk.start;
+        }
+      }
+      this.uploadedBytes = uploadedBytes;
+
+      // 更新进度显示
+      this.options.onProgress?.({
+        loaded: this.uploadedBytes,
+        total: this.file.size,
+        percentage: (this.uploadedBytes / this.file.size) * 100,
+        speed: 0,
+        remainingTime: 0,
+        status: "uploading",
+      });
+
       await this.uploadChunks();
 
       if (this.isPaused) return;
@@ -293,6 +341,32 @@ export class GridFSUploader {
       this.options.onError(error as Error);
       throw error;
     }
+  }
+
+  /**
+   * 获取会话信息
+   */
+  private async getSessionInfo(): Promise<{
+    sessionId: string;
+    chunkSize: number;
+    uploadedChunks: number[];
+    status?: string;
+    fileId?: string;
+  }> {
+    const host = (this.options.url || "").replace(/\/+$/, "");
+    const apiBase = `${host}/api/GridFS`;
+    const response = await fetch(`${apiBase}/Session/${this.uploadId}`, {
+      method: "GET",
+      headers: {
+        ...this.options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`获取会话信息失败: ${response.statusText}`);
+    }
+
+    return await response.json();
   }
 
   /**
@@ -942,8 +1016,12 @@ async function calculateSHA256WithWorker(
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const copy = value.slice(); // Creates a copy with its own buffer
-        worker.postMessage({ type: "chunk", chunk: copy }, [copy.buffer]);
+        // 创建一个精确大小的 ArrayBuffer 副本，避免 Transferable 传递时的边界问题
+        // value.slice() 可能返回一个指向更大 ArrayBuffer 的视图
+        // 使用 new Uint8Array(value) 确保创建一个独立的、精确大小的缓冲区
+        const exactCopy = new Uint8Array(value.length);
+        exactCopy.set(value);
+        worker.postMessage({ type: "chunk", chunk: exactCopy }, [exactCopy.buffer]);
       }
       worker.postMessage({ type: "finalize" });
     })().catch((err) => {

@@ -47,12 +47,15 @@ self.onmessage = async (event) => {
     }
 
     if (type === "chunk") {
+      // 确保 chunk 是 Uint8Array 类型，处理 Transferable 传递后可能的类型变化
+      const data = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
       if (hasher) {
-        hasher.update(chunk);
+        hasher.update(data);
       } else {
-        subtleChunks.push(chunk);
+        // 对于 SubtleCrypto 回退，需要保存 ArrayBuffer 的副本
+        subtleChunks.push(data.buffer.slice(0));
       }
-      processed += chunk.byteLength;
+      processed += data.byteLength;
       postMessage({ type: "progress", loaded: processed, total });
       return;
     }
