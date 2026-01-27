@@ -405,30 +405,44 @@
                     maxConcurrent: 3,
                     onProgress: (progress) => {
                         uploadProgress.style.display = 'block';
-                        const percentValue = (progress.status === 'hashing' && typeof progress.hashPercentage === 'number')
-                            ? progress.hashPercentage
+                        const percentValue = (progress.phase === 'hashing' && typeof progress.hashProgress === 'number')
+                            ? progress.hashProgress
                             : progress.percentage;
                         const percent = percentValue.toFixed(2);
                         progressBar.style.width = `${percent}%`;
                         progressBar.textContent = `${percent}%`;
 
-                        // 根据状态显示不同的文本
-                        if (progress.status === 'merging') {
-                            uploadStatus.textContent = '合并文件中,请稍候...';
-                            uploadSpeed.textContent = '--';
-                            remainingTime.textContent = '正在处理';
-                        } else if (progress.status === 'hashing') {
-                            uploadStatus.textContent = `正在计算文件特征值(Hash)... ${percent}%`;
-                            uploadSpeed.textContent = '--';
-                            remainingTime.textContent = '请稍候';
-                        } else if (progress.status === 'completed') {
-                            uploadStatus.textContent = '秒传成功!';
-                            uploadSpeed.textContent = '--';
-                            remainingTime.textContent = '完成';
-                        } else {
-                            uploadStatus.textContent = '上传中...';
-                            uploadSpeed.textContent = `${formatFileSize(progress.speed)}/s`;
-                            remainingTime.textContent = formatTime(progress.remainingTime);
+                        // 根据阶段显示不同的文本
+                        switch (progress.phase) {
+                            case 'hashing':
+                                uploadStatus.textContent = `正在计算文件特征值(Hash)... ${percent}%`;
+                                uploadSpeed.textContent = '--';
+                                remainingTime.textContent = '请稍候';
+                                break;
+                            case 'creating-session':
+                                uploadStatus.textContent = '正在创建上传会话...';
+                                uploadSpeed.textContent = '--';
+                                remainingTime.textContent = '请稍候';
+                                break;
+                            case 'finalizing':
+                                uploadStatus.textContent = '正在完成上传...';
+                                uploadSpeed.textContent = '--';
+                                remainingTime.textContent = '正在处理';
+                                break;
+                            case 'completed':
+                                uploadStatus.textContent = '上传完成!';
+                                uploadSpeed.textContent = '--';
+                                remainingTime.textContent = '完成';
+                                break;
+                            case 'uploading':
+                                uploadStatus.textContent = `上传中... (${progress.chunksUploaded}/${progress.totalChunks} 块)`;
+                                uploadSpeed.textContent = `${formatFileSize(progress.speed)}/s`;
+                                remainingTime.textContent = formatTime(progress.remainingTime);
+                                break;
+                            default:
+                                uploadStatus.textContent = '准备中...';
+                                uploadSpeed.textContent = '--';
+                                remainingTime.textContent = '--';
                         }
 
                         uploadPercentage.textContent = `${percent}%`;
