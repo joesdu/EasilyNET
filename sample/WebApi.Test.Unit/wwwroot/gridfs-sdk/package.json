@@ -1,0 +1,49 @@
+{
+  "name": "@easilynet/gridfs-sdk",
+  "version": "1.0.0",
+  "description": "Modern GridFS client SDK for chunked file uploads with resumable support",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "gridfs",
+    "mongodb",
+    "file-upload",
+    "chunked-upload",
+    "resumable-upload",
+    "easilynet"
+  ],
+  "author": "EasilyNET",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EasilyNET/EasilyNET"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "sideEffects": false
+}

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
+using System.Threading.Channels;
 using EasilyNET.Mongo.AspNetCore.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -221,19 +222,21 @@ public sealed class GridFSHelper
         {
             throw new InvalidOperationException($"Session {sessionId} is not in progress (status: {session.Status})");
         }
-        // 检查块是否已上传 - 从数据库中查询而不是依赖内存中的 session.UploadedChunks
-        // 注意: 由于我们现在直接写入 fs.chunks, 这里的 n 是 GridFS 的块索引, 而不是上传分片的索引
-        // 一个上传分片可能对应多个 GridFS 块
-        var chunksPerUpload = session.ChunkSize / GridFSChunkSize;
-        var baseN = chunkNumber * chunksPerUpload;
+
+        // 计算该块在文件中的字节偏移量（关键修复：使用字节偏移而非块数来计算 GridFS 子块索引）
+        var byteOffset = (long)chunkNumber * session.ChunkSize;
+        // 计算该块对应的第一个 GridFS 子块索引
+        var baseGridFSChunkIndex = (int)(byteOffset / GridFSChunkSize);
         var fileId = ObjectId.Parse(session.FileId!);
-        // 只要检查第一个子块是否存在即可
-        var chunkExistsFilter = Builders<BsonDocument>.Filter.And(Builders<BsonDocument>.Filter.Eq("files_id", fileId), Builders<BsonDocument>.Filter.Eq("n", baseN));
+
+        // 检查块是否已上传 - 从数据库中查询而不是依赖内存中的 session.UploadedChunks
+        var chunkExistsFilter = Builders<BsonDocument>.Filter.And(
+            Builders<BsonDocument>.Filter.Eq("files_id", fileId),
+            Builders<BsonDocument>.Filter.Eq("n", baseGridFSChunkIndex));
         var existingChunk = await _chunksCollection.Find(chunkExistsFilter).FirstOrDefaultAsync(cancellationToken);
         if (existingChunk is not null)
         {
             // 块已存在,同步 session.UploadedChunks 并返回
-            // ReSharper disable once InvertIf
             if (!session.UploadedChunks.Contains(chunkNumber))
             {
                 var syncFilter = Builders<GridFSUploadSession>.Filter.Eq(s => s.SessionId, sessionId);
@@ -242,6 +245,7 @@ public sealed class GridFSHelper
             }
             return await GetSessionAsync(sessionId, cancellationToken) ?? session;
         }
+
         // 验证块哈希
         var computedHashBytes = SHA256.HashData(data);
         var computedHash = Convert.ToHexString(computedHashBytes);
@@ -252,14 +256,16 @@ public sealed class GridFSHelper
 
         // 直接写入 GridFS chunks 集合
         // 将上传的大块拆分为 GridFS 标准块 (2MB)
-        var baseChunkIndex = chunkNumber * (session.ChunkSize / GridFSChunkSize);
+        // 关键修复：使用字节偏移计算 GridFS 子块索引，确保与客户端哈希计算一致
         var subChunks = new List<BsonDocument>();
+        var currentByteOffset = byteOffset;
         for (var i = 0; i < data.Length; i += GridFSChunkSize)
         {
             var length = Math.Min(GridFSChunkSize, data.Length - i);
             var subChunkData = new byte[length];
             Array.Copy(data, i, subChunkData, 0, length);
-            var n = baseChunkIndex + (i / GridFSChunkSize);
+            // 使用字节偏移计算 GridFS 块索引
+            var n = (int)(currentByteOffset / GridFSChunkSize);
             var chunkDoc = new BsonDocument
             {
                 { "files_id", fileId },
@@ -267,7 +273,9 @@ public sealed class GridFSHelper
                 { "data", new BsonBinaryData(subChunkData) }
             };
             subChunks.Add(chunkDoc);
+            currentByteOffset += length;
         }
+
         try
         {
             // 批量插入子块
@@ -353,14 +361,18 @@ public sealed class GridFSHelper
             var chunkFilter = Builders<BsonDocument>.Filter.Eq("files_id", fileIdObj);
             var uploadedChunkNumbers = await _chunksCollection.Find(chunkFilter).Project(Builders<BsonDocument>.Projection.Include("n")).ToListAsync(cancellationToken);
 
-            // 将 GridFS 块索引 (n) 映射回上传分片索引
-            var chunksPerUpload = Math.Max(1, session.ChunkSize / GridFSChunkSize);
-            var actualUploadedChunks = uploadedChunkNumbers
-                                       .Select(doc => doc["n"].AsInt32 / chunksPerUpload)
-                                       .Distinct()
-                                       .OrderBy(n => n)
-                                       .ToList();
-            Debug.WriteLine($"[DEBUG] Actual uploaded chunks (mapped): [{string.Join(", ", actualUploadedChunks)}]");
+            // 使用字节偏移计算来映射 GridFS 块索引回上传块索引（与 GetMissingChunksAsync 保持一致）
+            var actualUploadedChunks = new HashSet<int>();
+            foreach (var doc in uploadedChunkNumbers)
+            {
+                var gridFSChunkIndex = doc["n"].AsInt32;
+                // 计算该 GridFS 块对应的字节偏移
+                var byteOffset = (long)gridFSChunkIndex * GridFSChunkSize;
+                // 计算对应的上传块索引
+                var uploadChunkIndex = (int)(byteOffset / session.ChunkSize);
+                actualUploadedChunks.Add(uploadChunkIndex);
+            }
+            Debug.WriteLine($"[DEBUG] Actual uploaded chunks (mapped): [{string.Join(", ", actualUploadedChunks.OrderBy(n => n))}]");
 
             // 检查是否所有块都已上传
             if (actualUploadedChunks.Count != totalChunks)
@@ -503,10 +515,19 @@ public sealed class GridFSHelper
         var fileIdObj = ObjectId.Parse(session.FileId!);
         var chunkFilter = Builders<BsonDocument>.Filter.Eq("files_id", fileIdObj);
         var uploadedChunkNumbers = await _chunksCollection.Find(chunkFilter).Project(Builders<BsonDocument>.Projection.Include("n")).ToListAsync(cancellationToken);
-        var chunksPerUpload = Math.Max(1, session.ChunkSize / GridFSChunkSize);
-        var actualUploadedChunks = uploadedChunkNumbers
-                                   .Select(doc => doc["n"].AsInt32 / chunksPerUpload)
-                                   .ToHashSet();
+
+        // 使用字节偏移计算来映射 GridFS 块索引回上传块索引
+        var actualUploadedChunks = new HashSet<int>();
+        foreach (var doc in uploadedChunkNumbers)
+        {
+            var gridFSChunkIndex = doc["n"].AsInt32;
+            // 计算该 GridFS 块对应的字节偏移
+            var byteOffset = (long)gridFSChunkIndex * GridFSChunkSize;
+            // 计算对应的上传块索引
+            var uploadChunkIndex = (int)(byteOffset / session.ChunkSize);
+            actualUploadedChunks.Add(uploadChunkIndex);
+        }
+
         var allChunks = Enumerable.Range(0, totalChunks).ToList();
         var missingChunks = allChunks.Where(n => !actualUploadedChunks.Contains(n)).ToList();
         return missingChunks;

@@ -74,8 +74,10 @@ export class GridFSUploader {
           percentage: 0,
           speed: 0,
           remainingTime: 0,
-          status: "hashing",
-          hashPercentage: hashProgress.percentage,
+          phase: "hashing",
+          hashProgress: hashProgress.percentage,
+          chunksUploaded: 0,
+          totalChunks: 0,
         });
       });
       const fileHash =
@@ -99,7 +101,9 @@ export class GridFSUploader {
           percentage: 100,
           speed: 0,
           remainingTime: 0,
-          status: "completed",
+          phase: "completed",
+          chunksUploaded: 0,
+          totalChunks: 0,
         });
         this.options.onComplete(sessionInfo.fileId);
         return sessionInfo.fileId;
@@ -116,7 +120,9 @@ export class GridFSUploader {
         percentage: 0,
         speed: 0,
         remainingTime: 0,
-        status: "uploading",
+        phase: "uploading",
+        chunksUploaded: 0,
+        totalChunks: this.chunks.length,
       });
       // 2. 并发上传分块
       await this.uploadChunks();
@@ -128,7 +134,9 @@ export class GridFSUploader {
         percentage: 100,
         speed: 0,
         remainingTime: 0,
-        status: "merging",
+        phase: "finalizing",
+        chunksUploaded: this.chunks.length,
+        totalChunks: this.chunks.length,
       });
       const finalHash =
         this.cachedFileHash ?? (await this.hashPromise?.catch(() => undefined));
@@ -171,7 +179,9 @@ export class GridFSUploader {
           percentage: 100,
           speed: 0,
           remainingTime: 0,
-          status: "completed",
+          phase: "completed",
+          chunksUploaded: this.chunks.length,
+          totalChunks: this.chunks.length,
         });
         this.options.onComplete(sessionInfo.fileId);
         return;
@@ -205,7 +215,9 @@ export class GridFSUploader {
         percentage: (this.uploadedBytes / this.file.size) * 100,
         speed: 0,
         remainingTime: 0,
-        status: "uploading",
+        phase: "uploading",
+        chunksUploaded: this.chunks.filter(c => c.uploaded).length,
+        totalChunks: this.chunks.length,
       });
 
       await this.uploadChunks();
@@ -432,7 +444,9 @@ export class GridFSUploader {
       percentage: (this.uploadedBytes / this.file.size) * 100,
       speed,
       remainingTime,
-      status: "uploading",
+      phase: "uploading",
+      chunksUploaded: this.chunks.filter(c => c.uploaded).length,
+      totalChunks: this.chunks.length,
     };
     this.options.onProgress(progress);
   }

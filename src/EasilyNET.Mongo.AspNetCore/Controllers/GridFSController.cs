@@ -1,6 +1,8 @@
 using EasilyNET.Mongo.AspNetCore.Helpers;
+using EasilyNET.Mongo.AspNetCore.Options;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using MongoDB.Bson;
 
@@ -14,8 +16,14 @@ namespace EasilyNET.Mongo.AspNetCore.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [ApiExplorerSettings(GroupName = "MongoFS")]
-public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridFSController> logger) : ControllerBase
+public sealed class GridFSController(
+    GridFSHelper resumableHelper,
+    ILogger<GridFSController> logger,
+    GridFSRateLimiter? rateLimiter = null,
+    IOptions<GridFSRateLimitOptions>? uploadOptions = null) : ControllerBase
 {
+    private readonly GridFSRateLimitOptions _uploadOptions = uploadOptions?.Value ?? new();
+
     /// <summary>
     /// 创建断点续传会话
     /// </summary>
@@ -37,17 +45,38 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
         string? contentType = null,
         CancellationToken cancellationToken = default)
     {
-        var session = await resumableHelper.CreateSessionAsync(filename, totalSize, fileHash, contentType, cancellationToken: cancellationToken);
-        return Ok(new
+        // 验证文件大小限制
+        if (_uploadOptions.MaxFileSize > 0 && totalSize > _uploadOptions.MaxFileSize)
         {
-            sessionId = session.SessionId,
-            filename = session.Filename,
-            totalSize = session.TotalSize,
-            chunkSize = session.ChunkSize,
-            expiresAt = session.ExpiresAt,
-            status = session.Status.ToString(),
-            fileId = session.FileId // 如果秒传成功,这里会有值
-        });
+            return BadRequest($"File size {totalSize} exceeds maximum allowed size {_uploadOptions.MaxFileSize}");
+        }
+
+        // 尝试获取会话槽位（速率限制）
+        if (rateLimiter is not null && !await rateLimiter.TryAcquireSessionSlotAsync(cancellationToken))
+        {
+            return StatusCode(429, "Too many concurrent upload sessions. Please try again later.");
+        }
+
+        try
+        {
+            var session = await resumableHelper.CreateSessionAsync(filename, totalSize, fileHash, contentType, cancellationToken: cancellationToken);
+            return Ok(new
+            {
+                sessionId = session.SessionId,
+                filename = session.Filename,
+                totalSize = session.TotalSize,
+                chunkSize = session.ChunkSize,
+                expiresAt = session.ExpiresAt,
+                status = session.Status.ToString(),
+                fileId = session.FileId // 如果秒传成功,这里会有值
+            });
+        }
+        catch (Exception)
+        {
+            // 如果创建会话失败，释放槽位
+            rateLimiter?.ReleaseSessionSlot();
+            throw;
+        }
     }
 
     /// <summary>
@@ -68,11 +97,24 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
         string chunkHash,
         CancellationToken cancellationToken = default)
     {
-        using var ms = new MemoryStream();
-        await Request.Body.CopyToAsync(ms, cancellationToken);
-        var data = ms.ToArray();
+        // 尝试获取块上传槽位（速率限制）
+        if (rateLimiter is not null && !await rateLimiter.TryAcquireChunkSlotAsync(sessionId, cancellationToken))
+        {
+            return StatusCode(429, "Too many concurrent chunk uploads. Please try again later.");
+        }
+
         try
         {
+            using var ms = new MemoryStream();
+            await Request.Body.CopyToAsync(ms, cancellationToken);
+            var data = ms.ToArray();
+
+            // 验证块大小限制
+            if (data.Length > _uploadOptions.MaxChunkSize)
+            {
+                return BadRequest($"Chunk size {data.Length} exceeds maximum allowed size {_uploadOptions.MaxChunkSize}");
+            }
+
             var session = await resumableHelper.UploadChunkAsync(sessionId, chunkNumber, data, chunkHash, cancellationToken);
             return Ok(new
             {
@@ -87,6 +129,10 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
         catch (InvalidOperationException ex)
         {
             return BadRequest(ex.Message);
+        }
+        finally
+        {
+            rateLimiter?.ReleaseChunkSlot(sessionId);
         }
     }
 
@@ -156,6 +202,11 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
         try
         {
             var fileId = await resumableHelper.FinalizeUploadAsync(sessionId, fileHash, skipHashValidation, cancellationToken);
+
+            // 上传完成，释放速率限制器资源
+            rateLimiter?.RemoveSession(sessionId);
+            rateLimiter?.ReleaseSessionSlot();
+
             return Ok(new
             {
                 fileId = fileId.ToString(),
@@ -203,6 +254,11 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
         {
             // 默认删除会话记录
             await resumableHelper.CancelSessionAsync(sessionId, true, cancellationToken);
+
+            // 释放速率限制器资源
+            rateLimiter?.RemoveSession(sessionId);
+            rateLimiter?.ReleaseSessionSlot();
+
             return Ok(new { message = "Upload cancelled successfully" });
         }
         catch (Exception ex)
