@@ -19,7 +19,7 @@
     <PackageVersion Include="MongoDB.Analyzer" Version="2.0.0" />
     <PackageVersion Include="MongoDB.Driver" Version="3.6.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.2.0" />
-    <PackageVersion Include="Spectre.Console.Json" Version="0.54.1-alpha.0.33" />
+    <PackageVersion Include="Spectre.Console.Json" Version="0.54.1-alpha.0.36" />
     <!--microsoft asp.net core -->
     <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.2" />
     <PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.2.0" />
