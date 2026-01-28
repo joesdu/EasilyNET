@@ -176,11 +176,7 @@ public static class GridFSCollectionExtensions
             serverConfigure?.Invoke(serverOptions);
 
             // 配置上传选项（速率限制、并发控制等）
-            services.Configure<GridFSRateLimitOptions>(options =>
-            {
-                uploadConfigure?.Invoke(options);
-            });
-
+            services.Configure<GridFSRateLimitOptions>(options => { uploadConfigure?.Invoke(options); });
             services.Configure<MvcOptions>(c => c.Conventions.Add(new GridFSControllerConvention(serverOptions)));
             services.Configure<FormOptions>(c =>
                     {
@@ -196,7 +192,6 @@ public static class GridFSCollectionExtensions
 
             // 注册速率限制器
             services.TryAddSingleton<GridFSRateLimiter>();
-
             services.AddHostedService<GridFSBackgroundCleanupService>();
             services.AddSingleton<GridFSHelper>(sp =>
             {

@@ -56,7 +56,6 @@ public sealed class GridFSController(
         {
             return StatusCode(429, "Too many concurrent upload sessions. Please try again later.");
         }
-
         try
         {
             var session = await resumableHelper.CreateSessionAsync(filename, totalSize, fileHash, contentType, cancellationToken: cancellationToken);
@@ -102,7 +101,6 @@ public sealed class GridFSController(
         {
             return StatusCode(429, "Too many concurrent chunk uploads. Please try again later.");
         }
-
         try
         {
             using var ms = new MemoryStream();
@@ -114,7 +112,6 @@ public sealed class GridFSController(
             {
                 return BadRequest($"Chunk size {data.Length} exceeds maximum allowed size {_uploadOptions.MaxChunkSize}");
             }
-
             var session = await resumableHelper.UploadChunkAsync(sessionId, chunkNumber, data, chunkHash, cancellationToken);
             return Ok(new
             {
@@ -206,7 +203,6 @@ public sealed class GridFSController(
             // 上传完成，释放速率限制器资源
             rateLimiter?.RemoveSession(sessionId);
             rateLimiter?.ReleaseSessionSlot();
-
             return Ok(new
             {
                 fileId = fileId.ToString(),
@@ -258,7 +254,6 @@ public sealed class GridFSController(
             // 释放速率限制器资源
             rateLimiter?.RemoveSession(sessionId);
             rateLimiter?.ReleaseSessionSlot();
-
             return Ok(new { message = "Upload cancelled successfully" });
         }
         catch (Exception ex)
@@ -294,17 +289,17 @@ public sealed class GridFSController(
         {
             // 获取完整的可定位流,让 ASP.NET Core 内置的 Range 处理机制自动处理
             var result = await resumableHelper.DownloadFullStreamAsync(fileId, cancellationToken);
-            
+
             // 调试日志：检查流的属性
             if (logger.IsEnabled(LogLevel.Debug))
             {
                 logger.LogDebug("StreamRange: FileId={FileId}, FileName={FileName}, FileLength={FileLength}, StreamCanSeek={CanSeek}, StreamLength={StreamLength}, StreamPosition={Position}",
-                    fileId, result.FileInfo.Filename, result.FileInfo.Length, 
-                    result.Stream.CanSeek, 
+                    fileId, result.FileInfo.Filename, result.FileInfo.Length,
+                    result.Stream.CanSeek,
                     result.Stream.CanSeek ? result.Stream.Length : -1,
                     result.Stream.CanSeek ? result.Stream.Position : -1);
             }
-            
+
             // 优先从 metadata.contentType 读取，如果没有则尝试从顶层 contentType 字段读取
             // 最后根据文件扩展名推断
             string contentType;
@@ -315,7 +310,7 @@ public sealed class GridFSController(
             else
             {
                 // 根据文件扩展名推断 MIME 类型
-                var ext = Path.GetExtension(result.FileInfo.Filename)?.ToLowerInvariant();
+                var ext = Path.GetExtension(result.FileInfo.Filename).ToLowerInvariant();
                 contentType = ext switch
                 {
                     ".mp4"  => "video/mp4",
@@ -347,24 +342,23 @@ public sealed class GridFSController(
                     _       => "application/octet-stream"
                 };
             }
-            
             if (logger.IsEnabled(LogLevel.Debug))
             {
                 logger.LogDebug("StreamRange: ContentType={ContentType}, RangeHeader={RangeHeader}",
                     contentType, Request.Headers.Range.ToString());
             }
-            
+
             // 获取文件的上传时间作为 LastModified
             var lastModified = new DateTimeOffset(result.FileInfo.UploadDateTime, TimeSpan.Zero);
             // 使用文件ID和上传时间生成 ETag
-            var etag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{result.FileInfo.Id}_{result.FileInfo.UploadDateTime.Ticks}\"");
+            var etag = new EntityTagHeaderValue($"\"{result.FileInfo.Id}_{result.FileInfo.UploadDateTime.Ticks}\"");
             // 使用 enableRangeProcessing: true 让 ASP.NET Core 自动处理 Range 请求
             // 框架会自动:
             // 1. 解析 Range 头
             // 2. 设置正确的 Content-Range 和 Content-Length
             // 3. 返回 206 Partial Content 或 200 OK
             // 4. 只发送请求的字节范围
-            return File(result.Stream, contentType, result.FileInfo.Filename, lastModified, etag, enableRangeProcessing: true);
+            return File(result.Stream, contentType, result.FileInfo.Filename, lastModified, etag, true);
         }
         catch (FileNotFoundException)
         {

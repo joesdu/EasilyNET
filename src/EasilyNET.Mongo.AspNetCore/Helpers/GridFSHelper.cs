@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
-using System.Threading.Channels;
 using EasilyNET.Mongo.AspNetCore.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -230,19 +229,19 @@ public sealed class GridFSHelper
         var fileId = ObjectId.Parse(session.FileId!);
 
         // 检查块是否已上传 - 从数据库中查询而不是依赖内存中的 session.UploadedChunks
-        var chunkExistsFilter = Builders<BsonDocument>.Filter.And(
-            Builders<BsonDocument>.Filter.Eq("files_id", fileId),
+        var chunkExistsFilter = Builders<BsonDocument>.Filter.And(Builders<BsonDocument>.Filter.Eq("files_id", fileId),
             Builders<BsonDocument>.Filter.Eq("n", baseGridFSChunkIndex));
         var existingChunk = await _chunksCollection.Find(chunkExistsFilter).FirstOrDefaultAsync(cancellationToken);
         if (existingChunk is not null)
         {
             // 块已存在,同步 session.UploadedChunks 并返回
-            if (!session.UploadedChunks.Contains(chunkNumber))
+            if (session.UploadedChunks.Contains(chunkNumber))
             {
-                var syncFilter = Builders<GridFSUploadSession>.Filter.Eq(s => s.SessionId, sessionId);
-                var syncUpdate = Builders<GridFSUploadSession>.Update.AddToSet(s => s.UploadedChunks, chunkNumber);
-                await _sessionCollection.UpdateOneAsync(syncFilter, syncUpdate, cancellationToken: cancellationToken);
+                return await GetSessionAsync(sessionId, cancellationToken) ?? session;
             }
+            var syncFilter = Builders<GridFSUploadSession>.Filter.Eq(s => s.SessionId, sessionId);
+            var syncUpdate = Builders<GridFSUploadSession>.Update.AddToSet(s => s.UploadedChunks, chunkNumber);
+            await _sessionCollection.UpdateOneAsync(syncFilter, syncUpdate, cancellationToken: cancellationToken);
             return await GetSessionAsync(sessionId, cancellationToken) ?? session;
         }
 
@@ -275,7 +274,6 @@ public sealed class GridFSHelper
             subChunks.Add(chunkDoc);
             currentByteOffset += length;
         }
-
         try
         {
             // 批量插入子块
@@ -527,7 +525,6 @@ public sealed class GridFSHelper
             var uploadChunkIndex = (int)(byteOffset / session.ChunkSize);
             actualUploadedChunks.Add(uploadChunkIndex);
         }
-
         var allChunks = Enumerable.Range(0, totalChunks).ToList();
         var missingChunks = allChunks.Where(n => !actualUploadedChunks.Contains(n)).ToList();
         return missingChunks;
