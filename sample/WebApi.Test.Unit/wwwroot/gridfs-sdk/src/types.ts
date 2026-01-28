@@ -125,6 +125,11 @@ export type UploadState =
   | 'cancelled'
   | 'error';
 
+/**
+ * Internal upload state (includes all possible states during upload flow)
+ */
+export type InternalUploadState = UploadState;
+
 // ============================================================================
 // API Response Types
 // ============================================================================

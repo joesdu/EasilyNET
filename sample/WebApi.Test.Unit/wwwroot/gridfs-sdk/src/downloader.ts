@@ -129,7 +129,7 @@ export class GridFSDownloader {
         return;
       }
 
-      return new Blob(chunks);
+      return new Blob(chunks as BlobPart[]);
 
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));

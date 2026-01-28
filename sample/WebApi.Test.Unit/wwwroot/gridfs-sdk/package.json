@@ -17,7 +17,7 @@
     "src"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean && cp src/hash-worker.js dist/hash-worker.js && cp -r src/lib dist/lib",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",

@@ -125,7 +125,7 @@ export class GridFSUploader {
         this.cachedFileHash = fileHash;
       }
 
-      if (this._state === 'paused' || this._state === 'cancelled') {
+      if ((this._state as UploadState) === 'paused' || (this._state as UploadState) === 'cancelled') {
         return this.sessionId;
       }
 
@@ -172,7 +172,7 @@ export class GridFSUploader {
       this.setPhase('uploading');
       await this.uploadChunks();
 
-      if (this._state === 'paused' || this._state === 'cancelled') {
+      if ((this._state as UploadState) === 'paused' || (this._state as UploadState) === 'cancelled') {
         return this.sessionId;
       }
 

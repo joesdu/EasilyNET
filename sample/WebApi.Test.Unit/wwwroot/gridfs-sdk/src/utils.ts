@@ -65,6 +65,13 @@ export async function calculateFileHash(
 }
 
 /**
+ * Optimal chunk size for reading file and sending to worker.
+ * Larger chunks reduce postMessage overhead significantly for large files.
+ * 4MB provides good balance between memory usage and performance.
+ */
+const HASH_READ_CHUNK_SIZE = 4 * 1024 * 1024; // 4MB
+
+/**
  * Calculate hash using Web Worker
  */
 async function calculateHashWithWorker(
@@ -126,17 +133,19 @@ async function calculateHashWithWorker(
     // Start the worker
     worker.postMessage({ type: 'start', size: file.size });
 
-    // Stream file chunks to worker
+    // Stream file chunks to worker using larger chunk sizes for better performance
     (async () => {
-      const reader = file.stream().getReader();
       try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          // Create exact copy to avoid buffer boundary issues
-          const exactCopy = new Uint8Array(value.length);
-          exactCopy.set(value);
-          worker.postMessage({ type: 'chunk', chunk: exactCopy }, [exactCopy.buffer]);
+        let offset = 0;
+        while (offset < file.size) {
+          const end = Math.min(offset + HASH_READ_CHUNK_SIZE, file.size);
+          const blob = file.slice(offset, end);
+          const buffer = await blob.arrayBuffer();
+          const chunk = new Uint8Array(buffer);
+          
+          // Transfer the buffer to avoid copying (zero-copy transfer)
+          worker.postMessage({ type: 'chunk', chunk }, [chunk.buffer]);
+          offset = end;
         }
         worker.postMessage({ type: 'finalize' });
       } catch (err) {
