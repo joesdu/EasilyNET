@@ -39,10 +39,28 @@ public sealed class GridFSRateLimitOptions
     public long MaxFileSize { get; set; } = 10L * 1024 * 1024 * 1024;
 
     /// <summary>
-    ///     <para xml:lang="en">Upload session expiration in hours (default: 24)</para>
-    ///     <para xml:lang="zh">上传会话过期时间（小时，默认：24）</para>
+    ///     <para xml:lang="en">Upload session expiration in hours (default: 168 = 7 days)</para>
+    ///     <para xml:lang="zh">上传会话过期时间（小时，默认：168 = 7天）</para>
     /// </summary>
-    public int SessionExpirationHours { get; set; } = 24;
+    public int SessionExpirationHours { get; set; } = 168;
+
+    /// <summary>
+    ///     <para xml:lang="en">Default chunk size in bytes for upload (default: 256KB)</para>
+    ///     <para xml:lang="zh">上传的默认分片大小（字节，默认：256KB）</para>
+    /// </summary>
+    public int DefaultChunkSize { get; set; } = 256 * 1024;
+
+    /// <summary>
+    ///     <para xml:lang="en">Background cleanup interval in minutes (default: 60)</para>
+    ///     <para xml:lang="zh">后台清理间隔（分钟，默认：60）</para>
+    /// </summary>
+    public int CleanupIntervalMinutes { get; set; } = 60;
+
+    /// <summary>
+    ///     <para xml:lang="en">Enable cross-session resume by file hash (default: true)</para>
+    ///     <para xml:lang="zh">启用基于文件哈希的跨会话断点续传（默认：true）</para>
+    /// </summary>
+    public bool EnableCrossSessionResume { get; set; } = true;
 
     /// <summary>
     ///     <para xml:lang="en">Enable rate limiting (default: true)</para>
@@ -61,18 +79,6 @@ public sealed class GridFSRateLimitOptions
     ///     <para xml:lang="zh">每个速率限制窗口的最大请求数（默认：50）</para>
     /// </summary>
     public int MaxRequestsPerWindow { get; set; } = 50;
-
-    /// <summary>
-    ///     <para xml:lang="en">Enable server-side hash verification on finalize (default: true)</para>
-    ///     <para xml:lang="zh">在完成上传时启用服务端哈希验证（默认：true）</para>
-    /// </summary>
-    public bool EnableServerHashVerification { get; set; } = true;
-
-    /// <summary>
-    ///     <para xml:lang="en">Database write timeout in seconds (default: 30)</para>
-    ///     <para xml:lang="zh">数据库写入超时（秒，默认：30）</para>
-    /// </summary>
-    public int DatabaseWriteTimeoutSeconds { get; set; } = 30;
 
     /// <summary>
     ///     <para xml:lang="en">Enable chunk hash verification (default: true)</para>

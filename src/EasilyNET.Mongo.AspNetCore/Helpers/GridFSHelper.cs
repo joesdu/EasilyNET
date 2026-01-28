@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using EasilyNET.Mongo.AspNetCore.Models;
+using EasilyNET.Mongo.AspNetCore.Options;
+using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
@@ -13,9 +15,10 @@ namespace EasilyNET.Mongo.AspNetCore.Helpers;
 /// </summary>
 public sealed class GridFSHelper
 {
-    private const int GridFSChunkSize = 2 * 1024 * 1024; // 2MB standard chunk size
+    private const int GridFSChunkSize = 261120; // 255KB - GridFS standard chunk size for optimal streaming
     private readonly IGridFSBucket _bucket;
     private readonly IMongoCollection<BsonDocument> _chunksCollection;
+    private readonly GridFSRateLimitOptions _options;
     private readonly IMongoCollection<GridFSUploadSession> _sessionCollection;
 
     /// <summary>
@@ -26,9 +29,14 @@ public sealed class GridFSHelper
     ///     <para xml:lang="en">GridFS bucket</para>
     ///     <para xml:lang="zh">GridFS 存储桶</para>
     /// </param>
-    public GridFSHelper(IGridFSBucket bucket)
+    /// <param name="options">
+    ///     <para xml:lang="en">Rate limit options (optional)</para>
+    ///     <para xml:lang="zh">速率限制选项（可选）</para>
+    /// </param>
+    public GridFSHelper(IGridFSBucket bucket, IOptions<GridFSRateLimitOptions>? options = null)
     {
         _bucket = bucket;
+        _options = options?.Value ?? new GridFSRateLimitOptions();
         var database = _bucket.Database;
         _sessionCollection = database.GetCollection<GridFSUploadSession>("fs.upload_sessions");
         // 直接操作 GridFS 的 chunks 集合
@@ -57,13 +65,26 @@ public sealed class GridFSHelper
             Background = true
         });
         _sessionCollection.Indexes.CreateOne(ttlIndexModel);
+
+        // 跨会话恢复索引 - 基于 fileHash + totalSize 查找未完成会话
+        var resumeIndexKeys = Builders<GridFSUploadSession>.IndexKeys
+                                                           .Ascending(s => s.FileHash)
+                                                           .Ascending(s => s.TotalSize)
+                                                           .Ascending(s => s.Status);
+        var resumeIndexModel = new CreateIndexModel<GridFSUploadSession>(resumeIndexKeys, new()
+        {
+            Name = "FileHash_TotalSize_Status_Index",
+            Background = true
+        });
+        _sessionCollection.Indexes.CreateOne(resumeIndexModel);
     }
 
     /// <summary>
     ///     <para xml:lang="en">
     ///     Create a new resumable upload session. Returns session ID that can be used to resume upload later.
+    ///     If an incomplete session with the same fileHash and totalSize exists, it will be returned for resumption.
     ///     </para>
-    ///     <para xml:lang="zh">创建新的断点续传会话。返回会话 ID,可用于稍后恢复上传。</para>
+    ///     <para xml:lang="zh">创建新的断点续传会话。返回会话 ID,可用于稍后恢复上传。如果存在相同 fileHash 和 totalSize 的未完成会话,将返回该会话以便续传。</para>
     /// </summary>
     /// <param name="filename">
     ///     <para xml:lang="en">Filename</para>
@@ -82,12 +103,12 @@ public sealed class GridFSHelper
     ///     <para xml:lang="zh">文件类型(可选)</para>
     /// </param>
     /// <param name="chunkSize">
-    ///     <para xml:lang="en">Chunk size in bytes (optional, uses optimal size if not specified)</para>
-    ///     <para xml:lang="zh">块大小(可选,未指定时使用最优大小)</para>
+    ///     <para xml:lang="en">Chunk size in bytes (optional, uses configured default if not specified)</para>
+    ///     <para xml:lang="zh">块大小(可选,未指定时使用配置的默认值)</para>
     /// </param>
     /// <param name="sessionExpirationHours">
-    ///     <para xml:lang="en">Session expiration time in hours (default: 24 hours)</para>
-    ///     <para xml:lang="zh">会话过期时间(小时,默认 24 小时)</para>
+    ///     <para xml:lang="en">Session expiration time in hours (optional, uses configured default if not specified)</para>
+    ///     <para xml:lang="zh">会话过期时间(小时,可选,未指定时使用配置的默认值)</para>
     /// </param>
     /// <param name="cancellationToken">
     ///     <para xml:lang="en">Cancellation token</para>
@@ -103,16 +124,20 @@ public sealed class GridFSHelper
         string? fileHash,
         string? contentType = null,
         int? chunkSize = null,
-        int sessionExpirationHours = 24,
+        int? sessionExpirationHours = null,
         CancellationToken cancellationToken = default)
     {
-        // 验证分片大小
-        if (chunkSize.HasValue && chunkSize.Value % GridFSChunkSize != 0)
+        // 使用配置的默认值
+        var effectiveChunkSize = chunkSize ?? _options.DefaultChunkSize;
+        var effectiveExpirationHours = sessionExpirationHours ?? _options.SessionExpirationHours;
+
+        // 验证分片大小在允许范围内
+        if (effectiveChunkSize < _options.MinChunkSize || effectiveChunkSize > _options.MaxChunkSize)
         {
-            throw new ArgumentException($"Chunk size must be a multiple of {GridFSChunkSize} bytes (2MB).", nameof(chunkSize));
+            throw new ArgumentException($"Chunk size must be between {_options.MinChunkSize} and {_options.MaxChunkSize} bytes.", nameof(chunkSize));
         }
 
-        // 1. 检查是否存在相同哈希的文件 (秒传)
+        // 1. 检查是否存在相同哈希的已完成文件 (秒传)
         if (!string.IsNullOrEmpty(fileHash))
         {
             // 统一转换为大写进行比较,确保与存储的格式一致
@@ -130,7 +155,7 @@ public sealed class GridFSHelper
                     Filename = filename,
                     TotalSize = totalSize,
                     UploadedSize = totalSize,
-                    ChunkSize = chunkSize ?? existingFile.ChunkSizeBytes,
+                    ChunkSize = effectiveChunkSize,
                     ContentType = contentType,
                     FileId = existingFile.Id.ToString(),
                     FileHash = fileHash,
@@ -143,32 +168,79 @@ public sealed class GridFSHelper
                 await _sessionCollection.InsertOneAsync(completedSession, cancellationToken: cancellationToken);
                 return completedSession;
             }
+
+            // 2. 检查是否存在未完成的会话可以恢复 (跨会话断点续传)
+            if (_options.EnableCrossSessionResume)
+            {
+                var existingSession = await FindResumableSessionAsync(fileHash, totalSize, cancellationToken);
+                if (existingSession != null)
+                {
+                    Debug.WriteLine($"[INFO] Found resumable session: {existingSession.SessionId} for file: {filename}, hash: {fileHash}");
+                    // 更新会话的过期时间和文件名（可能用户重命名了文件）
+                    var updateFilter = Builders<GridFSUploadSession>.Filter.Eq(s => s.SessionId, existingSession.SessionId);
+                    var update = Builders<GridFSUploadSession>.Update
+                                                              .Set(s => s.Filename, filename)
+                                                              .Set(s => s.ContentType, contentType ?? existingSession.ContentType)
+                                                              .Set(s => s.UpdatedAt, DateTime.UtcNow)
+                                                              .Set(s => s.ExpiresAt, DateTime.UtcNow.AddHours(effectiveExpirationHours));
+                    await _sessionCollection.UpdateOneAsync(updateFilter, update, cancellationToken: cancellationToken);
+                    // 返回更新后的会话
+                    return (await GetSessionAsync(existingSession.SessionId, cancellationToken))!;
+                }
+            }
         }
 
-        // 2. 正常创建会话
-        // 确保分片大小是 GridFSChunkSize (2MB) 的整数倍, 以便直接映射到 GridFS chunks
+        // 3. 正常创建新会话
         var session = new GridFSUploadSession
         {
             SessionId = ObjectId.GenerateNewId().ToString(),
             Filename = filename,
             TotalSize = totalSize,
             UploadedSize = 0,
-            ChunkSize = chunkSize ??
-                        totalSize switch
-                        {
-                            < 20 * 1024 * 1024  => 1 * GridFSChunkSize, // < 20MB: 2MB 分片
-                            < 100 * 1024 * 1024 => 2 * GridFSChunkSize, // < 100MB: 4MB 分片
-                            _                   => 5 * GridFSChunkSize  // > 100MB: 10MB 分片
-                        },
+            ChunkSize = effectiveChunkSize,
             ContentType = contentType,
             FileId = ObjectId.GenerateNewId().ToString(), // 预先生成 FileId
             FileHash = fileHash,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
-            ExpiresAt = DateTime.UtcNow.AddHours(sessionExpirationHours),
+            ExpiresAt = DateTime.UtcNow.AddHours(effectiveExpirationHours),
             Status = UploadStatus.InProgress
         };
         await _sessionCollection.InsertOneAsync(session, cancellationToken: cancellationToken);
+        return session;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Find a resumable session by file hash and total size</para>
+    ///     <para xml:lang="zh">通过文件哈希和总大小查找可恢复的会话</para>
+    /// </summary>
+    /// <param name="fileHash">
+    ///     <para xml:lang="en">File SHA256 hash</para>
+    ///     <para xml:lang="zh">文件 SHA256 哈希</para>
+    /// </param>
+    /// <param name="totalSize">
+    ///     <para xml:lang="en">Total file size in bytes</para>
+    ///     <para xml:lang="zh">文件总大小(字节)</para>
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     <para xml:lang="en">Cancellation token</para>
+    ///     <para xml:lang="zh">取消令牌</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Resumable session or null if not found</para>
+    ///     <para xml:lang="zh">可恢复的会话,如果未找到则返回 null</para>
+    /// </returns>
+    public async Task<GridFSUploadSession?> FindResumableSessionAsync(string fileHash, long totalSize, CancellationToken cancellationToken = default)
+    {
+        var normalizedHash = fileHash.ToUpperInvariant();
+        var filter = Builders<GridFSUploadSession>.Filter.And(Builders<GridFSUploadSession>.Filter.Eq(s => s.FileHash, normalizedHash),
+            Builders<GridFSUploadSession>.Filter.Eq(s => s.TotalSize, totalSize),
+            Builders<GridFSUploadSession>.Filter.Eq(s => s.Status, UploadStatus.InProgress),
+            Builders<GridFSUploadSession>.Filter.Gt(s => s.ExpiresAt, DateTime.UtcNow));
+        var session = await _sessionCollection.Find(filter)
+                                              .SortByDescending(s => s.UpdatedAt)
+                                              .FirstOrDefaultAsync(cancellationToken);
+        session?.UploadedChunks.Sort();
         return session;
     }
 
@@ -222,7 +294,13 @@ public sealed class GridFSHelper
             throw new InvalidOperationException($"Session {sessionId} is not in progress (status: {session.Status})");
         }
 
-        // 计算该块在文件中的字节偏移量（关键修复：使用字节偏移而非块数来计算 GridFS 子块索引）
+        // 检查会话是否已过期
+        if (session.ExpiresAt <= DateTime.UtcNow)
+        {
+            throw new InvalidOperationException($"Session {sessionId} has expired");
+        }
+
+        // 计算该块在文件中的字节偏移量
         var byteOffset = (long)chunkNumber * session.ChunkSize;
         // 计算该块对应的第一个 GridFS 子块索引
         var baseGridFSChunkIndex = (int)(byteOffset / GridFSChunkSize);
@@ -245,17 +323,19 @@ public sealed class GridFSHelper
             return await GetSessionAsync(sessionId, cancellationToken) ?? session;
         }
 
-        // 验证块哈希
-        var computedHashBytes = SHA256.HashData(data);
-        var computedHash = Convert.ToHexString(computedHashBytes);
-        if (!computedHash.Equals(chunkHash, StringComparison.OrdinalIgnoreCase))
+        // 验证块哈希（如果启用）
+        if (_options.EnableChunkHashVerification)
         {
-            throw new InvalidOperationException($"Chunk hash verification failed. Expected: {chunkHash}, Got: {computedHash}");
+            var computedHashBytes = SHA256.HashData(data);
+            var computedHash = Convert.ToHexString(computedHashBytes);
+            if (!computedHash.Equals(chunkHash, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Chunk hash verification failed. Expected: {chunkHash}, Got: {computedHash}");
+            }
         }
 
         // 直接写入 GridFS chunks 集合
-        // 将上传的大块拆分为 GridFS 标准块 (2MB)
-        // 关键修复：使用字节偏移计算 GridFS 子块索引，确保与客户端哈希计算一致
+        // 将上传的块拆分为 GridFS 标准块 (255KB)
         var subChunks = new List<BsonDocument>();
         var currentByteOffset = byteOffset;
         for (var i = 0; i < data.Length; i += GridFSChunkSize)
@@ -292,11 +372,12 @@ public sealed class GridFSHelper
             return await GetSessionAsync(sessionId, cancellationToken) ?? session;
         }
 
-        // 更新会话 - 添加块号到 UploadedChunks 列表
+        // 更新会话 - 添加块号到 UploadedChunks 列表，并延长过期时间
         var filter = Builders<GridFSUploadSession>.Filter.Eq(s => s.SessionId, sessionId);
         var update = Builders<GridFSUploadSession>.Update.AddToSet(s => s.UploadedChunks, chunkNumber)
                                                   .Inc(s => s.UploadedSize, data.Length)
-                                                  .Set(s => s.UpdatedAt, DateTime.UtcNow);
+                                                  .Set(s => s.UpdatedAt, DateTime.UtcNow)
+                                                  .Set(s => s.ExpiresAt, DateTime.UtcNow.AddHours(_options.SessionExpirationHours));
         await _sessionCollection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
         // 获取最新会话状态返回
         var updatedSession = await GetSessionAsync(sessionId, cancellationToken);
@@ -599,55 +680,6 @@ public sealed class GridFSHelper
         {
             Debug.WriteLine($"[WARN] File {fileId} not found during delete");
         }
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">
-    ///     Downloads a range of bytes from a GridFS file. Supports HTTP Range header for video/audio streaming.
-    ///     </para>
-    ///     <para xml:lang="zh">从 GridFS 文件中下载指定范围的字节。支持 HTTP Range 头,用于视频/音频流传输。</para>
-    /// </summary>
-    /// <param name="id">
-    ///     <para xml:lang="en">File ObjectId</para>
-    ///     <para xml:lang="zh">文件 ObjectId</para>
-    /// </param>
-    /// <param name="startByte">
-    ///     <para xml:lang="en">Start byte position (inclusive)</para>
-    ///     <para xml:lang="zh">起始字节位置(包含)</para>
-    /// </param>
-    /// <param name="endByte">
-    ///     <para xml:lang="en">End byte position (inclusive), null for end of file</para>
-    ///     <para xml:lang="zh">结束字节位置(包含),null 表示文件末尾</para>
-    /// </param>
-    /// <param name="cancellationToken">
-    ///     <para xml:lang="en">Cancellation token</para>
-    ///     <para xml:lang="zh">取消令牌</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">Range stream with file info</para>
-    ///     <para xml:lang="zh">范围流及文件信息</para>
-    /// </returns>
-    public async Task<(Stream Stream, long TotalLength, long RangeStart, long RangeEnd, GridFSFileInfo FileInfo)> DownloadRangeAsync(ObjectId id, long startByte, long? endByte = null, CancellationToken cancellationToken = default)
-    {
-        // 获取文件信息
-        var fileInfo = await (await _bucket.FindAsync(Builders<GridFSFileInfo>.Filter.Eq(f => f.Id, id), cancellationToken: cancellationToken))
-                           .FirstOrDefaultAsync(cancellationToken) ??
-                       throw new FileNotFoundException($"File with ID {id} not found");
-        var totalLength = fileInfo.Length;
-        var actualStart = Math.Max(0, startByte);
-        var actualEnd = endByte.HasValue ? Math.Min(endByte.Value, totalLength - 1) : totalLength - 1;
-        if (actualStart >= totalLength)
-        {
-            throw new ArgumentOutOfRangeException(nameof(startByte), "Start byte is beyond file length");
-        }
-        // 打开可定位的下载流
-        var fullStream = await _bucket.OpenDownloadStreamAsync(id, new() { Seekable = true }, cancellationToken);
-        // 定位到起始位置
-        fullStream.Seek(actualStart, SeekOrigin.Begin);
-        // 创建范围限制流
-        var rangeLength = (actualEnd - actualStart) + 1;
-        var rangeStream = new RangeStream(fullStream, rangeLength);
-        return (rangeStream, totalLength, actualStart, actualEnd, fileInfo);
     }
 
     /// <summary>

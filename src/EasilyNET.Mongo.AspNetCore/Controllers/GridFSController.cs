@@ -1,4 +1,5 @@
 using EasilyNET.Mongo.AspNetCore.Helpers;
+using EasilyNET.Mongo.AspNetCore.Models;
 using EasilyNET.Mongo.AspNetCore.Options;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -59,6 +60,8 @@ public sealed class GridFSController(
         try
         {
             var session = await resumableHelper.CreateSessionAsync(filename, totalSize, fileHash, contentType, cancellationToken: cancellationToken);
+            // 如果是恢复的会话，返回额外信息
+            var isResumed = session.UploadedChunks.Count > 0 && session.Status == UploadStatus.InProgress;
             return Ok(new
             {
                 sessionId = session.SessionId,
@@ -67,7 +70,11 @@ public sealed class GridFSController(
                 chunkSize = session.ChunkSize,
                 expiresAt = session.ExpiresAt,
                 status = session.Status.ToString(),
-                fileId = session.FileId // 如果秒传成功,这里会有值
+                fileId = session.FileId, // 如果秒传成功,这里会有值
+                isResumed,               // 是否为恢复的会话
+                uploadedChunks = isResumed ? session.UploadedChunks : null,
+                uploadedSize = session.UploadedSize,
+                progress = session.TotalSize > 0 ? ((double)session.UploadedSize / session.TotalSize) * 100 : 0
             });
         }
         catch (Exception)
@@ -76,6 +83,53 @@ public sealed class GridFSController(
             rateLimiter?.ReleaseSessionSlot();
             throw;
         }
+    }
+
+    /// <summary>
+    /// 恢复断点续传会话 - 通过文件哈希查找未完成的会话
+    /// </summary>
+    /// <param name="fileHash">文件SHA256特征值</param>
+    /// <param name="totalSize">文件总大小(字节)</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet("ResumeSession")]
+    public async Task<IActionResult> ResumeSession(
+        [FromQuery]
+        string fileHash,
+        [FromQuery]
+        long totalSize,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(fileHash))
+        {
+            return BadRequest("fileHash is required for session resume");
+        }
+        var session = await resumableHelper.FindResumableSessionAsync(fileHash, totalSize, cancellationToken);
+        if (session == null)
+        {
+            return NotFound(new
+            {
+                message = "No resumable session found",
+                fileHash,
+                totalSize
+            });
+        }
+        var missingChunks = await resumableHelper.GetMissingChunksAsync(session.SessionId, cancellationToken);
+        return Ok(new
+        {
+            sessionId = session.SessionId,
+            filename = session.Filename,
+            totalSize = session.TotalSize,
+            uploadedSize = session.UploadedSize,
+            chunkSize = session.ChunkSize,
+            progress = ((double)session.UploadedSize / session.TotalSize) * 100,
+            uploadedChunks = session.UploadedChunks,
+            missingChunks,
+            status = session.Status.ToString(),
+            createdAt = session.CreatedAt,
+            updatedAt = session.UpdatedAt,
+            expiresAt = session.ExpiresAt
+        });
     }
 
     /// <summary>
