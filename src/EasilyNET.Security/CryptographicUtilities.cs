@@ -164,7 +164,7 @@ public static class CryptographicUtilities
         finally
         {
             SecureClear(rented);
-            ArrayPool<byte>.Shared.Return(rented, true);
+            ArrayPool<byte>.Shared.Return(rented, false);
         }
     }
 
