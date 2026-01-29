@@ -93,7 +93,9 @@ public static class AesCrypt
     ///     <para xml:lang="en">Decrypts data using AES with PBKDF2 key derivation</para>
     ///     <para xml:lang="zh">使用 AES 解密数据，使用 PBKDF2 密钥派生</para>
     /// </summary>
-    public static byte[] Decrypt(ReadOnlySpan<byte> encryptedData, string password, AesKeyModel model = AesKeyModel.AES256)
+    public static byte[] Decrypt(ReadOnlySpan<byte> encryptedData,
+        string password,
+        AesKeyModel model = AesKeyModel.AES256)
     {
         ValidateInput(encryptedData, password);
         if (encryptedData.Length < SaltLength + IvLength + 16) // 最小长度检查
@@ -203,7 +205,12 @@ public static class AesCrypt
     ///     <para xml:lang="en">Asynchronously encrypts stream data</para>
     ///     <para xml:lang="zh">异步加密流数据</para>
     /// </summary>
-    public static async Task EncryptAsync(Stream input, Stream output, string password, AesKeyModel model = AesKeyModel.AES256, CancellationToken cancellationToken = default)
+    public static async Task EncryptAsync(
+        Stream input,
+        Stream output,
+        string password,
+        AesKeyModel model = AesKeyModel.AES256,
+        CancellationToken cancellationToken = default)
     {
         if (input == null || output == null)
         {
@@ -241,7 +248,12 @@ public static class AesCrypt
     ///     <para xml:lang="en">Asynchronously decrypts stream data</para>
     ///     <para xml:lang="zh">异步解密流数据</para>
     /// </summary>
-    public static async Task DecryptAsync(Stream input, Stream output, string password, AesKeyModel model = AesKeyModel.AES256, CancellationToken cancellationToken = default)
+    public static async Task DecryptAsync(
+        Stream input,
+        Stream output,
+        string password,
+        AesKeyModel model = AesKeyModel.AES256,
+        CancellationToken cancellationToken = default)
     {
         if (input == null || output == null)
         {

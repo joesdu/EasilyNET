@@ -13,25 +13,23 @@ internal static class CommonExtensions
     ///     <para xml:lang="en">Commands with collection name as value</para>
     ///     <para xml:lang="zh">以集合名称为值的命令</para>
     /// </summary>
-    internal static readonly FrozenSet<string> CommandsWithCollectionNameAsValue =
-        new HashSet<string>
-        {
-            "aggregate",
-            "count",
-            "distinct",
-            "mapReduce",
-            "geoSearch",
-            "delete",
-            "find",
-            "killCursors",
-            "findAndModify",
-            "insert",
-            "update",
-            "create",
-            "drop",
-            "createIndexes",
-            "listIndexes"
-        }.ToFrozenSet();
+    internal static readonly FrozenSet<string> CommandsWithCollectionNameAsValue = FrozenSet.ToFrozenSet([
+        "aggregate",
+        "count",
+        "distinct",
+        "mapReduce",
+        "geoSearch",
+        "delete",
+        "find",
+        "killCursors",
+        "findAndModify",
+        "insert",
+        "update",
+        "create",
+        "drop",
+        "createIndexes",
+        "listIndexes"
+    ]);
 
     /// <summary>
     ///     <para xml:lang="en">Get the assembly version of the specified type.</para>

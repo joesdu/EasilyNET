@@ -62,6 +62,52 @@ public sealed class ActivityEventDiagnosticsSubscriber : IEventSubscriber
     /// </param>
     public bool TryGetEventHandler<TEvent>(out Action<TEvent> handler) => _subscriber.TryGetEventHandler(out handler);
 
+    /// <summary>
+    ///     <para xml:lang="en">Check if command text should be captured based on options and command type</para>
+    ///     <para xml:lang="zh">根据选项和命令类型检查是否应捕获命令文本</para>
+    /// </summary>
+    private bool ShouldCaptureCommandText(string commandName, string collectionName)
+    {
+        if (!_options.CaptureCommandText)
+        {
+            return false;
+        }
+        // 检查是否为 GridFS chunks 的 insert 命令,以避免捕获大量二进制数据
+        return !_options.ExcludeGridFSChunks || commandName != "insert" || !collectionName.EndsWith(".chunks", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Truncate command text if it exceeds the maximum length</para>
+    ///     <para xml:lang="zh">如果命令文本超过最大长度则截断</para>
+    /// </summary>
+    private string TruncateCommandText(string commandText)
+    {
+        if (_options.MaxCommandTextLength > 0 && commandText.Length > _options.MaxCommandTextLength)
+        {
+            return string.Concat(commandText.AsSpan(0, _options.MaxCommandTextLength), "\n... [truncated]");
+        }
+        return commandText;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Add endpoint tags to the activity based on endpoint type</para>
+    ///     <para xml:lang="zh">根据端点类型向活动添加端点标签</para>
+    /// </summary>
+    private static void AddEndpointTags(Activity activity, EndPoint? endPoint)
+    {
+        switch (endPoint)
+        {
+            case IPEndPoint ipEndPoint:
+                activity.AddTag("network.peer.address", ipEndPoint.Address.ToString());
+                activity.AddTag("network.peer.port", ipEndPoint.Port.ToString());
+                break;
+            case DnsEndPoint dnsEndPoint:
+                activity.AddTag("server.address", dnsEndPoint.Host);
+                activity.AddTag("server.port", dnsEndPoint.Port.ToString());
+                break;
+        }
+    }
+
     [SuppressMessage("CodeQuality", "IDE0051:删除未使用的私有成员", Justification = "<挂起>")]
     private void Handle(CommandStartedEvent @event)
     {
@@ -89,40 +135,11 @@ public sealed class ActivityEventDiagnosticsSubscriber : IEventSubscriber
         activity.AddTag("db.collection.name", collName);
         activity.AddTag("db.operation.name", @event.CommandName);
         activity.AddTag("network.transport", "tcp");
-        var endPoint = @event.ConnectionId?.ServerId?.EndPoint;
-        switch (endPoint)
+        AddEndpointTags(activity, @event.ConnectionId?.ServerId?.EndPoint);
+        if (activity.IsAllDataRequested && ShouldCaptureCommandText(@event.CommandName, collName))
         {
-            case IPEndPoint ipEndPoint:
-                activity.AddTag("network.peer.address", ipEndPoint.Address.ToString());
-                activity.AddTag("network.peer.port", ipEndPoint.Port.ToString());
-                break;
-            case DnsEndPoint dnsEndPoint:
-                activity.AddTag("server.address", dnsEndPoint.Host);
-                activity.AddTag("server.port", dnsEndPoint.Port.ToString());
-                break;
-        }
-        if (activity.IsAllDataRequested && _options.CaptureCommandText)
-        {
-            // 检查是否为 GridFS chunks 的 insert 命令,以避免捕获大量二进制数据
-            var shouldCaptureCommandText = true;
-            if (_options.ExcludeGridFSChunks && @event.CommandName == "insert")
-            {
-                // 检查集合名称是否以 .chunks 结尾(GridFS 使用 fs.chunks 或 <bucketName>.chunks)
-                if (collName.EndsWith(".chunks", StringComparison.OrdinalIgnoreCase))
-                {
-                    shouldCaptureCommandText = false;
-                }
-            }
-            if (shouldCaptureCommandText)
-            {
-                var commandText = @event.Command.ToJson(new() { Indent = true });
-                // 如果设置了最大长度限制,则截断命令文本
-                if (_options.MaxCommandTextLength > 0 && commandText.Length > _options.MaxCommandTextLength)
-                {
-                    commandText = commandText[.._options.MaxCommandTextLength] + "\n... [truncated]";
-                }
-                activity.AddTag("db.query.text", commandText);
-            }
+            var commandText = @event.Command.ToJson(new() { Indent = true });
+            activity.AddTag("db.query.text", TruncateCommandText(commandText));
         }
         _activityMap.TryAdd(@event.RequestId, activity);
     }
