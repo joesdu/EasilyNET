@@ -441,16 +441,14 @@ public sealed class GridFSHelper
             var uploadedChunkNumbers = await _chunksCollection.Find(chunkFilter).Project(Builders<BsonDocument>.Projection.Include("n")).ToListAsync(cancellationToken);
 
             // 使用字节偏移计算来映射 GridFS 块索引回上传块索引（与 GetMissingChunksAsync 保持一致）
-            var actualUploadedChunks = new HashSet<int>();
-            foreach (var doc in uploadedChunkNumbers)
+            var actualUploadedChunks = uploadedChunkNumbers.Select(doc =>
             {
                 var gridFSChunkIndex = doc["n"].AsInt32;
                 // 计算该 GridFS 块对应的字节偏移
                 var byteOffset = (long)gridFSChunkIndex * GridFSChunkSize;
                 // 计算对应的上传块索引
-                var uploadChunkIndex = (int)(byteOffset / session.ChunkSize);
-                actualUploadedChunks.Add(uploadChunkIndex);
-            }
+                return (int)(byteOffset / session.ChunkSize);
+            }).ToHashSet();
             Debug.WriteLine($"[DEBUG] Actual uploaded chunks (mapped): [{string.Join(", ", actualUploadedChunks.OrderBy(n => n))}]");
 
             // 检查是否所有块都已上传
@@ -596,16 +594,14 @@ public sealed class GridFSHelper
         var uploadedChunkNumbers = await _chunksCollection.Find(chunkFilter).Project(Builders<BsonDocument>.Projection.Include("n")).ToListAsync(cancellationToken);
 
         // 使用字节偏移计算来映射 GridFS 块索引回上传块索引
-        var actualUploadedChunks = new HashSet<int>();
-        foreach (var doc in uploadedChunkNumbers)
+        var actualUploadedChunks = uploadedChunkNumbers.Select(doc =>
         {
             var gridFSChunkIndex = doc["n"].AsInt32;
             // 计算该 GridFS 块对应的字节偏移
             var byteOffset = (long)gridFSChunkIndex * GridFSChunkSize;
             // 计算对应的上传块索引
-            var uploadChunkIndex = (int)(byteOffset / session.ChunkSize);
-            actualUploadedChunks.Add(uploadChunkIndex);
-        }
+            return (int)(byteOffset / session.ChunkSize);
+        }).ToHashSet();
         var allChunks = Enumerable.Range(0, totalChunks).ToList();
         var missingChunks = allChunks.Where(n => !actualUploadedChunks.Contains(n)).ToList();
         return missingChunks;
