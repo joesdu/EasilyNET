@@ -27,6 +27,7 @@ namespace EasilyNET.Security;
 ///     强烈建议: 所有新实现请使用AES256。
 ///     </para>
 /// </remarks>
+[Obsolete("RC4 is cryptographically broken and insecure. Use AesCrypt instead. This class will be removed in a future version.", false)]
 public static class Rc4Crypt
 {
     /// <summary>

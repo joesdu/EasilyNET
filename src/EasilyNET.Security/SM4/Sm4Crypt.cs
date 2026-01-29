@@ -41,6 +41,10 @@ public static class Sm4Crypt
     ///     <para xml:lang="en">Encrypt using ECB mode</para>
     ///     <para xml:lang="zh">加密ECB模式</para>
     /// </summary>
+    /// <remarks>
+    ///     <para xml:lang="en">⚠️ WARNING: ECB mode is insecure and leaks data patterns. Use CBC mode instead.</para>
+    ///     <para xml:lang="zh">⚠️ 警告: ECB模式不安全，会泄露数据模式。请使用CBC模式。</para>
+    /// </remarks>
     /// <param name="secretKey">
     ///     <para xml:lang="en">Secret key (must be 16 bytes or 32 hex characters)</para>
     ///     <para xml:lang="zh">密钥(必须是16字节或32个十六进制字符)</para>
@@ -57,6 +61,7 @@ public static class Sm4Crypt
     ///     <para xml:lang="en">Encrypted data as byte array</para>
     ///     <para xml:lang="zh">加密后的字节数组</para>
     /// </returns>
+    [Obsolete("ECB mode is insecure and leaks data patterns. Use CBC mode (EncryptCBC) instead.", false)]
     public static byte[] EncryptECB(string secretKey, bool hexString, ReadOnlySpan<byte> plainText)
     {
         var keyBytes = ValidateAndDecodeKey(secretKey, hexString);
@@ -90,6 +95,7 @@ public static class Sm4Crypt
     ///     <para xml:lang="en">Encrypted data as byte array</para>
     ///     <para xml:lang="zh">加密后的字节数组</para>
     /// </returns>
+    [Obsolete("ECB mode is insecure and leaks data patterns. Use CBC mode (EncryptCBC) instead.", false)]
     public static byte[] EncryptECB(string secretKey, bool hexString, string plainText)
     {
         ArgumentException.ThrowIfNullOrEmpty(plainText);
@@ -121,6 +127,7 @@ public static class Sm4Crypt
     ///     <para xml:lang="en">Encrypted data as hexadecimal string</para>
     ///     <para xml:lang="zh">加密后的十六进制字符串</para>
     /// </returns>
+    [Obsolete("ECB mode is insecure and leaks data patterns. Use CBC mode (EncryptCBCToHex) instead.", false)]
     public static string EncryptECBToHex(string secretKey, bool hexString, string plainText, bool upperCase = true)
     {
         var encrypted = EncryptECB(secretKey, hexString, plainText);
@@ -148,6 +155,7 @@ public static class Sm4Crypt
     ///     <para xml:lang="en">Encrypted data as Base64 string</para>
     ///     <para xml:lang="zh">加密后的Base64字符串</para>
     /// </returns>
+    [Obsolete("ECB mode is insecure and leaks data patterns. Use CBC mode (EncryptCBCToBase64) instead.", false)]
     public static string EncryptECBToBase64(string secretKey, bool hexString, string plainText)
     {
         var encrypted = EncryptECB(secretKey, hexString, plainText);
@@ -158,6 +166,10 @@ public static class Sm4Crypt
     ///     <para xml:lang="en">Decrypt using ECB mode</para>
     ///     <para xml:lang="zh">解密ECB模式</para>
     /// </summary>
+    /// <remarks>
+    ///     <para xml:lang="en">⚠️ WARNING: ECB mode is insecure and leaks data patterns. Use CBC mode instead.</para>
+    ///     <para xml:lang="zh">⚠️ 警告: ECB模式不安全，会泄露数据模式。请使用CBC模式。</para>
+    /// </remarks>
     /// <param name="secretKey">
     ///     <para xml:lang="en">Secret key (must be 16 bytes or 32 hex characters)</para>
     ///     <para xml:lang="zh">密钥(必须是16字节或32个十六进制字符)</para>
@@ -174,6 +186,7 @@ public static class Sm4Crypt
     ///     <para xml:lang="en">Decrypted data as byte array</para>
     ///     <para xml:lang="zh">解密后的字节数组</para>
     /// </returns>
+    [Obsolete("ECB mode is insecure and leaks data patterns. Use CBC mode (DecryptCBC) instead.", false)]
     public static byte[] DecryptECB(string secretKey, bool hexString, ReadOnlySpan<byte> cipherBytes)
     {
         var keyBytes = ValidateAndDecodeKey(secretKey, hexString);
@@ -207,6 +220,7 @@ public static class Sm4Crypt
     ///     <para xml:lang="en">Decrypted string</para>
     ///     <para xml:lang="zh">解密后的字符串</para>
     /// </returns>
+    [Obsolete("ECB mode is insecure and leaks data patterns. Use CBC mode (DecryptCBCFromHex) instead.", false)]
     public static string DecryptECBFromHex(string secretKey, bool hexString, string cipherHex)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(cipherHex);
@@ -235,6 +249,7 @@ public static class Sm4Crypt
     ///     <para xml:lang="en">Decrypted string</para>
     ///     <para xml:lang="zh">解密后的字符串</para>
     /// </returns>
+    [Obsolete("ECB mode is insecure and leaks data patterns. Use CBC mode (DecryptCBCFromBase64) instead.", false)]
     public static string DecryptECBFromBase64(string secretKey, bool hexString, string cipherBase64)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(cipherBase64);
@@ -478,4 +493,136 @@ public static class Sm4Crypt
         var decrypted = DecryptCBC(secretKey, hexString, iv, cipherBytes);
         return Encoding.UTF8.GetString(decrypted);
     }
+
+    #region Secure CBC API (Recommended)
+
+    /// <summary>
+    ///     <para xml:lang="en">Encrypt using CBC mode with a random IV (IV is prefixed to ciphertext)</para>
+    ///     <para xml:lang="zh">使用 CBC 模式加密并生成随机 IV（IV 会前置到密文中）</para>
+    /// </summary>
+    /// <param name="secretKey">
+    ///     <para xml:lang="en">Secret key (must be 16 bytes or 32 hex characters)</para>
+    ///     <para xml:lang="zh">密钥(必须是16字节或32个十六进制字符)</para>
+    /// </param>
+    /// <param name="hexString">
+    ///     <para xml:lang="en">Whether the key is in hexadecimal format</para>
+    ///     <para xml:lang="zh">密钥是否是十六进制格式</para>
+    /// </param>
+    /// <param name="plainText">
+    ///     <para xml:lang="en">Plain text in binary format</para>
+    ///     <para xml:lang="zh">二进制格式明文</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Encrypted data with IV prefix as byte array</para>
+    ///     <para xml:lang="zh">带 IV 前缀的加密字节数组</para>
+    /// </returns>
+    public static byte[] Encrypt(string secretKey, bool hexString, ReadOnlySpan<byte> plainText)
+    {
+        var keyBytes = ValidateAndDecodeKey(secretKey, hexString);
+        var ivBytes = CryptographicUtilities.GenerateIV();
+        var ctx = new Sm4Context
+        {
+            IsPadding = true,
+            Mode = ESm4Model.Encrypt
+        };
+        var sm4 = new Sm4();
+        sm4.SetKeyEnc(ctx, keyBytes);
+        var cipherBytes = sm4.CBC(ctx, ivBytes, plainText);
+
+        // Combine: [IV][CipherText]
+        var result = new byte[BlockSize + cipherBytes.Length];
+        ivBytes.CopyTo(result, 0);
+        cipherBytes.CopyTo(result, BlockSize);
+        return result;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Decrypt using CBC mode with a prefixed IV</para>
+    ///     <para xml:lang="zh">使用 CBC 模式解密（IV 在密文前置）</para>
+    /// </summary>
+    /// <param name="secretKey">
+    ///     <para xml:lang="en">Secret key (must be 16 bytes or 32 hex characters)</para>
+    ///     <para xml:lang="zh">密钥(必须是16字节或32个十六进制字符)</para>
+    /// </param>
+    /// <param name="hexString">
+    ///     <para xml:lang="en">Whether the key is in hexadecimal format</para>
+    ///     <para xml:lang="zh">密钥是否是十六进制格式</para>
+    /// </param>
+    /// <param name="cipherText">
+    ///     <para xml:lang="en">Ciphertext with IV prefix</para>
+    ///     <para xml:lang="zh">带 IV 前缀的密文</para>
+    /// </param>
+    /// <returns>
+    ///     <para xml:lang="en">Decrypted data as byte array</para>
+    ///     <para xml:lang="zh">解密后的字节数组</para>
+    /// </returns>
+    public static byte[] Decrypt(string secretKey, bool hexString, ReadOnlySpan<byte> cipherText)
+    {
+        if (cipherText.Length < BlockSize + BlockSize) // IV + at least one block
+        {
+            throw new ArgumentException("Ciphertext is too short to contain IV and data", nameof(cipherText));
+        }
+        var keyBytes = ValidateAndDecodeKey(secretKey, hexString);
+        var ivBytes = cipherText[..BlockSize].ToArray();
+        var body = cipherText[BlockSize..];
+        var ctx = new Sm4Context
+        {
+            IsPadding = true,
+            Mode = ESm4Model.Decrypt
+        };
+        var sm4 = new Sm4();
+        sm4.SetKeyDec(ctx, keyBytes);
+        return sm4.CBC(ctx, ivBytes, body);
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Encrypt string using CBC mode and return Base64 (IV prefixed)</para>
+    ///     <para xml:lang="zh">使用 CBC 模式加密并返回 Base64（IV 前置）</para>
+    /// </summary>
+    public static string EncryptToBase64(string secretKey, bool hexString, string plainText)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(plainText);
+        var bytes = Encoding.UTF8.GetBytes(plainText);
+        var encrypted = Encrypt(secretKey, hexString, bytes);
+        return Convert.ToBase64String(encrypted);
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Decrypt Base64 string using CBC mode (IV prefixed)</para>
+    ///     <para xml:lang="zh">使用 CBC 模式解密 Base64（IV 前置）</para>
+    /// </summary>
+    public static string DecryptFromBase64(string secretKey, bool hexString, string cipherBase64)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cipherBase64);
+        var bytes = Convert.FromBase64String(cipherBase64);
+        var decrypted = Decrypt(secretKey, hexString, bytes);
+        return Encoding.UTF8.GetString(decrypted);
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Encrypt string using CBC mode and return Hex (IV prefixed)</para>
+    ///     <para xml:lang="zh">使用 CBC 模式加密并返回 Hex（IV 前置）</para>
+    /// </summary>
+    public static string EncryptToHex(string secretKey, bool hexString, string plainText, bool upperCase = true)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(plainText);
+        var bytes = Encoding.UTF8.GetBytes(plainText);
+        var encrypted = Encrypt(secretKey, hexString, bytes);
+        var hex = Convert.ToHexString(encrypted);
+        return upperCase ? hex : hex.ToLowerInvariant();
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Decrypt Hex string using CBC mode (IV prefixed)</para>
+    ///     <para xml:lang="zh">使用 CBC 模式解密 Hex（IV 前置）</para>
+    /// </summary>
+    public static string DecryptFromHex(string secretKey, bool hexString, string cipherHex)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cipherHex);
+        var bytes = Convert.FromHexString(cipherHex);
+        var decrypted = Decrypt(secretKey, hexString, bytes);
+        return Encoding.UTF8.GetString(decrypted);
+    }
+
+    #endregion
 }

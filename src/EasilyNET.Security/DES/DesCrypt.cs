@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 
+// ReSharper disable UnusedType.Global
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Global
 
@@ -25,6 +26,7 @@ namespace EasilyNET.Security;
 ///     </para>
 /// </remarks>
 // ReSharper disable once UnusedType.Global
+[Obsolete("DES is cryptographically weak and insecure. Use AesCrypt instead. This class will be removed in a future version.", false)]
 public static class DesCrypt
 {
     /// <summary>

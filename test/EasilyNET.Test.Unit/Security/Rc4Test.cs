@@ -6,11 +6,13 @@ using EasilyNET.Security;
 namespace EasilyNET.Test.Unit.Security;
 
 /// <summary>
-/// RC4
+/// RC4 (Legacy - for backward compatibility testing only)
 /// </summary>
 [TestClass]
 public class Rc4Test
 {
+#pragma warning disable CS0618 // Type or member is obsolete
+
     /// <summary>
     /// RC4
     /// </summary>
@@ -27,4 +29,6 @@ public class Rc4Test
         var result = Encoding.UTF8.GetString(data_result);
         Assert.AreEqual(data, result);
     }
+
+#pragma warning restore CS0618
 }
