@@ -18,13 +18,48 @@ using Spectre.Console.Rendering;
 namespace EasilyNET.Mongo.ConsoleDebug.Subscribers;
 
 /// <summary>
+///     <para xml:lang="en">Command context for tracking request state</para>
+///     <para xml:lang="zh">用于跟踪请求状态的命令上下文</para>
+/// </summary>
+/// <param name="StartTime">
+///     <para xml:lang="en">The timestamp when the command started</para>
+///     <para xml:lang="zh">命令开始时的时间戳</para>
+/// </param>
+/// <param name="InfoJson">
+///     <para xml:lang="en">JSON string containing command information</para>
+///     <para xml:lang="zh">包含命令信息的 JSON 字符串</para>
+/// </param>
+/// <param name="CommandJson">
+///     <para xml:lang="en">JSON string containing the command content</para>
+///     <para xml:lang="zh">包含命令内容的 JSON 字符串</para>
+/// </param>
+/// <param name="CollectionName">
+///     <para xml:lang="en">The name of the collection being operated on</para>
+///     <para xml:lang="zh">正在操作的集合名称</para>
+/// </param>
+internal sealed record CommandContext(long StartTime, string InfoJson, string CommandJson, string CollectionName);
+
+/// <summary>
 ///     <para xml:lang="en">Use <see cref="IEventSubscriber" /> to output MongoDB statements to the console, recommended for use in test environments.</para>
 ///     <para xml:lang="zh">利用 <see cref="IEventSubscriber" /> 实现 MongoDB 语句输出到控制台,推荐在测试环境中使用。</para>
 /// </summary>
 public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
 {
-    private static readonly ConcurrentDictionary<int, string> RequestIdWithCollectionName = [];
+    /// <summary>
+    ///     <para xml:lang="en">Maximum number of tracked requests before cleanup</para>
+    ///     <para xml:lang="zh">触发清理前的最大跟踪请求数</para>
+    /// </summary>
+    private const int MaxTrackedRequests = 100;
+
+    /// <summary>
+    ///     <para xml:lang="en">Age threshold in seconds for cleaning up stale requests</para>
+    ///     <para xml:lang="zh">清理过期请求的时间阈值（秒）</para>
+    /// </summary>
+    private const int StaleRequestThresholdSeconds = 60;
+
     private readonly ConsoleDebugInstrumentationOptions _options;
+
+    private readonly ConcurrentDictionary<int, CommandContext> _requestContexts = new();
     private readonly ReflectionEventSubscriber _subscriber;
 
     /// <summary>
@@ -47,14 +82,6 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
         _subscriber = new(this, bindingFlags: BindingFlags.Instance | BindingFlags.NonPublic);
     }
 
-    private long StartTime { get; set; }
-
-    private long EndTime { get; set; }
-
-    private string InfoJson { get; set; } = string.Empty;
-
-    private string CommandJson { get; set; } = string.Empty;
-
     /// <summary>
     ///     <para xml:lang="en">Try to get the event handler.</para>
     ///     <para xml:lang="zh">尝试获取事件处理程序。</para>
@@ -69,9 +96,48 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
     /// </param>
     public bool TryGetEventHandler<TEvent>(out Action<TEvent> handler) => _subscriber.TryGetEventHandler(out handler);
 
-    private void WritStatus(int requestId, bool success)
+    /// <summary>
+    ///     <para xml:lang="en">Check if the command should be filtered based on options</para>
+    ///     <para xml:lang="zh">根据选项检查命令是否应被过滤</para>
+    /// </summary>
+    private bool ShouldFilterCommand(string commandName, string? collectionName)
     {
-        var duration = Stopwatch.GetElapsedTime(StartTime, EndTime).TotalMilliseconds; // 计算耗时，单位为毫秒
+        if (!_options.Enable)
+        {
+            return true;
+        }
+        if (!CommonExtensions.CommandsWithCollectionNameAsValue.Contains(commandName))
+        {
+            return true;
+        }
+        return collectionName is not null && _options.ShouldStartCollection is not null && !_options.ShouldStartCollection(collectionName);
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Clean up stale requests that have been tracked for too long</para>
+    ///     <para xml:lang="zh">清理跟踪时间过长的过期请求</para>
+    /// </summary>
+    private void CleanupStaleRequests()
+    {
+        if (_requestContexts.Count <= MaxTrackedRequests)
+        {
+            return;
+        }
+        var currentTimestamp = Stopwatch.GetTimestamp();
+        var staleThresholdTicks = StaleRequestThresholdSeconds * Stopwatch.Frequency;
+        foreach (var kvp in _requestContexts)
+        {
+            if (currentTimestamp - kvp.Value.StartTime > staleThresholdTicks)
+            {
+                _requestContexts.TryRemove(kvp.Key, out _);
+            }
+        }
+    }
+
+    private static void WriteStatus(CommandContext context, int requestId, bool success)
+    {
+        var endTime = Stopwatch.GetTimestamp();
+        var duration = Stopwatch.GetElapsedTime(context.StartTime, endTime).TotalMilliseconds;
         Style durationColor = duration switch
         {
             < 100 => new(new Color(0, 175, 0)),   // 绿色
@@ -93,7 +159,7 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
         };
         table.AddRow(rowData);
         var layout = new Layout("Root")
-            .SplitColumns(new Layout(new Panel(new Text(CommandJson, new(Color.Purple)))
+            .SplitColumns(new Layout(new Panel(new Text(context.CommandJson, new(Color.Purple)))
                 {
                     Height = 45,
                     Header = new("Command", Justify.Center)
@@ -110,7 +176,7 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
                 {
                     Height = 13,
                     Header = new("Calendar", Justify.Center)
-                }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand(), new Panel(new JsonText(InfoJson)
+                }.Collapse().Border(new RoundedBoxBorder()).NoSafeBorder().Expand(), new Panel(new JsonText(context.InfoJson)
                 {
                     BracesStyle = Color.Red,
                     BracketsStyle = Color.Green,
@@ -156,87 +222,79 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
     [SuppressMessage("CodeQuality", "IDE0051:删除未使用的私有成员", Justification = "<挂起>")]
     private void Handle(CommandStartedEvent @event)
     {
-        if (RequestIdWithCollectionName.Count > 50)
-        {
-            RequestIdWithCollectionName.Clear();
-        }
+        // 清理过期请求
+        CleanupStaleRequests();
         if (@event.Command.Elements.All(c => c.Name != @event.CommandName))
         {
             return;
         }
-        StartTime = Stopwatch.GetTimestamp();
         var collName = @event.Command.Elements.First(c => c.Name == @event.CommandName).Value.ToString() ?? "N/A";
-        RequestIdWithCollectionName.AddOrUpdate(@event.RequestId, collName, (_, v) => v);
-        switch (_options.Enable)
+        if (ShouldFilterCommand(@event.CommandName, collName))
         {
-            case true when !CommonExtensions.CommandsWithCollectionNameAsValue.Contains(@event.CommandName):
-            case true when _options.ShouldStartCollection is not null && !_options.ShouldStartCollection(collName):
-                return;
-            case true:
-            {
-                var endpoint = @event.ConnectionId?.ServerId?.EndPoint as DnsEndPoint;
-                // 使用字符串的方式替代序列化
-                InfoJson = $$"""
-                             {
-                               "RequestId": {{@event.RequestId}},
-                               "Timestamp": "{{@event.Timestamp}}",
-                               "Method": "{{@event.CommandName}}",
-                               "Database": "{{@event.DatabaseNamespace?.DatabaseName}}",
-                               "Collection": "{{collName}}",
-                               "ClusterId": {{@event.ConnectionId?.ServerId?.ClusterId.Value}},
-                               "Host": "{{endpoint?.Host ?? "N/A"}}",
-                               "Port": {{endpoint?.Port}}
-                             }
-                             """;
-                CommandJson = @event.Command.ToJson(new() { Indent = true, OutputMode = JsonOutputMode.Shell });
-                break;
-            }
+            // 即使被过滤，也需要记录集合名称以便后续事件使用
+            _requestContexts.TryAdd(@event.RequestId, new(Stopwatch.GetTimestamp(),
+                string.Empty,
+                string.Empty,
+                collName));
+            return;
         }
+        var endpoint = @event.ConnectionId?.ServerId?.EndPoint as DnsEndPoint;
+        var infoJson = $$"""
+                         {
+                           "RequestId": {{@event.RequestId}},
+                           "Timestamp": "{{@event.Timestamp}}",
+                           "Method": "{{@event.CommandName}}",
+                           "Database": "{{@event.DatabaseNamespace?.DatabaseName}}",
+                           "Collection": "{{collName}}",
+                           "ClusterId": {{@event.ConnectionId?.ServerId?.ClusterId.Value}},
+                           "Host": "{{endpoint?.Host ?? "N/A"}}",
+                           "Port": {{endpoint?.Port}}
+                         }
+                         """;
+        var commandJson = @event.Command.ToJson(new() { Indent = true, OutputMode = JsonOutputMode.Shell });
+        _requestContexts.TryAdd(@event.RequestId, new(Stopwatch.GetTimestamp(),
+            infoJson,
+            commandJson,
+            collName));
     }
 
     [SuppressMessage("CodeQuality", "IDE0051:删除未使用的私有成员", Justification = "<挂起>")]
     private void Handle(CommandSucceededEvent @event)
     {
-        if (!_options.Enable)
+        if (!_requestContexts.TryRemove(@event.RequestId, out var context))
         {
             return;
         }
-        if (_options.ShouldStartCollection is not null)
-        {
-            var success = RequestIdWithCollectionName.TryGetValue(@event.RequestId, out var collName);
-            if (success && !_options.ShouldStartCollection(collName!))
-            {
-                return;
-            }
-        }
-        if (!CommonExtensions.CommandsWithCollectionNameAsValue.Contains(@event.CommandName))
+
+        // 检查是否有有效的命令数据（未被过滤的请求）
+        if (string.IsNullOrEmpty(context.CommandJson))
         {
             return;
         }
-        EndTime = Stopwatch.GetTimestamp();
-        WritStatus(@event.RequestId, true);
+        if (ShouldFilterCommand(@event.CommandName, context.CollectionName))
+        {
+            return;
+        }
+        WriteStatus(context, @event.RequestId, true);
     }
 
     [SuppressMessage("CodeQuality", "IDE0051:删除未使用的私有成员", Justification = "<挂起>")]
     private void Handle(CommandFailedEvent @event)
     {
-        EndTime = Stopwatch.GetTimestamp();
-        if (!_options.Enable)
+        if (!_requestContexts.TryRemove(@event.RequestId, out var context))
         {
             return;
         }
-        if (_options.ShouldStartCollection is not null)
-        {
-            var success = RequestIdWithCollectionName.TryGetValue(@event.RequestId, out var collName);
-            if (success && !_options.ShouldStartCollection(collName!))
-            {
-                return;
-            }
-        }
-        if (!CommonExtensions.CommandsWithCollectionNameAsValue.Contains(@event.CommandName))
+
+        // 检查是否有有效的命令数据（未被过滤的请求）
+        if (string.IsNullOrEmpty(context.CommandJson))
         {
             return;
         }
-        WritStatus(@event.RequestId, false);
+        if (ShouldFilterCommand(@event.CommandName, context.CollectionName))
+        {
+            return;
+        }
+        WriteStatus(context, @event.RequestId, false);
     }
 }

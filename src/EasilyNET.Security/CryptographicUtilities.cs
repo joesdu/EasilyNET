@@ -2,6 +2,8 @@ using System.Buffers;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
+// ReSharper disable UnusedMember.Global
+
 namespace EasilyNET.Security;
 
 /// <summary>
@@ -13,21 +15,6 @@ public static class CryptographicUtilities
     // PBKDF2 默认参数
     private const int DefaultIterationCount = 100_000;
     private const int DefaultSaltLength = 16;
-
-    // 安全算法配置白名单
-    private static readonly HashSet<CipherMode> SecureCipherModes =
-    [
-        CipherMode.CBC,
-        CipherMode.CTS
-        // Note: GCM is handled separately via AesGcm class
-    ];
-
-    private static readonly HashSet<PaddingMode> SecurePaddingModes =
-    [
-        PaddingMode.PKCS7,
-        PaddingMode.ISO10126,
-        PaddingMode.ANSIX923
-    ];
 
     /// <summary>
     ///     <para xml:lang="en">Derives a cryptographic key from a password using PBKDF2</para>
@@ -94,26 +81,6 @@ public static class CryptographicUtilities
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Validates that the cipher configuration is secure</para>
-    ///     <para xml:lang="zh">验证加密配置是否安全</para>
-    /// </summary>
-    public static void ValidateSecureConfiguration(
-        CipherMode mode,
-        PaddingMode padding)
-    {
-        if (!SecureCipherModes.Contains(mode))
-        {
-            throw new($"Cipher mode '{mode}' is not recommended for security. " +
-                      "Use CBC, CTS, or GCM instead.");
-        }
-        if (!SecurePaddingModes.Contains(padding))
-        {
-            throw new($"Padding mode '{padding}' is not recommended for security. " +
-                      "Use PKCS7, ISO10126, or ANSIX923 instead.");
-        }
-    }
-
-    /// <summary>
     ///     <para xml:lang="en">Combines salt and encrypted data into a single array</para>
     ///     <para xml:lang="zh">将盐值和加密数据合并为单一数组</para>
     /// </summary>
@@ -136,10 +103,7 @@ public static class CryptographicUtilities
     /// <param name="combinedData">Combined data array</param>
     /// <param name="salt">Output salt</param>
     /// <param name="encryptedData">Output encrypted data</param>
-    public static void ExtractSaltAndData(
-        ReadOnlySpan<byte> combinedData,
-        out byte[] salt,
-        out byte[] encryptedData)
+    public static void ExtractSaltAndData(ReadOnlySpan<byte> combinedData, out byte[] salt, out byte[] encryptedData)
     {
         if (combinedData.Length < 4)
         {
@@ -153,22 +117,6 @@ public static class CryptographicUtilities
         salt = combinedData.Slice(4, saltLength).ToArray();
         encryptedData = combinedData[(4 + saltLength)..].ToArray();
     }
-
-    /// <summary>
-    ///     <para xml:lang="en">Rents a byte array from the shared array pool</para>
-    ///     <para xml:lang="zh">从共享数组池租用字节数组</para>
-    /// </summary>
-    /// <param name="minimumLength">Minimum required length</param>
-    /// <returns>Rented array that must be returned to the pool</returns>
-    public static byte[] RentArray(int minimumLength) => ArrayPool<byte>.Shared.Rent(minimumLength);
-
-    /// <summary>
-    ///     <para xml:lang="en">Returns a rented array to the pool and optionally clears it</para>
-    ///     <para xml:lang="zh">将租用的数组返回给池，并可选择清除数据</para>
-    /// </summary>
-    /// <param name="array">Array to return</param>
-    /// <param name="clearArray">Whether to clear sensitive data</param>
-    public static void ReturnArray(byte[] array, bool clearArray = true) => ArrayPool<byte>.Shared.Return(array, clearArray);
 
     /// <summary>
     ///     <para xml:lang="en">Securely clears an array by filling it with zeros</para>
@@ -195,7 +143,9 @@ public static class CryptographicUtilities
     public static string ToHexStringOptimized(ReadOnlySpan<byte> data)
     {
         if (data.IsEmpty)
+        {
             return string.Empty;
+        }
         const int maxStackSize = 256;
         var hexLength = data.Length * 2;
         if (hexLength <= maxStackSize)
@@ -204,7 +154,7 @@ public static class CryptographicUtilities
             ConvertToHex(data, hexChars);
             return new(hexChars);
         }
-        var rented = RentArray(hexLength * sizeof(char));
+        var rented = ArrayPool<byte>.Shared.Rent(hexLength * sizeof(char));
         try
         {
             var hexChars = MemoryMarshal.Cast<byte, char>(rented.AsSpan(0, hexLength * sizeof(char)));
@@ -214,7 +164,7 @@ public static class CryptographicUtilities
         finally
         {
             SecureClear(rented);
-            ReturnArray(rented);
+            ArrayPool<byte>.Shared.Return(rented, false);
         }
     }
 
@@ -225,7 +175,9 @@ public static class CryptographicUtilities
     public static byte[] FromHexStringOptimized(string hex)
     {
         if (string.IsNullOrEmpty(hex))
+        {
             return [];
+        }
         if (hex.Length % 2 != 0)
         {
             throw new("Hex string length must be even");
