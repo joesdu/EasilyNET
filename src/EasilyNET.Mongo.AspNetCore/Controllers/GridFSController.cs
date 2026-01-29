@@ -1,6 +1,9 @@
 using EasilyNET.Mongo.AspNetCore.Helpers;
+using EasilyNET.Mongo.AspNetCore.Models;
+using EasilyNET.Mongo.AspNetCore.Options;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using MongoDB.Bson;
 
@@ -14,8 +17,14 @@ namespace EasilyNET.Mongo.AspNetCore.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [ApiExplorerSettings(GroupName = "MongoFS")]
-public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridFSController> logger) : ControllerBase
+public sealed class GridFSController(
+    GridFSHelper resumableHelper,
+    ILogger<GridFSController> logger,
+    GridFSRateLimiter? rateLimiter = null,
+    IOptions<GridFSRateLimitOptions>? uploadOptions = null) : ControllerBase
 {
+    private readonly GridFSRateLimitOptions _uploadOptions = uploadOptions?.Value ?? new();
+
     /// <summary>
     /// 创建断点续传会话
     /// </summary>
@@ -37,16 +46,89 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
         string? contentType = null,
         CancellationToken cancellationToken = default)
     {
-        var session = await resumableHelper.CreateSessionAsync(filename, totalSize, fileHash, contentType, cancellationToken: cancellationToken);
+        // 验证文件大小限制
+        if (_uploadOptions.MaxFileSize > 0 && totalSize > _uploadOptions.MaxFileSize)
+        {
+            return BadRequest($"File size {totalSize} exceeds maximum allowed size {_uploadOptions.MaxFileSize}");
+        }
+
+        // 尝试获取会话槽位（速率限制）
+        if (rateLimiter is not null && !await rateLimiter.TryAcquireSessionSlotAsync(cancellationToken))
+        {
+            return StatusCode(429, "Too many concurrent upload sessions. Please try again later.");
+        }
+        try
+        {
+            var session = await resumableHelper.CreateSessionAsync(filename, totalSize, fileHash, contentType, cancellationToken: cancellationToken);
+            // 如果是恢复的会话，返回额外信息
+            var isResumed = session.UploadedChunks.Count > 0 && session.Status == UploadStatus.InProgress;
+            return Ok(new
+            {
+                sessionId = session.SessionId,
+                filename = session.Filename,
+                totalSize = session.TotalSize,
+                chunkSize = session.ChunkSize,
+                expiresAt = session.ExpiresAt,
+                status = session.Status.ToString(),
+                fileId = session.FileId, // 如果秒传成功,这里会有值
+                isResumed,               // 是否为恢复的会话
+                uploadedChunks = isResumed ? session.UploadedChunks : null,
+                uploadedSize = session.UploadedSize,
+                progress = session.TotalSize > 0 ? ((double)session.UploadedSize / session.TotalSize) * 100 : 0
+            });
+        }
+        catch (Exception)
+        {
+            // 如果创建会话失败，释放槽位
+            rateLimiter?.ReleaseSessionSlot();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 恢复断点续传会话 - 通过文件哈希查找未完成的会话
+    /// </summary>
+    /// <param name="fileHash">文件SHA256特征值</param>
+    /// <param name="totalSize">文件总大小(字节)</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    [HttpGet("ResumeSession")]
+    public async Task<IActionResult> ResumeSession(
+        [FromQuery]
+        string fileHash,
+        [FromQuery]
+        long totalSize,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(fileHash))
+        {
+            return BadRequest("fileHash is required for session resume");
+        }
+        var session = await resumableHelper.FindResumableSessionAsync(fileHash, totalSize, cancellationToken);
+        if (session == null)
+        {
+            return NotFound(new
+            {
+                message = "No resumable session found",
+                fileHash,
+                totalSize
+            });
+        }
+        var missingChunks = await resumableHelper.GetMissingChunksAsync(session.SessionId, cancellationToken);
         return Ok(new
         {
             sessionId = session.SessionId,
             filename = session.Filename,
             totalSize = session.TotalSize,
+            uploadedSize = session.UploadedSize,
             chunkSize = session.ChunkSize,
-            expiresAt = session.ExpiresAt,
+            progress = ((double)session.UploadedSize / session.TotalSize) * 100,
+            uploadedChunks = session.UploadedChunks,
+            missingChunks,
             status = session.Status.ToString(),
-            fileId = session.FileId // 如果秒传成功,这里会有值
+            createdAt = session.CreatedAt,
+            updatedAt = session.UpdatedAt,
+            expiresAt = session.ExpiresAt
         });
     }
 
@@ -68,11 +150,22 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
         string chunkHash,
         CancellationToken cancellationToken = default)
     {
-        using var ms = new MemoryStream();
-        await Request.Body.CopyToAsync(ms, cancellationToken);
-        var data = ms.ToArray();
+        // 尝试获取块上传槽位（速率限制）
+        if (rateLimiter is not null && !await rateLimiter.TryAcquireChunkSlotAsync(sessionId, cancellationToken))
+        {
+            return StatusCode(429, "Too many concurrent chunk uploads. Please try again later.");
+        }
         try
         {
+            using var ms = new MemoryStream();
+            await Request.Body.CopyToAsync(ms, cancellationToken);
+            var data = ms.ToArray();
+
+            // 验证块大小限制
+            if (data.Length > _uploadOptions.MaxChunkSize)
+            {
+                return BadRequest($"Chunk size {data.Length} exceeds maximum allowed size {_uploadOptions.MaxChunkSize}");
+            }
             var session = await resumableHelper.UploadChunkAsync(sessionId, chunkNumber, data, chunkHash, cancellationToken);
             return Ok(new
             {
@@ -87,6 +180,10 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
         catch (InvalidOperationException ex)
         {
             return BadRequest(ex.Message);
+        }
+        finally
+        {
+            rateLimiter?.ReleaseChunkSlot(sessionId);
         }
     }
 
@@ -156,6 +253,10 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
         try
         {
             var fileId = await resumableHelper.FinalizeUploadAsync(sessionId, fileHash, skipHashValidation, cancellationToken);
+
+            // 上传完成，释放速率限制器资源
+            rateLimiter?.RemoveSession(sessionId);
+            rateLimiter?.ReleaseSessionSlot();
             return Ok(new
             {
                 fileId = fileId.ToString(),
@@ -203,6 +304,10 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
         {
             // 默认删除会话记录
             await resumableHelper.CancelSessionAsync(sessionId, true, cancellationToken);
+
+            // 释放速率限制器资源
+            rateLimiter?.RemoveSession(sessionId);
+            rateLimiter?.ReleaseSessionSlot();
             return Ok(new { message = "Upload cancelled successfully" });
         }
         catch (Exception ex)
@@ -234,41 +339,84 @@ public sealed class GridFSController(GridFSHelper resumableHelper, ILogger<GridF
                 return NotFound($"File or Session {id} not found or not ready.");
             }
         }
-
-        // 解析 Range 头
-        var rangeHeader = Request.Headers[HeaderNames.Range].ToString();
-        long? startByte = null;
-        long? endByte = null;
-        if (!string.IsNullOrEmpty(rangeHeader) && rangeHeader.StartsWith("bytes=", StringComparison.OrdinalIgnoreCase))
-        {
-            var range = rangeHeader[6..].Split('-');
-            if (range.Length == 2)
-            {
-                if (long.TryParse(range[0], out var start))
-                {
-                    startByte = start;
-                }
-                if (!string.IsNullOrEmpty(range[1]) && long.TryParse(range[1], out var end))
-                {
-                    endByte = end;
-                }
-            }
-        }
         try
         {
-            var result = await resumableHelper.DownloadRangeAsync(fileId, startByte ?? 0, endByte, cancellationToken);
-            var contentType = result.FileInfo.Metadata.Contains("contentType")
-                                  ? result.FileInfo.Metadata["contentType"].AsString
-                                  : "application/octet-stream";
-            // 设置响应头
-            Response.Headers[HeaderNames.AcceptRanges] = "bytes";
-            Response.Headers[HeaderNames.ContentRange] = $"bytes {result.RangeStart}-{result.RangeEnd}/{result.TotalLength}";
-            Response.StatusCode = startByte.HasValue ? 206 : 200; // 206 Partial Content
-            return File(result.Stream, contentType, result.FileInfo.Filename, false);
+            // 获取完整的可定位流,让 ASP.NET Core 内置的 Range 处理机制自动处理
+            var result = await resumableHelper.DownloadFullStreamAsync(fileId, cancellationToken);
+
+            // 调试日志：检查流的属性
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("StreamRange: FileId={FileId}, FileName={FileName}, FileLength={FileLength}, StreamCanSeek={CanSeek}, StreamLength={StreamLength}, StreamPosition={Position}",
+                    fileId, result.FileInfo.Filename, result.FileInfo.Length,
+                    result.Stream.CanSeek,
+                    result.Stream.CanSeek ? result.Stream.Length : -1,
+                    result.Stream.CanSeek ? result.Stream.Position : -1);
+            }
+
+            // 优先从 metadata.contentType 读取，如果没有则尝试从顶层 contentType 字段读取
+            // 最后根据文件扩展名推断
+            string contentType;
+            if (result.FileInfo.Metadata.Contains("contentType"))
+            {
+                contentType = result.FileInfo.Metadata["contentType"].AsString;
+            }
+            else
+            {
+                // 根据文件扩展名推断 MIME 类型
+                var ext = Path.GetExtension(result.FileInfo.Filename).ToLowerInvariant();
+                contentType = ext switch
+                {
+                    ".mp4"  => "video/mp4",
+                    ".webm" => "video/webm",
+                    ".ogg"  => "video/ogg",
+                    ".ogv"  => "video/ogg",
+                    ".mov"  => "video/quicktime",
+                    ".avi"  => "video/x-msvideo",
+                    ".mkv"  => "video/x-matroska",
+                    ".mp3"  => "audio/mpeg",
+                    ".wav"  => "audio/wav",
+                    ".flac" => "audio/flac",
+                    ".aac"  => "audio/aac",
+                    ".m4a"  => "audio/mp4",
+                    ".jpg"  => "image/jpeg",
+                    ".jpeg" => "image/jpeg",
+                    ".png"  => "image/png",
+                    ".gif"  => "image/gif",
+                    ".webp" => "image/webp",
+                    ".svg"  => "image/svg+xml",
+                    ".pdf"  => "application/pdf",
+                    ".json" => "application/json",
+                    ".xml"  => "application/xml",
+                    ".zip"  => "application/zip",
+                    ".txt"  => "text/plain",
+                    ".html" => "text/html",
+                    ".css"  => "text/css",
+                    ".js"   => "application/javascript",
+                    _       => "application/octet-stream"
+                };
+            }
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("StreamRange: ContentType={ContentType}, RangeHeader={RangeHeader}",
+                    contentType, Request.Headers.Range.ToString());
+            }
+
+            // 获取文件的上传时间作为 LastModified
+            var lastModified = new DateTimeOffset(result.FileInfo.UploadDateTime, TimeSpan.Zero);
+            // 使用文件ID和上传时间生成 ETag
+            var etag = new EntityTagHeaderValue($"\"{result.FileInfo.Id}_{result.FileInfo.UploadDateTime.Ticks}\"");
+            // 使用 enableRangeProcessing: true 让 ASP.NET Core 自动处理 Range 请求
+            // 框架会自动:
+            // 1. 解析 Range 头
+            // 2. 设置正确的 Content-Range 和 Content-Length
+            // 3. 返回 206 Partial Content 或 200 OK
+            // 4. 只发送请求的字节范围
+            return File(result.Stream, contentType, result.FileInfo.Filename, lastModified, etag, true);
         }
-        catch (ArgumentOutOfRangeException)
+        catch (FileNotFoundException)
         {
-            return StatusCode(416); // Range Not Satisfiable
+            return NotFound($"File {id} not found.");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

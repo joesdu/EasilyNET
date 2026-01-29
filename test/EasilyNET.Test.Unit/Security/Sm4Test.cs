@@ -9,6 +9,73 @@ namespace EasilyNET.Test.Unit.Security;
 [TestClass]
 public class Sm4Test
 {
+    #region New Secure CBC API Tests (Recommended)
+
+    /// <summary>
+    /// SM4 新安全 API - 加密解密测试 (自动 IV)
+    /// </summary>
+    [TestMethod]
+    public void Sm4SecureEncryptDecryptTest()
+    {
+        const string data = "Microsoft";
+        const string key = "701d1cc0cfbe7ee11824df718855c0c6";
+
+        // 加密
+        var encrypted = Sm4Crypt.EncryptToBase64(key, true, data);
+        Assert.IsNotNull(encrypted);
+        Assert.IsGreaterThan(0, encrypted.Length);
+
+        // 解密
+        var decrypted = Sm4Crypt.DecryptFromBase64(key, true, encrypted);
+        Assert.AreEqual(data, decrypted);
+    }
+
+    /// <summary>
+    /// SM4 新安全 API - Hex 格式测试
+    /// </summary>
+    [TestMethod]
+    public void Sm4SecureEncryptDecryptHexTest()
+    {
+        const string data = "Hello SM4 Secure API";
+        const string key = "1cc0cfbe7ee11824"; // 16 bytes key
+
+        // 加密
+        var encrypted = Sm4Crypt.EncryptToHex(key, false, data);
+        Assert.IsNotNull(encrypted);
+        Assert.IsGreaterThan(0, encrypted.Length);
+
+        // 解密
+        var decrypted = Sm4Crypt.DecryptFromHex(key, false, encrypted);
+        Assert.AreEqual(data, decrypted);
+    }
+
+    /// <summary>
+    /// SM4 新安全 API - 字节数组测试
+    /// </summary>
+    [TestMethod]
+    public void Sm4SecureEncryptDecryptBytesTest()
+    {
+        const string data = "Test data for SM4";
+        const string key = "701d1cc0cfbe7ee11824df718855c0c6";
+        var plainBytes = Encoding.UTF8.GetBytes(data);
+
+        // 加密
+        var encrypted = Sm4Crypt.Encrypt(key, true, plainBytes);
+        Assert.IsNotNull(encrypted);
+        Assert.IsGreaterThan(plainBytes.Length, encrypted.Length); // 应该包含 IV
+
+        // 解密
+        var decrypted = Sm4Crypt.Decrypt(key, true, encrypted);
+        var result = Encoding.UTF8.GetString(decrypted);
+        Assert.AreEqual(data, result);
+    }
+
+    #endregion
+
+    #region Legacy ECB API Tests (Obsolete - for backward compatibility)
+
+#pragma warning disable CS0618 // Type or member is obsolete
+
     /// <summary>
     /// SM4ECB模式加密到Base64格式
     /// </summary>
@@ -76,6 +143,12 @@ public class Sm4Test
         Assert.AreEqual("Microsoft", str);
     }
 
+#pragma warning restore CS0618
+
+    #endregion
+
+    #region CBC API Tests (with explicit IV)
+
     /// <summary>
     /// SM4CBC模式加密到Base64格式
     /// </summary>
@@ -131,4 +204,6 @@ public class Sm4Test
         var str = Encoding.UTF8.GetString(result);
         Assert.AreEqual("Microsoft", str);
     }
+
+    #endregion
 }

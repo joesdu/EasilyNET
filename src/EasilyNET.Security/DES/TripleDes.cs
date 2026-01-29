@@ -27,6 +27,7 @@ namespace EasilyNET.Security;
 ///     仅为需要TripleDES的系统提供兼容性。
 ///     </para>
 /// </remarks>
+[Obsolete("TripleDES is considered legacy. Use AesCrypt instead for new applications.", false)]
 public static class TripleDes
 {
     /// <summary>

@@ -165,11 +165,18 @@ public static class GridFSCollectionExtensions
         ///     <para xml:lang="en">Server configuration action</para>
         ///     <para xml:lang="zh">服务端配置操作</para>
         /// </param>
-        public IServiceCollection AddMongoGridFS(IMongoDatabase db, string name, Action<GridFSBucketOptions> configure, Action<GridFSServerOptions>? serverConfigure = null)
+        /// <param name="uploadConfigure">
+        ///     <para xml:lang="en">Upload options configuration action</para>
+        ///     <para xml:lang="zh">上传选项配置操作</para>
+        /// </param>
+        public IServiceCollection AddMongoGridFS(IMongoDatabase db, string name, Action<GridFSBucketOptions> configure, Action<GridFSServerOptions>? serverConfigure = null, Action<GridFSRateLimitOptions>? uploadConfigure = null)
         {
             services.Configure(name, configure);
             var serverOptions = new GridFSServerOptions();
             serverConfigure?.Invoke(serverOptions);
+
+            // 配置上传选项（速率限制、并发控制等）
+            services.Configure<GridFSRateLimitOptions>(options => { uploadConfigure?.Invoke(options); });
             services.Configure<MvcOptions>(c => c.Conventions.Add(new GridFSControllerConvention(serverOptions)));
             services.Configure<FormOptions>(c =>
                     {
@@ -182,6 +189,9 @@ public static class GridFSCollectionExtensions
             services.TryAddSingleton<IGridFSBucketFactory, GridFSBucketFactory>();
             services.TryAddSingleton(sp => sp.GetRequiredService<IGridFSBucketFactory>().CreateBucket(db));
             services.TryAddSingleton<GridFSCleanupHelper>();
+
+            // 注册速率限制器
+            services.TryAddSingleton<GridFSRateLimiter>();
             services.AddHostedService<GridFSBackgroundCleanupService>();
             services.AddSingleton<GridFSHelper>(sp =>
             {
