@@ -114,21 +114,6 @@ public sealed class ActivityEventConsoleDebugSubscriber : IEventSubscriber
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Try to get collection name from request context</para>
-    ///     <para xml:lang="zh">尝试从请求上下文获取集合名称</para>
-    /// </summary>
-    private bool TryGetCollectionName(int requestId, out string? collectionName)
-    {
-        if (_requestContexts.TryGetValue(requestId, out var context))
-        {
-            collectionName = context.CollectionName;
-            return true;
-        }
-        collectionName = null;
-        return false;
-    }
-
-    /// <summary>
     ///     <para xml:lang="en">Clean up stale requests that have been tracked for too long</para>
     ///     <para xml:lang="zh">清理跟踪时间过长的过期请求</para>
     /// </summary>
