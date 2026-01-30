@@ -124,9 +124,10 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     await _socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Disposing", timeoutCts.Token).ConfigureAwait(false);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore
+                // Disposal errors are expected during shutdown - log at debug level
+                Debug.WriteLine($"[ManagedWebSocketClient] Dispose close error: {ex.GetType().Name}: {ex.Message}");
             }
             finally
             {
@@ -137,9 +138,10 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         {
             await _connectionLock.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore
+            // Lock acquisition timeout during disposal is expected - log at debug level
+            Debug.WriteLine($"[ManagedWebSocketClient] Dispose lock timeout: {ex.GetType().Name}: {ex.Message}");
         }
         _disposeCts.Dispose();
         _connectionCts?.Dispose();
@@ -724,23 +726,97 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     }
 
     /// <summary>
-    /// Calculates the reconnection delay based on attempt number and backoff strategy.
+    ///     <para xml:lang="en">Calculates the reconnection delay based on attempt number and backoff strategy.</para>
+    ///     <para xml:lang="zh">根据尝试次数和退避策略计算重连延迟。</para>
     /// </summary>
+    /// <remarks>
+    ///     <para xml:lang="en">Adds ±20% jitter to prevent thundering herd problem when multiple clients reconnect simultaneously.</para>
+    ///     <para xml:lang="zh">添加 ±20% 的抖动以防止多个客户端同时重连时的雷群效应。</para>
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private TimeSpan CalculateReconnectDelay(int attempts)
     {
+        double delayMs;
         if (!Options.UseExponentialBackoff)
         {
-            return Options.ReconnectDelay;
+            delayMs = Options.ReconnectDelay.TotalMilliseconds;
         }
-        var delayMs = Options.ReconnectDelay.TotalMilliseconds * Math.Pow(2, attempts - 1);
-        var maxDelayMs = Options.MaxReconnectDelay.TotalMilliseconds;
-        return TimeSpan.FromMilliseconds(Math.Min(delayMs, maxDelayMs));
+        else
+        {
+            delayMs = Options.ReconnectDelay.TotalMilliseconds * Math.Pow(2, attempts - 1);
+            delayMs = Math.Min(delayMs, Options.MaxReconnectDelay.TotalMilliseconds);
+        }
+
+        // Add jitter: ±20% to prevent thundering herd
+        var jitterFactor = 0.8 + (Random.Shared.NextDouble() * 0.4); // Range: 0.8 to 1.2
+        delayMs *= jitterFactor;
+
+        // Ensure we don't exceed max delay after jitter
+        return TimeSpan.FromMilliseconds(Math.Min(delayMs, Options.MaxReconnectDelay.TotalMilliseconds));
     }
 
-    private void OnStateChanged(WebSocketStateChangedEventArgs e) => StateChanged?.Invoke(this, e);
-    private void OnMessageReceived(WebSocketMessageReceivedEventArgs e) => MessageReceived?.Invoke(this, e);
-    private void OnError(WebSocketErrorEventArgs e) => Error?.Invoke(this, e);
-    private void OnReconnecting(WebSocketReconnectingEventArgs e) => Reconnecting?.Invoke(this, e);
-    private void OnClosed(WebSocketClosedEventArgs e) => Closed?.Invoke(this, e);
+    private void OnStateChanged(WebSocketStateChangedEventArgs e)
+    {
+        try
+        {
+            StateChanged?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            // Subscriber exception should not crash the client
+            Debug.WriteLine($"[ManagedWebSocketClient] StateChanged handler error: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    private void OnMessageReceived(WebSocketMessageReceivedEventArgs e)
+    {
+        try
+        {
+            MessageReceived?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            // Subscriber exception should not crash the receive loop
+            Debug.WriteLine($"[ManagedWebSocketClient] MessageReceived handler error: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    private void OnError(WebSocketErrorEventArgs e)
+    {
+        try
+        {
+            Error?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            // Subscriber exception should not crash the client
+            Debug.WriteLine($"[ManagedWebSocketClient] Error handler error: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    private void OnReconnecting(WebSocketReconnectingEventArgs e)
+    {
+        try
+        {
+            Reconnecting?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            // Subscriber exception should not crash the reconnect loop
+            Debug.WriteLine($"[ManagedWebSocketClient] Reconnecting handler error: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    private void OnClosed(WebSocketClosedEventArgs e)
+    {
+        try
+        {
+            Closed?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            // Subscriber exception should not crash the client
+            Debug.WriteLine($"[ManagedWebSocketClient] Closed handler error: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
 }

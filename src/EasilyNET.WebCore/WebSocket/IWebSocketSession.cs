@@ -24,6 +24,22 @@ public interface IWebSocketSession
     WebSocketState State { get; }
 
     /// <summary>
+    ///     <para xml:lang="en">Gets a key/value collection that can be used to share data within the scope of this session.</para>
+    ///     <para xml:lang="zh">获取可用于在此会话范围内共享数据的键/值集合。</para>
+    /// </summary>
+    /// <remarks>
+    ///     <para xml:lang="en">
+    ///     This property provides a way to store custom data associated with the session.
+    ///     The collection is thread-safe and can be used to store user information, authentication data, or any other session-specific state.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     此属性提供了一种存储与会话关联的自定义数据的方式。
+    ///     该集合是线程安全的，可用于存储用户信息、身份验证数据或任何其他会话特定状态。
+    ///     </para>
+    /// </remarks>
+    IDictionary<string, object?> Items { get; }
+
+    /// <summary>
     ///     <para xml:lang="en">Sends a message to the client.</para>
     ///     <para xml:lang="zh">向客户端发送消息。</para>
     /// </summary>

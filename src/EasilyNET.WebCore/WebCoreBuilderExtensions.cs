@@ -13,7 +13,7 @@ namespace Microsoft.AspNetCore.Builder;
 ///     <para xml:lang="en">Middleware extensions for unified handling of middleware invocation extensions</para>
 ///     <para xml:lang="zh">中间件扩展，用于统一处理中间件调用扩展</para>
 /// </summary>
-public static class WebCoreExtensions
+public static class WebCoreBuilderExtensions
 {
     /// <param name="builder">
     ///     <para xml:lang="en">The application builder.</para>

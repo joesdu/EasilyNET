@@ -12,6 +12,9 @@ services:
       resources:
         limits:
           memory: 2G
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "gateway.docker.internal:host-gateway"
 
   rabbit:
     image: ghcr.io/joesdu/rabbitmq-dlx:latest
@@ -23,6 +26,9 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "gateway.docker.internal:host-gateway"
 
   aspire_dashboard:
     image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest
@@ -36,6 +42,9 @@ services:
       - DASHBOARD__TELEMETRYLIMITS__MAXMETRICSCOUNT=1000
     ports:
       - "18888:18888"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "gateway.docker.internal:host-gateway"
 
   otel-collector:
     image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:latest
@@ -52,6 +61,9 @@ services:
       # - "8889:8889"   # Prometheus导出器指标
       - "4317:4317" # OTLP gRPC接收器
       - "4318:4318" # OTLP http接收器
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "gateway.docker.internal:host-gateway"
 
   # MCP Context7 服务
   # context7:
