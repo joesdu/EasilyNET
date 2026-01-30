@@ -73,7 +73,8 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
             module.ConfigureServices(context);
             // For async configuration, we run it on a thread pool thread to avoid deadlocks
             // This is necessary because we're in a synchronous context (service registration)
-            var asyncTask = module.ConfigureServicesAsync(context);
+            // No meaningful CancellationToken is available during service registration, so we use CancellationToken.None explicitly.
+            var asyncTask = module.ConfigureServicesAsync(context, CancellationToken.None);
             if (!asyncTask.IsCompleted)
             {
                 // Use Task.Run to avoid deadlocks with synchronization contexts
