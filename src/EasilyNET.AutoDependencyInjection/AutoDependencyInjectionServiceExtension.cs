@@ -5,8 +5,6 @@ using EasilyNET.AutoDependencyInjection.Factories;
 using EasilyNET.AutoDependencyInjection.Modules;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 // ReSharper disable UnusedMember.Global
 
@@ -41,16 +39,6 @@ public static class AutoDependencyInjectionServiceExtension
         ///     <para xml:lang="zh">获取 <see cref="IConfiguration" /> 服务</para>
         /// </summary>
         public IConfiguration GetConfiguration() => provider.GetRequiredService<IConfiguration>();
-
-        /// <summary>
-        ///     <para xml:lang="en">Get the logger for auto dependency injection</para>
-        ///     <para xml:lang="zh">获取自动依赖注入的日志记录器</para>
-        /// </summary>
-        internal ILogger GetAutoDILogger()
-        {
-            var factory = provider.GetService<ILoggerFactory>();
-            return factory?.CreateLogger(nameof(EasilyNET.AutoDependencyInjection)) ?? NullLogger.Instance;
-        }
     }
 
     /// <param name="host">
@@ -63,12 +51,11 @@ public static class AutoDependencyInjectionServiceExtension
         ///     <para xml:lang="en">Initialize the application and configure middleware</para>
         ///     <para xml:lang="zh">初始化应用，配置中间件</para>
         /// </summary>
-        // TODO?: [Obsolete("Use InitializeApplicationAsync instead")]
         public IHost InitializeApplication()
         {
             host.Services.GetRequiredService<IObjectAccessor<IHost>>().Value = host;
             var runner = host.Services.GetRequiredService<IStartupModuleRunner>();
-            runner.Initialize();
+            runner.Initialize(host.Services);
             return host;
         }
 
@@ -84,7 +71,7 @@ public static class AutoDependencyInjectionServiceExtension
         {
             host.Services.GetRequiredService<IObjectAccessor<IHost>>().Value = host;
             var runner = host.Services.GetRequiredService<IStartupModuleRunner>();
-            await runner.InitializeAsync(cancellationToken).ConfigureAwait(false);
+            await runner.InitializeAsync(host.Services, cancellationToken).ConfigureAwait(false);
             return host;
         }
     }
@@ -111,6 +98,9 @@ public static class AutoDependencyInjectionServiceExtension
             services.AddSingleton<IObjectAccessor<IHost>>(new ObjectAccessor<IHost>());
             services.AddScoped<IResolver>(sp => new Resolver(sp, sp.GetRequiredService<ServiceRegistry>()));
             services.AddSingleton(typeof(INamedServiceFactory<>), typeof(NamedServiceFactory<>));
+            // Register module diagnostics
+            services.AddSingleton<IModuleDiagnostics>(sp =>
+                new ModuleDiagnostics(sp.GetRequiredService<IStartupModuleRunner>(), sp.GetRequiredService<ServiceRegistry>()));
             ApplicationFactory.Create<T>(services);
             return services;
         }

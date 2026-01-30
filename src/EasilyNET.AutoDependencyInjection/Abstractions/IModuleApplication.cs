@@ -18,18 +18,8 @@ internal interface IModuleApplication : IDisposable
     IServiceCollection Services { get; }
 
     /// <summary>
-    ///     <para xml:lang="en">
-    ///         <see cref="IServiceProvider" />
-    ///     </para>
-    ///     <para xml:lang="zh">
-    ///         <see cref="IServiceProvider" />
-    ///     </para>
-    /// </summary>
-    IServiceProvider? ServiceProvider { get; }
-
-    /// <summary>
-    ///     <para xml:lang="en">Modules</para>
-    ///     <para xml:lang="zh">模块</para>
+    ///     <para xml:lang="en">Modules ordered by dependency (dependencies first, startup module last)</para>
+    ///     <para xml:lang="zh">按依赖顺序排列的模块（依赖项在前，启动模块在后）</para>
     /// </summary>
     IList<IAppModule> Modules { get; }
 }

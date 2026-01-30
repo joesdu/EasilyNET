@@ -9,33 +9,42 @@
 #### 1. **模块化架构 (AppModule)**
 
 - 基于 `AppModule` 的模块系统，支持依赖关系声明 (`DependsOn`)
-- 模块加载顺序自动解析，确保依赖模块优先初始化
+- 模块加载顺序自动解析（拓扑排序），确保依赖模块优先初始化
 - 支持通过 `GetEnable` 方法动态控制模块启用/禁用（可从配置文件读取）
+- 新增循环依赖检测，防止错误的模块依赖声明
 
-#### 2. **KeyedService 支持**
+#### 2. **同步/异步分离设计**
+
+- **`ConfigureServices(context)`** - **同步方法**，用于服务注册（99%场景）
+- **`ConfigureServicesAsync(context, ct)`** - **异步方法**，用于罕见的异步初始化场景
+- **`ApplicationInitialization(context)`** - **异步方法**，用于中间件/应用配置
+- 清晰的生命周期划分，避免死锁风险
+
+#### 3. **KeyedService 支持**
 
 - 完整支持 .NET 的 KeyedService 功能
 - 可在 `DependencyInjectionAttribute` 中使用 `ServiceKey` 属性标识服务键值
 - 支持通过 `ResolveKeyed<T>(key)` 解析键控服务
 
-#### 3. **高级服务解析器 (IResolver)**
+#### 4. **高级服务解析器 (IResolver)**
 
 - 提供类似 Autofac 的动态解析能力，同时基于 `Microsoft.Extensions.DependencyInjection`
 - 支持构造函数参数覆盖 (NamedParameter, TypedParameter, ResolvedParameter)
 - 支持可选解析、批量解析、命名解析、键控解析
 - 支持创建独立作用域 (`BeginScope`)
 
-#### 4. **多平台支持**
+#### 5. **多平台支持**
 
 - **Web 应用**: ASP.NET Core (WebApplication, IApplicationBuilder)
 - **桌面应用**: WPF, WinForms, WinUI3 (.NET 项目，不支持 .NET Framework)
 - 统一的 API 接口，便于跨平台项目复用模块
 
-#### 5. **异步优先设计**
+#### 6. **模块诊断 API**
 
-- `ConfigureServices` 和 `ApplicationInitialization` 均为异步方法
-- 支持 `InitializeApplicationAsync` 用于异步初始化
-- 支持 `CancellationToken` 取消操作
+- 新增 `IModuleDiagnostics` 接口
+- 查看已加载模块及其执行顺序
+- 查看自动注册的服务列表
+- 验证模块依赖关系
 
 ---
 
@@ -175,10 +184,18 @@ public partial class App : Application
 [DependsOn(typeof(DependencyAppModule))]
 internal sealed class AppServiceModules : AppModule
 {
-    public override async Task ConfigureServices(ConfigureServicesContext context)
+    // 同步服务注册（推荐）
+    public override void ConfigureServices(ConfigureServicesContext context)
     {
         // 注册应用服务
-        await base.ConfigureServices(context);
+        context.Services.AddSingleton<IMyService, MyService>();
+    }
+    
+    // 可选：异步初始化
+    public override Task ConfigureServicesAsync(ConfigureServicesContext context, CancellationToken ct)
+    {
+        // 罕见的异步初始化场景
+        return Task.CompletedTask;
     }
 }
 ```
@@ -253,14 +270,14 @@ public class CorsModule : AppModule
     // 可从配置文件读取是否启用此模块
     public override bool GetEnable(ConfigureServicesContext context)
     {
-        var config = context.ServiceProvider.GetConfiguration();
+        var config = context.Configuration;  // 直接使用 context.Configuration
         return config.GetSection("ServicesEnable").GetValue<bool>("Cors");
     }
 
-    // 注册服务
-    public override async Task ConfigureServices(ConfigureServicesContext context)
+    // 同步服务注册（推荐）
+    public override void ConfigureServices(ConfigureServicesContext context)
     {
-        var config = context.ServiceProvider.GetConfiguration();
+        var config = context.Configuration;  // 直接使用 context.Configuration
         var allow = config["AllowedHosts"] ?? "*";
 
         context.Services.AddCors(c =>
@@ -268,17 +285,14 @@ public class CorsModule : AppModule
                 s.WithOrigins(allow.Split(","))
                  .AllowAnyMethod()
                  .AllowAnyHeader()));
-
-        await Task.CompletedTask;
     }
 
-    // 配置中间件
-    public override async Task ApplicationInitialization(ApplicationContext context)
+    // 配置中间件（异步）
+    public override Task ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationHost() as IApplicationBuilder;
         app?.UseCors("AllowedHosts");
-
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }
 ```
@@ -293,19 +307,27 @@ public class CorsModule : AppModule
 )]
 public class AppWebModule : AppModule
 {
-    public override async Task ConfigureServices(ConfigureServicesContext context)
+    // 同步服务注册
+    public override void ConfigureServices(ConfigureServicesContext context)
     {
         context.Services.AddHttpContextAccessor();
         // 其他服务注册
-        await base.ConfigureServices(context);
+    }
+    
+    // 可选：异步初始化
+    public override Task ConfigureServicesAsync(ConfigureServicesContext context, CancellationToken ct)
+    {
+        // 罕见的异步初始化场景
+        return Task.CompletedTask;
     }
 
-    public override async Task ApplicationInitialization(ApplicationContext context)
+    // 应用初始化（异步）
+    public override Task ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationHost() as IApplicationBuilder;
         app?.UseAuthorization();
         // 其他中间件配置
-        await base.ApplicationInitialization(context);
+        return Task.CompletedTask;
     }
 }
 ```
@@ -341,12 +363,12 @@ app.Run();
 
 #### 模块依赖顺序
 
-模块的 `DependsOn` 顺序决定了初始化顺序。被依赖的模块会先执行：
+模块的 `DependsOn` 顺序决定了初始化顺序。被依赖的模块会先执行（使用拓扑排序算法）：
 
 ```csharp
 [DependsOn(
     typeof(DependencyAppModule),    // 第 1 个初始化
-    typeof(DatabaseModule),         // 第 2 个初始化
+    typeof(DatabaseModule),         // 第 2 个初始化（DependencyAppModule 完成后）
     typeof(CachingModule),          // 第 3 个初始化
     typeof(AuthenticationModule)    // 第 4 个初始化
 )]
@@ -356,6 +378,8 @@ public class AppWebModule : AppModule  // 最后初始化
 }
 ```
 
+**重要**：如果 `DatabaseModule` 依赖 `DependencyAppModule`，则 `DependencyAppModule` 会先执行，然后是 `DatabaseModule`，无论它们在 `DependsOn` 中的声明顺序如何。
+
 #### 模块职责划分
 
 建议按功能领域划分模块：
@@ -364,25 +388,33 @@ public class AppWebModule : AppModule  // 最后初始化
 // 数据库模块
 public class DatabaseModule : AppModule
 {
-    public override async Task ConfigureServices(ConfigureServicesContext context)
+    // 同步服务注册
+    public override void ConfigureServices(ConfigureServicesContext context)
     {
-        // 注册 DbContext, Repository 等
+        var connectionString = context.Configuration
+            .GetConnectionString("Default");
+        context.Services.AddDbContext<AppDbContext>(options =>
+            options.UseSqlServer(connectionString));
     }
 }
 
 // 认证模块
 public class AuthenticationModule : AppModule
 {
-    public override async Task ConfigureServices(ConfigureServicesContext context)
+    // 同步服务注册
+    public override void ConfigureServices(ConfigureServicesContext context)
     {
-        // 注册 JWT, Identity 等
+        context.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+               .AddJwtBearer(options => { /* ... */ });
     }
 
-    public override async Task ApplicationInitialization(ApplicationContext context)
+    // 异步中间件配置
+    public override Task ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationHost() as IApplicationBuilder;
         app?.UseAuthentication();
         app?.UseAuthorization();
+        return Task.CompletedTask;
     }
 }
 
@@ -391,22 +423,23 @@ public class SwaggerModule : AppModule
 {
     public override bool GetEnable(ConfigureServicesContext context)
     {
-        var config = context.ServiceProvider.GetConfiguration();
-        return config.GetValue<bool>("Swagger:Enabled");
+        // 使用 context.Configuration 直接访问配置
+        return context.Configuration.GetValue<bool>("Swagger:Enabled");
     }
 
-    public override async Task ConfigureServices(ConfigureServicesContext context)
+    // 同步服务注册
+    public override void ConfigureServices(ConfigureServicesContext context)
     {
         context.Services.AddSwaggerGen();
-        await Task.CompletedTask;
     }
 
-    public override async Task ApplicationInitialization(ApplicationContext context)
+    // 异步中间件配置
+    public override Task ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationHost() as IApplicationBuilder;
         app?.UseSwagger();
         app?.UseSwaggerUI();
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }
 ```
@@ -430,8 +463,10 @@ public class SwaggerModule : AppModule
 ```csharp
 public override bool GetEnable(ConfigureServicesContext context)
 {
-    var config = context.ServiceProvider.GetConfiguration();
-    return config.GetSection("ServicesEnable").GetValue<bool>("Swagger");
+    // 推荐使用 context.Configuration
+    return context.Configuration
+        .GetSection("ServicesEnable")
+        .GetValue<bool>("Swagger");
 }
 ```
 
@@ -487,6 +522,33 @@ public partial class MainWindow : Window
 
 ### **中断性变更说明**
 
+#### v4.x → v5.x
+
+1. **ConfigureServices 改为同步方法**
+   - `ConfigureServices` 从 `async Task` 改为 `void`
+   - 原因：服务注册阶段本身应该是同步的，避免死锁风险
+   - 迁移：移除 `async/await` 关键字，删除 `await Task.CompletedTask`
+
+2. **新增 ConfigureServicesAsync 方法**
+   - 如需在服务注册阶段执行异步操作，重写 `ConfigureServicesAsync`
+   - 此方法在 `ConfigureServices` 之后调用
+
+3. **配置访问方式变更**
+   - 旧：`context.ServiceProvider.GetConfiguration()`
+   - 新：`context.Configuration`（推荐）或 `context.ServiceProvider.GetRequiredService<IConfiguration>()`
+
+4. **IStartupModuleRunner.Initialize 签名变更**
+   - 旧：`void Initialize()`
+   - 新：`void Initialize(IServiceProvider serviceProvider)`
+
+5. **新增循环依赖检测**
+   - 如果模块存在循环依赖，将抛出 `InvalidOperationException`
+   - 确保模块依赖形成有向无环图（DAG）
+
+6. **新增 IModuleDiagnostics 接口**
+   - 可注入 `IModuleDiagnostics` 查看模块加载情况
+   - 支持查看模块执行顺序、自动注册服务列表
+
 #### v3.x → v4.x
 
 1. **异步方法**
@@ -508,8 +570,18 @@ public partial class MainWindow : Window
 #### Q: 如何在模块中使用配置？
 
 ```csharp
-var config = context.ServiceProvider.GetConfiguration();
-var connectionString = config.GetConnectionString("Default");
+// 推荐方式（新）
+public override void ConfigureServices(ConfigureServicesContext context)
+{
+    var config = context.Configuration;
+    var connectionString = config.GetConnectionString("Default");
+}
+
+// 兼容方式（旧，仍可用）
+public override void ConfigureServices(ConfigureServicesContext context)
+{
+    var config = context.ServiceProvider.GetRequiredService<IConfiguration>();
+}
 ```
 
 #### Q: 如何在运行时获取 Scoped 服务？
@@ -527,11 +599,44 @@ var service = resolver.Resolve<IScopedService>();
 
 #### Q: 模块的初始化顺序是怎样的？
 
-按照 `DependsOn` 的声明顺序，依赖模块先执行：
+使用拓扑排序算法，确保依赖模块先执行：
 
-1. 执行所有模块的 `ConfigureServices`（按依赖顺序）
-2. 构建 ServiceProvider
-3. 执行所有模块的 `ApplicationInitialization`（按依赖顺序）
+1. 执行所有模块的 `ConfigureServices`（按依赖顺序，依赖项优先）
+2. 执行所有模块的 `ConfigureServicesAsync`（按依赖顺序）
+3. 构建 ServiceProvider
+4. 执行所有模块的 `ApplicationInitialization`（按依赖顺序）
+
+#### Q: 如何查看模块加载情况？
+
+```csharp
+// 注入 IModuleDiagnostics
+public class MyService
+{
+    private readonly IModuleDiagnostics _diagnostics;
+    
+    public MyService(IModuleDiagnostics diagnostics)
+    {
+        _diagnostics = diagnostics;
+        
+        // 获取已加载模块
+        var modules = _diagnostics.GetLoadedModules();
+        foreach (var module in modules)
+        {
+            Console.WriteLine($"{module.Order}: {module.Name}");
+        }
+        
+        // 验证依赖关系
+        var issues = _diagnostics.ValidateModuleDependencies();
+        if (issues.Count > 0)
+        {
+            foreach (var issue in issues)
+            {
+                Console.WriteLine($"警告: {issue}");
+            }
+        }
+    }
+}
+```
 
 #### Q: 如何禁用某个模块？
 
@@ -541,6 +646,26 @@ var service = resolver.Resolve<IScopedService>();
 public override bool GetEnable(ConfigureServicesContext context) => false;
 ```
 
+#### Q: 出现 "Circular dependency detected" 错误怎么办？
+
+检查 `DependsOn` 声明，确保没有循环依赖：
+
+```csharp
+// ❌ 错误：循环依赖
+[DependsOn(typeof(ModuleB))]
+public class ModuleA : AppModule { }
+
+[DependsOn(typeof(ModuleA))]  // 循环依赖！
+public class ModuleB : AppModule { }
+
+// ✅ 正确：无循环依赖
+[DependsOn(typeof(BaseModule))]
+public class ModuleA : AppModule { }
+
+[DependsOn(typeof(BaseModule))]
+public class ModuleB : AppModule { }
+```
+
 ---
 
 ### **性能优化建议**
@@ -548,7 +673,8 @@ public override bool GetEnable(ConfigureServicesContext context) => false;
 1. **缓存构造函数信息**: Resolver 已内置构造函数缓存，避免重复反射
 2. **合理使用作用域**: 避免在 Singleton 中注入 Scoped 服务
 3. **延迟初始化**: 不需要的模块通过 `GetEnable` 返回 false 禁用
-4. **异步操作**: 充分利用异步方法，避免阻塞初始化
+4. **同步注册优先**: 使用 `ConfigureServices` 而非 `ConfigureServicesAsync`，除非确实需要异步操作
+5. **避免过早 BuildServiceProvider**: 框架已优化，通常不需要手动构建
 
 ---
 

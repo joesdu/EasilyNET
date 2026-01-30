@@ -4,6 +4,7 @@ using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.Core.Misc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 // ReSharper disable UnusedType.Global
 
@@ -14,12 +15,15 @@ namespace EasilyNET.AutoDependencyInjection.Modules;
 public sealed class DependencyAppModule : AppModule
 {
     /// <inheritdoc />
-    public override Task ConfigureServices(ConfigureServicesContext context)
+    public override void ConfigureServices(ConfigureServicesContext context)
     {
         var services = context.Services;
-        var logger = context.ServiceProvider.GetAutoDILogger();
+        // Build a temporary provider just for logging during registration
+        using var tempProvider = services.BuildServiceProvider();
+        var logger = tempProvider.GetService<ILoggerFactory>()
+                                 ?.CreateLogger(nameof(AutoDependencyInjection)) ??
+                     NullLogger.Instance;
         AddAutoInjection(services, logger);
-        return Task.CompletedTask;
     }
 
     private static void AddAutoInjection(IServiceCollection services, ILogger logger)

@@ -16,9 +16,9 @@ namespace WebApi.Test.Unit.ServiceModules;
 internal sealed class OpenTelemetryModule : AppModule
 {
     /// <inheritdoc />
-    public override async Task ConfigureServices(ConfigureServicesContext context)
+    public override void ConfigureServices(ConfigureServicesContext context)
     {
-        var otel = context.ServiceProvider.GetConfiguration().GetSection("OpenTelemetry");
+        var otel = context.Configuration.GetSection("OpenTelemetry");
         var env = context.ServiceProvider.GetRequiredService<IWebHostEnvironment>() ?? throw new("获取服务出错");
         context.Services.AddOpenTelemetry()
                .ConfigureResource(c => c.AddService(Constant.InstanceName, autoGenerateServiceInstanceId: false))
@@ -52,7 +52,6 @@ internal sealed class OpenTelemetryModule : AppModule
         context.Services.AddHealthChecks().AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
         context.Services.ConfigureHttpClientDefaults(c => c.AddStandardResilienceHandler());
         context.Services.AddMetrics();
-        await Task.CompletedTask;
     }
 
     public override async Task ApplicationInitialization(ApplicationContext context)

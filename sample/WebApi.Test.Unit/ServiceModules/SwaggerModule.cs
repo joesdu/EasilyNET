@@ -60,7 +60,7 @@ internal sealed class SwaggerModule : AppModule
     };
 
     /// <inheritdoc />
-    public override async Task ConfigureServices(ConfigureServicesContext context)
+    public override void ConfigureServices(ConfigureServicesContext context)
     {
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         context.Services.AddSwaggerGen(c =>
@@ -120,7 +120,6 @@ internal sealed class SwaggerModule : AppModule
                 c.SwaggerDoc(key, value);
             }
         });
-        await Task.CompletedTask;
     }
 
     /// <inheritdoc />

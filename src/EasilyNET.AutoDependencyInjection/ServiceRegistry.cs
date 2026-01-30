@@ -127,6 +127,18 @@ internal sealed class ServiceRegistry
     internal bool TryGetNamedService(object key, Type serviceType, out NamedServiceDescriptor? descriptor) => NamedServices.TryGetValue((key, serviceType), out descriptor);
 
     /// <summary>
+    ///     <para xml:lang="en">Get all registered service types and their implementations (for diagnostics)</para>
+    ///     <para xml:lang="zh">获取所有已注册的服务类型及其实现（用于诊断）</para>
+    /// </summary>
+    internal IReadOnlyDictionary<Type, Type> GetAllImplementations() => ServiceImplementations;
+
+    /// <summary>
+    ///     <para xml:lang="en">Get all registered named services (for diagnostics)</para>
+    ///     <para xml:lang="zh">获取所有已注册的命名服务（用于诊断）</para>
+    /// </summary>
+    internal IReadOnlyDictionary<(object Key, Type ServiceType), NamedServiceDescriptor> GetAllNamedServices() => NamedServices;
+
+    /// <summary>
     ///     <para xml:lang="en">
     ///     Validates that the key has proper equality semantics for use in dictionary lookups.
     ///     Value types and strings are always valid. Reference types must override Equals and GetHashCode.

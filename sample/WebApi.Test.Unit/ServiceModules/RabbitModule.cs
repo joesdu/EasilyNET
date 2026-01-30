@@ -12,9 +12,9 @@ namespace WebApi.Test.Unit.ServiceModules;
 internal sealed class RabbitModule : AppModule
 {
     /// <inheritdoc />
-    public override async Task ConfigureServices(ConfigureServicesContext context)
+    public override void ConfigureServices(ConfigureServicesContext context)
     {
-        var config = context.ServiceProvider.GetConfiguration();
+        var config = context.Configuration;
         context.Services.AddRabbitBus(c =>
         {
             c.WithConnection(f => f.Uri = new(config.GetConnectionString("Rabbit") ?? string.Empty))
@@ -56,7 +56,6 @@ internal sealed class RabbitModule : AppModule
              .WithHandler<TopicEventTwoHandlers>();
             c.IgnoreHandler<HelloWorldEvent, DelayedEventHandlers>();
         });
-        await Task.CompletedTask;
     }
 }
 

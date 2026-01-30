@@ -19,7 +19,7 @@ namespace WebApi.Test.Unit.ServiceModules;
 internal sealed class ControllersModule : AppModule
 {
     /// <inheritdoc />
-    public override async Task ConfigureServices(ConfigureServicesContext context)
+    public override void ConfigureServices(ConfigureServicesContext context)
     {
         context.Services.AddControllers()
                .AddJsonOptions(c =>
@@ -54,7 +54,6 @@ internal sealed class ControllersModule : AppModule
                 }
             };
         });
-        await Task.CompletedTask;
     }
 }
 
