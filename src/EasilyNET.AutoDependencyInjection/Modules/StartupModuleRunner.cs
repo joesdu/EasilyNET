@@ -58,9 +58,9 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
     {
         var context = new ConfigureServicesContext(Services);
         Services.AddSingleton(context);
-        var logger = Services.BuildServiceProvider().GetService<ILoggerFactory>()
-                             ?.CreateLogger(nameof(AutoDependencyInjection)) ??
-                     NullLogger.Instance;
+        using var serviceProvider = Services.BuildServiceProvider();
+        var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
+        var logger = loggerFactory?.CreateLogger(nameof(AutoDependencyInjection)) ?? NullLogger.Instance;
         foreach (var module in Modules)
         {
             Services.AddSingleton(module);
