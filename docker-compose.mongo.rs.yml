@@ -14,6 +14,9 @@ services:
       - MONGODB_REPLICA_SET_KEY=HxplckY2jXSwfDRE
     ports:
       - "27017:27017"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "gateway.docker.internal:host-gateway"
     volumes:
       - "mongodb_master_data:/bitnami/mongodb"
 
@@ -34,6 +37,9 @@ services:
       - MONGODB_REPLICA_SET_KEY=HxplckY2jXSwfDRE
     ports:
       - "27018:27017"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "gateway.docker.internal:host-gateway"
 
   mongo_arbiter:
     image: bitnami/mongodb:latest
@@ -52,6 +58,9 @@ services:
       - MONGODB_REPLICA_SET_KEY=HxplckY2jXSwfDRE
     ports:
       - "27019:27017"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "gateway.docker.internal:host-gateway"
 
 volumes:
   mongodb_master_data:

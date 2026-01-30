@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
@@ -14,6 +15,7 @@ internal sealed class WebSocketSession : IWebSocketSession
 {
     private readonly CancellationTokenSource _cts = new();
     private readonly WebSocketHandler _handler;
+    private readonly ConcurrentDictionary<string, object?> _items = new();
     private readonly ILogger _logger;
     private readonly WebSocketSessionOptions _options;
     private readonly Channel<WebSocketMessage> _sendChannel;
@@ -27,9 +29,34 @@ internal sealed class WebSocketSession : IWebSocketSession
 
     private long _lastReceiveTimestamp;
 
-    public WebSocketSession(string id, System.Net.WebSockets.WebSocket socket, WebSocketHandler handler, WebSocketSessionOptions options, ILogger logger)
+    /// <summary>
+    ///     <para xml:lang="en">Initializes a new instance of the <see cref="WebSocketSession" /> class with a custom session ID.</para>
+    ///     <para xml:lang="zh">使用自定义会话 ID 初始化 <see cref="WebSocketSession" /> 类的新实例。</para>
+    /// </summary>
+    /// <param name="id">
+    ///     <para xml:lang="en">The session identifier. If null or empty, a new Ulid will be generated.</para>
+    ///     <para xml:lang="zh">会话标识符。如果为 null 或空，将生成新的 Ulid。</para>
+    /// </param>
+    /// <param name="socket">
+    ///     <para xml:lang="en">The WebSocket connection.</para>
+    ///     <para xml:lang="zh">WebSocket 连接。</para>
+    /// </param>
+    /// <param name="handler">
+    ///     <para xml:lang="en">The WebSocket handler.</para>
+    ///     <para xml:lang="zh">WebSocket 处理程序。</para>
+    /// </param>
+    /// <param name="options">
+    ///     <para xml:lang="en">The session options.</para>
+    ///     <para xml:lang="zh">会话选项。</para>
+    /// </param>
+    /// <param name="logger">
+    ///     <para xml:lang="en">The logger.</para>
+    ///     <para xml:lang="zh">日志记录器。</para>
+    /// </param>
+    private WebSocketSession(string? id, System.Net.WebSockets.WebSocket socket, WebSocketHandler handler, WebSocketSessionOptions options, ILogger logger)
     {
-        Id = id;
+        // Use Ulid for globally unique session ID if not provided
+        Id = string.IsNullOrEmpty(id) ? Ulid.NewUlid().ToString() : id;
         _socket = socket;
         _handler = handler;
         _options = options;
@@ -45,9 +72,34 @@ internal sealed class WebSocketSession : IWebSocketSession
         _lastHeartbeatSentTimestamp = 0; // 尚未发送心跳
     }
 
+    /// <summary>
+    ///     <para xml:lang="en">Initializes a new instance of the <see cref="WebSocketSession" /> class with an auto-generated Ulid.</para>
+    ///     <para xml:lang="zh">使用自动生成的 Ulid 初始化 <see cref="WebSocketSession" /> 类的新实例。</para>
+    /// </summary>
+    /// <param name="socket">
+    ///     <para xml:lang="en">The WebSocket connection.</para>
+    ///     <para xml:lang="zh">WebSocket 连接。</para>
+    /// </param>
+    /// <param name="handler">
+    ///     <para xml:lang="en">The WebSocket handler.</para>
+    ///     <para xml:lang="zh">WebSocket 处理程序。</para>
+    /// </param>
+    /// <param name="options">
+    ///     <para xml:lang="en">The session options.</para>
+    ///     <para xml:lang="zh">会话选项。</para>
+    /// </param>
+    /// <param name="logger">
+    ///     <para xml:lang="en">The logger.</para>
+    ///     <para xml:lang="zh">日志记录器。</para>
+    /// </param>
+    public WebSocketSession(System.Net.WebSockets.WebSocket socket, WebSocketHandler handler, WebSocketSessionOptions options, ILogger logger)
+        : this(null, socket, handler, options, logger) { }
+
     public string Id { get; }
 
     public WebSocketState State => _socket.State;
+
+    public IDictionary<string, object?> Items => _items;
 
     public Task SendAsync(ReadOnlyMemory<byte> message, WebSocketMessageType messageType = WebSocketMessageType.Text, bool endOfMessage = true, CancellationToken cancellationToken = default) => SendAsyncInternal(message, messageType, endOfMessage, null, cancellationToken);
 
@@ -164,9 +216,13 @@ internal sealed class WebSocketSession : IWebSocketSession
                     using var timeoutCts = new CancellationTokenSource(_options.CloseTimeout);
                     await _socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Session ended", timeoutCts.Token).ConfigureAwait(false);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Ignore
+                    // Close timeout errors are expected during shutdown - log at debug level
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                    {
+                        _logger.LogDebug(ex, "[WebSocketSession:{Id}] Error during close handshake", Id);
+                    }
                 }
             }
             _socket.Dispose();
@@ -204,8 +260,11 @@ internal sealed class WebSocketSession : IWebSocketSession
                     }
                 } while (!result.EndOfMessage);
 
-                // 获取完整消息数据
-                var data = ms.ToArray();
+                // 使用 ToArraySegment 获取内部缓冲区引用，避免额外分配
+                // 注意：ArraySegment 引用的是 PooledMemoryStream 的内部缓冲区
+                // 在 ms 被 dispose 之前必须完成消息处理
+                var segment = ms.ToArraySegment();
+                var data = segment.AsMemory();
 
                 // 更新最后接收时间戳
                 UpdateLastReceiveTimestamp();
