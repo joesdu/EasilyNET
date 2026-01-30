@@ -42,6 +42,8 @@ public static class WebCoreExtensions
         {
             services.TryAddSingleton<WebSocketSessionManager>();
             services.TryAddSingleton<IWebSocketSessionManager>(sp => sp.GetRequiredService<WebSocketSessionManager>());
+            // Register internal registry interface for middleware to use
+            services.TryAddSingleton<IWebSocketSessionRegistry>(sp => sp.GetRequiredService<WebSocketSessionManager>());
             return services;
         }
     }

@@ -28,11 +28,16 @@ namespace EasilyNET.WebCore.Middleware;
 ///     <para xml:lang="en">The logger.</para>
 ///     <para xml:lang="zh">日志记录器。</para>
 /// </param>
-/// <param name="sessionManager">
-///     <para xml:lang="en">The optional session manager for tracking sessions.</para>
-///     <para xml:lang="zh">用于跟踪会话的可选会话管理器。</para>
+/// <param name="sessionRegistry">
+///     <para xml:lang="en">The optional session registry for tracking sessions.</para>
+///     <para xml:lang="zh">用于跟踪会话的可选会话注册表。</para>
 /// </param>
-internal sealed class WebSocketMiddleware<THandler>(RequestDelegate next, WebSocketSessionOptions options, THandler handler, ILogger<WebSocketSession> logger, WebSocketSessionManager? sessionManager = null) where THandler : WebSocketHandler
+internal sealed class WebSocketMiddleware<THandler>(
+    RequestDelegate next,
+    WebSocketSessionOptions options,
+    THandler handler,
+    ILogger<WebSocketSession> logger,
+    IWebSocketSessionRegistry? sessionRegistry = null) where THandler : WebSocketHandler
 {
     /// <summary>
     ///     <para xml:lang="en">Invokes the middleware.</para>
@@ -49,14 +54,14 @@ internal sealed class WebSocketMiddleware<THandler>(RequestDelegate next, WebSoc
             using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
             // Use auto-generated Ulid for globally unique session ID
             var session = new WebSocketSession(webSocket, handler, options, logger);
-            sessionManager?.AddSession(session);
+            sessionRegistry?.AddSession(session);
             try
             {
                 await session.ProcessAsync(context.RequestAborted);
             }
             finally
             {
-                sessionManager?.RemoveSession(session.Id);
+                sessionRegistry?.RemoveSession(session.Id);
             }
         }
         else
