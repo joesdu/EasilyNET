@@ -69,6 +69,5 @@ public sealed class ConfigureServicesContext(IServiceCollection services) : IDis
         {
             disposable.Dispose();
         }
-        GC.SuppressFinalize(this);
     }
 }
