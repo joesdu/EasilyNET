@@ -140,6 +140,10 @@ private static string SelectDelayQueue(TimeSpan delay, string eventTypeName)
 {
     var delayMs = (long)delay.TotalMilliseconds;
     
+    // 零延迟或负延迟拒绝（与 4.1 节边界策略一致）
+    if (delayMs <= 0)
+        throw new ArgumentException("Delay must be positive.", nameof(delay));
+    
     // 短延迟使用精确队列
     if (delayMs < 10000) return $"delay.precise.{eventTypeName}";
     
