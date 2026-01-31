@@ -49,6 +49,12 @@ public class AppModule : IAppModule
         var visited = new HashSet<Type>();
         var visiting = new HashSet<Type>(); // For cycle detection
 
+        // Start from the module type
+        Visit(moduleType);
+        // Remove the module itself from the result as it will be added separately
+        result.Remove(moduleType);
+        return result;
+
         void Visit(Type type)
         {
             if (visited.Contains(type))
@@ -57,8 +63,7 @@ public class AppModule : IAppModule
             }
             if (!visiting.Add(type))
             {
-                throw new InvalidOperationException($"Circular dependency detected involving '{type.Name}'. " +
-                                                    "Module dependencies must form a directed acyclic graph (DAG).");
+                throw new InvalidOperationException($"Circular dependency detected involving '{type.Name}'. Module dependencies must form a directed acyclic graph (DAG).");
             }
             // Get direct dependencies in declaration order
             var deps = type.GetCustomAttributes()
@@ -79,12 +84,6 @@ public class AppModule : IAppModule
                 result.Add(type);
             }
         }
-
-        // Start from the module type
-        Visit(moduleType);
-        // Remove the module itself from the result as it will be added separately
-        result.Remove(moduleType);
-        return result;
     }
 
     /// <summary>

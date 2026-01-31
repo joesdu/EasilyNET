@@ -210,7 +210,7 @@ internal class ModuleApplicationBase : IModuleApplication
             }
             // Use a dedicated thread pool thread to avoid deadlocks in sync-over-async scenarios
             // This is safer than .GetAwaiter().GetResult() which can deadlock with sync contexts
-            Task.Run(() => module.ApplicationInitialization(ctx)).GetAwaiter().GetResult();
+            Task.Run(() => module.ApplicationInitialization(ctx)).ConfigureAwait(false).GetAwaiter().GetResult();
         }
         if (_logger.IsEnabled(LogLevel.Debug))
         {

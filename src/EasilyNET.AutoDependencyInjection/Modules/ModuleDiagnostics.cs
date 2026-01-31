@@ -18,11 +18,7 @@ internal sealed class ModuleDiagnostics(IStartupModuleRunner runner, ServiceRegi
         {
             var module = modules[i];
             var moduleType = module.GetType();
-            var dependencies = moduleType.GetCustomAttributes()
-                                         .OfType<IDependedTypesProvider>()
-                                         .SelectMany(p => p.GetDependedTypes())
-                                         .Distinct()
-                                         .ToList();
+            var dependencies = moduleType.GetCustomAttributes().OfType<IDependedTypesProvider>().SelectMany(p => p.GetDependedTypes()).Distinct().ToList();
             result.Add(new()
             {
                 ModuleType = moduleType,
@@ -69,17 +65,8 @@ internal sealed class ModuleDiagnostics(IStartupModuleRunner runner, ServiceRegi
         foreach (var module in runner.Modules)
         {
             var moduleType = module.GetType();
-            var dependencies = moduleType.GetCustomAttributes()
-                                         .OfType<IDependedTypesProvider>()
-                                         .SelectMany(p => p.GetDependedTypes())
-                                         .Distinct();
-            foreach (var dep in dependencies)
-            {
-                if (!loadedModuleTypes.Contains(dep))
-                {
-                    issues.Add($"Module '{moduleType.Name}' depends on '{dep.Name}' which is not loaded (possibly disabled).");
-                }
-            }
+            var dependencies = moduleType.GetCustomAttributes().OfType<IDependedTypesProvider>().SelectMany(p => p.GetDependedTypes()).Distinct();
+            issues.AddRange(from dep in dependencies where !loadedModuleTypes.Contains(dep) select $"Module '{moduleType.Name}' depends on '{dep.Name}' which is not loaded (possibly disabled).");
         }
         return issues;
     }
