@@ -19,17 +19,9 @@ internal sealed class EventBus(
 {
     private readonly RabbitConfig _config = options.Get(Constant.OptionName);
 
-    public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, null, cancellationToken).ConfigureAwait(false);
+    public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, cancellationToken).ConfigureAwait(false);
 
-    public async Task Publish<T>(T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, ttl, cancellationToken).ConfigureAwait(false);
-
-    public async Task Publish<T>(T @event, TimeSpan ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await Publish(@event, (uint)ttl.TotalMilliseconds, routingKey, priority, cancellationToken);
-
-    public async Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatchInternal(events, routingKey, priority, null, cancellationToken).ConfigureAwait(false);
-
-    public async Task PublishBatch<T>(IEnumerable<T> events, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatchInternal(events, routingKey, priority, ttl, cancellationToken).ConfigureAwait(false);
-
-    public async Task PublishBatch<T>(IEnumerable<T> events, TimeSpan ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatch(events, (uint)ttl.TotalMilliseconds, routingKey, priority, cancellationToken);
+    public async Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatchInternal(events, routingKey, priority, cancellationToken).ConfigureAwait(false);
 
     public async Task Publish(object @event, Type eventType, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default)
     {
@@ -227,7 +219,7 @@ internal sealed class EventBus(
 
     #region Internal Publish Helpers
 
-    private async Task PublishInternal<T>(T @event, string? routingKey, byte? priority, uint? ttl, CancellationToken ct) where T : IEvent
+    private async Task PublishInternal<T>(T @event, string? routingKey, byte? priority, CancellationToken ct) where T : IEvent
     {
         ct.ThrowIfCancellationRequested();
         var config = eventRegistry.GetConfiguration<T>();
@@ -241,18 +233,7 @@ internal sealed class EventBus(
         }
         try
         {
-            if (ttl.HasValue)
-            {
-                if (config.Exchange.Type != EModel.Delayed)
-                {
-                    throw new InvalidOperationException($"The exchange type for the delayed queue must be '{nameof(EModel.Delayed)}'. Event: '{@event.GetType().Name}'");
-                }
-                await eventPublisher.PublishDelayed(config, @event, ttl.Value, routingKey, priority, ct).ConfigureAwait(false);
-            }
-            else
-            {
-                await eventPublisher.Publish(config, @event, routingKey, priority, ct).ConfigureAwait(false);
-            }
+            await eventPublisher.Publish(config, @event, routingKey, priority, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -262,13 +243,13 @@ internal sealed class EventBus(
         {
             if (logger.IsEnabled(LogLevel.Error))
             {
-                logger.LogError(ex, "Failed to publish{Kind}event {EventType} ID {EventId}", ttl.HasValue ? " delayed " : " ", @event.GetType().Name, @event.EventId);
+                logger.LogError(ex, "Failed to publish event {EventType} ID {EventId}", @event.GetType().Name, @event.EventId);
             }
             // Swallow: retry subsystem will handle nacks/timeouts
         }
     }
 
-    private async Task PublishBatchInternal<T>(IEnumerable<T> events, string? routingKey, byte? priority, uint? ttl, CancellationToken ct) where T : IEvent
+    private async Task PublishBatchInternal<T>(IEnumerable<T> events, string? routingKey, byte? priority, CancellationToken ct) where T : IEvent
     {
         ct.ThrowIfCancellationRequested();
         // 避免多次枚举
@@ -291,18 +272,7 @@ internal sealed class EventBus(
         }
         try
         {
-            if (ttl.HasValue)
-            {
-                if (config.Exchange.Type != EModel.Delayed)
-                {
-                    throw new InvalidOperationException($"The exchange type for the delayed queue must be '{nameof(EModel.Delayed)}'. Event: '{typeof(T).Name}'");
-                }
-                await eventPublisher.PublishBatchDelayed(config, list, ttl.Value, routingKey, priority, ct).ConfigureAwait(false);
-            }
-            else
-            {
-                await eventPublisher.PublishBatch(config, list, routingKey, priority, ct).ConfigureAwait(false);
-            }
+            await eventPublisher.PublishBatch(config, list, routingKey, priority, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -312,7 +282,7 @@ internal sealed class EventBus(
         {
             if (logger.IsEnabled(LogLevel.Error))
             {
-                logger.LogError(ex, "Failed to publish{Kind}batch events {EventType} (Count={Count})", ttl.HasValue ? " delayed " : " ", typeof(T).Name, list.Count);
+                logger.LogError(ex, "Failed to publish batch events {EventType} (Count={Count})", typeof(T).Name, list.Count);
             }
         }
     }

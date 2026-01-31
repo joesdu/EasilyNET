@@ -27,16 +27,6 @@ internal sealed class RabbitModule : AppModule
             // c.WithSerializer<MsgPackSerializer>(); // 使用MessagePack序列化器
             // 或者使用实例:
             // c.WithSerializer(new MsgPackSerializer()); // 使用自定义序列化器
-
-            // Delayed exchange example with two handlers, one ignored later
-            c.AddEvent<HelloWorldEvent>(EModel.Delayed, "delayed.hello", "hello.world")
-             .WithEventQos()
-             .WithEventQueueArgs(new()
-             {
-                 ["x-message-ttl"] = 5000
-             })
-             .WithHandler<HelloWorldEventHandlers>()
-             .WithHandler<DelayedEventHandlers>(); // will be ignored via IgnoreHandler below
             c.AddEvent<WorkQueuesEvent>(queueName: "work.queue")
              .ConfigureEvent(ec => ec.SequentialHandlerExecution = false)
              .WithEventQos(1000)

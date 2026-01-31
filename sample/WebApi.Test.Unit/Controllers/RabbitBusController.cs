@@ -23,16 +23,6 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     }
 
     /// <summary>
-    /// 发送HelloWorld消息,使用延时插件
-    /// </summary>
-    [HttpPost]
-    public async Task DeadLetter()
-    {
-        var rand = new Random();
-        await ibus.Publish(new HelloWorldEvent(), 3000, priority: (byte)rand.Next(0, 9));
-    }
-
-    /// <summary>
     /// 发送WorkQueues消息
     /// </summary>
     [HttpPost]

@@ -440,7 +440,6 @@ public sealed class RabbitBusBuilder
             EModel.PublishSubscribe => "amq.fanout",
             EModel.Routing          => "amq.direct",
             EModel.Topics           => "amq.topic",
-            EModel.Delayed          => "amq.delayed",
             EModel.None             => "",
             _                       => throw new ArgumentOutOfRangeException(nameof(exchangeType), exchangeType, null)
         };

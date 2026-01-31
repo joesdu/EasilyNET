@@ -121,7 +121,7 @@ internal sealed class EventPublisher : IAsyncDisposable
     // 计算指数退避时间 2^n * 1s 带上限
     private static TimeSpan CalcBackoff(int retryCount) => BackoffUtility.Exponential(retryCount, MinRetryDelay, MinRetryDelay, MaxRetryDelay);
 
-    private static BasicProperties BuildBasicProperties(EventConfiguration config, byte priority, bool delayed = false, uint? ttl = null)
+    private static BasicProperties BuildBasicProperties(EventConfiguration config, byte priority)
     {
         var bp = new BasicProperties
         {
@@ -129,19 +129,9 @@ internal sealed class EventPublisher : IAsyncDisposable
             DeliveryMode = DeliveryModes.Persistent,
             Priority = priority
         };
-        if (!delayed)
+        if (config.Headers.Count > 0)
         {
-            if (config.Headers.Count > 0)
-            {
-                bp.Headers = new Dictionary<string, object?>(config.Headers);
-            }
-        }
-        else
-        {
-            var headers = new Dictionary<string, object?>(config.Headers);
-            var hasDelay = headers.TryGetValue("x-delay", out var existingDelay);
-            headers["x-delay"] = hasDelay && ttl == 0 && existingDelay is not null ? existingDelay : ttl ?? 0u;
-            bp.Headers = headers;
+            bp.Headers = new Dictionary<string, object?>(config.Headers);
         }
         return bp;
     }
@@ -198,14 +188,7 @@ internal sealed class EventPublisher : IAsyncDisposable
                             }
                             await channel.BasicPublishAsync(item.Config.Exchange.Name, item.RoutingKey ?? item.Config.Exchange.RoutingKey, false, item.Properties, item.Body, ct).ConfigureAwait(false);
                         }, _cts.Token).ConfigureAwait(false);
-                        if (context.IsDelayed)
-                        {
-                            RabbitBusMetrics.PublishedDelayed.Add(1);
-                        }
-                        else
-                        {
-                            RabbitBusMetrics.PublishedNormal.Add(1);
-                        }
+                        RabbitBusMetrics.PublishedNormal.Add(1);
 
                         // 成功处理，重置错误计数
                         consecutiveErrors = 0;
@@ -221,7 +204,7 @@ internal sealed class EventPublisher : IAsyncDisposable
                         if (registered)
                         {
                             // 真正失败：使用标准失败处理
-                            HandlePublishFailure(sequenceNumber, ex, context.Event.GetType().Name, context.Event.EventId, context.IsDelayed);
+                            HandlePublishFailure(sequenceNumber, ex, context.Event.GetType().Name, context.Event.EventId);
                         }
                         else
                         {
@@ -263,9 +246,6 @@ internal sealed class EventPublisher : IAsyncDisposable
         var args = config.Exchange.Arguments.Count > 0
                        ? new Dictionary<string, object?>(config.Exchange.Arguments)
                        : [];
-        // 对于延迟队列，需要特殊处理参数
-        var hasDelayedType = args.TryGetValue("x-delayed-type", out var delayedType);
-        args["x-delayed-type"] = !hasDelayedType || delayedType is null ? "direct" : delayedType;
         await DeclareExchangeSafelyAsync(channel, config, args, false, ct).ConfigureAwait(false);
     }
 
@@ -383,7 +363,7 @@ internal sealed class EventPublisher : IAsyncDisposable
             var body = _serializer.Serialize(@event, @event.GetType());
             var properties = BuildBasicProperties(config, priority.GetValueOrDefault());
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var context = new PublishContext(@event, routingKey, properties, body, tcs, false, config);
+            var context = new PublishContext(@event, routingKey, properties, body, tcs, config);
             await _publishChannel.Writer.WriteAsync(context, cancellationToken).ConfigureAwait(false);
             written = true;
             if (_rabbitConfig.PublisherConfirms)
@@ -395,34 +375,6 @@ internal sealed class EventPublisher : IAsyncDisposable
         {
             // 仅在未成功写入通道时释放：
             // - 若已写入，背压释放由 ACK/NACK/timeout/reconnect/发布失败统一处理，避免 double-release。
-            if (!written)
-            {
-                _throttleSemaphore?.Release();
-            }
-            throw;
-        }
-    }
-
-    public async Task PublishDelayed<T>(EventConfiguration config, T @event, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        await ThrottleIfNeededAsync(cancellationToken).ConfigureAwait(false);
-        var written = false;
-        try
-        {
-            var body = _serializer.Serialize(@event, @event.GetType());
-            var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), true, ttl);
-            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var context = new PublishContext(@event, routingKey, properties, body, tcs, true, config);
-            await _publishChannel.Writer.WriteAsync(context, cancellationToken).ConfigureAwait(false);
-            written = true;
-            if (_rabbitConfig.PublisherConfirms)
-            {
-                _ = await tcs.Task.ConfigureAwait(false);
-            }
-        }
-        catch
-        {
             if (!written)
             {
                 _throttleSemaphore?.Release();
@@ -449,47 +401,7 @@ internal sealed class EventPublisher : IAsyncDisposable
             {
                 var body = _serializer.Serialize(@event, @event.GetType());
                 var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                var context = new PublishContext(@event, routingKey, properties, body, tcs, false, config);
-                await _publishChannel.Writer.WriteAsync(context, cancellationToken).ConfigureAwait(false);
-                written = true;
-                if (_rabbitConfig.PublisherConfirms)
-                {
-                    tcsList.Add((tcs, @event.EventId));
-                }
-            }
-            finally
-            {
-                if (!written)
-                {
-                    _throttleSemaphore?.Release();
-                }
-            }
-        }
-        if (_rabbitConfig.PublisherConfirms && tcsList.Count > 0)
-        {
-            await WaitForBatchConfirmsAsync(tcsList).ConfigureAwait(false);
-        }
-    }
-
-    public async Task PublishBatchDelayed<T>(EventConfiguration config, IEnumerable<T> events, uint ttl, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
-    {
-        var list = events.ToList();
-        if (list.Count is 0)
-        {
-            return;
-        }
-        var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), true, ttl);
-        var tcsList = new List<(TaskCompletionSource<bool> Tcs, string EventId)>(list.Count);
-        foreach (var @event in list)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            await ThrottleIfNeededAsync(cancellationToken).ConfigureAwait(false);
-            var written = false;
-            try
-            {
-                var body = _serializer.Serialize(@event, @event.GetType());
-                var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                var context = new PublishContext(@event, routingKey, properties, body, tcs, true, config);
+                var context = new PublishContext(@event, routingKey, properties, body, tcs, config);
                 await _publishChannel.Writer.WriteAsync(context, cancellationToken).ConfigureAwait(false);
                 written = true;
                 if (_rabbitConfig.PublisherConfirms)
@@ -697,7 +609,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         }
     }
 
-    private void HandlePublishFailure(ulong sequenceNumber, Exception ex, string eventType, string eventId, bool isDelayed = false)
+    private void HandlePublishFailure(ulong sequenceNumber, Exception ex, string eventType, string eventId)
     {
         if (_outstandingConfirms.TryRemove(sequenceNumber, out _))
         {
@@ -708,11 +620,11 @@ internal sealed class EventPublisher : IAsyncDisposable
         _outstandingMessages.TryRemove(sequenceNumber, out _);
         if (_logger.IsEnabled(LogLevel.Warning))
         {
-            _logger.LogWarning(ex, "Publish failed for {Kind} event {EventType} ID {EventId}", isDelayed ? "delayed" : "normal", eventType, eventId);
+            _logger.LogWarning(ex, "Publish failed for event {EventType} ID {EventId}", eventType, eventId);
         }
     }
 
     // Confirm timeout is handled by MonitorConfirmTimeoutsAsync
 
-    private record PublishContext(IEvent Event, string? RoutingKey, BasicProperties Properties, ReadOnlyMemory<byte> Body, TaskCompletionSource<bool> Tcs, bool IsDelayed, EventConfiguration Config);
+    private record PublishContext(IEvent Event, string? RoutingKey, BasicProperties Properties, ReadOnlyMemory<byte> Body, TaskCompletionSource<bool> Tcs, EventConfiguration Config);
 }

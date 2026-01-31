@@ -15,7 +15,6 @@ internal static class RabbitBusMetrics
 
     // 发布相关
     public static readonly Counter<long> PublishedNormal = Meter.CreateCounter<long>("rabbitmq.publish.normal.total", description: "Total normal events published");
-    public static readonly Counter<long> PublishedDelayed = Meter.CreateCounter<long>("rabbitmq.publish.delayed.total", description: "Total delayed events published");
     public static readonly Counter<long> PublishRetried = Meter.CreateCounter<long>("rabbitmq.publish.retried.total", description: "Total messages successfully re-published from the retry queue");
     public static readonly Counter<long> PublishDiscarded = Meter.CreateCounter<long>("rabbitmq.publish.discarded.total", description: "Total messages discarded from the retry queue after exceeding max retries");
 
