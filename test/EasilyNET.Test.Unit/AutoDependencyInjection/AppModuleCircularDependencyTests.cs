@@ -20,9 +20,7 @@ public sealed class AppModuleCircularDependencyTests
 
         // Verify the error message contains the complete dependency chain
         Assert.Contains("Circular dependency detected:", exception.Message);
-        Assert.IsTrue(exception.Message.Contains("ModuleA -> ModuleB -> ModuleC -> ModuleA") ||
-                     exception.Message.Contains("ModuleB -> ModuleC -> ModuleA -> ModuleB") ||
-                     exception.Message.Contains("ModuleC -> ModuleA -> ModuleB -> ModuleC"));
+        Assert.Contains("ModuleA -> ModuleB -> ModuleC -> ModuleA", exception.Message);
         Assert.Contains("Module dependencies must form a directed acyclic graph (DAG)", exception.Message);
     }
 
