@@ -36,12 +36,5 @@ public enum EModel
     ///     <para xml:lang="zh">(Topics)主题模式</para>
     /// </summary>
     [Description("topic")]
-    Topics,
-
-    /// <summary>
-    ///     <para xml:lang="en">Delayed x-delayed-message mode</para>
-    ///     <para xml:lang="zh">延时 x-delayed-message 模式</para>
-    /// </summary>
-    [Description("x-delayed-message")]
-    Delayed
+    Topics
 }

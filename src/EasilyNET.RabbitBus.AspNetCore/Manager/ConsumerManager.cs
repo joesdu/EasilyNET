@@ -175,10 +175,6 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
             return;
         }
         var exchangeArgs = new Dictionary<string, object?>(config.Exchange.Arguments);
-        if (config.Exchange.Type == EModel.Delayed)
-        {
-            exchangeArgs.TryAdd("x-delayed-type", "direct");
-        }
         await channel.ExchangeDeclareAsync(config.Exchange.Name, config.Exchange.Type.Description, config.Exchange.Durable, config.Exchange.AutoDelete, exchangeArgs, cancellationToken: ct).ConfigureAwait(false);
     }
 

@@ -1,7 +1,5 @@
 #### EasilyNET.RabbitBus.AspNetCore
 
-支持延时队列（需要启用 rabbitmq-delayed-message-exchange 插件）
-
 - 支持同一个消息被多个 Handler 消费（可配置并发或顺序执行）
 - 支持忽略指定 Handler
 - 支持事件级 QoS、Headers、交换机/队列参数、优先级队列
@@ -11,6 +9,23 @@
 - 内建发布失败重试（Nack/Confirm 超时）后台调度器：指数退避 + 抖动
 - 死信存储：超过最大重试后写入死信存储（内置内存实现，支持自定义）
 - 健康检查与可观测性：连接/发布/重试等指标 + 健康检查
+
+#### 关于延迟消息功能的移除说明
+
+本库已移除对 RabbitMQ 延迟消息交换机（`rabbitmq-delayed-message-exchange`）插件的支持。
+
+**原因**：RabbitMQ 官方团队已于 2026 年 1 月 29 日宣布停止维护该插件，主要原因如下：
+
+1. **严重的设计限制**：该插件基于 Mnesia 存储，存在单节点限制，无法在集群中复制延迟消息，节点故障会导致消息丢失
+2. **不适合大规模使用**：当前设计不适合处理大量延迟消息（如数十万或数百万条）
+3. **Mnesia 将被移除**：RabbitMQ 从 4.3 或 4.4 版本开始将移除 Mnesia，该插件将无法继续工作
+4. **重新设计成本过高**：分布式设计需要从自定义交换机类型切换到自定义队列类型，需要数人年的研发投入
+
+**替代方案**：
+- 使用 RabbitMQ 的 [死信交换机（DLX）](https://www.rabbitmq.com/docs/dlx) + [TTL](https://www.rabbitmq.com/docs/ttl) 组合实现基本的延迟和重试功能
+- 使用外部调度器和适合长期存储的数据库
+
+> 参考：[rabbitmq/rabbitmq-delayed-message-exchange](https://github.com/rabbitmq/rabbitmq-delayed-message-exchange)
 
 ##### 如何使用
 
@@ -59,10 +74,6 @@ builder.Services.AddRabbitBus(c =>
      .WithHandler<TestEventHandlerSecond>()
      .And();
 
-    // 延迟消息示例（需要 rabbitmq-delayed-message-exchange）
-    c.AddEvent<DelayedMessageEvent>(EModel.Delayed, exchangeName: "delayed.exchange", routingKey: "delayed.key", queueName: "delayed.queue")
-     .WithHandler<DelayedMessageHandler>();
-
     // 发布/订阅（Fanout）
     c.AddEvent<FanoutEvent>(EModel.PublishSubscribe, "fanout.exchange", queueName: "fanout.queue")
      .WithHandler<FanoutEventHandler>();
@@ -82,11 +93,6 @@ using EasilyNET.RabbitBus.Core;
 using EasilyNET.RabbitBus.Core.Abstraction;
 
 public class TestEvent : Event
-{
-    public string Message { get; set; } = default!;
-}
-
-public class DelayedMessageEvent : Event
 {
     public string Message { get; set; } = default!;
 }
@@ -136,12 +142,6 @@ public async Task Send()
 
     // 批量发布 + 自定义路由
     await _bus.PublishBatch(events, routingKey: "batch.topic");
-
-    // 延迟消息（仅 EModel.Delayed）
-    await _bus.Publish(new DelayedMessageEvent { Message = "delay-5s" }, ttl: 5000);
-
-    // 延迟消息（TimeSpan 重载）
-    await _bus.Publish(new DelayedMessageEvent { Message = "delay-2s" }, TimeSpan.FromSeconds(2));
 }
 ```
 
@@ -193,7 +193,6 @@ builder.Services.AddRabbitBus(c =>
   - **并发执行**（默认）：处理器并行执行，提高吞吐量
   - **顺序执行**：通过 `SequentialHandlerExecution = true` 配置，确保处理器按注册顺序依次执行
 - **并发方式**：提高 `HandlerThreadCount`（每事件消费者数量）以及 `ConsumerDispatchConcurrency` 以提升并发；`ConsumerChannelLimit` 可限制通道数量。
-- **延迟队列**：必须安装 rabbitmq-delayed-message-exchange 插件；框架会自动为延迟交换机声明 `x-delayed-type=direct`。
 - **优先级队列**：使用优先级需设置队列参数 `x-max-priority`。
 - **默认交换机**：`EModel.None` 表示不显式声明交换机，使用默认交换机；此时 routingKey 默认为队列名。
 - **路由键覆盖**：`Publish` 的 `routingKey` 参数可覆盖事件配置中的路由键，便于 Topic 多路由。
@@ -458,7 +457,7 @@ builder.Services.AddRabbitBus(c =>
 - 指标（基于 System.Diagnostics.Metrics）
   - Meter 名称: `EasilyNET.RabbitBus`
     - 关键指标（Meter 实际名称，已采用点分式命名规范）：
-      - 发布: `rabbitmq.publish.normal.total`, `rabbitmq.publish.delayed.total`, `rabbitmq.publish.retried.total`, `rabbitmq.publish.discarded.total`
+      - 发布: `rabbitmq.publish.normal.total`, `rabbitmq.publish.retried.total`, `rabbitmq.publish.discarded.total`
       - 确认: `rabbitmq.publish.confirm.ack.total`, `rabbitmq.publish.confirm.nack.total`, `rabbitmq.publish.outstanding.confirms`
       - 重试: `rabbitmq.retry.enqueued.total`
       - 连接: `rabbitmq.connection.reconnects.total`, `rabbitmq.connection.active`, `rabbitmq.channel.active`, `rabbitmq.connection.state`
@@ -547,10 +546,6 @@ builder.Services.AddRabbitBus(c =>
    - 确保消息正确确认(ack)
    - 检查处理器是否及时释放资源
    - 监控连接和通道数量
-
-#### 版本兼容性
-
-- **延迟队列**: 需要 rabbitmq-delayed-message-exchange 插件
 
 #### 配置参数参考表
 
