@@ -18,12 +18,8 @@ public sealed class DependencyAppModule : AppModule
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var services = context.Services;
-        // Build a temporary provider just for logging during registration
-        using var tempProvider = services.BuildServiceProvider();
-        var logger = tempProvider.GetService<ILoggerFactory>()
-                                 ?.CreateLogger(nameof(AutoDependencyInjection)) ??
-                     NullLogger.Instance;
-        AddAutoInjection(services, logger);
+        // 使用空记录器以避免在注册阶段构建临时 ServiceProvider 带来的内存泄漏与重复单例问题
+        AddAutoInjection(services, NullLogger.Instance);
     }
 
     private static void AddAutoInjection(IServiceCollection services, ILogger logger)
