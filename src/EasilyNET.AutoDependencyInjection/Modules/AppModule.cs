@@ -59,9 +59,7 @@ public class AppModule : IAppModule
             {
                 // Build the circular dependency chain message
                 var cycleStart = path.IndexOf(type);
-                var cycle = path.Skip(cycleStart).Select(t => t.Name).ToList();
-                cycle.Add(type.Name); // Complete the cycle
-                var chainMessage = string.Join(" -> ", cycle);
+                var chainMessage = string.Join(" -> ", path.Skip(cycleStart).Select(t => t.Name).Append(type.Name));
                 throw new InvalidOperationException($"Circular dependency detected: {chainMessage}. " +
                                                     "Module dependencies must form a directed acyclic graph (DAG).");
             }

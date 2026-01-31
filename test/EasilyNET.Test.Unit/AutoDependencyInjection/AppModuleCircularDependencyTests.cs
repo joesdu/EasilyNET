@@ -51,7 +51,7 @@ public sealed class AppModuleCircularDependencyTests
 
         // Assert
         Assert.IsNotNull(dependencies);
-        Assert.HasCount(0, dependencies);
+        Assert.IsFalse(dependencies.Any());
     }
 
     [TestMethod]
