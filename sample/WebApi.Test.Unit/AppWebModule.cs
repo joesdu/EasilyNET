@@ -18,7 +18,6 @@ namespace WebApi.Test.Unit;
     typeof(ControllersModule),
     typeof(GarnetDistributedCacheModule),
     typeof(MongoModule),
-    typeof(MongoFSModule),
     typeof(RabbitModule),
     typeof(SwaggerModule),
     typeof(OpenTelemetryModule),

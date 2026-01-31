@@ -17,16 +17,4 @@ internal static class Constant
     ///     <para xml:lang="zh">默认数据库名称</para>
     /// </summary>
     internal const string DefaultDbName = "easilynet";
-
-    /// <summary>
-    ///     <para xml:lang="en">Default GridFS bucket name</para>
-    ///     <para xml:lang="zh">默认GridFS存储桶名称</para>
-    /// </summary>
-    internal const string BucketName = "easilyfs";
-
-    /// <summary>
-    ///     <para xml:lang="en">Default configuration name</para>
-    ///     <para xml:lang="zh">默认配置名称</para>
-    /// </summary>
-    internal const string ConfigName = "EasilyNetGridFS";
 }
