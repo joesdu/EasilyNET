@@ -15,7 +15,7 @@ namespace EasilyNET.AutoDependencyInjection.Contexts;
 ///         <see cref="IServiceCollection" />
 ///     </para>
 /// </param>
-public sealed class ConfigureServicesContext(IServiceCollection services)
+public sealed class ConfigureServicesContext(IServiceCollection services) : IDisposable
 {
     private IServiceProvider? _serviceProvider;
 
@@ -54,4 +54,20 @@ public sealed class ConfigureServicesContext(IServiceCollection services)
     ///     </para>
     /// </summary>
     public IConfiguration Configuration => ServiceProvider.GetRequiredService<IConfiguration>();
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Disposes the temporary ServiceProvider if it was created.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     释放临时 ServiceProvider（如果已创建）。
+    ///     </para>
+    /// </summary>
+    public void Dispose()
+    {
+        if (_serviceProvider is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
+    }
 }
