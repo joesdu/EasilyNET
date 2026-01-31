@@ -125,7 +125,7 @@ internal class ModuleApplicationBase : IModuleApplication
         var types = AssemblyHelper.AllTypes.Where(AppModule.IsAppModule).ToArray();
         // Create a minimal context for GetEnable check
         // Note: This context has limited ServiceProvider capabilities
-        var context = new ConfigureServicesContext(Services);
+        using var context = new ConfigureServicesContext(Services);
         var source = new List<IAppModule>(types.Length);
         source.AddRange(types.Select(type => CreateModule(type, context, _logger)).OfType<IAppModule>());
         if (_logger.IsEnabled(LogLevel.Debug))
