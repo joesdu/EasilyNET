@@ -72,13 +72,18 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
             // Call synchronous ConfigureServices - this is safe and won't deadlock
             module.ConfigureServices(context);
             // For async configuration, we run it on a thread pool thread to avoid deadlocks
-            // This is necessary because we're in a synchronous context (service registration)
-            // No meaningful CancellationToken is available during service registration, so we use CancellationToken.None explicitly.
-            var asyncTask = module.ConfigureServicesAsync(context, CancellationToken.None);
+            // For async configuration, we synchronously wait on the returned task.
+            // NOTE / 注意:
+            // - ConfigureServicesAsync implementations must NOT depend on any SynchronizationContext
+            //   模块的 ConfigureServicesAsync 实现不得依赖同步上下文
+            // - They should use ConfigureAwait(false) on all awaited operations
+            //   内部所有 await 调用应使用 ConfigureAwait(false)
+            // - We synchronously wait here to keep the registration pipeline deterministic
+            //   这里采用同步等待以保持注册管线的确定性
+            var asyncTask = module.ConfigureServicesAsync(context);
             if (!asyncTask.IsCompleted)
             {
-                // Use Task.Run to avoid deadlocks with synchronization contexts
-                Task.Run(() => asyncTask).GetAwaiter().GetResult();
+                asyncTask.GetAwaiter().GetResult();
             }
         }
         if (logger.IsEnabled(LogLevel.Debug))
