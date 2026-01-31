@@ -47,7 +47,7 @@ public class AppModule : IAppModule
         // are fully resolved before moving to the next dependency
         var result = new List<Type>();
         var visited = new HashSet<Type>();
-        var visiting = new HashSet<Type>(); // For cycle detection
+        var path = new List<Type>(); // Track current path for circular dependency reporting
 
         void Visit(Type type)
         {
@@ -55,11 +55,16 @@ public class AppModule : IAppModule
             {
                 return;
             }
-            if (!visiting.Add(type))
+            if (path.Contains(type))
             {
-                throw new InvalidOperationException($"Circular dependency detected involving '{type.Name}'. " +
+                // Build the circular dependency chain message
+                var cycleStart = path.IndexOf(type);
+                var chainMessage = string.Join(" -> ", path.Skip(cycleStart).Select(t => t.Name).Append(type.Name));
+                throw new InvalidOperationException($"Circular dependency detected: {chainMessage}. " +
                                                     "Module dependencies must form a directed acyclic graph (DAG).");
             }
+            // Add to path before visiting dependencies
+            path.Add(type);
             // Get direct dependencies in declaration order
             var deps = type.GetCustomAttributes()
                            .OfType<IDependedTypesProvider>()
@@ -72,8 +77,8 @@ public class AppModule : IAppModule
             {
                 Visit(dep);
             }
-            // After all dependencies are visited, add this type
-            visiting.Remove(type);
+            // After all dependencies are visited, add this type and remove from path
+            path.Remove(type);
             if (visited.Add(type))
             {
                 result.Add(type);
