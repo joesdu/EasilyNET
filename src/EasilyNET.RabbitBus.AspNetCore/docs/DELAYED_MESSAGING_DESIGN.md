@@ -345,7 +345,8 @@ builder.Services.AddRabbitBus(c =>
     
     c.WithDelayedMessaging(options =>
     {
-        options.DelayExchangeName = "amq.delayed";
+        // 使用自定义延迟交换机名称，基于普通交换机 + DLX/TTL 拓扑实现延迟消息，而非依赖 rabbitmq-delayed-message-exchange 插件
+        options.DelayExchangeName = "easilynet.delay";
         options.PreciseDelayThreshold = TimeSpan.FromSeconds(5);
         options.MaxDelay = TimeSpan.FromHours(24);
         options.AutoDeclareDelayQueues = true;
