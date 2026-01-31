@@ -21,19 +21,6 @@ public class HelloWorldEventHandlers(ILogger<HelloWorldEventHandlers> logger) : 
 }
 
 /// <inheritdoc />
-// 现代配置方式：忽略处理器配置通过RabbitModule.cs中的流畅API配置
-// 不再需要 [IgnoreHandler] 属性
-public class DelayedEventHandlers : IEventHandler<HelloWorldEvent>
-{
-    /// <inheritdoc />
-    public Task HandleAsync(HelloWorldEvent @event)
-    {
-        Console.WriteLine($"[消息处理自:{nameof(DelayedEventHandlers)}]-{JsonSerializer.Serialize(@event)}");
-        return Task.CompletedTask;
-    }
-}
-
-/// <inheritdoc />
 // 现代配置方式：QoS配置通过RabbitModule.cs中的流畅API配置
 // 不再需要 [Qos(0, 20)] 属性
 public class WorkQueuesEventOneHandlers : IEventHandler<WorkQueuesEvent>

@@ -27,6 +27,9 @@ internal sealed class RabbitModule : AppModule
             // c.WithSerializer<MsgPackSerializer>(); // 使用MessagePack序列化器
             // 或者使用实例:
             // c.WithSerializer(new MsgPackSerializer()); // 使用自定义序列化器
+            // HelloWorld 模式（简单队列）
+            c.AddEvent<HelloWorldEvent>(queueName: "hello_world_queue")
+             .WithHandler<HelloWorldEventHandlers>();
             c.AddEvent<WorkQueuesEvent>(queueName: "work.queue")
              .ConfigureEvent(ec => ec.SequentialHandlerExecution = false)
              .WithEventQos(1000)
@@ -44,7 +47,7 @@ internal sealed class RabbitModule : AppModule
              .WithHandler<TopicEventOneHandlers>();
             c.AddEvent<TopicEventTwo>(EModel.Topics, "topic_exchange", "topic.queue.1", "topic_queue2")
              .WithHandler<TopicEventTwoHandlers>();
-            c.IgnoreHandler<HelloWorldEvent, DelayedEventHandlers>();
+            //c.IgnoreHandler<HelloWorldEvent, HelloWorldEventHandlers>();
         });
     }
 }
