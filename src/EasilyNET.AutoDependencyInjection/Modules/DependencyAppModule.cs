@@ -4,6 +4,7 @@ using EasilyNET.AutoDependencyInjection.Core.Attributes;
 using EasilyNET.Core.Misc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 // ReSharper disable UnusedType.Global
 
@@ -14,12 +15,11 @@ namespace EasilyNET.AutoDependencyInjection.Modules;
 public sealed class DependencyAppModule : AppModule
 {
     /// <inheritdoc />
-    public override Task ConfigureServices(ConfigureServicesContext context)
+    public override void ConfigureServices(ConfigureServicesContext context)
     {
         var services = context.Services;
-        var logger = context.ServiceProvider.GetAutoDILogger();
-        AddAutoInjection(services, logger);
-        return Task.CompletedTask;
+        // 使用空记录器以避免在注册阶段构建临时 ServiceProvider 带来的内存泄漏与重复单例问题
+        AddAutoInjection(services, NullLogger.Instance);
     }
 
     private static void AddAutoInjection(IServiceCollection services, ILogger logger)

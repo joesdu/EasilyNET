@@ -9,14 +9,40 @@ namespace EasilyNET.AutoDependencyInjection.Abstractions;
 public interface IAppModule : IApplicationInitialization
 {
     /// <summary>
-    ///     <para xml:lang="en">Configure services</para>
-    ///     <para xml:lang="zh">配置服务</para>
+    ///     <para xml:lang="en">
+    ///     Configure services synchronously. This method is called during service registration phase,
+    ///     before the ServiceProvider is built. Use this for DI registrations only.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     同步配置服务。此方法在服务注册阶段调用，在 ServiceProvider 构建之前。
+    ///     仅用于 DI 注册。
+    ///     </para>
     /// </summary>
     /// <param name="context">
     ///     <para xml:lang="en">Configuration services context</para>
     ///     <para xml:lang="zh">配置服务上下文</para>
     /// </param>
-    Task ConfigureServices(ConfigureServicesContext context);
+    void ConfigureServices(ConfigureServicesContext context);
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Configure services asynchronously. Called after synchronous ConfigureServices.
+    ///     Use this for async initialization that doesn't require ServiceProvider.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     异步配置服务。在同步 ConfigureServices 之后调用。
+    ///     用于不需要 ServiceProvider 的异步初始化。
+    ///     </para>
+    /// </summary>
+    /// <param name="context">
+    ///     <para xml:lang="en">Configuration services context</para>
+    ///     <para xml:lang="zh">配置服务上下文</para>
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     <para xml:lang="en">Cancellation token</para>
+    ///     <para xml:lang="zh">取消令牌</para>
+    /// </param>
+    Task ConfigureServicesAsync(ConfigureServicesContext context, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     <para xml:lang="en">Service dependency collection</para>

@@ -12,9 +12,9 @@ namespace WebApi.Test.Unit.ServiceModules;
 internal sealed class MongoModule : AppModule
 {
     /// <inheritdoc />
-    public override async Task ConfigureServices(ConfigureServicesContext context)
+    public override void ConfigureServices(ConfigureServicesContext context)
     {
-        var config = context.ServiceProvider.GetConfiguration();
+        var config = context.Configuration;
         // MongoDB服务初始化完整例子
         //context.Services.AddMongoContext<DbContext>(new MongoClientSettings
         //{
@@ -101,7 +101,6 @@ internal sealed class MongoModule : AppModule
         context.Services.RegisterSerializer(new JsonObjectSerializer());
         context.Services.RegisterDynamicSerializer();
         context.Services.RegisterGlobalEnumKeyDictionarySerializer();
-        await Task.CompletedTask;
     }
 
     public override async Task ApplicationInitialization(ApplicationContext context)

@@ -26,14 +26,13 @@ namespace WebApi.Test.Unit;
 internal sealed class AppWebModule : AppModule
 {
     /// <inheritdoc />
-    public override async Task ConfigureServices(ConfigureServicesContext context)
+    public override void ConfigureServices(ConfigureServicesContext context)
     {
         // 添加 ProblemDetails 服务
         context.Services.AddProblemDetails();
         context.Services.AddExceptionHandler<BusinessExceptionHandler>();
         // 添加HttpContextAccessor
         context.Services.AddHttpContextAccessor();
-        await base.ConfigureServices(context);
     }
 
     /// <inheritdoc />

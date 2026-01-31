@@ -8,10 +8,9 @@ namespace WebApi.Test.Unit.ServiceModules;
 internal sealed class WebSocketServerModule : AppModule
 {
     /// <inheritdoc />
-    public override Task ConfigureServices(ConfigureServicesContext context)
+    public override void ConfigureServices(ConfigureServicesContext context)
     {
         context.Services.AddHostedService<WebSocketClientTestService>();
-        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
