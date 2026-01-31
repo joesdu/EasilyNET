@@ -168,8 +168,8 @@ builder.Services.AddRabbitBus(c =>
     // 启用延迟消息功能
     c.WithDelayedMessaging(options =>
     {
-        // 延迟交换机名称（默认：amq.delayed）
-        options.DelayExchangeName = "amq.delayed";
+        // 延迟交换机名称（默认：easilynet.delay，为普通 direct 交换机，与延迟插件无关）
+        options.DelayExchangeName = "easilynet.delay";
         
         // 精确延迟阈值（默认：10秒）
         options.PreciseDelayThreshold = TimeSpan.FromSeconds(10);
