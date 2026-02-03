@@ -556,8 +556,9 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
     private async Task HeartbeatLoop(CancellationToken token)
     {
-        // 使用 PeriodicTimer 替代 Task.Delay,更高效且取消更及时
+        // 使用 PeriodicTimer 按心跳间隔发送心跳
         using var timer = new PeriodicTimer(Options.HeartbeatInterval);
+
         try
         {
             while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
@@ -568,8 +569,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                 }
 
                 // 心跳超时检测：
-                // 仅当已发送过心跳后才检查超时，确保远端有机会响应
-                // 条件：(距离上次发送心跳) > HeartbeatTimeout AND (距离上次接收) > HeartbeatTimeout
+                // 只有在已发送过心跳的情况下才检查（确保远端有机会响应）
                 if (Options.HeartbeatTimeout > TimeSpan.Zero)
                 {
                     var lastHeartbeatSent = Volatile.Read(ref _lastHeartbeatSentTimestamp);
@@ -577,22 +577,31 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     if (lastHeartbeatSent > 0)
                     {
                         var lastReceive = Volatile.Read(ref _lastReceiveTimestamp);
-                        var elapsedSinceHeartbeat = Stopwatch.GetElapsedTime(lastHeartbeatSent);
-                        var elapsedSinceReceive = Stopwatch.GetElapsedTime(lastReceive);
 
-                        // 只有当发送心跳后超过 HeartbeatTimeout 且期间没有收到任何消息时才判定超时
-                        if (elapsedSinceHeartbeat > Options.HeartbeatTimeout && elapsedSinceReceive > Options.HeartbeatTimeout)
+                        // 检查上次收到消息是否在上次发送心跳之后
+                        // 如果 lastReceive >= lastHeartbeatSent，说明心跳已被响应（或有其他数据），连接正常
+                        // 如果 lastReceive < lastHeartbeatSent，说明发送心跳后没收到任何数据，需要检查是否超时
+                        if (lastReceive < lastHeartbeatSent)
                         {
-                            var ex = new TimeoutException($"""
-                                                           WebSocket heartbeat timeout: no data received for {elapsedSinceReceive.TotalMilliseconds:N0}ms 
-                                                           after heartbeat was sent {elapsedSinceHeartbeat.TotalMilliseconds:N0}ms ago (timeout={Options.HeartbeatTimeout.TotalMilliseconds:N0}ms).
-                                                           """);
-                            OnError(new(ex, "HeartbeatLoop timeout"));
-                            await HandleConnectionLoss(ex).ConfigureAwait(false);
-                            return;
+                            var elapsedSinceHeartbeat = Stopwatch.GetElapsedTime(lastHeartbeatSent);
+                            // 注意：这里使用 HeartbeatInterval 作为实际超时阈值
+                            // 因为我们每隔 HeartbeatInterval 检查一次，所以如果上次心跳后
+                            // 经过了一个完整的心跳周期还没收到响应，才认为超时
+                            // 这避免了因检查间隔导致的误报
+                            var effectiveTimeout = Options.HeartbeatInterval + Options.HeartbeatTimeout;
+                            if (elapsedSinceHeartbeat > effectiveTimeout)
+                            {
+                                var elapsedSinceReceive = Stopwatch.GetElapsedTime(lastReceive);
+                                var ex = new TimeoutException($"WebSocket heartbeat timeout: no data received for {elapsedSinceReceive.TotalMilliseconds:N0}ms after heartbeat was sent {elapsedSinceHeartbeat.TotalMilliseconds:N0}ms ago (timeout={effectiveTimeout.TotalMilliseconds:N0}ms).");
+                                OnError(new(ex, "HeartbeatLoop timeout"));
+                                await HandleConnectionLoss(ex).ConfigureAwait(false);
+                                return;
+                            }
                         }
+                        // else: lastReceive >= lastHeartbeatSent，说明发送心跳后已收到数据，连接正常
                     }
                 }
+
                 try
                 {
                     // 心跳消息通过队列发送，由 SendLoop 统一处理，避免并发发送冲突

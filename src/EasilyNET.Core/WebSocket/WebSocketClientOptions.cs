@@ -43,10 +43,10 @@ public sealed class WebSocketClientOptions
     public TimeSpan MaxReconnectDelay { get; set; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets whether heartbeat is enabled. Default is <c>true</c>.</para>
-    ///     <para xml:lang="zh">获取或设置是否启用心跳。默认为 <c>true</c>。</para>
+    ///     <para xml:lang="en">Gets or sets whether application-level heartbeat is enabled. Requires server-side cooperation to handle heartbeat payloads and optionally reply (for example, returning a PONG). Default is <c>false</c>.</para>
+    ///     <para xml:lang="zh">获取或设置是否启用心跳(需要服务端配合处理心跳数据并返回PONG)。默认为 <c>false</c>。</para>
     /// </summary>
-    public bool HeartbeatEnabled { get; set; } = true;
+    public bool HeartbeatEnabled { get; set; } = false;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the heartbeat interval. Default is 30 seconds.</para>
@@ -86,7 +86,13 @@ public sealed class WebSocketClientOptions
     ///         </para>
     ///     </remarks>
     /// </summary>
-    public Func<ReadOnlyMemory<byte>>? HeartbeatMessageFactory { get; set; }
+    public Func<ReadOnlyMemory<byte>>? HeartbeatMessageFactory { get; set; } = DefaultHeartbeatMessageFactory;
+
+    /// <summary>
+    ///     <para xml:lang="en">Default heartbeat message factory that returns "ping" as bytes.</para>
+    ///     <para xml:lang="zh">默认心跳消息工厂，返回 "ping" 字节。</para>
+    /// </summary>
+    private static ReadOnlyMemory<byte> DefaultHeartbeatMessageFactory() => "ping"u8.ToArray();
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the connection timeout. Default is 10 seconds.</para>
