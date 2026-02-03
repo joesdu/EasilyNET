@@ -584,10 +584,17 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                         if (lastReceive < lastHeartbeatSent)
                         {
                             var elapsedSinceHeartbeat = Stopwatch.GetElapsedTime(lastHeartbeatSent);
-                            // 注意：这里使用 HeartbeatInterval 作为实际超时阈值
-                            // 因为我们每隔 HeartbeatInterval 检查一次，所以如果上次心跳后
-                            // 经过了一个完整的心跳周期还没收到响应，才认为超时
-                            // 这避免了因检查间隔导致的误报
+                            // 注意：这里的“实际超时阈值”为 HeartbeatInterval + HeartbeatTimeout：
+                            // - HeartbeatInterval：心跳发送/检测的基础周期；
+                            // - HeartbeatTimeout：在一个完整心跳周期基础上额外允许的宽限时间；
+                            // 因此只有当自上次发送心跳以来，经过了一个完整的心跳周期加上额外宽限时间
+                            // 仍未收到任何数据时，才认为连接超时，从而避免因检查间隔导致的误报。
+                            // Note: The effective timeout threshold is HeartbeatInterval + HeartbeatTimeout:
+                            // - HeartbeatInterval: base heartbeat tick interval;
+                            // - HeartbeatTimeout: additional grace period on top of one full heartbeat interval;
+                            // So we only treat the connection as timed out if no data is received for a full
+                            // heartbeat interval plus the extra grace period, which helps avoid false positives
+                            // caused by the check interval itself.
                             var effectiveTimeout = Options.HeartbeatInterval + Options.HeartbeatTimeout;
                             if (elapsedSinceHeartbeat > effectiveTimeout)
                             {
