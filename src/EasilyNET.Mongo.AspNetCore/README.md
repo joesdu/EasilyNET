@@ -227,7 +227,7 @@ builder.Services.AddMongoContext<DbContext>(
 
 ### **自定义序列化器**
 
-#### DateOnly / TimeOnly 序列化
+#### DateOnly / TimeOnly 序列化(官方新版驱动程序已经支持序列化.为了兼容历史项目,本项目保留序列化方式)
 
 支持两种存储方式：
 
