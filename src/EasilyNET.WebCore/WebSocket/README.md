@@ -90,14 +90,15 @@ var app = builder.Build();
 
 app.UseWebSockets(); // 必须先启用 WebSockets
 
-app.MapWebSocketHandler<ChatHandler>("/ws", options =>
+app.MapWebSocketHandler<ChatHandler>("/ws", new WebSocketSessionOptions
 {
-    options.ReceiveBufferSize = 16384;           // 接收缓冲区大小
-    options.SendQueueCapacity = 1000;            // 发送队列容量
-    options.HeartbeatEnabled = true;             // 启用心跳
-    options.HeartbeatInterval = TimeSpan.FromSeconds(30);  // 心跳间隔
-    options.HeartbeatTimeout = TimeSpan.FromSeconds(10);   // 心跳超时
-    options.CloseTimeout = TimeSpan.FromSeconds(5);        // 关闭超时
+    ReceiveBufferSize = 16384,                              // 接收缓冲区大小
+    SendQueueCapacity = 1000,                               // 发送队列容量
+    HeartbeatEnabled = true,                                // 启用心跳
+    HeartbeatInterval = TimeSpan.FromSeconds(30),           // 心跳间隔
+    HeartbeatTimeout = TimeSpan.FromSeconds(10),            // 心跳超时
+    HeartbeatMessageType = WebSocketMessageType.Binary,     // 心跳消息类型
+    CloseTimeout = TimeSpan.FromSeconds(5)                  // 关闭超时
 });
 
 app.Run();
@@ -146,13 +147,14 @@ public interface IWebSocketSessionManager
 
 ## 配置说明
 
-| 属性                      | 类型                          | 默认值 | 说明                   |
-| ------------------------- | ----------------------------- | ------ | ---------------------- |
-| `SendQueueCapacity`       | `int`                         | 1000   | 发送队列容量           |
-| `ReceiveBufferSize`       | `int`                         | 16384  | 接收缓冲区大小（字节） |
-| `HeartbeatEnabled`        | `bool`                        | `true` | 是否启用心跳           |
-| `HeartbeatInterval`       | `TimeSpan`                    | 30 秒  | 心跳间隔               |
-| `HeartbeatTimeout`        | `TimeSpan`                    | 10 秒  | 心跳超时               |
-| `HeartbeatMessageFactory` | `Func<ReadOnlyMemory<byte>>?` | `null` | 心跳消息工厂           |
-| `CloseTimeout`            | `TimeSpan`                    | 5 秒   | 关闭超时               |
+| 属性                      | 类型                          | 默认值   | 说明                                             |
+| ------------------------- | ----------------------------- | -------- | ------------------------------------------------ |
+| `SendQueueCapacity`       | `int`                         | 1000     | 发送队列容量                                     |
+| `ReceiveBufferSize`       | `int`                         | 16384    | 接收缓冲区大小（字节）                           |
+| `HeartbeatEnabled`        | `bool`                        | `true`   | 是否启用心跳                                     |
+| `HeartbeatInterval`       | `TimeSpan`                    | 30 秒    | 心跳间隔                                         |
+| `HeartbeatTimeout`        | `TimeSpan`                    | 10 秒    | 心跳超时                                         |
+| `HeartbeatMessageType`    | `WebSocketMessageType`        | `Binary` | 心跳消息类型（Binary 兼容大多数客户端）          |
+| `HeartbeatMessageFactory` | `Func<ReadOnlyMemory<byte>>?` | "ping"   | 心跳消息工厂，设为 null 禁用发送（仅超时检测）   |
+| `CloseTimeout`            | `TimeSpan`                    | 5 秒     | 关闭超时                                         |
 
