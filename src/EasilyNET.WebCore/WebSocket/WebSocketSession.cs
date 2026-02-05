@@ -356,7 +356,8 @@ internal sealed class WebSocketSession : IWebSocketSession
                     {
                         // 心跳消息通过队列发送，由 SendLoop 统一处理，避免并发发送冲突
                         // 使用 TryWrite 避免在队列满时阻塞心跳循环
-                        if (_sendChannel.Writer.TryWrite(new(pingData, WebSocketMessageType.Binary, true)))
+                        // 使用可配置的消息类型发送心跳
+                        if (_sendChannel.Writer.TryWrite(new(pingData, _options.HeartbeatMessageType, true)))
                         {
                             // 更新最后发送心跳时间戳
                             Volatile.Write(ref _lastHeartbeatSentTimestamp, Stopwatch.GetTimestamp());

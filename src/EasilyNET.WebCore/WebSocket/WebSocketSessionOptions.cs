@@ -1,3 +1,5 @@
+using System.Net.WebSockets;
+
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 
 namespace EasilyNET.WebCore.WebSocket;
@@ -8,6 +10,12 @@ namespace EasilyNET.WebCore.WebSocket;
 /// </summary>
 public sealed class WebSocketSessionOptions
 {
+    /// <summary>
+    ///     <para xml:lang="en">Cached default heartbeat message bytes ("ping").</para>
+    ///     <para xml:lang="zh">缓存的默认心跳消息字节（"ping"）。</para>
+    /// </summary>
+    private static readonly byte[] DefaultHeartbeatMessage = "ping"u8.ToArray();
+
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the capacity of the send queue. Default is 1000.</para>
     ///     <para xml:lang="zh">获取或设置发送队列的容量。默认为 1000。</para>
@@ -49,14 +57,44 @@ public sealed class WebSocketSessionOptions
     public TimeSpan HeartbeatTimeout { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets the factory function to create heartbeat messages. Returns null to skip sending.</para>
-    ///     <para xml:lang="zh">获取或设置创建心跳消息的工厂函数。返回 null 则跳过发送。</para>
+    ///     <para xml:lang="en">Gets or sets the WebSocket message type for heartbeat messages. Default is <see cref="WebSocketMessageType.Binary" />.</para>
+    ///     <para xml:lang="zh">获取或设置心跳消息的 WebSocket 消息类型。默认为 <see cref="WebSocketMessageType.Binary" />。</para>
+    ///     <remarks>
+    ///         <para xml:lang="en">
+    ///         Use <see cref="WebSocketMessageType.Binary" /> for compatibility with most client implementations.
+    ///         Use <see cref="WebSocketMessageType.Text" /> if your client expects text-based heartbeat messages.
+    ///         </para>
+    ///         <para xml:lang="zh">
+    ///         使用 <see cref="WebSocketMessageType.Binary" /> 以兼容大多数客户端实现。
+    ///         如果客户端期望文本类型的心跳消息，请使用 <see cref="WebSocketMessageType.Text" />。
+    ///         </para>
+    ///     </remarks>
     /// </summary>
-    public Func<ReadOnlyMemory<byte>>? HeartbeatMessageFactory { get; set; }
+    public WebSocketMessageType HeartbeatMessageType { get; set; } = WebSocketMessageType.Binary;
+
+    /// <summary>
+    ///     <para xml:lang="en">Gets or sets the factory function to create heartbeat messages. Default is "ping".</para>
+    ///     <para xml:lang="zh">获取或设置创建心跳消息的工厂函数。默认为 "ping"。</para>
+    ///     <remarks>
+    ///         <para xml:lang="en">
+    ///         Set to null to disable sending heartbeat messages (only timeout detection will be performed).
+    ///         </para>
+    ///         <para xml:lang="zh">
+    ///         设置为 null 可禁用发送心跳消息（仅执行超时检测）。
+    ///         </para>
+    ///     </remarks>
+    /// </summary>
+    public Func<ReadOnlyMemory<byte>>? HeartbeatMessageFactory { get; set; } = DefaultHeartbeatMessageFactory;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the close timeout. Default is 5 seconds.</para>
     ///     <para xml:lang="zh">获取或设置关闭超时。默认为 5 秒。</para>
     /// </summary>
     public TimeSpan CloseTimeout { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    ///     <para xml:lang="en">Default heartbeat message factory that returns "ping" as bytes.</para>
+    ///     <para xml:lang="zh">默认心跳消息工厂，返回 "ping" 字节。</para>
+    /// </summary>
+    private static ReadOnlyMemory<byte> DefaultHeartbeatMessageFactory() => DefaultHeartbeatMessage;
 }

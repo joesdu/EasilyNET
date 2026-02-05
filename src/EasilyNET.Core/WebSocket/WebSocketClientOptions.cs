@@ -19,6 +19,12 @@ public sealed class WebSocketClientOptions
     private static readonly byte[] DefaultHeartbeatMessage = "ping"u8.ToArray();
 
     /// <summary>
+    ///     <para xml:lang="en">Cached default heartbeat response message bytes ("pong").</para>
+    ///     <para xml:lang="zh">缓存的默认心跳响应消息字节（"pong"）。</para>
+    /// </summary>
+    private static readonly byte[] DefaultHeartbeatResponseMessage = "pong"u8.ToArray();
+
+    /// <summary>
     ///     <para xml:lang="en">Gets or sets the WebSocket server URI.</para>
     ///     <para xml:lang="zh">获取或设置 WebSocket 服务器 URI。</para>
     /// </summary>
@@ -69,17 +75,35 @@ public sealed class WebSocketClientOptions
     ///     <remarks>
     ///         <para xml:lang="en">
     ///         This timeout is evaluated against the time since the last successfully received message.
+    ///         The effective timeout window is <see cref="HeartbeatInterval" /> + <see cref="HeartbeatTimeout" /> to account for the heartbeat cadence.
     ///         If no data is received within this window, the client considers the connection stale and may trigger reconnection.
     ///         Set to TimeSpan.Zero or a negative value to disable the timeout check.
     ///         </para>
     ///         <para xml:lang="zh">
-    ///         该超时基于“距离上次成功接收消息”的时间进行判断。
+    ///         该超时基于"距离上次成功接收消息"的时间进行判断。
+    ///         实际超时窗口为 <see cref="HeartbeatInterval" /> + <see cref="HeartbeatTimeout" />，用于匹配心跳发送节奏。
     ///         若在该时间窗口内未收到任何数据，客户端将认为连接可能已失活并可能触发重连。
     ///         设置为 TimeSpan.Zero 或负数可禁用该超时检测。
     ///         </para>
     ///     </remarks>
     /// </summary>
     public TimeSpan HeartbeatTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    ///     <para xml:lang="en">Gets or sets the WebSocket message type for heartbeat messages. Default is <see cref="WebSocketMessageType.Binary" />.</para>
+    ///     <para xml:lang="zh">获取或设置心跳消息的 WebSocket 消息类型。默认为 <see cref="WebSocketMessageType.Binary" />。</para>
+    ///     <remarks>
+    ///         <para xml:lang="en">
+    ///         Use <see cref="WebSocketMessageType.Binary" /> for compatibility with most server implementations (Python, Java, etc.).
+    ///         Use <see cref="WebSocketMessageType.Text" /> if your server expects text-based heartbeat messages.
+    ///         </para>
+    ///         <para xml:lang="zh">
+    ///         使用 <see cref="WebSocketMessageType.Binary" /> 以兼容大多数服务端实现（Python、Java 等）。
+    ///         如果服务端期望文本类型的心跳消息，请使用 <see cref="WebSocketMessageType.Text" />。
+    ///         </para>
+    ///     </remarks>
+    /// </summary>
+    public WebSocketMessageType HeartbeatMessageType { get; set; } = WebSocketMessageType.Binary;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the factory function to create heartbeat messages. Returns null to send an empty payload.</para>
@@ -96,6 +120,24 @@ public sealed class WebSocketClientOptions
     ///     </remarks>
     /// </summary>
     public Func<ReadOnlyMemory<byte>>? HeartbeatMessageFactory { get; set; } = DefaultHeartbeatMessageFactory;
+
+    /// <summary>
+    ///     <para xml:lang="en">Gets or sets the expected heartbeat response message bytes. Default is "pong".</para>
+    ///     <para xml:lang="zh">获取或设置期望的心跳响应消息字节。默认为 "pong"。</para>
+    ///     <remarks>
+    ///         <para xml:lang="en">
+    ///         When a message matching this pattern is received, it will be treated as a heartbeat response
+    ///         and will NOT trigger the <see cref="ManagedWebSocketClient.MessageReceived" /> event.
+    ///         Set to null or empty to disable heartbeat response filtering (all messages will be delivered to the application).
+    ///         </para>
+    ///         <para xml:lang="zh">
+    ///         当收到与此模式匹配的消息时，将被视为心跳响应，
+    ///         不会触发 <see cref="ManagedWebSocketClient.MessageReceived" /> 事件。
+    ///         设置为 null 或空数组可禁用心跳响应过滤（所有消息都将传递给应用程序）。
+    ///         </para>
+    ///     </remarks>
+    /// </summary>
+    public ReadOnlyMemory<byte> HeartbeatResponseMessage { get; set; } = DefaultHeartbeatResponseMessage;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the connection timeout. Default is 10 seconds.</para>
