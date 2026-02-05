@@ -593,7 +593,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
                 // 心跳超时检测：
                 // 仅当已发送过心跳后才检查超时，确保远端有机会响应
-                // 条件：(距离上次发送心跳) > HeartbeatTimeout AND (距离上次接收) > HeartbeatTimeout
+                // 条件：发送心跳后超过 HeartbeatTimeout 时间，且在此期间没有收到任何消息
                 if (Options.HeartbeatTimeout > TimeSpan.Zero)
                 {
                     var lastHeartbeatSent = Volatile.Read(ref _lastHeartbeatSentTimestamp);
@@ -602,12 +602,14 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     {
                         var lastReceive = Volatile.Read(ref _lastReceiveTimestamp);
                         var elapsedSinceHeartbeat = Stopwatch.GetElapsedTime(lastHeartbeatSent);
-                        var elapsedSinceReceive = Stopwatch.GetElapsedTime(lastReceive);
 
-                        // 只有当发送心跳后超过 HeartbeatTimeout 且期间没有收到任何消息时才判定超时
-                        if (elapsedSinceHeartbeat > Options.HeartbeatTimeout && elapsedSinceReceive > Options.HeartbeatTimeout)
+                        // 超时条件：
+                        // 1. 发送心跳后已超过 HeartbeatTimeout 时间
+                        // 2. 上次收到消息的时间早于上次发送心跳的时间（即发送心跳后没有收到任何消息）
+                        if (elapsedSinceHeartbeat > Options.HeartbeatTimeout && lastReceive < lastHeartbeatSent)
                         {
-                            var ex = new TimeoutException($"WebSocket heartbeat timeout: no response for {elapsedSinceReceive.TotalMilliseconds:N0}ms after heartbeat sent {elapsedSinceHeartbeat.TotalMilliseconds:N0}ms ago.");
+                            var elapsedSinceReceive = Stopwatch.GetElapsedTime(lastReceive);
+                            var ex = new TimeoutException($"WebSocket heartbeat timeout: no response for {elapsedSinceHeartbeat.TotalMilliseconds:N0}ms after heartbeat sent (last receive was {elapsedSinceReceive.TotalMilliseconds:N0}ms ago).");
                             OnError(new(ex, "HeartbeatLoop timeout"));
                             await HandleConnectionLoss(ex).ConfigureAwait(false);
                             return;
