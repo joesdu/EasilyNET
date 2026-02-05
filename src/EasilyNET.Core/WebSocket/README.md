@@ -171,6 +171,19 @@ async def websocket_endpoint(websocket: WebSocket):
 
 > **注意**：服务端应检查心跳消息内容（`b"ping"`），而不是仅检查消息类型。否则所有二进制业务消息都会被当作心跳处理。
 
+### 心跳响应过滤规则
+
+客户端会自动过滤心跳响应消息，但只有同时满足以下条件时才会过滤：
+
+1. **HeartbeatResponseMessage 不为空**（启用过滤）
+2. **消息类型匹配**：收到的消息类型必须与 `HeartbeatMessageType` 一致
+3. **内容完全匹配**：消息内容必须与 `HeartbeatResponseMessage` 完全相同
+
+这意味着：
+- 如果 `HeartbeatMessageType = Binary`，则 Text 类型的 "pong" 消息**不会被过滤**
+- 如果业务消息内容恰好是 "pong" 但类型不同，**不会被误过滤**
+- 只有类型和内容都匹配的消息才会被过滤
+
 ### 禁用心跳响应过滤
 
 如果不需要过滤心跳响应（所有消息都传递给应用程序）：

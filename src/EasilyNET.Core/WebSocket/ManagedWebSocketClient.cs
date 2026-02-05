@@ -445,7 +445,8 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                 UpdateLastReceiveTimestamp();
 
                 // 检查是否为心跳响应消息（pong），如果是则不触发 MessageReceived 事件
-                if (IsHeartbeatResponse(data))
+                // 只有当消息类型与心跳类型匹配且内容匹配时才过滤，避免误过滤业务消息
+                if (IsHeartbeatResponse(data, result.MessageType))
                 {
                     continue;
                 }
@@ -486,15 +487,37 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     ///     <para xml:lang="en">The received data.</para>
     ///     <para xml:lang="zh">接收到的数据。</para>
     /// </param>
+    /// <param name="messageType">
+    ///     <para xml:lang="en">The WebSocket message type.</para>
+    ///     <para xml:lang="zh">WebSocket 消息类型。</para>
+    /// </param>
     /// <returns>
-    ///     <para xml:lang="en">True if the data matches the heartbeat response pattern; otherwise, false.</para>
-    ///     <para xml:lang="zh">如果数据匹配心跳响应模式则返回 true；否则返回 false。</para>
+    ///     <para xml:lang="en">True if the data matches the heartbeat response pattern and message type; otherwise, false.</para>
+    ///     <para xml:lang="zh">如果数据和消息类型都匹配心跳响应模式则返回 true；否则返回 false。</para>
     /// </returns>
+    /// <remarks>
+    ///     <para xml:lang="en">
+    ///     The heartbeat response is only filtered when:
+    ///     1. HeartbeatResponseMessage is not empty (filtering is enabled)
+    ///     2. The message type matches HeartbeatMessageType (prevents filtering business messages with same content but different type)
+    ///     3. The message content exactly matches HeartbeatResponseMessage
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     心跳响应仅在以下条件都满足时才被过滤：
+    ///     1. HeartbeatResponseMessage 不为空（启用过滤）
+    ///     2. 消息类型与 HeartbeatMessageType 匹配（防止过滤内容相同但类型不同的业务消息）
+    ///     3. 消息内容与 HeartbeatResponseMessage 完全匹配
+    ///     </para>
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool IsHeartbeatResponse(byte[] data)
+    private bool IsHeartbeatResponse(byte[] data, WebSocketMessageType messageType)
     {
         var expectedResponse = Options.HeartbeatResponseMessage;
-        return !expectedResponse.IsEmpty && data.AsSpan().SequenceEqual(expectedResponse.Span);
+        // 只有当消息类型匹配心跳类型且内容匹配时才认为是心跳响应
+        // 这样可以避免误过滤内容恰好是 "pong" 的业务消息（如 Text 类型的 "pong" 不会被过滤，如果心跳类型是 Binary）
+        return !expectedResponse.IsEmpty &&
+               messageType == Options.HeartbeatMessageType &&
+               data.AsSpan().SequenceEqual(expectedResponse.Span);
     }
 
     private async Task SendLoop(CancellationToken token)
