@@ -43,8 +43,8 @@ public sealed class WebSocketClientOptions
     public TimeSpan MaxReconnectDelay { get; set; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets whether application-level heartbeat is enabled. Requires server-side cooperation to handle heartbeat payloads and optionally reply (for example, returning a PONG). Default is <c>false</c>.</para>
-    ///     <para xml:lang="zh">获取或设置是否启用心跳(需要服务端配合处理心跳数据并返回PONG)。默认为 <c>false</c>。</para>
+    ///     <para xml:lang="en">Gets or sets whether application-level heartbeat is enabled. Requires server-side cooperation to recognize and handle heartbeat payloads. The server may optionally respond (for example, with a PONG or any other message type); any message received from the server is treated as activity for timeout detection. Default is <c>false</c>.</para>
+    ///     <para xml:lang="zh">获取或设置是否启用应用层心跳。需要服务端配合识别并处理心跳数据；服务端可以选择性地回应（例如发送 PONG 或任意类型的消息），客户端收到的任何消息都会被视为活动并用于超时检测。默认为 <c>false</c>。</para>
     /// </summary>
     public bool HeartbeatEnabled { get; set; } = false;
 
