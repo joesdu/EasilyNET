@@ -13,6 +13,12 @@ namespace EasilyNET.Core.WebSocket;
 public sealed class WebSocketClientOptions
 {
     /// <summary>
+    ///     <para xml:lang="en">Cached default heartbeat message bytes ("ping").</para>
+    ///     <para xml:lang="zh">缓存的默认心跳消息字节（"ping"）。</para>
+    /// </summary>
+    private static readonly byte[] DefaultHeartbeatMessage = "ping"u8.ToArray();
+
+    /// <summary>
     ///     <para xml:lang="en">Gets or sets the WebSocket server URI.</para>
     ///     <para xml:lang="zh">获取或设置 WebSocket 服务器 URI。</para>
     /// </summary>
@@ -43,10 +49,13 @@ public sealed class WebSocketClientOptions
     public TimeSpan MaxReconnectDelay { get; set; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets whether heartbeat is enabled. Default is <c>true</c>.</para>
-    ///     <para xml:lang="zh">获取或设置是否启用心跳。默认为 <c>true</c>。</para>
+    ///     <para xml:lang="en">
+    ///     Gets or sets whether application-level heartbeat is enabled. Requires server-side cooperation to recognize and handle heartbeat payloads. The server may optionally respond (for example, with a PONG or any other message type); any message received from the server is treated as activity for timeout detection. Default is
+    ///     <c>false</c>.
+    ///     </para>
+    ///     <para xml:lang="zh">获取或设置是否启用应用层心跳。需要服务端配合识别并处理心跳数据；服务端可以选择性地回应（例如发送 PONG 或任意类型的消息），客户端收到的任何消息都会被视为活动并用于超时检测。默认为 <c>false</c>。</para>
     /// </summary>
-    public bool HeartbeatEnabled { get; set; } = true;
+    public bool HeartbeatEnabled { get; set; } = false;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the heartbeat interval. Default is 30 seconds.</para>
@@ -86,7 +95,7 @@ public sealed class WebSocketClientOptions
     ///         </para>
     ///     </remarks>
     /// </summary>
-    public Func<ReadOnlyMemory<byte>>? HeartbeatMessageFactory { get; set; }
+    public Func<ReadOnlyMemory<byte>>? HeartbeatMessageFactory { get; set; } = DefaultHeartbeatMessageFactory;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the connection timeout. Default is 10 seconds.</para>
@@ -135,4 +144,10 @@ public sealed class WebSocketClientOptions
     ///     </remarks>
     /// </summary>
     public bool WaitForSendCompletion { get; set; } = true;
+
+    /// <summary>
+    ///     <para xml:lang="en">Default heartbeat message factory that returns "ping" as bytes.</para>
+    ///     <para xml:lang="zh">默认心跳消息工厂，返回 "ping" 字节。</para>
+    /// </summary>
+    private static ReadOnlyMemory<byte> DefaultHeartbeatMessageFactory() => DefaultHeartbeatMessage;
 }

@@ -13,6 +13,8 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["src/Directory.Packages.props", "src/"]
 COPY ["Directory.Build.props", "."]
+COPY ["src/Directory.Build.props", "src/"]
+COPY ["src/Directory.Build.targets", "src/"]
 COPY ["sample/WebApi.Test.Unit/WebApi.Test.Unit.csproj", "sample/WebApi.Test.Unit/"]
 COPY ["src/EasilyNET.AutoDependencyInjection/EasilyNET.AutoDependencyInjection.csproj", "src/EasilyNET.AutoDependencyInjection/"]
 COPY ["src/EasilyNET.AutoDependencyInjection.Core/EasilyNET.AutoDependencyInjection.Core.csproj", "src/EasilyNET.AutoDependencyInjection.Core/"]

@@ -105,7 +105,7 @@ await client.DisconnectAsync();
 - **零分配接收**: 接收缓冲区从 `ArrayPool<byte>` 租借，避免频繁分配。
 - **池化内存流**: 使用 `PooledMemoryStream` 组装大消息，减少内存碎片。
 - **高效心跳**: 使用 `PeriodicTimer` 替代 `Task.Delay`，更高效且取消更及时。
-- **心跳直发**: 心跳消息绕过发送队列直接发送，确保即使队列满也能保持连接活跃。
+- **非阻塞心跳**: 心跳消息通过 `TryWrite` 入队，队列满时跳过本次心跳而非阻塞，避免影响心跳循环。
 - **内联优化**: 关键路径使用 `[MethodImpl(MethodImplOptions.AggressiveInlining)]` 优化。
 
 ## 配置说明
