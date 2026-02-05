@@ -444,8 +444,8 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                 // Any successfully received message indicates the connection is alive.
                 UpdateLastReceiveTimestamp();
 
-                // 检查是否为心跳响应消息（pong），如果是则不触发 MessageReceived 事件
-                if (IsHeartbeatResponse(data))
+                // 检查是否为心跳响应消息（pong），仅当消息类型与配置的心跳消息类型一致时才过滤
+                if (result.MessageType == Options.HeartbeatMessageType && IsHeartbeatResponse(data))
                 {
                     continue;
                 }
