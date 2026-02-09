@@ -58,6 +58,12 @@ public interface ILogStore
     ///     <para xml:lang="zh">日志截断</para>
     /// </summary>
     Task TruncateSuffixAsync(long fromIndexInclusive, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///     <para xml:lang="en">Compacts log prefix up to and including the given index (removes entries with Index &lt;= lastIncludedIndex)</para>
+    ///     <para xml:lang="zh">压缩日志前缀，移除索引小于等于 lastIncludedIndex 的条目</para>
+    /// </summary>
+    Task CompactPrefixAsync(long lastIncludedIndex, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

@@ -31,4 +31,11 @@ public sealed class InMemoryLogStore : ILogStore
         _entries.RemoveAll(x => x.Index >= fromIndexInclusive);
         return Task.CompletedTask;
     }
+
+    /// <inheritdoc />
+    public Task CompactPrefixAsync(long lastIncludedIndex, CancellationToken cancellationToken = default)
+    {
+        _entries.RemoveAll(x => x.Index <= lastIncludedIndex);
+        return Task.CompletedTask;
+    }
 }

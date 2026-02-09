@@ -83,12 +83,25 @@ public sealed class FileLogStore(RaftFileStorageOptions options) : ILogStore
     {
         var all = await GetAllAsync(cancellationToken).ConfigureAwait(false);
         var remaining = all.Where(x => x.Index < fromIndexInclusive).ToArray();
+        await RewriteLogAsync(remaining, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task CompactPrefixAsync(long lastIncludedIndex, CancellationToken cancellationToken = default)
+    {
+        var all = await GetAllAsync(cancellationToken).ConfigureAwait(false);
+        var remaining = all.Where(x => x.Index > lastIncludedIndex).ToArray();
+        await RewriteLogAsync(remaining, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task RewriteLogAsync(RaftLogEntry[] entries, CancellationToken cancellationToken)
+    {
         EnsureDirectory();
         var temp = LogPath + ".tmp";
         await using (var stream = System.IO.File.Create(temp))
         await using (var writer = new StreamWriter(stream, Encoding.UTF8))
         {
-            foreach (var entry in remaining)
+            foreach (var entry in entries)
             {
                 var dto = new LogEntryDto(entry.Index, entry.Term, entry.Command);
                 var line = JsonSerializer.Serialize(dto, _serializerOptions);
