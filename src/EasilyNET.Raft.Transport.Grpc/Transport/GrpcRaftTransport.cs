@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using EasilyNET.Raft.Core.Abstractions;
 using EasilyNET.Raft.Core.Messages;
 using EasilyNET.Raft.Transport.Grpc.Options;
@@ -16,10 +17,10 @@ namespace EasilyNET.Raft.Transport.Grpc.Transport;
 public sealed class GrpcRaftTransport(IOptions<RaftGrpcOptions> options) : IRaftTransport
 {
     // ReSharper disable once CollectionNeverQueried.Local
-    private readonly Dictionary<string, GrpcChannel> _channels = [];
-    private readonly Dictionary<string, RaftRpc.RaftRpcClient> _clients = [];
+    private readonly ConcurrentDictionary<string, GrpcChannel> _channels = [];
+    private readonly ConcurrentDictionary<string, RaftRpc.RaftRpcClient> _clients = [];
     private readonly RaftGrpcOptions _options = options.Value;
-    private readonly Dictionary<string, SemaphoreSlim> _peerGates = [];
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _peerGates = [];
 
     /// <inheritdoc />
     public async Task<RaftMessage?> SendAsync(string targetNodeId, RaftMessage message, CancellationToken cancellationToken = default)
@@ -77,30 +78,21 @@ public sealed class GrpcRaftTransport(IOptions<RaftGrpcOptions> options) : IRaft
 
     private RaftRpc.RaftRpcClient GetClient(string targetNodeId)
     {
-        if (_clients.TryGetValue(targetNodeId, out var existing))
+        return _clients.GetOrAdd(targetNodeId, nodeId =>
         {
-            return existing;
-        }
-        if (!_options.PeerEndpoints.TryGetValue(targetNodeId, out var endpoint))
-        {
-            throw new InvalidOperationException($"Raft peer endpoint for node '{targetNodeId}' is not configured.");
-        }
-        var channel = GrpcChannel.ForAddress(endpoint);
-        var client = new RaftRpc.RaftRpcClient(channel);
-        _channels[targetNodeId] = channel;
-        _clients[targetNodeId] = client;
-        return client;
+            if (!_options.PeerEndpoints.TryGetValue(nodeId, out var endpoint))
+            {
+                throw new InvalidOperationException($"Raft peer endpoint for node '{nodeId}' is not configured.");
+            }
+            var channel = GrpcChannel.ForAddress(endpoint);
+            _channels[nodeId] = channel;
+            return new(channel);
+        });
     }
 
     private SemaphoreSlim GetPeerGate(string targetNodeId)
     {
-        if (_peerGates.TryGetValue(targetNodeId, out var gate))
-        {
-            return gate;
-        }
-        gate = new(Math.Max(1, _options.MaxInFlightPerPeer), Math.Max(1, _options.MaxInFlightPerPeer));
-        _peerGates[targetNodeId] = gate;
-        return gate;
+        return _peerGates.GetOrAdd(targetNodeId, _ => new(Math.Max(1, _options.MaxInFlightPerPeer), Math.Max(1, _options.MaxInFlightPerPeer)));
     }
 
     private async Task SendWithRetryAsync(Func<CancellationToken, Task> execute, CancellationToken cancellationToken)

@@ -116,7 +116,7 @@ public sealed class RaftNode(RaftOptions options)
                 }));
             return;
         }
-        var quorumConfirmed = state.MatchIndex.Values.Count(x => x >= state.CommitIndex) >= state.Quorum;
+        var quorumConfirmed = HasCommitQuorum(state, state.CommitIndex);
         BroadcastAppendEntries(state, actions);
         actions.Add(new SendMessageAction(request.SourceNodeId,
             new ReadIndexResponse
@@ -140,6 +140,18 @@ public sealed class RaftNode(RaftOptions options)
                     Term = state.CurrentTerm,
                     Success = false,
                     Reason = "not leader"
+                }));
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(request.TargetNodeId))
+        {
+            actions.Add(new SendMessageAction(request.SourceNodeId,
+                new ConfigurationChangeResponse
+                {
+                    SourceNodeId = state.NodeId,
+                    Term = state.CurrentTerm,
+                    Success = false,
+                    Reason = "target node id is required"
                 }));
             return;
         }
@@ -276,7 +288,7 @@ public sealed class RaftNode(RaftOptions options)
         else
         {
             var expectedTerm = state.CurrentTerm + 1;
-            if (request.Term >= expectedTerm && IsCandidateUpToDate(state, request.LastLogTerm, request.LastLogIndex))
+            if (request.Term == expectedTerm && IsCandidateUpToDate(state, request.LastLogTerm, request.LastLogIndex))
             {
                 voteGranted = true;
             }
@@ -304,7 +316,7 @@ public sealed class RaftNode(RaftOptions options)
                 return;
             }
             state.PreVotesGranted.Add(response.SourceNodeId);
-            if (state.PreVotesGranted.Count >= state.Quorum)
+            if (HasVoteQuorum(state, state.PreVotesGranted))
             {
                 StartElection(state, actions);
             }
@@ -315,7 +327,7 @@ public sealed class RaftNode(RaftOptions options)
             return;
         }
         state.VotesGranted.Add(response.SourceNodeId);
-        if (state.VotesGranted.Count >= state.Quorum)
+        if (HasVoteQuorum(state, state.VotesGranted))
         {
             BecomeLeader(state, actions);
         }
@@ -355,11 +367,13 @@ public sealed class RaftNode(RaftOptions options)
             return;
         }
         var persisted = new List<RaftLogEntry>();
+        long? truncateFrom = null;
         foreach (var incoming in request.Entries)
         {
             var existing = state.Log.FirstOrDefault(x => x.Index == incoming.Index);
             if (existing is not null && existing.Term != incoming.Term)
             {
+                truncateFrom ??= incoming.Index;
                 state.Log.RemoveAll(x => x.Index >= incoming.Index);
                 state.Log.Add(incoming);
                 persisted.Add(incoming);
@@ -370,6 +384,10 @@ public sealed class RaftNode(RaftOptions options)
                 state.Log.Add(incoming);
                 persisted.Add(incoming);
             }
+        }
+        if (truncateFrom.HasValue)
+        {
+            actions.Add(new TruncateLogSuffixAction(truncateFrom.Value));
         }
         if (persisted.Count > 0)
         {
@@ -430,8 +448,11 @@ public sealed class RaftNode(RaftOptions options)
         }
         state.Role = RaftRole.Follower;
         state.LeaderId = request.LeaderId;
+        actions.Add(new ResetElectionTimerAction());
         actions.Add(new TakeSnapshotAction(request.LastIncludedIndex, request.LastIncludedTerm, request.SnapshotData));
         state.Log.RemoveAll(x => x.Index <= request.LastIncludedIndex);
+        state.SnapshotLastIncludedIndex = request.LastIncludedIndex;
+        state.SnapshotLastIncludedTerm = request.LastIncludedTerm;
         state.CommitIndex = Math.Max(state.CommitIndex, request.LastIncludedIndex);
         state.LastApplied = Math.Max(state.LastApplied, request.LastIncludedIndex);
         actions.Add(new SendMessageAction(request.SourceNodeId,
@@ -478,7 +499,7 @@ public sealed class RaftNode(RaftOptions options)
         foreach (var peer in state.ClusterMembers)
         {
             state.NextIndex[peer] = state.LastLogIndex + 1;
-            state.MatchIndex[peer] = peer == state.NodeId ? state.LastLogIndex : -1;
+            state.MatchIndex[peer] = peer == state.NodeId ? state.LastLogIndex : 0;
         }
         BroadcastAppendEntries(state, actions);
         actions.Add(new ResetHeartbeatTimerAction());
@@ -496,7 +517,29 @@ public sealed class RaftNode(RaftOptions options)
     {
         var nextIndex = state.NextIndex.GetValueOrDefault(peer, state.LastLogIndex + 1);
         var prevIndex = Math.Max(0, nextIndex - 1);
-        var prevTerm = prevIndex == 0 ? 0 : state.Log.First(x => x.Index == prevIndex).Term;
+        long prevTerm;
+        if (prevIndex == 0)
+        {
+            prevTerm = 0;
+        }
+        else
+        {
+            var prevEntry = state.Log.FirstOrDefault(x => x.Index == prevIndex);
+            if (prevEntry is not null)
+            {
+                prevTerm = prevEntry.Term;
+            }
+            else if (prevIndex == state.SnapshotLastIncludedIndex)
+            {
+                prevTerm = state.SnapshotLastIncludedTerm;
+            }
+            else
+            {
+                // prevIndex falls into compacted region — follower needs snapshot install
+                actions.Add(new SendSnapshotToPeerAction(peer));
+                return;
+            }
+        }
         var entries = state.Log
                            .Where(x => x.Index >= nextIndex)
                            .Take(options.MaxEntriesPerAppend)
@@ -599,6 +642,19 @@ public sealed class RaftNode(RaftOptions options)
         return oldMajority && newMajority;
     }
 
+    private static bool HasVoteQuorum(RaftNodeState state, HashSet<string> votes)
+    {
+        if (state.ConfigurationTransitionPhase == ConfigurationTransitionPhase.None)
+        {
+            return votes.Count >= state.Quorum;
+        }
+        var oldThreshold = (state.OldConfigurationMembers.Count / 2) + 1;
+        var newThreshold = (state.NewConfigurationMembers.Count / 2) + 1;
+        var oldVotes = state.OldConfigurationMembers.Count(member => votes.Contains(member));
+        var newVotes = state.NewConfigurationMembers.Count(member => votes.Contains(member));
+        return oldVotes >= oldThreshold && newVotes >= newThreshold;
+    }
+
     private static bool HasMajority(RaftNodeState state, IReadOnlyCollection<string> members, long candidateIndex)
     {
         if (members.Count == 0)
@@ -654,7 +710,6 @@ public sealed class RaftNode(RaftOptions options)
         {
             return;
         }
-        state.LastApplied = Math.Max(state.LastApplied, entries[^1].Index);
         actions.Add(new ApplyToStateMachineAction(entries));
     }
 
@@ -665,6 +720,18 @@ public sealed class RaftNode(RaftOptions options)
         if (prevLogIndex == 0)
         {
             return true;
+        }
+        // Check if prevLogIndex falls at the snapshot boundary
+        if (prevLogIndex == state.SnapshotLastIncludedIndex && state.SnapshotLastIncludedIndex > 0)
+        {
+            return state.SnapshotLastIncludedTerm == prevLogTerm;
+        }
+        // Check if prevLogIndex falls before the snapshot boundary (already compacted)
+        if (prevLogIndex < state.SnapshotLastIncludedIndex && state.SnapshotLastIncludedIndex > 0)
+        {
+            // Entry is compacted — we can't verify term, force leader to send snapshot
+            conflictIndex = state.SnapshotLastIncludedIndex + 1;
+            return false;
         }
         var entry = state.Log.FirstOrDefault(x => x.Index == prevLogIndex);
         if (entry is null)

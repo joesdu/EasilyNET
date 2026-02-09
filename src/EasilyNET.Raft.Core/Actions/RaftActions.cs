@@ -48,6 +48,16 @@ public sealed record PersistStateAction(long Term, string? VotedFor) : RaftActio
 public sealed record PersistEntriesAction(IReadOnlyList<RaftLogEntry> Entries) : RaftAction;
 
 /// <summary>
+///     <para xml:lang="en">Truncate log suffix from the given index (inclusive) before appending new entries</para>
+///     <para xml:lang="zh">从指定索引（含）截断日志后缀，用于冲突日志覆盖前的持久化截断</para>
+/// </summary>
+/// <param name="FromIndexInclusive">
+///     <para xml:lang="en">First index to truncate (inclusive)</para>
+///     <para xml:lang="zh">截断起始索引（含）</para>
+/// </param>
+public sealed record TruncateLogSuffixAction(long FromIndexInclusive) : RaftAction;
+
+/// <summary>
 ///     <para xml:lang="en">Apply entries to state machine</para>
 ///     <para xml:lang="zh">应用日志到状态机</para>
 /// </summary>
@@ -86,3 +96,13 @@ public sealed record ResetElectionTimerAction : RaftAction;
 ///     <para xml:lang="zh">重置心跳计时器</para>
 /// </summary>
 public sealed record ResetHeartbeatTimerAction : RaftAction;
+
+/// <summary>
+///     <para xml:lang="en">Instructs the runtime to send an InstallSnapshot RPC to a lagging peer</para>
+///     <para xml:lang="zh">指示运行时向落后的 Follower 发送 InstallSnapshot RPC</para>
+/// </summary>
+/// <param name="TargetNodeId">
+///     <para xml:lang="en">Target peer node id</para>
+///     <para xml:lang="zh">目标节点 id</para>
+/// </param>
+public sealed record SendSnapshotToPeerAction(string TargetNodeId) : RaftAction;

@@ -13,6 +13,7 @@ using EasilyNET.Raft.Transport.Grpc.Abstractions;
 using EasilyNET.Raft.Transport.Grpc.Options;
 using EasilyNET.Raft.Transport.Grpc.Transport;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 // ReSharper disable UnusedMember.Global
@@ -60,7 +61,9 @@ public static class RaftServiceExtensions
         services.TryAddSingleton<IRaftTransport, GrpcRaftTransport>();
         services.TryAddSingleton<IRaftRuntime, RaftRuntime>();
         services.TryAddSingleton<IRaftRpcMessageHandler, RaftRpcMessageHandler>();
-        services.AddHostedService<RaftHostedService>();
+        services.TryAddSingleton<RaftHostedService>();
+        services.TryAddSingleton<IRaftTimerControl>(sp => sp.GetRequiredService<RaftHostedService>());
+        services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<RaftHostedService>());
         services.AddGrpc();
         services.AddHealthChecks()
                 .AddCheck<RaftHealthCheck>("easilynet_raft")

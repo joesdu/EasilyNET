@@ -20,6 +20,10 @@ public sealed class RaftOptionsValidator : IValidateOptions<RaftOptions>
         {
             return ValidateOptionsResult.Fail("RaftOptions.ClusterMembers must contain at least 3 nodes.");
         }
+        if (options.ClusterMembers.Distinct().Count() != options.ClusterMembers.Count)
+        {
+            return ValidateOptionsResult.Fail("RaftOptions.ClusterMembers must not contain duplicate node ids.");
+        }
         if (!options.ClusterMembers.Contains(options.NodeId))
         {
             return ValidateOptionsResult.Fail("RaftOptions.NodeId must exist in ClusterMembers.");

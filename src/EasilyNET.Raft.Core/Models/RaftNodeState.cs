@@ -145,16 +145,16 @@ public sealed class RaftNodeState
     public long? FinalConfigurationIndex { get; set; }
 
     /// <summary>
-    ///     <para xml:lang="en">Gets latest log index</para>
-    ///     <para xml:lang="zh">获取最后日志索引</para>
+    ///     <para xml:lang="en">Gets latest log index (falls back to snapshot metadata when log is empty)</para>
+    ///     <para xml:lang="zh">获取最后日志索引（日志为空时回退到快照元数据）</para>
     /// </summary>
-    public long LastLogIndex => Log.Count == 0 ? 0 : Log[^1].Index;
+    public long LastLogIndex => Log.Count == 0 ? SnapshotLastIncludedIndex : Log[^1].Index;
 
     /// <summary>
-    ///     <para xml:lang="en">Gets latest log term</para>
-    ///     <para xml:lang="zh">获取最后日志任期</para>
+    ///     <para xml:lang="en">Gets latest log term (falls back to snapshot metadata when log is empty)</para>
+    ///     <para xml:lang="zh">获取最后日志任期（日志为空时回退到快照元数据）</para>
     /// </summary>
-    public long LastLogTerm => Log.Count == 0 ? 0 : Log[^1].Term;
+    public long LastLogTerm => Log.Count == 0 ? SnapshotLastIncludedTerm : Log[^1].Term;
 
     /// <summary>
     ///     <para xml:lang="en">Gets quorum size</para>

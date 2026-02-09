@@ -1,4 +1,5 @@
 using EasilyNET.Raft.AspNetCore.Runtime;
+using EasilyNET.Raft.AspNetCore.Services;
 using EasilyNET.Raft.Core.Abstractions;
 using EasilyNET.Raft.Core.Messages;
 using EasilyNET.Raft.Core.Options;
@@ -96,8 +97,16 @@ public sealed class RaftRuntimeReadIndexTests
             new InMemorySnapshotStore(),
             new NoopStateMachine(),
             transport,
+            new NoopTimerControl(),
             new(),
             NullLogger<RaftRuntime>.Instance);
+    }
+
+    private sealed class NoopTimerControl : IRaftTimerControl
+    {
+        public void ResetElectionTimer() { }
+
+        public void ResetHeartbeatTimer() { }
     }
 
     private sealed class FakeRaftTransport : IRaftTransport

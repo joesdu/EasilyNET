@@ -1,4 +1,5 @@
 using EasilyNET.Raft.AspNetCore.Observability;
+using EasilyNET.Raft.AspNetCore.Services;
 using EasilyNET.Raft.Core.Abstractions;
 using EasilyNET.Raft.Core.Actions;
 using EasilyNET.Raft.Core.Engine;
@@ -30,6 +31,7 @@ public sealed class RaftRuntime : IRaftRuntime
     private readonly RaftNodeState _state;
     private readonly IStateMachine _stateMachine;
     private readonly IStateStore _stateStore;
+    private readonly IRaftTimerControl _timerControl;
     private volatile bool _initialized;
 
     /// <summary>
@@ -43,6 +45,7 @@ public sealed class RaftRuntime : IRaftRuntime
         ISnapshotStore snapshotStore,
         IStateMachine stateMachine,
         IRaftTransport raftTransport,
+        IRaftTimerControl timerControl,
         RaftMetrics metrics,
         ILogger<RaftRuntime> logger)
     {
@@ -51,6 +54,7 @@ public sealed class RaftRuntime : IRaftRuntime
         _snapshotStore = snapshotStore;
         _stateMachine = stateMachine;
         _raftTransport = raftTransport;
+        _timerControl = timerControl;
         _metrics = metrics;
         _logger = logger;
         _raftOptions = options.Value;
@@ -169,11 +173,17 @@ public sealed class RaftRuntime : IRaftRuntime
                     case PersistEntriesAction persistEntries:
                         await _logStore.AppendAsync(persistEntries.Entries, cancellationToken).ConfigureAwait(false);
                         break;
+                    case TruncateLogSuffixAction truncate:
+                        await _logStore.TruncateSuffixAsync(truncate.FromIndexInclusive, cancellationToken).ConfigureAwait(false);
+                        break;
                     case ApplyToStateMachineAction apply:
                         await _stateMachine.ApplyAsync(apply.Entries, cancellationToken).ConfigureAwait(false);
+                        _state.LastApplied = Math.Max(_state.LastApplied, apply.Entries[^1].Index);
+                        await TryCreateSnapshotAsync(cancellationToken).ConfigureAwait(false);
                         break;
                     case TakeSnapshotAction snapshot:
                         await _snapshotStore.SaveAsync(snapshot.LastIncludedIndex, snapshot.LastIncludedTerm, snapshot.SnapshotData, cancellationToken).ConfigureAwait(false);
+                        await _stateMachine.RestoreSnapshotAsync(snapshot.SnapshotData, cancellationToken).ConfigureAwait(false);
                         await _logStore.CompactPrefixAsync(snapshot.LastIncludedIndex, cancellationToken).ConfigureAwait(false);
                         _state.SnapshotLastIncludedIndex = snapshot.LastIncludedIndex;
                         _state.SnapshotLastIncludedTerm = snapshot.LastIncludedTerm;
@@ -217,7 +227,7 @@ public sealed class RaftRuntime : IRaftRuntime
                             _metrics.RecordAppendLatency((DateTime.UtcNow - begin).TotalMilliseconds);
                         }
                         if (requiresConfirmation &&
-                            outbound is AppendEntriesRequest { Entries.Count: 0 } &&
+                            outbound is AppendEntriesRequest &&
                             reply is AppendEntriesResponse { Success: true } appendReply &&
                             appendReply.Term == responseTerm)
                         {
@@ -227,8 +237,33 @@ public sealed class RaftRuntime : IRaftRuntime
                         break;
                     }
                     case ResetElectionTimerAction:
-                    case ResetHeartbeatTimerAction:
+                        _timerControl.ResetElectionTimer();
                         break;
+                    case ResetHeartbeatTimerAction:
+                        _timerControl.ResetHeartbeatTimer();
+                        break;
+                    case SendSnapshotToPeerAction sendSnapshot:
+                    {
+                        var snapshot = await _snapshotStore.LoadAsync(cancellationToken).ConfigureAwait(false);
+                        if (snapshot.Data is { Length: > 0 })
+                        {
+                            var begin = DateTime.UtcNow;
+                            var snapshotReply = await _raftTransport.SendAsync(sendSnapshot.TargetNodeId,
+                                                    new InstallSnapshotRequest
+                                                    {
+                                                        SourceNodeId = _state.NodeId,
+                                                        Term = _state.CurrentTerm,
+                                                        LeaderId = _state.NodeId,
+                                                        LastIncludedIndex = snapshot.LastIncludedIndex,
+                                                        LastIncludedTerm = snapshot.LastIncludedTerm,
+                                                        SnapshotData = snapshot.Data
+                                                    },
+                                                    cancellationToken).ConfigureAwait(false);
+                            _metrics.RecordSnapshotInstallSeconds((DateTime.UtcNow - begin).TotalSeconds);
+                            await ProcessReplyAsync(snapshotReply, false, request.SourceNodeId, cancellationToken, 0).ConfigureAwait(false);
+                        }
+                        break;
+                    }
                 }
             }
             _metrics.RecordTransition(prevRole, prevTerm, _state);
@@ -264,10 +299,28 @@ public sealed class RaftRuntime : IRaftRuntime
         if (data is { Length: > 0 })
         {
             await _stateMachine.RestoreSnapshotAsync(data, cancellationToken).ConfigureAwait(false);
-            _state.CommitIndex = Math.Max(_state.CommitIndex, lastIncludedIndex);
-            _state.LastApplied = Math.Max(_state.LastApplied, lastIncludedIndex);
             _state.SnapshotLastIncludedIndex = lastIncludedIndex;
             _state.SnapshotLastIncludedTerm = lastIncludedTerm;
+            _state.CommitIndex = lastIncludedIndex;
+            _state.LastApplied = lastIncludedIndex;
+            // Replay log entries beyond the snapshot to the state machine
+            var entriesToReplay = _state.Log
+                                        .Where(x => x.Index > lastIncludedIndex)
+                                        .OrderBy(x => x.Index)
+                                        .ToArray();
+            if (entriesToReplay.Length > 0)
+            {
+                await _stateMachine.ApplyAsync(entriesToReplay, cancellationToken).ConfigureAwait(false);
+                _state.CommitIndex = Math.Max(_state.CommitIndex, entriesToReplay[^1].Index);
+                _state.LastApplied = entriesToReplay[^1].Index;
+            }
+        }
+        else if (_state.Log.Count > 0)
+        {
+            // No snapshot — replay all log entries
+            await _stateMachine.ApplyAsync(_state.Log, cancellationToken).ConfigureAwait(false);
+            _state.CommitIndex = _state.Log[^1].Index;
+            _state.LastApplied = _state.Log[^1].Index;
         }
         _logger.LogInformation("Raft runtime recovered. nodeId={nodeId}, term={term}, logLastIndex={lastIndex}, commitIndex={commitIndex}",
             _state.NodeId,
@@ -279,7 +332,7 @@ public sealed class RaftRuntime : IRaftRuntime
 
     private async Task<RaftMessage?> ExecuteActionsAsync(IReadOnlyList<RaftAction> actions, bool captureRpcResponse, string sourceNodeId, CancellationToken cancellationToken, int depth = 0)
     {
-        RaftMessage? rpcResponse = null;
+        // Phase 1: Execute all persistence actions first (Raft requires persist-before-respond)
         foreach (var action in actions)
         {
             switch (action)
@@ -290,14 +343,31 @@ public sealed class RaftRuntime : IRaftRuntime
                 case PersistEntriesAction persistEntries:
                     await _logStore.AppendAsync(persistEntries.Entries, cancellationToken).ConfigureAwait(false);
                     break;
-                case ApplyToStateMachineAction apply:
-                    await _stateMachine.ApplyAsync(apply.Entries, cancellationToken).ConfigureAwait(false);
+                case TruncateLogSuffixAction truncate:
+                    await _logStore.TruncateSuffixAsync(truncate.FromIndexInclusive, cancellationToken).ConfigureAwait(false);
                     break;
                 case TakeSnapshotAction snapshot:
                     await _snapshotStore.SaveAsync(snapshot.LastIncludedIndex, snapshot.LastIncludedTerm, snapshot.SnapshotData, cancellationToken).ConfigureAwait(false);
+                    await _stateMachine.RestoreSnapshotAsync(snapshot.SnapshotData, cancellationToken).ConfigureAwait(false);
                     await _logStore.CompactPrefixAsync(snapshot.LastIncludedIndex, cancellationToken).ConfigureAwait(false);
                     _state.SnapshotLastIncludedIndex = snapshot.LastIncludedIndex;
                     _state.SnapshotLastIncludedTerm = snapshot.LastIncludedTerm;
+                    break;
+            }
+        }
+        // Phase 2: Execute apply, send, timer, and snapshot-to-peer actions
+        RaftMessage? rpcResponse = null;
+        foreach (var action in actions)
+        {
+            switch (action)
+            {
+                case PersistStateAction or PersistEntriesAction or TruncateLogSuffixAction or TakeSnapshotAction:
+                    // Already handled in phase 1
+                    break;
+                case ApplyToStateMachineAction apply:
+                    await _stateMachine.ApplyAsync(apply.Entries, cancellationToken).ConfigureAwait(false);
+                    _state.LastApplied = Math.Max(_state.LastApplied, apply.Entries[^1].Index);
+                    await TryCreateSnapshotAsync(cancellationToken).ConfigureAwait(false);
                     break;
                 case SendMessageAction send:
                     var begin = DateTime.UtcNow;
@@ -341,11 +411,54 @@ public sealed class RaftRuntime : IRaftRuntime
                     await ProcessReplyAsync(reply, captureRpcResponse, sourceNodeId, cancellationToken, depth).ConfigureAwait(false);
                     break;
                 case ResetElectionTimerAction:
-                case ResetHeartbeatTimerAction:
+                    _timerControl.ResetElectionTimer();
                     break;
+                case ResetHeartbeatTimerAction:
+                    _timerControl.ResetHeartbeatTimer();
+                    break;
+                case SendSnapshotToPeerAction sendSnapshot:
+                {
+                    var snapshot = await _snapshotStore.LoadAsync(cancellationToken).ConfigureAwait(false);
+                    if (snapshot.Data is { Length: > 0 })
+                    {
+                        var begin2 = DateTime.UtcNow;
+                        var snapshotReply = await _raftTransport.SendAsync(sendSnapshot.TargetNodeId,
+                                                new InstallSnapshotRequest
+                                                {
+                                                    SourceNodeId = _state.NodeId,
+                                                    Term = _state.CurrentTerm,
+                                                    LeaderId = _state.NodeId,
+                                                    LastIncludedIndex = snapshot.LastIncludedIndex,
+                                                    LastIncludedTerm = snapshot.LastIncludedTerm,
+                                                    SnapshotData = snapshot.Data
+                                                },
+                                                cancellationToken).ConfigureAwait(false);
+                        _metrics.RecordSnapshotInstallSeconds((DateTime.UtcNow - begin2).TotalSeconds);
+                        await ProcessReplyAsync(snapshotReply, captureRpcResponse, sourceNodeId, cancellationToken, depth).ConfigureAwait(false);
+                    }
+                    break;
+                }
             }
         }
         return rpcResponse;
+    }
+
+    private async Task TryCreateSnapshotAsync(CancellationToken cancellationToken)
+    {
+        var logCount = _state.Log.Count;
+        if (logCount < _raftOptions.SnapshotThreshold)
+        {
+            return;
+        }
+        var snapshotData = await _stateMachine.CreateSnapshotAsync(cancellationToken).ConfigureAwait(false);
+        var lastIncludedIndex = _state.LastApplied;
+        var lastEntry = _state.Log.FirstOrDefault(x => x.Index == lastIncludedIndex);
+        var lastIncludedTerm = lastEntry?.Term ?? _state.SnapshotLastIncludedTerm;
+        await _snapshotStore.SaveAsync(lastIncludedIndex, lastIncludedTerm, snapshotData, cancellationToken).ConfigureAwait(false);
+        await _logStore.CompactPrefixAsync(lastIncludedIndex, cancellationToken).ConfigureAwait(false);
+        _state.SnapshotLastIncludedIndex = lastIncludedIndex;
+        _state.SnapshotLastIncludedTerm = lastIncludedTerm;
+        _state.Log.RemoveAll(x => x.Index <= lastIncludedIndex);
     }
 
     private async Task ProcessReplyAsync(RaftMessage? reply, bool captureRpcResponse, string sourceNodeId, CancellationToken cancellationToken, int depth)
