@@ -5,6 +5,9 @@ using EasilyNET.Raft.Transport.Grpc.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 
+// ReSharper disable UnusedMember.Global
+// ReSharper disable UnusedType.Global
+
 #pragma warning disable IDE0130
 namespace Microsoft.AspNetCore.Builder;
 
@@ -46,8 +49,8 @@ public static class RaftEndpointRouteBuilderExtensions
                                },
                                cancellationToken).ConfigureAwait(false);
             var errorMessage = string.IsNullOrEmpty(response.LeaderId)
-                ? "read-index quorum not confirmed and leader unknown"
-                : "read-index quorum not confirmed (node is not leader)";
+                                   ? "read-index quorum not confirmed and leader unknown"
+                                   : "read-index quorum not confirmed (node is not leader)";
             return response.Success
                        ? Results.Ok(new { response.ReadIndex, response.Term, response.LeaderId })
                        : Results.Conflict(new { response.ReadIndex, response.Term, response.LeaderId, Message = errorMessage });
