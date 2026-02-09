@@ -48,3 +48,7 @@ jobs:
       - name: Build and Test
         run: ./Test.ps1
         shell: pwsh
+
+      - name: Raft Chaos Smoke
+        run: dotnet test test/EasilyNET.Test.Unit/EasilyNET.Test.Unit.csproj -c Debug --no-build --filter "FullyQualifiedName~RaftChaosAndBaselineTests"
+        shell: bash

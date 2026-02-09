@@ -53,6 +53,12 @@
         <Project Path="src/EasilyNET.Mongo.ConsoleDebug/EasilyNET.Mongo.ConsoleDebug.csproj" />
         <Project Path="src/EasilyNET.Mongo.Core/EasilyNET.Mongo.Core.csproj" />
     </Folder>
+    <Folder Name="/src/Raft/">
+        <Project Path="src/EasilyNET.Raft.AspNetCore/EasilyNET.Raft.AspNetCore.csproj" />
+        <Project Path="src/EasilyNET.Raft.Core/EasilyNET.Raft.Core.csproj" />
+        <Project Path="src/EasilyNET.Raft.Storage.File/EasilyNET.Raft.Storage.File.csproj" />
+        <Project Path="src/EasilyNET.Raft.Transport.Grpc/EasilyNET.Raft.Transport.Grpc.csproj" />
+    </Folder>
     <Folder Name="/test/">
         <Project Path="test/EasilyNET.Core.Benchmark/EasilyNET.Core.Benchmark.csproj" />
         <Project Path="test/EasilyNET.Test.Unit/EasilyNET.Test.Unit.csproj" />

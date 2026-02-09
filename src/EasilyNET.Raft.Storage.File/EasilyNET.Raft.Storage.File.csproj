@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyTitle>$(PackagePrefix).Raft.Storage.File</AssemblyTitle>
+    <AssemblyName>$(PackagePrefix).Raft.Storage.File</AssemblyName>
+    <PackageId>$(PackagePrefix).Raft.Storage.File</PackageId>
+    <PackageTags>Raft;Storage;WAL;Snapshot</PackageTags>
+    <RootNamespace>EasilyNET.Raft.Storage.File</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Raft.Storage.File</PackageProjectUrl>
+    <Description>Raft 文件存储实现（WAL/状态/快照）。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EasilyNET.Raft.Core\EasilyNET.Raft.Core.csproj" />
+  </ItemGroup>
+
+</Project>

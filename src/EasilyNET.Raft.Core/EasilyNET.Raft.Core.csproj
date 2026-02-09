@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyTitle>$(PackagePrefix).Raft.Core</AssemblyTitle>
+    <AssemblyName>$(PackagePrefix).Raft.Core</AssemblyName>
+    <PackageId>$(PackagePrefix).Raft.Core</PackageId>
+    <PackageTags>Raft;Consensus;Distributed</PackageTags>
+    <RootNamespace>EasilyNET.Raft.Core</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.Raft.Core</PackageProjectUrl>
+    <Description>Raft 分布式共识算法核心状态机与抽象接口。</Description>
+  </PropertyGroup>
+
+</Project>
