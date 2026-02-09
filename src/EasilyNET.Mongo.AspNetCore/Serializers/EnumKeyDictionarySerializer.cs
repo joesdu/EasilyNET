@@ -46,7 +46,8 @@ public sealed class EnumKeyDictionarySerializer<TKey, TValue> : SerializerBase<D
 
     /// <summary>
     ///     <para xml:lang="en">
-    ///     Static cache mapping string representations back to enum values to avoid repeated calls during deserialization. This improves performance at the cost of keeping a per-
+    ///     Static cache mapping string representations back to enum values to avoid repeated calls during deserialization. This improves performance at the
+    ///     cost of keeping a per-
     ///     <typeparamref name="TKey" />
     ///     lookup table in memory.
     ///     </para>

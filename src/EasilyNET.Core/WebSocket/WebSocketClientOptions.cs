@@ -56,7 +56,9 @@ public sealed class WebSocketClientOptions
 
     /// <summary>
     ///     <para xml:lang="en">
-    ///     Gets or sets whether application-level heartbeat is enabled. Requires server-side cooperation to recognize and handle heartbeat payloads. The server may optionally respond (for example, with a PONG or any other message type); any message received from the server is treated as activity for timeout detection. Default is
+    ///     Gets or sets whether application-level heartbeat is enabled. Requires server-side cooperation to recognize and handle heartbeat payloads. The
+    ///     server may optionally respond (for example, with a PONG or any other message type); any message received from the server is treated as activity
+    ///     for timeout detection. Default is
     ///     <c>false</c>.
     ///     </para>
     ///     <para xml:lang="zh">获取或设置是否启用应用层心跳。需要服务端配合识别并处理心跳数据；服务端可以选择性地回应（例如发送 PONG 或任意类型的消息），客户端收到的任何消息都会被视为活动并用于超时检测。默认为 <c>false</c>。</para>
@@ -176,7 +178,8 @@ public sealed class WebSocketClientOptions
     ///         <para xml:lang="en">
     ///         The internal channel always maintains message order regardless of this setting.
     ///         When set to <c>true</c>, <c>SendAsync</c> will await the actual socket send operation and throw any exceptions that occur.
-    ///         When set to <c>false</c>, <c>SendAsync</c> returns as soon as the message is enqueued, and send errors are handled by the background loop (and raised via the Error event).
+    ///         When set to <c>false</c>, <c>SendAsync</c> returns as soon as the message is enqueued, and send errors are handled by the background loop
+    ///         (and raised via the Error event).
     ///         </para>
     ///         <para xml:lang="zh">
     ///         无论此设置如何，内部通道始终保持消息顺序。

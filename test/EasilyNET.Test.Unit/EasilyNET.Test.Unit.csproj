@@ -17,6 +17,8 @@
     <ProjectReference Include="..\..\src\EasilyNET.Core\EasilyNET.Core.csproj" />
     <ProjectReference Include="..\..\src\EasilyNET.Security\EasilyNET.Security.csproj" />
     <ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
+    <ProjectReference Include="..\..\src\EasilyNET.Raft.Core\EasilyNET.Raft.Core.csproj" />
+    <ProjectReference Include="..\..\src\EasilyNET.Raft.AspNetCore\EasilyNET.Raft.AspNetCore.csproj" />
   </ItemGroup>
 
 </Project>
