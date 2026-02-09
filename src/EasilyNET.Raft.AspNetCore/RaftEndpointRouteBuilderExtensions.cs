@@ -45,9 +45,12 @@ public static class RaftEndpointRouteBuilderExtensions
                                    Term = state.CurrentTerm
                                },
                                cancellationToken).ConfigureAwait(false);
+            var errorMessage = string.IsNullOrEmpty(response.LeaderId)
+                ? "read-index quorum not confirmed and leader unknown"
+                : "read-index quorum not confirmed (node is not leader)";
             return response.Success
                        ? Results.Ok(new { response.ReadIndex, response.Term, response.LeaderId })
-                       : Results.Conflict(new { response.ReadIndex, response.Term, response.LeaderId, Message = "not leader" });
+                       : Results.Conflict(new { response.ReadIndex, response.Term, response.LeaderId, Message = errorMessage });
         });
         endpoints.MapPost("/raft/members/add/{nodeId}", async (string nodeId, IRaftRuntime runtime, CancellationToken cancellationToken) =>
         {
