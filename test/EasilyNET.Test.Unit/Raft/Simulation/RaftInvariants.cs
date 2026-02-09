@@ -10,7 +10,6 @@ internal static class RaftInvariants
                                   .Where(x => x.Role == RaftRole.Leader)
                                   .GroupBy(x => x.CurrentTerm)
                                   .ToDictionary(g => g.Key, g => g.Count());
-
         foreach (var pair in leadersByTerm)
         {
             if (pair.Value > 1)
@@ -18,7 +17,6 @@ internal static class RaftInvariants
                 throw new InvalidOperationException($"Invariant violated: term {pair.Key} has {pair.Value} leaders.");
             }
         }
-
         foreach (var state in states.Values)
         {
             if (state.LastApplied > state.CommitIndex)

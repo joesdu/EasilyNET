@@ -17,11 +17,10 @@ public sealed class RaftReadinessHealthCheck(IRaftRuntime runtime) : IHealthChec
         {
             return Task.FromResult(HealthCheckResult.Unhealthy("raft runtime not initialized"));
         }
-
         var state = runtime.GetState();
         var ready = state.Role == RaftRole.Leader || !string.IsNullOrWhiteSpace(state.LeaderId);
         return Task.FromResult(ready
-            ? HealthCheckResult.Healthy("raft readiness ok")
-            : HealthCheckResult.Degraded("raft has no known leader"));
+                                   ? HealthCheckResult.Healthy("raft readiness ok")
+                                   : HealthCheckResult.Degraded("raft has no known leader"));
     }
 }

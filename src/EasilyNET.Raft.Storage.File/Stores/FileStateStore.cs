@@ -11,6 +11,7 @@ namespace EasilyNET.Raft.Storage.File.Stores;
 public sealed class FileStateStore(RaftFileStorageOptions options) : IStateStore
 {
     private readonly FlushPolicyDecider _flushDecider = new(options);
+
     private readonly JsonSerializerOptions _serializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -27,7 +28,6 @@ public sealed class FileStateStore(RaftFileStorageOptions options) : IStateStore
         {
             return (0, null);
         }
-
         await using var stream = System.IO.File.OpenRead(StatePath);
         var dto = await JsonSerializer.DeserializeAsync<StateDto>(stream, _serializerOptions, cancellationToken).ConfigureAwait(false);
         return dto is null ? (0, null) : (dto.Term, dto.VotedFor);
@@ -39,18 +39,16 @@ public sealed class FileStateStore(RaftFileStorageOptions options) : IStateStore
         EnsureDirectory();
         var temp = StatePath + ".tmp";
         var payload = new StateDto(term, votedFor);
-
         await using (var stream = System.IO.File.Create(temp))
         {
             await JsonSerializer.SerializeAsync(stream, payload, _serializerOptions, cancellationToken).ConfigureAwait(false);
             await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
             if (_flushDecider.ShouldFlushNow())
             {
-                stream.Flush(flushToDisk: true);
+                stream.Flush(true);
             }
         }
-
-        System.IO.File.Move(temp, StatePath, overwrite: true);
+        System.IO.File.Move(temp, StatePath, true);
     }
 
     private void EnsureDirectory() => Directory.CreateDirectory(options.BaseDirectory);

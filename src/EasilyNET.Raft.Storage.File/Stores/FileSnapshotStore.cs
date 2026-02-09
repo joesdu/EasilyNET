@@ -11,6 +11,7 @@ namespace EasilyNET.Raft.Storage.File.Stores;
 public sealed class FileSnapshotStore(RaftFileStorageOptions options) : ISnapshotStore
 {
     private readonly FlushPolicyDecider _flushDecider = new(options);
+
     private readonly JsonSerializerOptions _serializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -18,6 +19,7 @@ public sealed class FileSnapshotStore(RaftFileStorageOptions options) : ISnapsho
     };
 
     private string MetadataPath => Path.Combine(options.BaseDirectory, options.SnapshotMetadataFileName);
+
     private string SnapshotPath => Path.Combine(options.BaseDirectory, options.SnapshotDataFileName);
 
     /// <inheritdoc />
@@ -28,14 +30,12 @@ public sealed class FileSnapshotStore(RaftFileStorageOptions options) : ISnapsho
         {
             return (0, 0, null);
         }
-
         await using var metadataStream = System.IO.File.OpenRead(MetadataPath);
         var metadata = await JsonSerializer.DeserializeAsync<SnapshotMetadata>(metadataStream, _serializerOptions, cancellationToken).ConfigureAwait(false);
         if (metadata is null)
         {
             return (0, 0, null);
         }
-
         var data = await System.IO.File.ReadAllBytesAsync(SnapshotPath, cancellationToken).ConfigureAwait(false);
         return (metadata.LastIncludedIndex, metadata.LastIncludedTerm, data);
     }
@@ -46,24 +46,21 @@ public sealed class FileSnapshotStore(RaftFileStorageOptions options) : ISnapsho
         EnsureDirectory();
         var snapshotTemp = SnapshotPath + ".tmp";
         var metadataTemp = MetadataPath + ".tmp";
-
         await System.IO.File.WriteAllBytesAsync(snapshotTemp, data, cancellationToken).ConfigureAwait(false);
         if (_flushDecider.ShouldFlushNow())
         {
-            using var fs = new FileStream(snapshotTemp, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-            fs.Flush(flushToDisk: true);
+            await using var fs = new FileStream(snapshotTemp, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            fs.Flush(true);
         }
-
         var metadata = new SnapshotMetadata(lastIncludedIndex, lastIncludedTerm);
         await using (var stream = System.IO.File.Create(metadataTemp))
         {
             await JsonSerializer.SerializeAsync(stream, metadata, _serializerOptions, cancellationToken).ConfigureAwait(false);
             await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-            stream.Flush(flushToDisk: true);
+            stream.Flush(true);
         }
-
-        System.IO.File.Move(snapshotTemp, SnapshotPath, overwrite: true);
-        System.IO.File.Move(metadataTemp, MetadataPath, overwrite: true);
+        System.IO.File.Move(snapshotTemp, SnapshotPath, true);
+        System.IO.File.Move(metadataTemp, MetadataPath, true);
     }
 
     private void EnsureDirectory() => Directory.CreateDirectory(options.BaseDirectory);

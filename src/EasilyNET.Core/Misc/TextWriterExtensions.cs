@@ -890,14 +890,14 @@ public static partial class TextWriterExtensions
 
     private static bool IsWideRune(Rune rune) =>
         // 简单判定: 中日韩统一表意等常见宽字符范围
-        rune.Value is (>= 0x1100 and <= 0x115F) // Hangul Jamo
-            or (>= 0x2E80 and <= 0xA4CF)
-            or (>= 0xAC00 and <= 0xD7A3) // Hangul Syllables
-            or (>= 0xF900 and <= 0xFAFF) // CJK Compatibility Ideographs
-            or (>= 0xFE10 and <= 0xFE19)
-            or (>= 0xFE30 and <= 0xFE6F)
-            or (>= 0xFF00 and <= 0xFF60)
-            or (>= 0xFFE0 and <= 0xFFE6);
+        rune.Value is >= 0x1100 and <= 0x115F // Hangul Jamo
+            or >= 0x2E80 and <= 0xA4CF
+            or >= 0xAC00 and <= 0xD7A3 // Hangul Syllables
+            or >= 0xF900 and <= 0xFAFF // CJK Compatibility Ideographs
+            or >= 0xFE10 and <= 0xFE19
+            or >= 0xFE30 and <= 0xFE6F
+            or >= 0xFF00 and <= 0xFF60
+            or >= 0xFFE0 and <= 0xFFE6;
 
     [GeneratedRegex("\e\\[[0-9;]*[A-Za-z]", RegexOptions.Compiled)]
     private static partial Regex AnsiEscapeSequenceRegex();

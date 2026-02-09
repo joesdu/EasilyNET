@@ -1,5 +1,5 @@
-using EasilyNET.Raft.Transport.Grpc.Abstractions;
 using EasilyNET.Raft.Core.Messages;
+using EasilyNET.Raft.Transport.Grpc.Abstractions;
 using EasilyNET.Raft.Transport.Grpc.Protos;
 using Grpc.Core;
 
@@ -37,7 +37,6 @@ public sealed class GrpcRaftService(IRaftRpcMessageHandler handler) : RaftRpc.Ra
     {
         InstallSnapshotChunkRpcRequest? first = null;
         await using var buffer = new MemoryStream();
-
         while (await requestStream.MoveNext(context.CancellationToken).ConfigureAwait(false))
         {
             var chunk = requestStream.Current;
@@ -51,17 +50,15 @@ public sealed class GrpcRaftService(IRaftRpcMessageHandler handler) : RaftRpc.Ra
                 break;
             }
         }
-
         if (first is null)
         {
-            return new InstallSnapshotRpcResponse
+            return new()
             {
                 SourceNodeId = string.Empty,
                 Term = 0,
                 Success = false
             };
         }
-
         var request = new InstallSnapshotRequest
         {
             SourceNodeId = first.SourceNodeId,
@@ -71,7 +68,6 @@ public sealed class GrpcRaftService(IRaftRpcMessageHandler handler) : RaftRpc.Ra
             LastIncludedTerm = first.LastIncludedTerm,
             SnapshotData = buffer.ToArray()
         };
-
         var result = await handler.HandleAsync(request, context.CancellationToken).ConfigureAwait(false);
         return GrpcRaftMessageMapper.ToRpc(result);
     }

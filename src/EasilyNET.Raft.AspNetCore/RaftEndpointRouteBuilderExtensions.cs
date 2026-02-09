@@ -32,63 +32,53 @@ public static class RaftEndpointRouteBuilderExtensions
                 state.LeaderId,
                 state.CommitIndex,
                 state.LastApplied,
-                LastLogIndex = state.LastLogIndex,
-                LastLogTerm = state.LastLogTerm
+                state.LastLogIndex,
+                state.LastLogTerm
             });
         });
-
         endpoints.MapGet("/raft/read-index", async (IRaftRuntime runtime, CancellationToken cancellationToken) =>
         {
             var state = runtime.GetState();
-            var response = await runtime.HandleRpcAsync<ReadIndexResponse>(
-                new ReadIndexRequest
-                {
-                    SourceNodeId = state.NodeId,
-                    Term = state.CurrentTerm
-                },
-                cancellationToken).ConfigureAwait(false);
-
+            var response = await runtime.HandleRpcAsync<ReadIndexResponse>(new ReadIndexRequest
+                               {
+                                   SourceNodeId = state.NodeId,
+                                   Term = state.CurrentTerm
+                               },
+                               cancellationToken).ConfigureAwait(false);
             return response.Success
-                ? Results.Ok(new { response.ReadIndex, response.Term, response.LeaderId })
-                : Results.Conflict(new { response.ReadIndex, response.Term, response.LeaderId, Message = "not leader" });
+                       ? Results.Ok(new { response.ReadIndex, response.Term, response.LeaderId })
+                       : Results.Conflict(new { response.ReadIndex, response.Term, response.LeaderId, Message = "not leader" });
         });
-
         endpoints.MapPost("/raft/members/add/{nodeId}", async (string nodeId, IRaftRuntime runtime, CancellationToken cancellationToken) =>
         {
             var state = runtime.GetState();
-            var response = await runtime.HandleRpcAsync<ConfigurationChangeResponse>(
-                new ConfigurationChangeRequest
-                {
-                    SourceNodeId = state.NodeId,
-                    Term = state.CurrentTerm,
-                    ChangeType = ConfigurationChangeType.Add,
-                    TargetNodeId = nodeId
-                },
-                cancellationToken).ConfigureAwait(false);
-
+            var response = await runtime.HandleRpcAsync<ConfigurationChangeResponse>(new ConfigurationChangeRequest
+                               {
+                                   SourceNodeId = state.NodeId,
+                                   Term = state.CurrentTerm,
+                                   ChangeType = ConfigurationChangeType.Add,
+                                   TargetNodeId = nodeId
+                               },
+                               cancellationToken).ConfigureAwait(false);
             return response.Success
-                ? Results.Ok(new { response.Success, response.Term })
-                : Results.Conflict(new { response.Success, response.Term, response.Reason });
+                       ? Results.Ok(new { response.Success, response.Term })
+                       : Results.Conflict(new { response.Success, response.Term, response.Reason });
         });
-
         endpoints.MapPost("/raft/members/remove/{nodeId}", async (string nodeId, IRaftRuntime runtime, CancellationToken cancellationToken) =>
         {
             var state = runtime.GetState();
-            var response = await runtime.HandleRpcAsync<ConfigurationChangeResponse>(
-                new ConfigurationChangeRequest
-                {
-                    SourceNodeId = state.NodeId,
-                    Term = state.CurrentTerm,
-                    ChangeType = ConfigurationChangeType.Remove,
-                    TargetNodeId = nodeId
-                },
-                cancellationToken).ConfigureAwait(false);
-
+            var response = await runtime.HandleRpcAsync<ConfigurationChangeResponse>(new ConfigurationChangeRequest
+                               {
+                                   SourceNodeId = state.NodeId,
+                                   Term = state.CurrentTerm,
+                                   ChangeType = ConfigurationChangeType.Remove,
+                                   TargetNodeId = nodeId
+                               },
+                               cancellationToken).ConfigureAwait(false);
             return response.Success
-                ? Results.Ok(new { response.Success, response.Term })
-                : Results.Conflict(new { response.Success, response.Term, response.Reason });
+                       ? Results.Ok(new { response.Success, response.Term })
+                       : Results.Conflict(new { response.Success, response.Term, response.Reason });
         });
-
         return endpoints;
     }
 }

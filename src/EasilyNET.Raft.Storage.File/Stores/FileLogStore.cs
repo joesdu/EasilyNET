@@ -13,6 +13,7 @@ namespace EasilyNET.Raft.Storage.File.Stores;
 public sealed class FileLogStore(RaftFileStorageOptions options) : ILogStore
 {
     private readonly FlushPolicyDecider _flushDecider = new(options);
+
     private readonly JsonSerializerOptions _serializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -29,7 +30,6 @@ public sealed class FileLogStore(RaftFileStorageOptions options) : ILogStore
         {
             return [];
         }
-
         var list = new List<RaftLogEntry>();
         await using var stream = System.IO.File.Open(LogPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
@@ -62,7 +62,6 @@ public sealed class FileLogStore(RaftFileStorageOptions options) : ILogStore
         {
             return;
         }
-
         EnsureDirectory();
         await using var stream = System.IO.File.Open(LogPath, FileMode.Append, FileAccess.Write, FileShare.Read);
         await using var writer = new StreamWriter(stream, Encoding.UTF8);
@@ -75,7 +74,7 @@ public sealed class FileLogStore(RaftFileStorageOptions options) : ILogStore
         await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
         if (_flushDecider.ShouldFlushNow())
         {
-            stream.Flush(flushToDisk: true);
+            stream.Flush(true);
         }
     }
 
@@ -84,7 +83,6 @@ public sealed class FileLogStore(RaftFileStorageOptions options) : ILogStore
     {
         var all = await GetAllAsync(cancellationToken).ConfigureAwait(false);
         var remaining = all.Where(x => x.Index < fromIndexInclusive).ToArray();
-
         EnsureDirectory();
         var temp = LogPath + ".tmp";
         await using (var stream = System.IO.File.Create(temp))
@@ -97,10 +95,9 @@ public sealed class FileLogStore(RaftFileStorageOptions options) : ILogStore
                 await writer.WriteLineAsync(line).ConfigureAwait(false);
             }
             await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
-            stream.Flush(flushToDisk: true);
+            stream.Flush(true);
         }
-
-        System.IO.File.Move(temp, LogPath, overwrite: true);
+        System.IO.File.Move(temp, LogPath, true);
     }
 
     private void EnsureDirectory() => Directory.CreateDirectory(options.BaseDirectory);

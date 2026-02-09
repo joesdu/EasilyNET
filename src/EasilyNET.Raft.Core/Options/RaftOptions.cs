@@ -1,3 +1,5 @@
+// ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
+
 namespace EasilyNET.Raft.Core.Options;
 
 /// <summary>

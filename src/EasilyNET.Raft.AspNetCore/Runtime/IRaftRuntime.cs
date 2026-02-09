@@ -10,6 +10,12 @@ namespace EasilyNET.Raft.AspNetCore.Runtime;
 public interface IRaftRuntime
 {
     /// <summary>
+    ///     <para xml:lang="en">Gets whether runtime has completed recovery initialization</para>
+    ///     <para xml:lang="zh">运行时是否完成恢复初始化</para>
+    /// </summary>
+    bool IsInitialized { get; }
+
+    /// <summary>
     ///     <para xml:lang="en">Initializes runtime state from persistent stores</para>
     ///     <para xml:lang="zh">从持久化存储初始化运行时状态</para>
     /// </summary>
@@ -26,12 +32,6 @@ public interface IRaftRuntime
     ///     <para xml:lang="zh">处理入站 Raft RPC 消息并返回直接响应</para>
     /// </summary>
     Task<TResponse> HandleRpcAsync<TResponse>(RaftMessage message, CancellationToken cancellationToken = default) where TResponse : RaftMessage;
-
-    /// <summary>
-    ///     <para xml:lang="en">Gets whether runtime has completed recovery initialization</para>
-    ///     <para xml:lang="zh">运行时是否完成恢复初始化</para>
-    /// </summary>
-    bool IsInitialized { get; }
 
     /// <summary>
     ///     <para xml:lang="en">Gets current raft state snapshot</para>

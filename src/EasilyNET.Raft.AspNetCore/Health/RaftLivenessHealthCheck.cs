@@ -10,8 +10,8 @@ namespace EasilyNET.Raft.AspNetCore.Health;
 public sealed class RaftLivenessHealthCheck(IRaftRuntime runtime) : IHealthCheck
 {
     /// <inheritdoc />
-    public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
-        => Task.FromResult(runtime.IsInitialized
-            ? HealthCheckResult.Healthy("raft liveness ok")
-            : HealthCheckResult.Unhealthy("raft runtime not initialized"));
+    public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default) =>
+        Task.FromResult(runtime.IsInitialized
+                            ? HealthCheckResult.Healthy("raft liveness ok")
+                            : HealthCheckResult.Unhealthy("raft runtime not initialized"));
 }

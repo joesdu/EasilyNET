@@ -1,4 +1,3 @@
-using EasilyNET.Raft.AspNetCore.Observability;
 using EasilyNET.Raft.AspNetCore.Runtime;
 using EasilyNET.Raft.Core.Abstractions;
 using EasilyNET.Raft.Core.Messages;
@@ -25,20 +24,17 @@ public sealed class RaftRuntimeReadIndexTests
             }
         };
         var runtime = NewRuntime(transport);
-
         await BecomeLeaderAsync(runtime).ConfigureAwait(false);
         var state = runtime.GetState();
         state.CommitIndex = 5;
         state.MatchIndex["n1"] = 5;
         state.MatchIndex["n2"] = 5;
         state.MatchIndex["n3"] = -1;
-
         var response = await runtime.HandleRpcAsync<ReadIndexResponse>(new ReadIndexRequest
         {
             SourceNodeId = "api",
             Term = state.CurrentTerm
         }).ConfigureAwait(false);
-
         Assert.IsTrue(response.Success);
         Assert.AreEqual(5, response.ReadIndex);
     }
@@ -55,20 +51,17 @@ public sealed class RaftRuntimeReadIndexTests
             }
         };
         var runtime = NewRuntime(transport);
-
         await BecomeLeaderAsync(runtime).ConfigureAwait(false);
         var state = runtime.GetState();
         state.CommitIndex = 5;
         state.MatchIndex["n1"] = 5;
         state.MatchIndex["n2"] = 5;
         state.MatchIndex["n3"] = -1;
-
         var response = await runtime.HandleRpcAsync<ReadIndexResponse>(new ReadIndexRequest
         {
             SourceNodeId = "api",
             Term = state.CurrentTerm
         }).ConfigureAwait(false);
-
         Assert.IsFalse(response.Success);
     }
 
@@ -79,7 +72,6 @@ public sealed class RaftRuntimeReadIndexTests
             SourceNodeId = "n1",
             Term = 0
         }).ConfigureAwait(false);
-
         await runtime.HandleAsync(new RequestVoteResponse
         {
             SourceNodeId = "n2",
@@ -98,15 +90,13 @@ public sealed class RaftRuntimeReadIndexTests
             EnablePreVote = false,
             MaxEntriesPerAppend = 100
         });
-
-        return new RaftRuntime(
-            options,
+        return new(options,
             new InMemoryStateStore(),
             new InMemoryLogStore(),
             new InMemorySnapshotStore(),
             new NoopStateMachine(),
             transport,
-            new RaftMetrics(),
+            new(),
             NullLogger<RaftRuntime>.Instance);
     }
 

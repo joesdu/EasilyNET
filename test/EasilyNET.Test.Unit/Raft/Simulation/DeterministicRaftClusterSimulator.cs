@@ -6,15 +6,14 @@ namespace EasilyNET.Test.Unit.Raft.Simulation;
 
 internal sealed class DeterministicRaftClusterSimulator(params string[] nodeIds)
 {
-    private readonly Dictionary<string, NodeHarness> _nodes = nodeIds.ToDictionary(x => x, x => new NodeHarness(x, nodeIds, enablePreVote: false));
     private readonly SimClock _clock = new();
+    private readonly SimNetwork _network = new(20260209);
+    private readonly Dictionary<string, NodeHarness> _nodes = nodeIds.ToDictionary(x => x, x => new NodeHarness(x, nodeIds, false));
     private readonly SimScheduler _scheduler = new();
-    private readonly SimNetwork _network = new(seed: 20260209);
-    private readonly SimReplayLog _replay = new(seed: 20260209);
 
     public IReadOnlyDictionary<string, RaftNodeState> States => _nodes.ToDictionary(x => x.Key, x => x.Value.State);
 
-    public SimReplayLog Replay => _replay;
+    public SimReplayLog Replay { get; } = new(20260209);
 
     public void Isolate(string nodeId) => _network.Isolate(nodeId);
 
@@ -30,19 +29,19 @@ internal sealed class DeterministicRaftClusterSimulator(params string[] nodeIds)
 
     public void TriggerElection(string nodeId)
     {
-        _replay.Add($"trigger-election:{nodeId}@{_clock.NowTicks}");
+        Replay.Add($"trigger-election:{nodeId}@{_clock.NowTicks}");
         Dispatch(nodeId, new ElectionTimeoutElapsed { SourceNodeId = nodeId, Term = _nodes[nodeId].State.CurrentTerm });
     }
 
     public void SubmitCommand(string leaderNodeId, byte[] command)
     {
-        _replay.Add($"submit:{leaderNodeId}:len={command.Length}@{_clock.NowTicks}");
+        Replay.Add($"submit:{leaderNodeId}:len={command.Length}@{_clock.NowTicks}");
         Dispatch(leaderNodeId, new ClientCommandRequest { SourceNodeId = "client", Term = _nodes[leaderNodeId].State.CurrentTerm, Command = command });
     }
 
     public void TickHeartbeat(string nodeId)
     {
-        _replay.Add($"heartbeat:{nodeId}@{_clock.NowTicks}");
+        Replay.Add($"heartbeat:{nodeId}@{_clock.NowTicks}");
         Dispatch(nodeId, new HeartbeatTimeoutElapsed { SourceNodeId = nodeId, Term = _nodes[nodeId].State.CurrentTerm });
     }
 
@@ -63,14 +62,12 @@ internal sealed class DeterministicRaftClusterSimulator(params string[] nodeIds)
         {
             if (++steps > maxSteps)
             {
-                throw new InvalidOperationException($"Simulation exceeded max steps. seed={_replay.Seed}");
+                throw new InvalidOperationException($"Simulation exceeded max steps. seed={Replay.Seed}");
             }
-
             if (!_scheduler.TryDequeue(out var action))
             {
                 break;
             }
-
             _clock.AdvanceTo(action.DueTick);
             action.Action();
             RaftInvariants.Assert(States);
@@ -90,14 +87,13 @@ internal sealed class DeterministicRaftClusterSimulator(params string[] nodeIds)
         }
     }
 
-    public string? FindLeader()
-        => States.Where(x => x.Value.Role == RaftRole.Leader)
-                 .OrderByDescending(x => x.Value.CurrentTerm)
-                 .Select(x => x.Key)
-                 .FirstOrDefault();
+    public string? FindLeader() =>
+        States.Where(x => x.Value.Role == RaftRole.Leader)
+              .OrderByDescending(x => x.Value.CurrentTerm)
+              .Select(x => x.Key)
+              .FirstOrDefault();
 
-    public int LeaderCount(long term)
-        => States.Values.Count(x => x.Role == RaftRole.Leader && x.CurrentTerm == term);
+    public int LeaderCount(long term) => States.Values.Count(x => x.Role == RaftRole.Leader && x.CurrentTerm == term);
 
     private void Dispatch(string nodeId, RaftMessage message)
     {
@@ -108,18 +104,15 @@ internal sealed class DeterministicRaftClusterSimulator(params string[] nodeIds)
             {
                 continue;
             }
-
             if (!_network.CanDeliver(nodeId, send.TargetNodeId) || _network.ShouldDrop())
             {
-                _replay.Add($"drop:{nodeId}->{send.TargetNodeId}:{send.Message.GetType().Name}@{_clock.NowTicks}");
+                Replay.Add($"drop:{nodeId}->{send.TargetNodeId}:{send.Message.GetType().Name}@{_clock.NowTicks}");
                 continue;
             }
-
             var due = _clock.NowTicks + _network.NextDelayTicks();
             var envelope = _network.Wrap(nodeId, send.TargetNodeId, send.Message, due);
-            _replay.Add($"send:{envelope.From}->{envelope.To}:{envelope.Message.GetType().Name}@{due}");
+            Replay.Add($"send:{envelope.From}->{envelope.To}:{envelope.Message.GetType().Name}@{due}");
             _scheduler.Schedule(due, () => Dispatch(envelope.To, envelope.Message));
-
             if (_network.ShouldReorder())
             {
                 _scheduler.Schedule(due + 1, () => { });

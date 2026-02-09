@@ -12,10 +12,7 @@ public sealed class InMemoryLogStore : ILogStore
     private readonly List<RaftLogEntry> _entries = [];
 
     /// <inheritdoc />
-    public Task<IReadOnlyList<RaftLogEntry>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult<IReadOnlyList<RaftLogEntry>>(_entries.ToArray());
-    }
+    public Task<IReadOnlyList<RaftLogEntry>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<RaftLogEntry>>(_entries.ToArray());
 
     /// <inheritdoc />
     public Task AppendAsync(IReadOnlyList<RaftLogEntry> entries, CancellationToken cancellationToken = default)

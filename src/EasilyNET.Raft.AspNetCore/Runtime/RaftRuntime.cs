@@ -1,10 +1,10 @@
+using EasilyNET.Raft.AspNetCore.Observability;
 using EasilyNET.Raft.Core.Abstractions;
 using EasilyNET.Raft.Core.Actions;
 using EasilyNET.Raft.Core.Engine;
 using EasilyNET.Raft.Core.Messages;
 using EasilyNET.Raft.Core.Models;
 using EasilyNET.Raft.Core.Options;
-using EasilyNET.Raft.AspNetCore.Observability;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -16,19 +16,19 @@ namespace EasilyNET.Raft.AspNetCore.Runtime;
 /// </summary>
 public sealed class RaftRuntime : IRaftRuntime
 {
-    private readonly ILogStore _logStore;
-    private readonly ILogger<RaftRuntime> _logger;
-    private readonly RaftNode _node;
-    private readonly IRaftTransport _raftTransport;
-    private readonly ISnapshotStore _snapshotStore;
-    private readonly IStateMachine _stateMachine;
-    private readonly IStateStore _stateStore;
-    private readonly RaftOptions _raftOptions;
-    private readonly RaftMetrics _metrics;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly SemaphoreSlim _initGate = new(1, 1);
+    private readonly ILogger<RaftRuntime> _logger;
+    private readonly ILogStore _logStore;
+    private readonly RaftMetrics _metrics;
+    private readonly RaftNode _node;
+    private readonly RaftOptions _raftOptions;
+    private readonly IRaftTransport _raftTransport;
+    private readonly ISnapshotStore _snapshotStore;
 
     private readonly RaftNodeState _state;
+    private readonly IStateMachine _stateMachine;
+    private readonly IStateStore _stateStore;
     private volatile bool _initialized;
 
     /// <summary>
@@ -53,7 +53,7 @@ public sealed class RaftRuntime : IRaftRuntime
         _metrics = metrics;
         _logger = logger;
         _raftOptions = options.Value;
-        _node = new RaftNode(_raftOptions);
+        _node = new(_raftOptions);
         _state = new()
         {
             NodeId = _raftOptions.NodeId,
@@ -70,9 +70,8 @@ public sealed class RaftRuntime : IRaftRuntime
         if (message is ReadIndexRequest readIndexRequest)
         {
             var readIndexResponse = await HandleReadIndexWithConfirmationAsync(readIndexRequest, cancellationToken).ConfigureAwait(false);
-            return (readIndexResponse as TResponse) ?? throw new InvalidOperationException($"Expected RPC response type '{typeof(TResponse).Name}' but got '{readIndexResponse.GetType().Name}'.");
+            return readIndexResponse as TResponse ?? throw new InvalidOperationException($"Expected RPC response type '{typeof(TResponse).Name}' but got '{readIndexResponse.GetType().Name}'.");
         }
-
         var response = await ProcessAsync(message, true, cancellationToken).ConfigureAwait(false);
         return response as TResponse ?? throw new InvalidOperationException($"Expected RPC response type '{typeof(TResponse).Name}' but got '{response?.GetType().Name ?? "null"}'.");
     }
@@ -90,7 +89,6 @@ public sealed class RaftRuntime : IRaftRuntime
         {
             return;
         }
-
         await _initGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -98,7 +96,6 @@ public sealed class RaftRuntime : IRaftRuntime
             {
                 return;
             }
-
             await RecoverAsync(cancellationToken).ConfigureAwait(false);
             _initialized = true;
         }
@@ -111,7 +108,6 @@ public sealed class RaftRuntime : IRaftRuntime
     private async Task<RaftMessage?> ProcessAsync(RaftMessage message, bool captureRpcResponse, CancellationToken cancellationToken)
     {
         await InitializeAsync(cancellationToken).ConfigureAwait(false);
-
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -137,7 +133,6 @@ public sealed class RaftRuntime : IRaftRuntime
     private async Task<ReadIndexResponse> HandleReadIndexWithConfirmationAsync(ReadIndexRequest request, CancellationToken cancellationToken)
     {
         await InitializeAsync(cancellationToken).ConfigureAwait(false);
-
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -145,27 +140,24 @@ public sealed class RaftRuntime : IRaftRuntime
             var prevTerm = _state.CurrentTerm;
             var prevCommit = _state.CommitIndex;
             var result = _node.Handle(_state, request);
-
             var readResponse = result.Actions
                                      .OfType<SendMessageAction>()
                                      .Where(x => x.TargetNodeId == request.SourceNodeId)
                                      .Select(x => x.Message)
                                      .OfType<ReadIndexResponse>()
-                                     .FirstOrDefault()
-                             ?? new ReadIndexResponse
-                             {
-                                 SourceNodeId = _state.NodeId,
-                                 Term = _state.CurrentTerm,
-                                 Success = false,
-                                 ReadIndex = _state.CommitIndex,
-                                 LeaderId = _state.LeaderId
-                             };
-
+                                     .FirstOrDefault() ??
+                               new ReadIndexResponse
+                               {
+                                   SourceNodeId = _state.NodeId,
+                                   Term = _state.CurrentTerm,
+                                   Success = false,
+                                   ReadIndex = _state.CommitIndex,
+                                   LeaderId = _state.LeaderId
+                               };
             var requiresConfirmation = _state.Role == RaftRole.Leader;
             var readConfirmAcks = requiresConfirmation ? 1 : 0;
             var quorum = _state.Quorum;
             var responseTerm = _state.CurrentTerm;
-
             foreach (var action in result.Actions)
             {
                 switch (action)
@@ -173,30 +165,23 @@ public sealed class RaftRuntime : IRaftRuntime
                     case PersistStateAction persistState:
                         await _stateStore.SaveAsync(persistState.Term, persistState.VotedFor, cancellationToken).ConfigureAwait(false);
                         break;
-
                     case PersistEntriesAction persistEntries:
                         await _logStore.AppendAsync(persistEntries.Entries, cancellationToken).ConfigureAwait(false);
                         break;
-
                     case ApplyToStateMachineAction apply:
                         await _stateMachine.ApplyAsync(apply.Entries, cancellationToken).ConfigureAwait(false);
                         break;
-
                     case TakeSnapshotAction snapshot:
                         await _snapshotStore.SaveAsync(snapshot.LastIncludedIndex, snapshot.LastIncludedTerm, snapshot.SnapshotData, cancellationToken).ConfigureAwait(false);
                         await _logStore.TruncateSuffixAsync(snapshot.LastIncludedIndex + 1, cancellationToken).ConfigureAwait(false);
                         _state.SnapshotLastIncludedIndex = snapshot.LastIncludedIndex;
                         _state.SnapshotLastIncludedTerm = snapshot.LastIncludedTerm;
                         break;
-
                     case SendMessageAction send when send.TargetNodeId == request.SourceNodeId:
                         break;
-
-                    case SendMessageAction send:
+                    case SendMessageAction(var targetNodeId, var outbound):
                     {
                         var begin = DateTime.UtcNow;
-                        var outbound = send.Message;
-
                         if (outbound is AppendEntriesRequest appendRequest)
                         {
                             var lagThreshold = Math.Max(1, _raftOptions.SnapshotThreshold / 2);
@@ -207,56 +192,48 @@ public sealed class RaftRuntime : IRaftRuntime
                                 var snapshot = await _snapshotStore.LoadAsync(cancellationToken).ConfigureAwait(false);
                                 if (snapshot.Data is { Length: > 0 })
                                 {
-                                    _ = await _raftTransport.SendAsync(send.TargetNodeId,
-                                            new InstallSnapshotRequest
-                                            {
-                                                SourceNodeId = _state.NodeId,
-                                                Term = _state.CurrentTerm,
-                                                LeaderId = _state.NodeId,
-                                                LastIncludedIndex = snapshot.LastIncludedIndex,
-                                                LastIncludedTerm = snapshot.LastIncludedTerm,
-                                                SnapshotData = snapshot.Data
-                                            },
-                                            cancellationToken)
-                                        .ConfigureAwait(false);
+                                    _ = await _raftTransport.SendAsync(targetNodeId,
+                                                                new InstallSnapshotRequest
+                                                                {
+                                                                    SourceNodeId = _state.NodeId,
+                                                                    Term = _state.CurrentTerm,
+                                                                    LeaderId = _state.NodeId,
+                                                                    LastIncludedIndex = snapshot.LastIncludedIndex,
+                                                                    LastIncludedTerm = snapshot.LastIncludedTerm,
+                                                                    SnapshotData = snapshot.Data
+                                                                },
+                                                                cancellationToken)
+                                                            .ConfigureAwait(false);
                                     _metrics.RecordSnapshotInstallSeconds((DateTime.UtcNow - begin).TotalSeconds);
                                     break;
                                 }
                             }
                         }
-
-                        var reply = await _raftTransport.SendAsync(send.TargetNodeId, outbound, cancellationToken).ConfigureAwait(false);
-
+                        var reply = await _raftTransport.SendAsync(targetNodeId, outbound, cancellationToken).ConfigureAwait(false);
                         if (outbound is AppendEntriesRequest)
                         {
                             _metrics.RecordAppendLatency((DateTime.UtcNow - begin).TotalMilliseconds);
                         }
-
                         if (requiresConfirmation &&
-                            outbound is AppendEntriesRequest { Entries: { Count: 0 } } &&
-                            reply is AppendEntriesResponse appendReply &&
-                            appendReply.Success &&
+                            outbound is AppendEntriesRequest { Entries.Count: 0 } &&
+                            reply is AppendEntriesResponse { Success: true } appendReply &&
                             appendReply.Term == responseTerm)
                         {
                             readConfirmAcks++;
                         }
-
                         break;
                     }
-
                     case ResetElectionTimerAction:
                     case ResetHeartbeatTimerAction:
                         break;
                 }
             }
-
             _metrics.RecordTransition(prevRole, prevTerm, _state);
             if (_state.CommitIndex > prevCommit)
             {
                 _metrics.RecordCommitAdvance();
             }
             _metrics.RecordState(_state);
-
             var confirmed = requiresConfirmation && readConfirmAcks >= quorum;
             return readResponse with
             {
@@ -277,11 +254,9 @@ public sealed class RaftRuntime : IRaftRuntime
         var (term, votedFor) = await _stateStore.LoadAsync(cancellationToken).ConfigureAwait(false);
         _state.CurrentTerm = term;
         _state.VotedFor = votedFor;
-
         var entries = await _logStore.GetAllAsync(cancellationToken).ConfigureAwait(false);
         _state.Log.Clear();
         _state.Log.AddRange(entries);
-
         var (lastIncludedIndex, lastIncludedTerm, data) = await _snapshotStore.LoadAsync(cancellationToken).ConfigureAwait(false);
         if (data is { Length: > 0 })
         {
@@ -291,14 +266,12 @@ public sealed class RaftRuntime : IRaftRuntime
             _state.SnapshotLastIncludedIndex = lastIncludedIndex;
             _state.SnapshotLastIncludedTerm = lastIncludedTerm;
         }
-
-            _logger.LogInformation(
-                "Raft runtime recovered. nodeId={nodeId}, term={term}, logLastIndex={lastIndex}, commitIndex={commitIndex}",
-                _state.NodeId,
-                _state.CurrentTerm,
-                _state.LastLogIndex,
-                _state.CommitIndex);
-            _metrics.RecordState(_state);
+        _logger.LogInformation("Raft runtime recovered. nodeId={nodeId}, term={term}, logLastIndex={lastIndex}, commitIndex={commitIndex}",
+            _state.NodeId,
+            _state.CurrentTerm,
+            _state.LastLogIndex,
+            _state.CommitIndex);
+        _metrics.RecordState(_state);
     }
 
     private async Task<RaftMessage?> ExecuteActionsAsync(IReadOnlyList<RaftAction> actions, bool captureRpcResponse, string sourceNodeId, CancellationToken cancellationToken)
@@ -311,22 +284,18 @@ public sealed class RaftRuntime : IRaftRuntime
                 case PersistStateAction persistState:
                     await _stateStore.SaveAsync(persistState.Term, persistState.VotedFor, cancellationToken).ConfigureAwait(false);
                     break;
-
                 case PersistEntriesAction persistEntries:
                     await _logStore.AppendAsync(persistEntries.Entries, cancellationToken).ConfigureAwait(false);
                     break;
-
                 case ApplyToStateMachineAction apply:
                     await _stateMachine.ApplyAsync(apply.Entries, cancellationToken).ConfigureAwait(false);
                     break;
-
                 case TakeSnapshotAction snapshot:
                     await _snapshotStore.SaveAsync(snapshot.LastIncludedIndex, snapshot.LastIncludedTerm, snapshot.SnapshotData, cancellationToken).ConfigureAwait(false);
                     await _logStore.TruncateSuffixAsync(snapshot.LastIncludedIndex + 1, cancellationToken).ConfigureAwait(false);
                     _state.SnapshotLastIncludedIndex = snapshot.LastIncludedIndex;
                     _state.SnapshotLastIncludedTerm = snapshot.LastIncludedTerm;
                     break;
-
                 case SendMessageAction send:
                     var begin = DateTime.UtcNow;
                     if (captureRpcResponse && send.TargetNodeId == sourceNodeId)
@@ -334,7 +303,6 @@ public sealed class RaftRuntime : IRaftRuntime
                         rpcResponse ??= send.Message;
                         break;
                     }
-
                     if (send.Message is AppendEntriesRequest appendRequest)
                     {
                         var lagThreshold = Math.Max(1, _raftOptions.SnapshotThreshold / 2);
@@ -346,35 +314,32 @@ public sealed class RaftRuntime : IRaftRuntime
                             if (snapshot.Data is { Length: > 0 })
                             {
                                 _ = await _raftTransport.SendAsync(send.TargetNodeId,
-                                    new InstallSnapshotRequest
-                                    {
-                                        SourceNodeId = _state.NodeId,
-                                        Term = _state.CurrentTerm,
-                                        LeaderId = _state.NodeId,
-                                        LastIncludedIndex = snapshot.LastIncludedIndex,
-                                        LastIncludedTerm = snapshot.LastIncludedTerm,
-                                        SnapshotData = snapshot.Data
-                                    },
-                                    cancellationToken).ConfigureAwait(false);
+                                        new InstallSnapshotRequest
+                                        {
+                                            SourceNodeId = _state.NodeId,
+                                            Term = _state.CurrentTerm,
+                                            LeaderId = _state.NodeId,
+                                            LastIncludedIndex = snapshot.LastIncludedIndex,
+                                            LastIncludedTerm = snapshot.LastIncludedTerm,
+                                            SnapshotData = snapshot.Data
+                                        },
+                                        cancellationToken).ConfigureAwait(false);
                                 _metrics.RecordSnapshotInstallSeconds((DateTime.UtcNow - begin).TotalSeconds);
                                 break;
                             }
                         }
                     }
-
                     _ = await _raftTransport.SendAsync(send.TargetNodeId, send.Message, cancellationToken).ConfigureAwait(false);
                     if (send.Message is AppendEntriesRequest)
                     {
                         _metrics.RecordAppendLatency((DateTime.UtcNow - begin).TotalMilliseconds);
                     }
                     break;
-
                 case ResetElectionTimerAction:
                 case ResetHeartbeatTimerAction:
                     break;
             }
         }
-
         return rpcResponse;
     }
 }

@@ -7,9 +7,8 @@ namespace EasilyNET.Raft.Transport.Grpc;
 
 internal static class GrpcRaftMessageMapper
 {
-    public static RequestVoteRpcRequest ToRpc(RequestVoteRequest message)
-    {
-        return new()
+    public static RequestVoteRpcRequest ToRpc(RequestVoteRequest message) =>
+        new()
         {
             SourceNodeId = message.SourceNodeId,
             Term = message.Term,
@@ -18,11 +17,9 @@ internal static class GrpcRaftMessageMapper
             LastLogTerm = message.LastLogTerm,
             IsPreVote = message.IsPreVote
         };
-    }
 
-    public static RequestVoteRequest FromRpc(RequestVoteRpcRequest message)
-    {
-        return new()
+    public static RequestVoteRequest FromRpc(RequestVoteRpcRequest message) =>
+        new()
         {
             SourceNodeId = message.SourceNodeId,
             Term = message.Term,
@@ -31,29 +28,24 @@ internal static class GrpcRaftMessageMapper
             LastLogTerm = message.LastLogTerm,
             IsPreVote = message.IsPreVote
         };
-    }
 
-    public static RequestVoteRpcResponse ToRpc(RequestVoteResponse message)
-    {
-        return new()
+    public static RequestVoteRpcResponse ToRpc(RequestVoteResponse message) =>
+        new()
         {
             SourceNodeId = message.SourceNodeId,
             Term = message.Term,
             VoteGranted = message.VoteGranted,
             IsPreVote = message.IsPreVote
         };
-    }
 
-    public static RequestVoteResponse FromRpc(RequestVoteRpcResponse message)
-    {
-        return new()
+    public static RequestVoteResponse FromRpc(RequestVoteRpcResponse message) =>
+        new()
         {
             SourceNodeId = message.SourceNodeId,
             Term = message.Term,
             VoteGranted = message.VoteGranted,
             IsPreVote = message.IsPreVote
         };
-    }
 
     public static AppendEntriesRpcRequest ToRpc(AppendEntriesRequest message)
     {
@@ -66,7 +58,6 @@ internal static class GrpcRaftMessageMapper
             PrevLogTerm = message.PrevLogTerm,
             LeaderCommit = message.LeaderCommit
         };
-
         foreach (var entry in message.Entries)
         {
             rpc.Entries.Add(new LogEntryRpc
@@ -76,7 +67,6 @@ internal static class GrpcRaftMessageMapper
                 Command = ByteString.CopyFrom(entry.Command)
             });
         }
-
         return rpc;
     }
 
@@ -85,7 +75,6 @@ internal static class GrpcRaftMessageMapper
         var entries = message.Entries
                              .Select(x => new RaftLogEntry(x.Index, x.Term, x.Command.ToByteArray()))
                              .ToArray();
-
         return new()
         {
             SourceNodeId = message.SourceNodeId,
@@ -98,9 +87,8 @@ internal static class GrpcRaftMessageMapper
         };
     }
 
-    public static AppendEntriesRpcResponse ToRpc(AppendEntriesResponse message)
-    {
-        return new()
+    public static AppendEntriesRpcResponse ToRpc(AppendEntriesResponse message) =>
+        new()
         {
             SourceNodeId = message.SourceNodeId,
             Term = message.Term,
@@ -111,11 +99,9 @@ internal static class GrpcRaftMessageMapper
             HasConflictTerm = message.ConflictTerm.HasValue,
             HasConflictIndex = message.ConflictIndex.HasValue
         };
-    }
 
-    public static AppendEntriesResponse FromRpc(AppendEntriesRpcResponse message)
-    {
-        return new()
+    public static AppendEntriesResponse FromRpc(AppendEntriesRpcResponse message) =>
+        new()
         {
             SourceNodeId = message.SourceNodeId,
             Term = message.Term,
@@ -124,11 +110,9 @@ internal static class GrpcRaftMessageMapper
             ConflictTerm = message.HasConflictTerm ? message.ConflictTerm : null,
             ConflictIndex = message.HasConflictIndex ? message.ConflictIndex : null
         };
-    }
 
-    public static InstallSnapshotRpcRequest ToRpc(InstallSnapshotRequest message)
-    {
-        return new()
+    public static InstallSnapshotRpcRequest ToRpc(InstallSnapshotRequest message) =>
+        new()
         {
             SourceNodeId = message.SourceNodeId,
             Term = message.Term,
@@ -137,11 +121,9 @@ internal static class GrpcRaftMessageMapper
             LastIncludedTerm = message.LastIncludedTerm,
             SnapshotData = ByteString.CopyFrom(message.SnapshotData)
         };
-    }
 
-    public static InstallSnapshotRequest FromRpc(InstallSnapshotRpcRequest message)
-    {
-        return new()
+    public static InstallSnapshotRequest FromRpc(InstallSnapshotRpcRequest message) =>
+        new()
         {
             SourceNodeId = message.SourceNodeId,
             Term = message.Term,
@@ -150,25 +132,20 @@ internal static class GrpcRaftMessageMapper
             LastIncludedTerm = message.LastIncludedTerm,
             SnapshotData = message.SnapshotData.ToByteArray()
         };
-    }
 
-    public static InstallSnapshotRpcResponse ToRpc(InstallSnapshotResponse message)
-    {
-        return new()
+    public static InstallSnapshotRpcResponse ToRpc(InstallSnapshotResponse message) =>
+        new()
         {
             SourceNodeId = message.SourceNodeId,
             Term = message.Term,
             Success = message.Success
         };
-    }
 
-    public static InstallSnapshotResponse FromRpc(InstallSnapshotRpcResponse message)
-    {
-        return new()
+    public static InstallSnapshotResponse FromRpc(InstallSnapshotRpcResponse message) =>
+        new()
         {
             SourceNodeId = message.SourceNodeId,
             Term = message.Term,
             Success = message.Success
         };
-    }
 }

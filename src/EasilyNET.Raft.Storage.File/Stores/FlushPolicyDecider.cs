@@ -12,19 +12,18 @@ internal sealed class FlushPolicyDecider(RaftFileStorageOptions options)
     {
         var now = DateTime.UtcNow;
         _windowWrites++;
-
+        // ReSharper disable once InvertIf
         if ((now - _windowStartUtc).TotalSeconds >= 1)
         {
             _windowStartUtc = now;
             _windowWrites = 1;
         }
-
         return options.FsyncPolicy switch
         {
-            FsyncPolicy.Always => true,
-            FsyncPolicy.Batch => CheckBatch(now),
+            FsyncPolicy.Always   => true,
+            FsyncPolicy.Batch    => CheckBatch(now),
             FsyncPolicy.Adaptive => _windowWrites <= Math.Max(1, options.AdaptiveHighLoadWritesPerSecond) || CheckBatch(now),
-            _ => true
+            _                    => true
         };
     }
 
@@ -35,12 +34,10 @@ internal sealed class FlushPolicyDecider(RaftFileStorageOptions options)
             _lastFlushUtc = now;
             return true;
         }
-
         if ((now - _lastFlushUtc).TotalMilliseconds < Math.Max(1, options.BatchFlushIntervalMs))
         {
             return false;
         }
-
         _lastFlushUtc = now;
         return true;
     }

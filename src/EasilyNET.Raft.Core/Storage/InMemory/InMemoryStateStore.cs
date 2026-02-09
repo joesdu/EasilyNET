@@ -12,10 +12,7 @@ public sealed class InMemoryStateStore : IStateStore
     private string? _votedFor;
 
     /// <inheritdoc />
-    public Task<(long Term, string? VotedFor)> LoadAsync(CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult((_term, _votedFor));
-    }
+    public Task<(long Term, string? VotedFor)> LoadAsync(CancellationToken cancellationToken = default) => Task.FromResult((_term, _votedFor));
 
     /// <inheritdoc />
     public Task SaveAsync(long term, string? votedFor, CancellationToken cancellationToken = default)

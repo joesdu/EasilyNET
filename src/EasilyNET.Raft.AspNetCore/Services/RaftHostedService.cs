@@ -18,10 +18,8 @@ public sealed class RaftHostedService(IRaftRuntime runtime, IOptions<RaftOptions
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await runtime.InitializeAsync(stoppingToken).ConfigureAwait(false);
-
         var electionTask = Task.Run(() => ElectionLoopAsync(stoppingToken), stoppingToken);
         var heartbeatTask = Task.Run(() => HeartbeatLoopAsync(stoppingToken), stoppingToken);
-
         await Task.WhenAll(electionTask, heartbeatTask).ConfigureAwait(false);
     }
 

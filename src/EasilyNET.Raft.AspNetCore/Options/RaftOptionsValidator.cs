@@ -40,6 +40,7 @@ public sealed class RaftOptionsValidator : IValidateOptions<RaftOptions>
         {
             return ValidateOptionsResult.Fail("RaftOptions.MaxEntriesPerAppend must be >= 1.");
         }
+        // ReSharper disable once ConvertIfStatementToReturnStatement
         if (options.SnapshotThreshold < options.MaxEntriesPerAppend)
         {
             return ValidateOptionsResult.Fail("RaftOptions.SnapshotThreshold must be >= MaxEntriesPerAppend.");

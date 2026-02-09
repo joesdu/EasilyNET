@@ -18,7 +18,6 @@ internal sealed class SimScheduler
             action = item;
             return true;
         }
-
         action = default;
         return false;
     }

@@ -15,9 +15,10 @@ namespace EasilyNET.Raft.Transport.Grpc.Transport;
 /// </summary>
 public sealed class GrpcRaftTransport(IOptions<RaftGrpcOptions> options) : IRaftTransport
 {
-    private readonly RaftGrpcOptions _options = options.Value;
+    // ReSharper disable once CollectionNeverQueried.Local
     private readonly Dictionary<string, GrpcChannel> _channels = [];
     private readonly Dictionary<string, RaftRpc.RaftRpcClient> _clients = [];
+    private readonly RaftGrpcOptions _options = options.Value;
     private readonly Dictionary<string, SemaphoreSlim> _peerGates = [];
 
     /// <inheritdoc />
@@ -25,40 +26,33 @@ public sealed class GrpcRaftTransport(IOptions<RaftGrpcOptions> options) : IRaft
     {
         var client = GetClient(targetNodeId);
         var gate = GetPeerGate(targetNodeId);
-
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             if (message is AppendEntriesRequest appendRequest && _options.EnableAppendPipeline)
             {
-                _ = SendWithRetryAsync(
-                    execute: ct => client.AppendEntriesAsync(GrpcRaftMessageMapper.ToRpc(appendRequest), cancellationToken: ct).ResponseAsync,
-                    cancellationToken: cancellationToken);
+                _ = SendWithRetryAsync(ct => client.AppendEntriesAsync(GrpcRaftMessageMapper.ToRpc(appendRequest), cancellationToken: ct).ResponseAsync,
+                    cancellationToken);
                 return null;
             }
-
             switch (message)
             {
                 case RequestVoteRequest voteRequest:
-                    return await SendWithRetryAsync(
-                            execute: ct => client.RequestVoteAsync(GrpcRaftMessageMapper.ToRpc(voteRequest), cancellationToken: ct).ResponseAsync,
-                            map: GrpcRaftMessageMapper.FromRpc,
-                            cancellationToken: cancellationToken)
-                        .ConfigureAwait(false);
-
+                    return await SendWithRetryAsync(ct => client.RequestVoteAsync(GrpcRaftMessageMapper.ToRpc(voteRequest), cancellationToken: ct).ResponseAsync,
+                                   GrpcRaftMessageMapper.FromRpc,
+                                   cancellationToken)
+                               .ConfigureAwait(false);
                 case AppendEntriesRequest appendEntriesRequest:
-                    return await SendWithRetryAsync(
-                            execute: ct => client.AppendEntriesAsync(GrpcRaftMessageMapper.ToRpc(appendEntriesRequest), cancellationToken: ct).ResponseAsync,
-                            map: GrpcRaftMessageMapper.FromRpc,
-                            cancellationToken: cancellationToken)
-                        .ConfigureAwait(false);
-
+                    return await SendWithRetryAsync(ct => client.AppendEntriesAsync(GrpcRaftMessageMapper.ToRpc(appendEntriesRequest), cancellationToken: ct).ResponseAsync,
+                                   GrpcRaftMessageMapper.FromRpc,
+                                   cancellationToken)
+                               .ConfigureAwait(false);
                 case InstallSnapshotRequest snapshotRequest:
+                    // ReSharper disable once InvertIf
                     if (snapshotRequest.SnapshotData.Length > Math.Max(1024, _options.SnapshotChunkBytes))
                     {
-                        await SendWithRetryAsync(
-                                execute: ct => SendSnapshotInChunksAsync(client, snapshotRequest, ct),
-                                cancellationToken: cancellationToken)
+                        await SendWithRetryAsync(ct => SendSnapshotInChunksAsync(client, snapshotRequest, ct),
+                                cancellationToken)
                             .ConfigureAwait(false);
                         return new InstallSnapshotResponse
                         {
@@ -67,13 +61,10 @@ public sealed class GrpcRaftTransport(IOptions<RaftGrpcOptions> options) : IRaft
                             Success = true
                         };
                     }
-
-                    return await SendWithRetryAsync(
-                            execute: ct => client.InstallSnapshotAsync(GrpcRaftMessageMapper.ToRpc(snapshotRequest), cancellationToken: ct).ResponseAsync,
-                            map: GrpcRaftMessageMapper.FromRpc,
-                            cancellationToken: cancellationToken)
-                        .ConfigureAwait(false);
-
+                    return await SendWithRetryAsync(ct => client.InstallSnapshotAsync(GrpcRaftMessageMapper.ToRpc(snapshotRequest), cancellationToken: ct).ResponseAsync,
+                                   GrpcRaftMessageMapper.FromRpc,
+                                   cancellationToken)
+                               .ConfigureAwait(false);
                 default:
                     return null;
             }
@@ -90,12 +81,10 @@ public sealed class GrpcRaftTransport(IOptions<RaftGrpcOptions> options) : IRaft
         {
             return existing;
         }
-
         if (!_options.PeerEndpoints.TryGetValue(targetNodeId, out var endpoint))
         {
             throw new InvalidOperationException($"Raft peer endpoint for node '{targetNodeId}' is not configured.");
         }
-
         var channel = GrpcChannel.ForAddress(endpoint);
         var client = new RaftRpc.RaftRpcClient(channel);
         _channels[targetNodeId] = channel;
@@ -109,7 +98,6 @@ public sealed class GrpcRaftTransport(IOptions<RaftGrpcOptions> options) : IRaft
         {
             return gate;
         }
-
         gate = new(Math.Max(1, _options.MaxInFlightPerPeer), Math.Max(1, _options.MaxInFlightPerPeer));
         _peerGates[targetNodeId] = gate;
         return gate;
@@ -117,11 +105,10 @@ public sealed class GrpcRaftTransport(IOptions<RaftGrpcOptions> options) : IRaft
 
     private async Task SendWithRetryAsync(Func<CancellationToken, Task> execute, CancellationToken cancellationToken)
     {
-        for (var attempt = 0; ; attempt++)
+        for (var attempt = 0;; attempt++)
         {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromMilliseconds(Math.Max(1, _options.RequestTimeoutMs)));
-
             try
             {
                 await execute(timeoutCts.Token).ConfigureAwait(false);
@@ -137,11 +124,10 @@ public sealed class GrpcRaftTransport(IOptions<RaftGrpcOptions> options) : IRaft
 
     private async Task<RaftMessage> SendWithRetryAsync<TResponse>(Func<CancellationToken, Task<TResponse>> execute, Func<TResponse, RaftMessage> map, CancellationToken cancellationToken)
     {
-        for (var attempt = 0; ; attempt++)
+        for (var attempt = 0;; attempt++)
         {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromMilliseconds(Math.Max(1, _options.RequestTimeoutMs)));
-
             try
             {
                 var response = await execute(timeoutCts.Token).ConfigureAwait(false);
@@ -155,15 +141,11 @@ public sealed class GrpcRaftTransport(IOptions<RaftGrpcOptions> options) : IRaft
         }
     }
 
-    private static bool IsTransient(Exception ex)
-        => ex is TimeoutException
-           || ex is OperationCanceledException
-           || ex is RpcException { StatusCode: StatusCode.DeadlineExceeded or StatusCode.Unavailable or StatusCode.Internal };
+    private static bool IsTransient(Exception ex) => ex is TimeoutException or OperationCanceledException or RpcException { StatusCode: StatusCode.DeadlineExceeded or StatusCode.Unavailable or StatusCode.Internal };
 
     private async Task SendSnapshotInChunksAsync(RaftRpc.RaftRpcClient client, InstallSnapshotRequest request, CancellationToken cancellationToken)
     {
         using var call = client.InstallSnapshotStream(cancellationToken: cancellationToken);
-
         var chunkSize = Math.Max(1024, _options.SnapshotChunkBytes);
         var offset = 0;
         while (offset < request.SnapshotData.Length)
@@ -172,8 +154,7 @@ public sealed class GrpcRaftTransport(IOptions<RaftGrpcOptions> options) : IRaft
             var size = Math.Min(chunkSize, remaining);
             var chunk = new byte[size];
             Buffer.BlockCopy(request.SnapshotData, offset, chunk, 0, size);
-
-            await call.RequestStream.WriteAsync(new InstallSnapshotChunkRpcRequest
+            await call.RequestStream.WriteAsync(new()
             {
                 SourceNodeId = request.SourceNodeId,
                 Term = request.Term,
@@ -183,11 +164,9 @@ public sealed class GrpcRaftTransport(IOptions<RaftGrpcOptions> options) : IRaft
                 ChunkData = ByteString.CopyFrom(chunk),
                 Offset = offset,
                 IsLastChunk = offset + size >= request.SnapshotData.Length
-            }).ConfigureAwait(false);
-
+            }, cancellationToken).ConfigureAwait(false);
             offset += size;
         }
-
         await call.RequestStream.CompleteAsync().ConfigureAwait(false);
         _ = await call.ResponseAsync.ConfigureAwait(false);
     }

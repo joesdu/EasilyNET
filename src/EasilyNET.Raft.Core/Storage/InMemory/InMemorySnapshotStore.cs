@@ -8,15 +8,12 @@ namespace EasilyNET.Raft.Core.Storage.InMemory;
 /// </summary>
 public sealed class InMemorySnapshotStore : ISnapshotStore
 {
+    private byte[]? _data;
     private long _lastIncludedIndex;
     private long _lastIncludedTerm;
-    private byte[]? _data;
 
     /// <inheritdoc />
-    public Task<(long LastIncludedIndex, long LastIncludedTerm, byte[]? Data)> LoadAsync(CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult((_lastIncludedIndex, _lastIncludedTerm, _data));
-    }
+    public Task<(long LastIncludedIndex, long LastIncludedTerm, byte[]? Data)> LoadAsync(CancellationToken cancellationToken = default) => Task.FromResult((_lastIncludedIndex, _lastIncludedTerm, _data));
 
     /// <inheritdoc />
     public Task SaveAsync(long lastIncludedIndex, long lastIncludedTerm, byte[] data, CancellationToken cancellationToken = default)

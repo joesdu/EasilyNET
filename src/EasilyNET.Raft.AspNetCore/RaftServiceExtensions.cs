@@ -1,6 +1,6 @@
 using EasilyNET.Raft.AspNetCore.Health;
-using EasilyNET.Raft.AspNetCore.Options;
 using EasilyNET.Raft.AspNetCore.Observability;
+using EasilyNET.Raft.AspNetCore.Options;
 using EasilyNET.Raft.AspNetCore.Runtime;
 using EasilyNET.Raft.AspNetCore.Services;
 using EasilyNET.Raft.AspNetCore.Transport;
@@ -15,6 +15,8 @@ using EasilyNET.Raft.Transport.Grpc.Transport;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
+// ReSharper disable UnusedMember.Global
+
 #pragma warning disable IDE0130
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -22,6 +24,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 ///     <para xml:lang="en">Raft service registration extensions</para>
 ///     <para xml:lang="zh">Raft 服务注册扩展</para>
 /// </summary>
+// ReSharper disable once UnusedType.Global
 public static class RaftServiceExtensions
 {
     /// <summary>
@@ -38,30 +41,25 @@ public static class RaftServiceExtensions
                 .Configure(configureRaft)
                 .ValidateOnStart();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<RaftOptions>, RaftOptionsValidator>());
-
         services.AddOptions<RaftFileStorageOptions>();
         if (configureStorage is not null)
         {
             services.Configure(configureStorage);
         }
-
         services.AddOptions<RaftGrpcOptions>();
         if (configureGrpc is not null)
         {
             services.Configure(configureGrpc);
         }
-
         services.TryAddSingleton(sp => sp.GetRequiredService<IOptions<RaftFileStorageOptions>>().Value);
         services.TryAddSingleton<ILogStore, FileLogStore>();
         services.TryAddSingleton<IStateStore, FileStateStore>();
         services.TryAddSingleton<ISnapshotStore, FileSnapshotStore>();
-
         services.TryAddSingleton<IStateMachine, NoopStateMachine>();
         services.TryAddSingleton<RaftMetrics>();
         services.TryAddSingleton<IRaftTransport, GrpcRaftTransport>();
         services.TryAddSingleton<IRaftRuntime, RaftRuntime>();
         services.TryAddSingleton<IRaftRpcMessageHandler, RaftRpcMessageHandler>();
-
         services.AddHostedService<RaftHostedService>();
         services.AddGrpc();
         services.AddHealthChecks()

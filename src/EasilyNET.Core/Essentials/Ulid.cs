@@ -61,7 +61,7 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
     /// This field is a read-only instance of <see cref="Ulid" /> where all bytes are set to zero. It
     /// can be used as a default or uninitialized value for ULID comparisons or assignments.
     /// </remarks>
-    public static readonly Ulid Empty = new();
+    public static readonly Ulid Empty;
 
     // Core
 

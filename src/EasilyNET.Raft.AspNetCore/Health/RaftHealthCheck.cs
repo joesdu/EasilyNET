@@ -22,7 +22,6 @@ public sealed class RaftHealthCheck(IRaftRuntime runtime) : IHealthCheck
             ["commitIndex"] = state.CommitIndex,
             ["lastApplied"] = state.LastApplied
         };
-
         return Task.FromResult(HealthCheckResult.Healthy("raft runtime is running", data));
     }
 }

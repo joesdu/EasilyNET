@@ -9,18 +9,17 @@ namespace EasilyNET.Raft.AspNetCore.Observability;
 /// </summary>
 public sealed class RaftMetrics
 {
-    private readonly object _sync = new();
-    private readonly Meter _meter;
+    private readonly Histogram<double> _appendLatencyMs;
+    private readonly Counter<long> _commitAdvanceCount;
     private readonly Counter<long> _electionCount;
     private readonly Counter<long> _leaderChangeCount;
-    private readonly Histogram<double> _appendLatencyMs;
-    private readonly Histogram<double> _snapshotInstallMs;
-    private readonly Counter<long> _commitAdvanceCount;
     private readonly Dictionary<string, long> _replicationLagByPeer = [];
+    private readonly Histogram<double> _snapshotInstallMs;
+    private readonly Lock _sync = new();
+    private long _commitIndex;
+    private int _currentRole;
 
     private long _currentTerm;
-    private int _currentRole;
-    private long _commitIndex;
     private long _lastApplied;
 
     /// <summary>
@@ -28,17 +27,17 @@ public sealed class RaftMetrics
     /// </summary>
     public RaftMetrics()
     {
-        _meter = new Meter("EasilyNET.Raft", "1.0.0");
-        _electionCount = _meter.CreateCounter<long>("raft_election_count");
-        _leaderChangeCount = _meter.CreateCounter<long>("raft_leader_changes_total");
-        _appendLatencyMs = _meter.CreateHistogram<double>("raft_append_latency");
-        _snapshotInstallMs = _meter.CreateHistogram<double>("raft_snapshot_install_seconds");
-        _commitAdvanceCount = _meter.CreateCounter<long>("raft_commit_index_advance_total");
-        _ = _meter.CreateObservableGauge<long>("raft_term", () => _currentTerm);
-        _ = _meter.CreateObservableGauge<int>("raft_role", () => _currentRole);
-        _ = _meter.CreateObservableGauge<long>("raft_commit_index", () => _commitIndex);
-        _ = _meter.CreateObservableGauge<long>("raft_last_applied", () => _lastApplied);
-        _ = _meter.CreateObservableGauge<long>("raft_replication_lag", ObserveReplicationLag);
+        Meter meter = new("EasilyNET.Raft", "1.0.0");
+        _electionCount = meter.CreateCounter<long>("raft_election_count");
+        _leaderChangeCount = meter.CreateCounter<long>("raft_leader_changes_total");
+        _appendLatencyMs = meter.CreateHistogram<double>("raft_append_latency");
+        _snapshotInstallMs = meter.CreateHistogram<double>("raft_snapshot_install_seconds");
+        _commitAdvanceCount = meter.CreateCounter<long>("raft_commit_index_advance_total");
+        _ = meter.CreateObservableGauge("raft_term", () => _currentTerm);
+        _ = meter.CreateObservableGauge("raft_role", () => _currentRole);
+        _ = meter.CreateObservableGauge("raft_commit_index", () => _commitIndex);
+        _ = meter.CreateObservableGauge("raft_last_applied", () => _lastApplied);
+        _ = meter.CreateObservableGauge("raft_replication_lag", ObserveReplicationLag);
     }
 
     /// <summary>
@@ -80,7 +79,6 @@ public sealed class RaftMetrics
         _currentRole = (int)state.Role;
         _commitIndex = state.CommitIndex;
         _lastApplied = state.LastApplied;
-
         lock (_sync)
         {
             _replicationLagByPeer.Clear();

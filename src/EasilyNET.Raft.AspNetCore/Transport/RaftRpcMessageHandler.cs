@@ -11,14 +11,11 @@ namespace EasilyNET.Raft.AspNetCore.Transport;
 public sealed class RaftRpcMessageHandler(IRaftRuntime runtime) : IRaftRpcMessageHandler
 {
     /// <inheritdoc />
-    public Task<RequestVoteResponse> HandleAsync(RequestVoteRequest request, CancellationToken cancellationToken = default)
-        => runtime.HandleRpcAsync<RequestVoteResponse>(request, cancellationToken);
+    public Task<RequestVoteResponse> HandleAsync(RequestVoteRequest request, CancellationToken cancellationToken = default) => runtime.HandleRpcAsync<RequestVoteResponse>(request, cancellationToken);
 
     /// <inheritdoc />
-    public Task<AppendEntriesResponse> HandleAsync(AppendEntriesRequest request, CancellationToken cancellationToken = default)
-        => runtime.HandleRpcAsync<AppendEntriesResponse>(request, cancellationToken);
+    public Task<AppendEntriesResponse> HandleAsync(AppendEntriesRequest request, CancellationToken cancellationToken = default) => runtime.HandleRpcAsync<AppendEntriesResponse>(request, cancellationToken);
 
     /// <inheritdoc />
-    public Task<InstallSnapshotResponse> HandleAsync(InstallSnapshotRequest request, CancellationToken cancellationToken = default)
-        => runtime.HandleRpcAsync<InstallSnapshotResponse>(request, cancellationToken);
+    public Task<InstallSnapshotResponse> HandleAsync(InstallSnapshotRequest request, CancellationToken cancellationToken = default) => runtime.HandleRpcAsync<InstallSnapshotResponse>(request, cancellationToken);
 }
