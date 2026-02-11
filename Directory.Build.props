@@ -16,6 +16,7 @@
 	<PropertyGroup>
 		<EnablePreviewFeatures>true</EnablePreviewFeatures>
 		<Features>$(Features);runtime-async=on</Features>
+		<NoWarn>$(NoWarn);CA2252;SYSLIB5007;</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
