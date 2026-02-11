@@ -26,7 +26,7 @@
 		<PackageVersion Include="Spectre.Console.Json" Version="0.54.1-alpha.0.36" />
 		<!--microsoft asp.net core -->
 		<PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.2" />
-		<PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.2.0" />
+		<PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.3.0" />
 		<!--microsoft source generator-->
 		<!--<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.12.0-beta1.25218.8" />-->
 		<!--<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />-->
