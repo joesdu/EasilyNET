@@ -6,7 +6,6 @@
 		<PackageId>$(PackagePrefix).Mongo.AspNetCore</PackageId>
 		<PackageTags>MongoDB</PackageTags>
 		<RootNamespace>EasilyNET.Mongo.AspNetCore</RootNamespace>
-		<SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
 	</PropertyGroup>
 
 	<PropertyGroup>
