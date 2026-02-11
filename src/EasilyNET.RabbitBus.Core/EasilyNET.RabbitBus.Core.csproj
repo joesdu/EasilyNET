@@ -6,6 +6,7 @@
     <PackageId>$(PackagePrefix).RabbitBus.Core</PackageId>
     <PackageTags>RabbitMQ;EventBus</PackageTags>
     <RootNamespace>EasilyNET.RabbitBus.Core</RootNamespace>
+	  <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
   </PropertyGroup>
 
   <PropertyGroup>

@@ -6,6 +6,7 @@
 		<PackageId>$(PackagePrefix).WebCore</PackageId>
 		<PackageTags>Filter;Middleware;JsonConverters</PackageTags>
 		<RootNamespace>EasilyNET.WebCore</RootNamespace>
+		<SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
 	</PropertyGroup>
 
 	<PropertyGroup>
