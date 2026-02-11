@@ -6,7 +6,6 @@
 		<PackageId>$(PackagePrefix).Core</PackageId>
 		<PackageTags>Core</PackageTags>
 		<RootNamespace>EasilyNET.Core</RootNamespace>
-		<SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
 	</PropertyGroup>
 
 	<PropertyGroup>
