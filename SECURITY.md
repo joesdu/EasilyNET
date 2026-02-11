@@ -7,9 +7,10 @@ currently being supported with security updates.
 
 | Version           |     Supported      |
 | ----------------- | :----------------: |
+| .NET 11           | :white_check_mark: |
 | .NET 10           | :white_check_mark: |
-| .NET 9            | :white_check_mark: |
-| .NET 8            | :white_check_mark: |
+| .NET 9            |        :x:         |
+| .NET 8            |        :x:         |
 | .NET 7            |        :x:         |
 | .NET 6            |        :x:         |
 | .NET 5            |        :x:         |
