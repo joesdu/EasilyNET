@@ -6,7 +6,7 @@
     <img alt="Welcome EasilyNET" src="https://repobeats.axiom.co/api/embed/cd2c97db26ee6fe230353beefd5d532448054f0a.svg" />
 </div>
 
-**注意:** 本项目依赖最新版本的 .NET SDK（使用预览特性），并面向 `net8.0; net9.0; net10.0`。请确保已安装最新 SDK 后再编译运行。
+**注意:** 本项目依赖最新版本的 .NET SDK(使用预览特性),请确保已安装最新 SDK 后再编译运行.
 
 ## 快速开始
 
@@ -39,7 +39,7 @@ dotnet watch run --project sample/WebApi.Test.Unit/WebApi.Test.Unit.csproj
 <details>
 <summary style="font-size: 14px">English</summary>
 
-**Note:** This repo targets the latest .NET SDK (preview features) and multi-targets `net8.0; net9.0; net10.0`.
+**Note:** This repo targets the latest .NET SDK (preview features)
 
 ```bash
 git config core.ignorecase false
