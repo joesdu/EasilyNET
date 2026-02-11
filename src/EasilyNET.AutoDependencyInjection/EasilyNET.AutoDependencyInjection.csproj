@@ -6,7 +6,6 @@
 		<PackageId>$(PackagePrefix).AutoDependencyInjection</PackageId>
 		<PackageTags>AutoDependencyInjection</PackageTags>
 		<RootNamespace>EasilyNET.AutoDependencyInjection</RootNamespace>
-		<SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
 	</PropertyGroup>
 
 	<PropertyGroup>
