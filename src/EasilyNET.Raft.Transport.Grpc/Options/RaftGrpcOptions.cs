@@ -39,12 +39,6 @@ public sealed class RaftGrpcOptions
     public int MaxInFlightPerPeer { get; set; } = 8;
 
     /// <summary>
-    ///     <para xml:lang="en">Enable pipelined append RPC dispatch</para>
-    ///     <para xml:lang="zh">启用 AppendEntries pipeline 发送</para>
-    /// </summary>
-    public bool EnableAppendPipeline { get; set; } = true;
-
-    /// <summary>
     ///     <para xml:lang="en">Snapshot chunk bytes when using stream RPC</para>
     ///     <para xml:lang="zh">快照流式传输分块大小（字节）</para>
     /// </summary>

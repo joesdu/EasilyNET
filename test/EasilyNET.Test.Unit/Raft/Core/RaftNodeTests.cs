@@ -20,7 +20,7 @@ public sealed class RaftNodeTests
             Term = 0
         });
         Assert.AreEqual(RaftRole.Follower, result.State.Role);
-        Assert.IsTrue(result.Actions.OfType<SendMessageAction>().Any(a => a.Message is RequestVoteRequest { IsPreVote: true }));
+        Assert.Contains(static a => a.Message is RequestVoteRequest { IsPreVote: true }, result.Actions.OfType<SendMessageAction>());
     }
 
     [TestMethod]
@@ -37,7 +37,7 @@ public sealed class RaftNodeTests
             IsPreVote = false
         });
         Assert.AreEqual(RaftRole.Leader, result.State.Role);
-        Assert.IsTrue(result.Actions.OfType<SendMessageAction>().Any(a => a.Message is AppendEntriesRequest));
+        Assert.Contains(static a => a.Message is AppendEntriesRequest, result.Actions.OfType<SendMessageAction>());
     }
 
     [TestMethod]
@@ -147,37 +147,42 @@ public sealed class RaftNodeTests
         });
         var accept = proposal.Actions.OfType<SendMessageAction>().Select(x => x.Message).OfType<ConfigurationChangeResponse>().Single();
         Assert.IsTrue(accept.Success);
+        Assert.IsFalse(accept.Committed, "Configuration change should not be committed immediately after proposal");
+        Assert.IsNotNull(accept.PendingIndex, "PendingIndex should be set for tracking commit");
+        // After BecomeLeader: no-op at index 1. After ConfigurationChangeRequest: joint-config at index 2.
+        // Need MatchIndex = 2 from peers to commit the joint-config entry and advance to Finalizing.
         node.Handle(state, new AppendEntriesResponse
         {
             SourceNodeId = "n2",
             Term = 1,
             Success = true,
-            MatchIndex = 1
+            MatchIndex = 2
         });
         var afterJoint = node.Handle(state, new AppendEntriesResponse
         {
             SourceNodeId = "n3",
             Term = 1,
             Success = true,
-            MatchIndex = 1
+            MatchIndex = 2
         });
         Assert.AreEqual(ConfigurationTransitionPhase.Finalizing, state.ConfigurationTransitionPhase);
         Assert.IsTrue(afterJoint.Actions.OfType<PersistEntriesAction>().Any());
+        // Final-config entry is at index 3. Need MatchIndex = 3 from peers to commit it.
         node.Handle(state, new AppendEntriesResponse
         {
             SourceNodeId = "n2",
             Term = 1,
             Success = true,
-            MatchIndex = 2
+            MatchIndex = 3
         });
         node.Handle(state, new AppendEntriesResponse
         {
             SourceNodeId = "n3",
             Term = 1,
             Success = true,
-            MatchIndex = 2
+            MatchIndex = 3
         });
-        Assert.IsTrue(state.ClusterMembers.Contains("n4"));
+        Assert.Contains("n4", state.ClusterMembers);
         Assert.AreEqual(ConfigurationTransitionPhase.None, state.ConfigurationTransitionPhase);
         Assert.IsNull(state.PendingConfigurationChangeIndex);
     }
