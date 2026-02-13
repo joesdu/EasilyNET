@@ -17,10 +17,6 @@
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-		<PackageReference Include="Backport.System.Threading.Lock" />
-	</ItemGroup>
-
 	<ItemGroup>
 		<ProjectReference Include="..\EasilyNET.Raft.Core\EasilyNET.Raft.Core.csproj" />
 		<ProjectReference Include="..\EasilyNET.Raft.Storage.File\EasilyNET.Raft.Storage.File.csproj" />

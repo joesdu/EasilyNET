@@ -252,8 +252,20 @@ public sealed record ConfigurationChangeResponse : RaftMessage
     public required bool Success { get; init; }
 
     /// <summary>
+    ///     <para xml:lang="en">Whether the configuration change has been committed by the cluster</para>
+    ///     <para xml:lang="zh">配置变更是否已被集群提交</para>
+    /// </summary>
+    public bool Committed { get; init; }
+
+    /// <summary>
     ///     <para xml:lang="en">Failure reason</para>
     ///     <para xml:lang="zh">失败原因</para>
     /// </summary>
     public string? Reason { get; init; }
+
+    /// <summary>
+    ///     <para xml:lang="en">Log index of the pending configuration change entry (used for commit tracking)</para>
+    ///     <para xml:lang="zh">待提交配置变更日志索引（用于提交追踪）</para>
+    /// </summary>
+    public long? PendingIndex { get; init; }
 }

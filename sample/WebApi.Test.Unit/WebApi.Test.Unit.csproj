@@ -1,46 +1,46 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>net11.0</TargetFramework>
-    <AspNetCoreHostingModel>OutOfProcess</AspNetCoreHostingModel>
-    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <DockerfileContext>..\..</DockerfileContext>
-    <DockerComposeProjectPath>..\..\docker-compose.dcproj</DockerComposeProjectPath>
-    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
-    <!-- 启用 ReadyToRun 预编译以加速首次启动 -->
-    <PublishReadyToRun>true</PublishReadyToRun>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net11.0</TargetFramework>
+		<AspNetCoreHostingModel>OutOfProcess</AspNetCoreHostingModel>
+		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+		<DockerfileContext>..\..</DockerfileContext>
+		<DockerComposeProjectPath>..\..\docker-compose.dcproj</DockerComposeProjectPath>
+		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+		<!-- 启用 ReadyToRun 预编译以加速首次启动 -->
+		<PublishReadyToRun>true</PublishReadyToRun>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0-preview.1.26104.118" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0-preview.1.26104.118" />
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="11.0.0-preview.1.26104.118" />
-    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.3.0" />
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.15.0-beta.1" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Process" Version="1.15.0-beta.1" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.15.0-beta.1" />
-    <PackageReference Include="RabbitMQ.Client.OpenTelemetry" Version="1.0.0-rc.2" />
-    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
-    <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
-    <PackageReference Include="Serilog.Sinks.File" Version="8.0.0-dev-02318" />
-    <PackageReference Include="Serilog.Sinks.Map" Version="2.0.0" />
-    <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.1-nblumhardt-02317" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.2" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0-preview.1.26104.118" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0-preview.1.26104.118" />
+		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="11.0.0-preview.1.26104.118" />
+		<PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.3.0" />
+		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
+		<PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
+		<PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.15.0-beta.1" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.Process" Version="1.15.0-beta.1" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.0" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.15.0-beta.1" />
+		<PackageReference Include="RabbitMQ.Client.OpenTelemetry" Version="1.0.0-rc.2" />
+		<PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+		<PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
+		<PackageReference Include="Serilog.Sinks.File" Version="8.0.0-dev-02318" />
+		<PackageReference Include="Serilog.Sinks.Map" Version="2.0.0" />
+		<PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.1-nblumhardt-02317" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.2" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
-    <ProjectReference Include="..\..\src\EasilyNET.Mongo.ConsoleDebug\EasilyNET.Mongo.ConsoleDebug.csproj" />
-    <ProjectReference Include="..\..\src\EasilyNET.Mongo.AspNetCore\EasilyNET.Mongo.AspNetCore.csproj" />
-    <ProjectReference Include="..\..\src\EasilyNET.RabbitBus.AspNetCore\EasilyNET.RabbitBus.AspNetCore.csproj" />
-    <ProjectReference Include="..\..\src\EasilyNET.Security\EasilyNET.Security.csproj" />
-    <ProjectReference Include="..\..\src\EasilyNET.WebCore\EasilyNET.WebCore.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
+		<ProjectReference Include="..\..\src\EasilyNET.Mongo.ConsoleDebug\EasilyNET.Mongo.ConsoleDebug.csproj" />
+		<ProjectReference Include="..\..\src\EasilyNET.Mongo.AspNetCore\EasilyNET.Mongo.AspNetCore.csproj" />
+		<ProjectReference Include="..\..\src\EasilyNET.RabbitBus.AspNetCore\EasilyNET.RabbitBus.AspNetCore.csproj" />
+		<ProjectReference Include="..\..\src\EasilyNET.Security\EasilyNET.Security.csproj" />
+		<ProjectReference Include="..\..\src\EasilyNET.WebCore\EasilyNET.WebCore.csproj" />
+	</ItemGroup>
 
 </Project>

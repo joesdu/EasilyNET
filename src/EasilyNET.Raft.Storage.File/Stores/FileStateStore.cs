@@ -10,8 +10,6 @@ namespace EasilyNET.Raft.Storage.File.Stores;
 /// </summary>
 public sealed class FileStateStore(RaftFileStorageOptions options) : IStateStore
 {
-    private readonly FlushPolicyDecider _flushDecider = new(options);
-
     private readonly JsonSerializerOptions _serializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -43,10 +41,9 @@ public sealed class FileStateStore(RaftFileStorageOptions options) : IStateStore
         {
             await JsonSerializer.SerializeAsync(stream, payload, _serializerOptions, cancellationToken).ConfigureAwait(false);
             await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-            if (_flushDecider.ShouldFlushNow())
-            {
-                stream.Flush(true);
-            }
+            // Raft 要求 term/votedFor 必须在响应 RPC 前持久化到稳定存储，否则崩溃后可能重复投票导致脑裂
+            // Raft requires term/votedFor to be durable before responding to RPCs to prevent split-brain after crash
+            stream.Flush(true);
         }
         System.IO.File.Move(temp, StatePath, true);
     }

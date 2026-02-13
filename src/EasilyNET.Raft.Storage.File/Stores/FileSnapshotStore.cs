@@ -59,8 +59,14 @@ public sealed class FileSnapshotStore(RaftFileStorageOptions options) : ISnapsho
             await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
             stream.Flush(true);
         }
-        System.IO.File.Move(snapshotTemp, SnapshotPath, true);
+        // 先替换元数据，再替换数据文件。若崩溃发生在两次 Move 之间：
+        // 新元数据 + 旧数据 → 元数据指向更高索引但数据是旧的，恢复时 Leader 会通过 AppendEntries 补齐缺失条目，安全。
+        // 反过来（先数据后元数据）会导致旧元数据 + 新数据 → 元数据声称覆盖到旧索引但数据已是新快照，数据损坏。
+        // Write metadata first, then data. If crash between moves:
+        // new metadata + old data → safe (leader will send missing entries via AppendEntries)
+        // old metadata + new data → UNSAFE (metadata claims old index but data is new snapshot → corruption)
         System.IO.File.Move(metadataTemp, MetadataPath, true);
+        System.IO.File.Move(snapshotTemp, SnapshotPath, true);
     }
 
     private void EnsureDirectory() => Directory.CreateDirectory(options.BaseDirectory);

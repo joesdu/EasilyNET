@@ -30,12 +30,6 @@ public sealed class GrpcRaftTransport(IOptions<RaftGrpcOptions> options) : IRaft
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (message is AppendEntriesRequest appendRequest && _options.EnableAppendPipeline)
-            {
-                _ = SendWithRetryAsync(ct => client.AppendEntriesAsync(GrpcRaftMessageMapper.ToRpc(appendRequest), cancellationToken: ct).ResponseAsync,
-                    cancellationToken);
-                return null;
-            }
             switch (message)
             {
                 case RequestVoteRequest voteRequest:

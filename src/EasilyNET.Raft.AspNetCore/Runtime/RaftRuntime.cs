@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using EasilyNET.Raft.AspNetCore.Observability;
 using EasilyNET.Raft.AspNetCore.Services;
 using EasilyNET.Raft.Core.Abstractions;
@@ -24,6 +25,15 @@ public sealed class RaftRuntime : IRaftRuntime
     private readonly ILogStore _logStore;
     private readonly RaftMetrics _metrics;
     private readonly RaftNode _node;
+
+    /// <summary>
+    /// Tracks pending configuration change requests awaiting commit.
+    /// Keyed by the joint-configuration log entry index.
+    /// Completed when <see cref="ConfigurationTransitionPhase.None" /> is reached after commit,
+    /// or failed on leadership loss.
+    /// </summary>
+    private readonly ConcurrentDictionary<long, TaskCompletionSource<ConfigurationChangeResponse>> _pendingConfigChanges = [];
+
     private readonly RaftOptions _raftOptions;
     private readonly IRaftTransport _raftTransport;
     private readonly ISnapshotStore _snapshotStore;
@@ -77,6 +87,11 @@ public sealed class RaftRuntime : IRaftRuntime
             var readIndexResponse = await HandleReadIndexWithConfirmationAsync(readIndexRequest, cancellationToken).ConfigureAwait(false);
             return readIndexResponse as TResponse ?? throw new InvalidOperationException($"Expected RPC response type '{typeof(TResponse).Name}' but got '{readIndexResponse.GetType().Name}'.");
         }
+        if (message is ConfigurationChangeRequest)
+        {
+            var configResponse = await HandleConfigurationChangeWithCommitAsync(message, cancellationToken).ConfigureAwait(false);
+            return configResponse as TResponse ?? throw new InvalidOperationException($"Expected RPC response type '{typeof(TResponse).Name}' but got '{configResponse.GetType().Name}'.");
+        }
         var response = await ProcessAsync(message, true, cancellationToken).ConfigureAwait(false);
         return response as TResponse ?? throw new InvalidOperationException($"Expected RPC response type '{typeof(TResponse).Name}' but got '{response?.GetType().Name ?? "null"}'.");
     }
@@ -127,6 +142,7 @@ public sealed class RaftRuntime : IRaftRuntime
                 _metrics.RecordCommitAdvance();
             }
             _metrics.RecordState(_state);
+            CheckPendingConfigurationChanges();
             return response;
         }
         finally
@@ -138,6 +154,16 @@ public sealed class RaftRuntime : IRaftRuntime
     private async Task<ReadIndexResponse> HandleReadIndexWithConfirmationAsync(ReadIndexRequest request, CancellationToken cancellationToken)
     {
         await InitializeAsync(cancellationToken).ConfigureAwait(false);
+        // Phase 1: Under the gate — run pure engine, execute persistence/timer actions, capture state snapshot.
+        // Network I/O (heartbeat confirmation) is deferred to Phase 2 outside the gate so that
+        // other Raft messages (elections, AppendEntries, client commands) are not blocked.
+        ReadIndexResponse readResponse;
+        bool requiresConfirmation;
+        int quorum;
+        long responseTerm;
+        long readCommitIndex;
+        string nodeId;
+        List<SendMessageAction> heartbeatActions;
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -145,24 +171,27 @@ public sealed class RaftRuntime : IRaftRuntime
             var prevTerm = _state.CurrentTerm;
             var prevCommit = _state.CommitIndex;
             var result = _node.Handle(_state, request);
-            var readResponse = result.Actions
-                                     .OfType<SendMessageAction>()
-                                     .Where(x => x.TargetNodeId == request.SourceNodeId)
-                                     .Select(x => x.Message)
-                                     .OfType<ReadIndexResponse>()
-                                     .FirstOrDefault() ??
-                               new ReadIndexResponse
-                               {
-                                   SourceNodeId = _state.NodeId,
-                                   Term = _state.CurrentTerm,
-                                   Success = false,
-                                   ReadIndex = _state.CommitIndex,
-                                   LeaderId = _state.LeaderId
-                               };
-            var requiresConfirmation = _state.Role == RaftRole.Leader;
-            var readConfirmAcks = requiresConfirmation ? 1 : 0;
-            var quorum = _state.Quorum;
-            var responseTerm = _state.CurrentTerm;
+            readResponse = result.Actions
+                                 .OfType<SendMessageAction>()
+                                 .Where(x => x.TargetNodeId == request.SourceNodeId)
+                                 .Select(x => x.Message)
+                                 .OfType<ReadIndexResponse>()
+                                 .FirstOrDefault() ??
+                           new ReadIndexResponse
+                           {
+                               SourceNodeId = _state.NodeId,
+                               Term = _state.CurrentTerm,
+                               Success = false,
+                               ReadIndex = _state.CommitIndex,
+                               LeaderId = _state.LeaderId
+                           };
+            requiresConfirmation = _state.Role == RaftRole.Leader;
+            quorum = _state.Quorum;
+            responseTerm = _state.CurrentTerm;
+            readCommitIndex = _state.CommitIndex;
+            nodeId = _state.NodeId;
+            heartbeatActions = [];
+            // Execute persistence, timer, and apply actions under the gate; collect heartbeat sends for Phase 2.
             foreach (var action in result.Actions)
             {
                 switch (action)
@@ -189,81 +218,18 @@ public sealed class RaftRuntime : IRaftRuntime
                         _state.SnapshotLastIncludedTerm = snapshot.LastIncludedTerm;
                         break;
                     case SendMessageAction send when send.TargetNodeId == request.SourceNodeId:
+                        // ReadIndex response to caller — already captured above, skip.
                         break;
-                    case SendMessageAction(var targetNodeId, var outbound):
-                    {
-                        var begin = DateTime.UtcNow;
-                        if (outbound is AppendEntriesRequest appendRequest)
-                        {
-                            var lagThreshold = Math.Max(1, _raftOptions.SnapshotThreshold / 2);
-                            var isLaggingTooFar = appendRequest.PrevLogIndex <= Math.Max(0, _state.CommitIndex - lagThreshold);
-                            var missingOnLeaderLog = appendRequest.PrevLogIndex < _state.SnapshotLastIncludedIndex;
-                            if (isLaggingTooFar || missingOnLeaderLog)
-                            {
-                                var snapshot = await _snapshotStore.LoadAsync(cancellationToken).ConfigureAwait(false);
-                                if (snapshot.Data is { Length: > 0 })
-                                {
-                                    var snapshotReply = await _raftTransport.SendAsync(targetNodeId,
-                                                                                new InstallSnapshotRequest
-                                                                                {
-                                                                                    SourceNodeId = _state.NodeId,
-                                                                                    Term = _state.CurrentTerm,
-                                                                                    LeaderId = _state.NodeId,
-                                                                                    LastIncludedIndex = snapshot.LastIncludedIndex,
-                                                                                    LastIncludedTerm = snapshot.LastIncludedTerm,
-                                                                                    SnapshotData = snapshot.Data
-                                                                                },
-                                                                                cancellationToken)
-                                                                            .ConfigureAwait(false);
-                                    _metrics.RecordSnapshotInstallSeconds((DateTime.UtcNow - begin).TotalSeconds);
-                                    await ProcessReplyAsync(snapshotReply, false, request.SourceNodeId, cancellationToken, 0).ConfigureAwait(false);
-                                    break;
-                                }
-                            }
-                        }
-                        var reply = await _raftTransport.SendAsync(targetNodeId, outbound, cancellationToken).ConfigureAwait(false);
-                        if (outbound is AppendEntriesRequest)
-                        {
-                            _metrics.RecordAppendLatency((DateTime.UtcNow - begin).TotalMilliseconds);
-                        }
-                        if (requiresConfirmation &&
-                            outbound is AppendEntriesRequest &&
-                            reply is AppendEntriesResponse { Success: true } appendReply &&
-                            appendReply.Term == responseTerm)
-                        {
-                            readConfirmAcks++;
-                        }
-                        await ProcessReplyAsync(reply, false, request.SourceNodeId, cancellationToken, 0).ConfigureAwait(false);
+                    case SendMessageAction send:
+                        // Defer network I/O to Phase 2.
+                        heartbeatActions.Add(send);
                         break;
-                    }
                     case ResetElectionTimerAction:
                         _timerControl.ResetElectionTimer();
                         break;
                     case ResetHeartbeatTimerAction:
                         _timerControl.ResetHeartbeatTimer();
                         break;
-                    case SendSnapshotToPeerAction sendSnapshot:
-                    {
-                        var snapshot = await _snapshotStore.LoadAsync(cancellationToken).ConfigureAwait(false);
-                        if (snapshot.Data is { Length: > 0 })
-                        {
-                            var begin = DateTime.UtcNow;
-                            var snapshotReply = await _raftTransport.SendAsync(sendSnapshot.TargetNodeId,
-                                                    new InstallSnapshotRequest
-                                                    {
-                                                        SourceNodeId = _state.NodeId,
-                                                        Term = _state.CurrentTerm,
-                                                        LeaderId = _state.NodeId,
-                                                        LastIncludedIndex = snapshot.LastIncludedIndex,
-                                                        LastIncludedTerm = snapshot.LastIncludedTerm,
-                                                        SnapshotData = snapshot.Data
-                                                    },
-                                                    cancellationToken).ConfigureAwait(false);
-                            _metrics.RecordSnapshotInstallSeconds((DateTime.UtcNow - begin).TotalSeconds);
-                            await ProcessReplyAsync(snapshotReply, false, request.SourceNodeId, cancellationToken, 0).ConfigureAwait(false);
-                        }
-                        break;
-                    }
                 }
             }
             _metrics.RecordTransition(prevRole, prevTerm, _state);
@@ -272,18 +238,144 @@ public sealed class RaftRuntime : IRaftRuntime
                 _metrics.RecordCommitAdvance();
             }
             _metrics.RecordState(_state);
-            var confirmed = requiresConfirmation && readConfirmAcks >= quorum;
-            return readResponse with
-            {
-                Success = readResponse.Success && confirmed,
-                LeaderId = confirmed ? _state.NodeId : readResponse.LeaderId,
-                ReadIndex = _state.CommitIndex,
-                Term = _state.CurrentTerm
-            };
         }
         finally
         {
             _gate.Release();
+        }
+        // Phase 2: Outside the gate — send heartbeats in parallel to confirm Leader identity.
+        // If the leader stepped down between Phase 1 and Phase 2, heartbeat acks won't reach
+        // quorum and the read will correctly fail. The readIndex captured in Phase 1 was valid
+        // at that point-in-time, so no re-acquisition of the gate is needed for the response.
+        var readConfirmAcks = requiresConfirmation ? 1 : 0; // Leader counts itself
+        if (requiresConfirmation && heartbeatActions.Count > 0)
+        {
+            var replyTasks = heartbeatActions.Select(async send =>
+            {
+                try
+                {
+                    var begin = DateTime.UtcNow;
+                    var reply = await _raftTransport.SendAsync(send.TargetNodeId, send.Message, cancellationToken).ConfigureAwait(false);
+                    if (send.Message is AppendEntriesRequest)
+                    {
+                        _metrics.RecordAppendLatency((DateTime.UtcNow - begin).TotalMilliseconds);
+                    }
+                    return reply;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                    {
+                        _logger.LogDebug(ex, "ReadIndex heartbeat to {TargetNodeId} failed", send.TargetNodeId);
+                    }
+                    return null;
+                }
+            });
+            var replies = await Task.WhenAll(replyTasks).ConfigureAwait(false);
+            // Count quorum acks from the captured replies.
+            foreach (var appendReply in replies.OfType<AppendEntriesResponse>()
+                                               .Where(r => r.Success && r.Term == responseTerm))
+            {
+                readConfirmAcks++;
+            }
+            // Phase 3: Re-acquire gate to feed replies into the engine so matchIndex/nextIndex stay consistent.
+            await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                foreach (var reply in replies)
+                {
+                    await ProcessReplyAsync(reply, false, request.SourceNodeId, 0, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                _gate.Release();
+            }
+        }
+        var confirmed = requiresConfirmation && readConfirmAcks >= quorum;
+        return readResponse with
+        {
+            Success = readResponse.Success && confirmed,
+            LeaderId = confirmed ? nodeId : readResponse.LeaderId,
+            ReadIndex = readCommitIndex,
+            Term = responseTerm
+        };
+    }
+
+    /// <summary>
+    /// Handles a configuration change request and waits for the change to be committed
+    /// before returning success. If the request is rejected (validation failure), returns immediately.
+    /// If the leader steps down before commit, the pending request is failed.
+    /// </summary>
+    private async Task<ConfigurationChangeResponse> HandleConfigurationChangeWithCommitAsync(RaftMessage message, CancellationToken cancellationToken)
+    {
+        var response = await ProcessAsync(message, true, cancellationToken).ConfigureAwait(false);
+        if (response is not ConfigurationChangeResponse configResponse)
+        {
+            throw new InvalidOperationException($"Expected ConfigurationChangeResponse but got '{response?.GetType().Name ?? "null"}'.");
+        }
+        // Rejected requests (not leader, validation failure, etc.) return immediately.
+        if (!configResponse.Success || configResponse.Committed || !configResponse.PendingIndex.HasValue)
+        {
+            return configResponse;
+        }
+        // Accepted but not yet committed — register a TCS and wait for commit or leadership loss.
+        var tcs = new TaskCompletionSource<ConfigurationChangeResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _pendingConfigChanges[configResponse.PendingIndex.Value] = tcs;
+        // Register cancellation to unblock the caller if the token fires.
+        await using var ctr = cancellationToken.Register(() =>
+        {
+            if (_pendingConfigChanges.TryRemove(configResponse.PendingIndex.Value, out var removed))
+            {
+                removed.TrySetCanceled(cancellationToken);
+            }
+        }).ConfigureAwait(false);
+        return await tcs.Task.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Called under the gate after state transitions. If the configuration transition completed
+    /// (phase returned to None), completes the pending TCS with success. If leadership was lost,
+    /// fails all pending config change requests.
+    /// </summary>
+    private void CheckPendingConfigurationChanges()
+    {
+        // Leadership lost — fail all pending requests.
+        if (_state.Role != RaftRole.Leader && !_pendingConfigChanges.IsEmpty)
+        {
+            foreach (var (index, tcs) in _pendingConfigChanges)
+            {
+                if (_pendingConfigChanges.TryRemove(index, out _))
+                {
+                    tcs.TrySetResult(new()
+                    {
+                        SourceNodeId = _state.NodeId,
+                        Term = _state.CurrentTerm,
+                        Success = false,
+                        Committed = false,
+                        Reason = "leadership lost before configuration change was committed"
+                    });
+                }
+            }
+            return;
+        }
+        // Configuration transition completed — complete the pending TCS.
+        if (_state.ConfigurationTransitionPhase == ConfigurationTransitionPhase.None && !_pendingConfigChanges.IsEmpty)
+        {
+            foreach (var (index, tcs) in _pendingConfigChanges)
+            {
+                if (_pendingConfigChanges.TryRemove(index, out _))
+                {
+                    tcs.TrySetResult(new()
+                    {
+                        SourceNodeId = _state.NodeId,
+                        Term = _state.CurrentTerm,
+                        Success = true,
+                        Committed = true,
+                        Reason = null
+                    });
+                }
+            }
         }
     }
 
@@ -301,32 +393,30 @@ public sealed class RaftRuntime : IRaftRuntime
             await _stateMachine.RestoreSnapshotAsync(data, cancellationToken).ConfigureAwait(false);
             _state.SnapshotLastIncludedIndex = lastIncludedIndex;
             _state.SnapshotLastIncludedTerm = lastIncludedTerm;
+            // 快照覆盖的条目已提交，但快照之后的日志条目不一定已提交
+            // 不能在恢复时重放未提交条目，否则违反 State Machine Safety
+            // Snapshot boundary is committed; entries beyond snapshot may NOT have been committed before crash.
+            // Do NOT replay them — leader will re-commit after election via AppendEntries.
             _state.CommitIndex = lastIncludedIndex;
             _state.LastApplied = lastIncludedIndex;
-            // Replay log entries beyond the snapshot to the state machine
-            var entriesToReplay = _state.Log
-                                        .Where(x => x.Index > lastIncludedIndex)
-                                        .OrderBy(x => x.Index)
-                                        .ToArray();
-            if (entriesToReplay.Length > 0)
-            {
-                await _stateMachine.ApplyAsync(entriesToReplay, cancellationToken).ConfigureAwait(false);
-                _state.CommitIndex = Math.Max(_state.CommitIndex, entriesToReplay[^1].Index);
-                _state.LastApplied = entriesToReplay[^1].Index;
-            }
         }
-        else if (_state.Log.Count > 0)
+        else
         {
-            // No snapshot — replay all log entries
-            await _stateMachine.ApplyAsync(_state.Log, cancellationToken).ConfigureAwait(false);
-            _state.CommitIndex = _state.Log[^1].Index;
-            _state.LastApplied = _state.Log[^1].Index;
+            // 无快照 — 不重放任何日志条目，因为持久化的条目不一定已提交
+            // commitIndex 从 0 开始，Leader 选举后会通过 AppendEntries 推进
+            // No snapshot — do NOT replay log entries. Persisted ≠ committed.
+            // commitIndex starts at 0; leader will advance it after election.
+            _state.CommitIndex = 0;
+            _state.LastApplied = 0;
         }
-        _logger.LogInformation("Raft runtime recovered. nodeId={nodeId}, term={term}, logLastIndex={lastIndex}, commitIndex={commitIndex}",
-            _state.NodeId,
-            _state.CurrentTerm,
-            _state.LastLogIndex,
-            _state.CommitIndex);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Raft runtime recovered. nodeId={nodeId}, term={term}, logLastIndex={lastIndex}, commitIndex={commitIndex}",
+                _state.NodeId,
+                _state.CurrentTerm,
+                _state.LastLogIndex,
+                _state.CommitIndex);
+        }
         _metrics.RecordState(_state);
     }
 
@@ -383,8 +473,8 @@ public sealed class RaftRuntime : IRaftRuntime
                         var missingOnLeaderLog = appendRequest.PrevLogIndex < _state.SnapshotLastIncludedIndex;
                         if (isLaggingTooFar || missingOnLeaderLog)
                         {
-                            var snapshot = await _snapshotStore.LoadAsync(cancellationToken).ConfigureAwait(false);
-                            if (snapshot.Data is { Length: > 0 })
+                            var (LastIncludedIndex, LastIncludedTerm, Data) = await _snapshotStore.LoadAsync(cancellationToken).ConfigureAwait(false);
+                            if (Data is { Length: > 0 })
                             {
                                 var snapshotReply = await _raftTransport.SendAsync(send.TargetNodeId,
                                                         new InstallSnapshotRequest
@@ -392,13 +482,13 @@ public sealed class RaftRuntime : IRaftRuntime
                                                             SourceNodeId = _state.NodeId,
                                                             Term = _state.CurrentTerm,
                                                             LeaderId = _state.NodeId,
-                                                            LastIncludedIndex = snapshot.LastIncludedIndex,
-                                                            LastIncludedTerm = snapshot.LastIncludedTerm,
-                                                            SnapshotData = snapshot.Data
+                                                            LastIncludedIndex = LastIncludedIndex,
+                                                            LastIncludedTerm = LastIncludedTerm,
+                                                            SnapshotData = Data
                                                         },
                                                         cancellationToken).ConfigureAwait(false);
                                 _metrics.RecordSnapshotInstallSeconds((DateTime.UtcNow - begin).TotalSeconds);
-                                await ProcessReplyAsync(snapshotReply, captureRpcResponse, sourceNodeId, cancellationToken, depth).ConfigureAwait(false);
+                                await ProcessReplyAsync(snapshotReply, captureRpcResponse, sourceNodeId, depth, cancellationToken).ConfigureAwait(false);
                                 break;
                             }
                         }
@@ -408,7 +498,7 @@ public sealed class RaftRuntime : IRaftRuntime
                     {
                         _metrics.RecordAppendLatency((DateTime.UtcNow - begin).TotalMilliseconds);
                     }
-                    await ProcessReplyAsync(reply, captureRpcResponse, sourceNodeId, cancellationToken, depth).ConfigureAwait(false);
+                    await ProcessReplyAsync(reply, captureRpcResponse, sourceNodeId, depth, cancellationToken).ConfigureAwait(false);
                     break;
                 case ResetElectionTimerAction:
                     _timerControl.ResetElectionTimer();
@@ -418,8 +508,8 @@ public sealed class RaftRuntime : IRaftRuntime
                     break;
                 case SendSnapshotToPeerAction sendSnapshot:
                 {
-                    var snapshot = await _snapshotStore.LoadAsync(cancellationToken).ConfigureAwait(false);
-                    if (snapshot.Data is { Length: > 0 })
+                    var (LastIncludedIndex, LastIncludedTerm, Data) = await _snapshotStore.LoadAsync(cancellationToken).ConfigureAwait(false);
+                    if (Data is { Length: > 0 })
                     {
                         var begin2 = DateTime.UtcNow;
                         var snapshotReply = await _raftTransport.SendAsync(sendSnapshot.TargetNodeId,
@@ -428,13 +518,13 @@ public sealed class RaftRuntime : IRaftRuntime
                                                     SourceNodeId = _state.NodeId,
                                                     Term = _state.CurrentTerm,
                                                     LeaderId = _state.NodeId,
-                                                    LastIncludedIndex = snapshot.LastIncludedIndex,
-                                                    LastIncludedTerm = snapshot.LastIncludedTerm,
-                                                    SnapshotData = snapshot.Data
+                                                    LastIncludedIndex = LastIncludedIndex,
+                                                    LastIncludedTerm = LastIncludedTerm,
+                                                    SnapshotData = Data
                                                 },
                                                 cancellationToken).ConfigureAwait(false);
                         _metrics.RecordSnapshotInstallSeconds((DateTime.UtcNow - begin2).TotalSeconds);
-                        await ProcessReplyAsync(snapshotReply, captureRpcResponse, sourceNodeId, cancellationToken, depth).ConfigureAwait(false);
+                        await ProcessReplyAsync(snapshotReply, captureRpcResponse, sourceNodeId, depth, cancellationToken).ConfigureAwait(false);
                     }
                     break;
                 }
@@ -461,7 +551,7 @@ public sealed class RaftRuntime : IRaftRuntime
         _state.Log.RemoveAll(x => x.Index <= lastIncludedIndex);
     }
 
-    private async Task ProcessReplyAsync(RaftMessage? reply, bool captureRpcResponse, string sourceNodeId, CancellationToken cancellationToken, int depth)
+    private async Task ProcessReplyAsync(RaftMessage? reply, bool captureRpcResponse, string sourceNodeId, int depth, CancellationToken cancellationToken)
     {
         if (reply is null || depth >= MaxReplyDepth)
         {

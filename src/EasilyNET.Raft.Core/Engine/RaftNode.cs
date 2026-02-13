@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Text;
 using EasilyNET.Raft.Core.Actions;
 using EasilyNET.Raft.Core.Messages;
@@ -19,7 +20,9 @@ public sealed class RaftNode(RaftOptions options)
     public RaftResult Handle(RaftNodeState state, RaftMessage message)
     {
         var actions = new List<RaftAction>();
-        if (message.Term > state.CurrentTerm)
+        // PreVote 请求携带 currentTerm+1 但不应导致接收方 StepDown 和 term 膨胀，否则违背 PreVote 的设计初衷
+        // PreVote requests carry term+1 but must NOT cause receiver to step down — that defeats PreVote's purpose
+        if (message is not RequestVoteRequest { IsPreVote: true } && message.Term > state.CurrentTerm)
         {
             StepDown(state, message.Term, null, actions);
         }
@@ -259,11 +262,13 @@ public sealed class RaftNode(RaftOptions options)
                 SourceNodeId = state.NodeId,
                 Term = state.CurrentTerm,
                 Success = true,
+                Committed = false,
+                PendingIndex = entry.Index,
                 Reason = null
             }));
     }
 
-    private void HandleVoteRequest(RaftNodeState state, RequestVoteRequest request, List<RaftAction> actions)
+    private static void HandleVoteRequest(RaftNodeState state, RequestVoteRequest request, List<RaftAction> actions)
     {
         var responseTerm = state.CurrentTerm;
         var voteGranted = false;
@@ -333,7 +338,7 @@ public sealed class RaftNode(RaftOptions options)
         }
     }
 
-    private void HandleAppendEntriesRequest(RaftNodeState state, AppendEntriesRequest request, List<RaftAction> actions)
+    private static void HandleAppendEntriesRequest(RaftNodeState state, AppendEntriesRequest request, List<RaftAction> actions)
     {
         if (request.Term < state.CurrentTerm)
         {
@@ -370,20 +375,25 @@ public sealed class RaftNode(RaftOptions options)
         long? truncateFrom = null;
         foreach (var incoming in request.Entries)
         {
-            var existing = state.Log.FirstOrDefault(x => x.Index == incoming.Index);
+            var existing = FindLogEntry(state.Log, incoming.Index);
             if (existing is not null && existing.Term != incoming.Term)
             {
                 truncateFrom ??= incoming.Index;
-                state.Log.RemoveAll(x => x.Index >= incoming.Index);
+                var removePos = FindLogPosition(state.Log, incoming.Index);
+                if (removePos >= 0)
+                {
+                    state.Log.RemoveRange(removePos, state.Log.Count - removePos);
+                }
                 state.Log.Add(incoming);
                 persisted.Add(incoming);
                 continue;
             }
-            if (existing is null)
+            if (existing is not null)
             {
-                state.Log.Add(incoming);
-                persisted.Add(incoming);
+                continue;
             }
+            state.Log.Add(incoming);
+            persisted.Add(incoming);
         }
         if (truncateFrom.HasValue)
         {
@@ -426,8 +436,21 @@ public sealed class RaftNode(RaftOptions options)
         var fallback = Math.Max(1, currentNext - 1);
         if (response is { ConflictTerm: not null, ConflictIndex: not null })
         {
-            var indexWithTerm = state.Log.LastOrDefault(x => x.Term == response.ConflictTerm.Value)?.Index;
-            fallback = indexWithTerm ?? response.ConflictIndex.Value;
+            // 在 Leader 日志中反向查找匹配冲突 term 的最后一条日志
+            // Reverse search leader's log for last entry matching conflict term
+            long? indexWithTerm = null;
+            for (var i = state.Log.Count - 1; i >= 0; i--)
+            {
+                if (state.Log[i].Term != response.ConflictTerm.Value)
+                {
+                    continue;
+                }
+                indexWithTerm = state.Log[i].Index;
+                break;
+            }
+            // 找到匹配 term 的最后一条日志时，nextIndex 应设为该索引 +1（即该 term 之后的第一条）
+            // When matching term found, nextIndex should be the NEXT index after the last entry with that term
+            fallback = indexWithTerm.HasValue ? indexWithTerm.Value + 1 : response.ConflictIndex.Value;
         }
         state.NextIndex[response.SourceNodeId] = fallback;
         SendAppendEntriesTo(state, response.SourceNodeId, actions);
@@ -450,7 +473,19 @@ public sealed class RaftNode(RaftOptions options)
         state.LeaderId = request.LeaderId;
         actions.Add(new ResetElectionTimerAction());
         actions.Add(new TakeSnapshotAction(request.LastIncludedIndex, request.LastIncludedTerm, request.SnapshotData));
-        state.Log.RemoveAll(x => x.Index <= request.LastIncludedIndex);
+        var cutPos = FindLogPosition(state.Log, request.LastIncludedIndex);
+        if (cutPos >= 0)
+        {
+            state.Log.RemoveRange(0, cutPos + 1);
+        }
+        else
+        {
+            var insertionPoint = ~cutPos;
+            if (insertionPoint > 0)
+            {
+                state.Log.RemoveRange(0, insertionPoint);
+            }
+        }
         state.SnapshotLastIncludedIndex = request.LastIncludedIndex;
         state.SnapshotLastIncludedTerm = request.LastIncludedTerm;
         state.CommitIndex = Math.Max(state.CommitIndex, request.LastIncludedIndex);
@@ -464,7 +499,7 @@ public sealed class RaftNode(RaftOptions options)
             }));
     }
 
-    private void StartElection(RaftNodeState state, List<RaftAction> actions)
+    private static void StartElection(RaftNodeState state, List<RaftAction> actions)
     {
         state.Role = RaftRole.Candidate;
         state.CurrentTerm += 1;
@@ -501,6 +536,12 @@ public sealed class RaftNode(RaftOptions options)
             state.NextIndex[peer] = state.LastLogIndex + 1;
             state.MatchIndex[peer] = peer == state.NodeId ? state.LastLogIndex : 0;
         }
+        // Raft §5.4.2: 新 Leader 必须追加一条当前任期的 no-op 条目，以间接提交前任期的未提交日志
+        // New leader must append a no-op entry in its current term to commit entries from previous terms
+        var noopEntry = new RaftLogEntry(state.LastLogIndex + 1, state.CurrentTerm, []);
+        state.Log.Add(noopEntry);
+        state.MatchIndex[state.NodeId] = noopEntry.Index;
+        actions.Add(new PersistEntriesAction([noopEntry]));
         BroadcastAppendEntries(state, actions);
         actions.Add(new ResetHeartbeatTimerAction());
     }
@@ -524,7 +565,7 @@ public sealed class RaftNode(RaftOptions options)
         }
         else
         {
-            var prevEntry = state.Log.FirstOrDefault(x => x.Index == prevIndex);
+            var prevEntry = FindLogEntry(state.Log, prevIndex);
             if (prevEntry is not null)
             {
                 prevTerm = prevEntry.Term;
@@ -540,8 +581,13 @@ public sealed class RaftNode(RaftOptions options)
                 return;
             }
         }
+        var startPos = FindLogPosition(state.Log, nextIndex);
+        if (startPos < 0)
+        {
+            startPos = ~startPos;
+        }
         var entries = state.Log
-                           .Where(x => x.Index >= nextIndex)
+                           .Skip(startPos)
                            .Take(options.MaxEntriesPerAppend)
                            .ToArray();
         actions.Add(new SendMessageAction(peer,
@@ -561,19 +607,20 @@ public sealed class RaftNode(RaftOptions options)
     {
         for (var candidateIndex = state.LastLogIndex; candidateIndex > state.CommitIndex; candidateIndex--)
         {
-            var entry = state.Log.FirstOrDefault(x => x.Index == candidateIndex);
+            var entry = FindLogEntry(state.Log, candidateIndex);
             if (entry is null || entry.Term != state.CurrentTerm)
             {
                 continue;
             }
-            if (HasCommitQuorum(state, candidateIndex))
+            if (!HasCommitQuorum(state, candidateIndex))
             {
-                var previous = state.CommitIndex;
-                state.CommitIndex = candidateIndex;
-                EnqueueApplyActions(state, previous, actions);
-                AdvanceConfigurationTransitionAfterCommit(state, actions);
-                break;
+                continue;
             }
+            var previous = state.CommitIndex;
+            state.CommitIndex = candidateIndex;
+            EnqueueApplyActions(state, previous, actions);
+            AdvanceConfigurationTransitionAfterCommit(state, actions);
+            break;
         }
     }
 
@@ -637,8 +684,8 @@ public sealed class RaftNode(RaftOptions options)
             var replicatedCount = state.MatchIndex.Values.Count(x => x >= candidateIndex);
             return replicatedCount >= state.Quorum;
         }
-        var oldMajority = HasMajority(state, state.OldConfigurationMembers, candidateIndex);
-        var newMajority = HasMajority(state, state.NewConfigurationMembers, candidateIndex);
+        var oldMajority = HasMajority(state, state.OldConfigurationMembers.AsReadOnly(), candidateIndex);
+        var newMajority = HasMajority(state, state.NewConfigurationMembers.AsReadOnly(), candidateIndex);
         return oldMajority && newMajority;
     }
 
@@ -650,12 +697,12 @@ public sealed class RaftNode(RaftOptions options)
         }
         var oldThreshold = (state.OldConfigurationMembers.Count / 2) + 1;
         var newThreshold = (state.NewConfigurationMembers.Count / 2) + 1;
-        var oldVotes = state.OldConfigurationMembers.Count(member => votes.Contains(member));
-        var newVotes = state.NewConfigurationMembers.Count(member => votes.Contains(member));
+        var oldVotes = state.OldConfigurationMembers.Count(votes.Contains);
+        var newVotes = state.NewConfigurationMembers.Count(votes.Contains);
         return oldVotes >= oldThreshold && newVotes >= newThreshold;
     }
 
-    private static bool HasMajority(RaftNodeState state, IReadOnlyCollection<string> members, long candidateIndex)
+    private static bool HasMajority(RaftNodeState state, ReadOnlyCollection<string> members, long candidateIndex)
     {
         if (members.Count == 0)
         {
@@ -666,23 +713,15 @@ public sealed class RaftNode(RaftOptions options)
         return replicated >= threshold;
     }
 
-    private static IEnumerable<string> GetReplicationMembers(RaftNodeState state)
-    {
-        if (state.ConfigurationTransitionPhase == ConfigurationTransitionPhase.None)
-        {
-            return state.ClusterMembers;
-        }
-        return state.OldConfigurationMembers.Concat(state.NewConfigurationMembers).Distinct();
-    }
+    private static IEnumerable<string> GetReplicationMembers(RaftNodeState state) =>
+        state.ConfigurationTransitionPhase == ConfigurationTransitionPhase.None
+            ? state.ClusterMembers
+            : state.OldConfigurationMembers.Concat(state.NewConfigurationMembers).Distinct();
 
-    private static bool IsCandidateUpToDate(RaftNodeState state, long candidateLastLogTerm, long candidateLastLogIndex)
-    {
-        if (candidateLastLogTerm != state.LastLogTerm)
-        {
-            return candidateLastLogTerm > state.LastLogTerm;
-        }
-        return candidateLastLogIndex >= state.LastLogIndex;
-    }
+    private static bool IsCandidateUpToDate(RaftNodeState state, long candidateLastLogTerm, long candidateLastLogIndex) =>
+        candidateLastLogTerm != state.LastLogTerm
+            ? candidateLastLogTerm > state.LastLogTerm
+            : candidateLastLogIndex >= state.LastLogIndex;
 
     private static void StepDown(RaftNodeState state, long newTerm, string? leaderId, List<RaftAction> actions)
     {
@@ -702,11 +741,17 @@ public sealed class RaftNode(RaftOptions options)
         {
             return;
         }
-        var entries = state.Log
-                           .Where(x => x.Index > fromExclusive && x.Index <= state.CommitIndex)
-                           .OrderBy(x => x.Index)
-                           .ToArray();
-        if (entries.Length == 0)
+        var startPos = FindLogPosition(state.Log, fromExclusive + 1);
+        if (startPos < 0)
+        {
+            startPos = ~startPos;
+        }
+        var entries = new List<RaftLogEntry>();
+        for (var i = startPos; i < state.Log.Count && state.Log[i].Index <= state.CommitIndex; i++)
+        {
+            entries.Add(state.Log[i]);
+        }
+        if (entries.Count == 0)
         {
             return;
         }
@@ -733,7 +778,7 @@ public sealed class RaftNode(RaftOptions options)
             conflictIndex = state.SnapshotLastIncludedIndex + 1;
             return false;
         }
-        var entry = state.Log.FirstOrDefault(x => x.Index == prevLogIndex);
+        var entry = FindLogEntry(state.Log, prevLogIndex);
         if (entry is null)
         {
             conflictIndex = state.LastLogIndex + 1;
@@ -744,7 +789,58 @@ public sealed class RaftNode(RaftOptions options)
             return true;
         }
         conflictTerm = entry.Term;
-        conflictIndex = state.Log.Where(x => x.Term == entry.Term).Min(x => x.Index);
+        // 查找冲突 term 的第一条日志索引（用于快速回退）
+        // Find first index of conflict term for fast rollback
+        var pos = FindLogPosition(state.Log, entry.Index);
+        if (pos >= 0)
+        {
+            while (pos > 0 && state.Log[pos - 1].Term == entry.Term)
+            {
+                pos--;
+            }
+            conflictIndex = state.Log[pos].Index;
+        }
+        else
+        {
+            conflictIndex = entry.Index;
+        }
         return false;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Binary search for log entry by index. O(log n) instead of O(n).</para>
+    ///     <para xml:lang="zh">按索引二分查找日志条目，O(log n) 替代 O(n)。</para>
+    /// </summary>
+    private static RaftLogEntry? FindLogEntry(List<RaftLogEntry> log, long index)
+    {
+        var pos = FindLogPosition(log, index);
+        return pos >= 0 ? log[pos] : null;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Binary search returning position in log list. Negative = bitwise complement of insertion point.</para>
+    ///     <para xml:lang="zh">二分查找返回日志列表中的位置。负数 = 插入点的按位取反。</para>
+    /// </summary>
+    private static int FindLogPosition(List<RaftLogEntry> log, long index)
+    {
+        var lo = 0;
+        var hi = log.Count - 1;
+        while (lo <= hi)
+        {
+            var mid = lo + ((hi - lo) >> 1);
+            var cmp = log[mid].Index.CompareTo(index);
+            switch (cmp)
+            {
+                case 0:
+                    return mid;
+                case < 0:
+                    lo = mid + 1;
+                    break;
+                default:
+                    hi = mid - 1;
+                    break;
+            }
+        }
+        return ~lo;
     }
 }
