@@ -137,20 +137,20 @@ internal static class IndexDefinitionFactory
         {
             keys.Add(field, "text");
         }
-        var firstTextAttr = allIndexFields.FirstOrDefault(x => x.Attr.Type == EIndexType.Text).Attr;
+        var firstTextAttr = allIndexFields.FirstOrDefault(x => x.Attr.Type == EIndexType.Text).Attr ?? throw new InvalidOperationException($"文本索引字段已收集但未找到对应的文本索引特性，集合: {collectionName}");
         var indexDef = new IndexDefinition
         {
             Name = textIndexName,
             Keys = keys,
             Unique = false, // 文本索引不支持唯一性
-            Sparse = ResolveSparse(firstTextAttr?.Sparse ?? false, isTimeSeries),
+            Sparse = ResolveSparse(firstTextAttr.Sparse, isTimeSeries),
             IndexType = EIndexType.Text,
             OriginalPath = string.Join(",", textFields)
         };
-        ParseCollation(indexDef, firstTextAttr?.Collation, textIndexName);
+        ParseCollation(indexDef, firstTextAttr.Collation, textIndexName);
         // 解析文本索引选项
         // ReSharper disable once InvertIf
-        if (!string.IsNullOrWhiteSpace(firstTextAttr?.TextIndexOptions))
+        if (!string.IsNullOrWhiteSpace(firstTextAttr.TextIndexOptions))
         {
             try
             {

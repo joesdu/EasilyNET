@@ -41,6 +41,7 @@ internal static class IndexFieldCollector
                 {
                     case EIndexType.Text:
                         textFields.Add(path);
+                        fields.Add((path, attr, type));
                         break;
                     case EIndexType.Wildcard:
                     {
