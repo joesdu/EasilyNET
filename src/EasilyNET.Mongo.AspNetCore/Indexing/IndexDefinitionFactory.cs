@@ -100,10 +100,6 @@ internal static class IndexDefinitionFactory
     private static IndexDefinition CreateWildcardIndex(string path, MongoIndexAttribute attr, string collectionName, bool isTimeSeries = false)
     {
         var wildcardPath = path.EndsWith("$**") ? path : $"{path}.$**";
-        if (!wildcardPath.Contains("$**"))
-        {
-            throw new InvalidOperationException($"通配符索引路径 '{path}' 格式无效，应包含 '$**' 通配符。");
-        }
         var indexName = attr.Name ?? GenerateIndexName(collectionName, wildcardPath, "Wildcard");
         if (indexName.Length > 127)
         {

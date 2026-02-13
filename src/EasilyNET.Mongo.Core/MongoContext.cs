@@ -11,6 +11,7 @@ namespace EasilyNET.Mongo.Core;
 public class MongoContext : IDisposable, IAsyncDisposable
 {
     private bool _disposed;
+    private bool _initialized;
 
     /// <summary>
     ///     <see cref="IMongoClient" />
@@ -138,8 +139,13 @@ public class MongoContext : IDisposable, IAsyncDisposable
     /// </param>
     public void Initialize(MongoClientSettings settings, string dbName)
     {
+        if (_initialized)
+        {
+            throw new InvalidOperationException("MongoContext 已经初始化，不允许重复调用 Initialize。");
+        }
         Client = new MongoClient(settings);
         Database = Client.GetDatabase(dbName);
+        _initialized = true;
     }
 
     /// <summary>

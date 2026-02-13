@@ -4,6 +4,7 @@ using EasilyNET.Mongo.AspNetCore.Helpers;
 using EasilyNET.Mongo.AspNetCore.Options;
 using EasilyNET.Mongo.Core;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
@@ -145,8 +146,11 @@ public static class MongoServiceExtensions
                 {
                     context = ActivatorUtilities.CreateInstance<T>(sp);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    // DI 构造失败时记录诊断信息，便于排查问题
+                    var logger = sp.GetService<ILoggerFactory>()?.CreateLogger(nameof(MongoServiceExtensions));
+                    logger?.LogDebug(ex, "通过 DI 创建 {TypeName} 失败，回退到无参构造函数。", typeof(T).Name);
                     context = Activator.CreateInstance<T>();
                 }
                 context.Initialize(settings, dbName);
