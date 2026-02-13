@@ -273,12 +273,10 @@ public sealed class RaftRuntime : IRaftRuntime
             });
             var replies = await Task.WhenAll(replyTasks).ConfigureAwait(false);
             // Count quorum acks from the captured replies.
-            foreach (var reply in replies)
+            foreach (var appendReply in replies.OfType<AppendEntriesResponse>()
+                                               .Where(r => r.Success && r.Term == responseTerm))
             {
-                if (reply is AppendEntriesResponse { Success: true } appendReply && appendReply.Term == responseTerm)
-                {
-                    readConfirmAcks++;
-                }
+                readConfirmAcks++;
             }
             // Phase 3: Re-acquire gate to feed replies into the engine so matchIndex/nextIndex stay consistent.
             await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
