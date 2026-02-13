@@ -155,7 +155,8 @@ public class MongoContext : IDisposable, IAsyncDisposable
         }
         if (disposing)
         {
-            Client.Dispose();
+            // ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
+            Client?.Dispose();
         }
         _disposed = true;
     }
