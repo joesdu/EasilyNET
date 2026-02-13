@@ -1,10 +1,10 @@
 using EasilyNET.Core.Misc;
 using EasilyNET.Mongo.AspNetCore.Common;
 using EasilyNET.Mongo.AspNetCore.Helpers;
-using EasilyNET.Mongo.AspNetCore.JsonConverters;
 using EasilyNET.Mongo.AspNetCore.Options;
 using EasilyNET.Mongo.Core;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
@@ -136,12 +136,30 @@ public static class MongoServiceExtensions
             option?.Invoke(options);
             MongoServiceExtensionsHelpers.RegistryConventionPack(options);
             MongoServiceExtensionsHelpers.ApplyResilienceOptions(settings, options.Resilience);
-            var context = MongoContext.CreateInstance<T>(settings, options.DatabaseName ?? Constant.DefaultDbName);
-            services.AddSingleton(context.Client);
-            services.AddSingleton(context.Database);
-            services.AddSingleton(context);
+            var dbName = options.DatabaseName ?? Constant.DefaultDbName;
+            // 使用工厂委托注册，支持 DI 构造函数注入
+            // 优先通过 ActivatorUtilities 创建实例（支持有参构造函数），失败则回退到无参构造函数
+            services.AddSingleton<T>(sp =>
+            {
+                T context;
+                try
+                {
+                    context = ActivatorUtilities.CreateInstance<T>(sp);
+                }
+                catch (Exception ex)
+                {
+                    // DI 构造失败时记录诊断信息，便于排查问题
+                    var logger = sp.GetService<ILoggerFactory>()?.CreateLogger(nameof(MongoServiceExtensions));
+                    logger?.LogDebug(ex, "通过 DI 创建 {TypeName} 失败，回退到无参构造函数。", typeof(T).Name);
+                    context = Activator.CreateInstance<T>();
+                }
+                context.Initialize(settings, dbName);
+                return context;
+            });
+            // Client 和 Database 通过工厂委托从 MongoContext 派生，避免双重 Dispose
+            services.AddSingleton<IMongoClient>(sp => sp.GetRequiredService<T>().Client);
+            services.AddSingleton<IMongoDatabase>(sp => sp.GetRequiredService<T>().Database);
             services.AddSingleton(options);
-            services.AddControllers().AddJsonOptions(c => c.JsonSerializerOptions.Converters.Add(new BsonDocumentJsonConverter()));
         }
     }
 }

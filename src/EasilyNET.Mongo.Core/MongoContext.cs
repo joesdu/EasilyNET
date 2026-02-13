@@ -4,8 +4,6 @@ using MongoDB.Driver;
 
 namespace EasilyNET.Mongo.Core;
 
-#nullable disable // Disable nullable check for a response from the community
-
 /// <summary>
 ///     <para xml:lang="en">MongoDB basic DbContext</para>
 ///     <para xml:lang="zh">MongoDB基础DbContext</para>
@@ -13,17 +11,18 @@ namespace EasilyNET.Mongo.Core;
 public class MongoContext : IDisposable, IAsyncDisposable
 {
     private bool _disposed;
+    private bool _initialized;
 
     /// <summary>
     ///     <see cref="IMongoClient" />
     /// </summary>
-    public IMongoClient Client { get; private set; }
+    public IMongoClient Client { get; private set; } = null!;
 
     /// <summary>
     ///     <para xml:lang="en">Get the specific database name configured in the connection string or MongoSettings, or the default database</para>
     ///     <para xml:lang="zh">获取链接字符串或者MongoSettings中配置的特定名称数据库或默认数据库</para>
     /// </summary>
-    public IMongoDatabase Database { get; private set; }
+    public IMongoDatabase Database { get; private set; } = null!;
 
     /// <inheritdoc />
     public ValueTask DisposeAsync()
@@ -62,6 +61,7 @@ public class MongoContext : IDisposable, IAsyncDisposable
     ///     <para xml:lang="en">Synchronously get a started <see cref="IClientSessionHandle">Session</see> with a transaction</para>
     ///     <para xml:lang="zh">同步方式获取一个已开启事务的 <see cref="IClientSessionHandle">Session</see></para>
     /// </summary>
+    [Obsolete("Use StartSessionAsync instead")]
     public IClientSessionHandle GetStartedSession()
     {
         var session = Client.StartSession();
@@ -73,10 +73,33 @@ public class MongoContext : IDisposable, IAsyncDisposable
     ///     <para xml:lang="en">Asynchronously get a started <see cref="IClientSessionHandle">Session</see> with a transaction</para>
     ///     <para xml:lang="zh">异步方式获取一个已开启事务的 <see cref="IClientSessionHandle">Session</see></para>
     /// </summary>
+    [Obsolete("Use StartSessionAsync instead")]
     public async Task<IClientSessionHandle> GetStartedSessionAsync()
     {
-        var session = await Client.StartSessionAsync();
+        var session = await Client.StartSessionAsync().ConfigureAwait(false);
         session.StartTransaction();
+        return session;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Asynchronously start a client session, optionally with a transaction</para>
+    ///     <para xml:lang="zh">异步启动客户端会话，可选择是否开启事务</para>
+    /// </summary>
+    /// <param name="startTransaction">
+    ///     <para xml:lang="en">Whether to start a transaction immediately</para>
+    ///     <para xml:lang="zh">是否立即开启事务</para>
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     <para xml:lang="en">Cancellation token</para>
+    ///     <para xml:lang="zh">取消令牌</para>
+    /// </param>
+    public async Task<IClientSessionHandle> StartSessionAsync(bool startTransaction = false, CancellationToken cancellationToken = default)
+    {
+        var session = await Client.StartSessionAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        if (startTransaction)
+        {
+            session.StartTransaction();
+        }
         return session;
     }
 
@@ -104,6 +127,28 @@ public class MongoContext : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
+    ///     <para xml:lang="en">Initialize the <see cref="MongoContext" /> with client settings and database name</para>
+    ///     <para xml:lang="zh">使用客户端配置和数据库名称初始化 <see cref="MongoContext" /></para>
+    /// </summary>
+    /// <param name="settings">
+    ///     <see cref="MongoClientSettings" />
+    /// </param>
+    /// <param name="dbName">
+    ///     <para xml:lang="en">Database name</para>
+    ///     <para xml:lang="zh">数据库名称</para>
+    /// </param>
+    public void Initialize(MongoClientSettings settings, string dbName)
+    {
+        if (_initialized)
+        {
+            throw new InvalidOperationException("MongoContext 已经初始化，不允许重复调用 Initialize。");
+        }
+        Client = new MongoClient(settings);
+        Database = Client.GetDatabase(dbName);
+        _initialized = true;
+    }
+
+    /// <summary>
     ///     <para xml:lang="en">Dispose resources</para>
     ///     <para xml:lang="zh">释放资源</para>
     /// </summary>
@@ -116,6 +161,7 @@ public class MongoContext : IDisposable, IAsyncDisposable
         }
         if (disposing)
         {
+            // ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
             Client?.Dispose();
         }
         _disposed = true;

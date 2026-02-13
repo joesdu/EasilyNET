@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json.Serialization;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
+using EasilyNET.Mongo.AspNetCore.JsonConverters;
 using EasilyNET.WebCore.JsonConverters;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
@@ -31,6 +32,7 @@ internal sealed class ControllersModule : AppModule
                    c.JsonSerializerOptions.Converters.Add(new IntJsonConverter());
                    c.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
                    c.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                   c.JsonSerializerOptions.Converters.Add(new BsonDocumentJsonConverter());
                });
         context.Services.AddEndpointsApiExplorer();
         context.Services.AddAuthentication(c =>
