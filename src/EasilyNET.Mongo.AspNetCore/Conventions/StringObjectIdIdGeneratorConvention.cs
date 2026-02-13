@@ -34,6 +34,17 @@ namespace EasilyNET.Mongo.AspNetCore.Conventions;
 internal sealed class StringToObjectIdIdGeneratorConvention : ConventionBase, IPostProcessingConvention
 {
     /// <summary>
+    ///     <para xml:lang="en">
+    ///     Tracks types that have already been processed to prevent infinite recursion
+    ///     when circular references exist (e.g., Type A references Type B, Type B references Type A).
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     追踪已处理的类型，防止存在循环引用时（如类型 A 引用类型 B，类型 B 引用类型 A）导致无限递归。
+    ///     </para>
+    /// </summary>
+    private static readonly ConcurrentDictionary<Type, byte> ProcessedTypes = new();
+
+    /// <summary>
     ///     <para xml:lang="en">Process after class mapping is completed</para>
     ///     <para xml:lang="zh">在类映射完成后进行处理</para>
     /// </summary>
@@ -56,6 +67,12 @@ internal sealed class StringToObjectIdIdGeneratorConvention : ConventionBase, IP
     /// </param>
     private static void ProcessClassMap(BsonClassMap classMap)
     {
+        var classType = classMap.ClassType;
+        // 跳过已处理的类型，防止循环引用导致无限递归
+        if (!ProcessedTypes.TryAdd(classType, 0))
+        {
+            return;
+        }
         // 获取Id成员映射
         var idMemberMap = classMap.IdMemberMap;
         // 如果Id生成器为空且成员类型为string，则设置自定义Id生成器和序列化器
@@ -67,11 +84,25 @@ internal sealed class StringToObjectIdIdGeneratorConvention : ConventionBase, IP
         foreach (var memberMap in classMap.AllMemberMaps)
         {
             var memberType = memberMap.MemberType;
+            // 跳过基础类型、字符串、枚举和值类型，避免不必要递归
+            if (memberType.IsPrimitive || memberType == typeof(string) || memberType.IsEnum || memberType.IsValueType)
+            {
+                continue;
+            }
+            // 跳过已处理的类型
+            if (ProcessedTypes.ContainsKey(memberType))
+            {
+                continue;
+            }
             // 如果成员类型是泛型集合，则处理集合中的项
             if (typeof(IEnumerable).IsAssignableFrom(memberType) && memberType.IsGenericType)
             {
                 var itemType = memberType.GetGenericArguments().FirstOrDefault();
-                if (itemType is null)
+                if (itemType is null || itemType.IsPrimitive || itemType == typeof(string) || itemType.IsEnum || itemType.IsValueType)
+                {
+                    continue;
+                }
+                if (ProcessedTypes.ContainsKey(itemType))
                 {
                     continue;
                 }

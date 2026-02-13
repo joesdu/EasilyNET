@@ -47,40 +47,15 @@ public static class TimeSeriesCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(app);
         var serviceProvider = app.ApplicationServices;
-        Task.Run(() =>
-        {
-            using var scope = serviceProvider.CreateScope();
-            var db = scope.ServiceProvider.GetService<T>();
-            ArgumentNullException.ThrowIfNull(db, nameof(T));
-            var loggerFactory = scope.ServiceProvider.GetService<ILoggerFactory>();
-            var logger = loggerFactory?.CreateLogger(nameof(TimeSeriesCollectionExtensions));
-            try
-            {
-                // Fetch existing collection names for the current database.
-                // 获取当前数据库的现有集合名称。
-                var existingCollections = new HashSet<string>(db.Database.ListCollectionNames().ToList(), StringComparer.Ordinal);
-                EnsureTimeSeriesCollections(db.Database, existingCollections, logger);
-            }
-            catch (Exception ex)
-            {
-                if (logger is not null && logger.IsEnabled(LogLevel.Error))
-                {
-                    logger.LogError(ex, "Failed to create MongoDB time-series collections for context {ContextType} in background task.", typeof(T).Name);
-                }
-            }
-        }).ContinueWith(t =>
-        {
-            var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
-            if (!t.IsFaulted || loggerFactory is null)
-            {
-                return;
-            }
-            var globalLogger = loggerFactory.CreateLogger("MongoTimeSeriesCreationTask");
-            if (globalLogger.IsEnabled(LogLevel.Error))
-            {
-                globalLogger.LogError(t.Exception, "Background task for creating MongoDB time-series collections failed.");
-            }
-        }, TaskScheduler.Default);
+        using var scope = serviceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetService<T>();
+        ArgumentNullException.ThrowIfNull(db, nameof(T));
+        var loggerFactory = scope.ServiceProvider.GetService<ILoggerFactory>();
+        var logger = loggerFactory?.CreateLogger(nameof(TimeSeriesCollectionExtensions));
+        // Fetch existing collection names for the current database.
+        // 获取当前数据库的现有集合名称。
+        var existingCollections = new HashSet<string>(db.Database.ListCollectionNames().ToList(), StringComparer.Ordinal);
+        EnsureTimeSeriesCollections(db.Database, existingCollections, logger);
         return app;
     }
 

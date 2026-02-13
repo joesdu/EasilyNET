@@ -172,7 +172,9 @@ public sealed class JsonNodeSerializer : SerializerBase<JsonNode?>
             case BsonType.Decimal128:
                 return JsonValue.Create((decimal)reader.ReadDecimal128());
             case BsonType.DateTime:
-                return JsonValue.Create(reader.ReadDateTime().ToString("o"));
+                var millisSinceEpoch = reader.ReadDateTime();
+                var dateTime = BsonUtils.ToDateTimeFromMillisecondsSinceEpoch(millisSinceEpoch);
+                return JsonValue.Create(dateTime.ToString("o"));
             case BsonType.ObjectId:
                 return JsonValue.Create(reader.ReadObjectId().ToString());
             case BsonType.Binary:

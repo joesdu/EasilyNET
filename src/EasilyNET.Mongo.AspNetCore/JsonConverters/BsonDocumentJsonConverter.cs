@@ -20,7 +20,17 @@ namespace EasilyNET.Mongo.AspNetCore.JsonConverters;
 ///  ]]>
 ///  </code>
 /// </example>
-internal sealed class BsonDocumentJsonConverter : JsonConverter<BsonDocument?>
+/// <summary>
+///     <para xml:lang="en">
+///     To use this converter, register it manually in your application:
+///     <code>builder.Services.Configure&lt;JsonOptions&gt;(o =&gt; o.JsonSerializerOptions.Converters.Add(new BsonDocumentJsonConverter()));</code>
+///     </para>
+///     <para xml:lang="zh">
+///     要使用此转换器，请在应用中手动注册:
+///     <code>builder.Services.Configure&lt;JsonOptions&gt;(o =&gt; o.JsonSerializerOptions.Converters.Add(new BsonDocumentJsonConverter()));</code>
+///     </para>
+/// </summary>
+public sealed class BsonDocumentJsonConverter : JsonConverter<BsonDocument?>
 {
     /// <inheritdoc />
     public override BsonDocument? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -155,7 +165,16 @@ internal sealed class BsonDocumentJsonConverter : JsonConverter<BsonDocument?>
                 writer.WriteStringValue(bsonValue.AsObjectId.ToString());
                 break;
             case BsonType.Decimal128:
-                writer.WriteStringValue(bsonValue.AsDecimal128.ToString());
+                var dec128 = bsonValue.AsDecimal128;
+                try
+                {
+                    writer.WriteNumberValue(Decimal128.ToDecimal(dec128));
+                }
+                catch (OverflowException)
+                {
+                    // Fallback to string for NaN, Infinity, or values outside decimal range
+                    writer.WriteStringValue(dec128.ToString());
+                }
                 break;
             default:
                 writer.WriteStringValue(bsonValue.ToString());
