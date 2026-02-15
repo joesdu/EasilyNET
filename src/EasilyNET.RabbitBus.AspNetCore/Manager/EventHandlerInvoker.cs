@@ -230,16 +230,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
     /// </summary>
     private async Task ExecuteWithMiddlewareAsync(EventConfiguration config, Type eventType, IServiceProvider provider, object @event, IReadOnlyDictionary<string, object?> headers, List<Type> sortedHandlerTypes, int consumerIndex, ResiliencePipeline pipeline, CancellationToken ct)
     {
-        var middleware = provider.GetService(config.MiddlewareType!);
-        if (middleware is null)
-        {
-            if (logger.IsEnabled(LogLevel.Warning))
-            {
-                logger.LogWarning("Middleware {MiddlewareType} not found in DI container for event {EventName}, falling back to direct execution", config.MiddlewareType!.Name, eventType.Name);
-            }
-            await ExecuteHandlerChainAsync(sortedHandlerTypes, eventType, provider, @event, consumerIndex, config, pipeline, ct).ConfigureAwait(false);
-            return;
-        }
+        var middleware = provider.GetService(config.MiddlewareType!) ?? throw new InvalidOperationException($"Middleware '{config.MiddlewareType!.Name}' was explicitly configured for event '{eventType.Name}' but could not be resolved from the DI container. Ensure it is registered correctly.");
         var invoker = _middlewareInvokerCache.GetOrAdd(eventType, static eType => MiddlewareInvoker.Create(eType));
         var context = invoker.CreateContext(@event, headers, ct);
         await invoker.InvokeAsync(middleware, context, next).ConfigureAwait(false);
@@ -284,15 +275,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
         }
         try
         {
-            var fallback = provider.GetService(config.FallbackHandlerType);
-            if (fallback is null)
-            {
-                if (logger.IsEnabled(LogLevel.Warning))
-                {
-                    logger.LogWarning("Fallback handler {FallbackType} not found in DI for event {EventName}", config.FallbackHandlerType.Name, eventType.Name);
-                }
-                return ConsumerAction.Nack;
-            }
+            var fallback = provider.GetService(config.FallbackHandlerType) ?? throw new InvalidOperationException($"Fallback handler '{config.FallbackHandlerType.Name}' was explicitly configured for event '{eventType.Name}' but could not be resolved from the DI container. Ensure it is registered correctly.");
 
             // 调用 IEventFallbackHandler<TEvent>.OnFallbackAsync
             var fallbackInterfaceType = typeof(IEventFallbackHandler<>).MakeGenericType(eventType);

@@ -207,6 +207,7 @@ builder.Services.AddRabbitBus(c =>
 
 - **事件必须注册处理器**：仅通过 `WithHandler<THandler>()` 明确注册的处理器才会创建消费者并注入 DI。
 - **处理器生命周期**：处理器注册为 Scoped 生命周期，每条消息创建独立的 DI 作用域，可安全注入 DbContext 等 Scoped 服务。
+  > **⚠️ 破坏性变更（Breaking Change）**：处理器（Handler）、中间件（Middleware）和回退处理器（FallbackHandler）的 DI 生命周期已从 **Singleton 变更为 Scoped**。如果你的处理器依赖 Singleton 语义（如内部维护可变状态），请改用注入的 Singleton 服务来管理共享状态。此变更是为了正确支持每条消息独立的 DI 作用域，使处理器可以安全注入 `DbContext` 等 Scoped 服务。此外，中间件和回退处理器在 DI 解析失败时将抛出 `InvalidOperationException` 而非静默降级，以确保显式配置的组件不会被意外跳过。
 - **处理器执行顺序**：同一事件的多个处理器支持两种执行模式：
   - **并发执行**（默认）：处理器并行执行，提高吞吐量
   - **顺序执行**：通过 `SequentialHandlerExecution = true` 配置，确保处理器按 `order` 参数排序后依次执行
