@@ -616,9 +616,15 @@ public sealed class RabbitBusBuilder
                 {
                     config.Handlers.Add(handlerType);
                 }
-                if (config.OrderedHandlers.All(h => h.HandlerType != handlerType))
+                // Ensure last call wins for ordering: update existing entry or add a new one
+                var existing = config.OrderedHandlers.FirstOrDefault(h => h.HandlerType == handlerType);
+                if (existing is null)
                 {
                     config.OrderedHandlers.Add(new() { HandlerType = handlerType, Order = order });
+                }
+                else
+                {
+                    existing.Order = order;
                 }
             });
             return this;
