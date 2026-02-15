@@ -588,8 +588,18 @@ public sealed class RabbitBusBuilder
         ///     <para xml:lang="zh">处理器类型</para>
         /// </typeparam>
         /// <param name="order">
-        ///     <para xml:lang="en">Execution order when SequentialHandlerExecution is enabled (lower values execute first)</para>
-        ///     <para xml:lang="zh">当启用顺序执行时的执行顺序（值越小越先执行）</para>
+        ///     <para xml:lang="en">
+        ///         Handler ordering key used in both sequential and concurrent modes.
+        ///         When <c>SequentialHandlerExecution</c> is enabled, handlers with lower values are executed first.
+        ///         When it is disabled (concurrent mode), handlers are still sorted by this value, which may affect
+        ///         the order in which handler tasks are created, but it does not guarantee the order in which they complete.
+        ///     </para>
+        ///     <para xml:lang="zh">
+        ///         处理器的排序键，在顺序模式和并发模式下都会参与排序。
+        ///         当启用 <c>SequentialHandlerExecution</c>（顺序执行）时，数值越小的处理器越先执行。
+        ///         当未启用（并发模式）时，处理器仍会按该值排序，从而影响任务创建/启动的先后顺序，
+        ///         但并不保证处理完成的先后顺序。
+        ///     </para>
         /// </param>
         // ReSharper disable once MemberCanBePrivate.Global
         public EventConfigurator<TEvent> WithHandler<THandler>(int order) where THandler : class, IEventHandler<TEvent>
@@ -606,9 +616,15 @@ public sealed class RabbitBusBuilder
                 {
                     config.Handlers.Add(handlerType);
                 }
-                if (config.OrderedHandlers.All(h => h.HandlerType != handlerType))
+                // Ensure last call wins for ordering: update existing entry or add a new one
+                var existing = config.OrderedHandlers.FirstOrDefault(h => h.HandlerType == handlerType);
+                if (existing is null)
                 {
                     config.OrderedHandlers.Add(new() { HandlerType = handlerType, Order = order });
+                }
+                else
+                {
+                    existing.Order = order;
                 }
             });
             return this;

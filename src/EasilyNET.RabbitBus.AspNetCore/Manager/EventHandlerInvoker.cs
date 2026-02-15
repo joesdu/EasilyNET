@@ -219,9 +219,9 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
         }
         catch (Exception ex)
         {
-            // 尝试回退处理器
-            var retryCount = rabbitOptions.Get(Constant.OptionName).RetryCount;
-            return await TryFallbackAsync(config, eventType, provider, @event, ex, retryCount, ct).ConfigureAwait(false);
+            // 尝试回退处理器（此处为配置的最大重试次数，而非本次消息的实际重试次数）
+            var maxRetryCount = rabbitOptions.Get(Constant.OptionName).RetryCount;
+            return await TryFallbackAsync(config, eventType, provider, @event, ex, maxRetryCount, ct).ConfigureAwait(false);
         }
     }
 
