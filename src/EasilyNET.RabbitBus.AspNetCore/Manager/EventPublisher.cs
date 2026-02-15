@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Threading.Channels;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
@@ -36,6 +37,8 @@ internal readonly struct RetryMessage
 /// </summary>
 internal sealed class EventPublisher : IAsyncDisposable
 {
+    private static readonly ActivitySource s_activitySource = new(Constant.ActivitySourceName);
+
     private static readonly TimeSpan MinRetryDelay = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan MaxRetryDelay = TimeSpan.FromSeconds(30);
 
@@ -121,7 +124,7 @@ internal sealed class EventPublisher : IAsyncDisposable
     // 计算指数退避时间 2^n * 1s 带上限
     private static TimeSpan CalcBackoff(int retryCount) => BackoffUtility.Exponential(retryCount, MinRetryDelay, MinRetryDelay, MaxRetryDelay);
 
-    private static BasicProperties BuildBasicProperties(EventConfiguration config, byte priority)
+    private static BasicProperties BuildBasicProperties(EventConfiguration config, byte priority, Activity? activity = null)
     {
         var bp = new BasicProperties
         {
@@ -132,6 +135,18 @@ internal sealed class EventPublisher : IAsyncDisposable
         if (config.Headers.Count > 0)
         {
             bp.Headers = new Dictionary<string, object?>(config.Headers);
+        }
+        if (activity is not null)
+        {
+            bp.Headers ??= new Dictionary<string, object?>();
+            if (activity.Id is not null)
+            {
+                bp.Headers["traceparent"] = activity.Id;
+            }
+            if (activity.TraceStateString is not null)
+            {
+                bp.Headers["tracestate"] = activity.TraceStateString;
+            }
         }
         return bp;
     }
@@ -354,6 +369,13 @@ internal sealed class EventPublisher : IAsyncDisposable
     public async Task Publish<T>(EventConfiguration config, T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
     {
         cancellationToken.ThrowIfCancellationRequested();
+        // ReSharper disable once ExplicitCallerInfoArgument
+        using var activity = s_activitySource.StartActivity("rabbitmq.publish", ActivityKind.Producer);
+        activity?.SetTag("messaging.system", "rabbitmq");
+        activity?.SetTag("messaging.destination", config.Exchange.Name);
+        activity?.SetTag("messaging.destination_kind", "exchange");
+        activity?.SetTag("messaging.rabbitmq.routing_key", routingKey ?? config.Exchange.RoutingKey);
+        activity?.SetTag("messaging.message.id", @event.EventId);
 
         // 先获取信号量
         await ThrottleIfNeededAsync(cancellationToken).ConfigureAwait(false);
@@ -361,7 +383,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         try
         {
             var body = _serializer.Serialize(@event, @event.GetType());
-            var properties = BuildBasicProperties(config, priority.GetValueOrDefault());
+            var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), activity);
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var context = new PublishContext(@event, routingKey, properties, body, tcs, config);
             await _publishChannel.Writer.WriteAsync(context, cancellationToken).ConfigureAwait(false);
@@ -390,7 +412,13 @@ internal sealed class EventPublisher : IAsyncDisposable
         {
             return;
         }
-        var properties = BuildBasicProperties(config, priority.GetValueOrDefault());
+        // ReSharper disable once ExplicitCallerInfoArgument
+        using var activity = s_activitySource.StartActivity("rabbitmq.publish", ActivityKind.Producer);
+        activity?.SetTag("messaging.system", "rabbitmq");
+        activity?.SetTag("messaging.destination", config.Exchange.Name);
+        activity?.SetTag("messaging.destination_kind", "exchange");
+        activity?.SetTag("messaging.rabbitmq.routing_key", routingKey ?? config.Exchange.RoutingKey);
+        var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), activity);
         var tcsList = new List<(TaskCompletionSource<bool> Tcs, string EventId)>(list.Count);
         foreach (var @event in list)
         {

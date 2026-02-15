@@ -1,6 +1,7 @@
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Enums;
+using Polly;
 using RabbitMQ.Client;
 
 // ReSharper disable UnusedMember.Global
@@ -576,16 +577,71 @@ public sealed class RabbitBusBuilder
         ///     <para xml:lang="en">Handler type</para>
         ///     <para xml:lang="zh">处理器类型</para>
         /// </typeparam>
-        public EventConfigurator<TEvent> WithHandler<THandler>() where THandler : class, IEventHandler<TEvent>
+        /// <param name="order">
+        ///     <para xml:lang="en">Execution order when SequentialHandlerExecution is enabled (lower values execute first). Default is 0</para>
+        ///     <para xml:lang="zh">当启用顺序执行时的执行顺序（值越小越先执行）。默认为0</para>
+        /// </param>
+        public EventConfigurator<TEvent> WithHandler<THandler>(int order = 0) where THandler : class, IEventHandler<TEvent>
         {
             _builder.EventRegistry.Configure<TEvent>(config =>
             {
                 var handlerType = typeof(THandler);
-                if (!config.Handlers.Contains(handlerType) && !config.IgnoredHandlers.Contains(handlerType))
+                if (config.IgnoredHandlers.Contains(handlerType))
+                {
+                    return;
+                }
+                // Populate both lists for backward compatibility
+                if (!config.Handlers.Contains(handlerType))
                 {
                     config.Handlers.Add(handlerType);
                 }
+                if (config.OrderedHandlers.All(h => h.HandlerType != handlerType))
+                {
+                    config.OrderedHandlers.Add(new() { HandlerType = handlerType, Order = order });
+                }
             });
+            return this;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Register middleware for this event. Middleware wraps the entire handler execution chain</para>
+        ///     <para xml:lang="zh">为此事件注册中间件。中间件包裹整个处理器执行链路</para>
+        /// </summary>
+        /// <typeparam name="TMiddleware">
+        ///     <para xml:lang="en">Middleware type implementing IEventMiddleware&lt;TEvent&gt;</para>
+        ///     <para xml:lang="zh">实现 IEventMiddleware&lt;TEvent&gt; 的中间件类型</para>
+        /// </typeparam>
+        public EventConfigurator<TEvent> WithMiddleware<TMiddleware>() where TMiddleware : class, IEventMiddleware<TEvent>
+        {
+            _builder.EventRegistry.Configure<TEvent>(config => config.MiddlewareType = typeof(TMiddleware));
+            return this;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Register a fallback handler for this event, invoked when all handlers fail after retries</para>
+        ///     <para xml:lang="zh">为此事件注册回退处理器，当所有处理器在重试后仍失败时调用</para>
+        /// </summary>
+        /// <typeparam name="TFallback">
+        ///     <para xml:lang="en">Fallback handler type implementing IEventFallbackHandler&lt;TEvent&gt;</para>
+        ///     <para xml:lang="zh">实现 IEventFallbackHandler&lt;TEvent&gt; 的回退处理器类型</para>
+        /// </typeparam>
+        public EventConfigurator<TEvent> WithFallbackHandler<TFallback>() where TFallback : class, IEventFallbackHandler<TEvent>
+        {
+            _builder.EventRegistry.Configure<TEvent>(config => config.FallbackHandlerType = typeof(TFallback));
+            return this;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Configure a custom resilience pipeline for handler execution of this event</para>
+        ///     <para xml:lang="zh">为此事件的处理器执行配置自定义弹性管道</para>
+        /// </summary>
+        /// <param name="configure">
+        ///     <para xml:lang="en">Action to configure the resilience pipeline builder</para>
+        ///     <para xml:lang="zh">配置弹性管道构建器的操作</para>
+        /// </param>
+        public EventConfigurator<TEvent> WithHandlerResilience(Action<ResiliencePipelineBuilder> configure)
+        {
+            _builder.EventRegistry.Configure<TEvent>(config => config.CustomHandlerResilience = configure);
             return this;
         }
 

@@ -1,6 +1,9 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Runtime.InteropServices;
+using System.Text;
+using EasilyNET.RabbitBus.AspNetCore.Abstractions;
 using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,15 +18,20 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <summary>
 /// 事件处理器调用器，负责事件处理逻辑
 /// </summary>
-internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer serializer, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pipelineProvider, EventConfigurationRegistry eventRegistry)
+internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer serializer, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pipelineProvider, EventConfigurationRegistry eventRegistry, IDeadLetterStore deadLetterStore)
 {
     private const string HandleName = nameof(IEventHandler<>.HandleAsync); // 名称解析一次
 
     // 缓存 (HandlerType, EventType) -> 开放委托: (object handler, object evt) => Task
     private static readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Func<object, object, Task>> _openDelegateCache = new();
 
+    private static readonly ActivitySource s_activitySource = new(Constant.ActivitySourceName);
+
+    // 缓存自定义弹性管道（按事件类型）
+    private readonly ConcurrentDictionary<Type, ResiliencePipeline> _customPipelineCache = new();
+
     // 事件配置注册器
-    private readonly ResiliencePipeline _pipeline = pipelineProvider.GetPipeline(Constant.HandlerPipelineName);
+    private readonly ResiliencePipeline _defaultPipeline = pipelineProvider.GetPipeline(Constant.HandlerPipelineName);
 
     // 作用域工厂与管道缓存，减少每次消息的服务解析开销
     private readonly IServiceScopeFactory? _scopeFactory = sp.GetService<IServiceScopeFactory>();
@@ -39,7 +47,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
     }
 
     /// <summary>
-    /// 顶层入口: 收到消息 -> 反序列化 -> 逐个 Handler 处理 -> Ack
+    /// 顶层入口: 收到消息 -> 反序列化 -> 中间件 -> 逐个 Handler 处理 -> 回退 -> Ack/Nack
     /// </summary>
     public async Task HandleReceivedEvent(Type eventType, BasicDeliverEventArgs ea, IChannel channel, int consumerIndex, ConcurrentDictionary<Type, List<Type>> eventHandlerCache, CancellationToken ct)
     {
@@ -49,12 +57,20 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
         }
         try
         {
+            // 提取父级追踪上下文并创建消费者 Activity
+            var parentContext = ExtractParentTraceContext(ea.BasicProperties.Headers);
+            using var activity = s_activitySource.StartActivity("rabbitmq.consume", ActivityKind.Consumer, parentContext);
+            activity?.SetTag("messaging.system", "rabbitmq");
+            activity?.SetTag("messaging.source", ea.Exchange);
+            activity?.SetTag("messaging.destination", ea.RoutingKey);
+            activity?.SetTag("messaging.consumer_id", consumerIndex.ToString());
+
             // 尽量避免重复拷贝 Body
             var bodyBytes = GetBodyBytes(ea.Body);
             var processed = false;
             try
             {
-                processed = await ProcessEventAsync(eventType, bodyBytes, consumerIndex, eventHandlerCache, ct).ConfigureAwait(false);
+                processed = await ProcessEventAsync(eventType, bodyBytes, ea, consumerIndex, eventHandlerCache, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -129,7 +145,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
         }
     }
 
-    private async Task<bool> ProcessEventAsync(Type eventType, byte[] message, int consumerIndex, ConcurrentDictionary<Type, List<Type>> eventHandlerCache, CancellationToken ct)
+    private async Task<bool> ProcessEventAsync(Type eventType, byte[] message, BasicDeliverEventArgs ea, int consumerIndex, ConcurrentDictionary<Type, List<Type>> eventHandlerCache, CancellationToken ct)
     {
         if (!eventHandlerCache.TryGetValue(eventType, out var handlerTypes) || handlerTypes.Count == 0)
         {
@@ -166,47 +182,280 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
         }
         using var scope = _scopeFactory?.CreateScope();
         var provider = scope?.ServiceProvider ?? sp; // 无作用域时回退到根容器
-
-        // 检查是否要求顺序执行
         var config = eventRegistry.GetConfiguration(eventType);
+
+        // 提取消息头
+        var headers = ExtractHeaders(ea.BasicProperties.Headers);
+
+        // 获取排序后的处理器列表
+        var sortedHandlerTypes = GetSortedHandlerTypes(config, handlerTypes);
+
+        // 获取弹性管道（自定义或默认）
+        var pipeline = GetHandlerPipeline(config, eventType);
+        try
+        {
+            // 中间件管道：如果配置了中间件，则包裹整个处理器链路
+            if (config?.MiddlewareType is not null)
+            {
+                await ExecuteWithMiddlewareAsync(config, eventType, provider, @event, headers, sortedHandlerTypes, consumerIndex, pipeline, ct).ConfigureAwait(false);
+            }
+            else
+            {
+                await ExecuteHandlerChainAsync(sortedHandlerTypes, eventType, provider, @event, consumerIndex, config, pipeline, ct).ConfigureAwait(false);
+            }
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // 尝试回退处理器
+            return await TryFallbackAsync(config, eventType, provider, @event, ex, ct).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// 通过中间件执行处理器链路
+    /// </summary>
+    private async Task ExecuteWithMiddlewareAsync(EventConfiguration config, Type eventType, IServiceProvider provider, object @event, IReadOnlyDictionary<string, object?> headers, List<Type> sortedHandlerTypes, int consumerIndex, ResiliencePipeline pipeline, CancellationToken ct)
+    {
+        var middleware = provider.GetService(config.MiddlewareType!);
+        if (middleware is null)
+        {
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Middleware {MiddlewareType} not found in DI container for event {EventName}, falling back to direct execution", config.MiddlewareType!.Name, eventType.Name);
+            }
+            await ExecuteHandlerChainAsync(sortedHandlerTypes, eventType, provider, @event, consumerIndex, config, pipeline, ct).ConfigureAwait(false);
+            return;
+        }
+
+        // 使用反射调用泛型中间件的 HandleAsync 方法
+        // IEventMiddleware<TEvent>.HandleAsync(EventContext<TEvent> context, Func<Task> next)
+        var middlewareInterfaceType = typeof(IEventMiddleware<>).MakeGenericType(eventType);
+        var handleMethod = middlewareInterfaceType.GetMethod(nameof(IEventMiddleware<>.HandleAsync));
+        if (handleMethod is null)
+        {
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError("HandleAsync method not found on middleware {MiddlewareType}", config.MiddlewareType!.Name);
+            }
+            await ExecuteHandlerChainAsync(sortedHandlerTypes, eventType, provider, @event, consumerIndex, config, pipeline, ct).ConfigureAwait(false);
+            return;
+        }
+
+        // 构建 EventContext<TEvent>
+        var contextType = typeof(EventContext<>).MakeGenericType(eventType);
+        var context = Activator.CreateInstance(contextType);
+        contextType.GetProperty(nameof(EventContext<>.Event))!.SetValue(context, @event);
+        contextType.GetProperty(nameof(EventContext<>.Headers))!.SetValue(context, headers);
+        contextType.GetProperty(nameof(EventContext<>.CancellationToken))!.SetValue(context, ct);
+        var task = (Task)handleMethod.Invoke(middleware, [context, (Func<Task>)Next])!;
+        await task.ConfigureAwait(false);
+        return;
+        Task Next() => ExecuteHandlerChainAsync(sortedHandlerTypes, eventType, provider, @event, consumerIndex, config, pipeline, ct);
+    }
+
+    /// <summary>
+    /// 执行处理器链路（支持顺序/并发执行和排序）
+    /// </summary>
+    private async Task ExecuteHandlerChainAsync(List<Type> handlerTypes, Type eventType, IServiceProvider provider, object @event, int consumerIndex, EventConfiguration? config, ResiliencePipeline pipeline, CancellationToken ct)
+    {
         var shouldExecuteSequentially = config?.SequentialHandlerExecution == true;
 
         // 快速路径: 单个处理器
         if (handlerTypes.Count == 1)
         {
-            await InvokeHandlerAsync(handlerTypes[0], eventType, provider, @event, consumerIndex, ct).ConfigureAwait(false);
+            await InvokeHandlerAsync(handlerTypes[0], eventType, provider, @event, consumerIndex, pipeline, ct).ConfigureAwait(false);
         }
         else if (shouldExecuteSequentially)
         {
-            // 顺序执行：确保处理器按注册顺序执行
-            await ProcessHandlersSequentially(handlerTypes, eventType, provider, @event, consumerIndex, ct).ConfigureAwait(false);
+            await ProcessHandlersSequentially(handlerTypes, eventType, provider, @event, consumerIndex, pipeline, ct).ConfigureAwait(false);
         }
         else
         {
-            // 并发执行：处理器并行执行（默认行为）
-            await ProcessHandlersConcurrently(handlerTypes, eventType, provider, @event, consumerIndex, ct).ConfigureAwait(false);
+            await ProcessHandlersConcurrently(handlerTypes, eventType, provider, @event, consumerIndex, pipeline, ct).ConfigureAwait(false);
         }
-        return true;
+    }
+
+    /// <summary>
+    /// 尝试调用回退处理器，返回是否应该 Ack
+    /// </summary>
+    private async Task<bool> TryFallbackAsync(EventConfiguration? config, Type eventType, IServiceProvider provider, object @event, Exception exception, CancellationToken ct)
+    {
+        if (config?.FallbackHandlerType is null)
+        {
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(exception, "Event {EventName} processing failed with no fallback handler configured", eventType.Name);
+            }
+            return false; // Nack
+        }
+        try
+        {
+            var fallback = provider.GetService(config.FallbackHandlerType);
+            if (fallback is null)
+            {
+                if (logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning("Fallback handler {FallbackType} not found in DI for event {EventName}", config.FallbackHandlerType.Name, eventType.Name);
+                }
+                return false;
+            }
+
+            // 调用 IEventFallbackHandler<TEvent>.OnFallbackAsync
+            var fallbackInterfaceType = typeof(IEventFallbackHandler<>).MakeGenericType(eventType);
+            var fallbackMethod = fallbackInterfaceType.GetMethod(nameof(IEventFallbackHandler<>.OnFallbackAsync));
+            if (fallbackMethod is null)
+            {
+                return false;
+            }
+            var task = (Task<ConsumerAction>)fallbackMethod.Invoke(fallback, [@event, exception, 0])!;
+            var action = await task.ConfigureAwait(false);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Fallback handler returned {Action} for event {EventName}", action, eventType.Name);
+            }
+            return action switch
+            {
+                ConsumerAction.Ack        => true,
+                ConsumerAction.DeadLetter => await StoreDeadLetterAsync(@event, eventType, ct).ConfigureAwait(false),
+                _                         => false // Nack or Requeue
+            };
+        }
+        catch (Exception fallbackEx)
+        {
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(fallbackEx, "Fallback handler failed for event {EventName}", eventType.Name);
+            }
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 将消息存入死信存储并返回 true（Ack，因为已经存入死信）
+    /// </summary>
+    private async Task<bool> StoreDeadLetterAsync(object @event, Type eventType, CancellationToken ct)
+    {
+        try
+        {
+            if (@event is IEvent evt)
+            {
+                await deadLetterStore.StoreAsync(new DeadLetterMessage(eventType.Name, evt.EventId, DateTime.UtcNow, 0, evt), ct).ConfigureAwait(false);
+            }
+            return true; // Ack after dead-lettering
+        }
+        catch (Exception ex)
+        {
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Failed to store dead-letter for event {EventName}", eventType.Name);
+            }
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 获取排序后的处理器类型列表
+    /// </summary>
+    private static List<Type> GetSortedHandlerTypes(EventConfiguration? config, List<Type> handlerTypes)
+    {
+        if (config?.OrderedHandlers.Count > 0)
+        {
+            return config.OrderedHandlers
+                         .Where(h => config.IgnoredHandlers.Count == 0 || !config.IgnoredHandlers.Contains(h.HandlerType))
+                         .OrderBy(h => h.Order)
+                         .Select(h => h.HandlerType)
+                         .ToList();
+        }
+        return handlerTypes;
+    }
+
+    /// <summary>
+    /// 获取处理器弹性管道（自定义或默认）
+    /// </summary>
+    private ResiliencePipeline GetHandlerPipeline(EventConfiguration? config, Type eventType)
+    {
+        if (config?.CustomHandlerResilience is null)
+        {
+            return _defaultPipeline;
+        }
+        return _customPipelineCache.GetOrAdd(eventType, _ =>
+        {
+            var builder = new ResiliencePipelineBuilder();
+            config.CustomHandlerResilience(builder);
+            return builder.Build();
+        });
+    }
+
+    /// <summary>
+    /// 从 RabbitMQ BasicProperties 提取消息头
+    /// </summary>
+    private static IReadOnlyDictionary<string, object?> ExtractHeaders(IDictionary<string, object?>? headers) => headers is null or { Count: 0 } ? new Dictionary<string, object?>() : new Dictionary<string, object?>(headers);
+
+    /// <summary>
+    /// 从 RabbitMQ 消息头中提取父级追踪上下文（traceparent/tracestate）
+    /// </summary>
+    private static ActivityContext ExtractParentTraceContext(IDictionary<string, object?>? headers)
+    {
+        if (headers is null)
+        {
+            return default;
+        }
+        if (!headers.TryGetValue("traceparent", out var traceParent))
+        {
+            return default;
+        }
+        var traceParentStr = traceParent switch
+        {
+            byte[] bytes => Encoding.UTF8.GetString(bytes),
+            string str   => str,
+            _            => null
+        };
+        if (traceParentStr is null)
+        {
+            return default;
+        }
+        {
+            string? traceStateStr = null;
+            if (headers.TryGetValue("tracestate", out var traceState))
+            {
+                traceStateStr = traceState switch
+                {
+                    byte[] bytes => Encoding.UTF8.GetString(bytes),
+                    string str   => str,
+                    _            => null
+                };
+            }
+            if (ActivityContext.TryParse(traceParentStr, traceStateStr, out var context))
+            {
+                return context;
+            }
+        }
+        return default;
     }
 
     /// <summary>
     /// 顺序执行所有处理器（保证执行顺序）
     /// </summary>
-    private async Task ProcessHandlersSequentially(List<Type> handlerTypes, Type eventType, IServiceProvider provider, object @event, int consumerIndex, CancellationToken ct)
+    private async Task ProcessHandlersSequentially(List<Type> handlerTypes, Type eventType, IServiceProvider provider, object @event, int consumerIndex, ResiliencePipeline pipeline, CancellationToken ct)
     {
         foreach (var handlerType in handlerTypes)
         {
-            await InvokeHandlerAsync(handlerType, eventType, provider, @event, consumerIndex, ct).ConfigureAwait(false);
+            await InvokeHandlerAsync(handlerType, eventType, provider, @event, consumerIndex, pipeline, ct).ConfigureAwait(false);
         }
     }
 
     /// <summary>
     /// 并发执行所有处理器（提高吞吐量）
     /// </summary>
-    private async Task ProcessHandlersConcurrently(List<Type> handlerTypes, Type eventType, IServiceProvider provider, object @event, int consumerIndex, CancellationToken ct)
+    private async Task ProcessHandlersConcurrently(List<Type> handlerTypes, Type eventType, IServiceProvider provider, object @event, int consumerIndex, ResiliencePipeline pipeline, CancellationToken ct)
     {
         var tasks = new List<Task>(handlerTypes.Count);
-        tasks.AddRange(handlerTypes.Select(handlerType => InvokeHandlerAsync(handlerType, eventType, provider, @event, consumerIndex, ct)));
+        tasks.AddRange(handlerTypes.Select(handlerType => InvokeHandlerAsync(handlerType, eventType, provider, @event, consumerIndex, pipeline, ct)));
         try
         {
             await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -225,7 +474,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
         }
     }
 
-    private async Task InvokeHandlerAsync(Type handlerType, Type eventType, IServiceProvider provider, object @event, int consumerIndex, CancellationToken ct)
+    private async Task InvokeHandlerAsync(Type handlerType, Type eventType, IServiceProvider provider, object @event, int consumerIndex, ResiliencePipeline pipeline, CancellationToken ct)
     {
         var handler = provider.GetService(handlerType);
         if (handler is null)
@@ -245,7 +494,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             }
 
             // 使用 resilience pipeline 包裹执行
-            await _pipeline.ExecuteAsync(async _ => await openDelegate(handler, @event).ConfigureAwait(false), ct).ConfigureAwait(false);
+            await pipeline.ExecuteAsync(async _ => await openDelegate(handler, @event).ConfigureAwait(false), ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)

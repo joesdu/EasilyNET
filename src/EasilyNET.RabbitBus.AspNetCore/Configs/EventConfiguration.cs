@@ -1,4 +1,5 @@
 using EasilyNET.RabbitBus.Core.Abstraction;
+using Polly;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Configs;
 
@@ -79,4 +80,28 @@ public sealed class EventConfiguration
     ///     <para xml:lang="zh">可选覆盖：启动时是否验证此事件的交换机</para>
     /// </summary>
     public bool? ValidateExchangeOnStartup { get; set; }
+
+    /// <summary>
+    ///     <para xml:lang="en">Optional middleware type for this event. Must implement IEventMiddleware&lt;TEvent&gt;</para>
+    ///     <para xml:lang="zh">此事件的可选中间件类型。必须实现 IEventMiddleware&lt;TEvent&gt;</para>
+    /// </summary>
+    public Type? MiddlewareType { get; set; }
+
+    /// <summary>
+    ///     <para xml:lang="en">Optional fallback handler type for this event. Must implement IEventFallbackHandler&lt;TEvent&gt;</para>
+    ///     <para xml:lang="zh">此事件的可选回退处理器类型。必须实现 IEventFallbackHandler&lt;TEvent&gt;</para>
+    /// </summary>
+    public Type? FallbackHandlerType { get; set; }
+
+    /// <summary>
+    ///     <para xml:lang="en">Handler configurations with explicit ordering support. Takes precedence over <see cref="Handlers" /> when populated</para>
+    ///     <para xml:lang="zh">带显式排序支持的处理器配置。当有值时优先于 <see cref="Handlers" /></para>
+    /// </summary>
+    public List<HandlerConfiguration> OrderedHandlers { get; } = [];
+
+    /// <summary>
+    ///     <para xml:lang="en">Optional custom resilience pipeline builder for handler execution</para>
+    ///     <para xml:lang="zh">处理器执行的可选自定义弹性管道构建器</para>
+    /// </summary>
+    public Action<ResiliencePipelineBuilder>? CustomHandlerResilience { get; set; }
 }
