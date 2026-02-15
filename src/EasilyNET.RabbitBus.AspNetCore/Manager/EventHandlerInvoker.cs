@@ -67,10 +67,10 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
 
             // 尽量避免重复拷贝 Body
             var bodyBytes = GetBodyBytes(ea.Body);
-            var processed = false;
+            var action = ConsumerAction.Nack;
             try
             {
-                processed = await ProcessEventAsync(eventType, bodyBytes, ea, consumerIndex, eventHandlerCache, ct).ConfigureAwait(false);
+                action = await ProcessEventAsync(eventType, bodyBytes, ea, consumerIndex, eventHandlerCache, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -83,13 +83,17 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
                     logger.LogError(ex, "Error processing message, DeliveryTag: {DeliveryTag}", ea.DeliveryTag);
                 }
             }
-            if (processed)
+            switch (action)
             {
-                await AckAsync(channel, ea.DeliveryTag, ct).ConfigureAwait(false);
-            }
-            else
-            {
-                await NackAsync(channel, ea.DeliveryTag, ct).ConfigureAwait(false);
+                case ConsumerAction.Ack:
+                    await AckAsync(channel, ea.DeliveryTag, ct).ConfigureAwait(false);
+                    break;
+                case ConsumerAction.Requeue:
+                    await NackAsync(channel, ea.DeliveryTag, true, ct).ConfigureAwait(false);
+                    break;
+                default: // Nack, DeadLetter (already handled)
+                    await NackAsync(channel, ea.DeliveryTag, false, ct).ConfigureAwait(false);
+                    break;
             }
         }
         catch (OperationCanceledException ex)
@@ -123,11 +127,11 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
         }
     }
 
-    private async Task NackAsync(IChannel channel, ulong deliveryTag, CancellationToken ct)
+    private async Task NackAsync(IChannel channel, ulong deliveryTag, bool requeue, CancellationToken ct)
     {
         try
         {
-            await channel.BasicNackAsync(deliveryTag, false, false, ct).ConfigureAwait(false);
+            await channel.BasicNackAsync(deliveryTag, false, requeue, ct).ConfigureAwait(false);
         }
         catch (ObjectDisposedException ex)
         {
@@ -145,7 +149,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
         }
     }
 
-    private async Task<bool> ProcessEventAsync(Type eventType, byte[] message, BasicDeliverEventArgs ea, int consumerIndex, ConcurrentDictionary<Type, List<Type>> eventHandlerCache, CancellationToken ct)
+    private async Task<ConsumerAction> ProcessEventAsync(Type eventType, byte[] message, BasicDeliverEventArgs ea, int consumerIndex, ConcurrentDictionary<Type, List<Type>> eventHandlerCache, CancellationToken ct)
     {
         if (!eventHandlerCache.TryGetValue(eventType, out var handlerTypes) || handlerTypes.Count == 0)
         {
@@ -153,7 +157,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             {
                 logger.LogError("No subscriptions for event: {EventName}", eventType.Name);
             }
-            return false;
+            return ConsumerAction.Nack;
         }
         if (logger.IsEnabled(LogLevel.Trace))
         {
@@ -169,7 +173,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
                 {
                     logger.LogError("Failed to deserialize event: {EventName}", eventType.Name);
                 }
-                return false;
+                return ConsumerAction.Nack;
             }
         }
         catch (Exception ex)
@@ -178,7 +182,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             {
                 logger.LogError(ex, "Deserialization failure for event: {EventName}", eventType.Name);
             }
-            return false;
+            return ConsumerAction.Nack;
         }
         using var scope = _scopeFactory?.CreateScope();
         var provider = scope?.ServiceProvider ?? sp; // 无作用域时回退到根容器
@@ -203,7 +207,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             {
                 await ExecuteHandlerChainAsync(sortedHandlerTypes, eventType, provider, @event, consumerIndex, config, pipeline, ct).ConfigureAwait(false);
             }
-            return true;
+            return ConsumerAction.Ack;
         }
         catch (OperationCanceledException)
         {
@@ -281,9 +285,9 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
     }
 
     /// <summary>
-    /// 尝试调用回退处理器，返回是否应该 Ack
+    /// 尝试调用回退处理器，返回消息处置动作
     /// </summary>
-    private async Task<bool> TryFallbackAsync(EventConfiguration? config, Type eventType, IServiceProvider provider, object @event, Exception exception, CancellationToken ct)
+    private async Task<ConsumerAction> TryFallbackAsync(EventConfiguration? config, Type eventType, IServiceProvider provider, object @event, Exception exception, CancellationToken ct)
     {
         if (config?.FallbackHandlerType is null)
         {
@@ -291,7 +295,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             {
                 logger.LogError(exception, "Event {EventName} processing failed with no fallback handler configured", eventType.Name);
             }
-            return false; // Nack
+            return ConsumerAction.Nack;
         }
         try
         {
@@ -302,7 +306,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
                 {
                     logger.LogWarning("Fallback handler {FallbackType} not found in DI for event {EventName}", config.FallbackHandlerType.Name, eventType.Name);
                 }
-                return false;
+                return ConsumerAction.Nack;
             }
 
             // 调用 IEventFallbackHandler<TEvent>.OnFallbackAsync
@@ -310,7 +314,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             var fallbackMethod = fallbackInterfaceType.GetMethod(nameof(IEventFallbackHandler<>.OnFallbackAsync));
             if (fallbackMethod is null)
             {
-                return false;
+                return ConsumerAction.Nack;
             }
             var task = (Task<ConsumerAction>)fallbackMethod.Invoke(fallback, [@event, exception, 0])!;
             var action = await task.ConfigureAwait(false);
@@ -318,12 +322,14 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             {
                 logger.LogInformation("Fallback handler returned {Action} for event {EventName}", action, eventType.Name);
             }
-            return action switch
+
+            // DeadLetter 需要先存储再 Ack
+            if (action == ConsumerAction.DeadLetter)
             {
-                ConsumerAction.Ack        => true,
-                ConsumerAction.DeadLetter => await StoreDeadLetterAsync(@event, eventType, ct).ConfigureAwait(false),
-                _                         => false // Nack or Requeue
-            };
+                var stored = await StoreDeadLetterAsync(@event, eventType, ct).ConfigureAwait(false);
+                return stored ? ConsumerAction.Ack : ConsumerAction.Nack;
+            }
+            return action;
         }
         catch (Exception fallbackEx)
         {
@@ -331,7 +337,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             {
                 logger.LogError(fallbackEx, "Fallback handler failed for event {EventName}", eventType.Name);
             }
-            return false;
+            return ConsumerAction.Nack;
         }
     }
 
