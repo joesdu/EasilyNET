@@ -303,7 +303,9 @@ c.AddEvent<OrderEvent>(EModel.Routing, "order.exchange", "order.key", "order.que
 
 #### 消费者回退处理器
 
-当所有处理器在 Polly 重试耗尽后仍然失败时，回退处理器被调用。返回 `ConsumerAction` 枚举决定消息的命运。
+当处理器执行过程中发生异常（Polly 重试耗尽后仍然失败）时，回退处理器被调用。返回 `ConsumerAction` 枚举决定消息的命运。
+
+> 注意：顺序执行模式下，任一处理器失败即触发回退（后续处理器不再执行）；并发执行模式下，任一处理器失败也会触发回退。
 
 ##### 定义回退处理器
 

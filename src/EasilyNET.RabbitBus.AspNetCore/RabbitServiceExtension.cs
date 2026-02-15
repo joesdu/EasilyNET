@@ -11,6 +11,7 @@ using EasilyNET.RabbitBus.AspNetCore.Services;
 using EasilyNET.RabbitBus.AspNetCore.Stores;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Registry;
 using Polly.Timeout;
@@ -84,7 +85,8 @@ public static class RabbitServiceExtension
                 sp.GetRequiredService<ILogger<EventBus>>(),
                 sp.GetRequiredService<ResiliencePipelineProvider<string>>(),
                 eventRegistry,
-                sp.GetRequiredService<IDeadLetterStore>()));
+                sp.GetRequiredService<IDeadLetterStore>(),
+                sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>()));
             services.AddSingleton<ConsumerManager>();
             services.AddSingleton<IDeadLetterStore, InMemoryDeadLetterStore>();
             services.AddSingleton<IBus, EventBus>();

@@ -8,6 +8,7 @@ using EasilyNET.RabbitBus.AspNetCore.Configs;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Registry;
 using RabbitMQ.Client;
@@ -18,12 +19,15 @@ namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 /// <summary>
 /// 事件处理器调用器，负责事件处理逻辑
 /// </summary>
-internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer serializer, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pipelineProvider, EventConfigurationRegistry eventRegistry, IDeadLetterStore deadLetterStore)
+internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer serializer, ILogger<EventBus> logger, ResiliencePipelineProvider<string> pipelineProvider, EventConfigurationRegistry eventRegistry, IDeadLetterStore deadLetterStore, IOptionsMonitor<RabbitConfig> rabbitOptions)
 {
     private const string HandleName = nameof(IEventHandler<>.HandleAsync); // 名称解析一次
 
     // 缓存 (HandlerType, EventType) -> 开放委托: (object handler, object evt) => Task
     private static readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Func<object, object, Task>> _openDelegateCache = new();
+
+    // 缓存中间件调用器（按事件类型），避免每条消息反射
+    private static readonly ConcurrentDictionary<Type, MiddlewareInvoker> _middlewareInvokerCache = new();
 
     private static readonly ActivitySource s_activitySource = new(Constant.ActivitySourceName);
 
@@ -216,12 +220,13 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
         catch (Exception ex)
         {
             // 尝试回退处理器
-            return await TryFallbackAsync(config, eventType, provider, @event, ex, ct).ConfigureAwait(false);
+            var retryCount = rabbitOptions.Get(Constant.OptionName).RetryCount;
+            return await TryFallbackAsync(config, eventType, provider, @event, ex, retryCount, ct).ConfigureAwait(false);
         }
     }
 
     /// <summary>
-    /// 通过中间件执行处理器链路
+    /// 通过中间件执行处理器链路（使用缓存的委托避免每条消息反射）
     /// </summary>
     private async Task ExecuteWithMiddlewareAsync(EventConfiguration config, Type eventType, IServiceProvider provider, object @event, IReadOnlyDictionary<string, object?> headers, List<Type> sortedHandlerTypes, int consumerIndex, ResiliencePipeline pipeline, CancellationToken ct)
     {
@@ -235,31 +240,11 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             await ExecuteHandlerChainAsync(sortedHandlerTypes, eventType, provider, @event, consumerIndex, config, pipeline, ct).ConfigureAwait(false);
             return;
         }
-
-        // 使用反射调用泛型中间件的 HandleAsync 方法
-        // IEventMiddleware<TEvent>.HandleAsync(EventContext<TEvent> context, Func<Task> next)
-        var middlewareInterfaceType = typeof(IEventMiddleware<>).MakeGenericType(eventType);
-        var handleMethod = middlewareInterfaceType.GetMethod(nameof(IEventMiddleware<>.HandleAsync));
-        if (handleMethod is null)
-        {
-            if (logger.IsEnabled(LogLevel.Error))
-            {
-                logger.LogError("HandleAsync method not found on middleware {MiddlewareType}", config.MiddlewareType!.Name);
-            }
-            await ExecuteHandlerChainAsync(sortedHandlerTypes, eventType, provider, @event, consumerIndex, config, pipeline, ct).ConfigureAwait(false);
-            return;
-        }
-
-        // 构建 EventContext<TEvent>
-        var contextType = typeof(EventContext<>).MakeGenericType(eventType);
-        var context = Activator.CreateInstance(contextType);
-        contextType.GetProperty(nameof(EventContext<>.Event))!.SetValue(context, @event);
-        contextType.GetProperty(nameof(EventContext<>.Headers))!.SetValue(context, headers);
-        contextType.GetProperty(nameof(EventContext<>.CancellationToken))!.SetValue(context, ct);
-        var task = (Task)handleMethod.Invoke(middleware, [context, (Func<Task>)Next])!;
-        await task.ConfigureAwait(false);
+        var invoker = _middlewareInvokerCache.GetOrAdd(eventType, static eType => MiddlewareInvoker.Create(eType));
+        var context = invoker.CreateContext(@event, headers, ct);
+        await invoker.InvokeAsync(middleware, context, next).ConfigureAwait(false);
         return;
-        Task Next() => ExecuteHandlerChainAsync(sortedHandlerTypes, eventType, provider, @event, consumerIndex, config, pipeline, ct);
+        Task next() => ExecuteHandlerChainAsync(sortedHandlerTypes, eventType, provider, @event, consumerIndex, config, pipeline, ct);
     }
 
     /// <summary>
@@ -287,7 +272,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
     /// <summary>
     /// 尝试调用回退处理器，返回消息处置动作
     /// </summary>
-    private async Task<ConsumerAction> TryFallbackAsync(EventConfiguration? config, Type eventType, IServiceProvider provider, object @event, Exception exception, CancellationToken ct)
+    private async Task<ConsumerAction> TryFallbackAsync(EventConfiguration? config, Type eventType, IServiceProvider provider, object @event, Exception exception, int retryCount, CancellationToken ct)
     {
         if (config?.FallbackHandlerType is null)
         {
@@ -316,7 +301,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             {
                 return ConsumerAction.Nack;
             }
-            var task = (Task<ConsumerAction>)fallbackMethod.Invoke(fallback, [@event, exception, 0])!;
+            var task = (Task<ConsumerAction>)fallbackMethod.Invoke(fallback, [@event, exception, retryCount])!;
             var action = await task.ConfigureAwait(false);
             if (logger.IsEnabled(LogLevel.Information))
             {
@@ -326,7 +311,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             // DeadLetter 需要先存储再 Ack
             if (action == ConsumerAction.DeadLetter)
             {
-                var stored = await StoreDeadLetterAsync(@event, eventType, ct).ConfigureAwait(false);
+                var stored = await StoreDeadLetterAsync(@event, eventType, retryCount, ct).ConfigureAwait(false);
                 return stored ? ConsumerAction.Ack : ConsumerAction.Nack;
             }
             return action;
@@ -344,13 +329,13 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
     /// <summary>
     /// 将消息存入死信存储并返回 true（Ack，因为已经存入死信）
     /// </summary>
-    private async Task<bool> StoreDeadLetterAsync(object @event, Type eventType, CancellationToken ct)
+    private async Task<bool> StoreDeadLetterAsync(object @event, Type eventType, int retryCount, CancellationToken ct)
     {
         try
         {
             if (@event is IEvent evt)
             {
-                await deadLetterStore.StoreAsync(new DeadLetterMessage(eventType.Name, evt.EventId, DateTime.UtcNow, 0, evt), ct).ConfigureAwait(false);
+                await deadLetterStore.StoreAsync(new DeadLetterMessage(eventType.Name, evt.EventId, DateTime.UtcNow, retryCount, evt), ct).ConfigureAwait(false);
             }
             return true; // Ack after dead-lettering
         }
@@ -542,5 +527,68 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             }
         }
         return body.ToArray();
+    }
+
+    /// <summary>
+    /// 缓存的中间件调用器，避免每条消息反射。按 eventType 缓存一次，后续调用零反射。
+    /// </summary>
+    private sealed class MiddlewareInvoker
+    {
+        private readonly Func<object, IReadOnlyDictionary<string, object?>, CancellationToken, object> _contextFactory;
+        private readonly Func<object, object, Func<Task>, Task> _invokeDelegate;
+
+        private MiddlewareInvoker(
+            Func<object, IReadOnlyDictionary<string, object?>, CancellationToken, object> contextFactory,
+            Func<object, object, Func<Task>, Task> invokeDelegate)
+        {
+            _contextFactory = contextFactory;
+            _invokeDelegate = invokeDelegate;
+        }
+
+        /// <summary>
+        /// 创建 EventContext 实例（已编译委托，无反射）
+        /// </summary>
+        public object CreateContext(object @event, IReadOnlyDictionary<string, object?> headers, CancellationToken ct) => _contextFactory(@event, headers, ct);
+
+        /// <summary>
+        /// 调用中间件的 HandleAsync（已编译委托，无反射）
+        /// </summary>
+        public Task InvokeAsync(object middleware, object context, Func<Task> next) => _invokeDelegate(middleware, context, next);
+
+        /// <summary>
+        /// 为指定事件类型编译中间件调用器（仅执行一次）
+        /// </summary>
+        public static MiddlewareInvoker Create(Type eventType)
+        {
+            // 编译 context 工厂: (object evt, IReadOnlyDictionary<string, object?> headers, CancellationToken ct) => new EventContext<TEvent> { Event = (TEvent)evt, Headers = headers, CancellationToken = ct }
+            var contextType = typeof(EventContext<>).MakeGenericType(eventType);
+            var evtParam = Expression.Parameter(typeof(object), "evt");
+            var headersParam = Expression.Parameter(typeof(IReadOnlyDictionary<string, object?>), "headers");
+            var ctParam = Expression.Parameter(typeof(CancellationToken), "ct");
+            var eventProp = contextType.GetProperty(nameof(EventContext<>.Event))!;
+            var headersProp = contextType.GetProperty(nameof(EventContext<>.Headers))!;
+            var ctProp = contextType.GetProperty(nameof(EventContext<>.CancellationToken))!;
+
+            // 使用 MemberInit 表达式构建 new EventContext<T> { Event = ..., Headers = ..., CancellationToken = ... }
+            var newExpr = Expression.New(contextType);
+            var initExpr = Expression.MemberInit(newExpr,
+                Expression.Bind(eventProp, Expression.Convert(evtParam, eventType)),
+                Expression.Bind(headersProp, headersParam),
+                Expression.Bind(ctProp, ctParam));
+            var contextFactory = Expression.Lambda<Func<object, IReadOnlyDictionary<string, object?>, CancellationToken, object>>(Expression.Convert(initExpr, typeof(object)), evtParam, headersParam, ctParam).Compile();
+
+            // 编译中间件调用委托: (object mw, object ctx, Func<Task> next) => ((IEventMiddleware<TEvent>)mw).HandleAsync((EventContext<TEvent>)ctx, next)
+            var middlewareInterfaceType = typeof(IEventMiddleware<>).MakeGenericType(eventType);
+            var handleMethod = middlewareInterfaceType.GetMethod(nameof(IEventMiddleware<>.HandleAsync)) ?? throw new MissingMethodException(middlewareInterfaceType.FullName, nameof(IEventMiddleware<>.HandleAsync));
+            var mwParam = Expression.Parameter(typeof(object), "mw");
+            var ctxParam = Expression.Parameter(typeof(object), "ctx");
+            var nextParam = Expression.Parameter(typeof(Func<Task>), "next");
+            var callExpr = Expression.Call(Expression.Convert(mwParam, middlewareInterfaceType),
+                handleMethod,
+                Expression.Convert(ctxParam, contextType),
+                nextParam);
+            var invokeDelegate = Expression.Lambda<Func<object, object, Func<Task>, Task>>(callExpr, mwParam, ctxParam, nextParam).Compile();
+            return new(contextFactory, invokeDelegate);
+        }
     }
 }

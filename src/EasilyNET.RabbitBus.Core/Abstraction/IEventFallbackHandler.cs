@@ -2,11 +2,13 @@ namespace EasilyNET.RabbitBus.Core.Abstraction;
 
 /// <summary>
 ///     <para xml:lang="en">
-///     Optional fallback handler invoked when all event handlers fail after retries are exhausted.
+///     Optional fallback handler invoked when event processing fails after retries are exhausted.
+///     In sequential mode, this is triggered when any handler fails; in concurrent mode, when any handler fails.
 ///     Returns a <see cref="ConsumerAction" /> to determine the message's fate (Ack, Nack, Requeue, or DeadLetter)
 ///     </para>
 ///     <para xml:lang="zh">
-///     当所有事件处理器在重试耗尽后仍然失败时调用的可选回退处理器。
+///     当事件处理在重试耗尽后仍然失败时调用的可选回退处理器。
+///     顺序执行模式下，任一处理器失败即触发；并发执行模式下，任一处理器失败也会触发。
 ///     返回 <see cref="ConsumerAction" /> 以决定消息的命运（确认、拒绝、重新入队或死信）
 ///     </para>
 /// </summary>
@@ -18,11 +20,11 @@ public interface IEventFallbackHandler<in TEvent> where TEvent : IEvent
 {
     /// <summary>
     ///     <para xml:lang="en">
-    ///     Called when all handlers for the event have failed after retries.
+    ///     Called when event processing fails after retries are exhausted.
     ///     Use this to implement compensation logic, logging, or to decide the message's disposition
     ///     </para>
     ///     <para xml:lang="zh">
-    ///     当事件的所有处理器在重试后仍失败时调用。
+    ///     当事件处理在重试耗尽后仍失败时调用。
     ///     用于实现补偿逻辑、日志记录或决定消息的处置方式
     ///     </para>
     /// </summary>

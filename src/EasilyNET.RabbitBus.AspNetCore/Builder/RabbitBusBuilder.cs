@@ -577,11 +577,22 @@ public sealed class RabbitBusBuilder
         ///     <para xml:lang="en">Handler type</para>
         ///     <para xml:lang="zh">处理器类型</para>
         /// </typeparam>
+        public EventConfigurator<TEvent> WithHandler<THandler>() where THandler : class, IEventHandler<TEvent> => WithHandler<THandler>(0);
+
+        /// <summary>
+        ///     <para xml:lang="en">Register a specific handler for the event with explicit execution order</para>
+        ///     <para xml:lang="zh">为事件注册特定处理器并指定执行顺序</para>
+        /// </summary>
+        /// <typeparam name="THandler">
+        ///     <para xml:lang="en">Handler type</para>
+        ///     <para xml:lang="zh">处理器类型</para>
+        /// </typeparam>
         /// <param name="order">
-        ///     <para xml:lang="en">Execution order when SequentialHandlerExecution is enabled (lower values execute first). Default is 0</para>
-        ///     <para xml:lang="zh">当启用顺序执行时的执行顺序（值越小越先执行）。默认为0</para>
+        ///     <para xml:lang="en">Execution order when SequentialHandlerExecution is enabled (lower values execute first)</para>
+        ///     <para xml:lang="zh">当启用顺序执行时的执行顺序（值越小越先执行）</para>
         /// </param>
-        public EventConfigurator<TEvent> WithHandler<THandler>(int order = 0) where THandler : class, IEventHandler<TEvent>
+        // ReSharper disable once MemberCanBePrivate.Global
+        public EventConfigurator<TEvent> WithHandler<THandler>(int order) where THandler : class, IEventHandler<TEvent>
         {
             _builder.EventRegistry.Configure<TEvent>(config =>
             {
