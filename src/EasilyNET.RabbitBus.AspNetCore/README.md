@@ -9,6 +9,11 @@
 - 内建发布失败重试（Nack/Confirm 超时）后台调度器：指数退避 + 抖动
 - 死信存储：超过最大重试后写入死信存储（内置内存实现，支持自定义）
 - 健康检查与可观测性：连接/发布/重试等指标 + 健康检查
+- 消费者中间件管道：支持事务、幂等性检查、日志等横切关注点
+- 消费者回退处理器：重试耗尽后自定义消息处置（Ack/Nack/Requeue/DeadLetter）
+- 处理器显式排序：通过 `order` 参数控制顺序执行时的处理器顺序
+- 自定义弹性管道：每个事件可配置独立的重试/超时策略
+- OpenTelemetry 分布式追踪：发布/消费链路自动传播 trace context
 
 #### 关于延迟消息功能的移除说明
 
@@ -70,6 +75,8 @@ builder.Services.AddRabbitBus(c =>
      .WithEventHeaders(new() { ["x-version"] = "v1" })
      .WithEventQueueArgs(new() { ["x-max-priority"] = 9 })
      .WithEventExchangeArgs(new() { ["alternate-exchange"] = "alt.exchange" })
+     .WithMiddleware<TestEventMiddleware>()          // 可选：中间件（事务/幂等性）
+     .WithFallbackHandler<TestEventFallbackHandler>() // 可选：回退处理器
      .WithHandler<TestEventHandler>()
      .WithHandler<TestEventHandlerSecond>()
      .And();
@@ -77,6 +84,16 @@ builder.Services.AddRabbitBus(c =>
     // 发布/订阅（Fanout）
     c.AddEvent<FanoutEvent>(EModel.PublishSubscribe, "fanout.exchange", queueName: "fanout.queue")
      .WithHandler<FanoutEventHandler>();
+
+    // 顺序执行 + 显式排序
+    c.AddEvent<OrderEvent>(EModel.Routing, "order.exchange", "order.key", "order.queue")
+     .ConfigureEvent(cfg => cfg.SequentialHandlerExecution = true)
+     .WithMiddleware<OrderEventMiddleware>()
+     .WithFallbackHandler<OrderFallbackHandler>()
+     .WithHandler<OrderValidationHandler>(order: 0)
+     .WithHandler<OrderProcessingHandler>(order: 10)
+     .WithHandler<OrderNotificationHandler>(order: 20)
+     .And();
 
     // 忽略某个处理器
     c.IgnoreHandler<TestEvent, TestEventHandlerSecond>();
@@ -189,9 +206,14 @@ builder.Services.AddRabbitBus(c =>
 #### 注意事项
 
 - **事件必须注册处理器**：仅通过 `WithHandler<THandler>()` 明确注册的处理器才会创建消费者并注入 DI。
+- **处理器生命周期**：处理器注册为 Scoped 生命周期，每条消息创建独立的 DI 作用域，可安全注入 DbContext 等 Scoped 服务。
+  > **⚠️ 破坏性变更（Breaking Change）**：处理器（Handler）、中间件（Middleware）和回退处理器（FallbackHandler）的 DI 生命周期已从 **Singleton 变更为 Scoped**。如果你的处理器依赖 Singleton 语义（如内部维护可变状态），请改用注入的 Singleton 服务来管理共享状态。此变更是为了正确支持每条消息独立的 DI 作用域，使处理器可以安全注入 `DbContext` 等 Scoped 服务。此外，中间件和回退处理器在 DI 解析失败时将抛出 `InvalidOperationException` 而非静默降级，以确保显式配置的组件不会被意外跳过。
 - **处理器执行顺序**：同一事件的多个处理器支持两种执行模式：
   - **并发执行**（默认）：处理器并行执行，提高吞吐量
-  - **顺序执行**：通过 `SequentialHandlerExecution = true` 配置，确保处理器按注册顺序依次执行
+  - **顺序执行**：通过 `SequentialHandlerExecution = true` 配置，确保处理器按 `order` 参数排序后依次执行
+- **中间件管道**：通过 `WithMiddleware<T>()` 注册中间件，包裹整个处理器链路。适用于事务、幂等性检查、审计日志等横切关注点。
+- **回退处理器**：通过 `WithFallbackHandler<T>()` 注册回退处理器，在所有重试耗尽后决定消息的处置方式（Ack/Nack/Requeue/DeadLetter）。
+- **分布式追踪**：框架自动为发布/消费创建 OpenTelemetry span，通过消息头传播 trace context。只需 `AddSource("EasilyNET.RabbitBus")` 即可接入。
 - **并发方式**：提高 `HandlerThreadCount`（每事件消费者数量）以及 `ConsumerDispatchConcurrency` 以提升并发；`ConsumerChannelLimit` 可限制通道数量。
 - **优先级队列**：使用优先级需设置队列参数 `x-max-priority`。
 - **默认交换机**：`EModel.None` 表示不显式声明交换机，使用默认交换机；此时 routingKey 默认为队列名。
@@ -227,6 +249,199 @@ c.AddEvent<LogEvent>(EModel.Routing, "log.exchange", "log.key", "log.queue")
 |------|------|------|----------|
 | 并发执行 | `SequentialHandlerExecution = false`（默认） | 处理器并行执行，高吞吐 | 处理器之间无依赖关系 |
 | 顺序执行 | `SequentialHandlerExecution = true` | 按注册顺序依次执行 | 处理器有执行顺序依赖 |
+
+#### 消费者中间件管道
+
+中间件包裹整个处理器执行链路，支持事务、幂等性检查、日志记录等横切关注点。不调用 `next()` 可短路管道（如幂等性检查命中时直接返回）。
+
+##### 定义中间件
+
+```csharp
+using EasilyNET.RabbitBus.Core.Abstraction;
+
+public class OrderEventMiddleware(DbContext db, ILogger<OrderEventMiddleware> logger) : IEventMiddleware<OrderEvent>
+{
+    public async Task HandleAsync(EventContext<OrderEvent> context, Func<Task> next)
+    {
+        // 幂等性检查：如果已处理过该事件，直接返回（短路管道）
+        if (await db.ProcessedEvents.AnyAsync(e => e.EventId == context.Event.EventId, context.CancellationToken))
+        {
+            logger.LogInformation("Event {EventId} already processed, skipping", context.Event.EventId);
+            return; // 不调用 next()，短路管道
+        }
+
+        // 开启数据库事务包裹所有处理器
+        await using var tx = await db.Database.BeginTransactionAsync(context.CancellationToken);
+        try
+        {
+            await next(); // 执行所有处理器
+            
+            // 记录已处理事件
+            db.ProcessedEvents.Add(new ProcessedEvent { EventId = context.Event.EventId, ProcessedAt = DateTime.UtcNow });
+            await db.SaveChangesAsync(context.CancellationToken);
+            await tx.CommitAsync(context.CancellationToken);
+        }
+        catch
+        {
+            await tx.RollbackAsync(context.CancellationToken);
+            throw;
+        }
+    }
+}
+```
+
+##### 注册中间件
+
+```csharp
+c.AddEvent<OrderEvent>(EModel.Routing, "order.exchange", "order.key", "order.queue")
+ .WithMiddleware<OrderEventMiddleware>()  // 注册中间件
+ .WithHandler<OrderValidationHandler>()
+ .WithHandler<OrderProcessingHandler>()
+ .And();
+```
+
+> 中间件注册为 Scoped 生命周期，可注入 DbContext 等 Scoped 服务。每个事件类型最多配置一个中间件。
+
+#### 消费者回退处理器
+
+当处理器执行过程中发生异常（Polly 重试耗尽后仍然失败）时，回退处理器被调用。返回 `ConsumerAction` 枚举决定消息的命运。
+
+> 注意：顺序执行模式下，任一处理器失败即触发回退（后续处理器不再执行）；并发执行模式下，任一处理器失败也会触发回退。
+
+##### 定义回退处理器
+
+```csharp
+using EasilyNET.RabbitBus.Core.Abstraction;
+
+public class OrderFallbackHandler(ILogger<OrderFallbackHandler> logger) : IEventFallbackHandler<OrderEvent>
+{
+    public Task<ConsumerAction> OnFallbackAsync(OrderEvent @event, Exception exception, int retryCount)
+    {
+        logger.LogError(exception, "Order event {EventId} failed after {RetryCount} retries", @event.EventId, retryCount);
+
+        // 根据异常类型决定消息处置方式
+        return Task.FromResult(exception switch
+        {
+            // 数据验证错误：确认消费（不重试）
+            ValidationException => ConsumerAction.Ack,
+            // 临时性错误：重新入队稍后重试
+            TimeoutException => ConsumerAction.Requeue,
+            // 其他错误：发送到死信存储
+            _ => ConsumerAction.DeadLetter
+        });
+    }
+}
+```
+
+##### 注册回退处理器
+
+```csharp
+c.AddEvent<OrderEvent>(EModel.Routing, "order.exchange", "order.key", "order.queue")
+ .WithMiddleware<OrderEventMiddleware>()
+ .WithFallbackHandler<OrderFallbackHandler>()  // 注册回退处理器
+ .WithHandler<OrderValidationHandler>()
+ .WithHandler<OrderProcessingHandler>()
+ .And();
+```
+
+**ConsumerAction 枚举**：
+
+| 值 | 说明 |
+|------|------|
+| `Ack` | 确认消息（即使处理失败也标记为已消费） |
+| `Nack` | 拒绝消息，不重新入队 |
+| `Requeue` | 拒绝消息并重新入队，稍后重新消费 |
+| `DeadLetter` | 将消息存入死信存储后确认 |
+
+> 若未配置回退处理器，处理失败后默认 Nack（与之前行为一致）。
+
+#### 处理器显式排序
+
+当启用顺序执行时，可通过 `order` 参数显式控制处理器的执行顺序（值越小越先执行）：
+
+```csharp
+c.AddEvent<OrderEvent>(EModel.Routing, "order.exchange", "order.key", "order.queue")
+ .ConfigureEvent(cfg => cfg.SequentialHandlerExecution = true)
+ .WithHandler<OrderValidationHandler>(order: 0)    // 第一步：验证
+ .WithHandler<OrderProcessingHandler>(order: 10)   // 第二步：处理
+ .WithHandler<OrderNotificationHandler>(order: 20) // 第三步：通知
+ .And();
+```
+
+> 不指定 `order` 时默认为 0，按注册顺序执行（与之前行为一致）。
+
+#### 自定义弹性管道
+
+每个事件可配置独立的 Polly 弹性管道，覆盖全局默认策略：
+
+```csharp
+c.AddEvent<CriticalEvent>(EModel.Routing, "critical.exchange", "critical.key", "critical.queue")
+ .WithHandlerResilience(builder =>
+ {
+     // 关键业务：更多重试、更长超时
+     builder.AddRetry(new()
+     {
+         MaxRetryAttempts = 5,
+         Delay = TimeSpan.FromSeconds(2),
+         BackoffType = DelayBackoffType.Exponential,
+         UseJitter = true
+     });
+     builder.AddTimeout(TimeSpan.FromMinutes(2));
+ })
+ .WithHandler<CriticalEventHandler>()
+ .And();
+
+c.AddEvent<LogEvent>(EModel.Routing, "log.exchange", "log.key", "log.queue")
+ .WithHandlerResilience(builder =>
+ {
+     // 日志事件：快速失败，不重试
+     builder.AddTimeout(TimeSpan.FromSeconds(5));
+ })
+ .WithHandler<LogEventHandler>()
+ .And();
+```
+
+> 未配置自定义弹性管道时，使用全局默认的 HandlerPipeline。
+
+#### OpenTelemetry 分布式追踪
+
+框架内置 `System.Diagnostics.ActivitySource` 支持，自动为发布和消费操作创建追踪 span，并通过 RabbitMQ 消息头传播 trace context（`traceparent`/`tracestate`）。
+
+##### 接入 OpenTelemetry
+
+```csharp
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("MyApp"))
+    .WithTracing(tracing =>
+    {
+        tracing.AddSource("EasilyNET.RabbitBus")  // 添加 RabbitBus ActivitySource
+               .AddAspNetCoreInstrumentation()
+               .AddOtlpExporter();
+    });
+```
+
+##### 追踪标签
+
+发布 span（`rabbitmq.publish`，`ActivityKind.Producer`）：
+
+| 标签 | 说明 |
+|------|------|
+| `messaging.system` | `rabbitmq` |
+| `messaging.destination` | 交换机名称 |
+| `messaging.destination_kind` | `exchange` |
+| `messaging.rabbitmq.routing_key` | 路由键 |
+| `messaging.message.id` | 事件 ID |
+
+消费 span（`rabbitmq.consume`，`ActivityKind.Consumer`）：
+
+| 标签 | 说明 |
+|------|------|
+| `messaging.system` | `rabbitmq` |
+| `messaging.source` | 来源交换机 |
+| `messaging.destination` | 路由键 |
+| `messaging.consumer_id` | 消费者索引 |
+
+> 发布端自动将 `traceparent`/`tracestate` 注入消息头，消费端自动提取并关联为父级 span，实现跨进程的完整链路追踪。
 
 #### 自定义死信存储
 
@@ -472,6 +687,13 @@ builder.Services.AddRabbitBus(c =>
   ```
 
 - OpenTelemetry: 按常规方式接入 OTLP/Prometheus 导出器即可收集上述指标。
+- 分布式追踪: ActivitySource 名称为 `EasilyNET.RabbitBus`，支持发布/消费 span 自动创建与 trace context 传播。
+
+  ```csharp
+  // 接入 OpenTelemetry 追踪
+  builder.Services.AddOpenTelemetry()
+      .WithTracing(tracing => tracing.AddSource("EasilyNET.RabbitBus"));
+  ```
 
 #### 发布限流/背压
 
@@ -576,6 +798,10 @@ builder.Services.AddRabbitBus(c =>
 | `WithEventQueueArgs`     | `args`                           | -                     | 队列声明参数(x-max-priority 等)       |
 | `WithEventExchangeArgs`  | `args`                           | -                     | 交换机声明参数                        |
 | `WithHandler`            | `THandler`                       | -                     | 注册事件处理器(必须)                  |
+|                          | `order`                          | 0                     | 处理器执行顺序(值越小越先执行)        |
+| `WithMiddleware`         | `TMiddleware`                    | -                     | 注册事件中间件(可选,每事件最多一个)   |
+| `WithFallbackHandler`    | `TFallback`                      | -                     | 注册回退处理器(可选,重试耗尽后调用)   |
+| `WithHandlerResilience`  | `Action<ResiliencePipelineBuilder>` | 全局 HandlerPipeline | 自定义事件级弹性管道                  |
 | `WithHandlerThreadCount` | `threadCount`                    | 1                     | 该事件消费者数量(并行度)              |
 | `ConfigureEvent`         | `SequentialHandlerExecution`     | false                 | 是否按顺序执行处理器                  |
 |                          | `Exchange/Queue/Qos/Headers/...` | -                     | 事件高级配置入口                      |
@@ -602,7 +828,29 @@ builder.Services.AddRabbitBus(c =>
 
 - **PublishPipeline**：发布操作的重试、超时策略
 - **ConnectionPipeline**：连接建立的重试策略
-- **HandlerPipeline**：消息处理器的重试、超时策略
+- **HandlerPipeline**：消息处理器的重试、超时策略（可通过 `WithHandlerResilience` 按事件覆盖）
+
+##### 消费者中间件管道
+
+消费侧采用中间件管道模式处理消息：
+
+```
+消息到达 → 反序列化 → [中间件 HandleAsync] → 处理器链路（顺序/并发） → Ack
+                              ↓ (异常)
+                     [回退处理器 OnFallbackAsync] → ConsumerAction → Ack/Nack/Requeue/DeadLetter
+```
+
+- **中间件**（`IEventMiddleware<T>`）：包裹整个处理器链路，支持事务、幂等性、日志等
+- **回退处理器**（`IEventFallbackHandler<T>`）：Polly 重试耗尽后调用，决定消息命运
+- **处理器排序**：通过 `HandlerConfiguration.Order` 控制顺序执行时的处理器顺序
+
+##### OpenTelemetry 追踪
+
+框架使用 `System.Diagnostics.ActivitySource`（名称：`EasilyNET.RabbitBus`）实现分布式追踪：
+
+- **发布端**：创建 `rabbitmq.publish` Producer span，将 `traceparent`/`tracestate` 注入消息头
+- **消费端**：从消息头提取父级 trace context，创建 `rabbitmq.consume` Consumer span
+- **跨进程关联**：发布和消费 span 自动通过消息头关联，在 Jaeger/Zipkin 等工具中可查看完整链路
 
 ```csharp
 // 内部注册示例（仅供参考）

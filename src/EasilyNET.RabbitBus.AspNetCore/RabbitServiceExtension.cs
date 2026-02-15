@@ -11,6 +11,7 @@ using EasilyNET.RabbitBus.AspNetCore.Services;
 using EasilyNET.RabbitBus.AspNetCore.Stores;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Registry;
 using Polly.Timeout;
@@ -83,7 +84,9 @@ public static class RabbitServiceExtension
                 sp.GetRequiredService<IBusSerializer>(),
                 sp.GetRequiredService<ILogger<EventBus>>(),
                 sp.GetRequiredService<ResiliencePipelineProvider<string>>(),
-                eventRegistry));
+                eventRegistry,
+                sp.GetRequiredService<IDeadLetterStore>(),
+                sp.GetRequiredService<IOptionsMonitor<RabbitConfig>>()));
             services.AddSingleton<ConsumerManager>();
             services.AddSingleton<IDeadLetterStore, InMemoryDeadLetterStore>();
             services.AddSingleton<IBus, EventBus>();
@@ -95,13 +98,28 @@ public static class RabbitServiceExtension
 
         private void InjectConfiguredHandlers(EventConfigurationRegistry registry)
         {
-            var handlerTypes = registry.GetAllConfigurations()
-                                       .Where(c => c.Enabled)
-                                       .SelectMany(c => c.Handlers.Where(h => !c.IgnoredHandlers.Contains(h)))
-                                       .Distinct();
-            foreach (var ht in handlerTypes)
+            var configurations = registry.GetAllConfigurations().Where(c => c.Enabled);
+            foreach (var config in configurations)
             {
-                services.AddSingleton(ht);
+                // Register middleware if configured
+                if (config.MiddlewareType is not null)
+                {
+                    services.AddScoped(config.MiddlewareType);
+                }
+                // Register fallback handler if configured
+                if (config.FallbackHandlerType is not null)
+                {
+                    services.AddScoped(config.FallbackHandlerType);
+                }
+                // Register handlers as Scoped (supports DbContext and other scoped services)
+                // Prefer OrderedHandlers if populated, otherwise fall back to legacy Handlers list
+                var handlerTypes = config.OrderedHandlers.Count > 0
+                                       ? config.OrderedHandlers.Select(h => h.HandlerType)
+                                       : config.Handlers.AsEnumerable();
+                foreach (var ht in handlerTypes.Where(h => !config.IgnoredHandlers.Contains(h)).Distinct())
+                {
+                    services.AddScoped(ht);
+                }
             }
         }
 
