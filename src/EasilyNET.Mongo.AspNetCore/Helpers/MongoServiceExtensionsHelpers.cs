@@ -124,7 +124,7 @@ internal static class MongoServiceExtensionsHelpers
                 Trace.TraceWarning("[EasilyNET.Mongo] 当前 AddMongoContext 调用的 DefaultConventionRegistry={0} 与首次注册的值 {1} 不一致，该设置已被忽略。ConventionRegistry 是进程级全局注册表，仅首次注册生效。",
                     options.DefaultConventionRegistry, _firstDefaultConventionRegistry);
             }
-            var currentTypes = options.ObjectIdToStringTypes ?? [];
+            var currentTypes = options.ObjectIdToStringTypes;
             var firstTypes = _firstObjectIdToStringTypes ?? [];
             if (!currentTypes.SequenceEqual(firstTypes))
             {
