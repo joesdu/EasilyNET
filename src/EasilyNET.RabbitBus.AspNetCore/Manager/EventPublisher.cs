@@ -38,10 +38,10 @@ internal readonly struct RetryMessage
 internal sealed class EventPublisher : IAsyncDisposable
 {
     /// <summary>
-    /// Global <see cref="ActivitySource"/> for RabbitBus event publishing.
+    /// Global <see cref="ActivitySource" /> for RabbitBus event publishing.
     /// This static instance is intentionally process-wide and lives for the entire
     /// application lifetime, so it is not explicitly disposed.
-    /// 全局的 <see cref="ActivitySource"/> 用于 RabbitBus 事件发布跟踪。
+    /// 全局的 <see cref="ActivitySource" /> 用于 RabbitBus 事件发布跟踪。
     /// 该静态实例设计为随应用程序生命周期一直存在，因此不会显式调用 <c>Dispose</c> 进行释放。
     /// </summary>
     private static readonly ActivitySource s_activitySource = new(Constant.ActivitySourceName);

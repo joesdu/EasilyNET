@@ -122,7 +122,7 @@ public class MongoTestController(DbContext db) : ControllerBase
             var date = DateOnly.FromDateTime(DateTime.Now.AddDays(i));
             os.Add(new() { Date = date, Index = i });
         }
-        var session = await db.StartSessionAsync(startTransaction: true);
+        var session = await db.StartSessionAsync(true);
         await db.Test2.InsertManyAsync(session, os);
         await session.CommitTransactionAsync();
     }
