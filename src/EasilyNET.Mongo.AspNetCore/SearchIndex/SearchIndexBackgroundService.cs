@@ -70,7 +70,7 @@ internal sealed class SearchIndexBackgroundService<T>(IServiceProvider servicePr
 
     private async Task EnsureSearchIndexesAsync(MongoContext dbContext, bool useCamelCase, CancellationToken ct)
     {
-        var dbContextType = dbContext.GetType().DeclaringType ?? dbContext.GetType();
+        var dbContextType = dbContext.GetType();
         var properties = AssemblyHelper.FindTypes(t => t == dbContextType)
                                        .SelectMany(t => t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
                                        .Where(prop => prop.PropertyType.IsGenericType && prop.PropertyType.GetGenericTypeDefinition() == typeof(IMongoCollection<>))
