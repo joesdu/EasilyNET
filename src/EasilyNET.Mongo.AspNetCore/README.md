@@ -174,7 +174,7 @@ builder.Services.AddMongoContext<MyDbContext>(builder.Configuration, c =>
 官方新版驱动已支持，本库额外提供字符串和 Ticks 两种存储方式以兼容历史数据：
 
 ```csharp
-// 字符串格式（默认 "yyyy-MM-dd" 和 "HH:mm:ss"，便于阅读和查询）
+// 字符串格式（默认 "yyyy-MM-dd" 和 "HH:mm:ss.ffffff"，便于阅读和查询）
 builder.Services.RegisterSerializer(new DateOnlySerializerAsString());
 builder.Services.RegisterSerializer(new TimeOnlySerializerAsString());
 
@@ -233,6 +233,24 @@ app.UseCreateMongoIndexes<MyDbContext>();
 1. 扫描 `MyDbContext` 的所有 `IMongoCollection<T>` 属性
 2. 比对数据库中的现有索引与代码声明
 3. 创建缺失的索引；对于结构变更的索引，先删后建
+
+### 索引管理策略
+
+默认情况下，框架只创建/更新代码中声明的索引，不会删除数据库中手动创建的索引（安全模式）。如需自动清理未在代码中声明的索引：
+
+```csharp
+builder.Services.AddMongoContext<MyDbContext>(builder.Configuration, c =>
+{
+    // 启用自动删除未管理的索引（谨慎！会删除 DBA 手动创建的索引）
+    c.DropUnmanagedIndexes = true;
+
+    // 保护特定前缀的索引不被删除（即使 DropUnmanagedIndexes = true）
+    c.ProtectedIndexPrefixes.Add("dba_");      // 保护 DBA 手动创建的索引
+    c.ProtectedIndexPrefixes.Add("analytics_"); // 保护分析用索引
+});
+```
+
+> ⚠️ `DropUnmanagedIndexes` 在生产环境请谨慎使用。建议配合 `ProtectedIndexPrefixes` 保护重要索引。
 
 > ⚠️ 时序集合（TimeSeries）上的时间字段由 MongoDB 自动索引，框架会自动跳过这些字段。
 
@@ -333,13 +351,36 @@ public class Product
 }
 ```
 
+对于**未在 `MongoContext` 上声明为 `IMongoCollection<T>` 属性**的实体类型，可以通过 `CollectionName` 显式指定集合名称，框架会通过程序集扫描自动发现并创建索引：
+
+```csharp
+// 该实体不需要在 DbContext 中声明，框架通过程序集扫描自动发现
+[MongoSearchIndex(Name = "log_search", CollectionName = "application_logs")]
+public class ApplicationLog
+{
+    [SearchField(ESearchFieldType.String, AnalyzerName = "lucene.standard")]
+    public string Message { get; set; }
+
+    [SearchField(ESearchFieldType.Date)]
+    public DateTime Timestamp { get; set; }
+}
+```
+
+> 💡 如果实体已在 `MongoContext` 上声明为 `IMongoCollection<T>` 属性，则无需设置 `CollectionName`，集合名称会自动解析。
+
 在启动时调用：
 
 ```csharp
-// 异步后台创建，不阻塞应用启动
-// 需要 MongoDB Atlas 或 MongoDB 8.2+ 社区版
+// 方式 1（推荐）：在服务注册阶段添加后台服务，自动创建索引
+builder.Services.AddMongoSearchIndexCreation<MyDbContext>();
+```
+
+```csharp
+// 方式 2：在中间件管道中调用（异步后台创建，不阻塞应用启动）
 app.UseCreateMongoSearchIndexes<MyDbContext>();
 ```
+
+> 两种方式均需要 MongoDB Atlas 或 MongoDB 8.2+ 社区版。不支持的环境会记录警告并跳过，不影响应用启动。
 
 在代码中执行向量搜索：
 
@@ -362,8 +403,6 @@ var pipeline = new BsonDocument[]
 
 var results = await db.Products.Aggregate<BsonDocument>(pipeline).ToListAsync();
 ```
-
-> ⚠️ **要求**：需要 MongoDB Atlas **或** MongoDB 8.2+ 社区版。不支持的环境会记录警告并跳过，不影响应用启动。
 
 ---
 
@@ -485,11 +524,30 @@ builder.Services.AddGridFSBucket(opt =>
     opt.ChunkSizeBytes = 512 * 1024;  // 每块 512KB（默认 255KB）
 });
 
-// 使用独立的数据库（文件库与业务库分离）
-builder.Services.AddGridFSBucket("file-storage-db", opt =>
+// 使用独立的数据库（文件库与业务库分离），通过键控服务注入
+builder.Services.AddGridFSBucket(
+    serviceKey: "media",              // DI 键名，注入时使用 [FromKeyedServices("media")]
+    databaseName: "file-storage-db",  // 独立数据库名
+    opt =>
+    {
+        opt.BucketName = "media";
+    });
+```
+
+### 键控注入（多 GridFS 桶场景）
+
+当注册了多个 GridFS 桶时，通过 `[FromKeyedServices]` 特性注入指定的桶：
+
+```csharp
+// 注册多个桶
+builder.Services.AddGridFSBucket("media", "media-db");
+builder.Services.AddGridFSBucket("documents", "docs-db");
+
+// 在服务中注入
+public class MediaService([FromKeyedServices("media")] IGridFSBucket mediaBucket)
 {
-    opt.BucketName = "media";
-});
+    // mediaBucket 操作 media-db 数据库中的 fs.files / fs.chunks
+}
 ```
 
 ### 使用 GridFS
@@ -619,6 +677,9 @@ public class MongoModule : AppModule
         // 变更流处理器
         context.Services.AddMongoChangeStreamHandler<OrderChangeStreamHandler>();
 
+        // Atlas Search / Vector Search 索引自动创建（推荐在服务注册阶段添加）
+        context.Services.AddMongoSearchIndexCreation<MyDbContext>();
+
         // 健康检查
         context.Services.AddHealthChecks().AddMongoHealthCheck();
 
@@ -645,7 +706,8 @@ public class AppWebModule : AppModule
         app.UseCreateMongoIndexes<MyDbContext>();
         app.UseCreateMongoTimeSeriesCollection<MyDbContext>();
         app.UseCreateMongoCappedCollections<MyDbContext>();
-        app.UseCreateMongoSearchIndexes<MyDbContext>(); // Atlas/MongoDB 8.2+ 才生效
+        // 如果已在 ConfigureServices 中调用 AddMongoSearchIndexCreation，则无需再调用以下方法
+        // app.UseCreateMongoSearchIndexes<MyDbContext>();
 
         app.UseAuthorization();
         await base.ApplicationInitialization(context);

@@ -64,7 +64,7 @@ public static class CollectionIndexExtensions
     private static void EnsureIndexes<T>(T dbContext, bool useCamelCase, ILogger? logger, BasicClientOptions options) where T : MongoContext
     {
         ArgumentNullException.ThrowIfNull(dbContext);
-        var dbContextType = dbContext.GetType().DeclaringType ?? dbContext.GetType();
+        var dbContextType = dbContext.GetType();
 
         // 缓存反射结果
         if (!PropertyCache.TryGetValue(dbContextType, out var properties))
