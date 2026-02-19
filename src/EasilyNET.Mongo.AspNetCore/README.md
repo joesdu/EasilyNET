@@ -351,6 +351,23 @@ public class Product
 }
 ```
 
+对于**未在 `MongoContext` 上声明为 `IMongoCollection<T>` 属性**的实体类型，可以通过 `CollectionName` 显式指定集合名称，框架会通过程序集扫描自动发现并创建索引：
+
+```csharp
+// 该实体不需要在 DbContext 中声明，框架通过程序集扫描自动发现
+[MongoSearchIndex(Name = "log_search", CollectionName = "application_logs")]
+public class ApplicationLog
+{
+    [SearchField(ESearchFieldType.String, AnalyzerName = "lucene.standard")]
+    public string Message { get; set; }
+
+    [SearchField(ESearchFieldType.Date)]
+    public DateTime Timestamp { get; set; }
+}
+```
+
+> 💡 如果实体已在 `MongoContext` 上声明为 `IMongoCollection<T>` 属性，则无需设置 `CollectionName`，集合名称会自动解析。
+
 在启动时调用：
 
 ```csharp

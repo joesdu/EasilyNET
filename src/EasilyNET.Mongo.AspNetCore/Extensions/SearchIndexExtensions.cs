@@ -61,10 +61,12 @@ public static class SearchIndexExtensions
     /// <remarks>
     ///     <para xml:lang="en">
     ///     This method starts a background service via <see cref="IHostApplicationLifetime" /> that runs once at startup.
+    ///     The service is properly managed with graceful cancellation and disposal.
     ///     For new code, prefer using <see cref="AddMongoSearchIndexCreation{T}" /> during service registration instead.
     ///     </para>
     ///     <para xml:lang="zh">
     ///     此方法通过 <see cref="IHostApplicationLifetime" /> 启动一个在启动时运行一次的后台服务。
+    ///     该服务具有正确的取消和释放管理。
     ///     对于新代码，建议在服务注册阶段使用 <see cref="AddMongoSearchIndexCreation{T}" /> 代替。
     ///     </para>
     /// </remarks>
@@ -79,12 +81,26 @@ public static class SearchIndexExtensions
         ArgumentNullException.ThrowIfNull(app);
         var serviceProvider = app.ApplicationServices;
         var lifetime = serviceProvider.GetRequiredService<IHostApplicationLifetime>();
-        // Create and start the background service when the application has fully started.
-        // The service respects ApplicationStopping for graceful cancellation.
-        lifetime.ApplicationStarted.Register(() =>
+        // Create the background service when the application has fully started.
+        // The service is properly started, awaited, and disposed on shutdown.
+        lifetime.ApplicationStarted.Register(void () =>
         {
             var backgroundService = ActivatorUtilities.CreateInstance<SearchIndexBackgroundService<T>>(serviceProvider);
-            _ = backgroundService.StartAsync(lifetime.ApplicationStopping);
+            var stoppingToken = lifetime.ApplicationStopping;
+            // Register disposal on application stopping to prevent resource leaks.
+            stoppingToken.Register(async void () =>
+            {
+                try
+                {
+                    await backgroundService.StopAsync(CancellationToken.None).ConfigureAwait(false);
+                    backgroundService.Dispose();
+                }
+                catch (Exception)
+                {
+                    // ignore exceptions during shutdown to avoid interfering with application termination
+                }
+            });
+            _ = backgroundService.StartAsync(stoppingToken);
         });
         return app;
     }

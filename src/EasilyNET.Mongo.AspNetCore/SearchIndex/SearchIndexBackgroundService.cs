@@ -72,6 +72,8 @@ internal sealed class SearchIndexBackgroundService<T>(IServiceProvider servicePr
                                        .SelectMany(t => t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
                                        .Where(prop => prop.PropertyType.IsGenericType && prop.PropertyType.GetGenericTypeDefinition() == typeof(IMongoCollection<>))
                                        .ToArray();
+        // Track entity types already processed via DbContext properties to avoid duplicate work in assembly scanning.
+        var processedEntityTypes = new HashSet<Type>();
         foreach (var prop in properties)
         {
             ct.ThrowIfCancellationRequested();
@@ -87,46 +89,74 @@ internal sealed class SearchIndexBackgroundService<T>(IServiceProvider servicePr
             {
                 continue;
             }
-            var collection = dbContext.Database.GetCollection<BsonDocument>(collectionName);
-            // Get existing search indexes
-            var existingIndexes = await SearchIndexManager.GetExistingSearchIndexesAsync(collection, logger, ct).ConfigureAwait(false);
-            foreach (var indexAttr in searchIndexAttrs)
-            {
-                ct.ThrowIfCancellationRequested();
-                if (existingIndexes.ContainsKey(indexAttr.Name))
-                {
-                    if (logger.IsEnabled(LogLevel.Debug))
-                    {
-                        logger.LogDebug("Search index {IndexName} already exists on collection {CollectionName}. Skipping.",
-                            indexAttr.Name, collectionName);
-                    }
-                    continue;
-                }
-                var indexType = indexAttr.Type == ESearchIndexType.VectorSearch ? SearchIndexType.VectorSearch : SearchIndexType.Search;
-                var definition = indexAttr.Type == ESearchIndexType.VectorSearch
-                                     ? SearchIndexDefinitionFactory.GenerateVectorSearchDefinition(entityType, indexAttr, useCamelCase)
-                                     : SearchIndexDefinitionFactory.GenerateSearchDefinition(entityType, indexAttr, useCamelCase);
-                if (logger.IsEnabled(LogLevel.Information))
-                {
-                    logger.LogInformation("Creating search index {IndexName} (type={IndexType}) on collection {CollectionName}.",
-                        indexAttr.Name, indexType, collectionName);
-                }
-                await SearchIndexManager.CreateSearchIndexAsync(collection, indexAttr.Name, indexType, definition, logger, ct).ConfigureAwait(false);
-            }
+            processedEntityTypes.Add(entityType);
+            await EnsureSearchIndexesForCollectionAsync(dbContext, entityType, collectionName, searchIndexAttrs, useCamelCase, ct).ConfigureAwait(false);
         }
-        // Also check types found via assembly scanning (not just DbContext properties)
-        // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
+        // Also check types found via assembly scanning (not just DbContext properties).
+        // Types that specify CollectionName on the attribute can have indexes created without being declared on the DbContext.
         foreach (var type in CachedSearchIndexTypes.Value)
         {
+            ct.ThrowIfCancellationRequested();
+            if (processedEntityTypes.Contains(type))
+            {
+                continue;
+            }
             var searchIndexAttrs = type.GetCustomAttributes<MongoSearchIndexAttribute>(false).ToList();
             if (searchIndexAttrs.Count == 0)
             {
                 continue;
             }
-            if (logger.IsEnabled(LogLevel.Debug))
+            // Group attributes by CollectionName. Attributes with CollectionName set can be processed;
+            // attributes without CollectionName cannot be resolved and will be warned about.
+            var attrsWithCollection = searchIndexAttrs.Where(a => !string.IsNullOrWhiteSpace(a.CollectionName)).ToList();
+            var attrsWithoutCollection = searchIndexAttrs.Where(a => string.IsNullOrWhiteSpace(a.CollectionName)).ToList();
+            if (attrsWithoutCollection.Count > 0 && logger.IsEnabled(LogLevel.Warning))
             {
-                logger.LogDebug("Found search index attributes on type {TypeName} via assembly scanning.", type.Name);
+                logger.LogWarning("Type {TypeName} has {Count} MongoSearchIndexAttribute(s) without CollectionName. " +
+                                  "These indexes cannot be created via assembly scanning. Either declare the type as an IMongoCollection<T> property " +
+                                  "on the MongoContext, or set CollectionName on the attribute.",
+                    type.Name, attrsWithoutCollection.Count);
             }
+            if (attrsWithCollection.Count == 0)
+            {
+                continue;
+            }
+            // Group by CollectionName and create indexes for each collection.
+            foreach (var group in attrsWithCollection.GroupBy(a => a.CollectionName!))
+            {
+                ct.ThrowIfCancellationRequested();
+                await EnsureSearchIndexesForCollectionAsync(dbContext, type, group.Key, [.. group], useCamelCase, ct).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private async Task EnsureSearchIndexesForCollectionAsync(MongoContext dbContext, Type entityType, string collectionName, List<MongoSearchIndexAttribute> searchIndexAttrs, bool useCamelCase, CancellationToken ct)
+    {
+        var collection = dbContext.Database.GetCollection<BsonDocument>(collectionName);
+        // Get existing search indexes
+        var existingIndexes = await SearchIndexManager.GetExistingSearchIndexesAsync(collection, logger, ct).ConfigureAwait(false);
+        foreach (var indexAttr in searchIndexAttrs)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (existingIndexes.ContainsKey(indexAttr.Name))
+            {
+                if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    logger.LogDebug("Search index {IndexName} already exists on collection {CollectionName}. Skipping.",
+                        indexAttr.Name, collectionName);
+                }
+                continue;
+            }
+            var indexType = indexAttr.Type == ESearchIndexType.VectorSearch ? SearchIndexType.VectorSearch : SearchIndexType.Search;
+            var definition = indexAttr.Type == ESearchIndexType.VectorSearch
+                                 ? SearchIndexDefinitionFactory.GenerateVectorSearchDefinition(entityType, indexAttr, useCamelCase)
+                                 : SearchIndexDefinitionFactory.GenerateSearchDefinition(entityType, indexAttr, useCamelCase);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Creating search index {IndexName} (type={IndexType}) on collection {CollectionName}.",
+                    indexAttr.Name, indexType, collectionName);
+            }
+            await SearchIndexManager.CreateSearchIndexAsync(collection, indexAttr.Name, indexType, definition, logger, ct).ConfigureAwait(false);
         }
     }
 
