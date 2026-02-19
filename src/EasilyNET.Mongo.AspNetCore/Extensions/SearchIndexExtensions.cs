@@ -1,15 +1,7 @@
-using System.Reflection;
-using EasilyNET.Core.Misc;
-using EasilyNET.Mongo.AspNetCore.Options;
 using EasilyNET.Mongo.AspNetCore.SearchIndex;
 using EasilyNET.Mongo.Core;
-using EasilyNET.Mongo.Core.Attributes;
-using EasilyNET.Mongo.Core.Enums;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Logging;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Conventions;
-using MongoDB.Driver;
+using Microsoft.Extensions.Hosting;
 
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
@@ -23,23 +15,59 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class SearchIndexExtensions
 {
-    // Cache the types with MongoSearchIndexAttribute to avoid repeated reflection scanning.
-    private static readonly Lazy<HashSet<Type>> CachedSearchIndexTypes = new(() =>
-        [.. AssemblyHelper.FindTypesByAttribute<MongoSearchIndexAttribute>(o => o is { IsClass: true, IsAbstract: false }, false)]);
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Register a hosted background service that automatically creates MongoDB Atlas Search and Vector Search indexes
+    ///     for entity objects marked with <c>MongoSearchIndexAttribute</c>.
+    ///     The service runs once at application startup and then completes.
+    ///     Requires MongoDB Atlas or MongoDB 8.2+ Community Edition.
+    ///     On unsupported deployments, the service logs a warning and skips index creation.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     注册一个托管后台服务，自动为标记了 <c>MongoSearchIndexAttribute</c> 的实体对象创建 MongoDB Atlas Search 和 Vector Search 索引。
+    ///     该服务在应用启动时运行一次后完成。
+    ///     需要 MongoDB Atlas 或 MongoDB 8.2+ 社区版。
+    ///     在不支持的部署上，该服务记录警告并跳过索引创建。
+    ///     </para>
+    /// </summary>
+    /// <typeparam name="T">
+    ///     <see cref="MongoContext" />
+    /// </typeparam>
+    /// <param name="services">
+    ///     <see cref="IServiceCollection" />
+    /// </param>
+    /// <returns>
+    ///     <see cref="IServiceCollection" />
+    /// </returns>
+    public static IServiceCollection AddMongoSearchIndexCreation<T>(this IServiceCollection services) where T : MongoContext
+    {
+        services.AddHostedService<SearchIndexBackgroundService<T>>();
+        return services;
+    }
 
     /// <summary>
     ///     <para xml:lang="en">
     ///     Automatically create MongoDB Atlas Search and Vector Search indexes for entity objects marked with
-    ///     <see cref="MongoSearchIndexAttribute" />.
+    ///     <c>MongoSearchIndexAttribute</c>.
     ///     Requires MongoDB Atlas or MongoDB 8.2+ Community Edition.
     ///     On unsupported deployments, this method logs a warning and skips index creation.
     ///     </para>
     ///     <para xml:lang="zh">
-    ///     对标记 <see cref="MongoSearchIndexAttribute" /> 的实体对象，自动创建 MongoDB Atlas Search 和 Vector Search 索引。
+    ///     对标记 <c>MongoSearchIndexAttribute</c> 的实体对象，自动创建 MongoDB Atlas Search 和 Vector Search 索引。
     ///     需要 MongoDB Atlas 或 MongoDB 8.2+ 社区版。
     ///     在不支持的部署上，此方法记录警告并跳过索引创建。
     ///     </para>
     /// </summary>
+    /// <remarks>
+    ///     <para xml:lang="en">
+    ///     This method starts a background service via <see cref="IHostApplicationLifetime" /> that runs once at startup.
+    ///     For new code, prefer using <see cref="AddMongoSearchIndexCreation{T}" /> during service registration instead.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     此方法通过 <see cref="IHostApplicationLifetime" /> 启动一个在启动时运行一次的后台服务。
+    ///     对于新代码，建议在服务注册阶段使用 <see cref="AddMongoSearchIndexCreation{T}" /> 代替。
+    ///     </para>
+    /// </remarks>
     /// <typeparam name="T">
     ///     <see cref="MongoContext" />
     /// </typeparam>
@@ -50,110 +78,14 @@ public static class SearchIndexExtensions
     {
         ArgumentNullException.ThrowIfNull(app);
         var serviceProvider = app.ApplicationServices;
-        // ILoggerFactory and BasicClientOptions are singletons — resolve from root to avoid scope capture.
-        var logger = serviceProvider.GetService<ILoggerFactory>()?.CreateLogger(nameof(SearchIndexExtensions));
-        var options = serviceProvider.GetRequiredService<BasicClientOptions>();
-        var useCamelCase =
-            options is { DefaultConventionRegistry: true, ConventionRegistry.Values.Count: 0 } ||
-            options.ConventionRegistry.Values.Any(pack => pack.Conventions.Any(c => c is CamelCaseElementNameConvention));
-        // Fire and forget — search index creation is async on Atlas side anyway.
-        // A dedicated scope is created inside the task so that the MongoContext is not disposed
-        // before the background work completes (use-after-dispose guard).
-        _ = Task.Run(async () =>
+        var lifetime = serviceProvider.GetRequiredService<IHostApplicationLifetime>();
+        // Create and start the background service when the application has fully started.
+        // The service respects ApplicationStopping for graceful cancellation.
+        lifetime.ApplicationStarted.Register(() =>
         {
-            using var scope = serviceProvider.CreateScope();
-            var db = scope.ServiceProvider.GetService<T>();
-            if (db is null)
-            {
-                logger?.LogWarning("Could not resolve {DbContext} from service provider in background search-index task.", typeof(T).Name);
-                return;
-            }
-            try
-            {
-                await EnsureSearchIndexesAsync(db, useCamelCase, logger).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                logger?.LogError(ex, "Failed to ensure search indexes.");
-            }
+            var backgroundService = ActivatorUtilities.CreateInstance<SearchIndexBackgroundService<T>>(serviceProvider);
+            _ = backgroundService.StartAsync(lifetime.ApplicationStopping);
         });
         return app;
-    }
-
-    private static async Task EnsureSearchIndexesAsync(MongoContext dbContext, bool useCamelCase, ILogger? logger)
-    {
-        var dbContextType = dbContext.GetType().DeclaringType ?? dbContext.GetType();
-        var properties = AssemblyHelper.FindTypes(t => t == dbContextType)
-                                       .SelectMany(t => t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
-                                       .Where(prop => prop.PropertyType.IsGenericType && prop.PropertyType.GetGenericTypeDefinition() == typeof(IMongoCollection<>))
-                                       .ToArray();
-        foreach (var prop in properties)
-        {
-            var entityType = prop.PropertyType.GetGenericArguments()[0];
-            var searchIndexAttrs = entityType.GetCustomAttributes<MongoSearchIndexAttribute>(false).ToList();
-            if (searchIndexAttrs.Count == 0)
-            {
-                continue;
-            }
-            // Resolve collection name
-            var collectionName = ResolveCollectionName(dbContext, prop);
-            if (string.IsNullOrEmpty(collectionName))
-            {
-                continue;
-            }
-            var collection = dbContext.Database.GetCollection<BsonDocument>(collectionName);
-            // Get existing search indexes
-            var existingIndexes = await SearchIndexManager.GetExistingSearchIndexesAsync(collection, logger).ConfigureAwait(false);
-            foreach (var indexAttr in searchIndexAttrs)
-            {
-                if (existingIndexes.ContainsKey(indexAttr.Name))
-                {
-                    if (logger is not null && logger.IsEnabled(LogLevel.Debug))
-                    {
-                        logger.LogDebug("Search index {IndexName} already exists on collection {CollectionName}. Skipping.",
-                            indexAttr.Name, collectionName);
-                    }
-                    continue;
-                }
-                var indexType = indexAttr.Type == ESearchIndexType.VectorSearch ? SearchIndexType.VectorSearch : SearchIndexType.Search;
-                var definition = indexAttr.Type == ESearchIndexType.VectorSearch
-                                     ? SearchIndexDefinitionFactory.GenerateVectorSearchDefinition(entityType, indexAttr, useCamelCase)
-                                     : SearchIndexDefinitionFactory.GenerateSearchDefinition(entityType, indexAttr, useCamelCase);
-                if (logger is not null && logger.IsEnabled(LogLevel.Information))
-                {
-                    logger.LogInformation("Creating search index {IndexName} (type={IndexType}) on collection {CollectionName}.",
-                        indexAttr.Name, indexType, collectionName);
-                }
-                await SearchIndexManager.CreateSearchIndexAsync(collection, indexAttr.Name, indexType, definition, logger).ConfigureAwait(false);
-            }
-        }
-        // Also check types found via assembly scanning (not just DbContext properties)
-        foreach (var type in CachedSearchIndexTypes.Value)
-        {
-            var searchIndexAttrs = type.GetCustomAttributes<MongoSearchIndexAttribute>(false).ToList();
-            if (searchIndexAttrs.Count == 0)
-            {
-                continue;
-            }
-            // For assembly-scanned types, we need to find the collection name from the type name
-            // This is a fallback — DbContext property-based resolution is preferred
-            if (logger is not null && logger.IsEnabled(LogLevel.Debug))
-            {
-                logger.LogDebug("Found search index attributes on type {TypeName} via assembly scanning.", type.Name);
-            }
-        }
-    }
-
-    private static string? ResolveCollectionName(MongoContext dbContext, PropertyInfo prop)
-    {
-        var value = prop.GetValue(dbContext);
-        if (value is null)
-        {
-            return null;
-        }
-        var collectionNameProp = prop.PropertyType.GetProperty(nameof(IMongoCollection<>.CollectionNamespace));
-        var collectionNamespace = collectionNameProp?.GetValue(value);
-        var nameProp = collectionNamespace?.GetType().GetProperty(nameof(CollectionNamespace.CollectionName));
-        return nameProp?.GetValue(collectionNamespace)?.ToString();
     }
 }

@@ -169,10 +169,11 @@ public class Order
 | ------------- | ----------------------------- |
 | `Ascending`   | 升序索引，最常用              |
 | `Descending`  | 降序索引，加速逆序排序        |
-| `Hashed`      | 哈希索引，用于分片键          |
-| `Text`        | 全文文本索引                  |
 | `Geo2D`       | 平面坐标索引（旧式，不推荐）  |
 | `Geo2DSphere` | 球面地理索引（推荐，GeoJSON） |
+| `Hashed`      | 哈希索引，用于分片键          |
+| `Text`        | 全文文本索引                  |
+| `Multikey`    | 多键索引，数组字段自动创建    |
 | `Wildcard`    | 通配符索引，动态字段场景      |
 
 ### MongoCompoundIndexAttribute —— 复合索引
@@ -190,10 +191,14 @@ using EasilyNET.Mongo.Core.Attributes;
 
 // 复合索引：先按 UserId 升序，再按 CreatedAt 降序
 // 能高效支持 "查询某用户的最新订单" 类场景
-[MongoCompoundIndex(["userId", "createdAt"], [1, -1], Name = "idx_user_time")]
+[MongoCompoundIndex(["userId", "createdAt"],
+    [EIndexType.Ascending, EIndexType.Descending],
+    Name = "idx_user_time")]
 
 // 覆盖索引：查询覆盖 userId + status + amount，无需回表
-[MongoCompoundIndex(["userId", "status", "amount"], [1, 1, 1], Name = "idx_user_status_amount")]
+[MongoCompoundIndex(["userId", "status", "amount"],
+    [EIndexType.Ascending, EIndexType.Ascending, EIndexType.Ascending],
+    Name = "idx_user_status_amount")]
 public class Order
 {
     public string Id { get; set; }
@@ -235,9 +240,9 @@ using MongoDB.Driver;
 [TimeSeriesCollection(
     collectionName: "sensor_readings",  // 集合名
     timeField: "timestamp",             // 时间字段（必须！类型应为 DateTime）
-    metaField: "deviceId",             // 元数据字段，用于分组（如设备ID、传感器ID）
-    granularity: TimeSeriesGranularity.Seconds)]  // 粒度：Seconds/Minutes/Hours
-[ExpireAfter = 86400 * 30]             // 可选：30天后自动删除
+    metaField: "deviceId",              // 元数据字段，用于分组（如设备ID、传感器ID）
+    granularity: TimeSeriesGranularity.Seconds,  // 粒度：Seconds/Minutes/Hours
+    ExpireAfter = 86400 * 30)]          // 可选：30天后自动删除（单位：秒）
 public class SensorReading
 {
     public string Id { get; set; }
@@ -791,8 +796,12 @@ using MongoDB.Driver.GeoJsonObjectModel;
 
 [MongoSearchIndex(Name = "product_search")]
 [MongoSearchIndex(Name = "product_vector", Type = ESearchIndexType.VectorSearch)]
-[MongoCompoundIndex(["categoryId", "price"], [1, 1], Name = "idx_category_price")]
-[MongoCompoundIndex(["sellerId", "status", "createdAt"], [1, 1, -1], Name = "idx_seller_status_time")]
+[MongoCompoundIndex(["categoryId", "price"],
+    [EIndexType.Ascending, EIndexType.Ascending],
+    Name = "idx_category_price")]
+[MongoCompoundIndex(["sellerId", "status", "createdAt"],
+    [EIndexType.Ascending, EIndexType.Ascending, EIndexType.Descending],
+    Name = "idx_seller_status_time")]
 public class Product
 {
     public string Id { get; set; }
