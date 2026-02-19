@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using EasilyNET.Mongo.Core.Geo;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using MongoDB.Driver.GeoJsonObjectModel;
 
@@ -74,14 +75,33 @@ public static class GeoQueryExtensions
         double? minDistanceMeters = null) =>
         NearSphere(field, GeoPoint.From(longitude, latitude), maxDistanceMeters, minDistanceMeters);
 
-    private static string ResolveFieldName<TDocument>(Expression<Func<TDocument, object?>> field)
+    private static string ResolveFieldName<TDocument>(Expression<Func<TDocument, object?>> field, bool useCamelCase = false)
     {
         var expression = field.Body;
         if (expression is UnaryExpression { NodeType: ExpressionType.Convert } unary)
         {
             expression = unary.Operand;
         }
-        return expression is MemberExpression member ? member.Member.Name : string.Empty;
+        if (expression is not MemberExpression member)
+        {
+            return string.Empty;
+        }
+        // Try to get the BSON element name from the class map (respects conventions and [BsonElement])
+        var classMap = BsonClassMap.LookupClassMap(typeof(TDocument));
+        var memberMap = classMap?.GetMemberMap(member.Member.Name);
+        if (memberMap is not null)
+        {
+            return memberMap.ElementName;
+        }
+        // Fallback: use simple camelCase conversion if requested
+        var name = member.Member.Name;
+        return useCamelCase && name.Length > 0 && char.IsUpper(name[0])
+                   ? string.Create(name.Length, name, static (span, src) =>
+                   {
+                       src.CopyTo(span);
+                       span[0] = char.ToLowerInvariant(span[0]);
+                   })
+                   : name;
     }
 
     extension<TDocument>(IMongoCollection<TDocument> collection)
@@ -108,6 +128,16 @@ public static class GeoQueryExtensions
         ///     <para xml:lang="en">GeoNear options</para>
         ///     <para xml:lang="zh">GeoNear 选项</para>
         /// </param>
+        /// <param name="useCamelCase">
+        ///     <para xml:lang="en">
+        ///     Whether to convert field name to camelCase. Set to <c>true</c> when using <c>CamelCaseElementNameConvention</c>
+        ///     or <c>DefaultConventionRegistry = true</c> in MongoContext configuration.
+        ///     </para>
+        ///     <para xml:lang="zh">
+        ///     是否将字段名转换为小驼峰命名。当 MongoContext 配置中使用 <c>CamelCaseElementNameConvention</c>
+        ///     或 <c>DefaultConventionRegistry = true</c> 时，应设置为 <c>true</c>。
+        ///     </para>
+        /// </param>
         /// <param name="cancellationToken">
         ///     <para xml:lang="en">Cancellation token</para>
         ///     <para xml:lang="zh">取消令牌</para>
@@ -120,6 +150,7 @@ public static class GeoQueryExtensions
             Expression<Func<TDocument, object?>> field,
             GeoJsonPoint<GeoJson2DGeographicCoordinates> near,
             GeoNearOptions? options = null,
+            bool useCamelCase = true,
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(collection);
@@ -145,7 +176,7 @@ public static class GeoQueryExtensions
                 geoNearStage["$geoNear"]["query"] = options.Filter;
             }
             // Resolve the field name from the expression
-            var fieldName = ResolveFieldName(field);
+            var fieldName = ResolveFieldName(field, useCamelCase);
             if (!string.IsNullOrEmpty(fieldName))
             {
                 geoNearStage["$geoNear"]["key"] = fieldName;

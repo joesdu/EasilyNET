@@ -28,6 +28,14 @@ public static class GridFSServiceExtensions
         ///     在 DI 容器中将 <see cref="GridFSBucket" /> 注册为单例。
         ///     <see cref="IMongoDatabase" /> 必须已经注册（通过 <c>AddMongoContext</c>）。
         ///     </para>
+        ///     <para xml:lang="en">
+        ///     <b>Note:</b> If you need multiple GridFS buckets, use the keyed overload
+        ///     <c>AddGridFSBucket(serviceKey, databaseName, configure)</c> instead.
+        ///     </para>
+        ///     <para xml:lang="zh">
+        ///     <b>注意：</b>如果需要多个 GridFS 存储桶，请使用键控重载
+        ///     <c>AddGridFSBucket(serviceKey, databaseName, configure)</c>。
+        ///     </para>
         /// </summary>
         /// <param name="configure">
         ///     <para xml:lang="en">Optional configuration for the GridFS bucket.</para>
@@ -50,14 +58,20 @@ public static class GridFSServiceExtensions
 
         /// <summary>
         ///     <para xml:lang="en">
-        ///     Register a named <see cref="GridFSBucket" /> using a specific database from the <see cref="IMongoClient" />.
+        ///     Register a keyed <see cref="GridFSBucket" /> using a specific database from the <see cref="IMongoClient" />.
         ///     Useful when you need GridFS on a different database than the default one.
+        ///     Use <c>[FromKeyedServices(serviceKey)]</c> to inject in constructors.
         ///     </para>
         ///     <para xml:lang="zh">
-        ///     使用 <see cref="IMongoClient" /> 中的特定数据库注册命名的 <see cref="GridFSBucket" />。
-        ///     当需要在非默认数据库上使用 GridFS 时很有用。
+        ///     使用 <see cref="IMongoClient" /> 中的特定数据库注册键控的 <see cref="GridFSBucket" />。
+        ///     当需要在非默认数据库上使用 GridFS 时有用。
+        ///     在构造函数中使用 <c>[FromKeyedServices(serviceKey)]</c> 特性注入。
         ///     </para>
         /// </summary>
+        /// <param name="serviceKey">
+        ///     <para xml:lang="en">The key used to identify this GridFS bucket in DI container.</para>
+        ///     <para xml:lang="zh">用于在 DI 容器中标识此 GridFS 存储桶的键。</para>
+        /// </param>
         /// <param name="databaseName">
         ///     <para xml:lang="en">The name of the database to use for GridFS.</para>
         ///     <para xml:lang="zh">用于 GridFS 的数据库名称。</para>
@@ -69,12 +83,24 @@ public static class GridFSServiceExtensions
         /// <returns>
         ///     <see cref="IServiceCollection" />
         /// </returns>
-        public IServiceCollection AddGridFSBucket(string databaseName, Action<GridFSOptions>? configure = null)
+        /// <example>
+        ///     <para xml:lang="en">Registration:</para>
+        ///     <code>
+        /// services.AddGridFSBucket("media", "media-db");
+        /// services.AddGridFSBucket("documents", "docs-db");
+        ///     </code>
+        ///     <para xml:lang="en">Injection:</para>
+        ///     <code>
+        /// public class MediaService([FromKeyedServices("media")] IGridFSBucket mediaBucket)
+        ///     </code>
+        /// </example>
+        public IServiceCollection AddGridFSBucket(string serviceKey, string databaseName, Action<GridFSOptions>? configure = null)
         {
+            ArgumentException.ThrowIfNullOrWhiteSpace(serviceKey);
             ArgumentException.ThrowIfNullOrWhiteSpace(databaseName);
             var options = new GridFSOptions();
             configure?.Invoke(options);
-            services.AddSingleton<IGridFSBucket>(sp =>
+            services.AddKeyedSingleton<IGridFSBucket>(serviceKey, (sp, _) =>
             {
                 var client = sp.GetRequiredService<IMongoClient>();
                 var database = client.GetDatabase(databaseName);

@@ -29,7 +29,10 @@ public static class AggregationExtensions
         }
         if (expression is MemberExpression member)
         {
-            return member.Member.Name;
+            // Try to get the BSON element name from the class map (respects conventions and [BsonElement])
+            var classMap = BsonClassMap.LookupClassMap(typeof(TDocument));
+            var memberMap = classMap?.GetMemberMap(member.Member.Name);
+            return memberMap?.ElementName ?? member.Member.Name;
         }
         return string.Empty;
     }

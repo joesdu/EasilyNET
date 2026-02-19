@@ -4,6 +4,7 @@ using EasilyNET.Mongo.Core;
 using EasilyNET.Mongo.Core.Attributes;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 // ReSharper disable UnusedType.Global
@@ -79,10 +80,7 @@ public static class CappedCollectionExtensions
             }
             if (existingCollections.Contains(collectionName))
             {
-                if (logger is not null && logger.IsEnabled(LogLevel.Information))
-                {
-                    logger.LogInformation("Capped collection {CollectionName} already exists. Skipping creation.", collectionName);
-                }
+                LogExistingCollectionStatus(db, collectionName, attribute, logger);
                 continue;
             }
             try
@@ -116,6 +114,117 @@ public static class CappedCollectionExtensions
                     logger.LogError(ex, "Failed to create capped collection: {CollectionName}", collectionName);
                 }
             }
+        }
+    }
+
+    private static void LogExistingCollectionStatus(IMongoDatabase db, string collectionName, CappedCollectionAttribute attribute, ILogger? logger)
+    {
+        try
+        {
+            var collections = db.ListCollections(new ListCollectionsOptions { Filter = new BsonDocument("name", collectionName) }).ToList();
+            var collectionInfo = collections.FirstOrDefault();
+            if (collectionInfo is null)
+            {
+                if (logger is not null && logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Collection {CollectionName} already exists. Skipping creation.", collectionName);
+                }
+                return;
+            }
+            var optionsValue = collectionInfo.GetValue("options", BsonNull.Value);
+            if (!optionsValue.IsBsonDocument)
+            {
+                if (logger is not null && logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning("Collection {CollectionName} already exists but options metadata is unavailable. Expected capped settings: MaxSize={MaxSize}, MaxDocuments={MaxDocuments}.",
+                        collectionName, attribute.MaxSize, attribute.MaxDocuments?.ToString() ?? "unlimited");
+                }
+                return;
+            }
+            var options = optionsValue.AsBsonDocument;
+            var isCapped = options.TryGetValue("capped", out var cappedValue) && cappedValue.ToBoolean();
+            var hasMaxSize = TryGetInt64Option(options, "size", out var existingMaxSize);
+            var hasMaxDocuments = TryGetInt64Option(options, "max", out var existingMaxDocuments);
+            List<string> mismatches = [];
+            if (!isCapped)
+            {
+                mismatches.Add("existing collection is not capped");
+            }
+            else
+            {
+                if (!hasMaxSize)
+                {
+                    mismatches.Add("existing maxSize is unavailable");
+                }
+                else if (existingMaxSize != attribute.MaxSize)
+                {
+                    mismatches.Add($"maxSize mismatch (existing={existingMaxSize}, expected={attribute.MaxSize})");
+                }
+                if (attribute.MaxDocuments.HasValue)
+                {
+                    if (!hasMaxDocuments)
+                    {
+                        mismatches.Add("existing maxDocuments is unavailable");
+                    }
+                    else if (existingMaxDocuments != attribute.MaxDocuments.Value)
+                    {
+                        mismatches.Add($"maxDocuments mismatch (existing={existingMaxDocuments}, expected={attribute.MaxDocuments.Value})");
+                    }
+                }
+                else if (hasMaxDocuments)
+                {
+                    mismatches.Add($"maxDocuments mismatch (existing={existingMaxDocuments}, expected=unlimited)");
+                }
+            }
+            if (mismatches.Count > 0)
+            {
+                if (logger is not null && logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning("Collection {CollectionName} already exists but does not match capped settings: {MismatchDetails}",
+                        collectionName, string.Join("; ", mismatches));
+                }
+                return;
+            }
+            if (logger is not null && logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Capped collection {CollectionName} already exists and matches expected settings. Skipping creation.", collectionName);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (logger is not null && logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning(ex,
+                    "Collection {CollectionName} already exists, but failed to inspect capped settings. Expected MaxSize={MaxSize}, MaxDocuments={MaxDocuments}.",
+                    collectionName, attribute.MaxSize, attribute.MaxDocuments?.ToString() ?? "unlimited");
+            }
+        }
+    }
+
+    private static bool TryGetInt64Option(BsonDocument options, string key, out long value)
+    {
+        value = 0;
+        if (!options.TryGetValue(key, out var optionValue))
+        {
+            return false;
+        }
+        // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
+        switch (optionValue.BsonType)
+        {
+            case BsonType.Int32:
+                value = optionValue.AsInt32;
+                return true;
+            case BsonType.Int64:
+                value = optionValue.AsInt64;
+                return true;
+            case BsonType.Double:
+                value = (long)optionValue.AsDouble;
+                return true;
+            case BsonType.Decimal128:
+                value = (long)optionValue.AsDecimal128;
+                return true;
+            default:
+                return false;
         }
     }
 }

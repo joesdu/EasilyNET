@@ -50,17 +50,24 @@ public static class SearchIndexExtensions
     {
         ArgumentNullException.ThrowIfNull(app);
         var serviceProvider = app.ApplicationServices;
-        using var scope = serviceProvider.CreateScope();
-        var db = scope.ServiceProvider.GetService<T>();
-        ArgumentNullException.ThrowIfNull(db, nameof(T));
-        var logger = scope.ServiceProvider.GetService<ILoggerFactory>()?.CreateLogger(nameof(SearchIndexExtensions));
-        var options = scope.ServiceProvider.GetRequiredService<BasicClientOptions>();
+        // ILoggerFactory and BasicClientOptions are singletons — resolve from root to avoid scope capture.
+        var logger = serviceProvider.GetService<ILoggerFactory>()?.CreateLogger(nameof(SearchIndexExtensions));
+        var options = serviceProvider.GetRequiredService<BasicClientOptions>();
         var useCamelCase =
             options is { DefaultConventionRegistry: true, ConventionRegistry.Values.Count: 0 } ||
             options.ConventionRegistry.Values.Any(pack => pack.Conventions.Any(c => c is CamelCaseElementNameConvention));
-        // Fire and forget — search index creation is async on Atlas side anyway
+        // Fire and forget — search index creation is async on Atlas side anyway.
+        // A dedicated scope is created inside the task so that the MongoContext is not disposed
+        // before the background work completes (use-after-dispose guard).
         _ = Task.Run(async () =>
         {
+            using var scope = serviceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetService<T>();
+            if (db is null)
+            {
+                logger?.LogWarning("Could not resolve {DbContext} from service provider in background search-index task.", typeof(T).Name);
+                return;
+            }
             try
             {
                 await EnsureSearchIndexesAsync(db, useCamelCase, logger).ConfigureAwait(false);

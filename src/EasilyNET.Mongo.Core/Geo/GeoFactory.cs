@@ -83,6 +83,10 @@ public static class GeoPolygon
         {
             throw new ArgumentException("A polygon must have at least 4 coordinate pairs (3 unique points + closing point).", nameof(coordinates));
         }
+        if (coordinates[0] != coordinates[^1])
+        {
+            throw new ArgumentException("The polygon must be closed: the first and last coordinates must be the same.", nameof(coordinates));
+        }
         var positions = coordinates.Select(c => new GeoJson2DGeographicCoordinates(c.Longitude, c.Latitude)).ToArray();
         return new(new(new(positions)));
     }
@@ -90,9 +94,13 @@ public static class GeoPolygon
     /// <summary>
     ///     <para xml:lang="en">
     ///     Create a GeoJSON Polygon from an array of <see cref="GeoJson2DGeographicCoordinates" />.
+    ///     The first and last coordinates must be the same to close the polygon.
+    ///     A polygon must have at least 4 coordinate pairs (3 unique points + closing point).
     ///     </para>
     ///     <para xml:lang="zh">
     ///     从 <see cref="GeoJson2DGeographicCoordinates" /> 数组创建 GeoJSON Polygon。
+    ///     第一个和最后一个坐标必须相同以闭合多边形。
+    ///     多边形必须至少有 4 个坐标对（3 个唯一点 + 闭合点）。
     ///     </para>
     /// </summary>
     /// <param name="coordinates">
@@ -102,5 +110,7 @@ public static class GeoPolygon
     public static GeoJsonPolygon<GeoJson2DGeographicCoordinates> From(params GeoJson2DGeographicCoordinates[] coordinates) =>
         coordinates.Length < 4
             ? throw new ArgumentException("A polygon must have at least 4 coordinate pairs (3 unique points + closing point).", nameof(coordinates))
-            : new(new(new(coordinates)));
+            : !coordinates[0].Equals(coordinates[^1])
+                ? throw new ArgumentException("The polygon must be closed: the first and last coordinates must be the same.", nameof(coordinates))
+                : new(new(new(coordinates)));
 }

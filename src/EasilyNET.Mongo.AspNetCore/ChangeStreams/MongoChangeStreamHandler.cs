@@ -159,17 +159,21 @@ public abstract class MongoChangeStreamHandler<TDocument>(
                 try
                 {
                     await HandleChangeAsync(change, stoppingToken).ConfigureAwait(false);
+                    // Update resume token after successful processing
+                    _resumeToken = change.ResumeToken;
+                    if (_options.PersistResumeToken)
+                    {
+                        await SaveResumeTokenAsync(change.ResumeToken, stoppingToken).ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Error handling change event for collection {CollectionName}. OperationType={OperationType}",
                         collectionName, change.OperationType);
-                }
-                // Update resume token after successful processing
-                _resumeToken = change.ResumeToken;
-                if (_options.PersistResumeToken)
-                {
-                    await SaveResumeTokenAsync(change.ResumeToken, stoppingToken).ConfigureAwait(false);
                 }
             }
         }
