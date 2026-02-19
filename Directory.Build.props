@@ -13,11 +13,11 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
-	<PropertyGroup>
+	<!--<PropertyGroup>
 		<EnablePreviewFeatures>true</EnablePreviewFeatures>
 		<Features>$(Features);runtime-async=on</Features>
 		<NoWarn>$(NoWarn);CA2252;SYSLIB5007;</NoWarn>
-	</PropertyGroup>
+	</PropertyGroup>-->
 
 	<ItemGroup>
 		<None Include=".\README.md" Pack="true" PackagePath="" />
