@@ -32,7 +32,9 @@ namespace EasilyNET.Mongo.AspNetCore.SearchIndex;
 internal sealed class SearchIndexBackgroundService<T>(IServiceProvider serviceProvider, ILogger<SearchIndexBackgroundService<T>> logger) : BackgroundService where T : MongoContext
 {
     // Cache the types with MongoSearchIndexAttribute to avoid repeated reflection scanning.
-    private readonly Lazy<HashSet<Type>> CachedSearchIndexTypes = new(static () =>
+    // Static to share across all instances of SearchIndexBackgroundService<T>.
+    // ReSharper disable once StaticMemberInGenericType
+    private static readonly Lazy<HashSet<Type>> CachedSearchIndexTypes = new(static () =>
         [.. AssemblyHelper.FindTypesByAttribute<MongoSearchIndexAttribute>(o => o is { IsClass: true, IsAbstract: false }, false)]);
 
     /// <inheritdoc />
@@ -42,12 +44,13 @@ internal sealed class SearchIndexBackgroundService<T>(IServiceProvider servicePr
         await Task.Yield();
         try
         {
-            var options = serviceProvider.GetRequiredService<BasicClientOptions>();
+            using var scope = serviceProvider.CreateScope();
+            var scopedProvider = scope.ServiceProvider;
+            var options = scopedProvider.GetRequiredService<BasicClientOptions>();
             var useCamelCase =
                 options is { DefaultConventionRegistry: true, ConventionRegistry.Values.Count: 0 } ||
                 options.ConventionRegistry.Values.Any(pack => pack.Conventions.Any(c => c is CamelCaseElementNameConvention));
-            using var scope = serviceProvider.CreateScope();
-            var db = scope.ServiceProvider.GetService<T>();
+            var db = scopedProvider.GetService<T>();
             if (db is null)
             {
                 logger.LogWarning("Could not resolve {DbContext} from service provider. Search index creation skipped.", typeof(T).Name);
