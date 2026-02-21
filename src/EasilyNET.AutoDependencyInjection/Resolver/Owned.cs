@@ -38,7 +38,9 @@ public sealed class Owned<T> : IDisposable
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
         _disposed = true;
         _scope.Dispose();
     }
