@@ -17,7 +17,9 @@
 
 - **`ConfigureServices(context)`** - **同步方法**，用于服务注册（99%场景）
 - **`ConfigureServicesAsync(context, ct)`** - **异步方法**，用于罕见的异步初始化场景
+- **`ApplicationInitializationSync(context)`** - **同步方法**，用于同步的中间件/应用配置，在异步版本之前调用
 - **`ApplicationInitialization(context)`** - **异步方法**，用于中间件/应用配置
+- **`ApplicationShutdown(context)`** - **异步方法**，应用停止时按模块逆序调用，用于资源清理
 - 清晰的生命周期划分，避免死锁风险
 
 #### 3. **KeyedService 支持**
@@ -33,7 +35,7 @@
 - 支持命名解析、键控解析
 - 支持 `Owned<T>` 受控生命周期管理
 - 支持 `IIndex<TKey, TService>` 键控服务索引
-- 支持参数化工厂 (`Func<TParam, TService>`)
+- 支持参数化工厂 (`Func<TParam, TService>`、`Func<T1, T2, ..., TService>` 最多 4 参数强类型，以及通用 `Func<object[], TService>` 支持 5+ 参数)
 
 #### 5. **多平台支持**
 
@@ -127,6 +129,40 @@ var withParams = provider.Resolve<MyService>(
     new NamedParameter("config", configuration)
 );
 ```
+
+#### 参数化工厂 (Func<..., TService>)
+
+支持将参数化工厂注册为 `Func` 委托，注入后可在运行时传参创建服务实例：
+
+```csharp
+// 1-4 参数：强类型重载
+services.AddParameterizedFactory<string, IFooService>();                          // Func<string, IFoo>
+services.AddParameterizedFactory<string, int, IBarService>();                     // Func<string, int, IBar>
+services.AddParameterizedFactory<string, int, bool, IBazService>();               // Func<string, int, bool, IBaz>
+services.AddParameterizedFactory<string, int, bool, string, IQuxService>();       // Func<string, int, bool, string, IQux>
+
+// 5+ 参数：通用兜底（Func<object[], TService>），需声明参数类型用于运行时校验
+services.AddParameterizedFactory<IComplexService>(
+    typeof(string), typeof(int), typeof(bool), typeof(string), typeof(double), typeof(string));
+
+// 使用示例
+public class MyController(
+    Func<string, IFooService> fooFactory,
+    Func<object[], IComplexService> complexFactory)
+{
+    public void Do()
+    {
+        var foo = fooFactory("hello");
+        var complex = complexFactory(["a", 1, false, "b", 2.5, "c"]);
+    }
+}
+
+// Owned 工厂：每次调用创建独立作用域
+services.AddOwnedFactory<IScopedService>();
+// 注入 Func<Owned<IScopedService>>，调用后需手动 Dispose
+```
+
+> **注意**：多参数工厂内部使用 `PositionalParameter` 按位置匹配，即使多个参数类型相同也能正确区分。
 
 #### 性能优化
 
@@ -605,7 +641,9 @@ var service = resolver.Resolve<IScopedService>();
 1. 执行所有模块的 `ConfigureServices`（按依赖顺序，依赖项优先）
 2. 执行所有模块的 `ConfigureServicesAsync`（按依赖顺序）
 3. 构建 ServiceProvider
-4. 执行所有模块的 `ApplicationInitialization`（按依赖顺序）
+4. 执行所有模块的 `ApplicationInitializationSync`（按依赖顺序，同步）
+5. 执行所有模块的 `ApplicationInitialization`（按依赖顺序，异步）
+6. 应用停止时，执行所有模块的 `ApplicationShutdown`（按依赖**逆序**）
 
 #### Q: 如何查看模块加载情况？
 

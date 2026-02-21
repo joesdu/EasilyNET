@@ -40,7 +40,9 @@ EasilyNET.AutoDependencyInjection/
 - Module execution order = DependsOn declaration order (dependencies first)
 - `ConfigureServices(context)` is **synchronous** - for DI registration only
 - `ConfigureServicesAsync(context, ct)` is **async** - for rare async init scenarios
+- `ApplicationInitializationSync(context)` is **synchronous** - called before the async version
 - `ApplicationInitialization(context)` is **async** - for middleware/app configuration
+- `ApplicationShutdown(context)` is **async** - called in reverse module order on app stop
 - Use `context.Configuration` to access `IConfiguration` in ConfigureServices
 - Use `context.GetApplicationHost()` and cast to `IApplicationBuilder` or `IHost`
 
@@ -55,8 +57,14 @@ public interface IAppModule
     // Async: Rare async initialization during registration phase
     Task ConfigureServicesAsync(ConfigureServicesContext context, CancellationToken ct);
     
+    // Sync: Application initialization, called before the async version
+    void ApplicationInitializationSync(ApplicationContext context);
+    
     // Async: Application initialization (middleware, etc.)
     Task ApplicationInitialization(ApplicationContext context);
+    
+    // Async: Application shutdown, called in reverse module order
+    Task ApplicationShutdown(ApplicationContext context);
     
     // Config-driven enable/disable
     bool GetEnable(ConfigureServicesContext context);
