@@ -74,6 +74,33 @@ public static class AutoDependencyInjectionServiceExtension
             await runner.InitializeAsync(host.Services, cancellationToken).ConfigureAwait(false);
             return host;
         }
+
+        /// <summary>
+        ///     <para xml:lang="en">Shutdown all modules (call during application stopping)</para>
+        ///     <para xml:lang="zh">关闭所有模块（在应用停止时调用）</para>
+        /// </summary>
+        public void ShutdownApplication()
+        {
+            var runner = host.Services.GetService<IStartupModuleRunner>();
+            runner?.Shutdown(host.Services);
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Shutdown all modules asynchronously (call during application stopping)</para>
+        ///     <para xml:lang="zh">异步关闭所有模块（在应用停止时调用）</para>
+        /// </summary>
+        /// <param name="cancellationToken">
+        ///     <para xml:lang="en">Cancellation token</para>
+        ///     <para xml:lang="zh">取消令牌</para>
+        /// </param>
+        public async Task ShutdownApplicationAsync(CancellationToken cancellationToken = default)
+        {
+            var runner = host.Services.GetService<IStartupModuleRunner>();
+            if (runner is not null)
+            {
+                await runner.ShutdownAsync(host.Services, cancellationToken).ConfigureAwait(false);
+            }
+        }
     }
 
     /// <param name="services">
@@ -98,6 +125,8 @@ public static class AutoDependencyInjectionServiceExtension
             services.AddSingleton<IObjectAccessor<IHost>>(new ObjectAccessor<IHost>());
             services.AddScoped<IResolver>(sp => new Resolver(sp, sp.GetRequiredService<ServiceRegistry>()));
             services.AddSingleton(typeof(INamedServiceFactory<>), typeof(NamedServiceFactory<>));
+            // Autofac-style implicit relationship types
+            services.AddTransient(typeof(IIndex<,>), typeof(KeyedServiceIndex<,>));
             // Register module diagnostics
             services.AddSingleton<IModuleDiagnostics>(sp =>
                 new ModuleDiagnostics(sp.GetRequiredService<IStartupModuleRunner>(), sp.GetRequiredService<ServiceRegistry>()));

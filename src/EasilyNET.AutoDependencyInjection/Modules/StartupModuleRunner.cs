@@ -9,9 +9,6 @@ namespace EasilyNET.AutoDependencyInjection.Modules;
 /// <inheritdoc cref="IStartupModuleRunner" />
 internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModuleRunner
 {
-    private static readonly Lock _lock = new();
-    private static StartupModuleRunner? _instance;
-
     private StartupModuleRunner(Type startModuleType, IServiceCollection services) : base(startModuleType, services)
     {
         Services.AddSingleton<IStartupModuleRunner>(this);
@@ -24,9 +21,15 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
     /// <inheritdoc />
     public Task InitializeAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken = default) => InitializeModulesAsync(serviceProvider, cancellationToken);
 
+    /// <inheritdoc />
+    public void Shutdown(IServiceProvider serviceProvider) => ShutdownModules(serviceProvider);
+
+    /// <inheritdoc />
+    public Task ShutdownAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken = default) => ShutdownModulesAsync(serviceProvider, cancellationToken);
+
     /// <summary>
-    ///     <para xml:lang="en">Get or create the singleton instance of <see cref="StartupModuleRunner" /></para>
-    ///     <para xml:lang="zh">获取或创建 <see cref="StartupModuleRunner" /> 的单例实例</para>
+    ///     <para xml:lang="en">Create a new instance of <see cref="StartupModuleRunner" /></para>
+    ///     <para xml:lang="zh">创建 <see cref="StartupModuleRunner" /> 的新实例</para>
     /// </summary>
     /// <param name="startModuleType">
     ///     <para xml:lang="en">The type of the startup module</para>
@@ -36,14 +39,11 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
     ///     <para xml:lang="en">The service collection</para>
     ///     <para xml:lang="zh">服务集合</para>
     /// </param>
-    internal static StartupModuleRunner Instance(Type startModuleType, IServiceCollection services)
+    internal static StartupModuleRunner Create(Type startModuleType, IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(startModuleType);
         ArgumentNullException.ThrowIfNull(services);
-        lock (_lock)
-        {
-            return _instance ??= new(startModuleType, services);
-        }
+        return new(startModuleType, services);
     }
 
     /// <summary>
@@ -56,10 +56,10 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
     /// </summary>
     private void ConfigureServices()
     {
-        using var context = new ConfigureServicesContext(Services);
-        using var serviceProvider = Services.BuildServiceProvider();
-        var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
-        var logger = loggerFactory?.CreateLogger(nameof(AutoDependencyInjection)) ?? NullLogger.Instance;
+        var configuration = ConfigureServicesContext.ExtractConfiguration(Services);
+        var environment = ConfigureServicesContext.ExtractEnvironment(Services);
+        var context = new ConfigureServicesContext(Services, configuration, environment);
+        var logger = GetBootstrapLogger(Services);
         foreach (var module in Modules)
         {
             Services.AddSingleton(module);
@@ -70,7 +70,6 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
             }
             // Call synchronous ConfigureServices - this is safe and won't deadlock
             module.ConfigureServices(context);
-            // For async configuration, we run it on a thread pool thread to avoid deadlocks
             // For async configuration, we synchronously wait on the returned task.
             // NOTE / 注意:
             // - ConfigureServicesAsync implementations must NOT depend on any SynchronizationContext
@@ -89,5 +88,18 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
         {
             logger.LogDebug("Completed service configuration for {Count} modules", Modules.Count);
         }
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Get a bootstrap logger without building a full ServiceProvider</para>
+    ///     <para xml:lang="zh">获取引导日志记录器，无需构建完整的 ServiceProvider</para>
+    /// </summary>
+    private static ILogger GetBootstrapLogger(IServiceCollection services)
+    {
+        // Try to get an existing ILoggerFactory from the services without building a provider
+        var loggerFactoryDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(ILoggerFactory));
+        return loggerFactoryDescriptor?.ImplementationInstance is ILoggerFactory existingFactory
+                   ? existingFactory.CreateLogger(nameof(AutoDependencyInjection))
+                   : NullLogger.Instance;
     }
 }
