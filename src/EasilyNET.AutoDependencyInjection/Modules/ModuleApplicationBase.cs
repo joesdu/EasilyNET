@@ -91,7 +91,8 @@ internal class ModuleApplicationBase : IModuleApplication
     private void LoadModules()
     {
         var configuration = ConfigureServicesContext.ExtractConfiguration(Services);
-        var context = new ConfigureServicesContext(Services, configuration);
+        var environment = ConfigureServicesContext.ExtractEnvironment(Services);
+        var context = new ConfigureServicesContext(Services, configuration, environment);
         // Create the start module and collect all referenced module types from DependsOn
         var startModule = CreateModuleOrThrow(_startModuleType);
         // Get dependencies in topological order (dependencies first)

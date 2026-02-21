@@ -57,7 +57,8 @@ internal sealed class StartupModuleRunner : ModuleApplicationBase, IStartupModul
     private void ConfigureServices()
     {
         var configuration = ConfigureServicesContext.ExtractConfiguration(Services);
-        var context = new ConfigureServicesContext(Services, configuration);
+        var environment = ConfigureServicesContext.ExtractEnvironment(Services);
+        var context = new ConfigureServicesContext(Services, configuration, environment);
         var logger = GetBootstrapLogger(Services);
         foreach (var module in Modules)
         {

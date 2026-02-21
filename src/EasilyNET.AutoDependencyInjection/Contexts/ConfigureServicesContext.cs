@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace EasilyNET.AutoDependencyInjection.Contexts;
 
@@ -23,7 +24,15 @@ namespace EasilyNET.AutoDependencyInjection.Contexts;
 ///     从服务集合中提取的 <see cref="IConfiguration" />，无需构建 ServiceProvider
 ///     </para>
 /// </param>
-public sealed class ConfigureServicesContext(IServiceCollection services, IConfiguration configuration)
+/// <param name="environment">
+///     <para xml:lang="en">
+///     <see cref="IHostEnvironment" /> extracted from the service collection without building a ServiceProvider (may be null for non-hosted scenarios)
+///     </para>
+///     <para xml:lang="zh">
+///     从服务集合中提取的 <see cref="IHostEnvironment" />，无需构建 ServiceProvider（非托管场景下可能为 null）
+///     </para>
+/// </param>
+public sealed class ConfigureServicesContext(IServiceCollection services, IConfiguration configuration, IHostEnvironment? environment)
 {
     /// <summary>
     ///     <para xml:lang="en">
@@ -47,19 +56,15 @@ public sealed class ConfigureServicesContext(IServiceCollection services, IConfi
 
     /// <summary>
     ///     <para xml:lang="en">
-    ///     Gets a temporary ServiceProvider for resolving services during configuration.
-    ///     WARNING: Each access may build a new temporary ServiceProvider. Prefer using
-    ///     <see cref="Configuration" /> for configuration access. Only use this for services
-    ///     like IWebHostEnvironment that are not available otherwise.
+    ///     Gets the host environment directly without building a temporary ServiceProvider.
+    ///     May be null in non-hosted scenarios (e.g. unit tests without a host).
     ///     </para>
     ///     <para xml:lang="zh">
-    ///     获取用于配置期间解析服务的临时 ServiceProvider。
-    ///     警告：每次访问可能构建新的临时 ServiceProvider。优先使用 <see cref="Configuration" /> 访问配置。
-    ///     仅在需要 IWebHostEnvironment 等无法通过其他方式获取的服务时使用。
+    ///     直接获取宿主环境，无需构建临时 ServiceProvider。
+    ///     在非托管场景下（如无宿主的单元测试）可能为 null。
     ///     </para>
     /// </summary>
-    [Obsolete("Prefer using Configuration property directly. This builds a temporary ServiceProvider which may cause singleton duplication. Will be removed in a future version.")]
-    public IServiceProvider ServiceProvider => Services.BuildServiceProvider();
+    public IHostEnvironment? Environment { get; } = environment;
 
     /// <summary>
     ///     <para xml:lang="en">
@@ -84,5 +89,25 @@ public sealed class ConfigureServicesContext(IServiceCollection services, IConfi
         // Fallback: build a minimal temporary provider (only happens if IConfiguration is registered via factory)
         var tempProvider = services.BuildServiceProvider();
         return tempProvider.GetRequiredService<IConfiguration>();
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Extracts <see cref="IHostEnvironment" /> from the service collection without building a ServiceProvider.
+    ///     Returns null if not registered (e.g. non-hosted scenarios).
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     从服务集合中提取 <see cref="IHostEnvironment" />，无需构建 ServiceProvider。
+    ///     如果未注册（如非托管场景），则返回 null。
+    ///     </para>
+    /// </summary>
+    /// <param name="services">
+    ///     <para xml:lang="en">The service collection</para>
+    ///     <para xml:lang="zh">服务集合</para>
+    /// </param>
+    internal static IHostEnvironment? ExtractEnvironment(IServiceCollection services)
+    {
+        var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IHostEnvironment));
+        return descriptor?.ImplementationInstance as IHostEnvironment;
     }
 }
