@@ -284,6 +284,91 @@ public sealed class ResolverTests
 
     #endregion
 
+    #region Parameterized Factory — duplicate type regression
+
+    [TestMethod]
+    public void ParameterizedFactory_Func2_DuplicateTypes_ShouldPreserveArgumentOrder()
+    {
+        using var provider = BuildProvider(sc =>
+        {
+            sc.AddTransient<DuplicateTypeService>();
+            sc.AddParameterizedFactory<string, string, DuplicateTypeService>();
+        });
+        var factory = provider.GetRequiredService<Func<string, string, DuplicateTypeService>>();
+        var svc = factory("hello", "world");
+        Assert.AreEqual("hello|world", svc.GetValue());
+    }
+
+    [TestMethod]
+    public void ParameterizedFactory_Func3_DuplicateTypes_ShouldPreserveArgumentOrder()
+    {
+        using var provider = BuildProvider(sc =>
+        {
+            sc.AddTransient<TripleDuplicateTypeService>();
+            sc.AddParameterizedFactory<string, string, string, TripleDuplicateTypeService>();
+        });
+        var factory = provider.GetRequiredService<Func<string, string, string, TripleDuplicateTypeService>>();
+        var svc = factory("x", "y", "z");
+        Assert.AreEqual("x|y|z", svc.GetValue());
+    }
+
+    #endregion
+
+    #region Parameterized Factory — 4-param and general-purpose object[] factory
+
+    [TestMethod]
+    public void ParameterizedFactory_Func4_ShouldResolveWithFourParams()
+    {
+        using var provider = BuildProvider(sc =>
+        {
+            sc.AddTransient<FourArgService>();
+            sc.AddParameterizedFactory<string, int, bool, string, FourArgService>();
+        });
+        var factory = provider.GetRequiredService<Func<string, int, bool, string, FourArgService>>();
+        var svc = factory("hello", 42, true, "world");
+        Assert.AreEqual("hello|42|True|world", svc.GetValue());
+    }
+
+    [TestMethod]
+    public void ParameterizedFactory_ObjectArray_ShouldResolveWithManyParams()
+    {
+        using var provider = BuildProvider(sc =>
+        {
+            sc.AddTransient<SixArgService>();
+            sc.AddParameterizedFactory<SixArgService>(typeof(string), typeof(int), typeof(bool), typeof(string), typeof(double), typeof(string));
+        });
+        var factory = provider.GetRequiredService<Func<object[], SixArgService>>();
+        var svc = factory(["a", 1, false, "b", 2.5, "c"]);
+        Assert.AreEqual("a|1|False|b|2.5|c", svc.GetValue());
+    }
+
+    [TestMethod]
+    public void ParameterizedFactory_ObjectArray_WrongArgCount_ShouldThrow()
+    {
+        using var provider = BuildProvider(sc =>
+        {
+            sc.AddTransient<SixArgService>();
+            sc.AddParameterizedFactory<SixArgService>(typeof(string), typeof(int), typeof(bool), typeof(string), typeof(double), typeof(string));
+        });
+        var factory = provider.GetRequiredService<Func<object[], SixArgService>>();
+        Assert.ThrowsExactly<ArgumentException>(() => factory(["only", "two"]));
+    }
+
+    [TestMethod]
+    public void ParameterizedFactory_ObjectArray_WrongArgType_ShouldThrow()
+    {
+        using var provider = BuildProvider(sc =>
+        {
+            sc.AddTransient<SixArgService>();
+            sc.AddParameterizedFactory<SixArgService>(typeof(string), typeof(int), typeof(bool), typeof(string), typeof(double), typeof(string));
+        });
+        var factory = provider.GetRequiredService<Func<object[], SixArgService>>();
+        // Position 1 expects int, but we pass a string
+        Assert.ThrowsExactly<ArgumentException>(() => factory(["a", "not-an-int", false, "b", 2.5, "c"]));
+    }
+
+    #endregion
+
     #region CreateResolver extension
 
     [TestMethod]
@@ -374,6 +459,40 @@ public sealed class ResolverTests
         public bool IsDisposed { get; private set; }
 
         public void Dispose() => IsDisposed = true;
+    }
+
+    /// <summary>
+    /// Service with two constructor parameters of the same type (string, string).
+    /// Used to verify positional parameter matching when types are duplicated.
+    /// </summary>
+    public sealed class DuplicateTypeService(string first, string second)
+    {
+        public string GetValue() => $"{first}|{second}";
+    }
+
+    /// <summary>
+    /// Service with three constructor parameters of the same type (string, string, string).
+    /// Used to verify positional parameter matching when types are duplicated.
+    /// </summary>
+    public sealed class TripleDuplicateTypeService(string a, string b, string c)
+    {
+        public string GetValue() => $"{a}|{b}|{c}";
+    }
+
+    /// <summary>
+    /// Service with four constructor parameters for testing the 4-param factory overload.
+    /// </summary>
+    public sealed class FourArgService(string a, int b, bool c, string d)
+    {
+        public string GetValue() => $"{a}|{b}|{c}|{d}";
+    }
+
+    /// <summary>
+    /// Service with six constructor parameters for testing the general-purpose object[] factory.
+    /// </summary>
+    public sealed class SixArgService(string a, int b, bool c, string d, double e, string f)
+    {
+        public string GetValue() => $"{a}|{b}|{c}|{d}|{e}|{f}";
     }
 
     #endregion

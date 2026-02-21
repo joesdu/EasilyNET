@@ -87,7 +87,7 @@ public sealed class ConfigureServicesContext(IServiceCollection services, IConfi
             return config;
         }
         // Fallback: build a minimal temporary provider (only happens if IConfiguration is registered via factory)
-        var tempProvider = services.BuildServiceProvider();
+        using var tempProvider = services.BuildServiceProvider();
         return tempProvider.GetRequiredService<IConfiguration>();
     }
 
