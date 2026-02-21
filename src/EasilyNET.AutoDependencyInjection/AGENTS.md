@@ -8,13 +8,14 @@ Modular DI system with `DependsOn` ordering, sync/async lifecycle hooks, and `IR
 
 ```
 EasilyNET.AutoDependencyInjection/
-├── Abstractions/   # IAppModule, IResolver, IModuleDiagnostics interfaces
+├── Abstractions/   # IAppModule, IResolver, IIndex, IModuleDiagnostics interfaces
 ├── Attributes/     # DependencyInjectionAttribute, DependsOnAttribute
 ├── Contexts/       # ConfigureServicesContext, ApplicationContext
 ├── Factories/      # Service factories
 ├── Modules/        # AppModule, DependencyAppModule, ModuleDiagnostics
-├── Resolver.cs     # Dynamic service resolver (Autofac-like)
-└── ServiceRegistry.cs  # Auto-registration logic
+├── Registry/       # ServiceRegistry, NamedServiceDescriptor, NamedServiceFactory
+├── Resolver/       # Resolver, Parameter, Owned, OwnedFactory, KeyedServiceIndex, extensions
+└── ObjectAccessor.cs
 ```
 
 ## WHERE TO LOOK
@@ -24,7 +25,12 @@ EasilyNET.AutoDependencyInjection/
 | Create new module | Inherit `AppModule`, override `ConfigureServices` |
 | Module ordering example | `sample/WebApi.Test.Unit/AppWebModule.cs` |
 | Keyed services | `DependencyInjectionAttribute.ServiceKey` |
-| Dynamic resolution | `Resolver.cs`, `ServiceProviderExtension.cs` |
+| Dynamic resolution | `Resolver/Resolver.cs`, `Resolver/ServiceProviderExtension.cs` |
+| Parameter overrides | `Resolver/Parameter.cs` (Named/Typed/Positional/Resolved) |
+| Owned lifetime | `Resolver/Owned.cs`, `Resolver/OwnedFactory.cs` |
+| Keyed index | `Resolver/KeyedServiceIndex.cs` |
+| Parameterized factories | `Resolver/ParameterizedFactoryExtensions.cs` |
+| Service registry | `Registry/ServiceRegistry.cs` |
 | Config-driven toggle | Override `GetEnable()` method |
 | Module diagnostics | `IModuleDiagnostics` interface |
 

@@ -3,7 +3,6 @@ using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Contexts;
-using EasilyNET.Core.Misc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -38,8 +37,7 @@ internal class ModuleApplicationBase : IModuleApplication
         ArgumentNullException.ThrowIfNull(services);
         _startModuleType = startModuleType;
         Services = services;
-        // Build a minimal ServiceProvider only for logging and configuration access
-        // This provider is NOT used for resolving user services
+        // Get bootstrap logger without building a ServiceProvider
         _logger = CreateBootstrapLogger(services);
         if (_logger.IsEnabled(LogLevel.Debug))
         {
@@ -71,44 +69,43 @@ internal class ModuleApplicationBase : IModuleApplication
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Create a bootstrap logger for module initialization</para>
-    ///     <para xml:lang="zh">为模块初始化创建引导日志记录器</para>
+    ///     <para xml:lang="en">Create a bootstrap logger without building a full ServiceProvider</para>
+    ///     <para xml:lang="zh">创建引导日志记录器，无需构建完整的 ServiceProvider</para>
     /// </summary>
     private static ILogger CreateBootstrapLogger(IServiceCollection services)
     {
-        // Try to get an existing ILoggerFactory from the services
+        // Try to get an existing ILoggerFactory from the services without building a provider
         var loggerFactoryDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(ILoggerFactory));
         if (loggerFactoryDescriptor?.ImplementationInstance is ILoggerFactory existingFactory)
         {
             return existingFactory.CreateLogger(nameof(AutoDependencyInjection));
         }
-        // Build a temporary provider just for logging
-        using var tempProvider = services.BuildServiceProvider();
-        var factory = tempProvider.GetService<ILoggerFactory>();
-        return factory?.CreateLogger(nameof(AutoDependencyInjection)) ?? NullLogger.Instance;
+        // If no ILoggerFactory instance is available, use NullLogger to avoid building a temporary ServiceProvider
+        return NullLogger.Instance;
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Get all modules that need to be loaded, ordered by dependencies (dependencies first)</para>
-    ///     <para xml:lang="zh">获取所有需要加载的模块，按依赖顺序排列（依赖项在前）</para>
+    ///     <para xml:lang="en">Load modules by recursively resolving from the root module's DependsOn declarations</para>
+    ///     <para xml:lang="zh">通过递归解析根模块的 DependsOn 声明来加载模块</para>
     /// </summary>
     private void LoadModules()
     {
-        var allModuleInstances = GetAllEnabledModules();
-        var moduleByType = allModuleInstances.ToDictionary(m => m.GetType());
-        var startModule = moduleByType.GetValueOrDefault(_startModuleType) ?? throw new InvalidOperationException($"Module instance of type '{_startModuleType.FullName}' could not be found.");
+        var configuration = ConfigureServicesContext.ExtractConfiguration(Services);
+        var context = new ConfigureServicesContext(Services, configuration);
+        // Create the start module and collect all referenced module types from DependsOn
+        var startModule = CreateModuleOrThrow(_startModuleType);
         // Get dependencies in topological order (dependencies first)
         var dependencyTypes = startModule.GetDependedTypes(_startModuleType).ToList();
-        // Add dependencies first (they are already in correct order from GetDependedTypes)
-        foreach (var depType in dependencyTypes)
+        // Create and add dependency modules in order
+        foreach (var depModule in dependencyTypes.Select(depType => CreateModule(depType, context, _logger)).OfType<IAppModule>().Where(depModule => !Modules.Contains(depModule)))
         {
-            if (moduleByType.TryGetValue(depType, out var depModule) && !Modules.Contains(depModule))
-            {
-                Modules.Add(depModule);
-            }
+            Modules.Add(depModule);
         }
-        // Add the startup module last (it depends on all others)
-        Modules.Add(startModule);
+        // Check if start module is enabled, then add it last
+        if (startModule.GetEnable(context))
+        {
+            Modules.Add(startModule);
+        }
         if (_logger.IsEnabled(LogLevel.Debug))
         {
             _logger.LogDebug("Module execution order: {Order}",
@@ -117,27 +114,24 @@ internal class ModuleApplicationBase : IModuleApplication
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Get all enabled modules</para>
-    ///     <para xml:lang="zh">获取所有启用的模块</para>
+    ///     <para xml:lang="en">Create a module instance or throw if creation fails</para>
+    ///     <para xml:lang="zh">创建模块实例，如果创建失败则抛出异常</para>
     /// </summary>
-    private List<IAppModule> GetAllEnabledModules()
+    private static IAppModule CreateModuleOrThrow(Type moduleType)
     {
-        var types = AssemblyHelper.AllTypes.Where(AppModule.IsAppModule).ToArray();
-        // Create a minimal context for GetEnable check
-        // Note: This context has limited ServiceProvider capabilities
-        using var context = new ConfigureServicesContext(Services);
-        var source = new List<IAppModule>(types.Length);
-        source.AddRange(types.Select(type => CreateModule(type, context, _logger)).OfType<IAppModule>());
-        if (_logger.IsEnabled(LogLevel.Debug))
+        var factory = ConstructorCache.GetOrAdd(moduleType, static t =>
         {
-            _logger.LogDebug("Found {Count} enabled modules", source.Count);
-        }
-        return source;
+            var ctor = t.GetConstructor(Type.EmptyTypes);
+            return ctor is null
+                       ? throw new InvalidOperationException($"Type '{t.FullName}' does not have a parameterless constructor.")
+                       : Expression.Lambda<Func<object>>(Expression.New(ctor)).Compile();
+        });
+        return factory() as IAppModule ?? throw new InvalidOperationException($"Type '{moduleType.FullName}' does not implement IAppModule.");
     }
 
     /// <summary>
-    ///     <para xml:lang="en">Create a module instance</para>
-    ///     <para xml:lang="zh">创建模块实例</para>
+    ///     <para xml:lang="en">Create a module instance with enable check</para>
+    ///     <para xml:lang="zh">创建模块实例并检查是否启用</para>
     /// </summary>
     /// <param name="moduleType">
     ///     <para xml:lang="en">Type of the module</para>
@@ -156,15 +150,7 @@ internal class ModuleApplicationBase : IModuleApplication
     {
         try
         {
-            var factory = ConstructorCache.GetOrAdd(moduleType, static t =>
-            {
-                var ctor = t.GetConstructor(Type.EmptyTypes);
-                return ctor is null
-                           ? throw new InvalidOperationException($"Type '{t.FullName}' does not have a parameterless constructor.")
-                           : Expression.Lambda<Func<object>>(Expression.New(ctor)).Compile();
-            });
-            var module = factory() as IAppModule;
-            ArgumentNullException.ThrowIfNull(module, nameof(moduleType));
+            var module = CreateModuleOrThrow(moduleType);
             if (module.GetEnable(context))
             {
                 return module;
@@ -208,9 +194,13 @@ internal class ModuleApplicationBase : IModuleApplication
             {
                 _logger.LogTrace("Initializing module: {ModuleType}", module.GetType().Name);
             }
-            // Use a dedicated thread pool thread to avoid deadlocks in sync-over-async scenarios
-            // This is safer than .GetAwaiter().GetResult() which can deadlock with sync contexts
-            Task.Run(() => module.ApplicationInitialization(ctx)).ConfigureAwait(false).GetAwaiter().GetResult();
+            module.ApplicationInitializationSync(ctx);
+            // For modules that only override the async method, run it synchronously
+            var asyncTask = module.ApplicationInitialization(ctx);
+            if (!asyncTask.IsCompleted)
+            {
+                asyncTask.GetAwaiter().GetResult();
+            }
         }
         if (_logger.IsEnabled(LogLevel.Debug))
         {
@@ -245,11 +235,105 @@ internal class ModuleApplicationBase : IModuleApplication
             {
                 _logger.LogTrace("Initializing module: {ModuleType}", module.GetType().Name);
             }
+            module.ApplicationInitializationSync(ctx);
             await module.ApplicationInitialization(ctx).ConfigureAwait(false);
         }
         if (_logger.IsEnabled(LogLevel.Debug))
         {
             _logger.LogDebug("Completed async initialization of all modules");
+        }
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Shutdown all modules in reverse order</para>
+    ///     <para xml:lang="zh">按逆序关闭所有模块</para>
+    /// </summary>
+    /// <param name="serviceProvider">
+    ///     <para xml:lang="en">The service provider</para>
+    ///     <para xml:lang="zh">服务提供者</para>
+    /// </param>
+    protected void ShutdownModules(IServiceProvider serviceProvider)
+    {
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Starting shutdown of {Count} modules", Modules.Count);
+        }
+        var ctx = new ApplicationContext(serviceProvider);
+        // Shutdown in reverse order (dependents before dependencies)
+        for (var i = Modules.Count - 1; i >= 0; i--)
+        {
+            var module = Modules[i];
+            try
+            {
+                if (_logger.IsEnabled(LogLevel.Trace))
+                {
+                    _logger.LogTrace("Shutting down module: {ModuleType}", module.GetType().Name);
+                }
+                var task = module.ApplicationShutdown(ctx);
+                if (!task.IsCompleted)
+                {
+                    task.GetAwaiter().GetResult();
+                }
+            }
+            catch (Exception ex)
+            {
+                if (_logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning(ex, "Error shutting down module {ModuleType}", module.GetType().Name);
+                }
+            }
+        }
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Completed shutdown of all modules");
+        }
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Shutdown all modules in reverse order asynchronously</para>
+    ///     <para xml:lang="zh">异步按逆序关闭所有模块</para>
+    /// </summary>
+    /// <param name="serviceProvider">
+    ///     <para xml:lang="en">The service provider</para>
+    ///     <para xml:lang="zh">服务提供者</para>
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     <para xml:lang="en">Cancellation token</para>
+    ///     <para xml:lang="zh">取消令牌</para>
+    /// </param>
+    protected async Task ShutdownModulesAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Starting async shutdown of {Count} modules", Modules.Count);
+        }
+        var ctx = new ApplicationContext(serviceProvider);
+        // Shutdown in reverse order (dependents before dependencies)
+        for (var i = Modules.Count - 1; i >= 0; i--)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var module = Modules[i];
+            try
+            {
+                if (_logger.IsEnabled(LogLevel.Trace))
+                {
+                    _logger.LogTrace("Shutting down module: {ModuleType}", module.GetType().Name);
+                }
+                await module.ApplicationShutdown(ctx).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                if (_logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning(ex, "Error shutting down module {ModuleType}", module.GetType().Name);
+                }
+            }
+        }
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Completed async shutdown of all modules");
         }
     }
 }

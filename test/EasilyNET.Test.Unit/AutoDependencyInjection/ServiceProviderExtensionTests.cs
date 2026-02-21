@@ -26,59 +26,6 @@ public sealed class ServiceProviderExtensionTests
     }
 
     [TestMethod]
-    public void TryResolve_ShouldReturnFalseForMissingService()
-    {
-        var services = new ServiceCollection();
-        using var provider = services.BuildServiceProvider();
-        var resolved = provider.TryResolve(typeof(IGreetingService), out var instance);
-        Assert.IsFalse(resolved);
-        Assert.IsNull(instance);
-    }
-
-    [TestMethod]
-    public void TryResolve_Generic_ShouldReturnTrueForRegisteredService()
-    {
-        var services = new ServiceCollection();
-        services.AddTransient<IGreetingService, GreetingService>();
-        using var provider = services.BuildServiceProvider();
-        var resolved = provider.TryResolve<IGreetingService>(out var instance);
-        Assert.IsTrue(resolved);
-        Assert.IsNotNull(instance);
-        Assert.AreEqual("Hello", instance.SayHello());
-    }
-
-    [TestMethod]
-    public void ResolveOptional_ShouldReturnNullForMissingService()
-    {
-        var services = new ServiceCollection();
-        using var provider = services.BuildServiceProvider();
-        var instance = provider.ResolveOptional<IGreetingService>();
-        Assert.IsNull(instance);
-    }
-
-    [TestMethod]
-    public void ResolveOptional_ShouldReturnInstanceForRegisteredService()
-    {
-        var services = new ServiceCollection();
-        services.AddTransient<IGreetingService, GreetingService>();
-        using var provider = services.BuildServiceProvider();
-        var instance = provider.ResolveOptional<IGreetingService>();
-        Assert.IsNotNull(instance);
-        Assert.AreEqual("Hello", instance.SayHello());
-    }
-
-    [TestMethod]
-    public void ResolveAll_ShouldReturnAllRegistrations()
-    {
-        var services = new ServiceCollection();
-        services.AddTransient<IGreetingService, GreetingService>();
-        services.AddTransient<IGreetingService>(_ => new KeyedGreetingService("Hi"));
-        using var provider = services.BuildServiceProvider();
-        var all = provider.ResolveAll<IGreetingService>().ToList();
-        Assert.HasCount(2, all);
-    }
-
-    [TestMethod]
     public void CreateResolver_ShouldReturnValidResolver()
     {
         var services = new ServiceCollection();
@@ -86,17 +33,6 @@ public sealed class ServiceProviderExtensionTests
         using var provider = services.BuildServiceProvider();
         using var resolver = provider.CreateResolver();
         var greeting = resolver.Resolve<IGreetingService>();
-        Assert.AreEqual("Hello", greeting.SayHello());
-    }
-
-    [TestMethod]
-    public void BeginResolverScope_ShouldCreateScopedResolver()
-    {
-        var services = new ServiceCollection();
-        services.AddScoped<IGreetingService, GreetingService>();
-        using var provider = services.BuildServiceProvider();
-        using var scopedResolver = provider.BeginResolverScope();
-        var greeting = scopedResolver.Resolve<IGreetingService>();
         Assert.AreEqual("Hello", greeting.SayHello());
     }
 

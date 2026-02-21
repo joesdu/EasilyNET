@@ -15,10 +15,16 @@ namespace EasilyNET.AutoDependencyInjection.Contexts;
 ///         <see cref="IServiceCollection" />
 ///     </para>
 /// </param>
-public sealed class ConfigureServicesContext(IServiceCollection services) : IDisposable
+/// <param name="configuration">
+///     <para xml:lang="en">
+///     <see cref="IConfiguration" /> extracted from the service collection without building a ServiceProvider
+///     </para>
+///     <para xml:lang="zh">
+///     从服务集合中提取的 <see cref="IConfiguration" />，无需构建 ServiceProvider
+///     </para>
+/// </param>
+public sealed class ConfigureServicesContext(IServiceCollection services, IConfiguration configuration)
 {
-    private IServiceProvider? _serviceProvider;
-
     /// <summary>
     ///     <para xml:lang="en">
     ///         <see cref="IServiceCollection" />
@@ -31,43 +37,52 @@ public sealed class ConfigureServicesContext(IServiceCollection services) : IDis
 
     /// <summary>
     ///     <para xml:lang="en">
+    ///     Gets the configuration directly without building a temporary ServiceProvider.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     直接获取配置，无需构建临时 ServiceProvider。
+    ///     </para>
+    /// </summary>
+    public IConfiguration Configuration { get; } = configuration;
+
+    /// <summary>
+    ///     <para xml:lang="en">
     ///     Gets a temporary ServiceProvider for resolving services during configuration.
-    ///     WARNING: This provider only contains services registered BEFORE this point.
-    ///     Use sparingly and prefer IConfiguration for configuration access.
+    ///     WARNING: Each access may build a new temporary ServiceProvider. Prefer using
+    ///     <see cref="Configuration" /> for configuration access. Only use this for services
+    ///     like IWebHostEnvironment that are not available otherwise.
     ///     </para>
     ///     <para xml:lang="zh">
     ///     获取用于配置期间解析服务的临时 ServiceProvider。
-    ///     警告：此提供者仅包含在此之前注册的服务。
-    ///     请谨慎使用，优先使用 IConfiguration 访问配置。
+    ///     警告：每次访问可能构建新的临时 ServiceProvider。优先使用 <see cref="Configuration" /> 访问配置。
+    ///     仅在需要 IWebHostEnvironment 等无法通过其他方式获取的服务时使用。
     ///     </para>
     /// </summary>
-    public IServiceProvider ServiceProvider => _serviceProvider ??= Services.BuildServiceProvider();
+    [Obsolete("Prefer using Configuration property directly. This builds a temporary ServiceProvider which may cause singleton duplication. Will be removed in a future version.")]
+    public IServiceProvider ServiceProvider => Services.BuildServiceProvider();
 
     /// <summary>
     ///     <para xml:lang="en">
-    ///     Gets the configuration. This is a convenience method equivalent to
-    ///     ServiceProvider.GetRequiredService&lt;IConfiguration&gt;().
+    ///     Extracts <see cref="IConfiguration" /> from the service collection without building a ServiceProvider.
     ///     </para>
     ///     <para xml:lang="zh">
-    ///     获取配置。这是一个便捷方法，等同于
-    ///     ServiceProvider.GetRequiredService&lt;IConfiguration&gt;()。
+    ///     从服务集合中提取 <see cref="IConfiguration" />，无需构建 ServiceProvider。
     ///     </para>
     /// </summary>
-    public IConfiguration Configuration => ServiceProvider.GetRequiredService<IConfiguration>();
-
-    /// <summary>
-    ///     <para xml:lang="en">
-    ///     Disposes the temporary ServiceProvider if it was created.
-    ///     </para>
-    ///     <para xml:lang="zh">
-    ///     释放临时 ServiceProvider（如果已创建）。
-    ///     </para>
-    /// </summary>
-    public void Dispose()
+    /// <param name="services">
+    ///     <para xml:lang="en">The service collection</para>
+    ///     <para xml:lang="zh">服务集合</para>
+    /// </param>
+    internal static IConfiguration ExtractConfiguration(IServiceCollection services)
     {
-        if (_serviceProvider is IDisposable disposable)
+        // Try to find IConfiguration already registered as a singleton instance
+        var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IConfiguration));
+        if (descriptor?.ImplementationInstance is IConfiguration config)
         {
-            disposable.Dispose();
+            return config;
         }
+        // Fallback: build a minimal temporary provider (only happens if IConfiguration is registered via factory)
+        var tempProvider = services.BuildServiceProvider();
+        return tempProvider.GetRequiredService<IConfiguration>();
     }
 }

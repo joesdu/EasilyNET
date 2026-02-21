@@ -17,7 +17,16 @@ public class AppModule : IAppModule
     public virtual Task ConfigureServicesAsync(ConfigureServicesContext context, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     /// <inheritdoc />
+    public virtual void ApplicationInitializationSync(ApplicationContext context)
+    {
+        // Default implementation does nothing
+    }
+
+    /// <inheritdoc />
     public virtual Task ApplicationInitialization(ApplicationContext context) => Task.CompletedTask;
+
+    /// <inheritdoc />
+    public virtual Task ApplicationShutdown(ApplicationContext context) => Task.CompletedTask;
 
     /// <inheritdoc />
     public virtual bool GetEnable(ConfigureServicesContext context) => true;
@@ -91,19 +100,5 @@ public class AppModule : IAppModule
                 result.Add(type);
             }
         }
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Determine if a type is a module</para>
-    ///     <para xml:lang="zh">判断类型是否是模块</para>
-    /// </summary>
-    /// <param name="type">
-    ///     <para xml:lang="en">Type to check</para>
-    ///     <para xml:lang="zh">要检查的类型</para>
-    /// </param>
-    public static bool IsAppModule(Type type)
-    {
-        var typeInfo = type.GetTypeInfo();
-        return typeInfo is { IsClass: true, IsAbstract: false, IsGenericType: false } && typeof(IAppModule).GetTypeInfo().IsAssignableFrom(type);
     }
 }

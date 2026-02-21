@@ -29,9 +29,11 @@
 #### 4. **高级服务解析器 (IResolver)**
 
 - 提供类似 Autofac 的动态解析能力，同时基于 `Microsoft.Extensions.DependencyInjection`
-- 支持构造函数参数覆盖 (NamedParameter, TypedParameter, ResolvedParameter)
-- 支持可选解析、批量解析、命名解析、键控解析
-- 支持创建独立作用域 (`BeginScope`)
+- 支持构造函数参数覆盖 (NamedParameter, TypedParameter, PositionalParameter, ResolvedParameter)
+- 支持命名解析、键控解析
+- 支持 `Owned<T>` 受控生命周期管理
+- 支持 `IIndex<TKey, TService>` 键控服务索引
+- 支持参数化工厂 (`Func<TParam, TService>`)
 
 #### 5. **多平台支持**
 
@@ -64,29 +66,26 @@
 
 #### 核心方法
 
-| 方法                     | 说明                         |
-| ------------------------ | ---------------------------- |
-| `Resolve<T>()`           | 解析服务，失败抛异常         |
-| `TryResolve<T>(out var)` | 尝试解析服务，失败返回 false |
-| `ResolveOptional<T>()`   | 解析可选服务，失败返回 null  |
-| `ResolveAll<T>()`        | 解析所有已注册的 T 服务      |
-| `ResolveKeyed<T>(key)`   | 解析键控服务（KeyedService） |
-| `ResolveNamed<T>(name)`  | 解析命名服务                 |
-| `BeginScope()`           | 创建子作用域                 |
+| 方法                                | 说明                         |
+| ----------------------------------- | ---------------------------- |
+| `Resolve<T>(params Parameter[])`    | 解析服务（支持参数覆盖），失败抛异常 |
+| `ResolveKeyed<T>(key, params?)`     | 解析键控服务（KeyedService） |
+| `ResolveNamed<T>(name, params?)`    | 解析命名服务                 |
 
 #### 构造函数参数注入
 
-支持三种参数类型：
+支持四种参数类型：
 
 1. **NamedParameter**: 按参数名匹配
 2. **TypedParameter**: 按参数类型匹配
-3. **ResolvedParameter**: 自定义匹配逻辑和值提供
+3. **PositionalParameter**: 按参数位置匹配（零基索引）
+4. **ResolvedParameter**: 自定义匹配逻辑和值提供
 
 #### 使用示例
 
 ```csharp
 // 1. 基本解析
-var resolver = provider.CreateResolver();
+using var resolver = provider.CreateResolver();
 var service = resolver.Resolve<IMyService>();
 
 // 2. 带参数覆盖的解析
@@ -100,14 +99,16 @@ var keyedService = resolver.ResolveKeyed<ICache>("redis",
     new NamedParameter("endpoint", "127.0.0.1:6379")
 );
 
-// 4. 批量解析
-var allHandlers = resolver.ResolveAll<IEventHandler>();
+// 4. 命名服务解析
+var namedService = resolver.ResolveNamed<ICache>("primary");
 
-// 5. 可选解析
-var optional = resolver.ResolveOptional<IOptionalService>();
+// 5. 受控生命周期（Owned<T>）
+var owned = provider.ResolveOwned<IScopedService>();
+// 使用完毕后释放作用域
+owned.Dispose();
 
-// 6. 作用域解析
-using var scopedResolver = resolver.BeginScope();
+// 6. 创建独立作用域的 Resolver
+using var scopedResolver = provider.CreateResolver(createScope: true);
 var scopedService = scopedResolver.Resolve<IScopedService>();
 ```
 

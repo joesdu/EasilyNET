@@ -24,5 +24,5 @@ internal static class ApplicationFactory
     ///     <para xml:lang="en"><see cref="IServiceCollection" /> to configure services</para>
     ///     <para xml:lang="zh">用于配置服务的 <see cref="IServiceCollection" /></para>
     /// </param>
-    public static IStartupModuleRunner Create<TStartupModule>(IServiceCollection services) where TStartupModule : AppModule => StartupModuleRunner.Instance(typeof(TStartupModule), services);
+    public static IStartupModuleRunner Create<TStartupModule>(IServiceCollection services) where TStartupModule : AppModule => StartupModuleRunner.Create(typeof(TStartupModule), services);
 }
