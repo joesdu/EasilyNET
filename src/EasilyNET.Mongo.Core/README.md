@@ -7,6 +7,7 @@
 ## 目录
 
 - [安装](#安装)
+- [⚠️ 中断性变更（Breaking Changes）](#️-中断性变更breaking-changes)
 - [MongoContext —— 数据库上下文基类](#mongocontext--数据库上下文基类)
 - [索引特性](#索引特性)
   - [MongoIndexAttribute —— 单字段索引](#mongoindexattribute--单字段索引)
@@ -33,6 +34,32 @@ dotnet add package EasilyNET.Mongo.Core
 ```
 
 > 通常你不需要直接安装此包，因为 `EasilyNET.Mongo.AspNetCore` 已自动引用它。
+
+---
+
+## ⚠️ 中断性变更（Breaking Changes）
+
+### 不再默认注册 `IMongoClient` 和 `IMongoDatabase`
+
+从当前版本开始，Mongo 集成层不再向 DI 容器直接注册 `IMongoClient` 与 `IMongoDatabase`。
+
+请改为通过 `MongoContext` 子类实例访问：
+
+```csharp
+// ❌ 旧方式（不再支持）
+public class ReportService(IMongoClient client, IMongoDatabase database)
+{
+}
+
+// ✅ 新方式（推荐）
+public class ReportService(MyDbContext db)
+{
+    public IMongoClient Client => db.Client;
+    public IMongoDatabase Database => db.Database;
+}
+```
+
+这可以避免多上下文场景下的歧义（例如同一应用中注册多个 `MongoContext`），并确保你拿到的是当前上下文对应的客户端与数据库。
 
 ---
 

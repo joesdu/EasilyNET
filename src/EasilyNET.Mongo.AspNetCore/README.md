@@ -7,6 +7,7 @@
 ## 目录
 
 - [安装](#安装)
+- [⚠️ 中断性变更（Breaking Changes）](#️-中断性变更breaking-changes)
 - [快速开始：注册 MongoContext](#快速开始注册-mongocontext)
   - [方式 1：使用 IConfiguration（推荐）](#方式-1使用-iconfiguration推荐)
   - [方式 2：使用连接字符串](#方式-2使用连接字符串)
@@ -31,6 +32,61 @@
 ```bash
 dotnet add package EasilyNET.Mongo.AspNetCore
 ```
+
+---
+
+## ⚠️ 中断性变更（Breaking Changes）
+
+### 不再注册 `IMongoClient` 和 `IMongoDatabase` 到 DI 容器
+
+此前版本会将 `IMongoClient` 和 `IMongoDatabase` 注册为单例服务，可直接通过 DI 注入。当前版本已移除此行为。
+
+请通过 `MongoContext` 子类实例的 `Client` 和 `Database` 属性访问：
+
+```csharp
+// ❌ 旧方式（不再支持）
+public class MyService(IMongoClient client, IMongoDatabase database) { }
+
+// ✅ 新方式：通过 DbContext 获取
+public class MyService(MyDbContext db)
+{
+    // 访问 IMongoClient
+    var client = db.Client;
+
+    // 访问 IMongoDatabase
+    var database = db.Database;
+
+    // 直接使用集合
+    var orders = db.Orders;
+}
+```
+
+### Convention 配置方式变更
+
+Convention 相关配置已从 `ClientOptions` / `BasicClientOptions` 中移除，改为通过独立的 `ConfigureMongoConventions` 方法全局配置：
+
+```csharp
+// ❌ 旧方式（不再支持）
+builder.Services.AddMongoContext<MyDbContext>(config, c =>
+{
+    c.DefaultConventionRegistry = true;
+    c.ObjectIdToStringTypes = [typeof(SomeEntity)];
+    c.ConventionRegistry = new() { ... };
+});
+
+// ✅ 新方式：Convention 独立配置，在 AddMongoContext 之前调用
+builder.Services.ConfigureMongoConventions(c =>
+{
+    c.ObjectIdToStringTypes = [typeof(SomeEntity)];
+    c.AddConvention("myConvention", new ConventionPack { ... });
+});
+builder.Services.AddMongoContext<MyDbContext>(config, c =>
+{
+    c.DatabaseName = "mydb";
+});
+```
+
+> 若不调用 `ConfigureMongoConventions`，首次 `AddMongoContext` 时将自动使用默认配置（驼峰命名 + 忽略未知字段 + `_id` 映射 + 枚举存字符串）。
 
 ---
 
@@ -61,22 +117,32 @@ public class MyDbContext : MongoContext
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
+// 可选：自定义全局 Convention（必须在 AddMongoContext 之前调用，最多一次）
+// 调用后仅使用用户自定义的约定，本库内置默认约定不会被应用
+// 若不调用，首次 AddMongoContext 时自动使用默认配置
+builder.Services.ConfigureMongoConventions(c =>
+{
+    // 特定类型的 ObjectId 存为 string（在使用 $unwind 时有时需要此配置）
+    c.ObjectIdToStringTypes = [typeof(SomeEntity)];
+
+    // 添加自定义约定包（支持链式调用）
+    c.AddConvention("default", new ConventionPack
+    {
+        new CamelCaseElementNameConvention(),
+        new IgnoreExtraElementsConvention(true),
+        new NamedIdMemberConvention("Id", "ID"),
+        new EnumRepresentationConvention(BsonType.String)
+    })
+    .AddConvention("ignoreDefault", new ConventionPack
+    {
+        new IgnoreIfDefaultConvention(true)
+    });
+});
+
 builder.Services.AddMongoContext<MyDbContext>(builder.Configuration, c =>
 {
     // 数据库名称（可选，覆盖连接字符串中的库名）
     c.DatabaseName = "mydb";
-
-    // 启用默认命名约定（强烈推荐）：驼峰字段名 + _id 映射 + 枚举存字符串
-    c.DefaultConventionRegistry = true;
-
-    // 特定类型的 ObjectId 存为 string（在使用 $unwind 时有时需要此配置）
-    c.ObjectIdToStringTypes = [typeof(SomeEntity)];
-
-    // 追加自定义 Convention（可选）
-    c.ConventionRegistry = new()
-    {
-        { "myConvention", new ConventionPack { new IgnoreIfDefaultConvention(true) } }
-    };
 
     // 高级驱动配置（可选，如对接 APM 探针）
     c.ClientSettings = cs =>
@@ -91,7 +157,7 @@ builder.Services.AddMongoContext<MyDbContext>(builder.Configuration, c =>
 ```csharp
 builder.Services.AddMongoContext<MyDbContext>("mongodb://localhost:27017/mydb", c =>
 {
-    c.DefaultConventionRegistry = true;
+    c.DatabaseName = "mydb";
 });
 ```
 
@@ -107,7 +173,6 @@ builder.Services.AddMongoContext<MyDbContext>(
     c =>
     {
         c.DatabaseName = "mydb";
-        c.DefaultConventionRegistry = true;
     });
 ```
 
@@ -118,8 +183,6 @@ MongoDB 驱动内置连接自动恢复，`Resilience` 提供开箱即用的默�
 ```csharp
 builder.Services.AddMongoContext<MyDbContext>(builder.Configuration, c =>
 {
-    c.DefaultConventionRegistry = true;
-
     // 启用弹性默认值（与驱动内置自动恢复机制配合）
     c.Resilience.Enable = true;
 
@@ -152,7 +215,7 @@ builder.Services.AddMongoContext<MyDbContext>(builder.Configuration, c =>
 
 ## 字段映射与命名约定
 
-启用 `DefaultConventionRegistry = true` 后，框架会自动注册以下规则：
+默认情况下（未调用 `ConfigureMongoConventions`），框架会自动注册以下规则：
 
 | 功能                | 说明                                                        | 示例                     |
 | ------------------- | ----------------------------------------------------------- | ------------------------ |
@@ -204,7 +267,7 @@ builder.Services.RegisterSerializer(new JsonObjectSerializer());
 ### 枚举键字典
 
 ```csharp
-// 支持 Dictionary<TEnum, TValue>
+// 支持 Dictionary<TEnum, TValue> / IDictionary<TEnum, TValue> / IReadOnlyDictionary<TEnum, TValue>
 builder.Services.RegisterGlobalEnumKeyDictionarySerializer();
 ```
 
@@ -224,7 +287,7 @@ builder.Services.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standa
 ```csharp
 var app = builder.Build();
 
-// 自动扫描所有带索引特性的实体，创建/更新索引
+// 自动扫描所有带索引特性的实体，后台创建/更新索引（不阻塞应用启动）
 app.UseCreateMongoIndexes<MyDbContext>();
 ```
 
@@ -232,7 +295,7 @@ app.UseCreateMongoIndexes<MyDbContext>();
 
 1. 扫描 `MyDbContext` 的所有 `IMongoCollection<T>` 属性
 2. 比对数据库中的现有索引与代码声明
-3. 创建缺失的索引；对于结构变更的索引，先删后建
+3. 创建缺失的索引；对于结构变更的索引，优先尝试“先建后删”，冲突时回退为“删后建”
 
 ### 索引管理策略
 
@@ -429,10 +492,10 @@ public class OrderChangeStreamHandler : MongoChangeStreamHandler<Order>
     private readonly IServiceScopeFactory _scopeFactory;
 
     public OrderChangeStreamHandler(
-        IMongoDatabase database,
+        MyDbContext db,
         ILogger<OrderChangeStreamHandler> logger,
         IServiceScopeFactory scopeFactory)
-        : base(database, collectionName: "orders", logger, new ChangeStreamHandlerOptions
+        : base(db.Database, collectionName: "orders", logger, new ChangeStreamHandlerOptions
         {
             // 持久化恢复令牌：应用重启后从上次位置继续，不丢失事件
             PersistResumeToken = true,
@@ -442,6 +505,9 @@ public class OrderChangeStreamHandler : MongoChangeStreamHandler<Order>
             MaxRetryAttempts = 5,                         // 最大重试次数（0 = 无限）
             RetryDelay = TimeSpan.FromSeconds(2),         // 初始间隔（2→4→8→16→32s）
             MaxRetryDelay = TimeSpan.FromSeconds(60),     // 最大间隔
+
+            // FullDocument 策略（更新事件是否拉取完整文档）
+            FullDocument = ChangeStreamFullDocumentOption.UpdateLookup,
         })
     {
         _scopeFactory = scopeFactory;
@@ -493,6 +559,7 @@ builder.Services.AddMongoChangeStreamHandler<OrderChangeStreamHandler>();
 | `MaxRetryDelay`             | `60s`                         | 重试间隔上限                         |
 | `PersistResumeToken`        | `false`                       | 是否将恢复令牌持久化到 MongoDB       |
 | `ResumeTokenCollectionName` | `"_changeStreamResumeTokens"` | 存储恢复令牌的集合名                 |
+| `FullDocument`              | `UpdateLookup`                | 更新事件是否返回完整文档             |
 
 ### 断点续传工作原理
 
@@ -515,17 +582,17 @@ GridFS 是 MongoDB 内置的大文件（> 16MB）分片存储方案，适合不�
 
 ```csharp
 // 使用默认数据库（集合：fs.files, fs.chunks）
-builder.Services.AddGridFSBucket();
+builder.Services.AddGridFSBucket<MyDbContext>();
 
 // 自定义桶名和块大小
-builder.Services.AddGridFSBucket(opt =>
+builder.Services.AddGridFSBucket<MyDbContext>(opt =>
 {
     opt.BucketName = "uploads";      // 集合前缀：uploads.files, uploads.chunks
     opt.ChunkSizeBytes = 512 * 1024;  // 每块 512KB（默认 255KB）
 });
 
 // 使用独立的数据库（文件库与业务库分离），通过键控服务注入
-builder.Services.AddGridFSBucket(
+builder.Services.AddGridFSBucket<MyDbContext>(
     serviceKey: "media",              // DI 键名，注入时使用 [FromKeyedServices("media")]
     databaseName: "file-storage-db",  // 独立数据库名
     opt =>
@@ -540,8 +607,8 @@ builder.Services.AddGridFSBucket(
 
 ```csharp
 // 注册多个桶
-builder.Services.AddGridFSBucket("media", "media-db");
-builder.Services.AddGridFSBucket("documents", "docs-db");
+builder.Services.AddGridFSBucket<MyDbContext>("media", "media-db");
+builder.Services.AddGridFSBucket<MyDbContext>("documents", "docs-db");
 
 // 在服务中注入
 public class MediaService([FromKeyedServices("media")] IGridFSBucket mediaBucket)
@@ -610,7 +677,7 @@ public class FileStorageService(IGridFSBucket gridFs)
 
 ```csharp
 builder.Services.AddHealthChecks()
-    .AddMongoHealthCheck(
+    .AddMongoHealthCheck<MyDbContext>(
         name: "mongodb",                        // 健康检查名称（默认 "mongodb"）
         failureStatus: HealthStatus.Unhealthy,   // 失败状态（默认 Unhealthy）
         tags: ["db", "mongodb"],              // 可选标签（用于分组过滤）
@@ -653,37 +720,68 @@ dotnet add package EasilyNET.AutoDependencyInjection
 ```csharp
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
+using EasilyNET.Mongo.AspNetCore.Serializers;
+using EasilyNET.Mongo.ConsoleDebug.Subscribers;
+using WebApi.Test.Unit.Common;
 
-public class MongoModule : AppModule
+internal sealed class MongoModule : AppModule
 {
-    public override async Task ConfigureServices(ConfigureServicesContext context)
+    public override void ConfigureServices(ConfigureServicesContext context)
     {
-        var config = context.ServiceProvider.GetConfiguration();
+        var config = context.Configuration;
+        var env = context.Environment ?? throw new("获取环境信息出错");
 
-        context.Services.AddMongoContext<MyDbContext>(config, c =>
+        context.Services.AddMongoContext<DbContext>(config, c =>
         {
-            c.DefaultConventionRegistry = true;
-            c.DatabaseName = "mydb";
+            c.DatabaseName = "easilynet";
+            c.ClientSettings = cs =>
+            {
+                cs.ClusterConfigurator = s =>
+                {
+                    if (env.IsDevelopment())
+                    {
+                        s.Subscribe(new ActivityEventConsoleDebugSubscriber(new()
+                        {
+                            Enable = false
+                        }));
+                    }
+                    s.Subscribe(new ActivityEventDiagnosticsSubscriber(new()
+                    {
+                        CaptureCommandText = true
+                    }));
+                };
+                cs.ApplicationName = Constant.InstanceName;
+            };
+        });
+
+        context.Services.AddMongoContext<DbContext2>(config, c =>
+        {
+            c.DatabaseName = "easilynet2";
+            c.ClientSettings = cs =>
+            {
+                cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventConsoleDebugSubscriber(new()
+                {
+                    Enable = false
+                }));
+                cs.ApplicationName = Constant.InstanceName;
+            };
         });
 
         // 序列化器
         context.Services.RegisterSerializer(new DateOnlySerializerAsString());
         context.Services.RegisterSerializer(new TimeOnlySerializerAsString());
+        context.Services.RegisterSerializer(new JsonNodeSerializer());
+        context.Services.RegisterSerializer(new JsonObjectSerializer());
         context.Services.RegisterDynamicSerializer();
+        context.Services.RegisterGlobalEnumKeyDictionarySerializer();
+    }
 
-        // GridFS
-        context.Services.AddGridFSBucket();
-
-        // 变更流处理器
-        context.Services.AddMongoChangeStreamHandler<OrderChangeStreamHandler>();
-
-        // Atlas Search / Vector Search 索引自动创建（推荐在服务注册阶段添加）
-        context.Services.AddMongoSearchIndexCreation<MyDbContext>();
-
-        // 健康检查
-        context.Services.AddHealthChecks().AddMongoHealthCheck();
-
-        await base.ConfigureServices(context);
+    public override async Task ApplicationInitialization(ApplicationContext context)
+    {
+        var app = context.GetApplicationHost() as IApplicationBuilder;
+        app?.UseCreateMongoIndexes<DbContext>();
+        app?.UseCreateMongoIndexes<DbContext2>();
+        await base.ApplicationInitialization(context);
     }
 }
 ```
@@ -693,23 +791,30 @@ public class MongoModule : AppModule
 ```csharp
 [DependsOn(
     typeof(DependencyAppModule),
+    typeof(ResponseCompressionModule),
+    typeof(CorsModule),
+    typeof(ControllersModule),
+    typeof(GarnetDistributedCacheModule),
     typeof(MongoModule)
+    // ... 其他模块按中间件顺序继续追加
 )]
-public class AppWebModule : AppModule
+internal sealed class AppWebModule : AppModule
 {
+    public override void ConfigureServices(ConfigureServicesContext context)
+    {
+        context.Services.AddProblemDetails();
+        context.Services.AddExceptionHandler<BusinessExceptionHandler>();
+        context.Services.AddHttpContextAccessor();
+    }
+
     public override async Task ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationHost() as IApplicationBuilder;
-        if (app is null) return;
-
-        // 自动创建各类集合和索引
-        app.UseCreateMongoIndexes<MyDbContext>();
-        app.UseCreateMongoTimeSeriesCollection<MyDbContext>();
-        app.UseCreateMongoCappedCollections<MyDbContext>();
-        // 如果已在 ConfigureServices 中调用 AddMongoSearchIndexCreation，则无需再调用以下方法
-        // app.UseCreateMongoSearchIndexes<MyDbContext>();
-
-        app.UseAuthorization();
+        app?.UseExceptionHandler();
+        app?.UseResponseTime();
+        app?.UseAuthentication();
+        app?.UseAuthorization();
+        app?.UseStaticFiles();
         await base.ApplicationInitialization(context);
     }
 }
@@ -763,4 +868,5 @@ docker compose -f docker-compose.mongo.rs.yml up -d
 1. 确认使用的是 MongoDB Atlas 或 MongoDB 8.2+ 社区版
 2. Atlas 侧索引创建是异步的，通常需要几秒到几分钟
 3. 检查日志中是否有 `Failed to ensure search indexes` 错误
-4. 确认 `app.UseCreateMongoSearchIndexes<MyDbContext>()` 已调用
+4. 确认已在服务注册阶段调用 `builder.Services.AddMongoSearchIndexCreation<MyDbContext>()`（推荐）
+   或使用兼容方式 `app.UseCreateMongoSearchIndexes<MyDbContext>()`

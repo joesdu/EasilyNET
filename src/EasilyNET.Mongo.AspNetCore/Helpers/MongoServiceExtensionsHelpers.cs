@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using EasilyNET.Mongo.AspNetCore.Common;
 using EasilyNET.Mongo.AspNetCore.Conventions;
 using EasilyNET.Mongo.AspNetCore.Options;
@@ -13,28 +12,22 @@ internal static class MongoServiceExtensionsHelpers
 {
     /// <summary>
     ///     <para xml:lang="en">
-    ///     Thread-safe flag to ensure default convention packs and the Id generator convention are registered only once,
-    ///     preventing unbounded accumulation in the global <see cref="ConventionRegistry" />.
+    ///     Thread-safe flag to ensure convention packs and global serializers are registered only once.
     ///     </para>
-    ///     <para xml:lang="zh">线程安全标志，确保默认 convention pack 和 Id 生成器 convention 仅注册一次，防止在全局 ConventionRegistry 中无限累积。</para>
+    ///     <para xml:lang="zh">线程安全标志，确保 convention pack 和全局序列化器仅注册一次。</para>
     /// </summary>
-    private static int _defaultConventionsRegistered;
+    private static int _conventionsRegistered;
 
     /// <summary>
     ///     <para xml:lang="en">
-    ///     Stores the ObjectIdToStringTypes from the first registration so the Id generator convention filter remains consistent.
+    ///     Indicates whether the CamelCase element naming convention is active globally.
+    ///     Set during convention registration and used by index/search-index creation to determine field name casing.
     ///     </para>
-    ///     <para xml:lang="zh">存储首次注册时的 ObjectIdToStringTypes，以确保 Id 生成器 convention 过滤器保持一致。</para>
-    /// </summary>
-    private static List<Type>? _firstObjectIdToStringTypes;
-
-    /// <summary>
-    ///     <para xml:lang="en">
-    ///     Stores the DefaultConventionRegistry value from the first registration for consistency detection.
+    ///     <para xml:lang="zh">
+    ///     指示全局是否启用了驼峰命名约定。在 Convention 注册时设置，供索引/搜索索引创建时判断字段名大小写。
     ///     </para>
-    ///     <para xml:lang="zh">存储首次注册时的 DefaultConventionRegistry 值，用于一致性检测。</para>
     /// </summary>
-    private static bool _firstDefaultConventionRegistry;
+    internal static bool UseCamelCase { get; private set; }
 
     /// <summary>
     /// Applies resilience options to the MongoDB client settings.
@@ -62,79 +55,77 @@ internal static class MongoServiceExtensionsHelpers
     }
 
     /// <summary>
-    /// Registers convention packs for BSON serialization based on the specified client options.
+    ///     <para xml:lang="en">
+    ///     Registers user-defined convention packs for BSON serialization.
+    ///     Only the conventions explicitly added via <see cref="MongoConventionOptions.AddConvention" /> will be registered —
+    ///     the library's built-in defaults will NOT be applied.
+    ///     This method is idempotent — only the first invocation takes effect.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     注册用户自定义的 BSON 序列化约定包。
+    ///     仅注册通过 <see cref="MongoConventionOptions.AddConvention" /> 显式添加的约定 — 本库的内置默认约定不会被应用。
+    ///     此方法是幂等的 — 仅首次调用生效。
+    ///     </para>
     /// </summary>
-    /// <remarks>
-    ///     <para xml:lang="en">
-    ///     This method configures global BSON serialization conventions for MongoDB entities, including
-    ///     element naming, extra element handling, ID member naming, and enum representation. Convention packs are
-    ///     registered conditionally according to the provided options. Default conventions and the Id generator
-    ///     convention are registered only once (thread-safe) to prevent memory leaks from duplicate registrations
-    ///     in the global <see cref="ConventionRegistry" />.
-    ///     </para>
-    ///     <para xml:lang="zh">
-    ///     此方法为 MongoDB 实体配置全局 BSON 序列化约定，包括元素命名、额外元素处理、ID 成员命名和枚举表示。
-    ///     约定包根据提供的选项有条件地注册。默认约定和 Id 生成器约定仅注册一次（线程安全），以防止在全局
-    ///     <see cref="ConventionRegistry" /> 中因重复注册导致内存泄漏。
-    ///     </para>
-    ///     <para xml:lang="en">
-    ///     <b>Known limitation:</b> Because <see cref="ConventionRegistry" /> is a process-wide global registry,
-    ///     the <see cref="BasicClientOptions.DefaultConventionRegistry" /> and <see cref="BasicClientOptions.ObjectIdToStringTypes" />
-    ///     settings from the <b>first</b> <c>AddMongoContext</c> call take effect globally. Subsequent registrations with
-    ///     different settings will be silently ignored. If you need different conventions for different contexts,
-    ///     use <see cref="BasicClientOptions.ConventionRegistry" /> to register custom convention packs instead.
-    ///     </para>
-    ///     <para xml:lang="zh">
-    ///     <b>已知限制：</b>由于 <see cref="ConventionRegistry" /> 是进程级全局注册表，
-    ///     <see cref="BasicClientOptions.DefaultConventionRegistry" /> 和 <see cref="BasicClientOptions.ObjectIdToStringTypes" />
-    ///     仅以<b>首次</b> <c>AddMongoContext</c> 调用时的设置为准，后续注册若使用不同设置将被静默忽略。
-    ///     如需为不同的 Context 配置不同的约定，请使用 <see cref="BasicClientOptions.ConventionRegistry" /> 注册自定义约定包。
-    ///     </para>
-    /// </remarks>
-    /// <param name="options">The client options that determine which convention packs are registered. Must not be null.</param>
-    internal static void RegistryConventionPack(BasicClientOptions options)
+    /// <param name="options">The convention options. Must not be null.</param>
+    internal static void RegistryConventionPack(MongoConventionOptions options)
     {
-        // 默认 convention 和 Id 生成器 convention 仅注册一次，避免全局 ConventionRegistry 内存泄漏
-        if (Interlocked.CompareExchange(ref _defaultConventionsRegistered, 1, 0) == 0)
+        if (Interlocked.CompareExchange(ref _conventionsRegistered, 1, 0) != 0)
         {
-            _firstObjectIdToStringTypes = options.ObjectIdToStringTypes;
-            _firstDefaultConventionRegistry = options.DefaultConventionRegistry;
-            if (options.DefaultConventionRegistry)
-            {
-                ConventionRegistry.Register($"{Constant.Pack}-default", new ConventionPack
-                {
-                    new CamelCaseElementNameConvention(),
-                    new IgnoreExtraElementsConvention(true),
-                    new NamedIdMemberConvention("Id", "ID"),
-                    new EnumRepresentationConvention(BsonType.String)
-                }, _ => true);
-            }
-            ConventionRegistry.Register($"{Constant.Pack}-id-generator", new ConventionPack
-            {
-                new StringToObjectIdIdGeneratorConvention() //ObjectId → String mapping ObjectId
-            }, x => !(_firstObjectIdToStringTypes ?? []).Contains(x));
-            // 确保全局序列化器只注册一次
-            _ = MongoServiceExtensions.FirstInitialization.Value;
+            return;
         }
-        else
+        // 判断用户自定义 convention 中是否包含 CamelCase
+        UseCamelCase = options.Conventions.Any(e => e.Pack.Conventions.Any(c => c is CamelCaseElementNameConvention));
+        foreach (var entry in options.Conventions)
         {
-            // 检测后续注册与首次注册的设置是否一致，输出诊断警告
-            if (options.DefaultConventionRegistry != _firstDefaultConventionRegistry)
-            {
-                Trace.TraceWarning("[EasilyNET.Mongo] 当前 AddMongoContext 调用的 DefaultConventionRegistry={0} 与首次注册的值 {1} 不一致，该设置已被忽略。ConventionRegistry 是进程级全局注册表，仅首次注册生效。",
-                    options.DefaultConventionRegistry, _firstDefaultConventionRegistry);
-            }
-            var currentTypes = options.ObjectIdToStringTypes;
-            var firstTypes = _firstObjectIdToStringTypes ?? [];
-            if (!currentTypes.SequenceEqual(firstTypes))
-            {
-                Trace.TraceWarning("[EasilyNET.Mongo] 当前 AddMongoContext 调用的 ObjectIdToStringTypes 与首次注册不一致，该设置已被忽略。仅首次注册的 ObjectIdToStringTypes 生效。");
-            }
+            ConventionRegistry.Register(entry.Name, entry.Pack, _ => true);
         }
-        // 用户自定义 convention 仍按需注册（使用用户提供的 key，由用户保证唯一性）
-        foreach (var item in options.ConventionRegistry)
+        RegisterIdGeneratorAndSerializers(options.ObjectIdToStringTypes);
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Ensures conventions are registered. If <c>ConfigureMongoConventions</c> was not called explicitly,
+    ///     registers the library's built-in default conventions automatically.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     确保 Convention 已注册。若用户未显式调用 <c>ConfigureMongoConventions</c>，则自动注册本库的内置默认约定。
+    ///     </para>
+    /// </summary>
+    internal static void EnsureConventionsRegistered()
+    {
+        if (Interlocked.CompareExchange(ref _conventionsRegistered, 1, 0) != 0)
         {
-            ConventionRegistry.Register(item.Key, item.Value, _ => true);
+            return;
         }
+        UseCamelCase = true;
+        ConventionRegistry.Register($"{Constant.Pack}-default", new ConventionPack
+        {
+            new CamelCaseElementNameConvention(),
+            new IgnoreExtraElementsConvention(true),
+            new NamedIdMemberConvention("Id", "ID"),
+            new EnumRepresentationConvention(BsonType.String)
+        }, _ => true);
+        RegisterIdGeneratorAndSerializers([]);
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Registers the ObjectId-to-string ID generator convention and global serializers.
+    ///     Shared by both user-defined and default convention registration paths.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     注册 ObjectId 到字符串的 ID 生成器约定和全局序列化器。
+    ///     用户自定义和默认约定注册路径共用此方法。
+    ///     </para>
+    /// </summary>
+    private static void RegisterIdGeneratorAndSerializers(List<Type> objectIdToStringTypes)
+    {
+        ConventionRegistry.Register($"{Constant.Pack}-id-generator", new ConventionPack
+        {
+            new StringToObjectIdIdGeneratorConvention() //ObjectId → String mapping ObjectId
+        }, x => !objectIdToStringTypes.Contains(x));
+        // 确保全局序列化器只注册一次
+        _ = MongoServiceExtensions.FirstInitialization.Value;
     }
 }

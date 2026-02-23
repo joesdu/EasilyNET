@@ -1,6 +1,7 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using EasilyNET.Core.Misc;
-using EasilyNET.Mongo.AspNetCore.Options;
+using EasilyNET.Mongo.AspNetCore.Helpers;
 using EasilyNET.Mongo.Core;
 using EasilyNET.Mongo.Core.Attributes;
 using EasilyNET.Mongo.Core.Enums;
@@ -8,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 
 namespace EasilyNET.Mongo.AspNetCore.SearchIndex;
@@ -37,6 +37,10 @@ internal sealed class SearchIndexBackgroundService<T>(IServiceProvider servicePr
     private static readonly Lazy<HashSet<Type>> CachedSearchIndexTypes = new(static () =>
         [.. AssemblyHelper.FindTypesByAttribute<MongoSearchIndexAttribute>(o => o is { IsClass: true, IsAbstract: false }, false)]);
 
+    // Cache DbContext IMongoCollection<> properties to avoid repeated reflection per startup execution.
+    // ReSharper disable once StaticMemberInGenericType
+    private static readonly ConcurrentDictionary<Type, PropertyInfo[]> CachedDbContextCollectionProperties = new();
+
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -46,17 +50,13 @@ internal sealed class SearchIndexBackgroundService<T>(IServiceProvider servicePr
         {
             using var scope = serviceProvider.CreateScope();
             var scopedProvider = scope.ServiceProvider;
-            var options = scopedProvider.GetRequiredService<BasicClientOptions>();
-            var useCamelCase =
-                options is { DefaultConventionRegistry: true, ConventionRegistry.Values.Count: 0 } ||
-                options.ConventionRegistry.Values.Any(pack => pack.Conventions.Any(c => c is CamelCaseElementNameConvention));
             var db = scopedProvider.GetService<T>();
             if (db is null)
             {
                 logger.LogWarning("Could not resolve {DbContext} from service provider. Search index creation skipped.", typeof(T).Name);
                 return;
             }
-            await EnsureSearchIndexesAsync(db, useCamelCase, stoppingToken).ConfigureAwait(false);
+            await EnsureSearchIndexesAsync(db, MongoServiceExtensionsHelpers.UseCamelCase, stoppingToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -71,10 +71,12 @@ internal sealed class SearchIndexBackgroundService<T>(IServiceProvider servicePr
     private async Task EnsureSearchIndexesAsync(MongoContext dbContext, bool useCamelCase, CancellationToken ct)
     {
         var dbContextType = dbContext.GetType();
-        var properties = AssemblyHelper.FindTypes(t => t == dbContextType)
-                                       .SelectMany(t => t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
-                                       .Where(prop => prop.PropertyType.IsGenericType && prop.PropertyType.GetGenericTypeDefinition() == typeof(IMongoCollection<>))
-                                       .ToArray();
+        var properties = CachedDbContextCollectionProperties.GetOrAdd(dbContextType, static type =>
+        [
+            .. AssemblyHelper.FindTypes(t => t == type)
+                             .SelectMany(t => t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+                             .Where(prop => prop.PropertyType.IsGenericType && prop.PropertyType.GetGenericTypeDefinition() == typeof(IMongoCollection<>))
+        ]);
         // Track entity types already processed via DbContext properties to avoid duplicate work in assembly scanning.
         var processedEntityTypes = new HashSet<Type>();
         foreach (var prop in properties)

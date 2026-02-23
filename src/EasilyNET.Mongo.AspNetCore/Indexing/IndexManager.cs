@@ -111,8 +111,18 @@ internal static class IndexManager
                     }
                     try
                     {
-                        DropIndex(collection, matchingIndex.Name, logger);
-                        CreateIndex(collection, requiredIndex, logger);
+                        // 尝试先创建目标索引，以尽量降低“无索引窗口”。
+                        // 若 MongoDB 报冲突（常见于同 key 但不同选项），再回退到 Drop + Create。
+                        var createdFirst = TryCreateIndexWithFallback(collection, requiredIndex, logger);
+                        if (!createdFirst)
+                        {
+                            DropIndex(collection, matchingIndex.Name, logger);
+                            CreateIndex(collection, requiredIndex, logger);
+                        }
+                        else
+                        {
+                            DropIndex(collection, matchingIndex.Name, logger);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -208,8 +218,10 @@ internal static class IndexManager
         // ReSharper disable once ConvertIfStatementToSwitchStatement
         if (indexDef.IndexType == EIndexType.Wildcard)
         {
+            // driver 的 Wildcard() 会自动追加 ".$**"，需要先去掉已有的后缀避免重复
             var wildcardField = indexDef.Keys.Names.First();
-            keysDef = builder.Wildcard(wildcardField);
+            var baseField = wildcardField.EndsWith(".$**") ? wildcardField[..^4] : wildcardField;
+            keysDef = baseField.Length == 0 ? builder.Wildcard() : builder.Wildcard(baseField);
         }
         else if (indexDef.IndexType == EIndexType.Text)
         {
@@ -306,10 +318,32 @@ internal static class IndexManager
         }
         catch (Exception ex)
         {
+            if (logger is not null && logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Failed to drop index {IndexName} from collection {CollectionName}.", indexName, collection.CollectionNamespace.CollectionName);
+            }
+            throw;
+        }
+    }
+
+    private static bool TryCreateIndexWithFallback(IMongoCollection<BsonDocument> collection, IndexDefinition requiredIndex, ILogger? logger)
+    {
+        try
+        {
+            CreateIndex(collection, requiredIndex, logger);
+            return true;
+        }
+        catch (MongoCommandException ex) when (ex.CodeName is "IndexOptionsConflict" or "IndexKeySpecsConflict" ||
+                                               ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase) ||
+                                               ex.Message.Contains("conflict", StringComparison.OrdinalIgnoreCase))
+        {
             if (logger is not null && logger.IsEnabled(LogLevel.Warning))
             {
-                logger.LogWarning(ex, "Failed to drop index {IndexName} from collection {CollectionName}.", indexName, collection.CollectionNamespace.CollectionName);
+                logger.LogWarning(ex,
+                    "Cannot create replacement index {IndexName} before drop on collection {CollectionName}. Falling back to Drop+Create, which introduces a short no-index window.",
+                    requiredIndex.Name, collection.CollectionNamespace.CollectionName);
             }
+            return false;
         }
     }
 

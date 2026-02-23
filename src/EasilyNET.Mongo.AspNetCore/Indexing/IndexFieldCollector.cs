@@ -36,7 +36,7 @@ internal static class IndexFieldCollector
             }
             foreach (var attr in prop.GetCustomAttributes<MongoIndexAttribute>(false))
             {
-                var path = fullPath.Replace('.', '_');
+                var path = fullPath;
                 switch (attr.Type)
                 {
                     case EIndexType.Text:

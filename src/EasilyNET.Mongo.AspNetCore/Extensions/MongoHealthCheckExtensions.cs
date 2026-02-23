@@ -1,6 +1,6 @@
 using EasilyNET.Mongo.AspNetCore.HealthChecks;
+using EasilyNET.Mongo.Core;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using MongoDB.Driver;
 
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
@@ -19,13 +19,18 @@ public static class MongoHealthCheckExtensions
         /// <summary>
         ///     <para xml:lang="en">
         ///     Add a health check for MongoDB. Verifies connectivity by executing a <c>ping</c> command against the database.
-        ///     The <see cref="IMongoClient" /> is resolved from the service provider.
+        ///     The <see cref="MongoContext" /> subclass <typeparamref name="TContext" /> is resolved from the service provider
+        ///     to obtain the <c>IMongoClient</c> and database name.
         ///     </para>
         ///     <para xml:lang="zh">
         ///     添加 MongoDB 健康检查。通过对数据库执行 <c>ping</c> 命令来验证连接性。
-        ///     <see cref="IMongoClient" /> 从服务提供程序中解析。
+        ///     从服务提供程序中解析 <see cref="MongoContext" /> 子类 <typeparamref name="TContext" /> 以获取 <c>IMongoClient</c> 和数据库名称。
         ///     </para>
         /// </summary>
+        /// <typeparam name="TContext">
+        ///     <para xml:lang="en">The <see cref="MongoContext" /> subclass to resolve from DI.</para>
+        ///     <para xml:lang="zh">从 DI 解析的 <see cref="MongoContext" /> 子类。</para>
+        /// </typeparam>
         /// <param name="name">
         ///     <para xml:lang="en">The health check name. Defaults to <c>"mongodb"</c>.</para>
         ///     <para xml:lang="zh">健康检查名称。默认为 <c>"mongodb"</c>。</para>
@@ -48,13 +53,12 @@ public static class MongoHealthCheckExtensions
         /// <returns>
         ///     <see cref="IHealthChecksBuilder" />
         /// </returns>
-        public IHealthChecksBuilder AddMongoHealthCheck(string name = "mongodb", HealthStatus? failureStatus = null, IEnumerable<string>? tags = null, TimeSpan? timeout = null)
+        public IHealthChecksBuilder AddMongoHealthCheck<TContext>(string name = "mongodb", HealthStatus? failureStatus = null, IEnumerable<string>? tags = null, TimeSpan? timeout = null) where TContext : MongoContext
         {
             return builder.Add(new(name, sp =>
             {
-                var client = sp.GetRequiredService<IMongoClient>();
-                var database = sp.GetService<IMongoDatabase>();
-                return new MongoHealthCheck(client, database?.DatabaseNamespace.DatabaseName);
+                var context = sp.GetRequiredService<TContext>();
+                return new MongoHealthCheck(context.Client, context.Database.DatabaseNamespace.DatabaseName);
             }, failureStatus, tags, timeout));
         }
     }

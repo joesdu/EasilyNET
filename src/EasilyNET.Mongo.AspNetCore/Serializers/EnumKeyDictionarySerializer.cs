@@ -137,3 +137,39 @@ public sealed class EnumKeyDictionarySerializer<TKey, TValue> : SerializerBase<D
         return map;
     }
 }
+
+/// <summary>
+///     <para xml:lang="en">Serializer for <see cref="IDictionary{TKey,TValue}" /> with enum keys.</para>
+///     <para xml:lang="zh">用于枚举键 <see cref="IDictionary{TKey,TValue}" /> 的序列化器。</para>
+/// </summary>
+public sealed class EnumKeyIDictionarySerializer<TKey, TValue> : SerializerBase<IDictionary<TKey, TValue>> where TKey : struct, Enum
+{
+    private readonly EnumKeyDictionarySerializer<TKey, TValue> _inner = new();
+
+    /// <inheritdoc />
+    public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, IDictionary<TKey, TValue> value)
+    {
+        _inner.Serialize(context, args, value as Dictionary<TKey, TValue> ?? value.ToDictionary(kv => kv.Key, kv => kv.Value));
+    }
+
+    /// <inheritdoc />
+    public override IDictionary<TKey, TValue> Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args) => _inner.Deserialize(context, args);
+}
+
+/// <summary>
+///     <para xml:lang="en">Serializer for <see cref="IReadOnlyDictionary{TKey,TValue}" /> with enum keys.</para>
+///     <para xml:lang="zh">用于枚举键 <see cref="IReadOnlyDictionary{TKey,TValue}" /> 的序列化器。</para>
+/// </summary>
+public sealed class EnumKeyReadOnlyDictionarySerializer<TKey, TValue> : SerializerBase<IReadOnlyDictionary<TKey, TValue>> where TKey : struct, Enum
+{
+    private readonly EnumKeyDictionarySerializer<TKey, TValue> _inner = new();
+
+    /// <inheritdoc />
+    public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, IReadOnlyDictionary<TKey, TValue> value)
+    {
+        _inner.Serialize(context, args, value as Dictionary<TKey, TValue> ?? value.ToDictionary(kv => kv.Key, kv => kv.Value));
+    }
+
+    /// <inheritdoc />
+    public override IReadOnlyDictionary<TKey, TValue> Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args) => _inner.Deserialize(context, args);
+}

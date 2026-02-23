@@ -17,6 +17,8 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class SerializersCollectionExtensions
 {
+    private static int _enumDictionarySerializerRegistered;
+
     /// <param name="services">
     ///     <see cref="IServiceCollection" />
     /// </param>
@@ -106,7 +108,13 @@ public static class SerializersCollectionExtensions
         /// </summary>
         public IServiceCollection RegisterGlobalEnumKeyDictionarySerializer()
         {
+            if (Interlocked.CompareExchange(ref _enumDictionarySerializerRegistered, 1, 0) != 0)
+            {
+                return services;
+            }
             BsonSerializer.RegisterGenericSerializerDefinition(typeof(Dictionary<,>), typeof(EnumKeyDictionarySerializer<,>));
+            BsonSerializer.RegisterGenericSerializerDefinition(typeof(IDictionary<,>), typeof(EnumKeyIDictionarySerializer<,>));
+            BsonSerializer.RegisterGenericSerializerDefinition(typeof(IReadOnlyDictionary<,>), typeof(EnumKeyReadOnlyDictionarySerializer<,>));
             return services;
         }
     }

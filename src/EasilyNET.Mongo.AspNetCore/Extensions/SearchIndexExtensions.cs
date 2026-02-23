@@ -1,7 +1,5 @@
 using EasilyNET.Mongo.AspNetCore.SearchIndex;
 using EasilyNET.Mongo.Core;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Hosting;
 
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
@@ -43,65 +41,5 @@ public static class SearchIndexExtensions
     {
         services.AddHostedService<SearchIndexBackgroundService<T>>();
         return services;
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">
-    ///     Automatically create MongoDB Atlas Search and Vector Search indexes for entity objects marked with
-    ///     <c>MongoSearchIndexAttribute</c>.
-    ///     Requires MongoDB Atlas or MongoDB 8.2+ Community Edition.
-    ///     On unsupported deployments, this method logs a warning and skips index creation.
-    ///     </para>
-    ///     <para xml:lang="zh">
-    ///     对标记 <c>MongoSearchIndexAttribute</c> 的实体对象，自动创建 MongoDB Atlas Search 和 Vector Search 索引。
-    ///     需要 MongoDB Atlas 或 MongoDB 8.2+ 社区版。
-    ///     在不支持的部署上，此方法记录警告并跳过索引创建。
-    ///     </para>
-    /// </summary>
-    /// <remarks>
-    ///     <para xml:lang="en">
-    ///     This method starts a background service via <see cref="IHostApplicationLifetime" /> that runs once at startup.
-    ///     The service is properly managed with graceful cancellation and disposal.
-    ///     For new code, prefer using <see cref="AddMongoSearchIndexCreation{T}" /> during service registration instead.
-    ///     </para>
-    ///     <para xml:lang="zh">
-    ///     此方法通过 <see cref="IHostApplicationLifetime" /> 启动一个在启动时运行一次的后台服务。
-    ///     该服务具有正确的取消和释放管理。
-    ///     对于新代码，建议在服务注册阶段使用 <see cref="AddMongoSearchIndexCreation{T}" /> 代替。
-    ///     </para>
-    /// </remarks>
-    /// <typeparam name="T">
-    ///     <see cref="MongoContext" />
-    /// </typeparam>
-    /// <param name="app">
-    ///     <see cref="IApplicationBuilder" />
-    /// </param>
-    public static IApplicationBuilder UseCreateMongoSearchIndexes<T>(this IApplicationBuilder app) where T : MongoContext
-    {
-        ArgumentNullException.ThrowIfNull(app);
-        var serviceProvider = app.ApplicationServices;
-        var lifetime = serviceProvider.GetRequiredService<IHostApplicationLifetime>();
-        // Create the background service when the application has fully started.
-        // The service is properly started, awaited, and disposed on shutdown.
-        lifetime.ApplicationStarted.Register(void () =>
-        {
-            var backgroundService = ActivatorUtilities.CreateInstance<SearchIndexBackgroundService<T>>(serviceProvider);
-            var stoppingToken = lifetime.ApplicationStopping;
-            // Register disposal on application stopping to prevent resource leaks.
-            stoppingToken.Register(async void () =>
-            {
-                try
-                {
-                    await backgroundService.StopAsync(CancellationToken.None).ConfigureAwait(false);
-                    backgroundService.Dispose();
-                }
-                catch (Exception)
-                {
-                    // ignore exceptions during shutdown to avoid interfering with application termination
-                }
-            });
-            _ = backgroundService.StartAsync(stoppingToken);
-        });
-        return app;
     }
 }

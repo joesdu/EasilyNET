@@ -15,49 +15,16 @@ internal sealed class MongoModule : AppModule
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         var config = context.Configuration;
-        // MongoDB服务初始化完整例子
-        //context.Services.AddMongoContext<DbContext>(new MongoClientSettings
+        // 全局 Convention 配置（可选，最多调用一次，必须在 AddMongoContext 之前）
+        // 调用后仅使用用户自定义的约定，本库内置默认约定不会被应用
+        // 若不调用，首次 AddMongoContext 时将自动使用默认配置（驼峰命名 + 忽略未知字段 + _id 映射 + 枚举存字符串）
+        //context.Services.ConfigureMongoConventions(c =>
         //{
-        //    Servers = new List<MongoServerAddress> { new("127.0.0.1", 27018) },
-        //    Credential = MongoCredential.CreateCredential("admin", "guest", "guest"),
-        //    // 对接 SkyAPM 的 MongoDB探针
-        //    ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber())
-        //}, c =>
-        //{
-        //    // 配置数据库名称,覆盖掉连接字符串中的数据库名称
-        //    c.DatabaseName = "test23";
         //    // 配置不需要将Id字段存储为ObjectID的类型,会存储为字符串类型
-        //    c.ObjectIdToStringTypes = new()
-        //    {
-        //        typeof(MongoTest2)
-        //    };
-        //    // 是否使用一些默认转换配置.包含如下内容:
-        //    // 1.小驼峰字段名称 如: pageSize ,linkPhone
-        //    // 2.忽略代码中未定义的字段
-        //    // 3.将ObjectID字段 _id 映射到实体中的ID或者Id字段,反之亦然.在存入数据的时候将Id或者ID映射为 _id
-        //    // 4.将枚举类型存储为字符串, 如: Gender.男 存储到数据中为 男,而不是 int 类型
-        //    c.DefaultConventionRegistry = true;
-        //    c.ConventionRegistry = new()
-        //    {
-        //        {
-        //            $"{SnowId.GenerateNewId()}",
-        //            new() { new IgnoreIfDefaultConvention(true) }
-        //        }
-        //    };
-        //}).AddMongoContext<DbContext2>(config, c =>
-        //{
-        //    c.DefaultConventionRegistry = true;
-        //    c.ConventionRegistry = new()
-        //    {
-        //        {
-        //            $"{SnowId.GenerateNewId()}",
-        //            new() { new IgnoreIfDefaultConvention(true) }
-        //        }
-        //    };
-        //    c.ClientSettings = cs =>
-        //    {
-        //        cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventSubscriber());
-        //    };
+        //    c.ObjectIdToStringTypes = [typeof(MongoTest2)];
+        //    // 添加自定义约定包（支持链式调用）
+        //    c.AddConvention("myConvention", new() { new CamelCaseElementNameConvention() })
+        //     .AddConvention("ignoreDefault", new() { new IgnoreIfDefaultConvention(true) });
         //});
         var env = context.Environment ?? throw new("获取环境信息出错");
         context.Services.AddMongoContext<DbContext>(config, c =>
@@ -95,6 +62,18 @@ internal sealed class MongoModule : AppModule
                 //}));
             };
         });
+        context.Services.AddMongoContext<DbContext2>(config, c =>
+        {
+            c.DatabaseName = "easilynet2";
+            c.ClientSettings = cs =>
+            {
+                cs.ClusterConfigurator = cb => cb.Subscribe(new ActivityEventConsoleDebugSubscriber(new()
+                {
+                    Enable = false
+                }));
+                cs.ApplicationName = Constant.InstanceName;
+            };
+        });
         context.Services.RegisterSerializer(new DateOnlySerializerAsString());
         context.Services.RegisterSerializer(new TimeOnlySerializerAsString());
         context.Services.RegisterSerializer(new JsonNodeSerializer());
@@ -107,6 +86,7 @@ internal sealed class MongoModule : AppModule
     {
         var app = context.GetApplicationHost() as IApplicationBuilder;
         app?.UseCreateMongoIndexes<DbContext>();
+        app?.UseCreateMongoIndexes<DbContext2>();
         await base.ApplicationInitialization(context);
     }
 }

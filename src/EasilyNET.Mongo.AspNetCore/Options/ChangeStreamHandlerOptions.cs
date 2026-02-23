@@ -1,6 +1,7 @@
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 
 using EasilyNET.Mongo.AspNetCore.ChangeStreams;
+using MongoDB.Driver;
 
 namespace EasilyNET.Mongo.AspNetCore.Options;
 
@@ -72,4 +73,16 @@ public sealed class ChangeStreamHandlerOptions
     ///     </para>
     /// </summary>
     public string ResumeTokenCollectionName { get; set; } = "_changeStreamResumeTokens";
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Controls whether and how full updated documents are returned for update operations.
+    ///     Defaults to <see cref="ChangeStreamFullDocumentOption.UpdateLookup" />.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     控制更新操作是否以及如何返回完整文档。
+    ///     默认为 <see cref="ChangeStreamFullDocumentOption.UpdateLookup" />。
+    ///     </para>
+    /// </summary>
+    public ChangeStreamFullDocumentOption FullDocument { get; set; } = ChangeStreamFullDocumentOption.UpdateLookup;
 }

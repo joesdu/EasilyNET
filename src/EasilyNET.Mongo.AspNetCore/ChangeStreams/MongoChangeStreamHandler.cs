@@ -23,8 +23,8 @@ namespace EasilyNET.Mongo.AspNetCore.ChangeStreams;
 ///         <code>
 ///     public class OrderChangeHandler : MongoChangeStreamHandler&lt;Order&gt;
 ///     {
-///         public OrderChangeHandler(IMongoDatabase database, ILogger&lt;OrderChangeHandler&gt; logger)
-///             : base(database, "orders", logger) { }
+///         public OrderChangeHandler(MyDbContext db, ILogger&lt;OrderChangeHandler&gt; logger)
+///             : base(db.Database, "orders", logger) { }
 /// 
 ///         protected override Task HandleChangeAsync(ChangeStreamDocument&lt;Order&gt; change, CancellationToken ct)
 ///         {
@@ -95,7 +95,7 @@ public abstract class MongoChangeStreamHandler<TDocument>(
     {
         if (_options.PersistResumeToken)
         {
-            _resumeToken = await LoadResumeTokenAsync(stoppingToken).ConfigureAwait(false);
+            Interlocked.Exchange(ref _resumeToken, await LoadResumeTokenAsync(stoppingToken).ConfigureAwait(false));
         }
         var retryCount = 0;
         while (!stoppingToken.IsCancellationRequested)
@@ -141,11 +141,12 @@ public abstract class MongoChangeStreamHandler<TDocument>(
         var pipeline = BuildPipeline();
         var changeStreamOptions = new ChangeStreamOptions
         {
-            FullDocument = ChangeStreamFullDocumentOption.UpdateLookup
+            FullDocument = _options.FullDocument
         };
-        if (_resumeToken is not null)
+        var resumeToken = Interlocked.CompareExchange(ref _resumeToken, null, null);
+        if (resumeToken is not null)
         {
-            changeStreamOptions.ResumeAfter = _resumeToken;
+            changeStreamOptions.ResumeAfter = resumeToken;
             logger.LogInformation("Resuming change stream for collection {CollectionName} from saved token.", collectionName);
         }
         using var cursor = pipeline is not null
@@ -160,7 +161,7 @@ public abstract class MongoChangeStreamHandler<TDocument>(
                 {
                     await HandleChangeAsync(change, stoppingToken).ConfigureAwait(false);
                     // Update resume token after successful processing
-                    _resumeToken = change.ResumeToken;
+                    Interlocked.Exchange(ref _resumeToken, change.ResumeToken);
                     if (_options.PersistResumeToken)
                     {
                         await SaveResumeTokenAsync(change.ResumeToken, stoppingToken).ConfigureAwait(false);

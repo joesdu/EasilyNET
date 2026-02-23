@@ -18,15 +18,13 @@ namespace EasilyNET.Mongo.AspNetCore.HealthChecks;
 /// </param>
 internal sealed class MongoHealthCheck(IMongoClient client, string? databaseName = null) : IHealthCheck
 {
-    private static readonly BsonDocument PingCommand = new("ping", 1);
-
     /// <inheritdoc />
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
         try
         {
             var database = client.GetDatabase(databaseName ?? "admin");
-            var result = await database.RunCommandAsync<BsonDocument>(PingCommand, cancellationToken: cancellationToken).ConfigureAwait(false);
+            var result = await database.RunCommandAsync<BsonDocument>(new BsonDocument("ping", 1), cancellationToken: cancellationToken).ConfigureAwait(false);
             return result.Contains("ok") && result["ok"].AsDouble.AreAlmostEqual(1.0)
                        ? HealthCheckResult.Healthy("MongoDB is responding to ping.")
                        : HealthCheckResult.Unhealthy("MongoDB ping returned unexpected result.");

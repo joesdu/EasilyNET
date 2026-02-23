@@ -1,4 +1,3 @@
-using EasilyNET.Core.Misc;
 using EasilyNET.Mongo.AspNetCore.Common;
 using EasilyNET.Mongo.AspNetCore.Helpers;
 using EasilyNET.Mongo.AspNetCore.Options;
@@ -55,6 +54,39 @@ public static class MongoServiceExtensions
     extension(IServiceCollection services)
     {
         /// <summary>
+        ///     <para xml:lang="en">
+        ///     Configure global MongoDB convention packs. This method should be called at most once, before any <c>AddMongoContext</c> call.
+        ///     If not called, default conventions will be applied automatically on the first <c>AddMongoContext</c> call.
+        ///     </para>
+        ///     <para xml:lang="zh">
+        ///     配置全局 MongoDB Convention 约定包。此方法最多调用一次，且应在所有 <c>AddMongoContext</c> 调用之前。
+        ///     若未调用，首次 <c>AddMongoContext</c> 时将自动使用默认配置。
+        ///     </para>
+        /// </summary>
+        /// <param name="configure">
+        ///     <para xml:lang="en">
+        ///     Action to configure <see cref="MongoConventionOptions" />.
+        ///     Only the conventions explicitly added via <see cref="MongoConventionOptions.AddConvention" /> will be registered.
+        ///     The library's built-in defaults (camelCase, IgnoreExtraElements, etc.) will NOT be applied when this method is called.
+        ///     </para>
+        ///     <para xml:lang="zh">
+        ///     配置 <see cref="MongoConventionOptions" /> 的委托。
+        ///     仅注册通过 <see cref="MongoConventionOptions.AddConvention" /> 显式添加的约定。
+        ///     调用此方法后，本库的内置默认约定（驼峰命名、忽略未知字段等）将不会被应用。
+        ///     </para>
+        /// </param>
+        /// <returns>
+        ///     <see cref="IServiceCollection" />
+        /// </returns>
+        public IServiceCollection ConfigureMongoConventions(Action<MongoConventionOptions> configure)
+        {
+            var options = new MongoConventionOptions();
+            configure(options);
+            MongoServiceExtensionsHelpers.RegistryConventionPack(options);
+            return services;
+        }
+
+        /// <summary>
         ///     <para xml:lang="en">Add <see cref="MongoContext" /> through the default connection string name</para>
         ///     <para xml:lang="zh">通过默认连接字符串名称配置添加 <see cref="MongoContext" /></para>
         /// </summary>
@@ -65,7 +97,7 @@ public static class MongoServiceExtensions
         ///     <see cref="IConfiguration" />
         /// </param>
         /// <param name="option">
-        ///     <see cref="BasicClientOptions" />
+        ///     <see cref="ClientOptions" />
         /// </param>
         public void AddMongoContext<T>(IConfiguration configuration, Action<ClientOptions>? option = null) where T : MongoContext
         {
@@ -89,7 +121,7 @@ public static class MongoServiceExtensions
         ///     <para xml:lang="zh"><see langword="string" /> MongoDB链接字符串</para>
         /// </param>
         /// <param name="option">
-        ///     <see cref="BasicClientOptions" />
+        ///     <see cref="ClientOptions" />
         /// </param>
         public void AddMongoContext<T>(string connStr, Action<ClientOptions>? option = null) where T : MongoContext
         {
@@ -107,9 +139,6 @@ public static class MongoServiceExtensions
             }
             services.AddMongoContext<T>(settings, c =>
             {
-                c.ObjectIdToStringTypes = options.ObjectIdToStringTypes;
-                c.DefaultConventionRegistry = options.DefaultConventionRegistry;
-                c.ConventionRegistry.AddRange(options.ConventionRegistry);
                 c.Resilience = options.Resilience;
                 c.DatabaseName = dbName;
             });
@@ -133,7 +162,8 @@ public static class MongoServiceExtensions
         {
             var options = new BasicClientOptions();
             option?.Invoke(options);
-            MongoServiceExtensionsHelpers.RegistryConventionPack(options);
+            // 确保 Convention 已注册（若用户未显式调用 ConfigureMongoConventions，则使用默认配置）
+            MongoServiceExtensionsHelpers.EnsureConventionsRegistered();
             MongoServiceExtensionsHelpers.ApplyResilienceOptions(settings, options.Resilience);
             var dbName = options.DatabaseName ?? Constant.DefaultDbName;
             // 使用工厂委托注册，支持 DI 构造函数注入
@@ -155,9 +185,6 @@ public static class MongoServiceExtensions
                 context.Initialize(settings, dbName);
                 return context;
             });
-            // Client 和 Database 通过工厂委托从 MongoContext 派生，避免双重 Dispose
-            services.AddSingleton<IMongoClient>(sp => sp.GetRequiredService<T>().Client);
-            services.AddSingleton<IMongoDatabase>(sp => sp.GetRequiredService<T>().Database);
             services.AddSingleton(options);
         }
     }
