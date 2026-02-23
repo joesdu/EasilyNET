@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using EasilyNET.Mongo.AspNetCore.Common;
 using EasilyNET.Mongo.AspNetCore.Conventions;
@@ -35,6 +36,12 @@ internal static class MongoServiceExtensionsHelpers
     ///     <para xml:lang="zh">存储首次注册时的 DefaultConventionRegistry 值，用于一致性检测。</para>
     /// </summary>
     private static bool _firstDefaultConventionRegistry;
+
+    /// <summary>
+    ///     <para xml:lang="en">Tracks user custom convention keys that have been registered globally.</para>
+    ///     <para xml:lang="zh">跟踪已全局注册的用户自定义 convention key，避免重复注册。</para>
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, byte> UserConventionKeys = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Applies resilience options to the MongoDB client settings.
@@ -131,9 +138,14 @@ internal static class MongoServiceExtensionsHelpers
                 Trace.TraceWarning("[EasilyNET.Mongo] 当前 AddMongoContext 调用的 ObjectIdToStringTypes 与首次注册不一致，该设置已被忽略。仅首次注册的 ObjectIdToStringTypes 生效。");
             }
         }
-        // 用户自定义 convention 仍按需注册（使用用户提供的 key，由用户保证唯一性）
+        // 用户自定义 convention 去重注册，避免 ConventionRegistry 全局累积
         foreach (var item in options.ConventionRegistry)
         {
+            if (!UserConventionKeys.TryAdd(item.Key, 0))
+            {
+                Trace.TraceWarning("[EasilyNET.Mongo] 自定义 Convention key '{0}' 已注册，已跳过重复注册。", item.Key);
+                continue;
+            }
             ConventionRegistry.Register(item.Key, item.Value, _ => true);
         }
     }

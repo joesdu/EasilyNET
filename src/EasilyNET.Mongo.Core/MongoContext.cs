@@ -10,8 +10,8 @@ namespace EasilyNET.Mongo.Core;
 /// </summary>
 public class MongoContext : IDisposable, IAsyncDisposable
 {
-    private bool _disposed;
-    private bool _initialized;
+    private int _disposed;
+    private int _initialized;
 
     /// <summary>
     ///     <see cref="IMongoClient" />
@@ -139,13 +139,12 @@ public class MongoContext : IDisposable, IAsyncDisposable
     /// </param>
     public void Initialize(MongoClientSettings settings, string dbName)
     {
-        if (_initialized)
+        if (Interlocked.CompareExchange(ref _initialized, 1, 0) != 0)
         {
             throw new InvalidOperationException("MongoContext 已经初始化，不允许重复调用 Initialize。");
         }
         Client = new MongoClient(settings);
         Database = Client.GetDatabase(dbName);
-        _initialized = true;
     }
 
     /// <summary>
@@ -155,15 +154,11 @@ public class MongoContext : IDisposable, IAsyncDisposable
     /// <param name="disposing"></param>
     protected virtual void Dispose(bool disposing)
     {
-        if (_disposed)
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
         {
             return;
         }
-        if (disposing)
-        {
-            // ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
-            Client?.Dispose();
-        }
-        _disposed = true;
+        // MongoClient is intended to be application-lifetime singleton and usually should not be disposed manually.
+        // Keep dispose path as idempotent marker only.
     }
 }

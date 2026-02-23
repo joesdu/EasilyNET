@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Collections.Concurrent;
 using EasilyNET.Core.Misc;
 using EasilyNET.Mongo.AspNetCore.Options;
 using EasilyNET.Mongo.Core;
@@ -37,6 +38,10 @@ internal sealed class SearchIndexBackgroundService<T>(IServiceProvider servicePr
     private static readonly Lazy<HashSet<Type>> CachedSearchIndexTypes = new(static () =>
         [.. AssemblyHelper.FindTypesByAttribute<MongoSearchIndexAttribute>(o => o is { IsClass: true, IsAbstract: false }, false)]);
 
+    // Cache DbContext IMongoCollection<> properties to avoid repeated reflection per startup execution.
+    // ReSharper disable once StaticMemberInGenericType
+    private static readonly ConcurrentDictionary<Type, PropertyInfo[]> CachedDbContextCollectionProperties = new();
+
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -71,10 +76,10 @@ internal sealed class SearchIndexBackgroundService<T>(IServiceProvider servicePr
     private async Task EnsureSearchIndexesAsync(MongoContext dbContext, bool useCamelCase, CancellationToken ct)
     {
         var dbContextType = dbContext.GetType();
-        var properties = AssemblyHelper.FindTypes(t => t == dbContextType)
-                                       .SelectMany(t => t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
-                                       .Where(prop => prop.PropertyType.IsGenericType && prop.PropertyType.GetGenericTypeDefinition() == typeof(IMongoCollection<>))
-                                       .ToArray();
+        var properties = CachedDbContextCollectionProperties.GetOrAdd(dbContextType, static type =>
+            [.. AssemblyHelper.FindTypes(t => t == type)
+                             .SelectMany(t => t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+                             .Where(prop => prop.PropertyType.IsGenericType && prop.PropertyType.GetGenericTypeDefinition() == typeof(IMongoCollection<>))]);
         // Track entity types already processed via DbContext properties to avoid duplicate work in assembly scanning.
         var processedEntityTypes = new HashSet<Type>();
         foreach (var prop in properties)

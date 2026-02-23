@@ -111,8 +111,18 @@ internal static class IndexManager
                     }
                     try
                     {
-                        DropIndex(collection, matchingIndex.Name, logger);
-                        CreateIndex(collection, requiredIndex, logger);
+                        // 尝试先创建目标索引，以尽量降低“无索引窗口”。
+                        // 若 MongoDB 报冲突（常见于同 key 但不同选项），再回退到 Drop + Create。
+                        var createdFirst = TryCreateIndexWithFallback(collection, requiredIndex, logger);
+                        if (!createdFirst)
+                        {
+                            DropIndex(collection, matchingIndex.Name, logger);
+                            CreateIndex(collection, requiredIndex, logger);
+                        }
+                        else
+                        {
+                            DropIndex(collection, matchingIndex.Name, logger);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -224,13 +234,13 @@ internal static class IndexManager
                                   let fieldValue = element.Value
                                   select fieldValue switch
                                   {
-                                      BsonInt32 { Value: 1 }           => builder.Ascending(fieldName),
-                                      BsonInt32 { Value: -1 }          => builder.Descending(fieldName),
-                                      BsonString { Value: "2d" }       => builder.Geo2D(fieldName),
+                                      BsonInt32 { Value: 1 } => builder.Ascending(fieldName),
+                                      BsonInt32 { Value: -1 } => builder.Descending(fieldName),
+                                      BsonString { Value: "2d" } => builder.Geo2D(fieldName),
                                       BsonString { Value: "2dsphere" } => builder.Geo2DSphere(fieldName),
-                                      BsonString { Value: "hashed" }   => builder.Hashed(fieldName),
-                                      BsonString { Value: "text" }     => builder.Text(fieldName),
-                                      _                                => throw new NotSupportedException($"不支持的索引字段类型: {fieldValue}")
+                                      BsonString { Value: "hashed" } => builder.Hashed(fieldName),
+                                      BsonString { Value: "text" } => builder.Text(fieldName),
+                                      _ => throw new NotSupportedException($"不支持的索引字段类型: {fieldValue}")
                                   }).ToList();
             keysDef = builder.Combine(keyDefinitions);
         }
@@ -241,12 +251,12 @@ internal static class IndexManager
             var fieldValue = indexDef.Keys[fieldName];
             keysDef = fieldValue switch
             {
-                BsonInt32 { Value: 1 }           => builder.Ascending(fieldName),
-                BsonInt32 { Value: -1 }          => builder.Descending(fieldName),
-                BsonString { Value: "2d" }       => builder.Geo2D(fieldName),
+                BsonInt32 { Value: 1 } => builder.Ascending(fieldName),
+                BsonInt32 { Value: -1 } => builder.Descending(fieldName),
+                BsonString { Value: "2d" } => builder.Geo2D(fieldName),
                 BsonString { Value: "2dsphere" } => builder.Geo2DSphere(fieldName),
-                BsonString { Value: "hashed" }   => builder.Hashed(fieldName),
-                _                                => throw new NotSupportedException($"不支持的索引类型: {fieldValue}")
+                BsonString { Value: "hashed" } => builder.Hashed(fieldName),
+                _ => throw new NotSupportedException($"不支持的索引类型: {fieldValue}")
             };
         }
         var options = new CreateIndexOptions
@@ -306,10 +316,32 @@ internal static class IndexManager
         }
         catch (Exception ex)
         {
+            if (logger is not null && logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Failed to drop index {IndexName} from collection {CollectionName}.", indexName, collection.CollectionNamespace.CollectionName);
+            }
+            throw;
+        }
+    }
+
+    private static bool TryCreateIndexWithFallback(IMongoCollection<BsonDocument> collection, IndexDefinition requiredIndex, ILogger? logger)
+    {
+        try
+        {
+            CreateIndex(collection, requiredIndex, logger);
+            return true;
+        }
+        catch (MongoCommandException ex) when (ex.CodeName is "IndexOptionsConflict" or "IndexKeySpecsConflict" ||
+                                               ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase) ||
+                                               ex.Message.Contains("conflict", StringComparison.OrdinalIgnoreCase))
+        {
             if (logger is not null && logger.IsEnabled(LogLevel.Warning))
             {
-                logger.LogWarning(ex, "Failed to drop index {IndexName} from collection {CollectionName}.", indexName, collection.CollectionNamespace.CollectionName);
+                logger.LogWarning(ex,
+                    "Cannot create replacement index {IndexName} before drop on collection {CollectionName}. Falling back to Drop+Create, which introduces a short no-index window.",
+                    requiredIndex.Name, collection.CollectionNamespace.CollectionName);
             }
+            return false;
         }
     }
 

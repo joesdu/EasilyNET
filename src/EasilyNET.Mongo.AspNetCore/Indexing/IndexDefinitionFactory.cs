@@ -62,7 +62,7 @@ internal static class IndexDefinitionFactory
         // TTL 索引类型验证
         if (attr.ExpireAfterSeconds.HasValue)
         {
-            var propertyType = IndexFieldCollector.GetNestedPropertyType(declaringType, path.Replace('_', '.'));
+            var propertyType = IndexFieldCollector.GetNestedPropertyType(declaringType, path);
             if (propertyType == null || (propertyType != typeof(DateTime) && propertyType != typeof(DateTime?) && propertyType != typeof(BsonDateTime)))
             {
                 throw new InvalidOperationException($"TTL 索引字段 '{path}' 必须为 DateTime、DateTime? 或 BsonDateTime 类型。当前类型: {propertyType?.Name ?? "未知"}");
@@ -70,15 +70,15 @@ internal static class IndexDefinitionFactory
         }
         var keys = attr.Type switch
         {
-            EIndexType.Ascending   => new(path, 1),
-            EIndexType.Descending  => new(path, -1),
-            EIndexType.Geo2D       => new(path, "2d"),
+            EIndexType.Ascending => new(path, 1),
+            EIndexType.Descending => new(path, -1),
+            EIndexType.Geo2D => new(path, "2d"),
             EIndexType.Geo2DSphere => new(path, "2dsphere"),
-            EIndexType.Hashed      => new(path, "hashed"),
-            EIndexType.Multikey    => new(path, 1),                       // Multikey 自动识别
-            EIndexType.Text        => new(path, "text"),                  // Text 索引
-            EIndexType.Wildcard    => new BsonDocument(path, "wildcard"), // Wildcard 索引
-            _                      => throw new NotSupportedException($"不支持的索引类型 {attr.Type}")
+            EIndexType.Hashed => new(path, "hashed"),
+            EIndexType.Multikey => new(path, 1),                       // Multikey 自动识别
+            EIndexType.Text => new(path, "text"),                  // Text 索引
+            EIndexType.Wildcard => new BsonDocument(path, "wildcard"), // Wildcard 索引
+            _ => throw new NotSupportedException($"不支持的索引类型 {attr.Type}")
         };
         var indexDef = new IndexDefinition
         {
@@ -108,7 +108,7 @@ internal static class IndexDefinitionFactory
         var indexDef = new IndexDefinition
         {
             Name = indexName,
-            Keys = new(wildcardPath, "$**"),
+            Keys = new(wildcardPath, 1),
             Unique = attr.Unique,
             Sparse = ResolveSparse(attr.Sparse, isTimeSeries),
             IndexType = EIndexType.Wildcard,
@@ -197,13 +197,13 @@ internal static class IndexDefinitionFactory
             // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
             object typeVal = compoundAttr.Types[i] switch
             {
-                EIndexType.Ascending   => 1,
-                EIndexType.Descending  => -1,
-                EIndexType.Geo2D       => "2d",
+                EIndexType.Ascending => 1,
+                EIndexType.Descending => -1,
+                EIndexType.Geo2D => "2d",
                 EIndexType.Geo2DSphere => "2dsphere",
-                EIndexType.Hashed      => "hashed",
-                EIndexType.Text        => "text",
-                _                      => throw new NotSupportedException($"不支持的索引类型 {compoundAttr.Types[i]}")
+                EIndexType.Hashed => "hashed",
+                EIndexType.Text => "text",
+                _ => throw new NotSupportedException($"不支持的索引类型 {compoundAttr.Types[i]}")
             };
             keys.Add(fields[i], BsonValue.Create(typeVal));
         }

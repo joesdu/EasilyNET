@@ -6,6 +6,7 @@ using EasilyNET.Mongo.AspNetCore.Options;
 using EasilyNET.Mongo.Core;
 using EasilyNET.Mongo.Core.Attributes;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
@@ -33,31 +34,45 @@ public static class CollectionIndexExtensions
     private static readonly Lazy<HashSet<Type>> TimeSeriesTypes = new(() => [.. AssemblyHelper.FindTypesByAttribute<TimeSeriesCollectionAttribute>(o => o is { IsClass: true, IsAbstract: false }, false)]);
 
     /// <summary>
-    /// 对标记 MongoContext 的实体对象，自动创建 MongoDB 索引
+    /// 对标记 MongoContext 的实体对象，自动创建 MongoDB 索引（启动后异步执行，不阻塞启动）
     /// </summary>
     /// <param name="app">IApplicationBuilder</param>
     public static IApplicationBuilder UseCreateMongoIndexes<T>(this IApplicationBuilder app) where T : MongoContext
     {
         ArgumentNullException.ThrowIfNull(app);
         var serviceProvider = app.ApplicationServices;
-        using var scope = serviceProvider.CreateScope();
-        var db = scope.ServiceProvider.GetService<T>();
-        ArgumentNullException.ThrowIfNull(db, nameof(T));
-        var logger = scope.ServiceProvider.GetService<ILogger<T>>();
-        // 获取MongoOptions配置
-        var options = scope.ServiceProvider.GetRequiredService<BasicClientOptions>();
-        var useCamelCase =
-            options is { DefaultConventionRegistry: true, ConventionRegistry.Values.Count: 0 } ||
-            options.ConventionRegistry.Values.Any(pack => pack.Conventions.Any(c => c is CamelCaseElementNameConvention));
-        foreach (var collectionName in db.Database.ListCollectionNames().ToEnumerable().Where(c => c.IsNotNullOrWhiteSpace()))
+        var lifetime = serviceProvider.GetRequiredService<IHostApplicationLifetime>();
+        lifetime.ApplicationStarted.Register(void () =>
         {
-            if (collectionName.StartsWith("system.", StringComparison.OrdinalIgnoreCase))
+            _ = Task.Run(() =>
             {
-                continue;
-            }
-            CollectionCache.TryAdd(collectionName, 0);
-        }
-        EnsureIndexes(db, useCamelCase, logger, options);
+                using var scope = serviceProvider.CreateScope();
+                var db = scope.ServiceProvider.GetService<T>();
+                ArgumentNullException.ThrowIfNull(db, nameof(T));
+                var logger = scope.ServiceProvider.GetService<ILogger<T>>();
+                // 获取MongoOptions配置
+                var options = scope.ServiceProvider.GetRequiredService<BasicClientOptions>();
+                var useCamelCase =
+                    options is { DefaultConventionRegistry: true, ConventionRegistry.Values.Count: 0 } ||
+                    options.ConventionRegistry.Values.Any(pack => pack.Conventions.Any(c => c is CamelCaseElementNameConvention));
+                foreach (var collectionName in db.Database.ListCollectionNames().ToEnumerable().Where(c => c.IsNotNullOrWhiteSpace()))
+                {
+                    if (collectionName.StartsWith("system.", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+                    CollectionCache.TryAdd(collectionName, 0);
+                }
+                try
+                {
+                    EnsureIndexes(db, useCamelCase, logger, options);
+                }
+                catch (Exception ex)
+                {
+                    logger?.LogError(ex, "Failed to create MongoDB indexes for context {ContextType}.", typeof(T).Name);
+                }
+            }, lifetime.ApplicationStopping);
+        });
         return app;
     }
 

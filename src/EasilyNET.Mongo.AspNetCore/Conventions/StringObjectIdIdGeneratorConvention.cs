@@ -45,6 +45,12 @@ internal sealed class StringToObjectIdIdGeneratorConvention : ConventionBase, IP
     private static readonly ConcurrentDictionary<Type, byte> ProcessedTypes = new();
 
     /// <summary>
+    ///     <para xml:lang="en">Global lock for BsonClassMap registration/lookup critical section.</para>
+    ///     <para xml:lang="zh">BsonClassMap 注册/查找临界区的全局锁。</para>
+    /// </summary>
+    private static readonly Lock ClassMapLock = new();
+
+    /// <summary>
     ///     <para xml:lang="en">Process after class mapping is completed</para>
     ///     <para xml:lang="zh">在类映射完成后进行处理</para>
     /// </summary>
@@ -106,26 +112,33 @@ internal sealed class StringToObjectIdIdGeneratorConvention : ConventionBase, IP
                 {
                     continue;
                 }
-                if (!BsonClassMap.IsClassMapRegistered(itemType))
-                {
-                    BsonClassMap.RegisterClassMap(new(itemType));
-                }
-                var itemClassMap = BsonClassMap.LookupClassMap(itemType);
+                var itemClassMap = GetOrRegisterClassMap(itemType);
                 ProcessClassMap(itemClassMap);
             }
             // 如果成员类型已经注册，则递归处理
             else if (BsonClassMap.IsClassMapRegistered(memberType))
             {
-                var nestedClassMap = BsonClassMap.LookupClassMap(memberType);
+                var nestedClassMap = GetOrRegisterClassMap(memberType);
                 ProcessClassMap(nestedClassMap);
             }
             // 否则，注册成员类型并递归处理
             else
             {
-                BsonClassMap.RegisterClassMap(new(memberType));
-                var nestedClassMap = BsonClassMap.LookupClassMap(memberType);
+                var nestedClassMap = GetOrRegisterClassMap(memberType);
                 ProcessClassMap(nestedClassMap);
             }
+        }
+    }
+
+    private static BsonClassMap GetOrRegisterClassMap(Type type)
+    {
+        lock (ClassMapLock)
+        {
+            if (!BsonClassMap.IsClassMapRegistered(type))
+            {
+                BsonClassMap.RegisterClassMap(new(type));
+            }
+            return BsonClassMap.LookupClassMap(type);
         }
     }
 }

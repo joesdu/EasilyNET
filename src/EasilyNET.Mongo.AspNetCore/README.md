@@ -204,7 +204,7 @@ builder.Services.RegisterSerializer(new JsonObjectSerializer());
 ### 枚举键字典
 
 ```csharp
-// 支持 Dictionary<TEnum, TValue>
+// 支持 Dictionary<TEnum, TValue> / IDictionary<TEnum, TValue> / IReadOnlyDictionary<TEnum, TValue>
 builder.Services.RegisterGlobalEnumKeyDictionarySerializer();
 ```
 
@@ -224,7 +224,7 @@ builder.Services.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standa
 ```csharp
 var app = builder.Build();
 
-// 自动扫描所有带索引特性的实体，创建/更新索引
+// 自动扫描所有带索引特性的实体，后台创建/更新索引（不阻塞应用启动）
 app.UseCreateMongoIndexes<MyDbContext>();
 ```
 
@@ -232,7 +232,7 @@ app.UseCreateMongoIndexes<MyDbContext>();
 
 1. 扫描 `MyDbContext` 的所有 `IMongoCollection<T>` 属性
 2. 比对数据库中的现有索引与代码声明
-3. 创建缺失的索引；对于结构变更的索引，先删后建
+3. 创建缺失的索引；对于结构变更的索引，优先尝试“先建后删”，冲突时回退为“删后建”
 
 ### 索引管理策略
 
@@ -442,6 +442,9 @@ public class OrderChangeStreamHandler : MongoChangeStreamHandler<Order>
             MaxRetryAttempts = 5,                         // 最大重试次数（0 = 无限）
             RetryDelay = TimeSpan.FromSeconds(2),         // 初始间隔（2→4→8→16→32s）
             MaxRetryDelay = TimeSpan.FromSeconds(60),     // 最大间隔
+
+            // FullDocument 策略（更新事件是否拉取完整文档）
+            FullDocument = ChangeStreamFullDocumentOption.UpdateLookup,
         })
     {
         _scopeFactory = scopeFactory;
@@ -493,6 +496,7 @@ builder.Services.AddMongoChangeStreamHandler<OrderChangeStreamHandler>();
 | `MaxRetryDelay`             | `60s`                         | 重试间隔上限                         |
 | `PersistResumeToken`        | `false`                       | 是否将恢复令牌持久化到 MongoDB       |
 | `ResumeTokenCollectionName` | `"_changeStreamResumeTokens"` | 存储恢复令牌的集合名                 |
+| `FullDocument`              | `UpdateLookup`                | 更新事件是否返回完整文档             |
 
 ### 断点续传工作原理
 
@@ -763,4 +767,5 @@ docker compose -f docker-compose.mongo.rs.yml up -d
 1. 确认使用的是 MongoDB Atlas 或 MongoDB 8.2+ 社区版
 2. Atlas 侧索引创建是异步的，通常需要几秒到几分钟
 3. 检查日志中是否有 `Failed to ensure search indexes` 错误
-4. 确认 `app.UseCreateMongoSearchIndexes<MyDbContext>()` 已调用
+4. 确认已在服务注册阶段调用 `builder.Services.AddMongoSearchIndexCreation<MyDbContext>()`（推荐）
+   或使用兼容方式 `app.UseCreateMongoSearchIndexes<MyDbContext>()`

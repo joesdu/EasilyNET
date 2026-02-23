@@ -2,6 +2,7 @@ using EasilyNET.Mongo.AspNetCore.SearchIndex;
 using EasilyNET.Mongo.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
@@ -76,10 +77,12 @@ public static class SearchIndexExtensions
     /// <param name="app">
     ///     <see cref="IApplicationBuilder" />
     /// </param>
+    [Obsolete("Use AddMongoSearchIndexCreation<T>() during service registration to let the host manage lifecycle.")]
     public static IApplicationBuilder UseCreateMongoSearchIndexes<T>(this IApplicationBuilder app) where T : MongoContext
     {
         ArgumentNullException.ThrowIfNull(app);
         var serviceProvider = app.ApplicationServices;
+        var logger = serviceProvider.GetService<ILoggerFactory>()?.CreateLogger(typeof(SearchIndexExtensions));
         var lifetime = serviceProvider.GetRequiredService<IHostApplicationLifetime>();
         // Create the background service when the application has fully started.
         // The service is properly started, awaited, and disposed on shutdown.
@@ -87,20 +90,71 @@ public static class SearchIndexExtensions
         {
             var backgroundService = ActivatorUtilities.CreateInstance<SearchIndexBackgroundService<T>>(serviceProvider);
             var stoppingToken = lifetime.ApplicationStopping;
+            var disposed = 0;
+
             // Register disposal on application stopping to prevent resource leaks.
             stoppingToken.Register(async void () =>
             {
                 try
                 {
                     await backgroundService.StopAsync(CancellationToken.None).ConfigureAwait(false);
-                    backgroundService.Dispose();
+                    DisposeOnce();
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // ignore exceptions during shutdown to avoid interfering with application termination
+                    logger?.LogDebug(ex, "Failed to stop {ServiceType} during shutdown.", typeof(SearchIndexBackgroundService<T>).Name);
                 }
             });
-            _ = backgroundService.StartAsync(stoppingToken);
+            var startTask = backgroundService.StartAsync(stoppingToken);
+            _ = startTask.ContinueWith(task =>
+            {
+                if (task.Exception is null)
+                {
+                    return;
+                }
+                logger?.LogError(task.Exception.Flatten(), "Failed to start {ServiceType}.", typeof(SearchIndexBackgroundService<T>).Name);
+                DisposeOnce();
+            }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await startTask.ConfigureAwait(false);
+                    if (backgroundService.ExecuteTask is not null)
+                    {
+                        await backgroundService.ExecuteTask.ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    // graceful stop
+                }
+                catch (Exception ex)
+                {
+                    logger?.LogError(ex, "{ServiceType} terminated unexpectedly.", typeof(SearchIndexBackgroundService<T>).Name);
+                }
+                finally
+                {
+                    DisposeOnce();
+                }
+            }, stoppingToken);
+            return;
+
+            void DisposeOnce()
+            {
+                if (Interlocked.Exchange(ref disposed, 1) != 0)
+                {
+                    return;
+                }
+                try
+                {
+                    backgroundService.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    logger?.LogDebug(ex, "Failed to dispose {ServiceType}.", typeof(SearchIndexBackgroundService<T>).Name);
+                }
+            }
         });
         return app;
     }
