@@ -218,8 +218,10 @@ internal static class IndexManager
         // ReSharper disable once ConvertIfStatementToSwitchStatement
         if (indexDef.IndexType == EIndexType.Wildcard)
         {
+            // driver 的 Wildcard() 会自动追加 ".$**"，需要先去掉已有的后缀避免重复
             var wildcardField = indexDef.Keys.Names.First();
-            keysDef = builder.Wildcard(wildcardField);
+            var baseField = wildcardField.EndsWith(".$**") ? wildcardField[..^4] : wildcardField;
+            keysDef = baseField.Length == 0 ? builder.Wildcard() : builder.Wildcard(baseField);
         }
         else if (indexDef.IndexType == EIndexType.Text)
         {
@@ -234,13 +236,13 @@ internal static class IndexManager
                                   let fieldValue = element.Value
                                   select fieldValue switch
                                   {
-                                      BsonInt32 { Value: 1 } => builder.Ascending(fieldName),
-                                      BsonInt32 { Value: -1 } => builder.Descending(fieldName),
-                                      BsonString { Value: "2d" } => builder.Geo2D(fieldName),
+                                      BsonInt32 { Value: 1 }           => builder.Ascending(fieldName),
+                                      BsonInt32 { Value: -1 }          => builder.Descending(fieldName),
+                                      BsonString { Value: "2d" }       => builder.Geo2D(fieldName),
                                       BsonString { Value: "2dsphere" } => builder.Geo2DSphere(fieldName),
-                                      BsonString { Value: "hashed" } => builder.Hashed(fieldName),
-                                      BsonString { Value: "text" } => builder.Text(fieldName),
-                                      _ => throw new NotSupportedException($"不支持的索引字段类型: {fieldValue}")
+                                      BsonString { Value: "hashed" }   => builder.Hashed(fieldName),
+                                      BsonString { Value: "text" }     => builder.Text(fieldName),
+                                      _                                => throw new NotSupportedException($"不支持的索引字段类型: {fieldValue}")
                                   }).ToList();
             keysDef = builder.Combine(keyDefinitions);
         }
@@ -251,12 +253,12 @@ internal static class IndexManager
             var fieldValue = indexDef.Keys[fieldName];
             keysDef = fieldValue switch
             {
-                BsonInt32 { Value: 1 } => builder.Ascending(fieldName),
-                BsonInt32 { Value: -1 } => builder.Descending(fieldName),
-                BsonString { Value: "2d" } => builder.Geo2D(fieldName),
+                BsonInt32 { Value: 1 }           => builder.Ascending(fieldName),
+                BsonInt32 { Value: -1 }          => builder.Descending(fieldName),
+                BsonString { Value: "2d" }       => builder.Geo2D(fieldName),
                 BsonString { Value: "2dsphere" } => builder.Geo2DSphere(fieldName),
-                BsonString { Value: "hashed" } => builder.Hashed(fieldName),
-                _ => throw new NotSupportedException($"不支持的索引类型: {fieldValue}")
+                BsonString { Value: "hashed" }   => builder.Hashed(fieldName),
+                _                                => throw new NotSupportedException($"不支持的索引类型: {fieldValue}")
             };
         }
         var options = new CreateIndexOptions

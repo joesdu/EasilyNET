@@ -153,10 +153,7 @@ public sealed class EnumKeyIDictionarySerializer<TKey, TValue> : SerializerBase<
     }
 
     /// <inheritdoc />
-    public override IDictionary<TKey, TValue> Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
-    {
-        return _inner.Deserialize(context, args);
-    }
+    public override IDictionary<TKey, TValue> Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args) => _inner.Deserialize(context, args);
 }
 
 /// <summary>
@@ -174,8 +171,5 @@ public sealed class EnumKeyReadOnlyDictionarySerializer<TKey, TValue> : Serializ
     }
 
     /// <inheritdoc />
-    public override IReadOnlyDictionary<TKey, TValue> Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
-    {
-        return _inner.Deserialize(context, args);
-    }
+    public override IReadOnlyDictionary<TKey, TValue> Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args) => _inner.Deserialize(context, args);
 }

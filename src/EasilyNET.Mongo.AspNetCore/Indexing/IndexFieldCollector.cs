@@ -44,12 +44,12 @@ internal static class IndexFieldCollector
                         fields.Add((path, attr, type));
                         break;
                     case EIndexType.Wildcard:
-                        {
-                            // 通配符索引：支持 field.$** 格式
-                            var wildcardPath = path.EndsWith("$**") ? path : $"{path}.$**";
-                            allWildcardFields.Add((wildcardPath, attr));
-                            break;
-                        }
+                    {
+                        // 通配符索引：支持 field.$** 格式
+                        var wildcardPath = path.EndsWith("$**") ? path : $"{path}.$**";
+                        allWildcardFields.Add((wildcardPath, attr));
+                        break;
+                    }
                     case EIndexType.Ascending:
                     case EIndexType.Descending:
                     case EIndexType.Geo2D:
@@ -57,30 +57,30 @@ internal static class IndexFieldCollector
                     case EIndexType.Hashed:
                     case EIndexType.Multikey:
                     default:
+                    {
+                        // 自动检测数组或集合类型并标记为 Multikey
+                        if (attr.Type == EIndexType.Multikey ||
+                            propType.IsArray ||
+                            (propType.IsGenericType && typeof(IEnumerable).IsAssignableFrom(propType) && propType != typeof(string)))
                         {
-                            // 自动检测数组或集合类型并标记为 Multikey
-                            if (attr.Type == EIndexType.Multikey ||
-                                propType.IsArray ||
-                                (propType.IsGenericType && typeof(IEnumerable).IsAssignableFrom(propType) && propType != typeof(string)))
+                            // 为 Multikey 类型创建新的属性实例，保持原有属性设置
+                            var multikeyAttr = new MongoIndexAttribute(EIndexType.Multikey)
                             {
-                                // 为 Multikey 类型创建新的属性实例，保持原有属性设置
-                                var multikeyAttr = new MongoIndexAttribute(EIndexType.Multikey)
-                                {
-                                    Name = attr.Name,
-                                    Unique = attr.Unique,
-                                    Sparse = attr.Sparse,
-                                    ExpireAfterSeconds = attr.ExpireAfterSeconds,
-                                    Collation = attr.Collation,
-                                    TextIndexOptions = attr.TextIndexOptions
-                                };
-                                fields.Add((path, multikeyAttr, type));
-                            }
-                            else
-                            {
-                                fields.Add((path, attr, type));
-                            }
-                            break;
+                                Name = attr.Name,
+                                Unique = attr.Unique,
+                                Sparse = attr.Sparse,
+                                ExpireAfterSeconds = attr.ExpireAfterSeconds,
+                                Collation = attr.Collation,
+                                TextIndexOptions = attr.TextIndexOptions
+                            };
+                            fields.Add((path, multikeyAttr, type));
                         }
+                        else
+                        {
+                            fields.Add((path, attr, type));
+                        }
+                        break;
+                    }
                 }
             }
 
