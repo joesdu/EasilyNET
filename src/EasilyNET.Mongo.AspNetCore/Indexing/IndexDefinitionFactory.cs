@@ -75,9 +75,9 @@ internal static class IndexDefinitionFactory
             EIndexType.Geo2D       => new(path, "2d"),
             EIndexType.Geo2DSphere => new(path, "2dsphere"),
             EIndexType.Hashed      => new(path, "hashed"),
-            EIndexType.Multikey    => new(path, 1),                       // Multikey 自动识别
-            EIndexType.Text        => new(path, "text"),                  // Text 索引
-            EIndexType.Wildcard    => new BsonDocument($"{path}.$**", 1), // Wildcard 索引
+            EIndexType.Multikey    => new(path, 1),                           // Multikey 自动识别
+            EIndexType.Text        => new(path, "text"),                      // Text 索引
+            EIndexType.Wildcard    => new BsonDocument($"{path}.$**", "$**"), // Wildcard 索引
             _                      => throw new NotSupportedException($"不支持的索引类型 {attr.Type}")
         };
         var indexDef = new IndexDefinition
@@ -108,7 +108,7 @@ internal static class IndexDefinitionFactory
         var indexDef = new IndexDefinition
         {
             Name = indexName,
-            Keys = new(wildcardPath, 1),
+            Keys = new(wildcardPath, "$**"),
             Unique = attr.Unique,
             Sparse = ResolveSparse(attr.Sparse, isTimeSeries),
             IndexType = EIndexType.Wildcard,
