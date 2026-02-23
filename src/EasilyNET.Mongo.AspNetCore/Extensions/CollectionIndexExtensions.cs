@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using EasilyNET.Core.Misc;
+using EasilyNET.Mongo.AspNetCore.Helpers;
 using EasilyNET.Mongo.AspNetCore.Indexing;
 using EasilyNET.Mongo.AspNetCore.Options;
 using EasilyNET.Mongo.Core;
@@ -9,7 +10,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 
 // ReSharper disable PropertyCanBeMadeInitOnly.Local
@@ -52,9 +52,6 @@ public static class CollectionIndexExtensions
                 var logger = scope.ServiceProvider.GetService<ILogger<T>>();
                 // 获取MongoOptions配置
                 var options = scope.ServiceProvider.GetRequiredService<BasicClientOptions>();
-                var useCamelCase =
-                    options is { DefaultConventionRegistry: true, ConventionRegistry.Values.Count: 0 } ||
-                    options.ConventionRegistry.Values.Any(pack => pack.Conventions.Any(c => c is CamelCaseElementNameConvention));
                 foreach (var collectionName in db.Database.ListCollectionNames().ToEnumerable().Where(c => c.IsNotNullOrWhiteSpace()))
                 {
                     if (collectionName.StartsWith("system.", StringComparison.OrdinalIgnoreCase))
@@ -65,7 +62,7 @@ public static class CollectionIndexExtensions
                 }
                 try
                 {
-                    EnsureIndexes(db, useCamelCase, logger, options);
+                    EnsureIndexes(db, MongoServiceExtensionsHelpers.UseCamelCase, logger, options);
                 }
                 catch (Exception ex)
                 {

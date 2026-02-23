@@ -23,8 +23,8 @@ namespace EasilyNET.Mongo.AspNetCore.ChangeStreams;
 ///         <code>
 ///     public class OrderChangeHandler : MongoChangeStreamHandler&lt;Order&gt;
 ///     {
-///         public OrderChangeHandler(IMongoDatabase database, ILogger&lt;OrderChangeHandler&gt; logger)
-///             : base(database, "orders", logger) { }
+///         public OrderChangeHandler(MyDbContext db, ILogger&lt;OrderChangeHandler&gt; logger)
+///             : base(db.Database, "orders", logger) { }
 /// 
 ///         protected override Task HandleChangeAsync(ChangeStreamDocument&lt;Order&gt; change, CancellationToken ct)
 ///         {

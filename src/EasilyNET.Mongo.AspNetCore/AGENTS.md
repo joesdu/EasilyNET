@@ -37,6 +37,7 @@ EasilyNET.Mongo.AspNetCore/
 | Register MongoContext | `Extensions/MongoServiceExtensions.cs` |
 | Add serializer | `Serializers/`, register via `Extensions/SerializersCollectionExtensions.cs` |
 | Configure client | `Options/ClientOptions.cs`, `Options/BasicClientOptions.cs` |
+| Configure conventions | `Options/MongoConventionOptions.cs`, `Extensions/MongoServiceExtensions.cs` (`ConfigureMongoConventions`) |
 | Resilience settings | `Options/MongoResilienceOptions.cs` |
 | Custom conventions | `Conventions/` |
 | Index creation | `Extensions/CollectionIndexExtensions.cs` |
@@ -50,7 +51,9 @@ EasilyNET.Mongo.AspNetCore/
 ## CONVENTIONS
 
 - Use `AddMongoContext<T>()` for registration
-- `DefaultConventionRegistry = true` enables camelCase, Id mapping, enum-as-string
+- Default conventions (camelCase, Id mapping, enum-as-string) are applied automatically unless `ConfigureMongoConventions` is called
+- `ConfigureMongoConventions` replaces defaults — only user-added conventions via `AddConvention()` are registered
+- Convention configuration is global and idempotent — at most once, before any `AddMongoContext` call
 - Resilience options: `c.Resilience.Enable = true` for recommended defaults
 - Serializers registered globally: one per type
 - All extension methods are in `Microsoft.Extensions.DependencyInjection` namespace

@@ -8,14 +8,14 @@ namespace EasilyNET.Mongo.Core;
 ///     <para xml:lang="en">MongoDB basic DbContext</para>
 ///     <para xml:lang="zh">MongoDB基础DbContext</para>
 /// </summary>
-public class MongoContext : IDisposable, IAsyncDisposable
+public class MongoContext
 {
-    private int _disposed;
     private int _initialized;
 
     /// <summary>
     ///     <see cref="IMongoClient" />
     /// </summary>
+    // ReSharper disable once MemberCanBePrivate.Global
     public IMongoClient Client { get; private set; } = null!;
 
     /// <summary>
@@ -23,21 +23,6 @@ public class MongoContext : IDisposable, IAsyncDisposable
     ///     <para xml:lang="zh">获取链接字符串或者MongoSettings中配置的特定名称数据库或默认数据库</para>
     /// </summary>
     public IMongoDatabase Database { get; private set; } = null!;
-
-    /// <inheritdoc />
-    public ValueTask DisposeAsync()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-        return ValueTask.CompletedTask;
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
 
     /// <summary>
     ///     <para xml:lang="en">Get <see cref="IMongoCollection{TDocument}" />.</para>
@@ -55,30 +40,6 @@ public class MongoContext : IDisposable, IAsyncDisposable
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         return Database.GetCollection<TDocument>(name);
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Synchronously get a started <see cref="IClientSessionHandle">Session</see> with a transaction</para>
-    ///     <para xml:lang="zh">同步方式获取一个已开启事务的 <see cref="IClientSessionHandle">Session</see></para>
-    /// </summary>
-    [Obsolete("Use StartSessionAsync instead")]
-    public IClientSessionHandle GetStartedSession()
-    {
-        var session = Client.StartSession();
-        session.StartTransaction();
-        return session;
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Asynchronously get a started <see cref="IClientSessionHandle">Session</see> with a transaction</para>
-    ///     <para xml:lang="zh">异步方式获取一个已开启事务的 <see cref="IClientSessionHandle">Session</see></para>
-    /// </summary>
-    [Obsolete("Use StartSessionAsync instead")]
-    public async Task<IClientSessionHandle> GetStartedSessionAsync()
-    {
-        var session = await Client.StartSessionAsync().ConfigureAwait(false);
-        session.StartTransaction();
-        return session;
     }
 
     /// <summary>
@@ -145,20 +106,5 @@ public class MongoContext : IDisposable, IAsyncDisposable
         }
         Client = new MongoClient(settings);
         Database = Client.GetDatabase(dbName);
-    }
-
-    /// <summary>
-    ///     <para xml:lang="en">Dispose resources</para>
-    ///     <para xml:lang="zh">释放资源</para>
-    /// </summary>
-    /// <param name="disposing"></param>
-    protected virtual void Dispose(bool disposing)
-    {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
-        {
-            return;
-        }
-        // MongoClient is intended to be application-lifetime singleton and usually should not be disposed manually.
-        // Keep dispose path as idempotent marker only.
     }
 }
