@@ -36,5 +36,12 @@ public enum EModel
     ///     <para xml:lang="zh">(Topics)主题模式</para>
     /// </summary>
     [Description("topic")]
-    Topics
+    Topics,
+
+    /// <summary>
+    ///     <para xml:lang="en">(Headers) Headers mode, routes messages based on header attributes matching</para>
+    ///     <para xml:lang="zh">(Headers)头部模式,根据消息头属性匹配进行路由</para>
+    /// </summary>
+    [Description("headers")]
+    Headers
 }
