@@ -281,6 +281,7 @@ public sealed class RabbitBusBuilder
             config.Exchange.RoutingKey = exchangeType switch
             {
                 EModel.PublishSubscribe => string.Empty,
+                EModel.Headers          => string.Empty,                     // Headers exchange ignores routing key
                 EModel.None             => queueName ?? typeof(TEvent).Name, // For direct queue publishing, routing key should be queue name
                 _                       => routingKey ?? typeof(TEvent).Name
             };
@@ -394,6 +395,30 @@ public sealed class RabbitBusBuilder
     }
 
     /// <summary>
+    ///     <para xml:lang="en">Add binding arguments for specific event (used with Headers exchange for x-match and matching key-value pairs)</para>
+    ///     <para xml:lang="zh">为特定事件添加绑定参数(用于Headers交换机的x-match及匹配键值对)</para>
+    /// </summary>
+    /// <typeparam name="TEvent">
+    ///     <para xml:lang="en">Event type</para>
+    ///     <para xml:lang="zh">事件类型</para>
+    /// </typeparam>
+    /// <param name="arguments">
+    ///     <para xml:lang="en">Binding arguments dictionary (should include x-match and matching key-value pairs)</para>
+    ///     <para xml:lang="zh">绑定参数字典(应包含x-match及匹配键值对)</para>
+    /// </param>
+    public RabbitBusBuilder WithBindingArguments<TEvent>(Dictionary<string, object?> arguments) where TEvent : IEvent
+    {
+        EventRegistry.Configure<TEvent>(config =>
+        {
+            foreach (var (key, value) in arguments)
+            {
+                config.Exchange.BindingArguments[key] = value;
+            }
+        });
+        return this;
+    }
+
+    /// <summary>
     ///     <para xml:lang="en">Configure handler thread count for specific event</para>
     ///     <para xml:lang="zh">为特定事件配置处理器线程数</para>
     /// </summary>
@@ -441,6 +466,7 @@ public sealed class RabbitBusBuilder
             EModel.PublishSubscribe => "amq.fanout",
             EModel.Routing          => "amq.direct",
             EModel.Topics           => "amq.topic",
+            EModel.Headers          => "amq.headers",
             EModel.None             => "",
             _                       => throw new ArgumentOutOfRangeException(nameof(exchangeType), exchangeType, null)
         };
@@ -544,6 +570,26 @@ public sealed class RabbitBusBuilder
                 foreach (var (key, value) in arguments)
                 {
                     config.Queue.Arguments[key] = value;
+                }
+            });
+            return this;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">Add binding arguments for the event (used with Headers exchange for x-match and matching key-value pairs)</para>
+        ///     <para xml:lang="zh">为事件添加绑定参数(用于Headers交换机的x-match及匹配键值对)</para>
+        /// </summary>
+        /// <param name="arguments">
+        ///     <para xml:lang="en">Binding arguments dictionary (should include x-match and matching key-value pairs)</para>
+        ///     <para xml:lang="zh">绑定参数字典(应包含x-match及匹配键值对)</para>
+        /// </param>
+        public EventConfigurator<TEvent> WithBindingArguments(Dictionary<string, object?> arguments)
+        {
+            _builder.EventRegistry.Configure<TEvent>(config =>
+            {
+                foreach (var (key, value) in arguments)
+                {
+                    config.Exchange.BindingArguments[key] = value;
                 }
             });
             return this;

@@ -80,7 +80,11 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
                 await channel.QueueDeclareAsync(config.Queue.Name, config.Queue.Durable, config.Queue.Exclusive, config.Queue.AutoDelete, config.Queue.Arguments, cancellationToken: linkedCts.Token).ConfigureAwait(false);
                 if (config.Exchange.Type != EModel.None)
                 {
-                    await channel.QueueBindAsync(config.Queue.Name, config.Exchange.Name, config.Exchange.RoutingKey, cancellationToken: linkedCts.Token).ConfigureAwait(false);
+                    // Headers exchange uses binding arguments (x-match + matching key-value pairs) instead of routing key
+                    var bindingArgs = config.Exchange is { Type: EModel.Headers, BindingArguments.Count: > 0 }
+                                          ? new Dictionary<string, object?>(config.Exchange.BindingArguments)
+                                          : null;
+                    await channel.QueueBindAsync(config.Queue.Name, config.Exchange.Name, config.Exchange.RoutingKey, bindingArgs, cancellationToken: linkedCts.Token).ConfigureAwait(false);
                 }
                 await StartBasicConsume(eventType, config, channel, consumerIndex, handleReceivedEvent, linkedCts.Token).ConfigureAwait(false);
 

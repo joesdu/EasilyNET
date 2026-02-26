@@ -2,7 +2,7 @@
 
 - 支持同一个消息被多个 Handler 消费（可配置并发或顺序执行）
 - 支持忽略指定 Handler
-- 支持事件级 QoS、Headers、交换机/队列参数、优先级队列
+- 支持事件级 QoS、Headers 交换机、交换机/队列参数、优先级队列
 - 支持发布确认（Publisher Confirms）与发布背压
 - 支持批量发布提升吞吐量
 - 现代流式配置：无需在事件/处理器上标注特性
@@ -84,6 +84,13 @@ builder.Services.AddRabbitBus(c =>
     // 发布/订阅（Fanout）
     c.AddEvent<FanoutEvent>(EModel.PublishSubscribe, "fanout.exchange", queueName: "fanout.queue")
      .WithHandler<FanoutEventHandler>();
+
+    // Headers 交换机（基于消息头属性匹配路由）
+    c.AddEvent<HeadersEvent>(EModel.Headers, "headers.exchange", queueName: "headers.queue")
+     .WithBindingArguments(new() { ["x-match"] = "all", ["format"] = "pdf", ["type"] = "report" })
+     .WithEventHeaders(new() { ["format"] = "pdf", ["type"] = "report" })
+     .WithHandler<HeadersEventHandler>()
+     .And();
 
     // 顺序执行 + 显式排序
     c.AddEvent<OrderEvent>(EModel.Routing, "order.exchange", "order.key", "order.queue")
@@ -202,6 +209,39 @@ builder.Services.AddRabbitBus(c =>
     c.WithSerializer<MsgPackSerializer>();
 });
 ```
+
+#### Headers 交换机
+
+Headers 交换机根据消息头属性（而非 routing key）进行路由，适用于多维度内容过滤场景。
+
+- **绑定参数**（`WithBindingArguments`）：定义队列绑定时的匹配规则，包含 `x-match`（`all` 或 `any`）和匹配键值对
+- **消息头**（`WithEventHeaders`）：定义发布时携带的头部键值对，用于与绑定参数进行匹配
+- `x-match=all`：消息头必须包含绑定中所有键值对才匹配
+- `x-match=any`：消息头只要包含绑定中任意一个键值对即匹配
+
+```csharp
+// 定义事件
+public class PdfReportEvent : Event
+{
+    public string Content { get; set; } = default!;
+}
+
+// 注册事件（x-match=all：必须同时匹配 format=pdf 和 type=report）
+c.AddEvent<PdfReportEvent>(EModel.Headers, "report.headers.exchange", queueName: "pdf-reports")
+ .WithBindingArguments(new() { ["x-match"] = "all", ["format"] = "pdf", ["type"] = "report" })
+ .WithEventHeaders(new() { ["format"] = "pdf", ["type"] = "report" })
+ .WithHandler<PdfReportHandler>()
+ .And();
+
+// 注册事件（x-match=any：匹配 region=asia 或 priority=high 任意一个即可）
+c.AddEvent<UrgentEvent>(EModel.Headers, "urgent.headers.exchange", queueName: "urgent-queue")
+ .WithBindingArguments(new() { ["x-match"] = "any", ["region"] = "asia", ["priority"] = "high" })
+ .WithEventHeaders(new() { ["region"] = "asia" })
+ .WithHandler<UrgentEventHandler>()
+ .And();
+```
+
+> **注意**：Headers 交换机完全忽略 routing key，路由仅依赖消息头与绑定参数的匹配。性能上比 direct/topic 交换机稍差（需逐个匹配 header 键值对），适合多维度过滤场景。
 
 #### 注意事项
 
@@ -797,6 +837,7 @@ builder.Services.AddRabbitBus(c =>
 | `WithEventHeaders`       | `headers`                        | -                     | 消息头参数                            |
 | `WithEventQueueArgs`     | `args`                           | -                     | 队列声明参数(x-max-priority 等)       |
 | `WithEventExchangeArgs`  | `args`                           | -                     | 交换机声明参数                        |
+| `WithBindingArguments`   | `arguments`                      | -                     | Headers交换机绑定参数(x-match及匹配键值对) |
 | `WithHandler`            | `THandler`                       | -                     | 注册事件处理器(必须)                  |
 |                          | `order`                          | 0                     | 处理器执行顺序(值越小越先执行)        |
 | `WithMiddleware`         | `TMiddleware`                    | -                     | 注册事件中间件(可选,每事件最多一个)   |

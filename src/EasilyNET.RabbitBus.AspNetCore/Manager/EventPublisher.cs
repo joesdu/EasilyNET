@@ -143,17 +143,18 @@ internal sealed class EventPublisher : IAsyncDisposable
         {
             bp.Headers = new Dictionary<string, object?>(config.Headers);
         }
-        if (activity is not null)
+        if (activity is null)
         {
-            bp.Headers ??= new Dictionary<string, object?>();
-            if (activity.Id is not null)
-            {
-                bp.Headers["traceparent"] = activity.Id;
-            }
-            if (activity.TraceStateString is not null)
-            {
-                bp.Headers["tracestate"] = activity.TraceStateString;
-            }
+            return bp;
+        }
+        bp.Headers ??= new Dictionary<string, object?>();
+        if (activity.Id is not null)
+        {
+            bp.Headers["traceparent"] = activity.Id;
+        }
+        if (activity.TraceStateString is not null)
+        {
+            bp.Headers["tracestate"] = activity.TraceStateString;
         }
         return bp;
     }
@@ -208,7 +209,11 @@ internal sealed class EventPublisher : IAsyncDisposable
                             {
                                 _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}, Sequence: {Sequence}", item.Event.GetType().Name, item.Event.EventId, sequenceNumber);
                             }
-                            await channel.BasicPublishAsync(item.Config.Exchange.Name, item.RoutingKey ?? item.Config.Exchange.RoutingKey, false, item.Properties, item.Body, ct).ConfigureAwait(false);
+                            // Headers exchange ignores routing key, always use empty string
+                            var effectiveRoutingKey = item.Config.Exchange.Type == EModel.Headers
+                                                          ? string.Empty
+                                                          : item.RoutingKey ?? item.Config.Exchange.RoutingKey;
+                            await channel.BasicPublishAsync(item.Config.Exchange.Name, effectiveRoutingKey, false, item.Properties, item.Body, ct).ConfigureAwait(false);
                         }, _cts.Token).ConfigureAwait(false);
                         RabbitBusMetrics.PublishedNormal.Add(1);
 

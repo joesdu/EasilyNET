@@ -33,6 +33,12 @@ public sealed class ExchangeConfig
     public Dictionary<string, object?> Arguments { get; } = [];
 
     /// <summary>
+    ///     <para xml:lang="en">Binding arguments for headers exchange (x-match and matching key-value pairs)</para>
+    ///     <para xml:lang="zh">Headers交换机的绑定参数(x-match及匹配键值对)</para>
+    /// </summary>
+    public Dictionary<string, object?> BindingArguments { get; } = [];
+
+    /// <summary>
     ///     <para xml:lang="en">Whether exchange is durable</para>
     ///     <para xml:lang="zh">交换机是否持久化</para>
     /// </summary>
