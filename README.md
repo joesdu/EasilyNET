@@ -82,7 +82,7 @@ docker compose -f docker-compose.basic.service.yml up -d
 | 服务名称        | 服务描述 | 端口映射   | 镜像名称                                                 |
 | --------------- | -------- | ---------- | -------------------------------------------------------- |
 | Garnet          | 缓存     | 6379       | ghcr.io/microsoft/garnet:latest                          |
-| RabbitMQ        | 消息队列 | 15672,5672 | ghcr.io/joesdu/rabbitmq-dlx:latest                       |
+| RabbitMQ        | 消息队列 | 15672,5672 | rabbitmq:management                                      |
 | AspireDashboard | 可观测性 | 18888,4317 | mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest |
 
 <details>
@@ -96,7 +96,7 @@ docker compose -f docker-compose.basic.service.yml up -d
 | Service         | Description   | Ports      | Image                                                    |
 | --------------- | ------------- | ---------- | -------------------------------------------------------- |
 | Garnet          | Cache         | 6379       | ghcr.io/microsoft/garnet:latest                          |
-| RabbitMQ        | MQ            | 15672,5672 | ghcr.io/joesdu/rabbitmq-dlx:latest                       |
+| RabbitMQ        | MQ            | 15672,5672 | rabbitmq:management                                      |
 | AspireDashboard | Observability | 18888,4317 | mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest |
 
 </details>

@@ -17,7 +17,7 @@ services:
       - "gateway.docker.internal:host-gateway"
 
   rabbit:
-    image: ghcr.io/joesdu/rabbitmq-dlx:latest
+    image: rabbitmq:management
     container_name: rabbit
     environment:
       - TZ=Asia/Chongqing
