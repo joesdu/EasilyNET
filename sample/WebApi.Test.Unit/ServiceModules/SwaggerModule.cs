@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Collections.Frozen;
 using System.Reflection;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
@@ -19,7 +18,7 @@ internal sealed class SwaggerModule : AppModule
     private const string _defaultDescription = "Console.WriteLine(\"🐂🍺\")";
     private static readonly string _docName = Assembly.GetEntryAssembly()?.GetName().Name ?? string.Empty;
 
-    private static readonly Lazy<FrozenDictionary<string, OpenApiInfo>> AttributesDic = new(() =>
+    private static readonly Lazy<KeyValuePair<string, OpenApiInfo>[]> _attributes = new(() =>
     {
         var dic = new ConcurrentDictionary<string, OpenApiInfo>();
         // 添加默认文档(未分组的控制器)
@@ -49,7 +48,7 @@ internal sealed class SwaggerModule : AppModule
                 License = License
             });
         });
-        return dic.OrderBy(kvp => kvp.Key == _docName ? string.Empty : kvp.Key).ToFrozenDictionary();
+        return [.. dic.OrderBy(kvp => kvp.Key == _docName ? string.Empty : kvp.Key)];
     });
 
     private static OpenApiLicense License { get; } = new()
@@ -114,7 +113,7 @@ internal sealed class SwaggerModule : AppModule
             // 添加 OperationFilter 来处理授权
             c.OperationFilter<SwaggerAuthorizeFilter>();
             // 动态注册所有文档
-            foreach (var (key, value) in AttributesDic.Value)
+            foreach (var (key, value) in _attributes.Value)
             {
                 c.SwaggerDoc(key, value);
             }
@@ -128,7 +127,7 @@ internal sealed class SwaggerModule : AppModule
         app.UseSwagger(c => c.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1);
         app.UseSwaggerUI(c =>
         {
-            foreach (var (key, value) in AttributesDic.Value)
+            foreach (var (key, value) in _attributes.Value)
             {
                 c.SwaggerEndpoint($"/swagger/{key}/swagger.json", value.Title);
             }
