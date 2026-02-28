@@ -15,9 +15,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="BouncyCastle.Cryptography" Version="2.7.0-beta.98" />
-    <PackageVersion Include="Google.Protobuf" Version="3.34.0" />
-    <PackageVersion Include="Grpc.AspNetCore" Version="2.76.0" />
-    <PackageVersion Include="Grpc.Net.Client" Version="2.76.0" />
     <PackageVersion Include="MongoDB.Analyzer" Version="2.0.0" />
     <PackageVersion Include="MongoDB.Driver" Version="3.6.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.2.1" />
