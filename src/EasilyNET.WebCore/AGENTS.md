@@ -25,7 +25,7 @@ EasilyNET.WebCore/
 ## CONVENTIONS
 
 - All extension methods in `Microsoft.Extensions.DependencyInjection` namespace
-- Use `AddWebCore()` for registration
+- Use `AddWebSocketSessionManager()` for WebSocket-related registration
 - JSON converters: one serializer per type globally
 
 ## ANTI-PATTERNS
