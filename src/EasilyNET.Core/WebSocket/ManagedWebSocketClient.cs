@@ -27,6 +27,11 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     private volatile bool _disposed;
 
     /// <summary>
+    /// 用于标记用户主动调用了 DisconnectAsync，阻止自动重连。
+    /// </summary>
+    private volatile bool _manualDisconnect;
+
+    /// <summary>
     /// 最后发送心跳的时间戳。用于确保远端有足够时间响应心跳。
     /// 初始值为 0 表示尚未发送任何心跳。
     /// </summary>
@@ -113,11 +118,20 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             await _connectionCts.CancelAsync().ConfigureAwait(false);
         }
 
-        // 2. Acquire lock to ensure no concurrent connect/disconnect/reconnect is running
+        // 2. Acquire lock to ensure no concurrent connect/disconnect/reconnect is running.
+        // Since all CTS tokens are already cancelled, background loops will exit soon and release the lock.
         var lockAcquired = false;
         try
         {
             lockAcquired = await _connectionLock.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+            if (!lockAcquired)
+            {
+                // Fast path timed out; fall back to an indefinite wait. Background loops are already
+                // notified via CTS cancellation and will release the lock shortly.
+                Debug.WriteLine("[ManagedWebSocketClient] Dispose lock timed out after 5 s — waiting indefinitely for lock release.");
+                await _connectionLock.WaitAsync().ConfigureAwait(false);
+                lockAcquired = true;
+            }
         }
         catch (Exception ex)
         {
@@ -128,8 +142,8 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         {
             State = WebSocketClientState.Disposed;
 
-            // 3. Close socket under lock protection
-            if (_socket is not null)
+            // 3. Close socket only while holding the lock to prevent races with concurrent operations.
+            if (lockAcquired && _socket is not null)
             {
                 try
                 {
@@ -216,6 +230,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             {
                 return;
             }
+            _manualDisconnect = false;
             State = WebSocketClientState.Connecting;
             Interlocked.Exchange(ref _reconnectAttempts, 0);
             await StartConnectionAsync(cancellationToken).ConfigureAwait(false);
@@ -249,6 +264,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             {
                 return;
             }
+            _manualDisconnect = true;
             State = WebSocketClientState.Closing;
             if (_connectionCts is not null)
             {
@@ -584,7 +600,13 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
-            // Normal cancellation — do NOT drain the queue; a new SendLoop may take over after reconnect
+            // Distinguish between reconnect-triggered cancellation (new SendLoop will take over)
+            // and disconnect/dispose cancellation (pending sends must be completed to avoid callers hanging).
+            if (_disposeCts.IsCancellationRequested || _manualDisconnect || State is WebSocketClientState.Disconnected or WebSocketClientState.Disposed)
+            {
+                FailPendingSends(new OperationCanceledException("SendLoop cancelled due to disconnect or dispose."));
+            }
+            // Otherwise (reconnecting) — do NOT drain the queue; a new SendLoop will take over after reconnect
         }
         catch (Exception ex)
         {
@@ -658,14 +680,16 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                 {
                     // 心跳消息通过队列发送，由 SendLoop 统一处理，避免并发发送冲突
                     var pingData = Options.HeartbeatMessageFactory?.Invoke() ?? ReadOnlyMemory<byte>.Empty;
-                    // Update timestamp regardless of queue write success — the intent to send
-                    // is what matters for timeout detection
-                    Volatile.Write(ref _lastHeartbeatSentTimestamp, Stopwatch.GetTimestamp());
                     // 使用 TryWrite 避免在队列满时阻塞心跳循环
                     // 使用可配置的消息类型发送心跳
-                    if (!_sendChannel.Writer.TryWrite(new(pingData, Options.HeartbeatMessageType, true)))
+                    if (_sendChannel.Writer.TryWrite(new(pingData, Options.HeartbeatMessageType, true)))
                     {
-                        // Queue full — heartbeat skipped but timeout still active
+                        // 仅在心跳成功入队后更新时间戳，避免队列满时产生虚假的超时判断
+                        Volatile.Write(ref _lastHeartbeatSentTimestamp, Stopwatch.GetTimestamp());
+                    }
+                    else
+                    {
+                        // Queue full — heartbeat skipped; do NOT update timestamp to prevent false timeout detection
                         OnError(new(new InvalidOperationException("Send queue full, heartbeat skipped"), "HeartbeatLoop"));
                     }
                 }
@@ -745,7 +769,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         }
         try
         {
-            if (State == WebSocketClientState.Connected || _disposeCts.IsCancellationRequested)
+            if (ShouldAbortReconnect())
             {
                 return;
             }
@@ -760,7 +784,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         Exception? lastException = null;
         while (Options.MaxReconnectAttempts == -1 || Volatile.Read(ref _reconnectAttempts) < Options.MaxReconnectAttempts)
         {
-            if (_disposeCts.IsCancellationRequested)
+            if (ShouldAbortReconnect())
             {
                 return;
             }
@@ -795,7 +819,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             }
             try
             {
-                if (State == WebSocketClientState.Connected || _disposeCts.IsCancellationRequested)
+                if (ShouldAbortReconnect())
                 {
                     return;
                 }
@@ -827,6 +851,9 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     ///     <para xml:lang="en">Adds ±20% jitter to prevent thundering herd problem when multiple clients reconnect simultaneously.</para>
     ///     <para xml:lang="zh">添加 ±20% 的抖动以防止多个客户端同时重连时的雷群效应。</para>
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool ShouldAbortReconnect() => _disposeCts.IsCancellationRequested || _manualDisconnect || State == WebSocketClientState.Connected;
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private TimeSpan CalculateReconnectDelay(int attempts)
     {
