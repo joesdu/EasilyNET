@@ -20,6 +20,7 @@ namespace EasilyNET.Core.WebSocket;
 public sealed class ManagedWebSocketClient : IAsyncDisposable
 {
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
+
     // Object-lifetime cancellation. Once cancelled, the client is shutting down permanently.
     private readonly CancellationTokenSource _disposeCts = new();
     private readonly Channel<WebSocketMessage> _sendChannel;
@@ -39,28 +40,13 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     private volatile bool _manualDisconnect;
 
     private int _reconnectAttempts;
+
     // Current active connection generation, including both the socket and its cancellation scope.
     private ConnectionSession? _session;
+
     // State is read frequently and can change from multiple asynchronous paths.
     // Use atomic operations instead of a dedicated lock to reduce contention and cognitive load.
     private int _state = (int)WebSocketClientState.Disconnected;
-
-    private sealed class ConnectionSession(ClientWebSocket socket, CancellationTokenSource cancellationSource) : IDisposable
-    {
-        public ClientWebSocket Socket { get; } = socket;
-
-        public CancellationTokenSource CancellationSource { get; } = cancellationSource;
-
-        public CancellationToken Token => CancellationSource.Token;
-
-        public async ValueTask CancelAsync() => await CancellationSource.CancelAsync().ConfigureAwait(false);
-
-        public void Dispose()
-        {
-            CancellationSource.Dispose();
-            Socket.Dispose();
-        }
-    }
 
     /// <summary>
     ///     <para xml:lang="en">Initializes a new instance of the <see cref="ManagedWebSocketClient" /> class.</para>
@@ -98,10 +84,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     ///     <para xml:lang="en">Gets the current state of the client.</para>
     ///     <para xml:lang="zh">获取客户端的当前状态。</para>
     /// </summary>
-    public WebSocketClientState State
-    {
-        get => (WebSocketClientState)Volatile.Read(ref _state);
-    }
+    public WebSocketClientState State => (WebSocketClientState)Volatile.Read(ref _state);
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
@@ -281,16 +264,21 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             _manualDisconnect = true;
             closingStateChanged = TryUpdateState(WebSocketClientState.Closing);
             await CancelConnectionAsync().ConfigureAwait(false);
-            if (_session is { Socket.State: WebSocketState.Open or WebSocketState.CloseReceived or WebSocketState.CloseSent })
+            if (_session is not null)
             {
-                try
+                if (_session.Socket.State is WebSocketState.Open or WebSocketState.CloseReceived or WebSocketState.CloseSent)
                 {
-                    await _session.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client disconnecting", CancellationToken.None).ConfigureAwait(false);
+                    try
+                    {
+                        await _session.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client disconnecting", CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch (Exception)
+                    {
+                        // Ignore errors during close
+                    }
                 }
-                catch (Exception)
-                {
-                    // Ignore errors during close
-                }
+                _session.Dispose();
+                _session = null;
             }
             disconnectedStateChanged = TryUpdateState(WebSocketClientState.Disconnected);
         }
@@ -426,9 +414,9 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             await previousSession.CancelAsync().ConfigureAwait(false);
         }
         previousSession?.Dispose();
-        Options.ConfigureWebSocket?.Invoke(session.Socket);
         try
         {
+            Options.ConfigureWebSocket?.Invoke(session.Socket);
             using var timeoutCts = new CancellationTokenSource(Options.ConnectionTimeout);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(session.Token, timeoutCts.Token);
             if (Options.ServerUri == null)
@@ -456,6 +444,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             UpdateLastReceiveTimestamp();
 
             // Start background loops
+            // ReSharper disable AccessToDisposedClosure
             var receiveTask = Task.Factory.StartNew(() => ReceiveLoop(session), session.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
             _ = receiveTask.ContinueWith(t => OnError(new(t.Exception?.InnerException ?? t.Exception!, "ReceiveLoop background task failed")), TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
             var sendTask = Task.Factory.StartNew(() => SendLoop(session), session.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
@@ -465,21 +454,15 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                 var heartbeatTask = Task.Factory.StartNew(() => HeartbeatLoop(session), session.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
                 _ = heartbeatTask.ContinueWith(t => OnError(new(t.Exception?.InnerException ?? t.Exception!, "HeartbeatLoop background task failed")), TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
             }
+            // ReSharper restore AccessToDisposedClosure
         }
         catch (Exception)
         {
-            // If connection failed, and we are not cancelling, try to reconnect if enabled
-            if (!_disposeCts.IsCancellationRequested && Options.AutoReconnect)
-            {
-                // We are still in the lock here, so we can't call HandleConnectionLoss directly if it tries to acquire lock.
-                // But HandleConnectionLoss is designed to be called from background tasks.
-                // Since we are in ConnectAsync, we should probably throw and let the caller handle or start a background reconnect.
-                // However, for "AutoReconnect", we usually want it to just work.
-
-                // If this is the initial connection attempt, maybe we should throw? 
-                // Or if AutoReconnect is true, we enter reconnect loop?
-                // Usually ConnectAsync throws if initial connection fails.
-            }
+            // Dispose the newly allocated session to release the socket and linked CTS.
+            // _session references this same object, but it will be overwritten on the next successful connect;
+            // callers that observe the exception must call ConnectAsync again.
+            session.Dispose();
+            SetState(WebSocketClientState.Disconnected);
             throw;
         }
     }
@@ -731,11 +714,8 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                         // 仅在心跳成功入队后更新时间戳，避免队列满时产生虚假超时判断
                         Volatile.Write(ref _lastHeartbeatSentTimestamp, Stopwatch.GetTimestamp());
                     }
-                    else
-                    {
-                        // Queue full — heartbeat skipped; do NOT update timestamp to prevent false timeout detection
-                        OnError(new(new InvalidOperationException("Send queue full, heartbeat skipped"), "HeartbeatLoop"));
-                    }
+                    // Queue full — heartbeat skipped; do NOT update timestamp to prevent false timeout detection.
+                    // This is a transient backpressure condition and is intentionally not surfaced via OnError.
                 }
                 catch (OperationCanceledException)
                 {
@@ -791,15 +771,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                 // Another caller already initiated reconnection or we are disposing
                 return;
             }
-            if (Options.AutoReconnect)
-            {
-                stateChanged = TryUpdateState(WebSocketClientState.Reconnecting);
-            }
-            else
-            {
-                TryUpdateState(WebSocketClientState.Disconnected);
-                return;
-            }
+            stateChanged = Options.AutoReconnect ? TryUpdateState(WebSocketClientState.Reconnecting) : TryUpdateState(WebSocketClientState.Disconnected);
         }
         finally
         {
@@ -857,6 +829,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             if (args.Cancel)
             {
                 SetState(WebSocketClientState.Disconnected);
+                FailPendingSends(new OperationCanceledException("Reconnection cancelled."));
                 return;
             }
             try
@@ -905,6 +878,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
         // Failed to reconnect after max attempts
         SetState(WebSocketClientState.Disconnected);
+        FailPendingSends(new OperationCanceledException("Failed to reconnect after maximum attempts."));
         OnClosed(new(null, "Failed to reconnect after maximum attempts", false));
     }
 
@@ -1041,7 +1015,6 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             {
                 return null;
             }
-
             var original = Interlocked.CompareExchange(ref _state, (int)newState, current);
             if (original == current)
             {
@@ -1061,4 +1034,21 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static TimeSpan NormalizeDisposeLockTimeout(TimeSpan timeout) => timeout > TimeSpan.Zero ? timeout : TimeSpan.Zero;
+
+    private sealed class ConnectionSession(ClientWebSocket socket, CancellationTokenSource cancellationSource) : IDisposable
+    {
+        public ClientWebSocket Socket { get; } = socket;
+
+        private CancellationTokenSource CancellationSource { get; } = cancellationSource;
+
+        public CancellationToken Token => CancellationSource.Token;
+
+        public void Dispose()
+        {
+            CancellationSource.Dispose();
+            Socket.Dispose();
+        }
+
+        public async ValueTask CancelAsync() => await CancellationSource.CancelAsync().ConfigureAwait(false);
+    }
 }
