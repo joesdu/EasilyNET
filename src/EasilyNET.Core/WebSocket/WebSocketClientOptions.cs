@@ -76,15 +76,13 @@ public sealed class WebSocketClientOptions
     ///     <para xml:lang="zh">获取或设置心跳超时。默认为 10 秒。</para>
     ///     <remarks>
     ///         <para xml:lang="en">
-    ///         This timeout is evaluated against the time since the last successfully received message.
-    ///         The effective timeout window is <see cref="HeartbeatInterval" /> + <see cref="HeartbeatTimeout" /> to account for the heartbeat cadence.
-    ///         If no data is received within this window, the client considers the connection stale and may trigger reconnection.
+    ///         This timeout is evaluated after a heartbeat is sent. If no data is received from the server
+    ///         within this duration after the heartbeat was sent, the client considers the connection stale and may trigger reconnection.
     ///         Set to TimeSpan.Zero or a negative value to disable the timeout check.
     ///         </para>
     ///         <para xml:lang="zh">
-    ///         该超时基于"距离上次成功接收消息"的时间进行判断。
-    ///         实际超时窗口为 <see cref="HeartbeatInterval" /> + <see cref="HeartbeatTimeout" />，用于匹配心跳发送节奏。
-    ///         若在该时间窗口内未收到任何数据，客户端将认为连接可能已失活并可能触发重连。
+    ///         该超时在发送心跳后进行评估。如果在发送心跳后的此时间段内未收到服务器的任何数据，
+    ///         客户端将认为连接可能已失活并可能触发重连。
     ///         设置为 TimeSpan.Zero 或负数可禁用该超时检测。
     ///         </para>
     ///     </remarks>
@@ -146,6 +144,34 @@ public sealed class WebSocketClientOptions
     ///     <para xml:lang="zh">获取或设置连接超时。默认为 10 秒。</para>
     /// </summary>
     public TimeSpan ConnectionTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    ///     <para xml:lang="en">Gets or sets the initial wait timeout for acquiring the internal connection lock during <see cref="ManagedWebSocketClient.DisposeAsync" />. Default is 5 seconds.</para>
+    ///     <para xml:lang="zh">获取或设置 <see cref="ManagedWebSocketClient.DisposeAsync" /> 期间首次等待内部连接锁的超时时间。默认为 5 秒。</para>
+    /// </summary>
+    /// <remarks>
+    ///     <para xml:lang="en">
+    ///     If the lock is not acquired within this timeout, the client will perform one additional bounded wait using <see cref="DisposeLockTimeoutGracePeriod" />.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     如果在此时间内未获取到锁，客户端会再使用 <see cref="DisposeLockTimeoutGracePeriod" /> 进行一次有界等待。
+    ///     </para>
+    /// </remarks>
+    public TimeSpan DisposeLockTimeout { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    ///     <para xml:lang="en">Gets or sets the additional grace period used by <see cref="ManagedWebSocketClient.DisposeAsync" /> after the initial lock wait times out. Default is 25 seconds.</para>
+    ///     <para xml:lang="zh">获取或设置 <see cref="ManagedWebSocketClient.DisposeAsync" /> 在首次等待锁超时后使用的额外宽限时间。默认为 25 秒。</para>
+    /// </summary>
+    /// <remarks>
+    ///     <para xml:lang="en">
+    ///     If the lock is still unavailable after the total bounded wait, disposal falls back to best-effort cleanup and skips unsafe concurrent resource disposal.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     如果在总的有界等待时间后仍无法获取到锁，则释放会退化为 best-effort 清理，并跳过可能与并发操作冲突的资源释放。
+    ///     </para>
+    /// </remarks>
+    public TimeSpan DisposeLockTimeoutGracePeriod { get; set; } = TimeSpan.FromSeconds(25);
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the receive buffer size in bytes. Default is 16384 (16KB).</para>
