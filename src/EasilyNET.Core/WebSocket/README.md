@@ -8,9 +8,9 @@
 - **心跳机制**: 使用 `PeriodicTimer` 高效发送心跳包（Ping），保持连接活跃，并检测死链。
 - **心跳响应过滤**: 自动过滤服务端返回的心跳响应（Pong），不会触发业务消息事件。
 - **跨平台兼容**: 支持配置心跳消息类型（Binary/Text），兼容 Python、Java 等不同语言的服务端。
-- **高性能发送队列**: 使用 `System.Threading.Channels` 实现发送队列，支持高并发发送，避免阻塞。
+- **高性能发送队列**: 使用 `System.Threading.Channels` 实现发送队列，支持高并发发送，队列满时会产生背压。
 - **内存池优化**: 使用 `ArrayPool<byte>` 和 `PooledMemoryStream` 减少 GC 压力。
-- **线程安全**: 所有的公共方法都是线程安全的。
+- **线程安全**: 所有的公共方法都是线程安全的（需在 Connected 状态下发送消息）。
 - **原生兼容**: 支持配置底层的 `ClientWebSocketOptions`，如设置 Headers、Proxy、Certificates 等。
 - **现代化 API**: 使用 `TimeSpan` 替代毫秒配置，更符合 .NET 设计规范。
 
@@ -108,7 +108,7 @@ await client.DisconnectAsync();
 
 ## 性能特性
 
-- **零分配接收**: 接收缓冲区从 `ArrayPool<byte>` 租借，避免频繁分配。
+- **池化接收**: 接收缓冲区从 `ArrayPool<byte>` 租借，完整消息通过 `PooledMemoryStream` 组装，减少 GC 压力。
 - **池化内存流**: 使用 `PooledMemoryStream` 组装大消息，减少内存碎片。
 - **高效心跳**: 使用 `PeriodicTimer` 替代 `Task.Delay`，更高效且取消更及时。
 - **非阻塞心跳**: 心跳消息通过 `TryWrite` 入队，队列满时跳过本次心跳而非阻塞，避免影响心跳循环。

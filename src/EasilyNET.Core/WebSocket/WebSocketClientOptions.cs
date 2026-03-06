@@ -76,15 +76,13 @@ public sealed class WebSocketClientOptions
     ///     <para xml:lang="zh">获取或设置心跳超时。默认为 10 秒。</para>
     ///     <remarks>
     ///         <para xml:lang="en">
-    ///         This timeout is evaluated against the time since the last successfully received message.
-    ///         The effective timeout window is <see cref="HeartbeatInterval" /> + <see cref="HeartbeatTimeout" /> to account for the heartbeat cadence.
-    ///         If no data is received within this window, the client considers the connection stale and may trigger reconnection.
+    ///         This timeout is evaluated after a heartbeat is sent. If no data is received from the server
+    ///         within this duration after the heartbeat was sent, the client considers the connection stale and may trigger reconnection.
     ///         Set to TimeSpan.Zero or a negative value to disable the timeout check.
     ///         </para>
     ///         <para xml:lang="zh">
-    ///         该超时基于"距离上次成功接收消息"的时间进行判断。
-    ///         实际超时窗口为 <see cref="HeartbeatInterval" /> + <see cref="HeartbeatTimeout" />，用于匹配心跳发送节奏。
-    ///         若在该时间窗口内未收到任何数据，客户端将认为连接可能已失活并可能触发重连。
+    ///         该超时在发送心跳后进行评估。如果在发送心跳后的此时间段内未收到服务器的任何数据，
+    ///         客户端将认为连接可能已失活并可能触发重连。
     ///         设置为 TimeSpan.Zero 或负数可禁用该超时检测。
     ///         </para>
     ///     </remarks>
