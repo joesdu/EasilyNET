@@ -146,6 +146,34 @@ public sealed class WebSocketClientOptions
     public TimeSpan ConnectionTimeout { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
+    ///     <para xml:lang="en">Gets or sets the initial wait timeout for acquiring the internal connection lock during <see cref="ManagedWebSocketClient.DisposeAsync" />. Default is 5 seconds.</para>
+    ///     <para xml:lang="zh">获取或设置 <see cref="ManagedWebSocketClient.DisposeAsync" /> 期间首次等待内部连接锁的超时时间。默认为 5 秒。</para>
+    /// </summary>
+    /// <remarks>
+    ///     <para xml:lang="en">
+    ///     If the lock is not acquired within this timeout, the client will perform one additional bounded wait using <see cref="DisposeLockTimeoutGracePeriod" />.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     如果在此时间内未获取到锁，客户端会再使用 <see cref="DisposeLockTimeoutGracePeriod" /> 进行一次有界等待。
+    ///     </para>
+    /// </remarks>
+    public TimeSpan DisposeLockTimeout { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    ///     <para xml:lang="en">Gets or sets the additional grace period used by <see cref="ManagedWebSocketClient.DisposeAsync" /> after the initial lock wait times out. Default is 25 seconds.</para>
+    ///     <para xml:lang="zh">获取或设置 <see cref="ManagedWebSocketClient.DisposeAsync" /> 在首次等待锁超时后使用的额外宽限时间。默认为 25 秒。</para>
+    /// </summary>
+    /// <remarks>
+    ///     <para xml:lang="en">
+    ///     If the lock is still unavailable after the total bounded wait, disposal falls back to best-effort cleanup and skips unsafe concurrent resource disposal.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     如果在总的有界等待时间后仍无法获取到锁，则释放会退化为 best-effort 清理，并跳过可能与并发操作冲突的资源释放。
+    ///     </para>
+    /// </remarks>
+    public TimeSpan DisposeLockTimeoutGracePeriod { get; set; } = TimeSpan.FromSeconds(25);
+
+    /// <summary>
     ///     <para xml:lang="en">Gets or sets the receive buffer size in bytes. Default is 16384 (16KB).</para>
     ///     <para xml:lang="zh">获取或设置接收缓冲区大小（字节）。默认为 16384（16KB）。</para>
     /// </summary>

@@ -40,6 +40,10 @@ var options = new WebSocketClientOptions
     HeartbeatResponseMessage = "pong"u8.ToArray(),
     // 连接超时
     ConnectionTimeout = TimeSpan.FromSeconds(10),
+    // DisposeAsync 首次等待连接锁的超时
+    DisposeLockTimeout = TimeSpan.FromSeconds(5),
+    // 首次超时后的额外宽限时间，超过总预算后退化为 best-effort 清理
+    DisposeLockTimeoutGracePeriod = TimeSpan.FromSeconds(25),
     // 配置原生 WebSocket 选项
     ConfigureWebSocket = socket =>
     {
@@ -116,24 +120,40 @@ await client.DisconnectAsync();
 
 ## 配置说明
 
-| 属性                       | 类型                          | 默认值   | 说明                                                       |
-| -------------------------- | ----------------------------- | -------- | ---------------------------------------------------------- |
-| `ServerUri`                | `Uri?`                        | `null`   | WebSocket 服务器地址                                       |
-| `AutoReconnect`            | `bool`                        | `true`   | 是否启用自动重连                                           |
-| `MaxReconnectAttempts`     | `int`                         | `5`      | 最大重连次数，-1 表示无限                                  |
-| `ReconnectDelay`           | `TimeSpan`                    | 1 秒     | 初始重连延迟                                               |
-| `MaxReconnectDelay`        | `TimeSpan`                    | 30 秒    | 最大重连延迟                                               |
-| `UseExponentialBackoff`    | `bool`                        | `true`   | 是否使用指数退避                                           |
-| `HeartbeatEnabled`         | `bool`                        | `false`  | 是否启用心跳                                               |
-| `HeartbeatInterval`        | `TimeSpan`                    | 30 秒    | 心跳间隔                                                   |
-| `HeartbeatTimeout`         | `TimeSpan`                    | 10 秒    | 心跳超时                                                   |
-| `HeartbeatMessageType`     | `WebSocketMessageType`        | `Binary` | 心跳消息类型（Binary 兼容 Python/Java 等服务端）           |
-| `HeartbeatMessageFactory`  | `Func<ReadOnlyMemory<byte>>?` | "ping"   | 心跳消息工厂函数                                           |
-| `HeartbeatResponseMessage` | `ReadOnlyMemory<byte>`        | "pong"   | 心跳响应消息，匹配的消息不触发 MessageReceived 事件        |
-| `ConnectionTimeout`        | `TimeSpan`                    | 10 秒    | 连接超时                                                   |
-| `ReceiveBufferSize`        | `int`                         | 16384    | 接收缓冲区大小                                             |
-| `SendQueueCapacity`        | `int`                         | 1000     | 发送队列容量                                               |
-| `WaitForSendCompletion`    | `bool`                        | `true`   | 是否等待发送完成                                           |
+| 属性                            | 类型                          | 默认值   | 说明                                                        |
+| ------------------------------- | ----------------------------- | -------- | ----------------------------------------------------------- |
+| `ServerUri`                     | `Uri?`                        | `null`   | WebSocket 服务器地址                                        |
+| `AutoReconnect`                 | `bool`                        | `true`   | 是否启用自动重连                                            |
+| `MaxReconnectAttempts`          | `int`                         | `5`      | 最大重连次数，-1 表示无限                                   |
+| `ReconnectDelay`                | `TimeSpan`                    | 1 秒     | 初始重连延迟                                                |
+| `MaxReconnectDelay`             | `TimeSpan`                    | 30 秒    | 最大重连延迟                                                |
+| `UseExponentialBackoff`         | `bool`                        | `true`   | 是否使用指数退避                                            |
+| `HeartbeatEnabled`              | `bool`                        | `false`  | 是否启用心跳                                                |
+| `HeartbeatInterval`             | `TimeSpan`                    | 30 秒    | 心跳间隔                                                    |
+| `HeartbeatTimeout`              | `TimeSpan`                    | 10 秒    | 心跳超时                                                    |
+| `HeartbeatMessageType`          | `WebSocketMessageType`        | `Binary` | 心跳消息类型（Binary 兼容 Python/Java 等服务端）            |
+| `HeartbeatMessageFactory`       | `Func<ReadOnlyMemory<byte>>?` | "ping"   | 心跳消息工厂函数                                            |
+| `HeartbeatResponseMessage`      | `ReadOnlyMemory<byte>`        | "pong"   | 心跳响应消息，匹配的消息不触发 MessageReceived 事件         |
+| `ConnectionTimeout`             | `TimeSpan`                    | 10 秒    | 连接超时                                                    |
+| `DisposeLockTimeout`            | `TimeSpan`                    | 5 秒     | `DisposeAsync` 首次等待内部连接锁的超时时间                 |
+| `DisposeLockTimeoutGracePeriod` | `TimeSpan`                    | 25 秒    | 首次等待超时后的额外宽限时间，超过后退化为 best-effort 清理 |
+| `ReceiveBufferSize`             | `int`                         | 16384    | 接收缓冲区大小                                              |
+| `SendQueueCapacity`             | `int`                         | 1000     | 发送队列容量                                                |
+| `WaitForSendCompletion`         | `bool`                        | `true`   | 是否等待发送完成                                            |
+
+## DisposeAsync 行为说明
+
+- `DisposeAsync` 会先等待 `DisposeLockTimeout`。
+- 如果此时仍拿不到内部连接锁，会继续等待 `DisposeLockTimeoutGracePeriod`。
+- 如果总预算内仍无法拿到锁（例如锁内的用户回调阻塞），则执行 best-effort 清理：
+  - 标记实例已释放；
+  - 取消后台循环并失败剩余发送；
+  - **跳过** 可能与并发操作冲突的 socket/CTS/锁对象释放，避免永久挂起或竞争条件。
+
+## 锁与回调行为说明
+
+- `StateChanged` 事件在内部状态更新完成后、**且不持有内部锁时**触发，避免订阅者同步调用 `ConnectAsync()` / `DisconnectAsync()` 时形成锁反转。
+- `ConfigureWebSocket` 也在**不持有 `_connectionLock`** 时执行，因此可安全进行同步配置或触发额外客户端操作，而不会与连接锁互相卡住。
 
 ## 心跳机制说明
 
@@ -180,6 +200,7 @@ async def websocket_endpoint(websocket: WebSocket):
 3. **内容完全匹配**：消息内容必须与 `HeartbeatResponseMessage` 完全相同
 
 这意味着：
+
 - 如果 `HeartbeatMessageType = Binary`，则 Text 类型的 "pong" 消息**不会被过滤**
 - 如果业务消息内容恰好是 "pong" 但类型不同，**不会被误过滤**
 - 只有类型和内容都匹配的消息才会被过滤
