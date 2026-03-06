@@ -417,6 +417,13 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         try
         {
             Options.ConfigureWebSocket?.Invoke(session.Socket);
+            // Guard against DisconnectAsync / DisposeAsync being called synchronously inside ConfigureWebSocket.
+            // In that case the session token is already cancelled and the socket is already disposed,
+            // so attempting ConnectAsync would throw ObjectDisposedException rather than the expected TaskCanceledException.
+            if (IsConnectionStartAborted() || session.Token.IsCancellationRequested)
+            {
+                throw new TaskCanceledException("Connection attempt aborted inside ConfigureWebSocket callback.");
+            }
             using var timeoutCts = new CancellationTokenSource(Options.ConnectionTimeout);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(session.Token, timeoutCts.Token);
             if (Options.ServerUri == null)
