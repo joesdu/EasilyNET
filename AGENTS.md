@@ -6,7 +6,7 @@
 
 ## OVERVIEW
 
-Multi-target .NET library collection (`net8.0`/`net9.0`/`net10.0`) providing Core utilities, AutoDI modules, MongoDB/RabbitMQ integrations, and cryptography. Uses C# preview features, central package management, strong-name signing.
+Multi-target .NET library collection (`net10.0`/`net11.0`) providing Core utilities, AutoDI modules, MongoDB/RabbitMQ integrations, and cryptography. Uses C# preview features, central package management, strong-name signing.
 
 ## STRUCTURE
 
@@ -42,9 +42,27 @@ EasilyNET/
 
 ### Build System
 - **DO NOT** set `TargetFramework`/`TargetFrameworks` in individual `.csproj` - enforced by `src/Directory.Build.targets`
-- TFMs centralized in `src/Directory.Build.props`: `net8.0;net9.0;net10.0`
+- TFMs centralized in `src/Directory.Build.props`: `net10.0;net11.0`
 - Version derived from `EASILYNET_VERSION` env var or auto-generated timestamp
 - Release builds: strong-name signed with `src/EasilyNET.snk`
+
+### Two-Layer Directory.Build.props
+
+This project uses a two-layer `Directory.Build.props` architecture:
+
+| File | Purpose |
+|------|---------|
+| `Directory.Build.props` (root) | Global metadata: Authors, RepositoryUrl, LangVersion, Version, PackageReadmeFile |
+| `src/Directory.Build.props` | Source-specific: TargetFrameworks, Release signing, SourceLink, TreatWarningsAsErrors |
+
+The `src/Directory.Build.props` imports the root props via:
+```xml
+<Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+```
+
+This separation allows:
+- Root-level settings to apply to all projects (sample, test, src)
+- Source-specific settings to apply only to `src/` NuGet packages
 
 ### Coding
 - C# `LangVersion: preview` - use primary constructors, collection expressions

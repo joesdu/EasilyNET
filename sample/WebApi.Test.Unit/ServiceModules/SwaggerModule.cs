@@ -6,6 +6,7 @@ using EasilyNET.Core.Misc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi;
+using Serilog;
 using WebApi.Test.Unit.Swaggers;
 
 namespace WebApi.Test.Unit.ServiceModules;
@@ -105,9 +106,9 @@ internal sealed class SwaggerModule : AppModule
                 {
                     c.IncludeXmlComments(file, true);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // ignore
+                    Log.Warning(ex, "Failed to load XML documentation from {File}", file);
                 }
             }
             // 添加 OperationFilter 来处理授权
