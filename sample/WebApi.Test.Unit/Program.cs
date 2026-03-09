@@ -18,7 +18,8 @@ AssemblyHelper.Configure(o =>
     o.ScanAllRuntimeLibraries = false;
 });
 // Enable UTF-8 support in console
-_ = TextWriterExtensions.IsUtf8Supported();
+var isUtf8Supported = TextWriterExtensions.IsUtf8Supported();
+Log.Debug("UTF-8 console support: {IsUtf8}", isUtf8Supported);
 var builder = WebApplication.CreateBuilder(args);
 
 // 添加Serilog配置

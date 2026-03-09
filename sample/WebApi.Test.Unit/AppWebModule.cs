@@ -38,16 +38,15 @@ internal sealed class AppWebModule : AppModule
     public override async Task ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationHost() as IApplicationBuilder;
-        // 全局异常处理中间件
-        app?.UseExceptionHandler();
+        // 响应时间记录 - 放在最前以捕获所有中间件耗时
         app?.UseResponseTime();
-        // 先认证
-        app?.UseAuthentication();
-        // 再授权
-        app?.UseAuthorization();
-
-        // 添加静态文件中间件，用于提供 wwwroot 中的文件
+        // 全局异常处理 - 尽早处理错误
+        app?.UseExceptionHandler();
+        // 静态文件 - 无需认证，可提前处理
         app?.UseStaticFiles();
+        // 认证和授权
+        app?.UseAuthentication();
+        app?.UseAuthorization();
         await base.ApplicationInitialization(context);
     }
 }
