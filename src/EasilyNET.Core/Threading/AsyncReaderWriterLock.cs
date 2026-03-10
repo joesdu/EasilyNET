@@ -205,21 +205,27 @@ public sealed class AsyncReaderWriterLock : IDisposable
             if (_readWaiters.Count > 0)
             {
                 readToCancel = new(_readWaiters.Count);
-                for (var n = _readWaiters.First; n is not null; n = n.Next)
+                // Null out each waiter's Node before clearing so concurrent TryCancel
+                // callbacks see Node == null and skip the Remove() call safely.
+                while (_readWaiters.Count > 0)
                 {
-                    readToCancel.Add(n.Value);
+                    var waiter = _readWaiters.First!.Value;
+                    _readWaiters.RemoveFirst();
+                    waiter.Node = null;
+                    readToCancel.Add(waiter);
                 }
-                _readWaiters.Clear();
                 _readWaiterCount = 0;
             }
             if (_writeWaiters.Count > 0)
             {
                 writeToCancel = new(_writeWaiters.Count);
-                for (var n = _writeWaiters.First; n is not null; n = n.Next)
+                while (_writeWaiters.Count > 0)
                 {
-                    writeToCancel.Add(n.Value);
+                    var waiter = _writeWaiters.First!.Value;
+                    _writeWaiters.RemoveFirst();
+                    waiter.Node = null;
+                    writeToCancel.Add(waiter);
                 }
-                _writeWaiters.Clear();
                 _writeWaiterCount = 0;
             }
             Volatile.Write(ref _state, 0);
@@ -233,6 +239,7 @@ public sealed class AsyncReaderWriterLock : IDisposable
                 w.Tcs.TrySetException(ex);
             }
         }
+        // ReSharper disable once InvertIf
         if (writeToCancel is not null)
         {
             foreach (var w in writeToCancel)
@@ -439,13 +446,8 @@ public sealed class AsyncReaderWriterLock : IDisposable
         {
             return ValueTask.FromCanceled<WriteRelease>(cancellationToken);
         }
-
         // Fast path: CAS from fully-free (0) → WriterHeldBit.
-        if (Interlocked.CompareExchange(ref _state, WriterHeldBit, 0) == 0)
-        {
-            return new(new WriteRelease(this));
-        }
-        return WriteLockAsyncSlow(cancellationToken);
+        return Interlocked.CompareExchange(ref _state, WriterHeldBit, 0) == 0 ? new(new WriteRelease(this)) : WriteLockAsyncSlow(cancellationToken);
     }
 
     /// <summary>
@@ -640,11 +642,15 @@ public sealed class AsyncReaderWriterLock : IDisposable
                     if (_readWaiters.Count > 0)
                     {
                         readersToWake = new(_readWaiters.Count);
-                        for (var n = _readWaiters.First; n is not null; n = n.Next)
+                        // Null out each waiter's Node before clearing so concurrent TryCancel
+                        // callbacks see Node == null and skip the Remove() call safely.
+                        while (_readWaiters.Count > 0)
                         {
-                            readersToWake.Add(n.Value);
+                            var waiter = _readWaiters.First!.Value;
+                            _readWaiters.RemoveFirst();
+                            waiter.Node = null;
+                            readersToWake.Add(waiter);
                         }
-                        _readWaiters.Clear();
                         _readWaiterCount = 0;
                         // Pre-set reader count to how many we intend to wake;
                         // canceled ones will be corrected below.
@@ -819,15 +825,19 @@ public sealed class AsyncReaderWriterLock : IDisposable
         {
             lock (_owner._sync)
             {
-                if (Node is null)
+                // Only remove from queue if still enqueued; Node is set to null by both
+                // ReleaseWriteInternal (batch wake) and Dispose() before they complete TCS,
+                // so checking Node prevents a double-remove race.
+                if (Node is not null)
                 {
-                    return; // Already dispatched or removed.
+                    _owner._readWaiters.Remove(Node);
+                    Node = null;
+                    _owner._readWaiterCount--;
                 }
-                _owner._readWaiters.Remove(Node);
-                Node = null;
-                _owner._readWaiterCount--;
             }
             CancellationRegistration.Dispose();
+            // Always complete TCS so callers never hang — if the lock was already granted
+            // (TrySetResult already called), this is a harmless no-op.
             // Queued readers were never counted in _state, so no state adjustment needed.
             Tcs.TrySetCanceled(CancellationToken);
         }
@@ -852,17 +862,18 @@ public sealed class AsyncReaderWriterLock : IDisposable
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void TryCancel()
         {
-            bool wasLast;
+            var wasLast = false;
             lock (_owner._sync)
             {
-                if (Node is null)
+                // Only remove from queue if still enqueued; Node is set to null by
+                // ReleaseWriteInternal/HandOffToWriter/Dispose() before they complete TCS.
+                if (Node is not null)
                 {
-                    return; // Already dispatched or removed.
+                    _owner._writeWaiters.Remove(Node);
+                    Node = null;
+                    _owner._writeWaiterCount--;
+                    wasLast = _owner._writeWaiters.Count == 0;
                 }
-                _owner._writeWaiters.Remove(Node);
-                Node = null;
-                _owner._writeWaiterCount--;
-                wasLast = _owner._writeWaiters.Count == 0;
             }
             CancellationRegistration.Dispose();
             // If we were the last writer waiter, clear WriterWaitingBit so readers are no longer blocked.
@@ -870,6 +881,8 @@ public sealed class AsyncReaderWriterLock : IDisposable
             {
                 _owner.ClearWriterWaitingBit();
             }
+            // Always complete TCS so callers never hang — if the lock was already granted
+            // (TrySetResult already called), this is a harmless no-op.
             Tcs.TrySetCanceled(CancellationToken);
         }
     }
