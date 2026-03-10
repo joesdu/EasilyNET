@@ -862,7 +862,6 @@ public sealed class AsyncReaderWriterLock : IDisposable
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void TryCancel()
         {
-            var wasLast = false;
             lock (_owner._sync)
             {
                 // Only remove from queue if still enqueued; Node is set to null by
@@ -872,15 +871,17 @@ public sealed class AsyncReaderWriterLock : IDisposable
                     _owner._writeWaiters.Remove(Node);
                     Node = null;
                     _owner._writeWaiterCount--;
-                    wasLast = _owner._writeWaiters.Count == 0;
+
+                    // If we were the last writer waiter, clear WriterWaitingBit atomically
+                    // under the same lock to prevent a race where a new writer enqueues and
+                    // sets the bit between our unlock and a deferred ClearWriterWaitingBit().
+                    if (_owner._writeWaiters.Count == 0)
+                    {
+                        _owner.ClearWriterWaitingBit();
+                    }
                 }
             }
             CancellationRegistration.Dispose();
-            // If we were the last writer waiter, clear WriterWaitingBit so readers are no longer blocked.
-            if (wasLast)
-            {
-                _owner.ClearWriterWaitingBit();
-            }
             // Always complete TCS so callers never hang — if the lock was already granted
             // (TrySetResult already called), this is a harmless no-op.
             Tcs.TrySetCanceled(CancellationToken);

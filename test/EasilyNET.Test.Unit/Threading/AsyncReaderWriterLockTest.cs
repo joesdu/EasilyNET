@@ -8,6 +8,28 @@ namespace EasilyNET.Test.Unit.Threading;
 [TestClass]
 public class AsyncReaderWriterLockTests
 {
+    /// <summary>
+    /// 带超时保护的 await，防止回归导致测试进程永久挂起。
+    /// </summary>
+    private static async Task<T> AwaitWithTimeout<T>(Task<T> task, int timeoutMs = 5000, [System.Runtime.CompilerServices.CallerArgumentExpression(nameof(task))] string? expr = null)
+    {
+        if (task == await Task.WhenAny(task, Task.Delay(timeoutMs)))
+        {
+            return await task;
+        }
+        Assert.Fail($"Timed out after {timeoutMs}ms waiting for: {expr}");
+        return default!; // unreachable
+    }
+
+    private static async Task AwaitWithTimeout(Task task, int timeoutMs = 5000, [System.Runtime.CompilerServices.CallerArgumentExpression(nameof(task))] string? expr = null)
+    {
+        if (task == await Task.WhenAny(task, Task.Delay(timeoutMs)))
+        {
+            await task; // propagate exceptions
+            return;
+        }
+        Assert.Fail($"Timed out after {timeoutMs}ms waiting for: {expr}");
+    }
     // ── Basic read-lock ────────────────────────────────────────────────────────
 
     /// <summary>
@@ -82,7 +104,7 @@ public class AsyncReaderWriterLockTests
         Assert.AreNotEqual(secondTask, completed, "Second writer should not have acquired the lock yet.");
         Assert.IsFalse(secondTask.IsCompleted);
         holder.Dispose();
-        await secondTask; // Should now complete
+        await AwaitWithTimeout(secondTask); // Should now complete
         secondTask.Result.Dispose();
         Assert.IsFalse(rwLock.IsHeld);
     }
@@ -99,7 +121,7 @@ public class AsyncReaderWriterLockTests
         var completed = await Task.WhenAny(writerTask, Task.Delay(200));
         Assert.AreNotEqual(writerTask, completed, "Writer should not have acquired the lock while reader holds it.");
         reader.Dispose();
-        await writerTask;
+        await AwaitWithTimeout(writerTask);
         writerTask.Result.Dispose();
         Assert.IsFalse(rwLock.IsHeld);
     }
@@ -116,7 +138,7 @@ public class AsyncReaderWriterLockTests
         var completed = await Task.WhenAny(readerTask, Task.Delay(200));
         Assert.AreNotEqual(readerTask, completed, "Reader should not have acquired the lock while writer holds it.");
         writer.Dispose();
-        await readerTask;
+        await AwaitWithTimeout(readerTask);
         readerTask.Result.Dispose();
         Assert.IsFalse(rwLock.IsHeld);
     }
@@ -152,12 +174,12 @@ public class AsyncReaderWriterLockTests
 
         // Release the initial reader — writer should be handed the lock.
         firstReader.Dispose();
-        await writerTask;
+        await AwaitWithTimeout(writerTask);
         Assert.IsTrue(rwLock.IsWriteHeld);
 
         // Release the writer — now the late reader can proceed.
         writerTask.Result.Dispose();
-        await lateReaderTask;
+        await AwaitWithTimeout(lateReaderTask);
         lateReaderTask.Result.Dispose();
         Assert.IsFalse(rwLock.IsHeld);
     }
@@ -193,7 +215,7 @@ public class AsyncReaderWriterLockTests
                 shared = v + 1;
             }
         })).ToArray();
-        await Task.WhenAll(readers.Concat(writers));
+        await AwaitWithTimeout(Task.WhenAll(readers.Concat(writers)), 10000);
         Assert.AreEqual(3, shared, "Each writer should have incremented shared exactly once.");
     }
 
