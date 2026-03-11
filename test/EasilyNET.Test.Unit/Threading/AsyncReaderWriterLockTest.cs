@@ -21,6 +21,9 @@ public class AsyncReaderWriterLockTests
         return default!; // unreachable
     }
 
+    /// <summary>
+    /// 带超时保护的 await，防止回归导致测试进程永久挂起。
+    /// </summary>
     private static async Task AwaitWithTimeout(Task task, int timeoutMs = 5000, [System.Runtime.CompilerServices.CallerArgumentExpression(nameof(task))] string? expr = null)
     {
         if (task == await Task.WhenAny(task, Task.Delay(timeoutMs)))
