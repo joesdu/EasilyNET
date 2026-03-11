@@ -24,9 +24,9 @@ internal sealed class OpenTelemetryModule : AppModule
                .ConfigureResource(c => c.AddService(Constant.InstanceName, autoGenerateServiceInstanceId: false))
                .WithMetrics(c =>
                {
+                   c.AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel", "System.Net.Http", "WebApi.Test.Unit", "EasilyNET.RabbitBus");
                    c.AddRuntimeInstrumentation();
                    c.AddProcessInstrumentation();
-                   c.AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel", "System.Net.Http", "WebApi.Test.Unit", "EasilyNET.RabbitBus");
                    c.AddOtlpExporter();
                })
                .WithLogging(c => c.AddOtlpExporter())
@@ -36,7 +36,7 @@ internal sealed class OpenTelemetryModule : AppModule
                    {
                        c.SetSampler<AlwaysOnSampler>();
                    }
-                   c.AddAspNetCoreInstrumentation();
+                   c.AddSource("Microsoft.AspNetCore");
                    c.AddHttpClientInstrumentation();
                    c.AddGrpcClientInstrumentation();
                    c.AddRedisInstrumentation();
