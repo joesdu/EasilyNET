@@ -20,7 +20,7 @@ EasilyNET/
 │   ├── EasilyNET.Mongo.[Core|AspNetCore|ConsoleDebug]/  # MongoDB
 │   └── EasilyNET.Security/   # Crypto (AES/SM2-4/RSA/RIPEMD)
 ├── sample/WebApi.Test.Unit/  # Integration sample (DI module orchestration)
-├── test/                     # Unit tests + benchmarks
+├── test/                     # Unit tests
 ├── docs/                     # Additional documentation
 └── .github/workflows/        # CI: build_test.yml, releaser.yml
 ```
