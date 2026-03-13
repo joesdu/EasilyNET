@@ -54,7 +54,6 @@
         <Project Path="src/EasilyNET.Mongo.Core/EasilyNET.Mongo.Core.csproj" />
     </Folder>
     <Folder Name="/test/">
-        <Project Path="test/EasilyNET.Core.Benchmark/EasilyNET.Core.Benchmark.csproj" />
         <Project Path="test/EasilyNET.Test.Unit/EasilyNET.Test.Unit.csproj" />
     </Folder>
 </Solution>
