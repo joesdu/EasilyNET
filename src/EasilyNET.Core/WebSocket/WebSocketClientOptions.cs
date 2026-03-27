@@ -79,11 +79,19 @@ public sealed class WebSocketClientOptions
     ///         This timeout is evaluated after a heartbeat is sent. If no data is received from the server
     ///         within this duration after the heartbeat was sent, the client considers the connection stale and may trigger reconnection.
     ///         Set to TimeSpan.Zero or a negative value to disable the timeout check.
+    ///         <br/>
+    ///         <b>Important:</b> The timeout check only runs once per heartbeat tick. The actual worst-case detection latency
+    ///         is <c>HeartbeatInterval + HeartbeatTimeout</c>, not just <c>HeartbeatTimeout</c>.
+    ///         This value must be less than <see cref="HeartbeatInterval" /> (enforced by <see cref="Validate" />).
     ///         </para>
     ///         <para xml:lang="zh">
     ///         该超时在发送心跳后进行评估。如果在发送心跳后的此时间段内未收到服务器的任何数据，
     ///         客户端将认为连接可能已失活并可能触发重连。
     ///         设置为 TimeSpan.Zero 或负数可禁用该超时检测。
+    ///         <br/>
+    ///         <b>注意：</b>超时检测每个心跳周期只运行一次，实际最坏情况下的检测延迟为
+    ///         <c>HeartbeatInterval + HeartbeatTimeout</c>，而非仅 <c>HeartbeatTimeout</c>。
+    ///         该值必须小于 <see cref="HeartbeatInterval" />（由 <see cref="Validate" /> 方法强制校验）。
     ///         </para>
     ///     </remarks>
     /// </summary>
@@ -104,6 +112,22 @@ public sealed class WebSocketClientOptions
     ///     </remarks>
     /// </summary>
     public WebSocketMessageType HeartbeatMessageType { get; set; } = WebSocketMessageType.Binary;
+
+    /// <summary>
+    ///     <para xml:lang="en">Gets or sets the WebSocket message type expected for heartbeat response messages. Default is <see cref="WebSocketMessageType.Binary" />.</para>
+    ///     <para xml:lang="zh">获取或设置心跳响应消息期望的 WebSocket 消息类型。默认为 <see cref="WebSocketMessageType.Binary" />。</para>
+    ///     <remarks>
+    ///         <para xml:lang="en">
+    ///         This allows the heartbeat response type to differ from the heartbeat send type.
+    ///         For example, you may send heartbeats as <see cref="WebSocketMessageType.Binary" /> but the server may respond with <see cref="WebSocketMessageType.Text" />.
+    ///         </para>
+    ///         <para xml:lang="zh">
+    ///         此设置允许心跳响应的消息类型与心跳发送类型不同。
+    ///         例如，可以发送 <see cref="WebSocketMessageType.Binary" /> 类型的心跳，但服务端以 <see cref="WebSocketMessageType.Text" /> 类型响应。
+    ///         </para>
+    ///     </remarks>
+    /// </summary>
+    public WebSocketMessageType HeartbeatResponseMessageType { get; set; } = WebSocketMessageType.Binary;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the factory function to create heartbeat messages. Returns null to send an empty payload.</para>
@@ -221,4 +245,44 @@ public sealed class WebSocketClientOptions
     ///     <para xml:lang="zh">默认心跳消息工厂，返回 "ping" 字节。</para>
     /// </summary>
     private static ReadOnlyMemory<byte> DefaultHeartbeatMessageFactory() => DefaultHeartbeatMessage;
+
+    /// <summary>
+    ///     <para xml:lang="en">Validates the options and throws <see cref="InvalidOperationException" /> if any setting is invalid.</para>
+    ///     <para xml:lang="zh">验证配置选项，如有无效设置则抛出 <see cref="InvalidOperationException" />。</para>
+    /// </summary>
+    internal void Validate()
+    {
+        if (ServerUri is null)
+        {
+            throw new InvalidOperationException("ServerUri must be set before connecting.");
+        }
+        if (ReceiveBufferSize <= 0)
+        {
+            throw new InvalidOperationException($"{nameof(ReceiveBufferSize)} must be greater than zero.");
+        }
+        if (SendQueueCapacity <= 0)
+        {
+            throw new InvalidOperationException($"{nameof(SendQueueCapacity)} must be greater than zero.");
+        }
+        if (ReconnectDelay <= TimeSpan.Zero)
+        {
+            throw new InvalidOperationException($"{nameof(ReconnectDelay)} must be positive.");
+        }
+        if (MaxReconnectAttempts < -1)
+        {
+            throw new InvalidOperationException($"{nameof(MaxReconnectAttempts)} must be -1 (infinite) or a non-negative integer.");
+        }
+        if (ConnectionTimeout <= TimeSpan.Zero)
+        {
+            throw new InvalidOperationException($"{nameof(ConnectionTimeout)} must be positive.");
+        }
+        if (HeartbeatEnabled && HeartbeatInterval <= TimeSpan.Zero)
+        {
+            throw new InvalidOperationException($"{nameof(HeartbeatInterval)} must be positive when heartbeat is enabled.");
+        }
+        if (HeartbeatEnabled && HeartbeatTimeout > TimeSpan.Zero && HeartbeatTimeout >= HeartbeatInterval)
+        {
+            throw new InvalidOperationException($"{nameof(HeartbeatTimeout)} must be less than {nameof(HeartbeatInterval)} to ensure the timeout can be detected within one heartbeat cycle.");
+        }
+    }
 }

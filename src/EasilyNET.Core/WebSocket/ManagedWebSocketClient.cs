@@ -24,7 +24,9 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     // Object-lifetime cancellation. Once cancelled, the client is shutting down permanently.
     private readonly CancellationTokenSource _disposeCts = new();
     private readonly Channel<WebSocketMessage> _sendChannel;
-    private volatile bool _disposed;
+
+    // Use int with Interlocked.Exchange to guarantee atomic check-and-set across concurrent callers.
+    private int _disposedFlag;
 
     /// <summary>
     /// 最后发送心跳的时间戳。用于确保远端有足够时间响应心跳。
@@ -86,14 +88,16 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     /// </summary>
     public WebSocketClientState State => (WebSocketClientState)Volatile.Read(ref _state);
 
+    private bool IsDisposed => Volatile.Read(ref _disposedFlag) != 0;
+
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        if (_disposed)
+        // Guarantee exactly-once disposal even when called concurrently.
+        if (Interlocked.Exchange(ref _disposedFlag, 1) != 0)
         {
             return;
         }
-        _disposed = true;
 
         // 1. Signal all background loops to stop
         await _disposeCts.CancelAsync().ConfigureAwait(false);
@@ -208,11 +212,8 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     /// </param>
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, typeof(ManagedWebSocketClient));
-        if (Options.ServerUri == null)
-        {
-            throw new InvalidOperationException("ServerUri is not set.");
-        }
+        ObjectDisposedException.ThrowIf(IsDisposed, typeof(ManagedWebSocketClient));
+        Options.Validate();
         WebSocketStateChangedEventArgs? connectingStateChanged;
         await _connectionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -248,7 +249,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     /// </summary>
     public async Task DisconnectAsync()
     {
-        if (_disposed)
+        if (IsDisposed)
         {
             return;
         }
@@ -315,7 +316,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
     private async Task SendAsyncInternal(ReadOnlyMemory<byte> message, WebSocketMessageType messageType, bool endOfMessage, byte[]? rentedArray, CancellationToken cancellationToken)
     {
-        ObjectDisposedException.ThrowIf(_disposed, typeof(ManagedWebSocketClient));
+        ObjectDisposedException.ThrowIf(IsDisposed, typeof(ManagedWebSocketClient));
         if (State != WebSocketClientState.Connected)
         {
             if (rentedArray != null)
@@ -324,7 +325,9 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             }
             throw new InvalidOperationException("Client is not connected.");
         }
-        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Only allocate TCS when the caller will actually await it; avoids a heap allocation
+        // per send in fire-and-forget mode (WaitForSendCompletion = false).
+        var tcs = Options.WaitForSendCompletion ? new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously) : null;
         var msg = new WebSocketMessage(message, messageType, endOfMessage, tcs, rentedArray);
         try
         {
@@ -338,13 +341,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             }
             throw;
         }
-
-        // Wait for the message to be sent if we want to ensure delivery order or catch send errors immediately
-        // However, for high performance, we might not want to await the actual send here if we trust the queue.
-        // But the user might expect SendAsync to mean "sent to socket".
-        // Given the requirement for "High performance sending queue", we usually just enqueue.
-        // But if we want to propagate errors, we should await the TCS.
-        if (Options.WaitForSendCompletion)
+        if (tcs is not null)
         {
             await tcs.Task.ConfigureAwait(false);
         }
@@ -426,11 +423,8 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             }
             using var timeoutCts = new CancellationTokenSource(Options.ConnectionTimeout);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(session.Token, timeoutCts.Token);
-            if (Options.ServerUri == null)
-            {
-                throw new InvalidOperationException("ServerUri is null");
-            }
-            await session.Socket.ConnectAsync(Options.ServerUri, linkedCts.Token).ConfigureAwait(false);
+            // ServerUri is guaranteed non-null by Options.Validate() called in ConnectAsync.
+            await session.Socket.ConnectAsync(Options.ServerUri!, linkedCts.Token).ConfigureAwait(false);
             await _connectionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             WebSocketStateChangedEventArgs? connectedStateChanged;
             try
@@ -563,24 +557,23 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     ///     <para xml:lang="en">
     ///     The heartbeat response is only filtered when:
     ///     1. HeartbeatResponseMessage is not empty (filtering is enabled)
-    ///     2. The message type matches HeartbeatMessageType (prevents filtering business messages with same content but different type)
+    ///     2. The message type matches HeartbeatResponseMessageType (allows response type to differ from send type)
     ///     3. The message content exactly matches HeartbeatResponseMessage
     ///     </para>
     ///     <para xml:lang="zh">
     ///     心跳响应仅在以下条件都满足时才被过滤：
     ///     1. HeartbeatResponseMessage 不为空（启用过滤）
-    ///     2. 消息类型与 HeartbeatMessageType 匹配（防止过滤内容相同但类型不同的业务消息）
+    ///     2. 消息类型与 HeartbeatResponseMessageType 匹配（允许响应类型与发送类型不同）
     ///     3. 消息内容与 HeartbeatResponseMessage 完全匹配
     ///     </para>
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IsHeartbeatResponse(byte[] data, WebSocketMessageType messageType)
     {
         var expectedResponse = Options.HeartbeatResponseMessage;
-        // 只有当消息类型匹配心跳类型且内容匹配时才认为是心跳响应
-        // 这样可以避免误过滤内容恰好是 "pong" 的业务消息（如 Text 类型的 "pong" 不会被过滤，如果心跳类型是 Binary）
+        // 使用独立的 HeartbeatResponseMessageType（而非发送侧的 HeartbeatMessageType），
+        // 支持服务端以不同消息类型（如 Text）响应心跳（如 Binary）的场景。
         return !expectedResponse.IsEmpty &&
-               messageType == Options.HeartbeatMessageType &&
+               messageType == Options.HeartbeatResponseMessageType &&
                data.AsSpan().SequenceEqual(expectedResponse.Span);
     }
 
@@ -591,7 +584,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         {
             while (await _sendChannel.Reader.WaitToReadAsync(token).ConfigureAwait(false))
             {
-                while (_sendChannel.Reader.TryRead(out var message))
+                while (!token.IsCancellationRequested && _sendChannel.Reader.TryRead(out var message))
                 {
                     try
                     {
@@ -603,9 +596,11 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                         }
                         else
                         {
-                            // If socket is not open, we might want to requeue or fail
-                            // For now, fail the task
-                            message.CompletionSource?.TrySetException(new WebSocketException("WebSocket is not open."));
+                            // Socket is closing (transitioning to reconnect). Stop draining the queue so
+                            // the new SendLoop can pick up remaining messages after reconnection.
+                            // The one message already dequeued cannot be put back, so fail it gracefully.
+                            message.CompletionSource?.TrySetException(new WebSocketException("WebSocket connection closed; message dropped during reconnection."));
+                            return; // let OperationCanceledException / reconnect take over
                         }
                     }
                     catch (Exception ex)
@@ -748,10 +743,15 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             return;
         }
         SetState(WebSocketClientState.Disconnected);
-        OnClosed(new(closeStatus, closeStatusDescription, false));
         if (Options.AutoReconnect && !_disposeCts.IsCancellationRequested)
         {
+            // Do NOT fire OnClosed here — the client is about to attempt reconnection.
+            // OnClosed will be fired only if reconnection ultimately fails (or is cancelled).
             await ReconnectAsync().ConfigureAwait(false);
+        }
+        else
+        {
+            OnClosed(new(closeStatus, closeStatusDescription, false));
         }
     }
 
@@ -1008,7 +1008,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool IsConnectionStartAborted() => _disposed || _disposeCts.IsCancellationRequested || _manualDisconnect;
+    private bool IsConnectionStartAborted() => IsDisposed || _disposeCts.IsCancellationRequested || _manualDisconnect;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IsShutdownOrDisconnected() => _disposeCts.IsCancellationRequested || _manualDisconnect || State is WebSocketClientState.Disconnected or WebSocketClientState.Disposed;
