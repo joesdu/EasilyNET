@@ -747,7 +747,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         if (Options.AutoReconnect && !_disposeCts.IsCancellationRequested)
         {
             // Do NOT fire OnClosed here — the client is about to attempt reconnection.
-            // OnClosed will be fired only if reconnection ultimately fails (or is cancelled).
+            // OnClosed will be fired only if reconnection ultimately fails; it is not guaranteed to fire when reconnection is cancelled by user code.
             await ReconnectAsync().ConfigureAwait(false);
         }
         else
