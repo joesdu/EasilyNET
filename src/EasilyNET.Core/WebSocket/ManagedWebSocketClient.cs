@@ -213,7 +213,6 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, typeof(ManagedWebSocketClient));
-        Options.Validate();
         WebSocketStateChangedEventArgs? connectingStateChanged;
         await _connectionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -222,6 +221,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             {
                 return;
             }
+            Options.Validate();
             _manualDisconnect = false;
             connectingStateChanged = TryUpdateState(WebSocketClientState.Connecting);
             Interlocked.Exchange(ref _reconnectAttempts, 0);
