@@ -423,8 +423,9 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             }
             using var timeoutCts = new CancellationTokenSource(Options.ConnectionTimeout);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(session.Token, timeoutCts.Token);
-            // ServerUri is guaranteed non-null by Options.Validate() called in ConnectAsync.
-            await session.Socket.ConnectAsync(Options.ServerUri!, linkedCts.Token).ConfigureAwait(false);
+            // Validate ServerUri on every connect/reconnect to avoid NullReferenceException if it was reset.
+            var serverUri = Options.ServerUri ?? throw new InvalidOperationException("WebSocket connection failed because Options.ServerUri is null. Ensure ManagedWebSocketClientOptions.ServerUri is configured before connecting or reconnecting.");
+            await session.Socket.ConnectAsync(serverUri, linkedCts.Token).ConfigureAwait(false);
             await _connectionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             WebSocketStateChangedEventArgs? connectedStateChanged;
             try
