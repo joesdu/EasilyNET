@@ -10,7 +10,7 @@ internal sealed class WebSocketClientTestService(ILogger<WebSocketClientTestServ
 {
     private ManagedWebSocketClient? _client;
 
-    private static bool TestMode => true;
+    private static bool TestMode => !true;
 
     private static ManagedWebSocketClient CreateClient(ILogger logger, Uri serverUri)
     {
