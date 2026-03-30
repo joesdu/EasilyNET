@@ -6,7 +6,7 @@
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build",
-      "program": "${workspaceFolder}/sample/WebApi.Test.Unit/bin/Debug/net10.0/WebApi.Test.Unit.dll",
+      "program": "${workspaceFolder}/sample/WebApi.Test.Unit/bin/Debug/net11.0/WebApi.Test.Unit.dll",
       "args": [],
       "cwd": "${workspaceFolder}/sample/WebApi.Test.Unit",
       "stopAtEntry": false,

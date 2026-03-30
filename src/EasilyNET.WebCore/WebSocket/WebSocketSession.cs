@@ -183,18 +183,14 @@ internal sealed class WebSocketSession : IWebSocketSession
             heartbeatTask = HeartbeatLoopAsync(token);
         }
         var isConnected = false;
+        var allTasks = heartbeatTask != null
+            ? new[] { sendTask, receiveTask, heartbeatTask }
+            : new[] { sendTask, receiveTask };
         try
         {
             await _handler.OnConnectedAsync(this).ConfigureAwait(false);
             isConnected = true;
-            if (heartbeatTask != null)
-            {
-                await Task.WhenAny(sendTask, receiveTask, heartbeatTask).ConfigureAwait(false);
-            }
-            else
-            {
-                await Task.WhenAny(sendTask, receiveTask).ConfigureAwait(false);
-            }
+            await Task.WhenAny(allTasks).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -202,7 +198,26 @@ internal sealed class WebSocketSession : IWebSocketSession
         }
         finally
         {
+            // 通知所有循环停止
             await _cts.CancelAsync();
+            // 完成发送通道，确保 SendLoop 不会挂起在 WaitToReadAsync
+            _sendChannel.Writer.TryComplete();
+            // 等待所有循环结束，避免未观察到的异常
+            try
+            {
+                await Task.WhenAll(allTasks).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // 取消是正常行为
+            }
+            catch (Exception ex)
+            {
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug(ex, "[WebSocketSession:{Id}] Error during task cleanup", Id);
+                }
+            }
             if (isConnected)
             {
                 await _handler.OnDisconnectedAsync(this).ConfigureAwait(false);
@@ -238,33 +253,48 @@ internal sealed class WebSocketSession : IWebSocketSession
         {
             while (!token.IsCancellationRequested && _socket.State == WebSocketState.Open)
             {
-                ValueWebSocketReceiveResult result;
-                // 使用 PooledMemoryStream 减少内存分配
-                // 无需线程安全: 此实例仅在当前异步方法内使用，生命周期完全封闭于单个任务
-                await using var ms = new PooledMemoryStream();
-                do
+                // 第一帧接收
+                var result = await _socket.ReceiveAsync(buffer.AsMemory(0, _options.ReceiveBufferSize), token).ConfigureAwait(false);
+                if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    result = await _socket.ReceiveAsync(buffer.AsMemory(0, _options.ReceiveBufferSize), token).ConfigureAwait(false);
-                    if (result.MessageType == WebSocketMessageType.Close)
+                    if (_socket.State == WebSocketState.CloseReceived)
                     {
-                        if (_socket.State == WebSocketState.CloseReceived)
-                        {
-                            // Echo close
-                            await _socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Acknowledge Close", CancellationToken.None).ConfigureAwait(false);
-                        }
-                        return;
+                        await _socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Acknowledge Close", CancellationToken.None).ConfigureAwait(false);
                     }
+                    return;
+                }
+                ReadOnlyMemory<byte> data;
+                if (result.EndOfMessage)
+                {
+                    // 单帧快速路径：直接复制缓冲区，无需 PooledMemoryStream
+                    data = buffer.AsSpan(0, result.Count).ToArray();
+                }
+                else
+                {
+                    // 多帧路径：使用 PooledMemoryStream 拼接
+                    await using var ms = new PooledMemoryStream();
                     if (result.Count > 0)
                     {
                         ms.Write(buffer.AsSpan(0, result.Count));
                     }
-                } while (!result.EndOfMessage);
-
-                // 使用 ToArraySegment 获取内部缓冲区引用，避免额外分配
-                // 注意：ArraySegment 引用的是 PooledMemoryStream 的内部缓冲区
-                // 在 ms 被 dispose 之前必须完成消息处理
-                var segment = ms.ToArraySegment();
-                var data = segment.AsMemory();
+                    do
+                    {
+                        result = await _socket.ReceiveAsync(buffer.AsMemory(0, _options.ReceiveBufferSize), token).ConfigureAwait(false);
+                        if (result.MessageType == WebSocketMessageType.Close)
+                        {
+                            if (_socket.State == WebSocketState.CloseReceived)
+                            {
+                                await _socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Acknowledge Close", CancellationToken.None).ConfigureAwait(false);
+                            }
+                            return;
+                        }
+                        if (result.Count > 0)
+                        {
+                            ms.Write(buffer.AsSpan(0, result.Count));
+                        }
+                    } while (!result.EndOfMessage);
+                    data = ms.ToArray();
+                }
 
                 // 更新最后接收时间戳
                 UpdateLastReceiveTimestamp();

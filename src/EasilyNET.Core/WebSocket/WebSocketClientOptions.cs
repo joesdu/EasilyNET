@@ -28,31 +28,31 @@ public sealed class WebSocketClientOptions
     ///     <para xml:lang="en">Gets or sets the WebSocket server URI.</para>
     ///     <para xml:lang="zh">获取或设置 WebSocket 服务器 URI。</para>
     /// </summary>
-    public Uri? ServerUri { get; set; }
+    public Uri? ServerUri { get; init; }
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets whether automatic reconnection is enabled. Default is <c>true</c>.</para>
     ///     <para xml:lang="zh">获取或设置是否启用自动重连。默认为 <c>true</c>。</para>
     /// </summary>
-    public bool AutoReconnect { get; set; } = true;
+    public bool AutoReconnect { get; init; } = true;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the maximum number of reconnection attempts. Default is 5. Set to -1 for infinite retries.</para>
     ///     <para xml:lang="zh">获取或设置最大重连次数。默认为 5。设置为 -1 表示无限重试。</para>
     /// </summary>
-    public int MaxReconnectAttempts { get; set; } = 5;
+    public int MaxReconnectAttempts { get; init; } = 5;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the initial delay between reconnection attempts. Default is 1 second.</para>
     ///     <para xml:lang="zh">获取或设置重连尝试之间的初始延迟。默认为 1 秒。</para>
     /// </summary>
-    public TimeSpan ReconnectDelay { get; set; } = TimeSpan.FromSeconds(1);
+    public TimeSpan ReconnectDelay { get; init; } = TimeSpan.FromSeconds(1);
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the maximum delay between reconnection attempts. Default is 30 seconds.</para>
     ///     <para xml:lang="zh">获取或设置重连尝试之间的最大延迟。默认为 30 秒。</para>
     /// </summary>
-    public TimeSpan MaxReconnectDelay { get; set; } = TimeSpan.FromSeconds(30);
+    public TimeSpan MaxReconnectDelay { get; init; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
     ///     <para xml:lang="en">
@@ -63,13 +63,13 @@ public sealed class WebSocketClientOptions
     ///     </para>
     ///     <para xml:lang="zh">获取或设置是否启用应用层心跳。需要服务端配合识别并处理心跳数据；服务端可以选择性地回应（例如发送 PONG 或任意类型的消息），客户端收到的任何消息都会被视为活动并用于超时检测。默认为 <c>false</c>。</para>
     /// </summary>
-    public bool HeartbeatEnabled { get; set; } = false;
+    public bool HeartbeatEnabled { get; init; } = false;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the heartbeat interval. Default is 30 seconds.</para>
     ///     <para xml:lang="zh">获取或设置心跳间隔。默认为 30 秒。</para>
     /// </summary>
-    public TimeSpan HeartbeatInterval { get; set; } = TimeSpan.FromSeconds(30);
+    public TimeSpan HeartbeatInterval { get; init; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the heartbeat timeout. Default is 10 seconds.</para>
@@ -95,7 +95,7 @@ public sealed class WebSocketClientOptions
     ///         </para>
     ///     </remarks>
     /// </summary>
-    public TimeSpan HeartbeatTimeout { get; set; } = TimeSpan.FromSeconds(10);
+    public TimeSpan HeartbeatTimeout { get; init; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the WebSocket message type for heartbeat messages. Default is <see cref="WebSocketMessageType.Binary" />.</para>
@@ -111,7 +111,7 @@ public sealed class WebSocketClientOptions
     ///         </para>
     ///     </remarks>
     /// </summary>
-    public WebSocketMessageType HeartbeatMessageType { get; set; } = WebSocketMessageType.Binary;
+    public WebSocketMessageType HeartbeatMessageType { get; init; } = WebSocketMessageType.Binary;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the WebSocket message type expected for heartbeat response messages. Default is <see cref="WebSocketMessageType.Binary" />.</para>
@@ -127,7 +127,7 @@ public sealed class WebSocketClientOptions
     ///         </para>
     ///     </remarks>
     /// </summary>
-    public WebSocketMessageType HeartbeatResponseMessageType { get; set; } = WebSocketMessageType.Binary;
+    public WebSocketMessageType HeartbeatResponseMessageType { get; init; } = WebSocketMessageType.Binary;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the factory function to create heartbeat messages. Returns null to send an empty payload.</para>
@@ -143,7 +143,7 @@ public sealed class WebSocketClientOptions
     ///         </para>
     ///     </remarks>
     /// </summary>
-    public Func<ReadOnlyMemory<byte>>? HeartbeatMessageFactory { get; set; } = DefaultHeartbeatMessageFactory;
+    public Func<ReadOnlyMemory<byte>>? HeartbeatMessageFactory { get; init; } = DefaultHeartbeatMessageFactory;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the expected heartbeat response message bytes. Default is "pong".</para>
@@ -161,13 +161,13 @@ public sealed class WebSocketClientOptions
     ///         </para>
     ///     </remarks>
     /// </summary>
-    public ReadOnlyMemory<byte> HeartbeatResponseMessage { get; set; } = DefaultHeartbeatResponseMessage;
+    public ReadOnlyMemory<byte> HeartbeatResponseMessage { get; init; } = DefaultHeartbeatResponseMessage;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the connection timeout. Default is 10 seconds.</para>
     ///     <para xml:lang="zh">获取或设置连接超时。默认为 10 秒。</para>
     /// </summary>
-    public TimeSpan ConnectionTimeout { get; set; } = TimeSpan.FromSeconds(10);
+    public TimeSpan ConnectionTimeout { get; init; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the initial wait timeout for acquiring the internal connection lock during <see cref="ManagedWebSocketClient.DisposeAsync" />. Default is 5 seconds.</para>
@@ -181,7 +181,7 @@ public sealed class WebSocketClientOptions
     ///     如果在此时间内未获取到锁，客户端会再使用 <see cref="DisposeLockTimeoutGracePeriod" /> 进行一次有界等待。
     ///     </para>
     /// </remarks>
-    public TimeSpan DisposeLockTimeout { get; set; } = TimeSpan.FromSeconds(5);
+    public TimeSpan DisposeLockTimeout { get; init; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the additional grace period used by <see cref="ManagedWebSocketClient.DisposeAsync" /> after the initial lock wait times out. Default is 25 seconds.</para>
@@ -195,31 +195,31 @@ public sealed class WebSocketClientOptions
     ///     如果在总的有界等待时间后仍无法获取到锁，则释放会退化为 best-effort 清理，并跳过可能与并发操作冲突的资源释放。
     ///     </para>
     /// </remarks>
-    public TimeSpan DisposeLockTimeoutGracePeriod { get; set; } = TimeSpan.FromSeconds(25);
+    public TimeSpan DisposeLockTimeoutGracePeriod { get; init; } = TimeSpan.FromSeconds(25);
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the receive buffer size in bytes. Default is 16384 (16KB).</para>
     ///     <para xml:lang="zh">获取或设置接收缓冲区大小（字节）。默认为 16384（16KB）。</para>
     /// </summary>
-    public int ReceiveBufferSize { get; set; } = 16384;
+    public int ReceiveBufferSize { get; init; } = 16384;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the send queue capacity. Default is 1000.</para>
     ///     <para xml:lang="zh">获取或设置发送队列容量。默认为 1000。</para>
     /// </summary>
-    public int SendQueueCapacity { get; set; } = 1000;
+    public int SendQueueCapacity { get; init; } = 1000;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the action to configure the underlying <see cref="ClientWebSocket" />.</para>
     ///     <para xml:lang="zh">获取或设置用于配置底层 <see cref="ClientWebSocket" /> 的操作。</para>
     /// </summary>
-    public Action<ClientWebSocket>? ConfigureWebSocket { get; set; }
+    public Action<ClientWebSocket>? ConfigureWebSocket { get; init; }
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets whether to use exponential backoff for reconnection delays. Default is <c>true</c>.</para>
     ///     <para xml:lang="zh">获取或设置是否使用指数退避策略进行重连延迟。默认为 <c>true</c>。</para>
     /// </summary>
-    public bool UseExponentialBackoff { get; set; } = true;
+    public bool UseExponentialBackoff { get; init; } = true;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets whether to wait for the send operation to complete and propagate errors synchronously. Default is <c>true</c>.</para>
@@ -238,7 +238,21 @@ public sealed class WebSocketClientOptions
     ///         </para>
     ///     </remarks>
     /// </summary>
-    public bool WaitForSendCompletion { get; set; } = true;
+    public bool WaitForSendCompletion { get; init; } = true;
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Gets or sets the maximum allowed message size in bytes. Default is 4MB (4 * 1024 * 1024).
+    ///     Messages exceeding this size will cause the connection to be terminated to prevent memory exhaustion.
+    ///     Set to 0 or a negative value to disable the size limit (not recommended).
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     获取或设置允许的最大消息大小（字节）。默认为 4MB (4 * 1024 * 1024)。
+    ///     超过此大小的消息将导致连接终止，以防止内存耗尽。
+    ///     设置为 0 或负数可禁用大小限制（不推荐）。
+    ///     </para>
+    /// </summary>
+    public long MaxMessageSize { get; init; } = 4 * 1024 * 1024;
 
     /// <summary>
     ///     <para xml:lang="en">Default heartbeat message factory that returns "ping" as bytes.</para>

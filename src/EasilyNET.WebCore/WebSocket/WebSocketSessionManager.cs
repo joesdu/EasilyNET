@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
@@ -43,10 +44,19 @@ public sealed class WebSocketSessionManager : IWebSocketSessionManager, IWebSock
     }
 
     /// <inheritdoc />
-    public Task BroadcastTextAsync(string text, CancellationToken cancellationToken = default)
+    public async Task BroadcastTextAsync(string text, CancellationToken cancellationToken = default)
     {
-        var bytes = Encoding.UTF8.GetBytes(text);
-        return BroadcastAsync(bytes, WebSocketMessageType.Text, cancellationToken);
+        var byteCount = Encoding.UTF8.GetByteCount(text);
+        var rented = ArrayPool<byte>.Shared.Rent(byteCount);
+        try
+        {
+            var bytesWritten = Encoding.UTF8.GetBytes(text, rented);
+            await BroadcastAsync(rented.AsMemory(0, bytesWritten), WebSocketMessageType.Text, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(rented);
+        }
     }
 
     /// <inheritdoc />
