@@ -224,7 +224,6 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, typeof(ManagedWebSocketClient));
-        Options.Validate();
         WebSocketStateChangedEventArgs? connectingStateChanged;
         await _connectionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -233,6 +232,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             {
                 return;
             }
+            Options.Validate();
             _manualDisconnect = false;
             connectingStateChanged = TryUpdateState(WebSocketClientState.Connecting);
             Interlocked.Exchange(ref _reconnectAttempts, 0);
@@ -437,8 +437,9 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             }
             using var timeoutCts = new CancellationTokenSource(Options.ConnectionTimeout);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(session.Token, timeoutCts.Token);
-            // ServerUri is guaranteed non-null by Options.Validate() called in ConnectAsync.
-            await session.Socket.ConnectAsync(Options.ServerUri!, linkedCts.Token).ConfigureAwait(false);
+            // Validate ServerUri on every connect/reconnect to avoid NullReferenceException if it was reset.
+            var serverUri = Options.ServerUri ?? throw new InvalidOperationException("WebSocket connection failed because Options.ServerUri is null. Ensure ManagedWebSocketClientOptions.ServerUri is configured before connecting or reconnecting.");
+            await session.Socket.ConnectAsync(serverUri, linkedCts.Token).ConfigureAwait(false);
             await _connectionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             WebSocketStateChangedEventArgs? connectedStateChanged;
             try
@@ -792,7 +793,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         if (Options.AutoReconnect && !_disposeCts.IsCancellationRequested && !_manualDisconnect)
         {
             // Do NOT fire OnClosed here — the client is about to attempt reconnection.
-            // OnClosed will be fired only if reconnection ultimately fails (or is cancelled).
+            // OnClosed will be fired only if reconnection ultimately fails; it is not guaranteed to fire when reconnection is cancelled by user code.
             await ReconnectAsync().ConfigureAwait(false);
         }
         else

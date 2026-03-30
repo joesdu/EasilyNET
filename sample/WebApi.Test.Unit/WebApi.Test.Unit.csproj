@@ -23,8 +23,8 @@
 		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="11.0.0-preview.2.26159.112" />
 		<PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.4.0" />
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
-		<PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
-		<PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
+		<PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.1" />
+		<PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.1" />
 		<PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.15.0-beta.1" />
 		<PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
 		<PackageReference Include="OpenTelemetry.Instrumentation.Process" Version="1.15.0-beta.1" />
@@ -36,7 +36,7 @@
 		<PackageReference Include="Serilog.Sinks.File" Version="8.0.0-nblumhardt-02322" />
 		<PackageReference Include="Serilog.Sinks.Map" Version="2.0.0" />
 		<PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.1-nblumhardt-02317" />
-		<PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.5" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
 	</ItemGroup>
 
 	<ItemGroup>

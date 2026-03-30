@@ -78,20 +78,24 @@ public sealed class WebSocketClientOptions
     ///         <para xml:lang="en">
     ///         This timeout is evaluated after a heartbeat is sent. If no data is received from the server
     ///         within this duration after the heartbeat was sent, the client considers the connection stale and may trigger reconnection.
-    ///         Set to TimeSpan.Zero or a negative value to disable the timeout check.
+    ///         Set to <see cref="TimeSpan.Zero" /> or a negative value to disable the timeout check.
     ///         <br/>
     ///         <b>Important:</b> The timeout check only runs once per heartbeat tick. The actual worst-case detection latency
     ///         is <c>HeartbeatInterval + HeartbeatTimeout</c>, not just <c>HeartbeatTimeout</c>.
-    ///         This value must be less than <see cref="HeartbeatInterval" /> (enforced by <see cref="Validate" />).
+    ///         When <see cref="HeartbeatEnabled" /> is <c>true</c> and <see cref="HeartbeatTimeout" /> is greater than <see cref="TimeSpan.Zero" />,
+    ///         this value must be less than <see cref="HeartbeatInterval" /> (this constraint is enforced by <see cref="Validate" />).
+    ///         When the timeout check is disabled (zero or negative), this relation is recommended but not validated.
     ///         </para>
     ///         <para xml:lang="zh">
     ///         该超时在发送心跳后进行评估。如果在发送心跳后的此时间段内未收到服务器的任何数据，
     ///         客户端将认为连接可能已失活并可能触发重连。
-    ///         设置为 TimeSpan.Zero 或负数可禁用该超时检测。
+    ///         设置为 <see cref="TimeSpan.Zero" /> 或负数可禁用该超时检测。
     ///         <br/>
     ///         <b>注意：</b>超时检测每个心跳周期只运行一次，实际最坏情况下的检测延迟为
     ///         <c>HeartbeatInterval + HeartbeatTimeout</c>，而非仅 <c>HeartbeatTimeout</c>。
-    ///         该值必须小于 <see cref="HeartbeatInterval" />（由 <see cref="Validate" /> 方法强制校验）。
+    ///         当 <see cref="HeartbeatEnabled" /> 为 <c>true</c> 且 <see cref="HeartbeatTimeout" /> 大于 <see cref="TimeSpan.Zero" /> 时，
+    ///         该值必须小于 <see cref="HeartbeatInterval" />（此约束由 <see cref="Validate" /> 方法强制校验）。
+    ///         当超时检测被禁用（零或负数）时，仍然建议保持该值小于 <see cref="HeartbeatInterval" />，但不会进行强制校验。
     ///         </para>
     ///     </remarks>
     /// </summary>
