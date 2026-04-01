@@ -161,13 +161,15 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             if (lockAcquired)
             {
                 _connectionLock.Release();
+                // Only dispose shared synchronization primitives when we actually acquired the lock.
+                // Disposing them while concurrent operations may be waiting on _connectionLock or
+                // reading _disposeCts.Token would cause ObjectDisposedException / unpredictable races.
+                _disposeCts.Dispose();
+                _connectionLock.Dispose();
             }
-            // 无论是否获取到锁，都必须释放 CTS 和 Semaphore 以避免资源泄漏。
-            // _disposeCts 已取消，所有后台操作应已退出或即将退出。
-            _disposeCts.Dispose();
-            _connectionLock.Dispose();
 
             // 未获取到锁时，对 session 做 best-effort 清理
+            // Skip CTS/semaphore disposal to avoid racing with in-flight operations.
             if (!lockAcquired && _session is not null)
             {
                 try
@@ -510,6 +512,14 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                 if (result.EndOfMessage)
                 {
                     // 单帧消息快速路径：直接从缓冲区复制，跳过 PooledMemoryStream
+                    // Pre-check before allocating to avoid memory exhaustion
+                    if (maxMessageSize > 0 && result.Count > maxMessageSize)
+                    {
+                        var ex = new InvalidOperationException($"WebSocket message size ({result.Count} bytes) exceeded maximum allowed size ({maxMessageSize} bytes).");
+                        OnError(new(ex, "ReceiveLoop message size limit exceeded"));
+                        await HandleConnectionLoss(session, ex).ConfigureAwait(false);
+                        return;
+                    }
                     data = new byte[result.Count];
                     buffer.AsSpan(0, result.Count).CopyTo(data);
                 }
@@ -519,18 +529,18 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     await using var ms = new PooledMemoryStream();
                     if (result.Count > 0)
                     {
-                        ms.Write(buffer.AsSpan(0, result.Count));
-                    }
-                    do
-                    {
-                        // 检查消息大小限制，防止恶意服务端发送超大消息导致内存耗尽
-                        if (maxMessageSize > 0 && ms.Length > maxMessageSize)
+                        // Pre-check first frame before writing
+                        if (maxMessageSize > 0 && result.Count > maxMessageSize)
                         {
-                            var ex = new InvalidOperationException($"WebSocket message size ({ms.Length} bytes) exceeded maximum allowed size ({maxMessageSize} bytes).");
+                            var ex = new InvalidOperationException($"WebSocket message size ({result.Count} bytes) exceeded maximum allowed size ({maxMessageSize} bytes).");
                             OnError(new(ex, "ReceiveLoop message size limit exceeded"));
                             await HandleConnectionLoss(session, ex).ConfigureAwait(false);
                             return;
                         }
+                        ms.Write(buffer.AsSpan(0, result.Count));
+                    }
+                    do
+                    {
                         result = await session.Socket.ReceiveAsync(buffer.AsMemory(0, Options.ReceiveBufferSize), token).ConfigureAwait(false);
                         if (result.MessageType == WebSocketMessageType.Close)
                         {
@@ -539,10 +549,20 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                         }
                         if (result.Count > 0)
                         {
+                            // Pre-check: accumulated + incoming before writing, not after
+                            if (maxMessageSize > 0 && (ulong)ms.Length + (ulong)result.Count > (ulong)maxMessageSize)
+                            {
+                                var ex = new InvalidOperationException($"WebSocket message size ({ms.Length + result.Count} bytes) exceeded maximum allowed size ({maxMessageSize} bytes).");
+                                OnError(new(ex, "ReceiveLoop message size limit exceeded"));
+                                await HandleConnectionLoss(session, ex).ConfigureAwait(false);
+                                return;
+                            }
                             ms.Write(buffer.AsSpan(0, result.Count));
                         }
                     } while (!result.EndOfMessage);
-                    data = [.. ms];
+                    var segment = ms.ToArraySegment();
+                    data = new byte[segment.Count];
+                    Buffer.BlockCopy(segment.Array!, segment.Offset, data, 0, segment.Count);
                 }
 
                 // Any successfully received message indicates the connection is alive.

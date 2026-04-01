@@ -199,7 +199,7 @@ internal sealed class WebSocketSession : IWebSocketSession
         finally
         {
             // 通知所有循环停止
-            await _cts.CancelAsync();
+            await _cts.CancelAsync().ConfigureAwait(false);
             // 完成发送通道，确保 SendLoop 不会挂起在 WaitToReadAsync
             _sendChannel.Writer.TryComplete();
             // 等待所有循环结束，避免未观察到的异常
