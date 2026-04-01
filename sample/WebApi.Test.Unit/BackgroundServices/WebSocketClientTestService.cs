@@ -20,7 +20,8 @@ internal sealed class WebSocketClientTestService(ILogger<WebSocketClientTestServ
             AutoReconnect = true,
             ReconnectDelay = TimeSpan.FromSeconds(1),
             HeartbeatEnabled = true,
-            HeartbeatInterval = TimeSpan.FromSeconds(5) // 测试时加快心跳频率
+            HeartbeatInterval = TimeSpan.FromSeconds(5), // 测试时加快心跳频率
+            HeartbeatTimeout = TimeSpan.FromSeconds(3)   // 必须小于 HeartbeatInterval
         };
         var client = new ManagedWebSocketClient(options);
         client.MessageReceived += (_, e) =>

@@ -34,7 +34,7 @@ public class ManagedWebSocketClientTest
         var completedTask = await Task.WhenAny(connectTask, Task.Delay(TimeSpan.FromSeconds(2)));
         Assert.AreSame(connectTask, completedTask, "ConnectAsync deadlocked when StateChanged synchronously called DisconnectAsync.");
 
-        await Assert.ThrowsExactlyAsync<TaskCanceledException>(async () => await connectTask);
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(async () => await connectTask);
         Assert.AreEqual(WebSocketClientState.Disconnected, client.State);
     }
 
@@ -64,7 +64,7 @@ public class ManagedWebSocketClientTest
         var completedTask = await Task.WhenAny(connectTask, Task.Delay(TimeSpan.FromSeconds(2)));
         Assert.AreSame(connectTask, completedTask, "ConnectAsync deadlocked when ConfigureWebSocket synchronously called DisconnectAsync.");
 
-        await Assert.ThrowsExactlyAsync<TaskCanceledException>(async () => await connectTask);
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(async () => await connectTask);
         Assert.AreEqual(WebSocketClientState.Disconnected, client.State);
     }
 
@@ -115,7 +115,7 @@ public class ManagedWebSocketClientTest
             await connectTask;
             Assert.Fail("ConnectAsync should not succeed after DisposeAsync interrupted the connection attempt.");
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
             // Expected: the connection attempt observed cancellation after disposal.
         }

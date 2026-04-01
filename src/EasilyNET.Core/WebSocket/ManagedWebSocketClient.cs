@@ -161,12 +161,25 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             if (lockAcquired)
             {
                 _connectionLock.Release();
+                // Only dispose shared synchronization primitives when we actually acquired the lock.
+                // Disposing them while concurrent operations may be waiting on _connectionLock or
+                // reading _disposeCts.Token would cause ObjectDisposedException / unpredictable races.
                 _disposeCts.Dispose();
                 _connectionLock.Dispose();
             }
-            else
+
+            // 未获取到锁时，对 session 做 best-effort 清理
+            // Skip CTS/semaphore disposal to avoid racing with in-flight operations.
+            if (!lockAcquired && _session is not null)
             {
-                Debug.WriteLine("[ManagedWebSocketClient] Dispose completed without owning the connection lock; CTS/semaphore disposal was skipped to avoid racing with in-flight operations.");
+                try
+                {
+                    _session.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[ManagedWebSocketClient] Best-effort session disposal error: {ex.GetType().Name}: {ex.Message}");
+                }
             }
             PublishStateChanged(disposedStateChanged);
         }
@@ -247,7 +260,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     ///     <para xml:lang="en">Disconnects from the WebSocket server.</para>
     ///     <para xml:lang="zh">断开与 WebSocket 服务器的连接。</para>
     /// </summary>
-    public async Task DisconnectAsync()
+    public async Task DisconnectAsync(CancellationToken cancellationToken = default)
     {
         if (IsDisposed)
         {
@@ -255,7 +268,10 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         }
         WebSocketStateChangedEventArgs? closingStateChanged;
         WebSocketStateChangedEventArgs? disconnectedStateChanged;
-        await _connectionLock.WaitAsync().ConfigureAwait(false);
+        // 使用超时防止 ConfigureWebSocket 等回调长时间持有锁导致无限挂起
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(Options.ConnectionTimeout);
+        await _connectionLock.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
         try
         {
             if (State is WebSocketClientState.Disconnected or WebSocketClientState.Disposed)
@@ -396,7 +412,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         {
             if (IsConnectionStartAborted() || State != WebSocketClientState.Connecting)
             {
-                throw new TaskCanceledException("Connection attempt aborted before socket initialization.");
+                throw new OperationCanceledException("Connection attempt aborted before socket initialization.");
             }
             previousSession = _session;
             session = CreateSession(cancellationToken);
@@ -419,7 +435,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             // so attempting ConnectAsync would throw ObjectDisposedException rather than the expected TaskCanceledException.
             if (IsConnectionStartAborted() || session.Token.IsCancellationRequested)
             {
-                throw new TaskCanceledException("Connection attempt aborted inside ConfigureWebSocket callback.");
+                throw new OperationCanceledException("Connection attempt aborted inside ConfigureWebSocket callback.");
             }
             using var timeoutCts = new CancellationTokenSource(Options.ConnectionTimeout);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(session.Token, timeoutCts.Token);
@@ -432,7 +448,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             {
                 if (IsConnectionStartAborted() || !IsCurrentSession(session))
                 {
-                    throw new TaskCanceledException("Connection attempt aborted after socket connect.");
+                    throw new OperationCanceledException("Connection attempt aborted after socket connect.");
                 }
                 connectedStateChanged = TryUpdateState(WebSocketClientState.Connected);
             }
@@ -447,23 +463,29 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
             // Start background loops
             // ReSharper disable AccessToDisposedClosure
-            var receiveTask = Task.Factory.StartNew(() => ReceiveLoop(session), session.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
-            _ = receiveTask.ContinueWith(t => OnError(new(t.Exception?.InnerException ?? t.Exception!, "ReceiveLoop background task failed")), TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
-            var sendTask = Task.Factory.StartNew(() => SendLoop(session), session.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
-            _ = sendTask.ContinueWith(t => OnError(new(t.Exception?.InnerException ?? t.Exception!, "SendLoop background task failed")), TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+            _ = ObserveBackgroundTask(
+                Task.Factory.StartNew(() => ReceiveLoop(session), session.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap(),
+                "ReceiveLoop");
+            _ = ObserveBackgroundTask(
+                Task.Factory.StartNew(() => SendLoop(session), session.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap(),
+                "SendLoop");
             if (Options.HeartbeatEnabled)
             {
-                var heartbeatTask = Task.Factory.StartNew(() => HeartbeatLoop(session), session.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
-                _ = heartbeatTask.ContinueWith(t => OnError(new(t.Exception?.InnerException ?? t.Exception!, "HeartbeatLoop background task failed")), TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+                _ = ObserveBackgroundTask(
+                    Task.Factory.StartNew(() => HeartbeatLoop(session), session.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap(),
+                    "HeartbeatLoop");
             }
             // ReSharper restore AccessToDisposedClosure
         }
         catch (Exception)
         {
             // Dispose the newly allocated session to release the socket and linked CTS.
-            // _session references this same object, but it will be overwritten on the next successful connect;
-            // callers that observe the exception must call ConnectAsync again.
+            // 同时将 _session 置空，避免后续 CancelConnectionAsync / DisposeAsync 访问已释放的对象。
             session.Dispose();
+            if (ReferenceEquals(Volatile.Read(ref _session), session))
+            {
+                _session = null;
+            }
             SetState(WebSocketClientState.Disconnected);
             throw;
         }
@@ -474,31 +496,74 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         // 从 ArrayPool 租借接收缓冲区,避免每次循环分配
         var buffer = ArrayPool<byte>.Shared.Rent(Options.ReceiveBufferSize);
         var token = session.Token;
+        var maxMessageSize = Options.MaxMessageSize;
         try
         {
             while (!token.IsCancellationRequested && IsSessionOpen(session))
             {
-                ValueWebSocketReceiveResult result;
-                // 使用 PooledMemoryStream 减少内存分配
-                // 无需线程安全: 此实例仅在当前接收循环内使用，每次循环创建新实例，无跨线程共享
-                await using var ms = new PooledMemoryStream();
-                do
+                var result = await session.Socket.ReceiveAsync(buffer.AsMemory(0, Options.ReceiveBufferSize), token).ConfigureAwait(false);
+                if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    result = await session.Socket.ReceiveAsync(buffer.AsMemory(0, Options.ReceiveBufferSize), token).ConfigureAwait(false);
-                    if (result.MessageType == WebSocketMessageType.Close)
+                    await HandleServerClose(session, session.Socket.CloseStatus, session.Socket.CloseStatusDescription).ConfigureAwait(false);
+                    return;
+                }
+
+                byte[] data;
+                if (result.EndOfMessage)
+                {
+                    // 单帧消息快速路径：直接从缓冲区复制，跳过 PooledMemoryStream
+                    // Pre-check before allocating to avoid memory exhaustion
+                    if (maxMessageSize > 0 && result.Count > maxMessageSize)
                     {
-                        // ValueWebSocketReceiveResult 没有 CloseStatus/CloseStatusDescription，需要从 socket 获取
-                        await HandleServerClose(session, session.Socket.CloseStatus, session.Socket.CloseStatusDescription).ConfigureAwait(false);
+                        var ex = new InvalidOperationException($"WebSocket message size ({result.Count} bytes) exceeded maximum allowed size ({maxMessageSize} bytes).");
+                        OnError(new(ex, "ReceiveLoop message size limit exceeded"));
+                        await HandleConnectionLoss(session, ex).ConfigureAwait(false);
                         return;
                     }
+                    data = new byte[result.Count];
+                    buffer.AsSpan(0, result.Count).CopyTo(data);
+                }
+                else
+                {
+                    // 多帧消息：使用 PooledMemoryStream 拼接
+                    await using var ms = new PooledMemoryStream();
                     if (result.Count > 0)
                     {
+                        // Pre-check first frame before writing
+                        if (maxMessageSize > 0 && result.Count > maxMessageSize)
+                        {
+                            var ex = new InvalidOperationException($"WebSocket message size ({result.Count} bytes) exceeded maximum allowed size ({maxMessageSize} bytes).");
+                            OnError(new(ex, "ReceiveLoop message size limit exceeded"));
+                            await HandleConnectionLoss(session, ex).ConfigureAwait(false);
+                            return;
+                        }
                         ms.Write(buffer.AsSpan(0, result.Count));
                     }
-                } while (!result.EndOfMessage);
-
-                // 获取完整消息数据
-                var data = ms.ToArray();
+                    do
+                    {
+                        result = await session.Socket.ReceiveAsync(buffer.AsMemory(0, Options.ReceiveBufferSize), token).ConfigureAwait(false);
+                        if (result.MessageType == WebSocketMessageType.Close)
+                        {
+                            await HandleServerClose(session, session.Socket.CloseStatus, session.Socket.CloseStatusDescription).ConfigureAwait(false);
+                            return;
+                        }
+                        if (result.Count > 0)
+                        {
+                            // Pre-check: accumulated + incoming before writing, not after
+                            if (maxMessageSize > 0 && (ulong)ms.Length + (ulong)result.Count > (ulong)maxMessageSize)
+                            {
+                                var ex = new InvalidOperationException($"WebSocket message size ({ms.Length + result.Count} bytes) exceeded maximum allowed size ({maxMessageSize} bytes).");
+                                OnError(new(ex, "ReceiveLoop message size limit exceeded"));
+                                await HandleConnectionLoss(session, ex).ConfigureAwait(false);
+                                return;
+                            }
+                            ms.Write(buffer.AsSpan(0, result.Count));
+                        }
+                    } while (!result.EndOfMessage);
+                    var segment = ms.ToArraySegment();
+                    data = new byte[segment.Count];
+                    Buffer.BlockCopy(segment.Array!, segment.Offset, data, 0, segment.Count);
+                }
 
                 // Any successfully received message indicates the connection is alive.
                 UpdateLastReceiveTimestamp();
@@ -744,7 +809,8 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             return;
         }
         SetState(WebSocketClientState.Disconnected);
-        if (Options.AutoReconnect && !_disposeCts.IsCancellationRequested)
+        // 检查 _manualDisconnect：如果用户已调用 DisconnectAsync，服务端 close 帧到达后不应触发重连
+        if (Options.AutoReconnect && !_disposeCts.IsCancellationRequested && !_manualDisconnect)
         {
             // Do NOT fire OnClosed here — the client is about to attempt reconnection.
             // OnClosed will be fired only if reconnection ultimately fails; it is not guaranteed to fire when reconnection is cancelled by user code.
@@ -901,7 +967,6 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool ShouldAbortReconnect() => _disposeCts.IsCancellationRequested || _manualDisconnect || State == WebSocketClientState.Connected;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private TimeSpan CalculateReconnectDelay(int attempts)
     {
         double delayMs;
@@ -1000,11 +1065,37 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsSessionOpen(ConnectionSession session) => session.Socket.State == WebSocketState.Open;
 
+    /// <summary>
+    /// 观察后台任务的所有终止状态（包括 Canceled），避免产生 UnobservedTaskException。
+    /// </summary>
+    private async Task ObserveBackgroundTask(Task task, string context)
+    {
+        try
+        {
+            await task.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected during disconnect/dispose/reconnect
+        }
+        catch (Exception ex)
+        {
+            OnError(new(ex, $"{context} background task failed"));
+        }
+    }
+
     private async ValueTask CancelConnectionAsync()
     {
         if (_session is not null)
         {
-            await _session.CancelAsync().ConfigureAwait(false);
+            try
+            {
+                await _session.CancelAsync().ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException)
+            {
+                // Session already disposed (e.g., after a failed connection attempt)
+            }
         }
     }
 
