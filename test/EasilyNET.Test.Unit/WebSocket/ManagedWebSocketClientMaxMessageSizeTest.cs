@@ -86,7 +86,7 @@ public class ManagedWebSocketClientMaxMessageSizeTest
         await client.ConnectAsync();
         var ex = await errorRaised.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.IsInstanceOfType<InvalidOperationException>(ex);
-        Assert.Contains(ex.Message, "exceeded maximum allowed size");
+        Assert.Contains("exceeded maximum allowed size", ex.Message);
         httpListener.Stop();
         await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
     }
