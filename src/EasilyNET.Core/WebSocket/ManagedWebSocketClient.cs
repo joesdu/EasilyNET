@@ -28,12 +28,6 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     // Use int with Interlocked.Exchange to guarantee atomic check-and-set across concurrent callers.
     private int _disposedFlag;
 
-    /// <summary>
-    /// 最后发送心跳的时间戳。用于确保远端有足够时间响应心跳。
-    /// 初始值为 0 表示尚未发送任何心跳。
-    /// </summary>
-    private long _lastHeartbeatSentTimestamp;
-
     private long _lastReceiveTimestamp;
 
     /// <summary>
@@ -410,7 +404,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         await _connectionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (IsConnectionStartAborted() || State != WebSocketClientState.Connecting)
+            if (IsConnectionStartAborted() || State is not (WebSocketClientState.Connecting or WebSocketClientState.Reconnecting))
             {
                 throw new OperationCanceledException("Connection attempt aborted before socket initialization.");
             }
@@ -463,16 +457,13 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
             // Start background loops
             // ReSharper disable AccessToDisposedClosure
-            _ = ObserveBackgroundTask(
-                Task.Factory.StartNew(() => ReceiveLoop(session), session.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap(),
+            _ = ObserveBackgroundTask(Task.Factory.StartNew(() => ReceiveLoop(session), session.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap(),
                 "ReceiveLoop");
-            _ = ObserveBackgroundTask(
-                Task.Factory.StartNew(() => SendLoop(session), session.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap(),
+            _ = ObserveBackgroundTask(Task.Factory.StartNew(() => SendLoop(session), session.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap(),
                 "SendLoop");
             if (Options.HeartbeatEnabled)
             {
-                _ = ObserveBackgroundTask(
-                    Task.Factory.StartNew(() => HeartbeatLoop(session), session.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap(),
+                _ = ObserveBackgroundTask(Task.Factory.StartNew(() => HeartbeatLoop(session), session.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap(),
                     "HeartbeatLoop");
             }
             // ReSharper restore AccessToDisposedClosure
@@ -507,7 +498,6 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     await HandleServerClose(session, session.Socket.CloseStatus, session.Socket.CloseStatusDescription).ConfigureAwait(false);
                     return;
                 }
-
                 byte[] data;
                 if (result.EndOfMessage)
                 {
@@ -746,54 +736,47 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     return; // 当 socket 关闭时退出心跳循环，避免浪费资源
                 }
 
-                // 心跳超时检测：
-                // 仅当已发送过心跳后才检查超时，确保远端有机会响应
-                // 条件：发送心跳后超过 HeartbeatTimeout 时间，且在此期间没有收到任何消息
-                if (Options.HeartbeatTimeout > TimeSpan.Zero)
+                // 先发送心跳，入队失败（队列满）则跳过本次 tick
+                var pingData = Options.HeartbeatMessageFactory?.Invoke() ?? ReadOnlyMemory<byte>.Empty;
+                if (!_sendChannel.Writer.TryWrite(new(pingData, Options.HeartbeatMessageType, true)))
                 {
-                    var lastHeartbeatSent = Volatile.Read(ref _lastHeartbeatSentTimestamp);
-                    // 只有在已发送过心跳后才进行超时检查
-                    if (lastHeartbeatSent > 0)
-                    {
-                        var lastReceive = Volatile.Read(ref _lastReceiveTimestamp);
-                        var elapsedSinceHeartbeat = Stopwatch.GetElapsedTime(lastHeartbeatSent);
+                    // Queue full — heartbeat skipped; do NOT record sentTimestamp to prevent false timeout.
+                    // This is a transient backpressure condition and is intentionally not surfaced via OnError.
+                    continue;
+                }
 
-                        // 超时条件：
-                        // 1. 发送心跳后已超过 HeartbeatTimeout 时间
-                        // 2. 上次收到消息的时间早于上次发送心跳的时间（即发送心跳后没有收到任何消息）
-                        if (elapsedSinceHeartbeat > Options.HeartbeatTimeout && lastReceive < lastHeartbeatSent)
-                        {
-                            var elapsedSinceReceive = Stopwatch.GetElapsedTime(lastReceive);
-                            var ex = new TimeoutException($"WebSocket heartbeat timeout: no response for {elapsedSinceHeartbeat.TotalMilliseconds:N0}ms after heartbeat sent (last receive was {elapsedSinceReceive.TotalMilliseconds:N0}ms ago).");
-                            OnError(new(ex, "HeartbeatLoop timeout"));
-                            await HandleConnectionLoss(session, ex).ConfigureAwait(false);
-                            return;
-                        }
-                    }
+                // 记录本次心跳发送时刻（局部变量，避免跨 tick 的共享状态竞态）
+                var sentTimestamp = Stopwatch.GetTimestamp();
+
+                // 等待 HeartbeatTimeout 后再做超时判断：
+                // 确保 ReceiveLoop 有足够时间将 _lastReceiveTimestamp 更新到本次心跳之后，
+                // 从而彻底消除"超时检查与消息接收并发"引起的误判。
+                if (Options.HeartbeatTimeout <= TimeSpan.Zero)
+                {
+                    continue;
                 }
                 try
                 {
-                    // 心跳消息通过队列发送，由 SendLoop 统一处理，避免并发发送冲突
-                    var pingData = Options.HeartbeatMessageFactory?.Invoke() ?? ReadOnlyMemory<byte>.Empty;
-                    // 使用 TryWrite 避免在队列满时阻塞心跳循环
-                    // 使用可配置的消息类型发送心跳
-                    if (_sendChannel.Writer.TryWrite(new(pingData, Options.HeartbeatMessageType, true)))
-                    {
-                        // 仅在心跳成功入队后更新时间戳，避免队列满时产生虚假超时判断
-                        Volatile.Write(ref _lastHeartbeatSentTimestamp, Stopwatch.GetTimestamp());
-                    }
-                    // Queue full — heartbeat skipped; do NOT update timestamp to prevent false timeout detection.
-                    // This is a transient backpressure condition and is intentionally not surfaced via OnError.
+                    await Task.Delay(Options.HeartbeatTimeout, token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
-                    // Normal cancellation during heartbeat send
                     return;
                 }
-                catch (Exception ex)
+
+                // 等待结束后再读取 lastReceive：
+                // 若在 HeartbeatTimeout 内收到任何消息，lastReceive >= sentTimestamp → 连接正常
+                var lastReceive = Volatile.Read(ref _lastReceiveTimestamp);
+                if (lastReceive >= sentTimestamp)
                 {
-                    OnError(new(ex, "HeartbeatLoop sending ping"));
+                    continue;
                 }
+                var elapsedSinceHeartbeat = Stopwatch.GetElapsedTime(sentTimestamp);
+                var elapsedSinceReceive = Stopwatch.GetElapsedTime(lastReceive);
+                var ex = new TimeoutException($"WebSocket heartbeat timeout: no response for {elapsedSinceHeartbeat.TotalMilliseconds:N0}ms after heartbeat sent (last receive was {elapsedSinceReceive.TotalMilliseconds:N0}ms ago).");
+                OnError(new(ex, "HeartbeatLoop timeout"));
+                await HandleConnectionLoss(session, ex).ConfigureAwait(false);
+                return;
             }
         }
         catch (OperationCanceledException)
