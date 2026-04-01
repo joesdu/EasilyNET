@@ -738,23 +738,47 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
                 // 先发送心跳，入队失败（队列满）则跳过本次 tick
                 var pingData = Options.HeartbeatMessageFactory?.Invoke() ?? ReadOnlyMemory<byte>.Empty;
-                if (!_sendChannel.Writer.TryWrite(new(pingData, Options.HeartbeatMessageType, true)))
+
+                // 仅当需要超时检测时才分配 TCS，以绑定超时计时起点到"实际发送完成"而非"入队时间"
+                var pingTcs = Options.HeartbeatTimeout > TimeSpan.Zero
+                    ? new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)
+                    : null;
+
+                if (!_sendChannel.Writer.TryWrite(new(data: pingData, messageType: Options.HeartbeatMessageType, endOfMessage: true, completionSource: pingTcs)))
                 {
-                    // Queue full — heartbeat skipped; do NOT record sentTimestamp to prevent false timeout.
+                    // Queue full — heartbeat skipped; do NOT start timeout tracking to prevent false timeout.
                     // This is a transient backpressure condition and is intentionally not surfaced via OnError.
+                    pingTcs?.TrySetCanceled(token);
                     continue;
                 }
 
-                // 记录本次心跳发送时刻（局部变量，避免跨 tick 的共享状态竞态）
+                if (Options.HeartbeatTimeout <= TimeSpan.Zero)
+                {
+                    continue;
+                }
+
+                // 等待 SendLoop 真正将心跳帧发送到 socket 后，再开始超时计时，
+                // 避免队列积压时超时判断偏早引发误重连。
+                try
+                {
+                    await pingTcs!.Task.WaitAsync(token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+                catch (Exception)
+                {
+                    // 发送失败（如连接已关闭）：SendLoop 已通过 OnError 上报，此处跳过超时检查避免误重连
+                    continue;
+                }
+
+                // 记录本次心跳实际发送完成时刻（局部变量，避免跨 tick 的共享状态竞态）
                 var sentTimestamp = Stopwatch.GetTimestamp();
 
                 // 等待 HeartbeatTimeout 后再做超时判断：
                 // 确保 ReceiveLoop 有足够时间将 _lastReceiveTimestamp 更新到本次心跳之后，
                 // 从而彻底消除"超时检查与消息接收并发"引起的误判。
-                if (Options.HeartbeatTimeout <= TimeSpan.Zero)
-                {
-                    continue;
-                }
                 try
                 {
                     await Task.Delay(Options.HeartbeatTimeout, token).ConfigureAwait(false);
@@ -771,6 +795,14 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                 {
                     continue;
                 }
+
+                // 二次校验：让调度器有机会处理任何待处理的接收操作，再次确认超时状态，降低竞态误判
+                await Task.Yield();
+                if (Volatile.Read(ref _lastReceiveTimestamp) >= sentTimestamp)
+                {
+                    continue;
+                }
+
                 var elapsedSinceHeartbeat = Stopwatch.GetElapsedTime(sentTimestamp);
                 var elapsedSinceReceive = Stopwatch.GetElapsedTime(lastReceive);
                 var ex = new TimeoutException($"WebSocket heartbeat timeout: no response for {elapsedSinceHeartbeat.TotalMilliseconds:N0}ms after heartbeat sent (last receive was {elapsedSinceReceive.TotalMilliseconds:N0}ms ago).");
