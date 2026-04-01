@@ -29,11 +29,11 @@ public class ManagedWebSocketClientMaxMessageSizeTest
         var httpListener = new HttpListener();
         httpListener.Prefixes.Add($"http://127.0.0.1:{port}/ws/");
         httpListener.Start();
-        return (httpListener, new Uri($"ws://127.0.0.1:{port}/ws/"));
+        return (httpListener, new($"ws://127.0.0.1:{port}/ws/"));
     }
 
     /// <summary>
-    /// 接受一个 WebSocket 连接并执行 <paramref name="serverAction"/>，之后释放资源。
+    /// 接受一个 WebSocket 连接并执行 <paramref name="serverAction" />，之后释放资源。
     /// 服务端产生的任何异常（如客户端已断开）均被静默忽略，以免干扰断言。
     /// </summary>
     private static async Task RunServerAsync(HttpListener listener, Func<System.Net.WebSockets.WebSocket, Task> serverAction)
@@ -71,10 +71,9 @@ public class ManagedWebSocketClientMaxMessageSizeTest
         var serverTask = RunServerAsync(httpListener, async ws =>
         {
             // 5 字节单帧，客户端限制为 4
-            await ws.SendAsync(new byte[5], WebSocketMessageType.Binary, endOfMessage: true, CancellationToken.None).ConfigureAwait(false);
+            await ws.SendAsync(new byte[5], WebSocketMessageType.Binary, true, CancellationToken.None).ConfigureAwait(false);
             await Task.Delay(500).ConfigureAwait(false);
         });
-
         var errorRaised = new TaskCompletionSource<Exception>(TaskCreationOptions.RunContinuationsAsynchronously);
         await using var client = new ManagedWebSocketClient(new()
         {
@@ -84,13 +83,10 @@ public class ManagedWebSocketClientMaxMessageSizeTest
             ReceiveBufferSize = 64
         });
         client.Error += (_, e) => errorRaised.TrySetResult(e.Exception);
-
         await client.ConnectAsync();
-
         var ex = await errorRaised.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.IsInstanceOfType<InvalidOperationException>(ex);
-        StringAssert.Contains(ex.Message, "exceeded maximum allowed size");
-
+        Assert.Contains(ex.Message, "exceeded maximum allowed size");
         httpListener.Stop();
         await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
     }
@@ -105,10 +101,9 @@ public class ManagedWebSocketClientMaxMessageSizeTest
         var serverTask = RunServerAsync(httpListener, async ws =>
         {
             // 首帧 5 字节（endOfMessage=false）超出限制 4
-            await ws.SendAsync(new byte[5], WebSocketMessageType.Binary, endOfMessage: false, CancellationToken.None).ConfigureAwait(false);
+            await ws.SendAsync(new byte[5], WebSocketMessageType.Binary, false, CancellationToken.None).ConfigureAwait(false);
             await Task.Delay(500).ConfigureAwait(false);
         });
-
         var errorRaised = new TaskCompletionSource<Exception>(TaskCreationOptions.RunContinuationsAsynchronously);
         await using var client = new ManagedWebSocketClient(new()
         {
@@ -118,13 +113,10 @@ public class ManagedWebSocketClientMaxMessageSizeTest
             ReceiveBufferSize = 64
         });
         client.Error += (_, e) => errorRaised.TrySetResult(e.Exception);
-
         await client.ConnectAsync();
-
         var ex = await errorRaised.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.IsInstanceOfType<InvalidOperationException>(ex);
-        StringAssert.Contains(ex.Message, "exceeded maximum allowed size");
-
+        Assert.Contains("exceeded maximum allowed size", ex.Message);
         httpListener.Stop();
         await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
     }
@@ -139,11 +131,10 @@ public class ManagedWebSocketClientMaxMessageSizeTest
         var serverTask = RunServerAsync(httpListener, async ws =>
         {
             // 两帧各 3 字节：单帧均不超限（3 ≤ 4），但累积 6 > 4
-            await ws.SendAsync(new byte[3], WebSocketMessageType.Binary, endOfMessage: false, CancellationToken.None).ConfigureAwait(false);
-            await ws.SendAsync(new byte[3], WebSocketMessageType.Binary, endOfMessage: true, CancellationToken.None).ConfigureAwait(false);
+            await ws.SendAsync(new byte[3], WebSocketMessageType.Binary, false, CancellationToken.None).ConfigureAwait(false);
+            await ws.SendAsync(new byte[3], WebSocketMessageType.Binary, true, CancellationToken.None).ConfigureAwait(false);
             await Task.Delay(500).ConfigureAwait(false);
         });
-
         var errorRaised = new TaskCompletionSource<Exception>(TaskCreationOptions.RunContinuationsAsynchronously);
         await using var client = new ManagedWebSocketClient(new()
         {
@@ -153,13 +144,10 @@ public class ManagedWebSocketClientMaxMessageSizeTest
             ReceiveBufferSize = 64
         });
         client.Error += (_, e) => errorRaised.TrySetResult(e.Exception);
-
         await client.ConnectAsync();
-
         var ex = await errorRaised.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.IsInstanceOfType<InvalidOperationException>(ex);
-        StringAssert.Contains(ex.Message, "exceeded maximum allowed size");
-
+        Assert.Contains("exceeded maximum allowed size", ex.Message);
         httpListener.Stop();
         await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
     }
@@ -174,10 +162,9 @@ public class ManagedWebSocketClientMaxMessageSizeTest
         var payload = new byte[] { 1, 2, 3, 4 };
         var serverTask = RunServerAsync(httpListener, async ws =>
         {
-            await ws.SendAsync(payload, WebSocketMessageType.Binary, endOfMessage: true, CancellationToken.None).ConfigureAwait(false);
+            await ws.SendAsync(payload, WebSocketMessageType.Binary, true, CancellationToken.None).ConfigureAwait(false);
             await Task.Delay(500).ConfigureAwait(false);
         });
-
         var messageReceived = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
         var errorRaised = new TaskCompletionSource<Exception>(TaskCreationOptions.RunContinuationsAsynchronously);
         await using var client = new ManagedWebSocketClient(new()
@@ -191,13 +178,10 @@ public class ManagedWebSocketClientMaxMessageSizeTest
         });
         client.MessageReceived += (_, e) => messageReceived.TrySetResult(e.Data.ToArray());
         client.Error += (_, e) => errorRaised.TrySetResult(e.Exception);
-
         await client.ConnectAsync();
-
         var completedTask = await Task.WhenAny(messageReceived.Task, errorRaised.Task, Task.Delay(TimeSpan.FromSeconds(5)));
         Assert.AreSame(messageReceived.Task, completedTask, "Expected MessageReceived event, but got Error or timeout.");
         CollectionAssert.AreEqual(payload, await messageReceived.Task);
-
         httpListener.Stop();
         await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
     }
@@ -214,10 +198,9 @@ public class ManagedWebSocketClientMaxMessageSizeTest
         new Random(42).NextBytes(payload);
         var serverTask = RunServerAsync(httpListener, async ws =>
         {
-            await ws.SendAsync(payload, WebSocketMessageType.Binary, endOfMessage: true, CancellationToken.None).ConfigureAwait(false);
+            await ws.SendAsync(payload, WebSocketMessageType.Binary, true, CancellationToken.None).ConfigureAwait(false);
             await Task.Delay(500).ConfigureAwait(false);
         });
-
         var messageReceived = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
         var errorRaised = new TaskCompletionSource<Exception>(TaskCreationOptions.RunContinuationsAsynchronously);
         await using var client = new ManagedWebSocketClient(new()
@@ -230,13 +213,10 @@ public class ManagedWebSocketClientMaxMessageSizeTest
         });
         client.MessageReceived += (_, e) => messageReceived.TrySetResult(e.Data.ToArray());
         client.Error += (_, e) => errorRaised.TrySetResult(e.Exception);
-
         await client.ConnectAsync();
-
         var completedTask = await Task.WhenAny(messageReceived.Task, errorRaised.Task, Task.Delay(TimeSpan.FromSeconds(5)));
         Assert.AreSame(messageReceived.Task, completedTask, "Expected MessageReceived event, but got Error or timeout.");
         CollectionAssert.AreEqual(payload, await messageReceived.Task);
-
         httpListener.Stop();
         await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
     }
