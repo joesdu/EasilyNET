@@ -143,7 +143,7 @@ internal sealed class WebSocketClientTestService(ILogger<WebSocketClientTestServ
         {
             logger.LogInformation("Testing Manual Reconnect...");
         }
-        await _client.DisconnectAsync();
+        await _client.DisconnectAsync(CancellationToken.None);
         await Task.Delay(1000, token);
         await _client.ConnectAsync(token);
         await _client.SendTextAsync("I'm back!", token);
