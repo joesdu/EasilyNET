@@ -262,6 +262,10 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         }
         WebSocketStateChangedEventArgs? closingStateChanged;
         WebSocketStateChangedEventArgs? disconnectedStateChanged;
+        // Set _manualDisconnect before waiting on the lock so that any concurrent
+        // HandleDisconnectAsync that acquires the lock first sees the flag and
+        // skips reconnect / reports initiatedByClient correctly.
+        _manualDisconnect = true;
         // 使用超时防止 ConfigureWebSocket 等回调长时间持有锁导致无限挂起
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(Options.ConnectionTimeout);
@@ -270,9 +274,10 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         {
             if (State is WebSocketClientState.Disconnected or WebSocketClientState.Disposed)
             {
+                // _manualDisconnect was set above; reset it because we are not actually disconnecting.
+                _manualDisconnect = false;
                 return;
             }
-            _manualDisconnect = true;
             closingStateChanged = TryUpdateState(WebSocketClientState.Closing);
             await CancelConnectionAsync().ConfigureAwait(false);
             if (_session is not null)
