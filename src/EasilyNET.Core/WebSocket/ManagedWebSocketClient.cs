@@ -632,7 +632,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     result.MessageType,
                     true,
                     rentedMessageArray);
-                OnMessageReceived(args); // 事件返回后由客户端统一 Dispose，Data 仅在回调期间有效
+                OnMessageReceived(args); // EN: client disposes buffer after all subscribers return; Data is only valid during callback. / ZH: 事件返回后由客户端统一 Dispose，Data 仅在回调期间有效
             }
         }
         catch (OperationCanceledException) { }
