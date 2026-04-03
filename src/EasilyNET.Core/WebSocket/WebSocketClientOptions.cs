@@ -55,6 +55,18 @@ public sealed class WebSocketClientOptions
     public TimeSpan MaxReconnectDelay { get; init; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
+    ///     <para xml:lang="en">Gets or sets the underlying TCP Keep-Alive interval.</para>
+    ///     <para xml:lang="zh">获取或设置底层 TCP Keep-Alive 间隔。</para>
+    /// </summary>
+    public TimeSpan? KeepAliveInterval { get; init; }
+
+    /// <summary>
+    ///     <para xml:lang="en">Gets or sets the requested SubProtocols.</para>
+    ///     <para xml:lang="zh">请求的 SubProtocol 列表</para>
+    /// </summary>
+    public IReadOnlyList<string>? RequestedSubProtocols { get; init; }
+
+    /// <summary>
     ///     <para xml:lang="en">
     ///     Gets or sets whether application-level heartbeat is enabled. Requires server-side cooperation to recognize and handle heartbeat payloads. The
     ///     server may optionally respond (for example, with a PONG or any other message type); any message received from the server is treated as activity
@@ -79,7 +91,7 @@ public sealed class WebSocketClientOptions
     ///         This timeout is evaluated after a heartbeat is sent. If no data is received from the server
     ///         within this duration after the heartbeat was sent, the client considers the connection stale and may trigger reconnection.
     ///         Set to <see cref="TimeSpan.Zero" /> or a negative value to disable the timeout check.
-    ///         <br/>
+    ///         <br />
     ///         <b>Important:</b> The timeout check only runs once per heartbeat tick. The actual worst-case detection latency
     ///         is <c>HeartbeatInterval + HeartbeatTimeout</c>, not just <c>HeartbeatTimeout</c>.
     ///         When <see cref="HeartbeatEnabled" /> is <c>true</c> and <see cref="HeartbeatTimeout" /> is greater than <see cref="TimeSpan.Zero" />,
@@ -90,7 +102,7 @@ public sealed class WebSocketClientOptions
     ///         该超时在发送心跳后进行评估。如果在发送心跳后的此时间段内未收到服务器的任何数据，
     ///         客户端将认为连接可能已失活并可能触发重连。
     ///         设置为 <see cref="TimeSpan.Zero" /> 或负数可禁用该超时检测。
-    ///         <br/>
+    ///         <br />
     ///         <b>注意：</b>超时检测每个心跳周期只运行一次，实际最坏情况下的检测延迟为
     ///         <c>HeartbeatInterval + HeartbeatTimeout</c>，而非仅 <c>HeartbeatTimeout</c>。
     ///         当 <see cref="HeartbeatEnabled" /> 为 <c>true</c> 且 <see cref="HeartbeatTimeout" /> 大于 <see cref="TimeSpan.Zero" /> 时，
@@ -118,12 +130,16 @@ public sealed class WebSocketClientOptions
     public WebSocketMessageType HeartbeatMessageType { get; init; } = WebSocketMessageType.Binary;
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets the WebSocket message type expected for heartbeat response messages. Default is <see cref="WebSocketMessageType.Binary" />.</para>
+    ///     <para xml:lang="en">
+    ///     Gets or sets the WebSocket message type expected for heartbeat response messages. Default is
+    ///     <see cref="WebSocketMessageType.Binary" />.
+    ///     </para>
     ///     <para xml:lang="zh">获取或设置心跳响应消息期望的 WebSocket 消息类型。默认为 <see cref="WebSocketMessageType.Binary" />。</para>
     ///     <remarks>
     ///         <para xml:lang="en">
     ///         This allows the heartbeat response type to differ from the heartbeat send type.
-    ///         For example, you may send heartbeats as <see cref="WebSocketMessageType.Binary" /> but the server may respond with <see cref="WebSocketMessageType.Text" />.
+    ///         For example, you may send heartbeats as <see cref="WebSocketMessageType.Binary" /> but the server may respond with
+    ///         <see cref="WebSocketMessageType.Text" />.
     ///         </para>
     ///         <para xml:lang="zh">
     ///         此设置允许心跳响应的消息类型与心跳发送类型不同。
@@ -174,12 +190,16 @@ public sealed class WebSocketClientOptions
     public TimeSpan ConnectionTimeout { get; init; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets the initial wait timeout for acquiring the internal connection lock during <see cref="ManagedWebSocketClient.DisposeAsync" />. Default is 5 seconds.</para>
+    ///     <para xml:lang="en">
+    ///     Gets or sets the initial wait timeout for acquiring the internal connection lock during
+    ///     <see cref="ManagedWebSocketClient.DisposeAsync" />. Default is 5 seconds.
+    ///     </para>
     ///     <para xml:lang="zh">获取或设置 <see cref="ManagedWebSocketClient.DisposeAsync" /> 期间首次等待内部连接锁的超时时间。默认为 5 秒。</para>
     /// </summary>
     /// <remarks>
     ///     <para xml:lang="en">
-    ///     If the lock is not acquired within this timeout, the client will perform one additional bounded wait using <see cref="DisposeLockTimeoutGracePeriod" />.
+    ///     If the lock is not acquired within this timeout, the client will perform one additional bounded wait using
+    ///     <see cref="DisposeLockTimeoutGracePeriod" />.
     ///     </para>
     ///     <para xml:lang="zh">
     ///     如果在此时间内未获取到锁，客户端会再使用 <see cref="DisposeLockTimeoutGracePeriod" /> 进行一次有界等待。
@@ -301,6 +321,10 @@ public sealed class WebSocketClientOptions
         if (HeartbeatEnabled && HeartbeatTimeout > TimeSpan.Zero && HeartbeatTimeout >= HeartbeatInterval)
         {
             throw new InvalidOperationException($"{nameof(HeartbeatTimeout)} must be less than {nameof(HeartbeatInterval)} to ensure the timeout can be detected within one heartbeat cycle.");
+        }
+        if (KeepAliveInterval is { } interval && interval < TimeSpan.Zero)
+        {
+            throw new InvalidOperationException($"{nameof(KeepAliveInterval)} must be null or non-negative.");
         }
     }
 }

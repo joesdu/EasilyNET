@@ -23,6 +23,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
     // Object-lifetime cancellation. Once cancelled, the client is shutting down permanently.
     private readonly CancellationTokenSource _disposeCts = new();
+    private readonly Task _persistentSendLoopTask; // 持久单一 SendLoop
     private readonly Channel<WebSocketMessage> _sendChannel;
 
     // Use int with Interlocked.Exchange to guarantee atomic check-and-set across concurrent callers.
@@ -68,6 +69,11 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         // Initialize last receive time to "now" so heartbeat timeout doesn't immediately fire
         // before any connection/receive activity happens.
         _lastReceiveTimestamp = Stopwatch.GetTimestamp();
+
+        // 关键修复：持久单一 SendLoop，彻底消除多 reader 竞态
+        _persistentSendLoopTask = Task.Factory.StartNew(PersistentSendLoop, _disposeCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default)
+                                      .Unwrap();
+        _ = ObserveBackgroundTask(_persistentSendLoopTask, nameof(PersistentSendLoop));
     }
 
     private bool IsDisposed => Volatile.Read(ref _disposedFlag) != 0;
@@ -96,6 +102,16 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         // 1. Signal all background loops to stop
         await _disposeCts.CancelAsync().ConfigureAwait(false);
         await CancelConnectionAsync().ConfigureAwait(false);
+
+        // 等待持久 SendLoop 优雅退出
+        try
+        {
+            await Task.WhenAny(_persistentSendLoopTask, Task.Delay(3000)).ConfigureAwait(false);
+        }
+        catch
+        {
+            /* ignore */
+        }
 
         // 2. Acquire lock to ensure no concurrent connect/disconnect/reconnect is running.
         // Since all CTS tokens are already cancelled, background loops will exit soon and release the lock.
@@ -127,15 +143,12 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             disposedStateChanged = TryUpdateState(WebSocketClientState.Disposed);
 
             // 3. Close socket only while holding the lock to prevent races with concurrent operations.
-            if (lockAcquired && _session is not null)
+            if (lockAcquired && _session?.Socket.State is WebSocketState.Open)
             {
                 try
                 {
-                    if (_session.Socket.State == WebSocketState.Open)
-                    {
-                        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                        await _session.Socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Disposing", timeoutCts.Token).ConfigureAwait(false);
-                    }
+                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    await _session.Socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Disposing", timeoutCts.Token).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -164,7 +177,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
             // 未获取到锁时，对 session 做 best-effort 清理
             // Skip CTS/semaphore disposal to avoid racing with in-flight operations.
-            if (!lockAcquired && _session is not null)
+            else if (!lockAcquired && _session is not null)
             {
                 try
                 {
@@ -260,8 +273,6 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         {
             return;
         }
-        WebSocketStateChangedEventArgs? closingStateChanged;
-        WebSocketStateChangedEventArgs? disconnectedStateChanged;
         // Set _manualDisconnect before waiting on the lock so that any concurrent
         // HandleDisconnectAsync that acquires the lock first sees the flag and
         // skips reconnect / reports initiatedByClient correctly.
@@ -269,6 +280,8 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         // 使用超时防止 ConfigureWebSocket 等回调长时间持有锁导致无限挂起
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(Options.ConnectionTimeout);
+        WebSocketStateChangedEventArgs? closingStateChanged;
+        WebSocketStateChangedEventArgs? disconnectedStateChanged;
         await _connectionLock.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
         try
         {
@@ -460,13 +473,11 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             // Mark the connection as alive at the moment we become connected.
             UpdateLastReceiveTimestamp();
 
-            // Start background loops
             // Extract token to a local so that CA2025 is not triggered:
             // session is IDisposable, but CancellationToken is a value type copied here before any await.
             var sessionToken = session.Token;
             // ReSharper disable AccessToDisposedClosure
             _ = ObserveBackgroundTask(Task.Factory.StartNew(() => ReceiveLoop(session), sessionToken, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap(), nameof(ReceiveLoop));
-            _ = ObserveBackgroundTask(Task.Factory.StartNew(() => SendLoop(session), sessionToken, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap(), nameof(SendLoop));
             if (Options.HeartbeatEnabled)
             {
                 _ = ObserveBackgroundTask(Task.Factory.StartNew(() => HeartbeatLoop(session), sessionToken, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap(), nameof(HeartbeatLoop));
@@ -488,12 +499,65 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         }
     }
 
+    private async Task PersistentSendLoop()
+    {
+        var token = _disposeCts.Token;
+        try
+        {
+            while (await _sendChannel.Reader.WaitToReadAsync(token).ConfigureAwait(false))
+            {
+                while (!token.IsCancellationRequested && _sendChannel.Reader.TryRead(out var message))
+                {
+                    var currentSession = Volatile.Read(ref _session);
+                    if (currentSession is null || !IsSessionOpen(currentSession))
+                    {
+                        message.CompletionSource?.TrySetException(new InvalidOperationException("WebSocket connection is not open."));
+                        if (message.RentedArray != null)
+                        {
+                            ArrayPool<byte>.Shared.Return(message.RentedArray);
+                        }
+                        continue;
+                    }
+                    try
+                    {
+                        await currentSession.Socket.SendAsync(message.Data, message.MessageType, message.EndOfMessage, token).ConfigureAwait(false);
+                        message.CompletionSource?.TrySetResult(true);
+                    }
+                    catch (Exception ex)
+                    {
+                        message.CompletionSource?.TrySetException(ex);
+                        OnError(new(ex, "PersistentSendLoop"));
+                        if (IsSessionOpen(currentSession))
+                        {
+                            continue;
+                        }
+                        await HandleConnectionLoss(currentSession, ex).ConfigureAwait(false);
+                        FailPendingSends(ex);
+                        return;
+                    }
+                    finally
+                    {
+                        if (message.RentedArray != null)
+                        {
+                            ArrayPool<byte>.Shared.Return(message.RentedArray);
+                        }
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            OnError(new(ex, "PersistentSendLoop"));
+            FailPendingSends(ex);
+        }
+    }
+
     private async Task ReceiveLoop(ConnectionSession session)
     {
-        // 从 ArrayPool 租借接收缓冲区,避免每次循环分配
         var buffer = ArrayPool<byte>.Shared.Rent(Options.ReceiveBufferSize);
         var token = session.Token;
-        var maxMessageSize = Options.MaxMessageSize;
+        var maxSize = Options.MaxMessageSize;
         try
         {
             while (!token.IsCancellationRequested && IsSessionOpen(session))
@@ -504,85 +568,72 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     await HandleServerClose(session, session.Socket.CloseStatus, session.Socket.CloseStatusDescription).ConfigureAwait(false);
                     return;
                 }
-                byte[] data;
+                byte[] rentedMessageArray;
+                int messageLength;
                 if (result.EndOfMessage)
                 {
-                    // 单帧消息快速路径：直接从缓冲区复制，跳过 PooledMemoryStream
-                    // Pre-check before allocating to avoid memory exhaustion
-                    if (maxMessageSize > 0 && result.Count > maxMessageSize)
+                    // 单帧快速路径
+                    if (maxSize > 0 && result.Count > maxSize)
                     {
-                        var ex = new InvalidOperationException($"WebSocket message size ({result.Count} bytes) exceeded maximum allowed size ({maxMessageSize} bytes).");
-                        OnError(new(ex, "ReceiveLoop message size limit exceeded"));
+                        var ex = new InvalidOperationException($"Message size ({result.Count}) exceeded MaxMessageSize ({maxSize}).");
+                        OnError(new(ex, "ReceiveLoop"));
                         await HandleConnectionLoss(session, ex).ConfigureAwait(false);
                         return;
                     }
-                    data = new byte[result.Count];
-                    buffer.AsSpan(0, result.Count).CopyTo(data);
+                    rentedMessageArray = ArrayPool<byte>.Shared.Rent(result.Count);
+                    messageLength = result.Count;
+                    buffer.AsSpan(0, result.Count).CopyTo(rentedMessageArray);
                 }
                 else
                 {
-                    // 多帧消息：使用 PooledMemoryStream 拼接
+                    // 多帧路径（优化：仅一次最终分配）
                     await using var ms = new PooledMemoryStream();
-                    if (result.Count > 0)
-                    {
-                        // Pre-check first frame before writing
-                        if (maxMessageSize > 0 && result.Count > maxMessageSize)
-                        {
-                            var ex = new InvalidOperationException($"WebSocket message size ({result.Count} bytes) exceeded maximum allowed size ({maxMessageSize} bytes).");
-                            OnError(new(ex, "ReceiveLoop message size limit exceeded"));
-                            await HandleConnectionLoss(session, ex).ConfigureAwait(false);
-                            return;
-                        }
-                        ms.Write(buffer.AsSpan(0, result.Count));
-                    }
                     do
                     {
-                        result = await session.Socket.ReceiveAsync(buffer.AsMemory(0, Options.ReceiveBufferSize), token).ConfigureAwait(false);
-                        if (result.MessageType == WebSocketMessageType.Close)
+                        if (result.Count > 0)
                         {
-                            await HandleServerClose(session, session.Socket.CloseStatus, session.Socket.CloseStatusDescription).ConfigureAwait(false);
-                            return;
+                            if (maxSize > 0 && (ulong)ms.Length + (ulong)result.Count > (ulong)maxSize)
+                            {
+                                var ex = new InvalidOperationException($"Message size exceeded MaxMessageSize ({maxSize}).");
+                                OnError(new(ex, "ReceiveLoop"));
+                                await HandleConnectionLoss(session, ex).ConfigureAwait(false);
+                                return;
+                            }
+                            ms.Write(buffer.AsSpan(0, result.Count));
                         }
-                        if (result.Count <= 0)
+                        if (result.EndOfMessage)
+                        {
+                            break;
+                        }
+                        result = await session.Socket.ReceiveAsync(buffer.AsMemory(0, Options.ReceiveBufferSize), token).ConfigureAwait(false);
+                        if (result.MessageType != WebSocketMessageType.Close)
                         {
                             continue;
                         }
-                        // Pre-check: accumulated + incoming before writing, not after
-                        if (maxMessageSize > 0 && (ulong)ms.Length + (ulong)result.Count > (ulong)maxMessageSize)
-                        {
-                            var ex = new InvalidOperationException($"WebSocket message size ({ms.Length + result.Count} bytes) exceeded maximum allowed size ({maxMessageSize} bytes).");
-                            OnError(new(ex, "ReceiveLoop message size limit exceeded"));
-                            await HandleConnectionLoss(session, ex).ConfigureAwait(false);
-                            return;
-                        }
-                        ms.Write(buffer.AsSpan(0, result.Count));
-                    } while (!result.EndOfMessage);
-                    var segment = ms.ToArraySegment();
-                    data = new byte[segment.Count];
-                    Buffer.BlockCopy(segment.Array!, segment.Offset, data, 0, segment.Count);
+                        await HandleServerClose(session, session.Socket.CloseStatus, session.Socket.CloseStatusDescription).ConfigureAwait(false);
+                        return;
+                    } while (true);
+                    var finalLength = (int)ms.Length;
+                    rentedMessageArray = ArrayPool<byte>.Shared.Rent(finalLength);
+                    messageLength = finalLength;
+                    ms.GetSpan().CopyTo(rentedMessageArray);
                 }
-
-                // Any successfully received message indicates the connection is alive.
                 UpdateLastReceiveTimestamp();
 
-                // 检查是否为心跳响应消息（pong），如果是则不触发 MessageReceived 事件
-                // 只有当消息类型与心跳类型匹配且内容匹配时才过滤，避免误过滤业务消息
-                if (IsHeartbeatResponse(data, result.MessageType))
+                // 心跳响应过滤
+                if (IsHeartbeatResponse(rentedMessageArray.AsSpan(0, messageLength), result.MessageType))
                 {
+                    ArrayPool<byte>.Shared.Return(rentedMessageArray);
                     continue;
                 }
-                OnMessageReceived(new(data, result.MessageType, true));
+                var args = new WebSocketMessageReceivedEventArgs(new(rentedMessageArray, 0, messageLength),
+                    result.MessageType,
+                    true,
+                    rentedMessageArray);
+                OnMessageReceived(args); // 事件内部会由调用者 Dispose
             }
         }
-        catch (OperationCanceledException)
-        {
-            // Normal cancellation
-        }
-        catch (WebSocketException ex) when (ex.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
-        {
-            // 连接被远端关闭,不视为错误
-            await HandleConnectionLoss(session, ex).ConfigureAwait(false);
-        }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             OnError(new(ex, "ReceiveLoop"));
@@ -630,102 +681,25 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     ///     3. 消息内容与 HeartbeatResponseMessage 完全匹配
     ///     </para>
     /// </remarks>
-    private bool IsHeartbeatResponse(byte[] data, WebSocketMessageType messageType)
+    private bool IsHeartbeatResponse(Span<byte> data, WebSocketMessageType messageType)
     {
         var expectedResponse = Options.HeartbeatResponseMessage;
         // 使用独立的 HeartbeatResponseMessageType（而非发送侧的 HeartbeatMessageType），
         // 支持服务端以不同消息类型（如 Text）响应心跳（如 Binary）的场景。
         return !expectedResponse.IsEmpty &&
                messageType == Options.HeartbeatResponseMessageType &&
-               data.AsSpan().SequenceEqual(expectedResponse.Span);
-    }
-
-    private async Task SendLoop(ConnectionSession session)
-    {
-        var token = session.Token;
-        try
-        {
-            while (await _sendChannel.Reader.WaitToReadAsync(token).ConfigureAwait(false))
-            {
-                while (!token.IsCancellationRequested && _sendChannel.Reader.TryRead(out var message))
-                {
-                    try
-                    {
-                        if (IsSessionOpen(session))
-                        {
-                            // SendLoop 是唯一的发送者，无需加锁
-                            await session.Socket.SendAsync(message.Data, message.MessageType, message.EndOfMessage, token).ConfigureAwait(false);
-                            message.CompletionSource?.TrySetResult(true);
-                        }
-                        else
-                        {
-                            // Socket is closing (transitioning to reconnect). Stop draining the queue so
-                            // the new SendLoop can pick up remaining messages after reconnection.
-                            // The one message already dequeued cannot be put back, so fail it gracefully.
-                            message.CompletionSource?.TrySetException(new WebSocketException("WebSocket connection closed; message dropped during reconnection."));
-                            return; // let OperationCanceledException / reconnect take over
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        message.CompletionSource?.TrySetException(ex);
-                        OnError(new(ex, "SendLoop processing message"));
-                        // If send fails, it might be a connection issue
-                        if (IsSessionOpen(session))
-                        {
-                            continue;
-                        }
-                        await HandleConnectionLoss(session, ex).ConfigureAwait(false);
-                        FailPendingSends(ex);
-                        return; // Exit loop, let reconnection handle restart
-                    }
-                    finally
-                    {
-                        if (message.RentedArray != null)
-                        {
-                            ArrayPool<byte>.Shared.Return(message.RentedArray);
-                        }
-                    }
-                }
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Distinguish between reconnect-triggered cancellation (new SendLoop will take over)
-            // and disconnect/dispose cancellation (pending sends must be completed to avoid callers hanging).
-            if (IsShutdownOrDisconnected())
-            {
-                FailPendingSends(new OperationCanceledException("SendLoop cancelled due to disconnect or dispose."));
-            }
-            // Otherwise (reconnecting) — do NOT drain the queue; a new SendLoop will take over after reconnect
-        }
-        catch (Exception ex)
-        {
-            OnError(new(ex, "SendLoop"));
-            FailPendingSends(ex);
-        }
+               data.SequenceEqual(expectedResponse.Span);
     }
 
     private void FailPendingSends(Exception exception)
     {
-        while (_sendChannel.Reader.TryRead(out var pendingMessage))
+        while (_sendChannel.Reader.TryRead(out var msg))
         {
-            if (pendingMessage.RentedArray != null)
+            if (msg.RentedArray is not null)
             {
-                ArrayPool<byte>.Shared.Return(pendingMessage.RentedArray);
+                ArrayPool<byte>.Shared.Return(msg.RentedArray);
             }
-            if (pendingMessage.CompletionSource is null)
-            {
-                continue;
-            }
-            if (exception is OperationCanceledException)
-            {
-                pendingMessage.CompletionSource.TrySetCanceled();
-            }
-            else
-            {
-                pendingMessage.CompletionSource.TrySetException(exception);
-            }
+            msg.CompletionSource?.TrySetException(exception);
         }
     }
 
@@ -1121,9 +1095,6 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IsConnectionStartAborted() => IsDisposed || _disposeCts.IsCancellationRequested || _manualDisconnect;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool IsShutdownOrDisconnected() => _disposeCts.IsCancellationRequested || _manualDisconnect || State is WebSocketClientState.Disconnected or WebSocketClientState.Disposed;
 
     private WebSocketStateChangedEventArgs? TryUpdateState(WebSocketClientState newState)
     {

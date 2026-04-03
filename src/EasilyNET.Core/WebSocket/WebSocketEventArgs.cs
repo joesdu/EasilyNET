@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Net.WebSockets;
 
 // ReSharper disable UnusedMember.Global
@@ -9,14 +10,6 @@ namespace EasilyNET.Core.WebSocket;
 ///     <para xml:lang="en">Event arguments for WebSocket state changes.</para>
 ///     <para xml:lang="zh">WebSocket 状态变更事件参数。</para>
 /// </summary>
-/// <param name="previousState">
-///     <para xml:lang="en">The previous state.</para>
-///     <para xml:lang="zh">先前的状态。</para>
-/// </param>
-/// <param name="currentState">
-///     <para xml:lang="en">The current state.</para>
-///     <para xml:lang="zh">当前状态。</para>
-/// </param>
 public sealed class WebSocketStateChangedEventArgs(WebSocketClientState previousState, WebSocketClientState currentState) : EventArgs
 {
     /// <summary>
@@ -33,23 +26,14 @@ public sealed class WebSocketStateChangedEventArgs(WebSocketClientState previous
 }
 
 /// <summary>
-///     <para xml:lang="en">Event arguments for received WebSocket messages.</para>
-///     <para xml:lang="zh">接收到的 WebSocket 消息事件参数。</para>
+///     <para>接收到的 WebSocket 消息事件参数（已重大改进）</para>
+///     <para>现在实现 <see cref="IDisposable" />，内部持有 ArrayPool 租用的缓冲区。</para>
+///     <para>强烈推荐在事件处理函数中使用 <c>using</c> 语句归还缓冲区，避免内存泄漏和 GC 压力。</para>
 /// </summary>
-/// <param name="data">
-///     <para xml:lang="en">The message data.</para>
-///     <para xml:lang="zh">消息数据。</para>
-/// </param>
-/// <param name="messageType">
-///     <para xml:lang="en">The type of the message.</para>
-///     <para xml:lang="zh">消息类型。</para>
-/// </param>
-/// <param name="endOfMessage">
-///     <para xml:lang="en">Whether this is the end of the message.</para>
-///     <para xml:lang="zh">是否为消息结尾。</para>
-/// </param>
-public sealed class WebSocketMessageReceivedEventArgs(ReadOnlyMemory<byte> data, WebSocketMessageType messageType, bool endOfMessage) : EventArgs
+public sealed class WebSocketMessageReceivedEventArgs(ReadOnlyMemory<byte> data, WebSocketMessageType messageType, bool endOfMessage, byte[]? rentedArray = null) : EventArgs, IDisposable
 {
+    private byte[]? _rentedArray = rentedArray;
+
     /// <summary>
     ///     <para xml:lang="en">Gets the received message data.</para>
     ///     <para xml:lang="zh">获取接收到的消息数据。</para>
@@ -67,6 +51,19 @@ public sealed class WebSocketMessageReceivedEventArgs(ReadOnlyMemory<byte> data,
     ///     <para xml:lang="zh">获取一个值，指示这是否是消息的结尾。</para>
     /// </summary>
     public bool EndOfMessage { get; } = endOfMessage;
+
+    /// <summary>
+    /// 归还缓冲区到 ArrayPool
+    /// </summary>
+    public void Dispose()
+    {
+        if (_rentedArray is null)
+        {
+            return;
+        }
+        ArrayPool<byte>.Shared.Return(_rentedArray);
+        _rentedArray = null;
+    }
 }
 
 /// <summary>
