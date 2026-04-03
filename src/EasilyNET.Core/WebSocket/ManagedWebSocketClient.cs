@@ -282,7 +282,16 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         timeoutCts.CancelAfter(Options.ConnectionTimeout);
         WebSocketStateChangedEventArgs? closingStateChanged;
         WebSocketStateChangedEventArgs? disconnectedStateChanged;
-        await _connectionLock.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
+        try
+        {
+            await _connectionLock.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
+        }
+        catch
+        {
+            // 未能获取锁完成断开操作，还原标志以免永久阻止自动重连
+            _manualDisconnect = false;
+            throw;
+        }
         try
         {
             if (State is WebSocketClientState.Disconnected or WebSocketClientState.Disposed)
@@ -299,7 +308,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                 {
                     try
                     {
-                        await _session.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client disconnecting", CancellationToken.None).ConfigureAwait(false);
+                        await _session.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client disconnecting", timeoutCts.Token).ConfigureAwait(false);
                     }
                     catch (Exception)
                     {
@@ -494,7 +503,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             session.Dispose();
             if (ReferenceEquals(Volatile.Read(ref _session), session))
             {
-                _session = null;
+                Volatile.Write(ref _session, null);
             }
             throw;
         }
@@ -533,9 +542,11 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                         {
                             continue;
                         }
-                        await HandleConnectionLoss(currentSession, ex).ConfigureAwait(false);
+                        // 先清空旧队列再触发重连，避免重连成功后 FailPendingSends 误杀用户新消息。
+                        // 使用 break 而非 return，确保外层 WaitToReadAsync 循环存活，重连后可继续消费。
                         FailPendingSends(ex);
-                        return;
+                        await HandleConnectionLoss(currentSession, ex).ConfigureAwait(false);
+                        break;
                     }
                     finally
                     {
