@@ -69,10 +69,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         // Initialize last receive time to "now" so heartbeat timeout doesn't immediately fire
         // before any connection/receive activity happens.
         _lastReceiveTimestamp = Stopwatch.GetTimestamp();
-
-        // 关键修复：持久单一 SendLoop，彻底消除多 reader 竞态
-        _persistentSendLoopTask = Task.Factory.StartNew(PersistentSendLoop, _disposeCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default)
-                                      .Unwrap();
+        _persistentSendLoopTask = Task.Run(PersistentSendLoop, _disposeCts.Token);
         _ = ObserveBackgroundTask(_persistentSendLoopTask, nameof(PersistentSendLoop));
     }
 
@@ -102,15 +99,14 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         // 1. Signal all background loops to stop
         await _disposeCts.CancelAsync().ConfigureAwait(false);
         await CancelConnectionAsync().ConfigureAwait(false);
-
-        // 等待持久 SendLoop 优雅退出
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         try
         {
-            await Task.WhenAny(_persistentSendLoopTask, Task.Delay(3000)).ConfigureAwait(false);
+            await Task.WhenAny(_persistentSendLoopTask, Task.Delay(TimeSpan.FromSeconds(3), timeoutCts.Token)).ConfigureAwait(false);
         }
-        catch
+        finally
         {
-            /* ignore */
+            await timeoutCts.CancelAsync().ConfigureAwait(false);
         }
 
         // 2. Acquire lock to ensure no concurrent connect/disconnect/reconnect is running.
@@ -123,11 +119,11 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         var disposeLockGracePeriod = NormalizeDisposeLockTimeout(Options.DisposeLockTimeoutGracePeriod);
         try
         {
-            lockAcquired = await _connectionLock.WaitAsync(initialDisposeLockTimeout).ConfigureAwait(false);
+            lockAcquired = await _connectionLock.WaitAsync(initialDisposeLockTimeout, timeoutCts.Token).ConfigureAwait(false);
             if (!lockAcquired && disposeLockGracePeriod > TimeSpan.Zero)
             {
                 Debug.WriteLine($"[ManagedWebSocketClient] Dispose lock timed out after {initialDisposeLockTimeout.TotalSeconds:N1}s — waiting up to an additional {disposeLockGracePeriod.TotalSeconds:N1}s before falling back to best-effort cleanup.");
-                lockAcquired = await _connectionLock.WaitAsync(disposeLockGracePeriod).ConfigureAwait(false);
+                lockAcquired = await _connectionLock.WaitAsync(disposeLockGracePeriod, timeoutCts.Token).ConfigureAwait(false);
             }
             if (!lockAcquired)
             {
@@ -147,7 +143,6 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             {
                 try
                 {
-                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                     await _session.Socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Disposing", timeoutCts.Token).ConfigureAwait(false);
                 }
                 catch (Exception ex)
@@ -486,13 +481,13 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             // Extract token to a local so that CA2025 is not triggered:
             // session is IDisposable, but CancellationToken is a value type copied here before any await.
             var sessionToken = session.Token;
-            // ReSharper disable AccessToDisposedClosure
-            _ = ObserveBackgroundTask(Task.Factory.StartNew(() => ReceiveLoop(session), sessionToken, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap(), nameof(ReceiveLoop));
+            // ReSharper disable once AccessToDisposedClosure
+            _ = ObserveBackgroundTask(Task.Run(() => ReceiveLoop(session), sessionToken), nameof(ReceiveLoop));
             if (Options.HeartbeatEnabled)
             {
-                _ = ObserveBackgroundTask(Task.Factory.StartNew(() => HeartbeatLoop(session), sessionToken, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap(), nameof(HeartbeatLoop));
+                // ReSharper disable once AccessToDisposedClosure
+                _ = ObserveBackgroundTask(Task.Run(() => HeartbeatLoop(session), sessionToken), nameof(HeartbeatLoop));
             }
-            // ReSharper restore AccessToDisposedClosure
         }
         catch (Exception)
         {
@@ -712,7 +707,10 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             {
                 ArrayPool<byte>.Shared.Return(msg.RentedArray);
             }
-            if (msg.CompletionSource is null) continue;
+            if (msg.CompletionSource is null)
+            {
+                continue;
+            }
             if (exception is OperationCanceledException operationCanceledException)
             {
                 msg.CompletionSource.TrySetCanceled(operationCanceledException.CancellationToken);

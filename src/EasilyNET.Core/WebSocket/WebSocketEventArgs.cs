@@ -38,32 +38,25 @@ public sealed class WebSocketStateChangedEventArgs(WebSocketClientState previous
 ///     在所有事件订阅者返回后统一释放——<see cref="Data" /> 仅在事件回调期间有效，处理函数返回后不得存储或访问。
 ///     </para>
 /// </summary>
-public sealed class WebSocketMessageReceivedEventArgs : EventArgs, IDisposable
+/// <remarks>
+///     <para xml:lang="en">Initializes a new instance of the <see cref="WebSocketMessageReceivedEventArgs" /> class.</para>
+///     <para xml:lang="zh">初始化 <see cref="WebSocketMessageReceivedEventArgs" /> 类的新实例。</para>
+/// </remarks>
+/// <param name="data">
+///     <para xml:lang="en">The received message data.</para>
+///     <para xml:lang="zh">接收到的消息数据。</para>
+/// </param>
+/// <param name="messageType">
+///     <para xml:lang="en">The type of the WebSocket message.</para>
+///     <para xml:lang="zh">WebSocket 消息类型。</para>
+/// </param>
+/// <param name="endOfMessage">
+///     <para xml:lang="en">Whether this is the end of the message.</para>
+///     <para xml:lang="zh">是否为消息结尾。</para>
+/// </param>
+public sealed class WebSocketMessageReceivedEventArgs(ReadOnlyMemory<byte> data, WebSocketMessageType messageType, bool endOfMessage) : EventArgs, IDisposable
 {
     private byte[]? _rentedArray;
-
-    /// <summary>
-    ///     <para xml:lang="en">Initializes a new instance of the <see cref="WebSocketMessageReceivedEventArgs" /> class.</para>
-    ///     <para xml:lang="zh">初始化 <see cref="WebSocketMessageReceivedEventArgs" /> 类的新实例。</para>
-    /// </summary>
-    /// <param name="data">
-    ///     <para xml:lang="en">The received message data.</para>
-    ///     <para xml:lang="zh">接收到的消息数据。</para>
-    /// </param>
-    /// <param name="messageType">
-    ///     <para xml:lang="en">The type of the WebSocket message.</para>
-    ///     <para xml:lang="zh">WebSocket 消息类型。</para>
-    /// </param>
-    /// <param name="endOfMessage">
-    ///     <para xml:lang="en">Whether this is the end of the message.</para>
-    ///     <para xml:lang="zh">是否为消息结尾。</para>
-    /// </param>
-    public WebSocketMessageReceivedEventArgs(ReadOnlyMemory<byte> data, WebSocketMessageType messageType, bool endOfMessage)
-    {
-        Data = data;
-        MessageType = messageType;
-        EndOfMessage = endOfMessage;
-    }
 
     /// <summary>
     ///     <para xml:lang="en">
@@ -84,22 +77,25 @@ public sealed class WebSocketMessageReceivedEventArgs : EventArgs, IDisposable
     ///     <para xml:lang="en">Gets the received message data.</para>
     ///     <para xml:lang="zh">获取接收到的消息数据。</para>
     /// </summary>
-    public ReadOnlyMemory<byte> Data { get; }
+    public ReadOnlyMemory<byte> Data { get; } = data;
 
     /// <summary>
     ///     <para xml:lang="en">Gets the type of the WebSocket message.</para>
     ///     <para xml:lang="zh">获取 WebSocket 消息类型。</para>
     /// </summary>
-    public WebSocketMessageType MessageType { get; }
+    public WebSocketMessageType MessageType { get; } = messageType;
 
     /// <summary>
     ///     <para xml:lang="en">Gets a value indicating whether this is the end of the message.</para>
     ///     <para xml:lang="zh">获取一个值，指示这是否是消息的结尾。</para>
     /// </summary>
-    public bool EndOfMessage { get; }
+    public bool EndOfMessage { get; } = endOfMessage;
 
     /// <summary>
-    ///     <para xml:lang="en">Returns the rented buffer to <see cref="System.Buffers.ArrayPool{T}" />. Called by <see cref="ManagedWebSocketClient" /> after all subscribers have returned.</para>
+    ///     <para xml:lang="en">
+    ///     Returns the rented buffer to <see cref="System.Buffers.ArrayPool{T}" />. Called by <see cref="ManagedWebSocketClient" />
+    ///     after all subscribers have returned.
+    ///     </para>
     ///     <para xml:lang="zh">将租用的缓冲区归还给 <see cref="System.Buffers.ArrayPool{T}" />。由 <see cref="ManagedWebSocketClient" /> 在所有订阅者返回后调用。</para>
     /// </summary>
     public void Dispose()
