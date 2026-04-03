@@ -531,8 +531,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     }
                     try
                     {
-                        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(token, currentSession.Token);
-                        await currentSession.Socket.SendAsync(message.Data, message.MessageType, message.EndOfMessage, linkedCts.Token).ConfigureAwait(false);
+                        await currentSession.Socket.SendAsync(message.Data, message.MessageType, message.EndOfMessage, currentSession.Token).ConfigureAwait(false);
                         message.CompletionSource?.TrySetResult(true);
                     }
                     catch (Exception ex)
