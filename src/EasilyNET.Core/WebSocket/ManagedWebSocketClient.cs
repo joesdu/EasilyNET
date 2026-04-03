@@ -441,6 +441,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         previousSession?.Dispose();
         try
         {
+            Options.ApplyTo(session.Socket);
             Options.ConfigureWebSocket?.Invoke(session.Socket);
             // Guard against DisconnectAsync / DisposeAsync being called synchronously inside ConfigureWebSocket.
             // In that case the session token is already cancelled and the socket is already disposed,
@@ -520,7 +521,8 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     }
                     try
                     {
-                        await currentSession.Socket.SendAsync(message.Data, message.MessageType, message.EndOfMessage, token).ConfigureAwait(false);
+                        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(token, currentSession.Token);
+                        await currentSession.Socket.SendAsync(message.Data, message.MessageType, message.EndOfMessage, linkedCts.Token).ConfigureAwait(false);
                         message.CompletionSource?.TrySetResult(true);
                     }
                     catch (Exception ex)
@@ -626,11 +628,11 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     ArrayPool<byte>.Shared.Return(rentedMessageArray);
                     continue;
                 }
-                var args = new WebSocketMessageReceivedEventArgs(new(rentedMessageArray, 0, messageLength),
+                using var args = new WebSocketMessageReceivedEventArgs(new(rentedMessageArray, 0, messageLength),
                     result.MessageType,
                     true,
                     rentedMessageArray);
-                OnMessageReceived(args); // 事件内部会由调用者 Dispose
+                OnMessageReceived(args); // 事件返回后由客户端统一 Dispose，Data 仅在回调期间有效
             }
         }
         catch (OperationCanceledException) { }
@@ -681,7 +683,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     ///     3. 消息内容与 HeartbeatResponseMessage 完全匹配
     ///     </para>
     /// </remarks>
-    private bool IsHeartbeatResponse(Span<byte> data, WebSocketMessageType messageType)
+    private bool IsHeartbeatResponse(ReadOnlySpan<byte> data, WebSocketMessageType messageType)
     {
         var expectedResponse = Options.HeartbeatResponseMessage;
         // 使用独立的 HeartbeatResponseMessageType（而非发送侧的 HeartbeatMessageType），
@@ -699,7 +701,13 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             {
                 ArrayPool<byte>.Shared.Return(msg.RentedArray);
             }
-            msg.CompletionSource?.TrySetException(exception);
+            if (msg.CompletionSource is null) continue;
+            if (exception is OperationCanceledException operationCanceledException)
+            {
+                msg.CompletionSource.TrySetCanceled(operationCanceledException.CancellationToken);
+                continue;
+            }
+            msg.CompletionSource.TrySetException(exception);
         }
     }
 

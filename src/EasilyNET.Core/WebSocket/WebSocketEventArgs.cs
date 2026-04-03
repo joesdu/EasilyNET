@@ -26,9 +26,17 @@ public sealed class WebSocketStateChangedEventArgs(WebSocketClientState previous
 }
 
 /// <summary>
-///     <para>接收到的 WebSocket 消息事件参数（已重大改进）</para>
-///     <para>现在实现 <see cref="IDisposable" />，内部持有 ArrayPool 租用的缓冲区。</para>
-///     <para>强烈推荐在事件处理函数中使用 <c>using</c> 语句归还缓冲区，避免内存泄漏和 GC 压力。</para>
+///     <para xml:lang="en">
+///     Event arguments for a received WebSocket message. Implements <see cref="IDisposable" /> to return the internal
+///     <see cref="System.Buffers.ArrayPool{T}" /> buffer. The buffer is owned and disposed by
+///     <see cref="ManagedWebSocketClient" /> immediately after all event subscribers return — <see cref="Data" /> is only
+///     valid for the duration of the event callback and must not be stored or accessed after the handler returns.
+///     </para>
+///     <para xml:lang="zh">
+///     已接收的 WebSocket 消息事件参数。实现 <see cref="IDisposable" /> 以归还内部
+///     <see cref="System.Buffers.ArrayPool{T}" /> 缓冲区。缓冲区由 <see cref="ManagedWebSocketClient" />
+///     在所有事件订阅者返回后统一释放——<see cref="Data" /> 仅在事件回调期间有效，处理函数返回后不得存储或访问。
+///     </para>
 /// </summary>
 public sealed class WebSocketMessageReceivedEventArgs(ReadOnlyMemory<byte> data, WebSocketMessageType messageType, bool endOfMessage, byte[]? rentedArray = null) : EventArgs, IDisposable
 {
@@ -53,7 +61,8 @@ public sealed class WebSocketMessageReceivedEventArgs(ReadOnlyMemory<byte> data,
     public bool EndOfMessage { get; } = endOfMessage;
 
     /// <summary>
-    /// 归还缓冲区到 ArrayPool
+    ///     <para xml:lang="en">Returns the rented buffer to <see cref="System.Buffers.ArrayPool{T}" />. Called by <see cref="ManagedWebSocketClient" /> after all subscribers have returned.</para>
+    ///     <para xml:lang="zh">将租用的缓冲区归还给 <see cref="System.Buffers.ArrayPool{T}" />。由 <see cref="ManagedWebSocketClient" /> 在所有订阅者返回后调用。</para>
     /// </summary>
     public void Dispose()
     {

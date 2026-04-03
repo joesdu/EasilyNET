@@ -285,6 +285,40 @@ public sealed class WebSocketClientOptions
     private static ReadOnlyMemory<byte> DefaultHeartbeatMessageFactory() => DefaultHeartbeatMessage;
 
     /// <summary>
+    ///     <para xml:lang="en">Applies transport-level options to the specified <see cref="ClientWebSocket" /> instance.</para>
+    ///     <para xml:lang="zh">将传输层相关配置应用到指定的 <see cref="ClientWebSocket" /> 实例。</para>
+    /// </summary>
+    /// <param name="clientWebSocket">
+    ///     <para xml:lang="en">The target client WebSocket.</para>
+    ///     <para xml:lang="zh">目标客户端 WebSocket。</para>
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     <para xml:lang="en">Thrown when <paramref name="clientWebSocket" /> is <c>null</c>.</para>
+    ///     <para xml:lang="zh">当 <paramref name="clientWebSocket" /> 为 <c>null</c> 时抛出。</para>
+    /// </exception>
+    internal void ApplyTo(ClientWebSocket clientWebSocket)
+    {
+        ArgumentNullException.ThrowIfNull(clientWebSocket);
+        if (KeepAliveInterval is { } keepAliveInterval)
+        {
+            clientWebSocket.Options.KeepAliveInterval = keepAliveInterval;
+        }
+        if (RequestedSubProtocols is not { Count: > 0 })
+        {
+            return;
+        }
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var subProtocol in RequestedSubProtocols)
+        {
+            if (string.IsNullOrWhiteSpace(subProtocol) || !seen.Add(subProtocol))
+            {
+                continue;
+            }
+            clientWebSocket.Options.AddSubProtocol(subProtocol);
+        }
+    }
+
+    /// <summary>
     ///     <para xml:lang="en">Validates the options and throws <see cref="InvalidOperationException" /> if any setting is invalid.</para>
     ///     <para xml:lang="zh">验证配置选项，如有无效设置则抛出 <see cref="InvalidOperationException" />。</para>
     /// </summary>
