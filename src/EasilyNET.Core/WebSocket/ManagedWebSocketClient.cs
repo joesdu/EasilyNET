@@ -99,16 +99,17 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         // 1. Signal all background loops to stop
         await _disposeCts.CancelAsync().ConfigureAwait(false);
         await CancelConnectionAsync().ConfigureAwait(false);
-        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        try
-        {
-            await Task.WhenAny(_persistentSendLoopTask, Task.Delay(TimeSpan.FromSeconds(3), timeoutCts.Token)).ConfigureAwait(false);
-        }
-        finally
-        {
-            await timeoutCts.CancelAsync().ConfigureAwait(false);
-        }
 
+        // 等待持久 SendLoop 优雅退出
+        var completedTask = await Task.WhenAny(_persistentSendLoopTask, Task.Delay(3000)).ConfigureAwait(false);
+        if (completedTask == _persistentSendLoopTask)
+        {
+            await _persistentSendLoopTask.ConfigureAwait(false);
+        }
+        else
+        {
+            Debug.WriteLine("[ManagedWebSocketClient] Persistent SendLoop did not exit within 3 seconds during disposal; continuing with best-effort cleanup.");
+        }
         // 2. Acquire lock to ensure no concurrent connect/disconnect/reconnect is running.
         // Since all CTS tokens are already cancelled, background loops will exit soon and release the lock.
         // However, the lock may also be held while executing user callbacks (for example ConfigureWebSocket),
@@ -119,11 +120,11 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         var disposeLockGracePeriod = NormalizeDisposeLockTimeout(Options.DisposeLockTimeoutGracePeriod);
         try
         {
-            lockAcquired = await _connectionLock.WaitAsync(initialDisposeLockTimeout, timeoutCts.Token).ConfigureAwait(false);
+            lockAcquired = await _connectionLock.WaitAsync(initialDisposeLockTimeout).ConfigureAwait(false);
             if (!lockAcquired && disposeLockGracePeriod > TimeSpan.Zero)
             {
                 Debug.WriteLine($"[ManagedWebSocketClient] Dispose lock timed out after {initialDisposeLockTimeout.TotalSeconds:N1}s — waiting up to an additional {disposeLockGracePeriod.TotalSeconds:N1}s before falling back to best-effort cleanup.");
-                lockAcquired = await _connectionLock.WaitAsync(disposeLockGracePeriod, timeoutCts.Token).ConfigureAwait(false);
+                lockAcquired = await _connectionLock.WaitAsync(disposeLockGracePeriod).ConfigureAwait(false);
             }
             if (!lockAcquired)
             {
@@ -143,6 +144,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             {
                 try
                 {
+                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                     await _session.Socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Disposing", timeoutCts.Token).ConfigureAwait(false);
                 }
                 catch (Exception ex)
@@ -160,28 +162,28 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         }
         finally
         {
-            if (lockAcquired)
+            switch (lockAcquired)
             {
-                _connectionLock.Release();
-                // Only dispose shared synchronization primitives when we actually acquired the lock.
-                // Disposing them while concurrent operations may be waiting on _connectionLock or
-                // reading _disposeCts.Token would cause ObjectDisposedException / unpredictable races.
-                _disposeCts.Dispose();
-                _connectionLock.Dispose();
-            }
-
-            // 未获取到锁时，对 session 做 best-effort 清理
-            // Skip CTS/semaphore disposal to avoid racing with in-flight operations.
-            else if (!lockAcquired && _session is not null)
-            {
-                try
-                {
-                    _session.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[ManagedWebSocketClient] Best-effort session disposal error: {ex.GetType().Name}: {ex.Message}");
-                }
+                case true:
+                    _connectionLock.Release();
+                    // Only dispose shared synchronization primitives when we actually acquired the lock.
+                    // Disposing them while concurrent operations may be waiting on _connectionLock or
+                    // reading _disposeCts.Token would cause ObjectDisposedException / unpredictable races.
+                    _disposeCts.Dispose();
+                    _connectionLock.Dispose();
+                    break;
+                // 未获取到锁时，对 session 做 best-effort 清理
+                // Skip CTS/semaphore disposal to avoid racing with in-flight operations.
+                case false when _session is not null:
+                    try
+                    {
+                        _session.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[ManagedWebSocketClient] Best-effort session disposal error: {ex.GetType().Name}: {ex.Message}");
+                    }
+                    break;
             }
             PublishStateChanged(disposedStateChanged);
         }
@@ -525,8 +527,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     }
                     try
                     {
-                        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(token, currentSession.Token);
-                        await currentSession.Socket.SendAsync(message.Data, message.MessageType, message.EndOfMessage, linkedCts.Token).ConfigureAwait(false);
+                        await currentSession.Socket.SendAsync(message.Data, message.MessageType, message.EndOfMessage, currentSession.Token).ConfigureAwait(false);
                         message.CompletionSource?.TrySetResult(true);
                     }
                     catch (Exception ex)
