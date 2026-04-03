@@ -85,8 +85,7 @@ public class ManagedWebSocketClientMaxMessageSizeTest
         client.Error += (_, e) => errorRaised.TrySetResult(e.Exception);
         await client.ConnectAsync();
         var ex = await errorRaised.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.IsInstanceOfType<InvalidOperationException>(ex);
-        Assert.Contains("exceeded maximum allowed size", ex.Message);
+        AssertMaxMessageSizeExceeded(ex);
         httpListener.Stop();
         await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
     }
@@ -115,8 +114,7 @@ public class ManagedWebSocketClientMaxMessageSizeTest
         client.Error += (_, e) => errorRaised.TrySetResult(e.Exception);
         await client.ConnectAsync();
         var ex = await errorRaised.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.IsInstanceOfType<InvalidOperationException>(ex);
-        Assert.Contains("exceeded maximum allowed size", ex.Message);
+        AssertMaxMessageSizeExceeded(ex);
         httpListener.Stop();
         await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
     }
@@ -146,8 +144,7 @@ public class ManagedWebSocketClientMaxMessageSizeTest
         client.Error += (_, e) => errorRaised.TrySetResult(e.Exception);
         await client.ConnectAsync();
         var ex = await errorRaised.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.IsInstanceOfType<InvalidOperationException>(ex);
-        Assert.Contains("exceeded maximum allowed size", ex.Message);
+        AssertMaxMessageSizeExceeded(ex);
         httpListener.Stop();
         await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
     }
@@ -219,5 +216,12 @@ public class ManagedWebSocketClientMaxMessageSizeTest
         CollectionAssert.AreEqual(payload, await messageReceived.Task);
         httpListener.Stop();
         await serverTask.WaitAsync(TimeSpan.FromSeconds(3));
+    }
+
+    private static void AssertMaxMessageSizeExceeded(Exception ex)
+    {
+        Assert.IsInstanceOfType<InvalidOperationException>(ex);
+        Assert.Contains("exceeded", ex.Message);
+        Assert.Contains("MaxMessageSize", ex.Message);
     }
 }
