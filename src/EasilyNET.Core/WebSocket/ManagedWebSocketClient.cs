@@ -104,13 +104,14 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         await CancelConnectionAsync().ConfigureAwait(false);
 
         // 等待持久 SendLoop 优雅退出
-        try
+        var completedTask = await Task.WhenAny(_persistentSendLoopTask, Task.Delay(3000)).ConfigureAwait(false);
+        if (completedTask == _persistentSendLoopTask)
         {
-            await Task.WhenAny(_persistentSendLoopTask, Task.Delay(3000)).ConfigureAwait(false);
+            await _persistentSendLoopTask.ConfigureAwait(false);
         }
-        catch
+        else
         {
-            /* ignore */
+            Debug.WriteLine("[ManagedWebSocketClient] Persistent SendLoop did not exit within 3 seconds during disposal; continuing with best-effort cleanup.");
         }
 
         // 2. Acquire lock to ensure no concurrent connect/disconnect/reconnect is running.
