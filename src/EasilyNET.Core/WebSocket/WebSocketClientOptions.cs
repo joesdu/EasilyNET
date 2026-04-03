@@ -55,8 +55,8 @@ public sealed class WebSocketClientOptions
     public TimeSpan MaxReconnectDelay { get; init; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets the underlying TCP Keep-Alive interval.</para>
-    ///     <para xml:lang="zh">获取或设置底层 TCP Keep-Alive 间隔。</para>
+    ///     <para xml:lang="en">Gets or sets the WebSocket keep-alive (PING) interval.</para>
+    ///     <para xml:lang="zh">获取或设置 WebSocket 保活（PING）间隔。</para>
     /// </summary>
     public TimeSpan? KeepAliveInterval { get; init; }
 
