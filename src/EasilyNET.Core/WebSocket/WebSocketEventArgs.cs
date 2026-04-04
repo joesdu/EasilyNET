@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Net.WebSockets;
 
 // ReSharper disable UnusedMember.Global
@@ -9,14 +10,6 @@ namespace EasilyNET.Core.WebSocket;
 ///     <para xml:lang="en">Event arguments for WebSocket state changes.</para>
 ///     <para xml:lang="zh">WebSocket 状态变更事件参数。</para>
 /// </summary>
-/// <param name="previousState">
-///     <para xml:lang="en">The previous state.</para>
-///     <para xml:lang="zh">先前的状态。</para>
-/// </param>
-/// <param name="currentState">
-///     <para xml:lang="en">The current state.</para>
-///     <para xml:lang="zh">当前状态。</para>
-/// </param>
 public sealed class WebSocketStateChangedEventArgs(WebSocketClientState previousState, WebSocketClientState currentState) : EventArgs
 {
     /// <summary>
@@ -33,23 +26,53 @@ public sealed class WebSocketStateChangedEventArgs(WebSocketClientState previous
 }
 
 /// <summary>
-///     <para xml:lang="en">Event arguments for received WebSocket messages.</para>
-///     <para xml:lang="zh">接收到的 WebSocket 消息事件参数。</para>
+///     <para xml:lang="en">
+///     Event arguments for a received WebSocket message. Implements <see cref="IDisposable" /> to return the internal
+///     <see cref="System.Buffers.ArrayPool{T}" /> buffer. The buffer is owned and disposed by
+///     <see cref="ManagedWebSocketClient" /> immediately after all event subscribers return — <see cref="Data" /> is only
+///     valid for the duration of the event callback and must not be stored or accessed after the handler returns.
+///     </para>
+///     <para xml:lang="zh">
+///     已接收的 WebSocket 消息事件参数。实现 <see cref="IDisposable" /> 以归还内部
+///     <see cref="System.Buffers.ArrayPool{T}" /> 缓冲区。缓冲区由 <see cref="ManagedWebSocketClient" />
+///     在所有事件订阅者返回后统一释放——<see cref="Data" /> 仅在事件回调期间有效，处理函数返回后不得存储或访问。
+///     </para>
 /// </summary>
+/// <remarks>
+///     <para xml:lang="en">Initializes a new instance of the <see cref="WebSocketMessageReceivedEventArgs" /> class.</para>
+///     <para xml:lang="zh">初始化 <see cref="WebSocketMessageReceivedEventArgs" /> 类的新实例。</para>
+/// </remarks>
 /// <param name="data">
-///     <para xml:lang="en">The message data.</para>
-///     <para xml:lang="zh">消息数据。</para>
+///     <para xml:lang="en">The received message data.</para>
+///     <para xml:lang="zh">接收到的消息数据。</para>
 /// </param>
 /// <param name="messageType">
-///     <para xml:lang="en">The type of the message.</para>
-///     <para xml:lang="zh">消息类型。</para>
+///     <para xml:lang="en">The type of the WebSocket message.</para>
+///     <para xml:lang="zh">WebSocket 消息类型。</para>
 /// </param>
 /// <param name="endOfMessage">
 ///     <para xml:lang="en">Whether this is the end of the message.</para>
 ///     <para xml:lang="zh">是否为消息结尾。</para>
 /// </param>
-public sealed class WebSocketMessageReceivedEventArgs(ReadOnlyMemory<byte> data, WebSocketMessageType messageType, bool endOfMessage) : EventArgs
+public sealed class WebSocketMessageReceivedEventArgs(ReadOnlyMemory<byte> data, WebSocketMessageType messageType, bool endOfMessage) : EventArgs, IDisposable
 {
+    private byte[]? _rentedArray;
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Initializes a new instance with an associated <see cref="ArrayPool{T}" />-rented buffer
+    ///     that will be returned on <see cref="Dispose" />.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     使用关联的 <see cref="ArrayPool{T}" /> 租用缓冲区初始化新实例，该缓冲区将在 <see cref="Dispose" /> 时归还。
+    ///     </para>
+    /// </summary>
+    internal WebSocketMessageReceivedEventArgs(ReadOnlyMemory<byte> data, WebSocketMessageType messageType, bool endOfMessage, byte[]? rentedArray)
+        : this(data, messageType, endOfMessage)
+    {
+        _rentedArray = rentedArray;
+    }
+
     /// <summary>
     ///     <para xml:lang="en">Gets the received message data.</para>
     ///     <para xml:lang="zh">获取接收到的消息数据。</para>
@@ -67,6 +90,23 @@ public sealed class WebSocketMessageReceivedEventArgs(ReadOnlyMemory<byte> data,
     ///     <para xml:lang="zh">获取一个值，指示这是否是消息的结尾。</para>
     /// </summary>
     public bool EndOfMessage { get; } = endOfMessage;
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Returns the rented buffer to <see cref="System.Buffers.ArrayPool{T}" />. Called by <see cref="ManagedWebSocketClient" />
+    ///     after all subscribers have returned.
+    ///     </para>
+    ///     <para xml:lang="zh">将租用的缓冲区归还给 <see cref="System.Buffers.ArrayPool{T}" />。由 <see cref="ManagedWebSocketClient" /> 在所有订阅者返回后调用。</para>
+    /// </summary>
+    public void Dispose()
+    {
+        if (_rentedArray is null)
+        {
+            return;
+        }
+        ArrayPool<byte>.Shared.Return(_rentedArray);
+        _rentedArray = null;
+    }
 }
 
 /// <summary>
