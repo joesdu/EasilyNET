@@ -104,7 +104,14 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         var completedTask = await Task.WhenAny(_persistentSendLoopTask, Task.Delay(3000)).ConfigureAwait(false);
         if (completedTask == _persistentSendLoopTask)
         {
-            await _persistentSendLoopTask.ConfigureAwait(false);
+            try
+            {
+                await _persistentSendLoopTask.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected: the persistent send loop is cancelled by _disposeCts during disposal.
+            }
         }
         else
         {
