@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-Cryptographic algorithms: AES, SM2/SM3/SM4, RSA, RIPEMD, DES, RC4, MD5. No project dependencies — standalone package. SM2/SM3/RIPEMD use BouncyCastle 2.7.0-beta.
+Cryptographic algorithms: AES, SM2/SM3/SM4, RSA, RIPEMD, DES, RC4, MD5. This package depends on `BouncyCastle.Cryptography` 2.7.0-beta.98 for RSA, SM2, SM3, and RIPEMD related implementations.
 
 ## STRUCTURE
 
