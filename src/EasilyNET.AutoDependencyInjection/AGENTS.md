@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-Modular DI system with `DependsOn` ordering, sync/async lifecycle hooks, and `IResolver` dynamic resolution. Depends on `EasilyNET.Core` (for `TypeExtensions` scanning) and `AutoDependencyInjection.Core` (for DI attributes).
+Modular DI system with `DependsOn` ordering, sync/async lifecycle hooks, and `IResolver` dynamic resolution. Depends on `EasilyNET.Core` (for `TypeExtensions` scanning) and `EasilyNET.AutoDependencyInjection.Core` (for DI attributes).
 
 ## STRUCTURE
 
@@ -18,7 +18,7 @@ EasilyNET.AutoDependencyInjection/
 └── ObjectAccessor.cs
 ```
 
-Note: `DependencyInjectionAttribute` and `IgnoreDependencyAttribute` live in the sibling `AutoDependencyInjection.Core` package (attributes-only, minimal deps).
+Note: `DependencyInjectionAttribute` and `IgnoreDependencyAttribute` live in the sibling `EasilyNET.AutoDependencyInjection.Core` package (attributes-only, minimal deps).
 
 ## WHERE TO LOOK
 
