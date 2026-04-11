@@ -27,7 +27,7 @@ Note: `DependencyInjectionAttribute` and `IgnoreDependencyAttribute` live in the
 | Create new module | Inherit `AppModule`, override `ConfigureServices` |
 | Module ordering example | `sample/WebApi.Test.Unit/AppWebModule.cs` |
 | Auto-registration logic | `Modules/DependencyAppModule.cs` (uses Core's `TypeExtensions`) |
-| Keyed services | `DependencyInjectionAttribute.ServiceKey` (in AutoDI.Core) |
+| Keyed services | `DependencyInjectionAttribute.ServiceKey` (in EasilyNET.AutoDependencyInjection.Core) |
 | Dynamic resolution | `Resolver/Resolver.cs`, `Resolver/ServiceProviderExtension.cs` |
 | Parameter overrides | `Resolver/Parameter.cs` (Named/Typed/Positional/Resolved) |
 | Owned lifetime | `Resolver/Owned.cs`, `Resolver/OwnedFactory.cs` |
