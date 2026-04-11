@@ -25,8 +25,7 @@ EasilyNET/
 │   └── EasilyNET.Security/   # Crypto (AES/SM2-4/RSA/RIPEMD/DES/RC4)
 ├── sample/WebApi.Test.Unit/  # Integration sample (DI module orchestration)
 ├── test/                     # Unit tests (MSTest, single project)
-│   ├── EasilyNET.Test.Unit/  # Covers Core, Security, AutoDI
-│   └── EasilyNET.Core.Benchmark/  # BenchmarkDotNet (empty/WIP)
+│   └── EasilyNET.Test.Unit/  # Covers Core, Security, AutoDI
 ├── docs/                     # Design docs (GridFS, PooledMemoryStream, EventAggregator)
 └── .github/workflows/        # CI: build_test.yml, releaser.yml, PSScriptAnalyzer.yml
 ```
