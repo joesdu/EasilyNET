@@ -826,4 +826,134 @@ public static partial class StringExtensions
             return str.ToString(formatProvider ?? CultureInfo.InvariantCulture);
         }
     }
+
+    #region 判断文件路径(名称)是否合法
+
+    /// <summary>
+    /// Windows 保留设备名称（含 Unicode 上标数字变体，适用于 Win10/11）。
+    /// </summary>
+    private static readonly HashSet<string> WindowsReservedFileOrDirectoryNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "CON", "PRN", "AUX", "NUL",
+        "COM0", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        // Unicode 上标变体（Windows 10/11 同样保留）
+        "COM\u00B9", "COM\u00B2", "COM\u00B3",
+        "LPT0", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+        "LPT\u00B9", "LPT\u00B2", "LPT\u00B3"
+    };
+
+    /// <summary>Windows 单路径段最大长度（NTFS/FAT32）。</summary>
+    private const int WindowsMaxSegmentLength = 255;
+
+    /// <summary>Windows MAX_PATH 上限。</summary>
+    private const int WindowsMaxPathLength = 260;
+
+    /// <summary>
+    /// 判断文件或文件夹名称是否为当前操作系统允许的合法名称。
+    /// <para>
+    /// 校验项：空值、系统非法字符、纯点名（"." ".." "..."...）、
+    /// 名称长度（Windows ≤ 255）、尾部空格/点（Windows）、保留设备名（Windows）。
+    /// </para>
+    /// </summary>
+    /// <param name="name">文件名或文件夹名（不含路径分隔符）。</param>
+    /// <returns>合法返回 true，否则返回 false。</returns>
+    public static bool IsValidFileOrDirectoryName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return false;
+        }
+        // 尾部空格是 Windows 的独立规则，必须在 Trim() 之前检测
+        if (OperatingSystem.IsWindows() && (name.EndsWith(' ') || name.EndsWith('.')))
+        {
+            return false;
+        }
+        var trimmedName = name.Trim();
+        if (trimmedName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+            return false;
+        }
+        // 纯点名：". " ".." "..." 等均不合法
+        if (trimmedName.All(c => c == '.'))
+        {
+            return false;
+        }
+        if (!OperatingSystem.IsWindows())
+        {
+            return true;
+        }
+        if (trimmedName.Length > WindowsMaxSegmentLength)
+        {
+            return false;
+        }
+        // 取第一个 "." 之前的部分与保留名对比（如 "NUL.txt" 同样是保留名）
+        var reservedPart = trimmedName.Split('.')[0];
+        return !WindowsReservedFileOrDirectoryNames.Contains(reservedPart);
+    }
+
+    /// <summary>
+    /// 判断文件路径是否为当前操作系统允许的合法路径。
+    /// <para>
+    /// 校验项：空值、路径解析异常、路径总长度（Windows ≤ 260）、
+    /// 每个路径段均通过 <see cref="IsValidFileOrDirectoryName" /> 校验。
+    /// </para>
+    /// </summary>
+    /// <param name="path">待校验的文件路径（绝对或相对路径均可）。</param>
+    /// <returns>合法返回 true，否则返回 false。</returns>
+    public static bool IsValidFilePath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+        try
+        {
+            var normalizedPath = NormalizeForCurrentOS(path.Trim());
+            var fullPath = Path.GetFullPath(normalizedPath);
+            if (OperatingSystem.IsWindows() && fullPath.Length > WindowsMaxPathLength)
+            {
+                return false;
+            }
+            var root = Path.GetPathRoot(fullPath) ?? string.Empty;
+            var relativePath = fullPath[root.Length..];
+            var pathSegments = relativePath.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+            return pathSegments.All(IsValidFileOrDirectoryName);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 规范化路径分隔符为当前操作系统的分隔符，并折叠重复分隔符。
+    /// Windows 下统一为 '\\'，Linux 下统一为 '/'
+    /// </summary>
+    /// <param name="path">原始路径</param>
+    /// <returns>分隔符已归一化的路径</returns>
+    public static string NormalizeForCurrentOS(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return path ?? string.Empty;
+        }
+        var sep = Path.DirectorySeparatorChar; // Windows: '\\', Linux: '/'
+        // 将所有可能的分隔符统一为当前 OS 分隔符
+        var normalized = path.Replace('\\', sep).Replace('/', sep);
+        // 折叠重复分隔符（如 //// 或 \\\\ -> / 或 \\）
+        var doubleSep = new string(sep, 2);
+        while (normalized.Contains(doubleSep, StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized.Replace(doubleSep, sep.ToString(), StringComparison.OrdinalIgnoreCase);
+        }
+        // UNC 前缀处理（仅 Windows）：如果原始路径以 \\ 开头，保留双分隔符前缀
+        var preserveUncPrefix = OperatingSystem.IsWindows() && path.StartsWith(@"\\", StringComparison.OrdinalIgnoreCase);
+        if (preserveUncPrefix && !normalized.StartsWith(doubleSep, StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = doubleSep + normalized.TrimStart(sep);
+        }
+        return normalized;
+    }
+
+    #endregion
 }
