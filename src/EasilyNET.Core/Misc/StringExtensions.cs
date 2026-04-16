@@ -855,40 +855,50 @@ public static partial class StringExtensions
     /// 名称长度（Windows ≤ 255）、尾部空格/点（Windows）、保留设备名（Windows）。
     /// </para>
     /// </summary>
-    /// <param name="name">文件名或文件夹名（不含路径分隔符）。</param>
     /// <returns>合法返回 true，否则返回 false。</returns>
-    public static bool IsValidFileOrDirectoryName(string? name)
+    extension(string? name)
     {
-        if (string.IsNullOrWhiteSpace(name))
+        /// <summary>
+        /// <para xml:lang="en">Validates whether the current string is a legal file or directory name.</para>
+        /// <para>
+        /// 校验项：空值、系统非法字符、纯点名（"." ".." "..."...）、
+        /// 名称长度（Windows ≤ 255）、尾部空格/点（Windows）、保留设备名（Windows）。
+        /// </para>
+        /// </summary>
+        /// <returns>合法返回 true，否则返回 false。</returns>
+        public bool IsValidFileOrDirectoryName()
         {
-            return false;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return false;
+            }
+            // 尾部空格是 Windows 的独立规则，必须在 Trim() 之前检测
+            if (OperatingSystem.IsWindows() && (name.EndsWith(' ') || name.EndsWith('.')))
+            {
+                return false;
+            }
+            var trimmedName = name.Trim();
+            if (trimmedName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            {
+                return false;
+            }
+            // 纯点名：". " ".." "..." 等均不合法
+            if (trimmedName.All(c => c == '.'))
+            {
+                return false;
+            }
+            if (!OperatingSystem.IsWindows())
+            {
+                return true;
+            }
+            if (trimmedName.Length > WindowsMaxSegmentLength)
+            {
+                return false;
+            }
+            // 取第一个 "." 之前的部分与保留名对比（如 "NUL.txt" 同样是保留名）
+            var reservedPart = trimmedName.Split('.')[0];
+            return !WindowsReservedFileOrDirectoryNames.Contains(reservedPart);
         }
-        // 尾部空格是 Windows 的独立规则，必须在 Trim() 之前检测
-        if (OperatingSystem.IsWindows() && (name.EndsWith(' ') || name.EndsWith('.')))
-        {
-            return false;
-        }
-        var trimmedName = name.Trim();
-        if (trimmedName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
-        {
-            return false;
-        }
-        // 纯点名：". " ".." "..." 等均不合法
-        if (trimmedName.All(c => c == '.'))
-        {
-            return false;
-        }
-        if (!OperatingSystem.IsWindows())
-        {
-            return true;
-        }
-        if (trimmedName.Length > WindowsMaxSegmentLength)
-        {
-            return false;
-        }
-        // 取第一个 "." 之前的部分与保留名对比（如 "NUL.txt" 同样是保留名）
-        var reservedPart = trimmedName.Split('.')[0];
-        return !WindowsReservedFileOrDirectoryNames.Contains(reservedPart);
     }
 
     /// <summary>
