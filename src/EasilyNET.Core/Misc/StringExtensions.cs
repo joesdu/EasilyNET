@@ -945,7 +945,7 @@ public static partial class StringExtensions
     {
         if (string.IsNullOrWhiteSpace(path))
         {
-            return path ?? string.Empty;
+            return string.Empty;
         }
         var sep = Path.DirectorySeparatorChar; // Windows: '\\', Linux: '/'
         // 将所有可能的分隔符统一为当前 OS 分隔符
