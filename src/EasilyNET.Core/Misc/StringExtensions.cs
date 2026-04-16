@@ -952,10 +952,25 @@ public static partial class StringExtensions
         var normalized = path.Replace('\\', sep).Replace('/', sep);
         // 折叠重复分隔符（如 //// 或 \\\\ -> / 或 \\）
         var doubleSep = new string(sep, 2);
-        while (normalized.Contains(doubleSep, StringComparison.OrdinalIgnoreCase))
+        var collapsed = new StringBuilder(normalized.Length);
+        var previousWasSeparator = false;
+        foreach (var ch in normalized)
         {
-            normalized = normalized.Replace(doubleSep, sep.ToString(), StringComparison.OrdinalIgnoreCase);
+            if (ch == sep)
+            {
+                if (previousWasSeparator)
+                {
+                    continue;
+                }
+                previousWasSeparator = true;
+            }
+            else
+            {
+                previousWasSeparator = false;
+            }
+            collapsed.Append(ch);
         }
+        normalized = collapsed.ToString();
         // UNC 前缀处理（仅 Windows）：如果原始路径以 \\ 开头，保留双分隔符前缀
         var preserveUncPrefix = OperatingSystem.IsWindows() && path.StartsWith(@"\\", StringComparison.OrdinalIgnoreCase);
         if (preserveUncPrefix && !normalized.StartsWith(doubleSep, StringComparison.OrdinalIgnoreCase))
