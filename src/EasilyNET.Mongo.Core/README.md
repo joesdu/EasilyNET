@@ -1,6 +1,7 @@
 ## EasilyNET.Mongo.Core
 
-`EasilyNET.Mongo.Core` 是 MongoDB 集成体系的**核心基础库**，提供 `MongoContext` 基类、所有标注特性（Attribute）、数据类型辅助类、批量写入 Fluent API、聚合管道扩展以及地理空间查询工具。业务层和 AspNetCore 集成层均依赖此包。
+`EasilyNET.Mongo.Core` 是 MongoDB 集成体系的**核心基础库**，提供 `MongoContext` 基类、所有标注特性（Attribute）、数据类型辅助类、批量写入
+Fluent API、聚合管道扩展以及地理空间查询工具。业务层和 AspNetCore 集成层均依赖此包。
 
 ---
 
@@ -10,16 +11,16 @@
 - [⚠️ 中断性变更（Breaking Changes）](#️-中断性变更breaking-changes)
 - [MongoContext —— 数据库上下文基类](#mongocontext--数据库上下文基类)
 - [索引特性](#索引特性)
-  - [MongoIndexAttribute —— 单字段索引](#mongoindexattribute--单字段索引)
-  - [MongoCompoundIndexAttribute —— 复合索引](#mongocompoundindexattribute--复合索引)
+    - [MongoIndexAttribute —— 单字段索引](#mongoindexattribute--单字段索引)
+    - [MongoCompoundIndexAttribute —— 复合索引](#mongocompoundindexattribute--复合索引)
 - [集合类型特性](#集合类型特性)
-  - [TimeSeriesCollectionAttribute —— 时序集合](#timeseriescollectionattribute--时序集合)
-  - [CappedCollectionAttribute —— 固定大小集合](#cappedcollectionattribute--固定大小集合)
+    - [TimeSeriesCollectionAttribute —— 时序集合](#timeseriescollectionattribute--时序集合)
+    - [CappedCollectionAttribute —— 固定大小集合](#cappedcollectionattribute--固定大小集合)
 - [Atlas Search 特性（云原生/AI 场景）](#atlas-search-特性云原生ai-场景)
-  - [MongoSearchIndexAttribute —— 搜索索引](#mongosearchindexattribute--搜索索引)
-  - [SearchFieldAttribute —— 搜索字段](#searchfieldattribute--搜索字段)
-  - [VectorFieldAttribute —— 向量字段](#vectorfieldattribute--向量字段)
-  - [VectorFilterFieldAttribute —— 向量过滤字段](#vectorfilterfieldattribute--向量过滤字段)
+    - [MongoSearchIndexAttribute —— 搜索索引](#mongosearchindexattribute--搜索索引)
+    - [SearchFieldAttribute —— 搜索字段](#searchfieldattribute--搜索字段)
+    - [VectorFieldAttribute —— 向量字段](#vectorfieldattribute--向量字段)
+    - [VectorFilterFieldAttribute —— 向量过滤字段](#vectorfilterfieldattribute--向量过滤字段)
 - [批量写入 Fluent API](#批量写入-fluent-api)
 - [聚合管道扩展](#聚合管道扩展)
 - [地理空间查询](#地理空间查询)
@@ -65,7 +66,8 @@ public class ReportService(MyDbContext db)
 
 ## MongoContext —— 数据库上下文基类
 
-`MongoContext` 是所有自定义数据库上下文的基类，类似于 EF Core 中的 `DbContext`。它封装了 `IMongoClient` 和 `IMongoDatabase`，并提供事务会话支持。
+`MongoContext` 是所有自定义数据库上下文的基类，类似于 EF Core 中的 `DbContext`。它封装了 `IMongoClient` 和
+`IMongoDatabase`，并提供事务会话支持。
 
 ### 什么是 MongoContext？
 
@@ -192,16 +194,16 @@ public class Order
 
 **支持的索引类型（`EIndexType`）**：
 
-| 枚举值        | 说明                          |
-| ------------- | ----------------------------- |
-| `Ascending`   | 升序索引，最常用              |
+| 枚举值           | 说明                 |
+|---------------|--------------------|
+| `Ascending`   | 升序索引，最常用           |
 | `Descending`  | 降序索引，加速逆序排序        |
-| `Geo2D`       | 平面坐标索引（旧式，不推荐）  |
+| `Geo2D`       | 平面坐标索引（旧式，不推荐）     |
 | `Geo2DSphere` | 球面地理索引（推荐，GeoJSON） |
-| `Hashed`      | 哈希索引，用于分片键          |
-| `Text`        | 全文文本索引                  |
-| `Multikey`    | 多键索引，数组字段自动创建    |
-| `Wildcard`    | 通配符索引，动态字段场景      |
+| `Hashed`      | 哈希索引，用于分片键         |
+| `Text`        | 全文文本索引             |
+| `Multikey`    | 多键索引，数组字段自动创建      |
+| `Wildcard`    | 通配符索引，动态字段场景       |
 
 ### MongoCompoundIndexAttribute —— 复合索引
 
@@ -314,7 +316,8 @@ app.UseCreateMongoTimeSeriesCollection<MyDbContext>();
 
 **什么是固定大小集合？**
 
-固定大小集合（Capped Collection）是一种循环覆盖的集合，类似环形缓冲区。当存储达到上限时，最老的文档会被自动覆盖，天然维护"最近 N 条"语义，且写入性能极高（顺序写）。
+固定大小集合（Capped Collection）是一种循环覆盖的集合，类似环形缓冲区。当存储达到上限时，最老的文档会被自动覆盖，天然维护"最近
+N 条"语义，且写入性能极高（顺序写）。
 
 **适用场景**：
 
@@ -366,9 +369,11 @@ app.UseCreateMongoCappedCollections<MyDbContext>();
 
 ## Atlas Search 特性（云原生/AI 场景）
 
-Atlas Search 是 MongoDB Atlas 提供的基于 Apache Lucene 的全文搜索引擎，支持中文分词、相关性排序、自动补全等高级功能。Vector Search 则是面向 AI/ML 的向量相似度搜索，是构建 RAG（检索增强生成）等 AI 应用的核心能力。
+Atlas Search 是 MongoDB Atlas 提供的基于 Apache Lucene 的全文搜索引擎，支持中文分词、相关性排序、自动补全等高级功能。Vector
+Search 则是面向 AI/ML 的向量相似度搜索，是构建 RAG（检索增强生成）等 AI 应用的核心能力。
 
-> ⚠️ **前提**：Atlas Search 和 Vector Search 需要 **MongoDB Atlas** 或 **MongoDB 8.2+ 社区版**。自托管的低版本 MongoDB 不支持。
+> ⚠️ **前提**：Atlas Search 和 Vector Search 需要 **MongoDB Atlas** 或 **MongoDB 8.2+ 社区版**。自托管的低版本 MongoDB
+> 不支持。
 
 ### MongoSearchIndexAttribute —— 搜索索引
 
@@ -398,7 +403,8 @@ public class Article
 }
 ```
 
-对于**未在 `MongoContext` 上声明为 `IMongoCollection<T>` 属性**的实体类型，可以通过 `CollectionName` 显式指定集合名称，框架会通过程序集扫描自动发现并创建索引：
+对于**未在 `MongoContext` 上声明为 `IMongoCollection<T>` 属性**的实体类型，可以通过 `CollectionName`
+显式指定集合名称，框架会通过程序集扫描自动发现并创建索引：
 
 ```csharp
 // 该实体不需要在 DbContext 中声明，框架通过程序集扫描自动发现
@@ -461,17 +467,17 @@ public class Product
 
 **`ESearchFieldType` 枚举说明**：
 
-| 枚举值         | 说明                 | 适用数据           |
-| -------------- | -------------------- | ------------------ |
-| `String`       | 文本搜索，支持分词器 | 标题、描述、内容   |
-| `Autocomplete` | 自动补全，前缀匹配   | 搜索框实时建议     |
-| `Number`       | 数值范围查询         | 价格、评分、年龄   |
-| `Date`         | 日期范围查询         | 创建时间、发布时间 |
-| `Boolean`      | 布尔精确匹配         | 是否上架、是否删除 |
-| `ObjectId`     | ObjectId 精确匹配    | 关联 ID 字段       |
-| `Geo`          | 地理图形搜索         | GeoJSON 坐标       |
-| `Token`        | 无分词精确匹配       | SKU、标签、代码    |
-| `Document`     | 嵌入文档搜索         | 嵌套对象           |
+| 枚举值            | 说明            | 适用数据       |
+|----------------|---------------|------------|
+| `String`       | 文本搜索，支持分词器    | 标题、描述、内容   |
+| `Autocomplete` | 自动补全，前缀匹配     | 搜索框实时建议    |
+| `Number`       | 数值范围查询        | 价格、评分、年龄   |
+| `Date`         | 日期范围查询        | 创建时间、发布时间  |
+| `Boolean`      | 布尔精确匹配        | 是否上架、是否删除  |
+| `ObjectId`     | ObjectId 精确匹配 | 关联 ID 字段   |
+| `Geo`          | 地理图形搜索        | GeoJSON 坐标 |
+| `Token`        | 无分词精确匹配       | SKU、标签、代码  |
+| `Document`     | 嵌入文档搜索        | 嵌套对象       |
 
 ### VectorFieldAttribute —— 向量字段
 
@@ -499,11 +505,11 @@ public class KnowledgeBase
 
 **`EVectorSimilarity` 枚举说明**：
 
-| 枚举值       | 公式               | 适用场景                           |
-| ------------ | ------------------ | ---------------------------------- |
-| `Cosine`     | 余弦相似度（角度） | **推荐**，适合归一化的文本嵌入     |
-| `DotProduct` | 点积（投影）       | 适合已充分训练且向量未归一化的场景 |
-| `Euclidean`  | 欧几里得距离       | 图像、空间坐标等绝对距离敏感场景   |
+| 枚举值          | 公式        | 适用场景              |
+|--------------|-----------|-------------------|
+| `Cosine`     | 余弦相似度（角度） | **推荐**，适合归一化的文本嵌入 |
+| `DotProduct` | 点积（投影）    | 适合已充分训练且向量未归一化的场景 |
+| `Euclidean`  | 欧几里得距离    | 图像、空间坐标等绝对距离敏感场景  |
 
 ### VectorFilterFieldAttribute —— 向量过滤字段
 

@@ -16,24 +16,19 @@ public class ManagedWebSocketClientTest
             AutoReconnect = false,
             ConnectionTimeout = TimeSpan.FromMilliseconds(200)
         });
-
         client.StateChanged += (_, e) =>
         {
             if (e.CurrentState != WebSocketClientState.Connecting || connectingHandlerInvoked.Task.IsCompleted)
             {
                 return;
             }
-
             connectingHandlerInvoked.TrySetResult();
             client.DisconnectAsync().GetAwaiter().GetResult();
         };
-
         var connectTask = client.ConnectAsync();
         await connectingHandlerInvoked.Task.WaitAsync(TimeSpan.FromSeconds(2));
-
         var completedTask = await Task.WhenAny(connectTask, Task.Delay(TimeSpan.FromSeconds(2)));
         Assert.AreSame(connectTask, completedTask, "ConnectAsync deadlocked when StateChanged synchronously called DisconnectAsync.");
-
         await Assert.ThrowsExactlyAsync<OperationCanceledException>(async () => await connectTask);
         Assert.AreEqual(WebSocketClientState.Disconnected, client.State);
     }
@@ -54,16 +49,12 @@ public class ManagedWebSocketClientTest
                 client!.DisconnectAsync().GetAwaiter().GetResult();
             }
         };
-
         await using var managedClient = new ManagedWebSocketClient(options);
         client = managedClient;
-
         var connectTask = client.ConnectAsync();
         await configureCallbackInvoked.Task.WaitAsync(TimeSpan.FromSeconds(2));
-
         var completedTask = await Task.WhenAny(connectTask, Task.Delay(TimeSpan.FromSeconds(2)));
         Assert.AreSame(connectTask, completedTask, "ConnectAsync deadlocked when ConfigureWebSocket synchronously called DisconnectAsync.");
-
         await Assert.ThrowsExactlyAsync<OperationCanceledException>(async () => await connectTask);
         Assert.AreEqual(WebSocketClientState.Disconnected, client.State);
     }
@@ -86,25 +77,18 @@ public class ManagedWebSocketClientTest
                 releaseConfigureCallback.Wait(TimeSpan.FromSeconds(5));
             }
         };
-
         await using var client = new ManagedWebSocketClient(options);
         var connectTask = Task.Run(async () => await client.ConnectAsync());
-
         await enteredConfigureCallback.Task.WaitAsync(TimeSpan.FromSeconds(2));
-
         var stopwatch = Stopwatch.StartNew();
         await client.DisposeAsync();
         stopwatch.Stop();
-
         Assert.AreEqual(WebSocketClientState.Disposed, client.State);
         Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromSeconds(2), $"DisposeAsync exceeded expected upper bound. Actual: {stopwatch.Elapsed}.");
         Assert.IsFalse(connectTask.IsCompleted, "ConnectAsync should still be blocked by ConfigureWebSocket until the callback is released.");
-
         releaseConfigureCallback.Set();
-
         var completedTask = await Task.WhenAny(connectTask, Task.Delay(TimeSpan.FromSeconds(2)));
         Assert.AreSame(connectTask, completedTask, "ConnectAsync did not complete after the blocking callback was released.");
-
         await AssertConnectFailedAfterDisposeAsync(connectTask);
     }
 

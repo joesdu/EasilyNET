@@ -2,7 +2,8 @@
 
 ## OVERVIEW
 
-High-performance .NET primitives library. Zero external dependencies. Performance-sensitive. Root of the dependency graph — 5 other src/ projects depend on this.
+High-performance .NET primitives library. Zero external dependencies. Performance-sensitive. Root of the dependency
+graph — 5 other src/ projects depend on this.
 
 ## STRUCTURE
 
@@ -27,24 +28,25 @@ EasilyNET.Core/
 
 ## WHERE TO LOOK
 
-| Task | Location |
-|------|----------|
-| Add extension method | `Misc/` - find matching `*Extensions.cs` |
-| DateTime utilities | `Misc/DateTimeExtensions.cs` |
-| String manipulation | `Misc/StringExtensions.cs` (776 lines) |
-| Collection helpers | `Misc/IEnumerableExtensions.cs` (949 lines) |
-| Type/reflection helpers | `Misc/TypeExtensions.cs` (used by AutoDI for scanning) |
-| Deep copy | `Misc/ObjectExtensions.cs` → `DeepCopy/` (expression tree based) |
-| Assembly scanning | `Misc/AssemblyHelper.cs` (766 lines, reflection + caching) |
-| Console output helpers | `Misc/TextWriterExtensions.cs` (860 lines, ANSI/progress) |
-| Async primitives | `Threading/` |
-| WebSocket client | `WebSocket/ManagedWebSocketClient.cs` (1087 lines) |
-| Pooled stream | `Essentials/PooledMemoryStream.cs` (729 lines) |
-| ULID generation | `Essentials/Ulid.cs` (1186 lines) |
+| Task                    | Location                                                         |
+|-------------------------|------------------------------------------------------------------|
+| Add extension method    | `Misc/` - find matching `*Extensions.cs`                         |
+| DateTime utilities      | `Misc/DateTimeExtensions.cs`                                     |
+| String manipulation     | `Misc/StringExtensions.cs` (776 lines)                           |
+| Collection helpers      | `Misc/IEnumerableExtensions.cs` (949 lines)                      |
+| Type/reflection helpers | `Misc/TypeExtensions.cs` (used by AutoDI for scanning)           |
+| Deep copy               | `Misc/ObjectExtensions.cs` → `DeepCopy/` (expression tree based) |
+| Assembly scanning       | `Misc/AssemblyHelper.cs` (766 lines, reflection + caching)       |
+| Console output helpers  | `Misc/TextWriterExtensions.cs` (860 lines, ANSI/progress)        |
+| Async primitives        | `Threading/`                                                     |
+| WebSocket client        | `WebSocket/ManagedWebSocketClient.cs` (1087 lines)               |
+| Pooled stream           | `Essentials/PooledMemoryStream.cs` (729 lines)                   |
+| ULID generation         | `Essentials/Ulid.cs` (1186 lines)                                |
 
 ## COMPLEXITY HOTSPOTS
 
 These files have genuine concurrency/state-machine complexity (not just long):
+
 - `WebSocket/ManagedWebSocketClient.cs` — connect/reconnect state machine, send queue, heartbeat, disposal
 - `Threading/AsyncReaderWriterLock.cs` — packed state bits, wait queues, cancellation, fairness
 - `Misc/AssemblyHelper.cs` — reflection + caching + parallel scanning + configurable filtering

@@ -2,7 +2,8 @@
 
 ## OVERVIEW
 
-Cryptographic algorithms: AES, SM2/SM3/SM4, RSA, RIPEMD, DES, RC4, MD5. This package depends on `BouncyCastle.Cryptography` 2.7.0-beta.98 for RSA, SM2, SM3, and RIPEMD related implementations.
+Cryptographic algorithms: AES, SM2/SM3/SM4, RSA, RIPEMD, DES, RC4, MD5. This package depends on
+`BouncyCastle.Cryptography` 2.7.0-beta.98 for RSA, SM2, SM3, and RIPEMD related implementations.
 
 ## STRUCTURE
 
@@ -21,14 +22,14 @@ EasilyNET.Security/
 
 ## WHERE TO LOOK
 
-| Task | Location |
-|------|----------|
-| AES encryption | `AES/AesCrypt.cs` |
-| SM2 sign/encrypt | `SM2/Sm2Crypt.cs` |
-| SM3 hash | `SM3/Sm3Signature.cs` |
-| SM4 encryption | `SM4/Sm4Crypt.cs` (600 lines — many overloads, not complex) |
-| RSA operations | `RSA/RsaCrypt.cs` (key gen, encrypt/decrypt, sign/verify, format conversion) |
-| RIPEMD hashing | `RIPEMD/RipeMD128.cs` through `RipeMD320.cs` |
+| Task             | Location                                                                     |
+|------------------|------------------------------------------------------------------------------|
+| AES encryption   | `AES/AesCrypt.cs`                                                            |
+| SM2 sign/encrypt | `SM2/Sm2Crypt.cs`                                                            |
+| SM3 hash         | `SM3/Sm3Signature.cs`                                                        |
+| SM4 encryption   | `SM4/Sm4Crypt.cs` (600 lines — many overloads, not complex)                  |
+| RSA operations   | `RSA/RsaCrypt.cs` (key gen, encrypt/decrypt, sign/verify, format conversion) |
+| RIPEMD hashing   | `RIPEMD/RipeMD128.cs` through `RipeMD320.cs`                                 |
 
 ## CONVENTIONS
 

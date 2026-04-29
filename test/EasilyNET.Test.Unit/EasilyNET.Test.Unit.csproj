@@ -1,22 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
-	<PropertyGroup>
-		<TargetFrameworks>net10.0;net11.0</TargetFrameworks>
-		<IsPackable>false</IsPackable>
-		<IsTestProject>true</IsTestProject>
-		<NoWarn>$(NoWarn);NU5104;CS1591</NoWarn>
-	</PropertyGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
-		<PackageReference Include="MSTest.TestAdapter" Version="4.2.1" />
-		<PackageReference Include="MSTest.TestFramework" Version="4.2.1" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="..\..\src\EasilyNET.Core\EasilyNET.Core.csproj" />
-		<ProjectReference Include="..\..\src\EasilyNET.Security\EasilyNET.Security.csproj" />
-		<ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
-	</ItemGroup>
+    
+    <PropertyGroup>
+        <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
+        <IsPackable>false</IsPackable>
+        <IsTestProject>true</IsTestProject>
+        <NoWarn>$(NoWarn);NU5104;CS1591</NoWarn>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+        <PackageReference Include="MSTest.TestAdapter" Version="4.2.1" />
+        <PackageReference Include="MSTest.TestFramework" Version="4.2.1" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\EasilyNET.Core\EasilyNET.Core.csproj" />
+        <ProjectReference Include="..\..\src\EasilyNET.Security\EasilyNET.Security.csproj" />
+        <ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
+    </ItemGroup>
 
 </Project>

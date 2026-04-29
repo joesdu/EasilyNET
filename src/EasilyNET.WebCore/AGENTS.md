@@ -2,7 +2,8 @@
 
 ## OVERVIEW
 
-ASP.NET Core helpers: JSON serialization, WebSocket server, exception handling, response time middleware. Depends on `EasilyNET.Core` (uses `BusinessException`, `WebSocket` client infrastructure).
+ASP.NET Core helpers: JSON serialization, WebSocket server, exception handling, response time middleware. Depends on
+`EasilyNET.Core` (uses `BusinessException`, `WebSocket` client infrastructure).
 
 ## STRUCTURE
 
@@ -18,12 +19,12 @@ EasilyNET.WebCore/
 
 ## WHERE TO LOOK
 
-| Task | Location |
-|------|----------|
-| Add JSON converter | `JsonConverters/` — register via `AddJsonOptions()` in controller setup |
-| WebSocket server | `WebSocket/` — `AddWebSocketSessionManager()` + `MapWebSocketHandler<T>()` |
-| Exception handler | `Handlers/BusinessExceptionHandler.cs` — handles `BusinessException` from Core |
-| Response time | `Middleware/ResponseTimeMiddleware.cs` — `app.UseResponseTime()` |
+| Task               | Location                                                                       |
+|--------------------|--------------------------------------------------------------------------------|
+| Add JSON converter | `JsonConverters/` — register via `AddJsonOptions()` in controller setup        |
+| WebSocket server   | `WebSocket/` — `AddWebSocketSessionManager()` + `MapWebSocketHandler<T>()`     |
+| Exception handler  | `Handlers/BusinessExceptionHandler.cs` — handles `BusinessException` from Core |
+| Response time      | `Middleware/ResponseTimeMiddleware.cs` — `app.UseResponseTime()`               |
 
 ## CONVENTIONS
 

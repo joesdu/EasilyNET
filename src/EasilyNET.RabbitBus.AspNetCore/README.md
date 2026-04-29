@@ -27,7 +27,9 @@
 4. **重新设计成本过高**：分布式设计需要从自定义交换机类型切换到自定义队列类型，需要数人年的研发投入
 
 **替代方案**：
-- 使用 RabbitMQ 的 [死信交换机（DLX）](https://www.rabbitmq.com/docs/dlx) + [TTL](https://www.rabbitmq.com/docs/ttl) 组合实现基本的延迟和重试功能
+
+- 使用 RabbitMQ 的 [死信交换机（DLX）](https://www.rabbitmq.com/docs/dlx) + [TTL](https://www.rabbitmq.com/docs/ttl)
+  组合实现基本的延迟和重试功能
 - 使用外部调度器和适合长期存储的数据库
 
 > 参考：[rabbitmq/rabbitmq-delayed-message-exchange](https://github.com/rabbitmq/rabbitmq-delayed-message-exchange)
@@ -241,28 +243,36 @@ c.AddEvent<UrgentEvent>(EModel.Headers, "urgent.headers.exchange", queueName: "u
  .And();
 ```
 
-> **注意**：Headers 交换机完全忽略 routing key，路由仅依赖消息头与绑定参数的匹配。性能上比 direct/topic 交换机稍差（需逐个匹配 header 键值对），适合多维度过滤场景。
+> **注意**：Headers 交换机完全忽略 routing key，路由仅依赖消息头与绑定参数的匹配。性能上比 direct/topic 交换机稍差（需逐个匹配
+> header 键值对），适合多维度过滤场景。
 
 #### 注意事项
 
 - **事件必须注册处理器**：仅通过 `WithHandler<THandler>()` 明确注册的处理器才会创建消费者并注入 DI。
 - **处理器生命周期**：处理器注册为 Scoped 生命周期，每条消息创建独立的 DI 作用域，可安全注入 DbContext 等 Scoped 服务。
-  > **⚠️ 破坏性变更（Breaking Change）**：处理器（Handler）、中间件（Middleware）和回退处理器（FallbackHandler）的 DI 生命周期已从 **Singleton 变更为 Scoped**。如果你的处理器依赖 Singleton 语义（如内部维护可变状态），请改用注入的 Singleton 服务来管理共享状态。此变更是为了正确支持每条消息独立的 DI 作用域，使处理器可以安全注入 `DbContext` 等 Scoped 服务。此外，中间件和回退处理器在 DI 解析失败时将抛出 `InvalidOperationException` 而非静默降级，以确保显式配置的组件不会被意外跳过。
+  > **⚠️ 破坏性变更（Breaking Change）**：处理器（Handler）、中间件（Middleware）和回退处理器（FallbackHandler）的 DI 生命周期已从
+  **Singleton 变更为 Scoped**。如果你的处理器依赖 Singleton 语义（如内部维护可变状态），请改用注入的 Singleton
+  服务来管理共享状态。此变更是为了正确支持每条消息独立的 DI 作用域，使处理器可以安全注入 `DbContext` 等 Scoped
+  服务。此外，中间件和回退处理器在 DI 解析失败时将抛出 `InvalidOperationException` 而非静默降级，以确保显式配置的组件不会被意外跳过。
 - **处理器执行顺序**：同一事件的多个处理器支持两种执行模式：
-  - **并发执行**（默认）：处理器并行执行，提高吞吐量
-  - **顺序执行**：通过 `SequentialHandlerExecution = true` 配置，确保处理器按 `order` 参数排序后依次执行
+    - **并发执行**（默认）：处理器并行执行，提高吞吐量
+    - **顺序执行**：通过 `SequentialHandlerExecution = true` 配置，确保处理器按 `order` 参数排序后依次执行
 - **中间件管道**：通过 `WithMiddleware<T>()` 注册中间件，包裹整个处理器链路。适用于事务、幂等性检查、审计日志等横切关注点。
 - **回退处理器**：通过 `WithFallbackHandler<T>()` 注册回退处理器，在所有重试耗尽后决定消息的处置方式（Ack/Nack/Requeue/DeadLetter）。
-- **分布式追踪**：框架自动为发布/消费创建 OpenTelemetry span，通过消息头传播 trace context。只需 `AddSource("EasilyNET.RabbitBus")` 即可接入。
-- **并发方式**：提高 `HandlerThreadCount`（每事件消费者数量）以及 `ConsumerDispatchConcurrency` 以提升并发；`ConsumerChannelLimit` 可限制通道数量。
+- **分布式追踪**：框架自动为发布/消费创建 OpenTelemetry span，通过消息头传播 trace context。只需
+  `AddSource("EasilyNET.RabbitBus")` 即可接入。
+- **并发方式**：提高 `HandlerThreadCount`（每事件消费者数量）以及 `ConsumerDispatchConcurrency` 以提升并发；
+  `ConsumerChannelLimit` 可限制通道数量。
 - **优先级队列**：使用优先级需设置队列参数 `x-max-priority`。
 - **默认交换机**：`EModel.None` 表示不显式声明交换机，使用默认交换机；此时 routingKey 默认为队列名。
 - **路由键覆盖**：`Publish` 的 `routingKey` 参数可覆盖事件配置中的路由键，便于 Topic 多路由。
 - **发布确认**：启用 PublisherConfirms 会影响发布性能，但能确保可靠投递；禁用可提升吞吐。
 - **批量发布**：使用 `PublishBatch` 减少网络往返；根据消息大小调整 `BatchSize`（默认 100，建议 50-500）。
-- **交换机验证**：默认启动阶段验证交换机存在且类型匹配（`ValidateExchangesOnStartup=true`）；若外部统一声明交换机，可设 `SkipExchangeDeclare=true` 跳过声明。
+- **交换机验证**：默认启动阶段验证交换机存在且类型匹配（`ValidateExchangesOnStartup=true`）；若外部统一声明交换机，可设
+  `SkipExchangeDeclare=true` 跳过声明。
 - **发布背压**：启用发布确认时，未确认数量达到 `MaxOutstandingConfirms` 会等待以保护内存。
-- **重试与死信**：确认 Nack 或确认超时会进入后台重试队列（指数退避 + 抖动）；超过 `RetryCount` 后写入死信存储。可通过实现 `IDeadLetterStore` 接口自定义死信存储（如数据库、Redis 等）。
+- **重试与死信**：确认 Nack 或确认超时会进入后台重试队列（指数退避 + 抖动）；超过 `RetryCount` 后写入死信存储。可通过实现
+  `IDeadLetterStore` 接口自定义死信存储（如数据库、Redis 等）。
 
 #### 处理器执行模式
 
@@ -285,10 +295,10 @@ c.AddEvent<LogEvent>(EModel.Routing, "log.exchange", "log.key", "log.queue")
  .And();
 ```
 
-| 模式 | 配置 | 特点 | 适用场景 |
-|------|------|------|----------|
+| 模式   | 配置                                       | 特点          | 适用场景       |
+|------|------------------------------------------|-------------|------------|
 | 并发执行 | `SequentialHandlerExecution = false`（默认） | 处理器并行执行，高吞吐 | 处理器之间无依赖关系 |
-| 顺序执行 | `SequentialHandlerExecution = true` | 按注册顺序依次执行 | 处理器有执行顺序依赖 |
+| 顺序执行 | `SequentialHandlerExecution = true`      | 按注册顺序依次执行   | 处理器有执行顺序依赖 |
 
 #### 消费者中间件管道
 
@@ -386,12 +396,12 @@ c.AddEvent<OrderEvent>(EModel.Routing, "order.exchange", "order.key", "order.que
 
 **ConsumerAction 枚举**：
 
-| 值 | 说明 |
-|------|------|
-| `Ack` | 确认消息（即使处理失败也标记为已消费） |
-| `Nack` | 拒绝消息，不重新入队 |
-| `Requeue` | 拒绝消息并重新入队，稍后重新消费 |
-| `DeadLetter` | 将消息存入死信存储后确认 |
+| 值            | 说明                  |
+|--------------|---------------------|
+| `Ack`        | 确认消息（即使处理失败也标记为已消费） |
+| `Nack`       | 拒绝消息，不重新入队          |
+| `Requeue`    | 拒绝消息并重新入队，稍后重新消费    |
+| `DeadLetter` | 将消息存入死信存储后确认        |
 
 > 若未配置回退处理器，处理失败后默认 Nack（与之前行为一致）。
 
@@ -445,7 +455,8 @@ c.AddEvent<LogEvent>(EModel.Routing, "log.exchange", "log.key", "log.queue")
 
 #### OpenTelemetry 分布式追踪
 
-框架内置 `System.Diagnostics.ActivitySource` 支持，自动为发布和消费操作创建追踪 span，并通过 RabbitMQ 消息头传播 trace context（`traceparent`/`tracestate`）。
+框架内置 `System.Diagnostics.ActivitySource` 支持，自动为发布和消费操作创建追踪 span，并通过 RabbitMQ 消息头传播 trace
+context（`traceparent`/`tracestate`）。
 
 ##### 接入 OpenTelemetry
 
@@ -464,22 +475,22 @@ builder.Services.AddOpenTelemetry()
 
 发布 span（`rabbitmq.publish`，`ActivityKind.Producer`）：
 
-| 标签 | 说明 |
-|------|------|
-| `messaging.system` | `rabbitmq` |
-| `messaging.destination` | 交换机名称 |
-| `messaging.destination_kind` | `exchange` |
-| `messaging.rabbitmq.routing_key` | 路由键 |
-| `messaging.message.id` | 事件 ID |
+| 标签                               | 说明         |
+|----------------------------------|------------|
+| `messaging.system`               | `rabbitmq` |
+| `messaging.destination`          | 交换机名称      |
+| `messaging.destination_kind`     | `exchange` |
+| `messaging.rabbitmq.routing_key` | 路由键        |
+| `messaging.message.id`           | 事件 ID      |
 
 消费 span（`rabbitmq.consume`，`ActivityKind.Consumer`）：
 
-| 标签 | 说明 |
-|------|------|
-| `messaging.system` | `rabbitmq` |
-| `messaging.source` | 来源交换机 |
-| `messaging.destination` | 路由键 |
-| `messaging.consumer_id` | 消费者索引 |
+| 标签                      | 说明         |
+|-------------------------|------------|
+| `messaging.system`      | `rabbitmq` |
+| `messaging.source`      | 来源交换机      |
+| `messaging.destination` | 路由键        |
+| `messaging.consumer_id` | 消费者索引      |
 
 > 发布端自动将 `traceparent`/`tracestate` 注入消息头，消费端自动提取并关联为父级 span，实现跨进程的完整链路追踪。
 
@@ -614,13 +625,13 @@ builder.Services.AddSingleton<IDeadLetterStore, RedisDeadLetterStore>();
 
 **IDeadLetterMessage 接口成员**：
 
-| 属性 | 类型 | 说明 |
-|------|------|------|
-| `EventType` | `string` | 事件类型名称 |
-| `EventId` | `string` | 事件唯一标识 |
-| `CreatedUtc` | `DateTime` | 消息创建时间（UTC） |
-| `RetryCount` | `int` | 进入死信前的重试次数 |
-| `OriginalEvent` | `IEvent` | 原始事件实例 |
+| 属性              | 类型         | 说明          |
+|-----------------|------------|-------------|
+| `EventType`     | `string`   | 事件类型名称      |
+| `EventId`       | `string`   | 事件唯一标识      |
+| `CreatedUtc`    | `DateTime` | 消息创建时间（UTC） |
+| `RetryCount`    | `int`      | 进入死信前的重试次数  |
+| `OriginalEvent` | `IEvent`   | 原始事件实例      |
 
 #### 高级配置示例
 
@@ -700,7 +711,7 @@ builder.Services.AddRabbitBus(c =>
 #### 健康检查与可观测性
 
 - 健康检查
-  - 已自动注册 `RabbitBusHealthCheck`。若你启用了 ASP.NET Core 健康检查端点,只需在管道中映射:
+    - 已自动注册 `RabbitBusHealthCheck`。若你启用了 ASP.NET Core 健康检查端点,只需在管道中映射:
 
   ```csharp
   // Program.cs
@@ -710,17 +721,23 @@ builder.Services.AddRabbitBus(c =>
   ```
 
 - 指标（基于 System.Diagnostics.Metrics）
-  - Meter 名称: `EasilyNET.RabbitBus`
-    - 关键指标（Meter 实际名称，已采用点分式命名规范）：
-      - 发布: `rabbitmq.publish.normal.total`, `rabbitmq.publish.retried.total`, `rabbitmq.publish.discarded.total`
-      - 确认: `rabbitmq.publish.confirm.ack.total`, `rabbitmq.publish.confirm.nack.total`, `rabbitmq.publish.outstanding.confirms`
-      - 重试: `rabbitmq.retry.enqueued.total`
-      - 连接: `rabbitmq.connection.reconnects.total`, `rabbitmq.connection.active`, `rabbitmq.channel.active`, `rabbitmq.connection.state`
-      - 死信: `rabbitmq.deadletter.total`
-      > 说明（EN）：These are the latest dot-separated metric names. Older versions used underscore-based names (for example: `rabbitmq_published_normal_total`). If you previously collected metrics via the old names, please update your dashboards/alerts accordingly.
-      > 说明（中文）：以上为最新的点分式指标命名规范，已从旧的下划线风格（例如：`rabbitmq_published_normal_total`）迁移而来。如你已基于旧名称配置监控/告警，请同步更新对应配置。
+    - Meter 名称: `EasilyNET.RabbitBus`
+        - 关键指标（Meter 实际名称，已采用点分式命名规范）：
+            - 发布: `rabbitmq.publish.normal.total`, `rabbitmq.publish.retried.total`,
+              `rabbitmq.publish.discarded.total`
+            - 确认: `rabbitmq.publish.confirm.ack.total`, `rabbitmq.publish.confirm.nack.total`,
+              `rabbitmq.publish.outstanding.confirms`
+            - 重试: `rabbitmq.retry.enqueued.total`
+            - 连接: `rabbitmq.connection.reconnects.total`, `rabbitmq.connection.active`, `rabbitmq.channel.active`,
+              `rabbitmq.connection.state`
+            - 死信: `rabbitmq.deadletter.total`
+          > 说明（EN）：These are the latest dot-separated metric names. Older versions used underscore-based names (for
+          example: `rabbitmq_published_normal_total`). If you previously collected metrics via the old names, please
+          update your dashboards/alerts accordingly.
+          > 说明（中文）：以上为最新的点分式指标命名规范，已从旧的下划线风格（例如：`rabbitmq_published_normal_total`
+          ）迁移而来。如你已基于旧名称配置监控/告警，请同步更新对应配置。
 
-  - 快速观察(开发):
+    - 快速观察(开发):
 
   ```bash
   dotnet-counters monitor --process <your-app-pid> --counters EasilyNET.RabbitBus
@@ -744,7 +761,8 @@ builder.Services.AddRabbitBus(c =>
 #### 交换机声明与验证
 
 - `SkipExchangeDeclare=true` 时,框架不会主动声明交换机,仅在需要时进行被动验证或直接发布(取决于场景)。
-- `ValidateExchangesOnStartup=true` 时,启动阶段会被动(passive)验证交换机是否存在且类型匹配; 若类型不一致,会明确报错并终止启动(避免运行期频繁连接被关闭)。
+- `ValidateExchangesOnStartup=true` 时,启动阶段会被动(passive)验证交换机是否存在且类型匹配;
+  若类型不一致,会明确报错并终止启动(避免运行期频繁连接被关闭)。
 - 若你在外部工具或基础设施层统一声明交换机,建议开启 `SkipExchangeDeclare` 以减少不必要的声明开销。
 
 ```csharp
@@ -790,66 +808,66 @@ builder.Services.AddRabbitBus(c =>
 ##### 常见问题
 
 1. **连接失败**
-   - 检查连接字符串格式
-   - 确认 RabbitMQ 服务运行状态
-   - 验证用户名密码和虚拟主机权限
+    - 检查连接字符串格式
+    - 确认 RabbitMQ 服务运行状态
+    - 验证用户名密码和虚拟主机权限
 
 2. **消息丢失**
-   - 启用 PublisherConfirms
-   - 检查消费者是否正确处理消息
-   - 确认队列和交换机正确声明
+    - 启用 PublisherConfirms
+    - 检查消费者是否正确处理消息
+    - 确认队列和交换机正确声明
 
 3. **性能问题**
-   - 检查 ConsumerDispatchConcurrency 设置
-   - 调整 HandlerThreadCount 与 PrefetchCount
-   - 分析消息处理时间瓶颈
+    - 检查 ConsumerDispatchConcurrency 设置
+    - 调整 HandlerThreadCount 与 PrefetchCount
+    - 分析消息处理时间瓶颈
 
 4. **内存泄漏**
-   - 确保消息正确确认(ack)
-   - 检查处理器是否及时释放资源
-   - 监控连接和通道数量
+    - 确保消息正确确认(ack)
+    - 检查处理器是否及时释放资源
+    - 监控连接和通道数量
 
 #### 配置参数参考表
 
-| 配置方法                 | 参数                             | 默认值                | 说明                                  |
-| ------------------------ | -------------------------------- | --------------------- | ------------------------------------- |
-| `WithConnection`         | -                                | -                     | RabbitMQ 连接配置(主机、端口、认证等) |
-| `WithConsumerSettings`   | `dispatchConcurrency`            | 10                    | 消费者调度并发数,控制同时处理的消息数 |
-|                          | `prefetchCount`                  | 100                   | QoS 预取计数,限制未确认消息数量       |
-|                          | `prefetchSize`                   | 0                     | QoS 预取大小                          |
-|                          | `global`                         | false                 | QoS 是否全局                          |
-|                          | `consumerChannelLimit`           | 0                     | 消费者通道上限(0 表示不限制)          |
-| `WithResilience`         | `retryCount`                     | 5                     | 发布失败/确认失败的重试次数           |
-|                          | `retryIntervalSeconds`           | 1                     | 后台重试检查间隔(秒)                  |
-|                          | `publisherConfirms`              | true                  | 是否启用发布确认模式                  |
-|                          | `maxOutstandingConfirms`         | 1000                  | 最大未确认发布数量                    |
-|                          | `batchSize`                      | 100                   | 批量发布大小                          |
-|                          | `confirmTimeoutMs`               | 30000                 | 发布确认超时时间(毫秒)                |
-| `WithExchangeSettings`   | `skipExchangeDeclare`            | false                 | 跳过交换机声明(外部已声明时可启用)    |
-|                          | `validateExchangesOnStartup`     | false                 | 启动验证交换机类型(调用该方法时默认)  |
-| `WithRetryQueueSizing`   | `maxSize`                        | -                     | 固定最大重试队列长度(>0 生效)         |
-|                          | `memoryRatio`                    | 0.02                  | 估算队列内存占比(0-0.25)              |
-|                          | `avgEntryBytes`                  | 2048                  | 单条重试项估算字节数                  |
-| `WithApplication`        | `appName`                        | `MachineName, EasilyNET` | 应用标识,用于日志与指标标签           |
-| `WithEventQos`           | `prefetchCount`                  | -                     | 事件级 QoS 设置(覆盖全局设置)         |
-|                          | `prefetchSize`                   | -                     | 事件级 QoS 预取大小                   |
-|                          | `global`                         | -                     | 事件级 QoS 是否全局                   |
-| `WithEventHeaders`       | `headers`                        | -                     | 消息头参数                            |
-| `WithEventQueueArgs`     | `args`                           | -                     | 队列声明参数(x-max-priority 等)       |
-| `WithEventExchangeArgs`  | `args`                           | -                     | 交换机声明参数                        |
-| `WithBindingArguments`   | `arguments`                      | -                     | Headers交换机绑定参数(x-match及匹配键值对) |
-| `WithHandler`            | `THandler`                       | -                     | 注册事件处理器(必须)                  |
-|                          | `order`                          | 0                     | 处理器执行顺序(值越小越先执行)        |
-| `WithMiddleware`         | `TMiddleware`                    | -                     | 注册事件中间件(可选,每事件最多一个)   |
-| `WithFallbackHandler`    | `TFallback`                      | -                     | 注册回退处理器(可选,重试耗尽后调用)   |
-| `WithHandlerResilience`  | `Action<ResiliencePipelineBuilder>` | 全局 HandlerPipeline | 自定义事件级弹性管道                  |
-| `WithHandlerThreadCount` | `threadCount`                    | 1                     | 该事件消费者数量(并行度)              |
-| `ConfigureEvent`         | `SequentialHandlerExecution`     | false                 | 是否按顺序执行处理器                  |
-|                          | `Exchange/Queue/Qos/Headers/...` | -                     | 事件高级配置入口                      |
-| `IgnoreHandler`          | -                                | -                     | 忽略指定的处理器                      |
-| `WithSerializer`         | -                                | System.Text.Json      | 自定义消息序列化器                    |
-| 全局                     | `SkipExchangeDeclare`            | false                 | 跳过交换机声明(外部已声明时可启用)    |
-| 全局                     | `ValidateExchangesOnStartup`     | false                 | 启动阶段验证交换机类型与存在性        |
+| 配置方法                     | 参数                                  | 默认值                      | 说明                            |
+|--------------------------|-------------------------------------|--------------------------|-------------------------------|
+| `WithConnection`         | -                                   | -                        | RabbitMQ 连接配置(主机、端口、认证等)      |
+| `WithConsumerSettings`   | `dispatchConcurrency`               | 10                       | 消费者调度并发数,控制同时处理的消息数           |
+|                          | `prefetchCount`                     | 100                      | QoS 预取计数,限制未确认消息数量            |
+|                          | `prefetchSize`                      | 0                        | QoS 预取大小                      |
+|                          | `global`                            | false                    | QoS 是否全局                      |
+|                          | `consumerChannelLimit`              | 0                        | 消费者通道上限(0 表示不限制)              |
+| `WithResilience`         | `retryCount`                        | 5                        | 发布失败/确认失败的重试次数                |
+|                          | `retryIntervalSeconds`              | 1                        | 后台重试检查间隔(秒)                   |
+|                          | `publisherConfirms`                 | true                     | 是否启用发布确认模式                    |
+|                          | `maxOutstandingConfirms`            | 1000                     | 最大未确认发布数量                     |
+|                          | `batchSize`                         | 100                      | 批量发布大小                        |
+|                          | `confirmTimeoutMs`                  | 30000                    | 发布确认超时时间(毫秒)                  |
+| `WithExchangeSettings`   | `skipExchangeDeclare`               | false                    | 跳过交换机声明(外部已声明时可启用)            |
+|                          | `validateExchangesOnStartup`        | false                    | 启动验证交换机类型(调用该方法时默认)           |
+| `WithRetryQueueSizing`   | `maxSize`                           | -                        | 固定最大重试队列长度(>0 生效)             |
+|                          | `memoryRatio`                       | 0.02                     | 估算队列内存占比(0-0.25)              |
+|                          | `avgEntryBytes`                     | 2048                     | 单条重试项估算字节数                    |
+| `WithApplication`        | `appName`                           | `MachineName, EasilyNET` | 应用标识,用于日志与指标标签                |
+| `WithEventQos`           | `prefetchCount`                     | -                        | 事件级 QoS 设置(覆盖全局设置)            |
+|                          | `prefetchSize`                      | -                        | 事件级 QoS 预取大小                  |
+|                          | `global`                            | -                        | 事件级 QoS 是否全局                  |
+| `WithEventHeaders`       | `headers`                           | -                        | 消息头参数                         |
+| `WithEventQueueArgs`     | `args`                              | -                        | 队列声明参数(x-max-priority 等)      |
+| `WithEventExchangeArgs`  | `args`                              | -                        | 交换机声明参数                       |
+| `WithBindingArguments`   | `arguments`                         | -                        | Headers交换机绑定参数(x-match及匹配键值对) |
+| `WithHandler`            | `THandler`                          | -                        | 注册事件处理器(必须)                   |
+|                          | `order`                             | 0                        | 处理器执行顺序(值越小越先执行)              |
+| `WithMiddleware`         | `TMiddleware`                       | -                        | 注册事件中间件(可选,每事件最多一个)           |
+| `WithFallbackHandler`    | `TFallback`                         | -                        | 注册回退处理器(可选,重试耗尽后调用)           |
+| `WithHandlerResilience`  | `Action<ResiliencePipelineBuilder>` | 全局 HandlerPipeline       | 自定义事件级弹性管道                    |
+| `WithHandlerThreadCount` | `threadCount`                       | 1                        | 该事件消费者数量(并行度)                 |
+| `ConfigureEvent`         | `SequentialHandlerExecution`        | false                    | 是否按顺序执行处理器                    |
+|                          | `Exchange/Queue/Qos/Headers/...`    | -                        | 事件高级配置入口                      |
+| `IgnoreHandler`          | -                                   | -                        | 忽略指定的处理器                      |
+| `WithSerializer`         | -                                   | System.Text.Json         | 自定义消息序列化器                     |
+| 全局                       | `SkipExchangeDeclare`               | false                    | 跳过交换机声明(外部已声明时可启用)            |
+| 全局                       | `ValidateExchangesOnStartup`        | false                    | 启动阶段验证交换机类型与存在性               |
 
 #### 内部架构说明
 
@@ -915,27 +933,27 @@ services.AddResiliencePipeline(Constant.HandlerPipelineName, (builder, context) 
 #### 最佳实践
 
 1. **生产环境建议**
-   - 启用 PublisherConfirms 确保消息可靠性
-   - 根据业务场景调整并发参数
-   - 监控系统资源使用率
-   - 设置合理的重试次数和超时时间
-   - 使用批量发布提高高吞吐量场景性能
+    - 启用 PublisherConfirms 确保消息可靠性
+    - 根据业务场景调整并发参数
+    - 监控系统资源使用率
+    - 设置合理的重试次数和超时时间
+    - 使用批量发布提高高吞吐量场景性能
 
 2. **开发环境建议**
-   - 使用较低的并发设置便于调试
-   - 启用详细日志记录
-   - 使用默认序列化器简化开发
-   - 测试批量发布功能
+    - 使用较低的并发设置便于调试
+    - 启用详细日志记录
+    - 使用默认序列化器简化开发
+    - 测试批量发布功能
 
 3. **性能监控**
-   - 监控消息处理延迟
-   - 跟踪消费者连接状态
-   - 观察内存和 CPU 使用率
-   - 定期检查队列积压情况
-   - 监控发布确认的成功率
+    - 监控消息处理延迟
+    - 跟踪消费者连接状态
+    - 观察内存和 CPU 使用率
+    - 定期检查队列积压情况
+    - 监控发布确认的成功率
 
 4. **错误处理**
-   - 实现全局异常处理器
-   - 配置死信存储/队列处理失败消息
-   - 设置监控告警机制
-   - 记录详细的错误日志
+    - 实现全局异常处理器
+    - 配置死信存储/队列处理失败消息
+    - 设置监控告警机制
+    - 记录详细的错误日志

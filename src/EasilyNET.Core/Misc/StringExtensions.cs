@@ -859,11 +859,11 @@ public static partial class StringExtensions
     extension(string? name)
     {
         /// <summary>
-        /// <para xml:lang="en">Validates whether the current string is a legal file or directory name.</para>
-        /// <para>
-        /// 校验项：空值、系统非法字符、纯点名（"." ".." "..."...）、
-        /// 名称长度（Windows ≤ 255）、尾部空格/点（Windows）、保留设备名（Windows）。
-        /// </para>
+        ///     <para xml:lang="en">Validates whether the current string is a legal file or directory name.</para>
+        ///     <para>
+        ///     校验项：空值、系统非法字符、纯点名（"." ".." "..."...）、
+        ///     名称长度（Windows ≤ 255）、尾部空格/点（Windows）、保留设备名（Windows）。
+        ///     </para>
         /// </summary>
         /// <returns>合法返回 true，否则返回 false。</returns>
         public bool IsValidFileOrDirectoryName()

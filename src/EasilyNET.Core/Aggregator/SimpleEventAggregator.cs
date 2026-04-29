@@ -159,7 +159,7 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
             }
             lock (_lock)
             {
-                _subscribers.RemoveAll(c => deadSubscribers.Contains(c));
+                _subscribers.RemoveAll(deadSubscribers.Contains);
             }
         }
 

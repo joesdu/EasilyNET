@@ -106,13 +106,13 @@ app.Run();
 
 ## 核心组件
 
-| 组件 | 说明 |
-|------|------|
-| `IWebSocketSession` | 代表一个客户端连接，提供 `SendAsync`、`SendTextAsync`、`SendBinaryAsync` 等方法，以及 `Items` 字典存储会话数据。 |
-| `IWebSocketSessionManager` | 会话管理器接口，提供 `GetAllSessions()`、`GetSession(id)`、`BroadcastAsync()` 等方法。 |
-| `WebSocketSessionManager` | 会话管理器默认实现，线程安全，支持会话跟踪和广播。 |
-| `WebSocketHandler` | 业务逻辑基类，处理连接、断开、消息、错误事件。 |
-| `WebSocketSessionOptions` | 会话配置选项，包括缓冲区大小、心跳设置等。 |
+| 组件                         | 说明                                                                                  |
+|----------------------------|-------------------------------------------------------------------------------------|
+| `IWebSocketSession`        | 代表一个客户端连接，提供 `SendAsync`、`SendTextAsync`、`SendBinaryAsync` 等方法，以及 `Items` 字典存储会话数据。 |
+| `IWebSocketSessionManager` | 会话管理器接口，提供 `GetAllSessions()`、`GetSession(id)`、`BroadcastAsync()` 等方法。              |
+| `WebSocketSessionManager`  | 会话管理器默认实现，线程安全，支持会话跟踪和广播。                                                           |
+| `WebSocketHandler`         | 业务逻辑基类，处理连接、断开、消息、错误事件。                                                             |
+| `WebSocketSessionOptions`  | 会话配置选项，包括缓冲区大小、心跳设置等。                                                               |
 
 ## 会话管理器 API
 
@@ -147,14 +147,14 @@ public interface IWebSocketSessionManager
 
 ## 配置说明
 
-| 属性                      | 类型                          | 默认值   | 说明                                             |
-| ------------------------- | ----------------------------- | -------- | ------------------------------------------------ |
-| `SendQueueCapacity`       | `int`                         | 1000     | 发送队列容量                                     |
-| `ReceiveBufferSize`       | `int`                         | 16384    | 接收缓冲区大小（字节）                           |
-| `HeartbeatEnabled`        | `bool`                        | `true`   | 是否启用心跳                                     |
-| `HeartbeatInterval`       | `TimeSpan`                    | 30 秒    | 心跳间隔                                         |
-| `HeartbeatTimeout`        | `TimeSpan`                    | 10 秒    | 心跳超时                                         |
-| `HeartbeatMessageType`    | `WebSocketMessageType`        | `Binary` | 心跳消息类型（Binary 兼容大多数客户端）          |
-| `HeartbeatMessageFactory` | `Func<ReadOnlyMemory<byte>>?` | "ping"   | 心跳消息工厂，设为 null 禁用发送（仅超时检测）   |
-| `CloseTimeout`            | `TimeSpan`                    | 5 秒     | 关闭超时                                         |
+| 属性                        | 类型                            | 默认值      | 说明                         |
+|---------------------------|-------------------------------|----------|----------------------------|
+| `SendQueueCapacity`       | `int`                         | 1000     | 发送队列容量                     |
+| `ReceiveBufferSize`       | `int`                         | 16384    | 接收缓冲区大小（字节）                |
+| `HeartbeatEnabled`        | `bool`                        | `true`   | 是否启用心跳                     |
+| `HeartbeatInterval`       | `TimeSpan`                    | 30 秒     | 心跳间隔                       |
+| `HeartbeatTimeout`        | `TimeSpan`                    | 10 秒     | 心跳超时                       |
+| `HeartbeatMessageType`    | `WebSocketMessageType`        | `Binary` | 心跳消息类型（Binary 兼容大多数客户端）    |
+| `HeartbeatMessageFactory` | `Func<ReadOnlyMemory<byte>>?` | "ping"   | 心跳消息工厂，设为 null 禁用发送（仅超时检测） |
+| `CloseTimeout`            | `TimeSpan`                    | 5 秒      | 关闭超时                       |
 
