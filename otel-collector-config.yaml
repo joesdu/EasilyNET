@@ -1,43 +1,43 @@
 receivers:
-    otlp:
-        protocols:
-            grpc:
-                endpoint: 0.0.0.0:4317
-            http:
-                endpoint: 0.0.0.0:4318
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
 
 processors:
-    batch:
+  batch:
 
 exporters:
-    otlp/aspire:
-        endpoint: aspire_dashboard:18889
-        headers:
-            x-otlp-api-key: "rVmuMdaqCEruWEbKANjmcIQMnKIhDiLUYSFHaZAVlMktmwDhMUAPIZyfizmoLuSwAePPVhhPigpJUIsAsPZcwfmaMnBxxRuxatrrHNSOKUxUVGFlYQtGtbqtOPasMvPd"
-        tls:
-            insecure: true
-
-    otlp/openobserve:
-        endpoint: openobserve:5081
-        headers:
-            # 由于 OpenObserve 服务端的这个Token老是不固定,所以每次都需要更改一下才行
-            Authorization: "Basic ZHlnb29kQG91dGxvb2suY29tOnY5UWtJYmp1R2N6U1hUYzA="
-            organization: default
-            stream-name: default
-        tls:
-            insecure: true
+  otlp/aspire:
+    endpoint: aspire_dashboard:18889
+    headers:
+      x-otlp-api-key: "rVmuMdaqCEruWEbKANjmcIQMnKIhDiLUYSFHaZAVlMktmwDhMUAPIZyfizmoLuSwAePPVhhPigpJUIsAsPZcwfmaMnBxxRuxatrrHNSOKUxUVGFlYQtGtbqtOPasMvPd"
+    tls:
+      insecure: true
+  
+  otlp/openobserve:
+    endpoint: openobserve:5081
+    headers:
+      # 由于 OpenObserve 服务端的这个Token老是不固定,所以每次都需要更改一下才行
+      Authorization: "Basic ZHlnb29kQG91dGxvb2suY29tOnY5UWtJYmp1R2N6U1hUYzA="
+      organization: default
+      stream-name: default
+    tls:
+      insecure: true
 
 service:
-    pipelines:
-        traces:
-            receivers: [ otlp ]
-            processors: [ batch ]
-            exporters: [ otlp/aspire, otlp/openobserve ]
-        metrics:
-            receivers: [ otlp ]
-            processors: [ batch ]
-            exporters: [ otlp/aspire, otlp/openobserve ]
-        logs:
-            receivers: [ otlp ]
-            processors: [ batch ]
-            exporters: [ otlp/aspire, otlp/openobserve ]
+  pipelines:
+    traces:
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ otlp/aspire, otlp/openobserve ]
+    metrics:
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ otlp/aspire, otlp/openobserve ]
+    logs:
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ otlp/aspire, otlp/openobserve ]

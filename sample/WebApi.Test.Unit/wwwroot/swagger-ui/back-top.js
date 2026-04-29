@@ -3,36 +3,36 @@
  * Adds Back to Top functionality
  */
 
-(function () {
-  "use strict";
+(function() {
+    "use strict";
 
-  /**
-   * Throttle function to limit the rate at which a function can be called.
-   */
-  function throttle(func, limit) {
-    let inThrottle;
-    return function () {
-      const args = arguments;
-      const context = this;
-      if (!inThrottle) {
-        func.apply(context, args);
-        inThrottle = true;
-        setTimeout(() => (inThrottle = false), limit);
-      }
-    };
-  }
-
-  /**
-   * Inject CSS styles
-   */
-  function injectStyles() {
-    const existingStyle = document.getElementById("back-to-top-style");
-    if (existingStyle) {
-      existingStyle.remove();
+    /**
+     * Throttle function to limit the rate at which a function can be called.
+     */
+    function throttle(func, limit) {
+        let inThrottle;
+        return function() {
+            const args = arguments;
+            const context = this;
+            if (!inThrottle) {
+                func.apply(context, args);
+                inThrottle = true;
+                setTimeout(() => (inThrottle = false), limit);
+            }
+        };
     }
-    const style = document.createElement("style");
-    style.id = "back-to-top-style";
-    style.textContent = `
+
+    /**
+     * Inject CSS styles
+     */
+    function injectStyles() {
+        const existingStyle = document.getElementById("back-to-top-style");
+        if (existingStyle) {
+            existingStyle.remove();
+        }
+        const style = document.createElement("style");
+        style.id = "back-to-top-style";
+        style.textContent = `
       .back-to-top-btn {
         position: fixed;
         bottom: 30px;
@@ -102,61 +102,61 @@
         }
       }
     `;
-    document.head.appendChild(style);
-  }
-
-  /**
-   * Create and inject the back-to-top button
-   */
-  function injectBackToTopButton() {
-    const existingButton = document.getElementById("back-to-top-btn");
-    if (existingButton) {
-      existingButton.remove();
+        document.head.appendChild(style);
     }
 
-    if (window.swaggerBackToTopScrollHandler) {
-      window.removeEventListener("scroll", window.swaggerBackToTopScrollHandler);
-    }
-
-    const createButton = () => {
-      const button = document.createElement("button");
-      button.id = "back-to-top-btn";
-      button.className = "back-to-top-btn";
-      button.type = "button";
-      button.innerHTML = `<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>`;
-      button.setAttribute("title", "Back to Top");
-      button.setAttribute("aria-label", "Back to Top");
-
-      button.addEventListener("click", (e) => {
-        e.preventDefault();
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      });
-
-      document.body.appendChild(button);
-
-      const handleScroll = () => {
-        if (window.scrollY > 200) {
-          button.classList.add("show");
-        } else {
-          button.classList.remove("show");
+    /**
+     * Create and inject the back-to-top button
+     */
+    function injectBackToTopButton() {
+        const existingButton = document.getElementById("back-to-top-btn");
+        if (existingButton) {
+            existingButton.remove();
         }
-      };
 
-      const throttledScroll = throttle(handleScroll, 100);
-      window.swaggerBackToTopScrollHandler = throttledScroll;
-      window.addEventListener("scroll", throttledScroll);
-      // Ensure correct initial visibility even if the page loads scrolled down
-      handleScroll();
-    };
+        if (window.swaggerBackToTopScrollHandler) {
+            window.removeEventListener("scroll", window.swaggerBackToTopScrollHandler);
+        }
 
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", createButton);
-    } else {
-      createButton();
+        const createButton = () => {
+            const button = document.createElement("button");
+            button.id = "back-to-top-btn";
+            button.className = "back-to-top-btn";
+            button.type = "button";
+            button.innerHTML = `<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>`;
+            button.setAttribute("title", "Back to Top");
+            button.setAttribute("aria-label", "Back to Top");
+
+            button.addEventListener("click", (e) => {
+                e.preventDefault();
+                window.scrollTo({top: 0, behavior: "smooth"});
+            });
+
+            document.body.appendChild(button);
+
+            const handleScroll = () => {
+                if (window.scrollY > 200) {
+                    button.classList.add("show");
+                } else {
+                    button.classList.remove("show");
+                }
+            };
+
+            const throttledScroll = throttle(handleScroll, 100);
+            window.swaggerBackToTopScrollHandler = throttledScroll;
+            window.addEventListener("scroll", throttledScroll);
+            // Ensure correct initial visibility even if the page loads scrolled down
+            handleScroll();
+        };
+
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", createButton);
+        } else {
+            createButton();
+        }
     }
-  }
 
-  // Initialize
-  injectStyles();
-  injectBackToTopButton();
+    // Initialize
+    injectStyles();
+    injectBackToTopButton();
 })();

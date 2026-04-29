@@ -4,13 +4,13 @@
 
 ## 核心设计理念
 
-1.  **快慢路径分离 (Fast/Slow Path)**:
+1. **快慢路径分离 (Fast/Slow Path)**:
     - 绝大多数无竞争场景下，通过 `Interlocked` 原子操作即可完成锁定，零内存分配（除了 Struct 包装）。
     - 仅在发生竞争时才实例化等待节点（Waiter）。
-2.  **所有权移交 (Handoff Semantics)**:
+2. **所有权移交 (Handoff Semantics)**:
     - 释放锁时，直接将所有权移交给队列中的下一个等待者，而不是将锁重置为“空闲”。
     - **优势**: 防止了“抢占（Barging）”，即新来的请求抢走了刚刚释放的锁，导致排队者饥饿。
-3.  **O(1) 取消机制**:
+3. **O(1) 取消机制**:
     - 使用 `LinkedList` 存储等待者，支持 $O(1)$ 复杂度的节点移除，这对于支持 `CancellationToken` 至关重要。
 
 ## 逻辑流程图
@@ -193,7 +193,7 @@ public void TryUpdateData()
 
 ## ⚠️ 最佳实践与注意事项
 
-1.  **非可重入 (Non-Reentrant)**:
+1. **非可重入 (Non-Reentrant)**:
 
     - 与 `Monitor` (`lock`) 不同，`AsyncLock` 是不可重入的。
     - **错误示例**:
@@ -205,11 +205,11 @@ public void TryUpdateData()
       }
       ```
 
-2.  **结构体释放 (struct Dispose)**:
+2. **结构体释放 (struct Dispose)**:
 
     - `LockAsync` 返回的是一个 `struct Release`，分配在栈上，零 GC 开销。
     - 务必使用 `using` 或 `try-finally` 确保 `Dispose` 被调用，否则锁将永远不会释放。
 
-3.  **性能极佳**:
+3. **性能极佳**:
     - 在无竞争情况下，`AsyncLock` 使用 `Interlocked` 操作，性能远超 `SemaphoreSlim`。
     - 在高并发竞争下，基于 FIFO 队列调度，保证公平性，避免线程饥饿。

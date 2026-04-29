@@ -33,7 +33,8 @@
 - [ ] 我已经在难以理解的区域注释了我的代码 (I have commented my code, particularly in hard-to-understand areas)
 - [ ] 我已经对文档进行了相应的更改 (I have made corresponding changes to the documentation)
 - [ ] 我的更改不会产生新的警告或错误 (My changes generate no new warnings or errors)
-- [ ] 我已经添加了证明我的修复有效或我的功能工作的测试 (I have added tests that prove my fix is effective or that my feature works)
+- [ ] 我已经添加了证明我的修复有效或我的功能工作的测试 (I have added tests that prove my fix is effective or that my
+  feature works)
 - [ ] 新增和现有的单元测试在本地通过我的更改 (New and existing unit tests pass locally with my changes)
 - [ ] 任何依赖变更都已合并并发布到下游模块 (Any dependent changes have been merged and published in downstream modules)
 

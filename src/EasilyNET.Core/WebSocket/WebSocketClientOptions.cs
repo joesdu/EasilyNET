@@ -208,12 +208,16 @@ public sealed class WebSocketClientOptions
     public TimeSpan DisposeLockTimeout { get; init; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets the additional grace period used by <see cref="ManagedWebSocketClient.DisposeAsync" /> after the initial lock wait times out. Default is 25 seconds.</para>
+    ///     <para xml:lang="en">
+    ///     Gets or sets the additional grace period used by <see cref="ManagedWebSocketClient.DisposeAsync" /> after the initial lock
+    ///     wait times out. Default is 25 seconds.
+    ///     </para>
     ///     <para xml:lang="zh">获取或设置 <see cref="ManagedWebSocketClient.DisposeAsync" /> 在首次等待锁超时后使用的额外宽限时间。默认为 25 秒。</para>
     /// </summary>
     /// <remarks>
     ///     <para xml:lang="en">
-    ///     If the lock is still unavailable after the total bounded wait, disposal falls back to best-effort cleanup and skips unsafe concurrent resource disposal.
+    ///     If the lock is still unavailable after the total bounded wait, disposal falls back to best-effort cleanup and skips unsafe concurrent resource
+    ///     disposal.
     ///     </para>
     ///     <para xml:lang="zh">
     ///     如果在总的有界等待时间后仍无法获取到锁，则释放会退化为 best-effort 清理，并跳过可能与并发操作冲突的资源释放。

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using EasilyNET.Core.Threading;
 
 namespace EasilyNET.Test.Unit.Threading;
@@ -11,20 +12,20 @@ public class AsyncReaderWriterLockTests
     /// <summary>
     /// 带超时保护的 await，防止回归导致测试进程永久挂起。
     /// </summary>
-    private static async Task<T> AwaitWithTimeout<T>(Task<T> task, int timeoutMs = 5000, [System.Runtime.CompilerServices.CallerArgumentExpression(nameof(task))] string? expr = null)
+    private static async Task AwaitWithTimeout<T>(Task<T> task, int timeoutMs = 5000, [CallerArgumentExpression(nameof(task))] string? expr = null)
     {
         if (task == await Task.WhenAny(task, Task.Delay(timeoutMs)))
         {
-            return await task;
+            await task;
+            return;
         }
         Assert.Fail($"Timed out after {timeoutMs}ms waiting for: {expr}");
-        return default!; // unreachable
     }
 
     /// <summary>
     /// 带超时保护的 await，防止回归导致测试进程永久挂起。
     /// </summary>
-    private static async Task AwaitWithTimeout(Task task, int timeoutMs = 5000, [System.Runtime.CompilerServices.CallerArgumentExpression(nameof(task))] string? expr = null)
+    private static async Task AwaitWithTimeout(Task task, int timeoutMs = 5000, [CallerArgumentExpression(nameof(task))] string? expr = null)
     {
         if (task == await Task.WhenAny(task, Task.Delay(timeoutMs)))
         {
@@ -130,7 +131,7 @@ public class AsyncReaderWriterLockTests
     }
 
     /// <summary>
-    /// 写锁持有时，新的读锁请求必须等待。
+    /// 写锁持有时，新读锁请求必须等待。
     /// </summary>
     [TestMethod]
     public async Task ReadLockAsync_WhileWriterHolds_ReaderMustWait()

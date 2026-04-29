@@ -2,7 +2,8 @@
 
 ## 概述
 
-RIPEMD (RACE Integrity Primitives Evaluation Message Digest) 是一系列加密哈希函数,由比利时鲁汶大学开发。本库支持以下 4 种 RIPEMD 变体:
+RIPEMD (RACE Integrity Primitives Evaluation Message Digest) 是一系列加密哈希函数,由比利时鲁汶大学开发。本库支持以下 4 种
+RIPEMD 变体:
 
 - **RIPEMD-128**: 生成 128 位 (16 字节) 哈希值
 - **RIPEMD-160**: 生成 160 位 (20 字节) 哈希值
@@ -136,12 +137,12 @@ var base64FromBytes = RipeMD320.HashToBase64(inputBytes);
 
 ## 输出长度
 
-| 算法       | 位数 | 字节数 | 十六进制字符数 |
-| ---------- | ---- | ------ | -------------- |
-| RIPEMD-128 | 128  | 16     | 32             |
-| RIPEMD-160 | 160  | 20     | 40             |
-| RIPEMD-256 | 256  | 32     | 64             |
-| RIPEMD-320 | 320  | 40     | 80             |
+| 算法         | 位数  | 字节数 | 十六进制字符数 |
+|------------|-----|-----|---------|
+| RIPEMD-128 | 128 | 16  | 32      |
+| RIPEMD-160 | 160 | 20  | 40      |
+| RIPEMD-256 | 256 | 32  | 64      |
+| RIPEMD-320 | 320 | 40  | 80      |
 
 ## 注意事项
 

@@ -2,7 +2,8 @@
 
 ## OVERVIEW
 
-Modular DI system with `DependsOn` ordering, sync/async lifecycle hooks, and `IResolver` dynamic resolution. Depends on `EasilyNET.Core` (for `TypeExtensions` scanning) and `EasilyNET.AutoDependencyInjection.Core` (for DI attributes).
+Modular DI system with `DependsOn` ordering, sync/async lifecycle hooks, and `IResolver` dynamic resolution. Depends on
+`EasilyNET.Core` (for `TypeExtensions` scanning) and `EasilyNET.AutoDependencyInjection.Core` (for DI attributes).
 
 ## STRUCTURE
 
@@ -18,24 +19,25 @@ EasilyNET.AutoDependencyInjection/
 └── ObjectAccessor.cs
 ```
 
-Note: `DependencyInjectionAttribute` and `IgnoreDependencyAttribute` live in the sibling `EasilyNET.AutoDependencyInjection.Core` package (attributes-only, minimal deps).
+Note: `DependencyInjectionAttribute` and `IgnoreDependencyAttribute` live in the sibling
+`EasilyNET.AutoDependencyInjection.Core` package (attributes-only, minimal deps).
 
 ## WHERE TO LOOK
 
-| Task | Location |
-|------|----------|
-| Create new module | Inherit `AppModule`, override `ConfigureServices` |
-| Module ordering example | `sample/WebApi.Test.Unit/AppWebModule.cs` |
-| Auto-registration logic | `Modules/DependencyAppModule.cs` (uses Core's `TypeExtensions`) |
-| Keyed services | `DependencyInjectionAttribute.ServiceKey` (in EasilyNET.AutoDependencyInjection.Core) |
-| Dynamic resolution | `Resolver/Resolver.cs`, `Resolver/ServiceProviderExtension.cs` |
-| Parameter overrides | `Resolver/Parameter.cs` (Named/Typed/Positional/Resolved) |
-| Owned lifetime | `Resolver/Owned.cs`, `Resolver/OwnedFactory.cs` |
-| Keyed index | `Resolver/KeyedServiceIndex.cs` |
-| Parameterized factories | `Resolver/ParameterizedFactoryExtensions.cs` |
-| Service registry | `Registry/ServiceRegistry.cs` |
-| Config-driven toggle | Override `GetEnable()` method |
-| Module diagnostics | `IModuleDiagnostics` interface |
+| Task                    | Location                                                                              |
+|-------------------------|---------------------------------------------------------------------------------------|
+| Create new module       | Inherit `AppModule`, override `ConfigureServices`                                     |
+| Module ordering example | `sample/WebApi.Test.Unit/AppWebModule.cs`                                             |
+| Auto-registration logic | `Modules/DependencyAppModule.cs` (uses Core's `TypeExtensions`)                       |
+| Keyed services          | `DependencyInjectionAttribute.ServiceKey` (in EasilyNET.AutoDependencyInjection.Core) |
+| Dynamic resolution      | `Resolver/Resolver.cs`, `Resolver/ServiceProviderExtension.cs`                        |
+| Parameter overrides     | `Resolver/Parameter.cs` (Named/Typed/Positional/Resolved)                             |
+| Owned lifetime          | `Resolver/Owned.cs`, `Resolver/OwnedFactory.cs`                                       |
+| Keyed index             | `Resolver/KeyedServiceIndex.cs`                                                       |
+| Parameterized factories | `Resolver/ParameterizedFactoryExtensions.cs`                                          |
+| Service registry        | `Registry/ServiceRegistry.cs`                                                         |
+| Config-driven toggle    | Override `GetEnable()` method                                                         |
+| Module diagnostics      | `IModuleDiagnostics` interface                                                        |
 
 ## CONVENTIONS
 

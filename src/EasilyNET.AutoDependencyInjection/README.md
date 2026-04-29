@@ -35,7 +35,8 @@
 - 支持命名解析、键控解析
 - 支持 `Owned<T>` 受控生命周期管理
 - 支持 `IIndex<TKey, TService>` 键控服务索引
-- 支持参数化工厂 (`Func<TParam, TService>`、`Func<T1, T2, ..., TService>` 最多 4 参数强类型，以及通用 `Func<object[], TService>` 支持 5+ 参数)
+- 支持参数化工厂 (`Func<TParam, TService>`、`Func<T1, T2, ..., TService>` 最多 4 参数强类型，以及通用
+  `Func<object[], TService>` 支持 5+ 参数)
 
 #### 5. **多平台支持**
 
@@ -54,8 +55,8 @@
 
 ### **示例项目**
 
-| 平台     | 示例项目                                                       | 状态      |
-| -------- | -------------------------------------------------------------- | --------- |
+| 平台       | 示例项目                                                         | 状态     |
+|----------|--------------------------------------------------------------|--------|
 | WPF      | [WPF 示例](https://github.com/joesdu/WpfAutoDISample)          | ✅ 最新   |
 | WinForms | [WinForms 示例](https://github.com/joesdu/WinFormAutoDISample) | ✅ 最新   |
 | WinUI3   | [WinUI3 示例](https://github.com/joesdu/WinUIAutoDISample)     | ⚠️ 待更新 |
@@ -68,11 +69,11 @@
 
 #### 核心方法
 
-| 方法                                | 说明                         |
-| ----------------------------------- | ---------------------------- |
-| `Resolve<T>(params Parameter[])`    | 解析服务（支持参数覆盖），失败抛异常 |
-| `ResolveKeyed<T>(key, params?)`     | 解析键控服务（KeyedService） |
-| `ResolveNamed<T>(name, params?)`    | 解析命名服务                 |
+| 方法                               | 说明                   |
+|----------------------------------|----------------------|
+| `Resolve<T>(params Parameter[])` | 解析服务（支持参数覆盖），失败抛异常   |
+| `ResolveKeyed<T>(key, params?)`  | 解析键控服务（KeyedService） |
+| `ResolveNamed<T>(name, params?)` | 解析命名服务               |
 
 #### 构造函数参数注入
 
@@ -254,8 +255,8 @@ public partial class MainWindow : Window
 #### ⚠️ 桌面应用注意事项
 
 1. **AddSelf 必须设置为 true**
-   - 默认情况下会注册实现类的父类（如 Window），导致无法通过 `GetRequiredService<MainWindow>()` 获取
-   - 设置 `AddSelf = true, SelfOnly = true` 确保注册具体的窗口类型
+    - 默认情况下会注册实现类的父类（如 Window），导致无法通过 `GetRequiredService<MainWindow>()` 获取
+    - 设置 `AddSelf = true, SelfOnly = true` 确保注册具体的窗口类型
 
 2. **获取 IHost 的方式不同**
 
@@ -415,7 +416,8 @@ public class AppWebModule : AppModule  // 最后初始化
 }
 ```
 
-**重要**：如果 `DatabaseModule` 依赖 `DependencyAppModule`，则 `DependencyAppModule` 会先执行，然后是 `DatabaseModule`，无论它们在 `DependsOn` 中的声明顺序如何。
+**重要**：如果 `DatabaseModule` 依赖 `DependencyAppModule`，则 `DependencyAppModule` 会先执行，然后是 `DatabaseModule`
+，无论它们在 `DependsOn` 中的声明顺序如何。
 
 #### 模块职责划分
 
@@ -513,12 +515,12 @@ public override bool GetEnable(ConfigureServicesContext context)
 
 #### 特性属性
 
-| 属性         | 类型            | 说明                                       | 默认值 |
-| ------------ | --------------- | ------------------------------------------ | ------ |
+| 属性           | 类型              | 说明                                 | 默认值    |
+|--------------|-----------------|------------------------------------|--------|
 | `Lifetime`   | ServiceLifetime | 服务生命周期（Singleton/Scoped/Transient） | Scoped |
-| `ServiceKey` | object?         | 键控服务的键值（KeyedService）             | null   |
-| `AddSelf`    | bool            | 是否注册实现类自身                         | false  |
-| `SelfOnly`   | bool            | 是否仅注册实现类（不注册接口）             | false  |
+| `ServiceKey` | object?         | 键控服务的键值（KeyedService）              | null   |
+| `AddSelf`    | bool            | 是否注册实现类自身                          | false  |
+| `SelfOnly`   | bool            | 是否仅注册实现类（不注册接口）                    | false  |
 
 #### 使用示例
 
@@ -562,43 +564,43 @@ public partial class MainWindow : Window
 #### v4.x → v5.x
 
 1. **ConfigureServices 改为同步方法**
-   - `ConfigureServices` 从 `async Task` 改为 `void`
-   - 原因：服务注册阶段本身应该是同步的，避免死锁风险
-   - 迁移：移除 `async/await` 关键字，删除 `await Task.CompletedTask`
+    - `ConfigureServices` 从 `async Task` 改为 `void`
+    - 原因：服务注册阶段本身应该是同步的，避免死锁风险
+    - 迁移：移除 `async/await` 关键字，删除 `await Task.CompletedTask`
 
 2. **新增 ConfigureServicesAsync 方法**
-   - 如需在服务注册阶段执行异步操作，重写 `ConfigureServicesAsync`
-   - 此方法在 `ConfigureServices` 之后调用
+    - 如需在服务注册阶段执行异步操作，重写 `ConfigureServicesAsync`
+    - 此方法在 `ConfigureServices` 之后调用
 
 3. **配置访问方式变更**
-   - 旧：`context.ServiceProvider.GetConfiguration()`
-   - 新：`context.Configuration`（推荐）或 `context.ServiceProvider.GetRequiredService<IConfiguration>()`
+    - 旧：`context.ServiceProvider.GetConfiguration()`
+    - 新：`context.Configuration`（推荐）或 `context.ServiceProvider.GetRequiredService<IConfiguration>()`
 
 4. **IStartupModuleRunner.Initialize 签名变更**
-   - 旧：`void Initialize()`
-   - 新：`void Initialize(IServiceProvider serviceProvider)`
+    - 旧：`void Initialize()`
+    - 新：`void Initialize(IServiceProvider serviceProvider)`
 
 5. **新增循环依赖检测**
-   - 如果模块存在循环依赖，将抛出 `InvalidOperationException`
-   - 确保模块依赖形成有向无环图（DAG）
+    - 如果模块存在循环依赖，将抛出 `InvalidOperationException`
+    - 确保模块依赖形成有向无环图（DAG）
 
 6. **新增 IModuleDiagnostics 接口**
-   - 可注入 `IModuleDiagnostics` 查看模块加载情况
-   - 支持查看模块执行顺序、自动注册服务列表
+    - 可注入 `IModuleDiagnostics` 查看模块加载情况
+    - 支持查看模块执行顺序、自动注册服务列表
 
 #### v3.x → v4.x
 
 1. **异步方法**
-   - `ConfigureServices` 和 `ApplicationInitialization` 改为异步
-   - 需要返回 `Task`，使用 `await Task.CompletedTask` 结束同步方法
+    - `ConfigureServices` 和 `ApplicationInitialization` 改为异步
+    - 需要返回 `Task`，使用 `await Task.CompletedTask` 结束同步方法
 
 2. **GetEnable 函数**
-   - 移除 `Enable` 属性
-   - 新增 `GetEnable` 方法，支持运行时动态判断
+    - 移除 `Enable` 属性
+    - 新增 `GetEnable` 方法，支持运行时动态判断
 
 3. **IHost 统一**
-   - `GetApplicationBuilder()` 已弃用
-   - 使用 `GetApplicationHost()` 并根据平台转换类型
+    - `GetApplicationBuilder()` 已弃用
+    - 使用 `GetApplicationHost()` 并根据平台转换类型
 
 ---
 
@@ -719,6 +721,7 @@ public class ModuleB : AppModule { }
 
 ### **技术支持**
 
-- 📖 示例项目: [WPF](https://github.com/joesdu/WpfAutoDISample) | [WinForms](https://github.com/joesdu/WinFormAutoDISample) | [WinUI3](https://github.com/joesdu/WinUIAutoDISample)
+- 📖
+  示例项目: [WPF](https://github.com/joesdu/WpfAutoDISample) | [WinForms](https://github.com/joesdu/WinFormAutoDISample) | [WinUI3](https://github.com/joesdu/WinUIAutoDISample)
 - 🐛 问题反馈: [GitHub Issues](https://github.com/joesdu/EasilyNET/issues)
 - 💡 功能建议: 欢迎提交 Pull Request

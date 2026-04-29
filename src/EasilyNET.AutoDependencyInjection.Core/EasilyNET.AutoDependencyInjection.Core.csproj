@@ -1,20 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
-	<PropertyGroup>
-		<AssemblyTitle>$(PackagePrefix).AutoDependencyInjection.Core</AssemblyTitle>
-		<AssemblyName>$(PackagePrefix).AutoDependencyInjection.Core</AssemblyName>
-		<PackageId>$(PackagePrefix).AutoDependencyInjection.Core</PackageId>
-		<PackageTags>AutoDependencyInjection</PackageTags>
-		<RootNamespace>EasilyNET.AutoDependencyInjection.Core</RootNamespace>
-	</PropertyGroup>
-
-	<PropertyGroup>
-		<PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection.Core</PackageProjectUrl>
-		<Description>服务模块化注入.让服务注入拥有清晰的逻辑和结构</Description>
-	</PropertyGroup>
-
-	<ItemGroup>
-		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-	</ItemGroup>
+    
+    <PropertyGroup>
+        <AssemblyTitle>$(PackagePrefix).AutoDependencyInjection.Core</AssemblyTitle>
+        <AssemblyName>$(PackagePrefix).AutoDependencyInjection.Core</AssemblyName>
+        <PackageId>$(PackagePrefix).AutoDependencyInjection.Core</PackageId>
+        <PackageTags>AutoDependencyInjection</PackageTags>
+        <RootNamespace>EasilyNET.AutoDependencyInjection.Core</RootNamespace>
+    </PropertyGroup>
+    
+    <PropertyGroup>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection.Core</PackageProjectUrl>
+        <Description>服务模块化注入.让服务注入拥有清晰的逻辑和结构</Description>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
 
 </Project>

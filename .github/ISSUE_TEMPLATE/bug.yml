@@ -1,7 +1,7 @@
 name: 🐛 上报 BUG (Report bug)
 description: 烦请您帮助我们进步(Create a report to help us improve)
 title: "[Bug]: "
-labels: ["bug"]
+labels: [ "bug" ]
 body:
   - type: markdown
     attributes:

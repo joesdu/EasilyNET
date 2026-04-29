@@ -1,6 +1,7 @@
 ## EasilyNET.Mongo.AspNetCore
 
-为 ASP.NET Core 应用提供完整的 MongoDB 集成方案，涵盖连接注册、序列化、自动索引（含 Atlas Search / Vector Search）、变更流、GridFS 文件存储、固定集合/时序集合自动创建、健康检查等开箱即用能力。
+为 ASP.NET Core 应用提供完整的 MongoDB 集成方案，涵盖连接注册、序列化、自动索引（含 Atlas Search / Vector Search）、变更流、GridFS
+文件存储、固定集合/时序集合自动创建、健康检查等开箱即用能力。
 
 ---
 
@@ -9,10 +10,10 @@
 - [安装](#安装)
 - [⚠️ 中断性变更（Breaking Changes）](#️-中断性变更breaking-changes)
 - [快速开始：注册 MongoContext](#快速开始注册-mongocontext)
-  - [方式 1：使用 IConfiguration（推荐）](#方式-1使用-iconfiguration推荐)
-  - [方式 2：使用连接字符串](#方式-2使用连接字符串)
-  - [方式 3：使用 MongoClientSettings](#方式-3使用-mongoclientsettings)
-  - [弹性连接配置](#弹性连接配置)
+    - [方式 1：使用 IConfiguration（推荐）](#方式-1使用-iconfiguration推荐)
+    - [方式 2：使用连接字符串](#方式-2使用连接字符串)
+    - [方式 3：使用 MongoClientSettings](#方式-3使用-mongoclientsettings)
+    - [弹性连接配置](#弹性连接配置)
 - [字段映射与命名约定](#字段映射与命名约定)
 - [自定义序列化器](#自定义序列化器)
 - [自动创建索引](#自动创建索引)
@@ -86,7 +87,8 @@ builder.Services.AddMongoContext<MyDbContext>(config, c =>
 });
 ```
 
-> 若不调用 `ConfigureMongoConventions`，首次 `AddMongoContext` 时将自动使用默认配置（驼峰命名 + 忽略未知字段 + `_id` 映射 + 枚举存字符串）。
+> 若不调用 `ConfigureMongoConventions`，首次 `AddMongoContext` 时将自动使用默认配置（驼峰命名 + 忽略未知字段 + `_id`
+> 映射 + 枚举存字符串）。
 
 ---
 
@@ -201,13 +203,13 @@ builder.Services.AddMongoContext<MyDbContext>(builder.Configuration, c =>
 
 **场景化建议**：
 
-| 场景           | 推荐配置                                                |
-| -------------- | ------------------------------------------------------- |
-| 同区域低延迟   | `ConnectTimeout=5s`, `ServerSelectionTimeout=5s`        |
-| 跨区域高延迟   | `ConnectTimeout=20s`, `ServerSelectionTimeout=30s`      |
-| 高并发大流量   | `MaxConnectionPoolSize=200+`, `WaitQueueTimeout=30s`    |
-| 代理 / 单节点  | 连接串加 `directConnection=true` 或 `loadBalanced=true` |
-| Atlas / 云托管 | 保持默认值，确保 `RetryReads=true`, `RetryWrites=true`  |
+| 场景          | 推荐配置                                                 |
+|-------------|------------------------------------------------------|
+| 同区域低延迟      | `ConnectTimeout=5s`, `ServerSelectionTimeout=5s`     |
+| 跨区域高延迟      | `ConnectTimeout=20s`, `ServerSelectionTimeout=30s`   |
+| 高并发大流量      | `MaxConnectionPoolSize=200+`, `WaitQueueTimeout=30s` |
+| 代理 / 单节点    | 连接串加 `directConnection=true` 或 `loadBalanced=true`   |
+| Atlas / 云托管 | 保持默认值，确保 `RetryReads=true`, `RetryWrites=true`       |
 
 > ⚠️ 弹性配置不能解决网络/认证/拓扑错误，请先排查连接串配置。
 
@@ -217,14 +219,14 @@ builder.Services.AddMongoContext<MyDbContext>(builder.Configuration, c =>
 
 默认情况下（未调用 `ConfigureMongoConventions`），框架会自动注册以下规则：
 
-| 功能                | 说明                                                        | 示例                     |
-| ------------------- | ----------------------------------------------------------- | ------------------------ |
-| **驼峰字段名**      | C# `PascalCase` → MongoDB `camelCase`                       | `PageSize` → `pageSize`  |
-| **`_id` 映射**      | 自动将 `_id` 与实体中的 `Id` / `ID` 属性互相映射            | `_id` ↔ `Id`             |
-| **枚举存字符串**    | 枚举值以字符串形式存储，便于阅读                            | `Gender.Male` → `"Male"` |
-| **忽略未知字段**    | 反序列化时忽略数据库中存在但代码中未定义的字段              | 向前兼容                 |
-| **DateTime 本地化** | `DateTime` 反序列化后自动设为 `DateTimeKind.Local`          | 时区一致                 |
-| **Decimal128**      | `decimal` 类型自动映射为 MongoDB `Decimal128`，避免精度丢失 | 金额字段                 |
+| 功能               | 说明                                            | 示例                       |
+|------------------|-----------------------------------------------|--------------------------|
+| **驼峰字段名**        | C# `PascalCase` → MongoDB `camelCase`         | `PageSize` → `pageSize`  |
+| **`_id` 映射**     | 自动将 `_id` 与实体中的 `Id` / `ID` 属性互相映射            | `_id` ↔ `Id`             |
+| **枚举存字符串**       | 枚举值以字符串形式存储，便于阅读                              | `Gender.Male` → `"Male"` |
+| **忽略未知字段**       | 反序列化时忽略数据库中存在但代码中未定义的字段                       | 向前兼容                     |
+| **DateTime 本地化** | `DateTime` 反序列化后自动设为 `DateTimeKind.Local`     | 时区一致                     |
+| **Decimal128**   | `decimal` 类型自动映射为 MongoDB `Decimal128`，避免精度丢失 | 金额字段                     |
 
 ---
 
@@ -262,7 +264,8 @@ builder.Services.RegisterSerializer(new JsonNodeSerializer());
 builder.Services.RegisterSerializer(new JsonObjectSerializer());
 ```
 
-> ⚠️ `JsonNode` 反序列化不支持 Unicode 转义字符；若需要跨系统序列化，请将 `JsonSerializerOptions.Encoder` 设为 `JavaScriptEncoder.UnsafeRelaxedJsonEscaping`。
+> ⚠️ `JsonNode` 反序列化不支持 Unicode 转义字符；若需要跨系统序列化，请将 `JsonSerializerOptions.Encoder` 设为
+`JavaScriptEncoder.UnsafeRelaxedJsonEscaping`。
 
 ### 枚举键字典
 
@@ -353,7 +356,8 @@ app.UseCreateMongoTimeSeriesCollection<MyDbContext>();
 
 ## 自动创建固定大小集合
 
-**什么是固定大小集合？** Capped Collection 类似环形缓冲区，存储达到上限后最老的文档自动被覆盖，天然维护“最近 N 条”语义，写入性能极高。适用于操作日志、审计记录、消息暂存等场景。
+**什么是固定大小集合？** Capped Collection 类似环形缓冲区，存储达到上限后最老的文档自动被覆盖，天然维护“最近 N
+条”语义，写入性能极高。适用于操作日志、审计记录、消息暂存等场景。
 
 通过 `[CappedCollection]` 特性标记（详见 `EasilyNET.Mongo.Core` 文档）：
 
@@ -385,9 +389,11 @@ app.UseCreateMongoCappedCollections<MyDbContext>();
 
 ## Atlas Search / Vector Search 索引自动创建
 
-Atlas Search 是基于 Apache Lucene 的全文搜索引擎，支持中文分词、相关性排序、自动补全。Vector Search 是 AI 语义搜索的核心能力，广泛用于 RAG（检索增强生成）场景。
+Atlas Search 是基于 Apache Lucene 的全文搜索引擎，支持中文分词、相关性排序、自动补全。Vector Search 是 AI 语义搜索的核心能力，广泛用于
+RAG（检索增强生成）场景。
 
-通过 `[MongoSearchIndex]`、`[SearchField]`、`[VectorField]`、`[VectorFilterField]` 特性声明（详见 `EasilyNET.Mongo.Core` 文档）：
+通过 `[MongoSearchIndex]`、`[SearchField]`、`[VectorField]`、`[VectorFilterField]` 特性声明（详见 `EasilyNET.Mongo.Core`
+文档）：
 
 ```csharp
 [MongoSearchIndex(Name = "product_search")]
@@ -414,7 +420,8 @@ public class Product
 }
 ```
 
-对于**未在 `MongoContext` 上声明为 `IMongoCollection<T>` 属性**的实体类型，可以通过 `CollectionName` 显式指定集合名称，框架会通过程序集扫描自动发现并创建索引：
+对于**未在 `MongoContext` 上声明为 `IMongoCollection<T>` 属性**的实体类型，可以通过 `CollectionName`
+显式指定集合名称，框架会通过程序集扫描自动发现并创建索引：
 
 ```csharp
 // 该实体不需要在 DbContext 中声明，框架通过程序集扫描自动发现
@@ -552,14 +559,14 @@ builder.Services.AddMongoChangeStreamHandler<OrderChangeStreamHandler>();
 
 **`ChangeStreamHandlerOptions` 参数说明**：
 
-| 属性                        | 默认值                        | 说明                                 |
-| --------------------------- | ----------------------------- | ------------------------------------ |
+| 属性                          | 默认值                           | 说明                   |
+|-----------------------------|-------------------------------|----------------------|
 | `MaxRetryAttempts`          | `5`                           | 断线后最大重试次数，`0` 表示无限重试 |
-| `RetryDelay`                | `2s`                          | 首次重试间隔，后续每次翻倍           |
-| `MaxRetryDelay`             | `60s`                         | 重试间隔上限                         |
-| `PersistResumeToken`        | `false`                       | 是否将恢复令牌持久化到 MongoDB       |
-| `ResumeTokenCollectionName` | `"_changeStreamResumeTokens"` | 存储恢复令牌的集合名                 |
-| `FullDocument`              | `UpdateLookup`                | 更新事件是否返回完整文档             |
+| `RetryDelay`                | `2s`                          | 首次重试间隔，后续每次翻倍        |
+| `MaxRetryDelay`             | `60s`                         | 重试间隔上限               |
+| `PersistResumeToken`        | `false`                       | 是否将恢复令牌持久化到 MongoDB  |
+| `ResumeTokenCollectionName` | `"_changeStreamResumeTokens"` | 存储恢复令牌的集合名           |
+| `FullDocument`              | `UpdateLookup`                | 更新事件是否返回完整文档         |
 
 ### 断点续传工作原理
 
@@ -841,13 +848,13 @@ app.Run();
 
 连接池暂停意味着驱动将服务器标记为不可用。常见原因：
 
-| 原因                    | 解决方式                                                       |
-| ----------------------- | -------------------------------------------------------------- |
-| 网络不可达 / 防火墙拦截 | 确认应用机器能访问 `host:port`，安全组已放行                   |
-| 认证或 TLS 错误         | 检查用户名、密码、`authSource`、`tls` 参数                     |
-| 单节点 / 代理访问       | 连接串加 `directConnection=true` 或 `loadBalanced=true`        |
-| 副本集名称不匹配        | 连接串中的 `replicaSet` 必须与服务端一致                       |
-| 连接池耗尽              | 降低 `MinConnectionPoolSize`，合理设置 `MaxConnectionPoolSize` |
+| 原因            | 解决方式                                                    |
+|---------------|---------------------------------------------------------|
+| 网络不可达 / 防火墙拦截 | 确认应用机器能访问 `host:port`，安全组已放行                            |
+| 认证或 TLS 错误    | 检查用户名、密码、`authSource`、`tls` 参数                          |
+| 单节点 / 代理访问    | 连接串加 `directConnection=true` 或 `loadBalanced=true`      |
+| 副本集名称不匹配      | 连接串中的 `replicaSet` 必须与服务端一致                             |
+| 连接池耗尽         | 降低 `MinConnectionPoolSize`，合理设置 `MaxConnectionPoolSize` |
 
 推荐在连接串中显式设置超时：
 

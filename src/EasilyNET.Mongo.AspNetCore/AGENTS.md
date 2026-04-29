@@ -2,7 +2,9 @@
 
 ## OVERVIEW
 
-MongoDB driver wrapper for ASP.NET Core with auto-mapping, custom serializers, attribute-based indexing, change streams, GridFS, health checks, Atlas Search/Vector Search, resilience options, and time series/capped collection support. Depends on `EasilyNET.Core` and `EasilyNET.Mongo.Core`. Key dep: MongoDB.Driver 3.7.1.
+MongoDB driver wrapper for ASP.NET Core with auto-mapping, custom serializers, attribute-based indexing, change streams,
+GridFS, health checks, Atlas Search/Vector Search, resilience options, and time series/capped collection support.
+Depends on `EasilyNET.Core` and `EasilyNET.Mongo.Core`. Key dep: MongoDB.Driver 3.7.1.
 
 ## STRUCTURE
 
@@ -30,30 +32,32 @@ EasilyNET.Mongo.AspNetCore/
 └── Serializers/        # DateOnly, TimeOnly, JsonNode, JsonObject, EnumKeyDictionary serializers
 ```
 
-Sibling `EasilyNET.Mongo.Core` provides: `MongoContext` base class, index/collection/search attributes, enums, geo queries, bulk write extensions.
+Sibling `EasilyNET.Mongo.Core` provides: `MongoContext` base class, index/collection/search attributes, enums, geo
+queries, bulk write extensions.
 
 ## WHERE TO LOOK
 
-| Task | Location |
-|------|----------|
-| Register MongoContext | `Extensions/MongoServiceExtensions.cs` (3 overloads: IConfiguration, string, MongoClientSettings) |
-| Add serializer | `Serializers/`, register via `Extensions/SerializersCollectionExtensions.cs` |
-| Configure client | `Options/ClientOptions.cs`, `Options/BasicClientOptions.cs` |
-| Configure conventions | `Options/MongoConventionOptions.cs` via `ConfigureMongoConventions()` — must call before `AddMongoContext` |
-| Resilience settings | `Options/MongoResilienceOptions.cs` |
-| Custom conventions | `Conventions/` |
-| Index creation | `Extensions/CollectionIndexExtensions.cs` + `Indexing/` |
-| Time series collections | `Extensions/TimeSeriesCollectionExtensions.cs` |
-| Capped collections | `Extensions/CappedCollectionExtensions.cs` |
-| Change streams | `ChangeStreams/MongoChangeStreamHandler.cs` + `Extensions/ChangeStreamServiceExtensions.cs` |
-| GridFS | `Extensions/GridFSServiceExtensions.cs` (supports keyed services for multi-bucket) |
-| Health checks | `Extensions/MongoHealthCheckExtensions.cs`, `HealthChecks/MongoHealthCheck.cs` |
-| Atlas Search indexes | `Extensions/SearchIndexExtensions.cs`, `SearchIndex/` |
+| Task                    | Location                                                                                                   |
+|-------------------------|------------------------------------------------------------------------------------------------------------|
+| Register MongoContext   | `Extensions/MongoServiceExtensions.cs` (3 overloads: IConfiguration, string, MongoClientSettings)          |
+| Add serializer          | `Serializers/`, register via `Extensions/SerializersCollectionExtensions.cs`                               |
+| Configure client        | `Options/ClientOptions.cs`, `Options/BasicClientOptions.cs`                                                |
+| Configure conventions   | `Options/MongoConventionOptions.cs` via `ConfigureMongoConventions()` — must call before `AddMongoContext` |
+| Resilience settings     | `Options/MongoResilienceOptions.cs`                                                                        |
+| Custom conventions      | `Conventions/`                                                                                             |
+| Index creation          | `Extensions/CollectionIndexExtensions.cs` + `Indexing/`                                                    |
+| Time series collections | `Extensions/TimeSeriesCollectionExtensions.cs`                                                             |
+| Capped collections      | `Extensions/CappedCollectionExtensions.cs`                                                                 |
+| Change streams          | `ChangeStreams/MongoChangeStreamHandler.cs` + `Extensions/ChangeStreamServiceExtensions.cs`                |
+| GridFS                  | `Extensions/GridFSServiceExtensions.cs` (supports keyed services for multi-bucket)                         |
+| Health checks           | `Extensions/MongoHealthCheckExtensions.cs`, `HealthChecks/MongoHealthCheck.cs`                             |
+| Atlas Search indexes    | `Extensions/SearchIndexExtensions.cs`, `SearchIndex/`                                                      |
 
 ## CONVENTIONS
 
 - Use `AddMongoContext<T>()` for registration
-- Default conventions (camelCase, Id mapping, enum-as-string, ignore extra elements, DateTime local, Decimal128) applied automatically unless `ConfigureMongoConventions` is called
+- Default conventions (camelCase, Id mapping, enum-as-string, ignore extra elements, DateTime local, Decimal128) applied
+  automatically unless `ConfigureMongoConventions` is called
 - `ConfigureMongoConventions` replaces defaults — only user-added conventions via `AddConvention()` are registered
 - Convention configuration is global and idempotent — at most once, before any `AddMongoContext` call
 - Resilience options: `c.Resilience.Enable = true` for recommended defaults

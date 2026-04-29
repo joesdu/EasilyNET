@@ -2,7 +2,9 @@
 
 ## OVERVIEW
 
-RabbitMQ event bus with publisher confirms, Channel<T> retry queue, Polly resilience, dead letter store, consumer middleware pipeline, and OpenTelemetry tracing. Depends on `EasilyNET.RabbitBus.Core`. Key dep: RabbitMQ.Client 7.2.1, Polly (via Microsoft.Extensions.Resilience).
+RabbitMQ event bus with publisher confirms, Channel<T> retry queue, Polly resilience, dead letter store, consumer
+middleware pipeline, and OpenTelemetry tracing. Depends on `EasilyNET.RabbitBus.Core`. Key dep: RabbitMQ.Client 7.2.1,
+Polly (via Microsoft.Extensions.Resilience).
 
 ## STRUCTURE
 
@@ -24,23 +26,25 @@ Sibling `EasilyNET.RabbitBus.Core` provides: `Event` base class, `IEventHandler<
 
 ## WHERE TO LOOK
 
-| Task | Location |
-|------|----------|
-| Add event configuration | `AddEvent<T>()` in `RabbitServiceExtension.cs` |
-| Modify connection logic | `Manager/PersistentConnection.cs` (528 lines, complexity hotspot) |
-| Change retry behavior | `Manager/EventPublisher.cs` (625 lines, complexity hotspot) |
-| Handler execution | `Manager/EventHandlerInvoker.cs` (534 lines, complexity hotspot) |
-| Custom serializer | Implement `IBusSerializer`, use `WithSerializer<T>()` |
-| Custom dead letter store | Implement `IDeadLetterStore`, register as singleton |
-| Consumer middleware | Implement `IEventMiddleware<T>`, use `WithMiddleware<T>()` |
-| Fallback handler | Implement `IEventFallbackHandler<T>`, use `WithFallbackHandler<T>()` |
-| Per-event resilience | `WithHandlerResilience(builder => ...)` |
+| Task                     | Location                                                             |
+|--------------------------|----------------------------------------------------------------------|
+| Add event configuration  | `AddEvent<T>()` in `RabbitServiceExtension.cs`                       |
+| Modify connection logic  | `Manager/PersistentConnection.cs` (528 lines, complexity hotspot)    |
+| Change retry behavior    | `Manager/EventPublisher.cs` (625 lines, complexity hotspot)          |
+| Handler execution        | `Manager/EventHandlerInvoker.cs` (534 lines, complexity hotspot)     |
+| Custom serializer        | Implement `IBusSerializer`, use `WithSerializer<T>()`                |
+| Custom dead letter store | Implement `IDeadLetterStore`, register as singleton                  |
+| Consumer middleware      | Implement `IEventMiddleware<T>`, use `WithMiddleware<T>()`           |
+| Fallback handler         | Implement `IEventFallbackHandler<T>`, use `WithFallbackHandler<T>()` |
+| Per-event resilience     | `WithHandlerResilience(builder => ...)`                              |
 
 ## COMPLEXITY HOTSPOTS
 
 The `Manager/` directory contains the 3 most complex files in this package:
+
 - `EventPublisher.cs` — publish queue, confirms tracking, timeout monitoring, retry channel, backpressure, metrics
-- `EventHandlerInvoker.cs` — deserialization, middleware pipeline, handler chain (sequential/concurrent), fallback, ack/nack, tracing
+- `EventHandlerInvoker.cs` — deserialization, middleware pipeline, handler chain (sequential/concurrent), fallback,
+  ack/nack, tracing
 - `PersistentConnection.cs` — connection/channel lifecycle, reconnect orchestration, consumer channel management
 
 ## CONVENTIONS

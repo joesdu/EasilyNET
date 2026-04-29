@@ -184,8 +184,8 @@ internal sealed class WebSocketSession : IWebSocketSession
         }
         var isConnected = false;
         var allTasks = heartbeatTask != null
-            ? new[] { sendTask, receiveTask, heartbeatTask }
-            : new[] { sendTask, receiveTask };
+                           ? new[] { sendTask, receiveTask, heartbeatTask }
+                           : new[] { sendTask, receiveTask };
         try
         {
             await _handler.OnConnectedAsync(this).ConfigureAwait(false);

@@ -79,9 +79,9 @@ docker compose -f docker-compose.mongo.rs.yml up -d
 docker compose -f docker-compose.basic.service.yml up -d
 ```
 
-| 服务名称        | 服务描述 | 端口映射   | 镜像名称                                                 |
-| --------------- | -------- | ---------- | -------------------------------------------------------- |
-| Garnet          | 缓存     | 6379       | ghcr.io/microsoft/garnet:latest                          |
+| 服务名称            | 服务描述 | 端口映射       | 镜像名称                                                     |
+|-----------------|------|------------|----------------------------------------------------------|
+| Garnet          | 缓存   | 6379       | ghcr.io/microsoft/garnet:latest                          |
 | RabbitMQ        | 消息队列 | 15672,5672 | rabbitmq:management                                      |
 | AspireDashboard | 可观测性 | 18888,4317 | mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest |
 
@@ -94,7 +94,7 @@ docker compose -f docker-compose.basic.service.yml up -d
 ```
 
 | Service         | Description   | Ports      | Image                                                    |
-| --------------- | ------------- | ---------- | -------------------------------------------------------- |
+|-----------------|---------------|------------|----------------------------------------------------------|
 | Garnet          | Cache         | 6379       | ghcr.io/microsoft/garnet:latest                          |
 | RabbitMQ        | MQ            | 15672,5672 | rabbitmq:management                                      |
 | AspireDashboard | Observability | 18888,4317 | mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest |
@@ -104,38 +104,38 @@ docker compose -f docker-compose.basic.service.yml up -d
 ## 模块与文档索引
 
 - Core
-  - [EasilyNET.Core](./src/EasilyNET.Core/README.md)
-  - [IO](./src/EasilyNET.Core/IO/README.md)
-  - [Threading](./src/EasilyNET.Core/Threading/README.md)
-  - [WebSocket Client](./src/EasilyNET.Core/WebSocket/README.md)
-  - [Language](./src/EasilyNET.Core/Language/README.md)
-  - [IDCard](./src/EasilyNET.Core/IDCard/README.md)
-  - [Coordinate](./src/EasilyNET.Core/Coordinate/README.md)
+    - [EasilyNET.Core](./src/EasilyNET.Core/README.md)
+    - [IO](./src/EasilyNET.Core/IO/README.md)
+    - [Threading](./src/EasilyNET.Core/Threading/README.md)
+    - [WebSocket Client](./src/EasilyNET.Core/WebSocket/README.md)
+    - [Language](./src/EasilyNET.Core/Language/README.md)
+    - [IDCard](./src/EasilyNET.Core/IDCard/README.md)
+    - [Coordinate](./src/EasilyNET.Core/Coordinate/README.md)
 
 - AutoDependencyInjection
-  - [EasilyNET.AutoDependencyInjection](./src/EasilyNET.AutoDependencyInjection/README.md)
-  - [EasilyNET.AutoDependencyInjection.Core](./src/EasilyNET.AutoDependencyInjection.Core/README.md)
+    - [EasilyNET.AutoDependencyInjection](./src/EasilyNET.AutoDependencyInjection/README.md)
+    - [EasilyNET.AutoDependencyInjection.Core](./src/EasilyNET.AutoDependencyInjection.Core/README.md)
 
 - WebCore
-  - [EasilyNET.WebCore](./src/EasilyNET.WebCore/README.md)
-  - [WebSocket Server](./src/EasilyNET.WebCore/WebSocket/README.md)
+    - [EasilyNET.WebCore](./src/EasilyNET.WebCore/README.md)
+    - [WebSocket Server](./src/EasilyNET.WebCore/WebSocket/README.md)
 
 - RabbitBus
-  - [EasilyNET.RabbitBus.Core](./src/EasilyNET.RabbitBus.Core/README.md)
-  - [EasilyNET.RabbitBus.AspNetCore](./src/EasilyNET.RabbitBus.AspNetCore/README.md)
+    - [EasilyNET.RabbitBus.Core](./src/EasilyNET.RabbitBus.Core/README.md)
+    - [EasilyNET.RabbitBus.AspNetCore](./src/EasilyNET.RabbitBus.AspNetCore/README.md)
 
 - Mongo
-  - [EasilyNET.Mongo.Core](./src/EasilyNET.Mongo.Core/README.md)
-  - [EasilyNET.Mongo.AspNetCore](./src/EasilyNET.Mongo.AspNetCore/README.md)
-  - [EasilyNET.Mongo.ConsoleDebug](./src/EasilyNET.Mongo.ConsoleDebug/README.md)
+    - [EasilyNET.Mongo.Core](./src/EasilyNET.Mongo.Core/README.md)
+    - [EasilyNET.Mongo.AspNetCore](./src/EasilyNET.Mongo.AspNetCore/README.md)
+    - [EasilyNET.Mongo.ConsoleDebug](./src/EasilyNET.Mongo.ConsoleDebug/README.md)
 
 - Security
-  - [EasilyNET.Security](./src/EasilyNET.Security/README.md)
-  - [AES](./src/EasilyNET.Security/AES/README.md)
-  - [RIPEMD](./src/EasilyNET.Security/RIPEMD/README.md)
+    - [EasilyNET.Security](./src/EasilyNET.Security/README.md)
+    - [AES](./src/EasilyNET.Security/AES/README.md)
+    - [RIPEMD](./src/EasilyNET.Security/RIPEMD/README.md)
 
 - Sample
-  - [WebApi.Test.Unit](./sample/WebApi.Test.Unit/README.md)
+    - [WebApi.Test.Unit](./sample/WebApi.Test.Unit/README.md)
 
 <details>
 <summary style="font-size: 14px">English</summary>
@@ -155,8 +155,8 @@ Module docs are listed above. Some Mongo sub-packages currently have no standalo
 
 </details>
 
-| NuGet Package                           | Version      | Download     | Document                                                  |
-| --------------------------------------- | ------------ | ------------ | --------------------------------------------------------- |
+| NuGet Package                           | Version      | Download     | Document                                                |
+|-----------------------------------------|--------------|--------------|---------------------------------------------------------|
 | [EasilyNET.Core][8]                     | ![Nuget][9]  | ![Nuget][10] | [文档](./src/EasilyNET.Core/README.md)                    |
 | [EasilyNET.WebCore][11]                 | ![Nuget][12] | ![Nuget][13] | [文档](./src/EasilyNET.WebCore/README.md)                 |
 | [EasilyNET.AutoDependencyInjection][14] | ![Nuget][15] | ![Nuget][16] | [文档](./src/EasilyNET.AutoDependencyInjection/README.md) |
@@ -193,30 +193,57 @@ Module docs are listed above. Some Mongo sub-packages currently have no standalo
 <!--文档中的各项链接-->
 
 [1]: https://img.shields.io/badge/License-MIT-brightgreen.svg
+
 [2]: LICENSE
+
 [3]: https://img.shields.io/github/issues/EasilyNET/EasilyNET
+
 [4]: https://img.shields.io/github/forks/EasilyNET/EasilyNET
+
 [5]: https://img.shields.io/github/stars/EasilyNET/EasilyNET
+
 [6]: https://img.shields.io/github/commit-activity/y/EasilyNET/EasilyNET
+
 [7]: https://img.shields.io/github/last-commit/EasilyNET/EasilyNET
+
 [8]: https://www.nuget.org/packages/EasilyNET.Core
+
 [9]: https://img.shields.io/nuget/v/EasilyNET.Core
+
 [10]: https://img.shields.io/nuget/dt/EasilyNET.Core
+
 [11]: https://www.nuget.org/packages/EasilyNET.WebCore
+
 [12]: https://img.shields.io/nuget/v/EasilyNET.WebCore
+
 [13]: https://img.shields.io/nuget/dt/EasilyNET.WebCore
+
 [14]: https://www.nuget.org/packages/EasilyNET.AutoDependencyInjection
+
 [15]: https://img.shields.io/nuget/v/EasilyNET.AutoDependencyInjection
+
 [16]: https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection
+
 [17]: https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore
+
 [18]: https://img.shields.io/nuget/v/EasilyNET.RabbitBus.AspNetCore
+
 [19]: https://img.shields.io/nuget/dt/EasilyNET.RabbitBus.AspNetCore
+
 [20]: https://www.nuget.org/packages/EasilyNET.Security
+
 [21]: https://img.shields.io/nuget/v/EasilyNET.Security
+
 [22]: https://img.shields.io/nuget/dt/EasilyNET.Security
+
 [23]: https://www.nuget.org/packages/EasilyNET.Mongo.AspNetCore
+
 [24]: https://img.shields.io/nuget/v/EasilyNET.Mongo.AspNetCore
+
 [25]: https://img.shields.io/nuget/dt/EasilyNET.Mongo.AspNetCore
+
 [26]: https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug
+
 [27]: https://img.shields.io/nuget/v/EasilyNET.Mongo.ConsoleDebug
+
 [28]: https://img.shields.io/nuget/dt/EasilyNET.Mongo.ConsoleDebug
