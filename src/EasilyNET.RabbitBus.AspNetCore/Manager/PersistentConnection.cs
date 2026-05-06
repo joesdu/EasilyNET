@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Registry;
 using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 
 namespace EasilyNET.RabbitBus.AspNetCore.Manager;
 
@@ -29,6 +30,10 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
 
     // 确保仅存在一个重连任务
     private Task? _reconnectTask;
+
+    // 保存事件委托引用，用于在 DisposeAsync 中正确注销
+    private AsyncEventHandler<ShutdownEventArgs>? _shutdownHandler;
+    private AsyncEventHandler<ConnectionBlockedEventArgs>? _blockedHandler;
 
     public async ValueTask DisposeAsync()
     {
@@ -53,10 +58,17 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
         {
             try
             {
-                // 注意：RabbitMQ Client 的事件移除可能不完全可靠（如果是匿名委托），
-                // 但我们已经在事件处理器内部加了 _disposed 检查作为双重保障。
-                _currentConnection.ConnectionShutdownAsync -= null;
-                _currentConnection.ConnectionBlockedAsync -= null;
+                // 使用保存的委托引用注销，确保能正确移除匿名委托处理器
+                if (_shutdownHandler is not null)
+                {
+                    _currentConnection.ConnectionShutdownAsync -= _shutdownHandler;
+                    _shutdownHandler = null;
+                }
+                if (_blockedHandler is not null)
+                {
+                    _currentConnection.ConnectionBlockedAsync -= _blockedHandler;
+                    _blockedHandler = null;
+                }
             }
             catch
             {
@@ -303,7 +315,9 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
         {
             return;
         }
-        _currentConnection.ConnectionShutdownAsync += async (_, args) =>
+
+        // 将委托赋值给字段，以便后续能用相同引用正确注销
+        _shutdownHandler = async (_, args) =>
         {
             if (_disposed)
             {
@@ -317,7 +331,7 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
             ConnectionDisconnected?.Invoke(this, EventArgs.Empty); // 触发断开事件
             await StartReconnectProcess(ct);                       // 启动重连流程
         };
-        _currentConnection.ConnectionBlockedAsync += async (_, args) =>
+        _blockedHandler = async (_, args) =>
         {
             if (_disposed)
             {
@@ -331,6 +345,9 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
             ConnectionDisconnected?.Invoke(this, EventArgs.Empty); // 触发断开事件
             await Task.CompletedTask;
         };
+
+        _currentConnection.ConnectionShutdownAsync += _shutdownHandler;
+        _currentConnection.ConnectionBlockedAsync += _blockedHandler;
         _eventsRegistered = true;
     }
 
@@ -468,6 +485,8 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
                     _currentConnection = newConnection;
                     _currentChannel = newChannel;
                     _eventsRegistered = false; // 重置事件注册标志
+                    _shutdownHandler = null;   // 清空旧委托引用，RegisterConnectionEvents 将重新赋值
+                    _blockedHandler = null;
                     RabbitBusMetrics.ActiveConnections.Add(1);
                     RabbitBusMetrics.ActiveChannels.Add(1);
                 }
