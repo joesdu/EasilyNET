@@ -146,13 +146,17 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         {
             disposedStateChanged = TryUpdateState(WebSocketClientState.Disposed);
 
-            // 3. Close socket only while holding the lock to prevent races with concurrent operations.
-            if (lockAcquired && _session?.Socket.State is WebSocketState.Open)
+            // 3. Close/dispose the current session only while holding the lock to prevent races with concurrent operations.
+            if (lockAcquired && _session is not null)
             {
+                var session = _session;
                 try
                 {
-                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                    await _session.Socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Disposing", timeoutCts.Token).ConfigureAwait(false);
+                    if (session.Socket.State is WebSocketState.Open)
+                    {
+                        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                        await session.Socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Disposing", timeoutCts.Token).ConfigureAwait(false);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -160,7 +164,8 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                 }
                 finally
                 {
-                    _session.Dispose();
+                    session.Dispose();
+                    _session = null;
                 }
             }
 
@@ -185,6 +190,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     try
                     {
                         _session.Dispose();
+                        _session = null;
                     }
                     catch (Exception ex)
                     {
@@ -212,7 +218,21 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     ///     <para xml:lang="en">Occurs when a message is received.</para>
     ///     <para xml:lang="zh">当收到消息时发生。</para>
     /// </summary>
+    /// <remarks>
+    ///     <para xml:lang="en">This event is synchronous. Do not use <c>async</c> lambdas with it unless you copy <see cref="WebSocketMessageReceivedEventArgs.Data" /> first. For asynchronous processing, prefer <see cref="MessageReceivedAsync" />.</para>
+    ///     <para xml:lang="zh">此事件是同步事件。除非先复制 <see cref="WebSocketMessageReceivedEventArgs.Data" />，否则不要在此事件上使用 <c>async</c> lambda。异步处理请优先使用 <see cref="MessageReceivedAsync" />。</para>
+    /// </remarks>
     public event EventHandler<WebSocketMessageReceivedEventArgs>? MessageReceived;
+
+    /// <summary>
+    ///     <para xml:lang="en">Occurs when a message is received and allows asynchronous handlers to finish before the pooled receive buffer is returned.</para>
+    ///     <para xml:lang="zh">当收到消息时发生，并允许异步处理器在池化接收缓冲区归还前完成处理。</para>
+    /// </summary>
+    /// <remarks>
+    ///     <para xml:lang="en">Prefer this event when message processing needs <c>await</c>. The <see cref="WebSocketMessageReceivedEventArgs.Data" /> buffer remains valid until every subscribed async handler completes.</para>
+    ///     <para xml:lang="zh">当消息处理需要 <c>await</c> 时优先使用此事件。直到所有已订阅的异步处理器完成前，<see cref="WebSocketMessageReceivedEventArgs.Data" /> 缓冲区都会保持有效。</para>
+    /// </remarks>
+    public event Func<ManagedWebSocketClient, WebSocketMessageReceivedEventArgs, ValueTask>? MessageReceivedAsync;
 
     /// <summary>
     ///     <para xml:lang="en">Occurs when the client is attempting to reconnect.</para>
@@ -647,6 +667,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     true,
                     rentedMessageArray);
                 OnMessageReceived(args); // EN: client disposes buffer after all subscribers return; Data is only valid during callback. / ZH: 事件返回后由客户端统一 Dispose，Data 仅在回调期间有效
+                await OnMessageReceivedAsync(args).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) { }
@@ -709,6 +730,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
     private void FailPendingSends(Exception exception)
     {
+        var droppedFireAndForgetMessages = false;
         while (_sendChannel.Reader.TryRead(out var msg))
         {
             if (msg.RentedArray is not null)
@@ -717,6 +739,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             }
             if (msg.CompletionSource is null)
             {
+                droppedFireAndForgetMessages = true;
                 continue;
             }
             if (exception is OperationCanceledException operationCanceledException)
@@ -725,6 +748,10 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                 continue;
             }
             msg.CompletionSource.TrySetException(exception);
+        }
+        if (droppedFireAndForgetMessages)
+        {
+            OnError(new(exception, "Queued fire-and-forget WebSocket message was dropped before send completion."));
         }
     }
 
@@ -859,6 +886,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         PublishStateChanged(stateChanged);
         if (!shouldReconnect)
         {
+            await DisposeSessionIfCurrentAsync(session).ConfigureAwait(false);
             OnClosed(new(closeStatus, closeStatusDescription ?? exception?.Message, false));
             return;
         }
@@ -907,6 +935,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             OnReconnecting(args);
             if (args.Cancel)
             {
+                await DisposeCurrentSessionAsync().ConfigureAwait(false);
                 SetState(WebSocketClientState.Disconnected);
                 FailPendingSends(new OperationCanceledException("Reconnection cancelled."));
                 return;
@@ -956,6 +985,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         }
 
         // Failed to reconnect after max attempts
+        await DisposeCurrentSessionAsync().ConfigureAwait(false);
         SetState(WebSocketClientState.Disconnected);
         FailPendingSends(new OperationCanceledException("Failed to reconnect after maximum attempts."));
         OnClosed(new(null, "Failed to reconnect after maximum attempts", false));
@@ -970,7 +1000,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     ///     <para xml:lang="zh">添加 ±20% 的抖动以防止多个客户端同时重连时的雷群效应。</para>
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool ShouldAbortReconnect() => _disposeCts.IsCancellationRequested || _manualDisconnect || State == WebSocketClientState.Connected;
+    private bool ShouldAbortReconnect() => _disposeCts.IsCancellationRequested || _manualDisconnect || State is WebSocketClientState.Connected or WebSocketClientState.Connecting;
 
     private TimeSpan CalculateReconnectDelay(int attempts)
     {
@@ -1016,6 +1046,27 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         {
             // Subscriber exception should not crash the receive loop
             Debug.WriteLine($"[ManagedWebSocketClient] MessageReceived handler error: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    private async ValueTask OnMessageReceivedAsync(WebSocketMessageReceivedEventArgs e)
+    {
+        var handlers = MessageReceivedAsync;
+        if (handlers is null)
+        {
+            return;
+        }
+        foreach (Func<ManagedWebSocketClient, WebSocketMessageReceivedEventArgs, ValueTask> handler in handlers.GetInvocationList().Cast<Func<ManagedWebSocketClient, WebSocketMessageReceivedEventArgs, ValueTask>>())
+        {
+            try
+            {
+                await handler(this, e).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ManagedWebSocketClient] MessageReceivedAsync handler error: {ex.GetType().Name}: {ex.Message}");
+                OnError(new(ex, "MessageReceivedAsync handler"));
+            }
         }
     }
 
@@ -1116,6 +1167,60 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                 // Session already disposed (e.g., after a failed connection attempt)
             }
         }
+    }
+
+    private async ValueTask DisposeCurrentSessionAsync()
+    {
+        ConnectionSession? session;
+        await _connectionLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            session = _session;
+            _session = null;
+        }
+        finally
+        {
+            _connectionLock.Release();
+        }
+        if (session is not null)
+        {
+            await DisposeSessionAsync(session).ConfigureAwait(false);
+        }
+    }
+
+    private async ValueTask DisposeSessionIfCurrentAsync(ConnectionSession session)
+    {
+        var shouldDispose = false;
+        await _connectionLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (IsCurrentSession(session))
+            {
+                _session = null;
+                shouldDispose = true;
+            }
+        }
+        finally
+        {
+            _connectionLock.Release();
+        }
+        if (shouldDispose)
+        {
+            await DisposeSessionAsync(session).ConfigureAwait(false);
+        }
+    }
+
+    private static async ValueTask DisposeSessionAsync(ConnectionSession session)
+    {
+        try
+        {
+            await session.CancelAsync().ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Session already disposed by a concurrent cleanup path.
+        }
+        session.Dispose();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
