@@ -64,6 +64,14 @@ client.MessageReceived += (s, e) =>
     Console.WriteLine($"收到消息: {message}");
 };
 
+// 如果需要异步处理，请使用 MessageReceivedAsync。
+// MessageReceived 是同步事件，e.Data 背后的池化缓冲区只在同步回调期间有效。
+client.MessageReceivedAsync += async (s, e) =>
+{
+    var message = Encoding.UTF8.GetString(e.Data.Span);
+    await ProcessMessageAsync(message);
+};
+
 // 状态变更
 client.StateChanged += (s, e) =>
 {
@@ -139,7 +147,7 @@ await client.DisconnectAsync();
 | `DisposeLockTimeoutGracePeriod` | `TimeSpan`                    | 25 秒     | 首次等待超时后的额外宽限时间，超过后退化为 best-effort 清理 |
 | `ReceiveBufferSize`             | `int`                         | 16384    | 接收缓冲区大小                              |
 | `SendQueueCapacity`             | `int`                         | 1000     | 发送队列容量                               |
-| `WaitForSendCompletion`         | `bool`                        | `true`   | 是否等待发送完成                             |
+| `WaitForSendCompletion`         | `bool`                        | `true`   | 是否等待真实发送完成；为 `false` 时仅表示入队成功，断线时未发送消息可能被丢弃并通过 `Error` 事件报告 |
 
 ## DisposeAsync 行为说明
 
@@ -197,14 +205,16 @@ async def websocket_endpoint(websocket: WebSocket):
 客户端会自动过滤心跳响应消息，但只有同时满足以下条件时才会过滤：
 
 1. **HeartbeatResponseMessage 不为空**（启用过滤）
-2. **消息类型匹配**：收到的消息类型必须与 `HeartbeatMessageType` 一致
+2. **消息类型匹配**：收到的消息类型必须与 `HeartbeatResponseMessageType` 一致
 3. **内容完全匹配**：消息内容必须与 `HeartbeatResponseMessage` 完全相同
 
 这意味着：
 
-- 如果 `HeartbeatMessageType = Binary`，则 Text 类型的 "pong" 消息**不会被过滤**
+- 如果 `HeartbeatResponseMessageType = Binary`，则 Text 类型的 "pong" 消息**不会被过滤**
 - 如果业务消息内容恰好是 "pong" 但类型不同，**不会被误过滤**
 - 只有类型和内容都匹配的消息才会被过滤
+
+> `HeartbeatMessageType` 只控制客户端发送心跳时使用的消息类型；`HeartbeatResponseMessageType` 才控制响应过滤时匹配的消息类型。
 
 ### 禁用心跳响应过滤
 

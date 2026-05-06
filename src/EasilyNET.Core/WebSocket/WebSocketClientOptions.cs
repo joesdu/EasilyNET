@@ -257,12 +257,14 @@ public sealed class WebSocketClientOptions
     ///         The internal channel always maintains message order regardless of this setting.
     ///         When set to <c>true</c>, <c>SendAsync</c> will await the actual socket send operation and throw any exceptions that occur.
     ///         When set to <c>false</c>, <c>SendAsync</c> returns as soon as the message is enqueued, and send errors are handled by the background loop
-    ///         (and raised via the Error event).
+    ///         (and raised via the Error event). Messages still pending in the queue during connection loss may be dropped; subscribe to
+    ///         <see cref="ManagedWebSocketClient.Error" /> to observe those failures.
     ///         </para>
     ///         <para xml:lang="zh">
     ///         无论此设置如何，内部通道始终保持消息顺序。
     ///         当设置为 <c>true</c> 时，<c>SendAsync</c> 将等待实际的套接字发送操作，并抛出发生的任何异常。
-    ///         当设置为 <c>false</c> 时，<c>SendAsync</c> 在消息入队后立即返回，发送错误由后台循环处理（并通过 Error 事件引发）。
+    ///         当设置为 <c>false</c> 时，<c>SendAsync</c> 在消息入队后立即返回，发送错误由后台循环处理（并通过 Error 事件引发）。连接丢失时仍停留在队列中的消息可能会被丢弃；请订阅
+    ///         <see cref="ManagedWebSocketClient.Error" /> 以观察这些失败。
     ///         </para>
     ///     </remarks>
     /// </summary>

@@ -1,4 +1,7 @@
 using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
+using System.Net.WebSockets;
 using EasilyNET.Core.WebSocket;
 
 namespace EasilyNET.Test.Unit.WebSocket;
@@ -6,6 +9,8 @@ namespace EasilyNET.Test.Unit.WebSocket;
 [TestClass]
 public class ManagedWebSocketClientTest
 {
+    public TestContext TestContext { get; set; }
+
     [TestMethod]
     public async Task ConnectAsync_WhenStateChangedHandlerSynchronouslyDisconnects_ShouldNotDeadlock()
     {
@@ -92,6 +97,42 @@ public class ManagedWebSocketClientTest
         await AssertConnectFailedAfterDisposeAsync(connectTask);
     }
 
+    [TestMethod]
+    public async Task MessageReceivedAsync_WhenHandlerAwaits_ShouldKeepDataValidUntilHandlerCompletes()
+    {
+        var (httpListener, wsUri) = CreateServer();
+        var payload = new byte[] { 1, 2, 3, 4, 5 };
+        var serverTask = RunServerAsync(httpListener, async ws =>
+        {
+            await ws.SendAsync(payload, WebSocketMessageType.Binary, true, CancellationToken.None).ConfigureAwait(false);
+            var ackBuffer = new byte[16];
+            var ack = await ws.ReceiveAsync(ackBuffer, CancellationToken.None).ConfigureAwait(false);
+            if (ack.MessageType != WebSocketMessageType.Close)
+            {
+                await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Test completed", CancellationToken.None).ConfigureAwait(false);
+            }
+        });
+        var messageReceived = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var client = new ManagedWebSocketClient(new()
+        {
+            ServerUri = wsUri,
+            AutoReconnect = false,
+            HeartbeatResponseMessage = ReadOnlyMemory<byte>.Empty
+        });
+        client.MessageReceivedAsync += async (_, e) =>
+        {
+            await Task.Yield();
+            var received = e.Data.ToArray();
+            await client.SendTextAsync("ack", TestContext.CancellationToken).ConfigureAwait(false);
+            messageReceived.TrySetResult(received);
+        };
+        await client.ConnectAsync(TestContext.CancellationToken);
+        var received = await messageReceived.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.CancellationToken);
+        CollectionAssert.AreEqual(payload, received);
+        httpListener.Stop();
+        await serverTask.WaitAsync(TimeSpan.FromSeconds(3), TestContext.CancellationToken);
+    }
+
     private static async Task AssertConnectFailedAfterDisposeAsync(Task connectTask)
     {
         try
@@ -106,6 +147,50 @@ public class ManagedWebSocketClientTest
         catch (ObjectDisposedException)
         {
             // Also acceptable: the connection attempt resumed after the client had already been disposed.
+        }
+    }
+
+    private static int FindFreePort()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+        return port;
+    }
+
+    private static (HttpListener Listener, Uri WsUri) CreateServer()
+    {
+        var port = FindFreePort();
+        var path = $"ws-{Guid.NewGuid():N}/";
+        var httpListener = new HttpListener();
+        httpListener.Prefixes.Add($"http://127.0.0.1:{port}/{path}");
+        httpListener.Start();
+        return (httpListener, new($"ws://127.0.0.1:{port}/{path}"));
+    }
+
+    private static async Task RunServerAsync(HttpListener listener, Func<System.Net.WebSockets.WebSocket, Task> serverAction)
+    {
+        try
+        {
+            var ctx = await listener.GetContextAsync().ConfigureAwait(false);
+            var wsCtx = await ctx.AcceptWebSocketAsync(null).ConfigureAwait(false);
+            try
+            {
+                await serverAction(wsCtx.WebSocket).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore: client may disconnect before the server action finishes.
+            }
+            finally
+            {
+                wsCtx.WebSocket.Dispose();
+            }
+        }
+        catch
+        {
+            // Ignore: listener may be stopped before or during accept.
         }
     }
 }

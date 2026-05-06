@@ -28,10 +28,11 @@ public class ManagedWebSocketClientMaxMessageSizeTest
     private static (HttpListener Listener, Uri WsUri) CreateServer()
     {
         var port = FindFreePort();
+        var path = $"ws-{Guid.NewGuid():N}/";
         var httpListener = new HttpListener();
-        httpListener.Prefixes.Add($"http://127.0.0.1:{port}/ws/");
+        httpListener.Prefixes.Add($"http://127.0.0.1:{port}/{path}");
         httpListener.Start();
-        return (httpListener, new($"ws://127.0.0.1:{port}/ws/"));
+        return (httpListener, new($"ws://127.0.0.1:{port}/{path}"));
     }
 
     /// <summary>
