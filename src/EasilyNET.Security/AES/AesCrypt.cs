@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -28,6 +29,11 @@ public static class AesCrypt
             _                  => 32
         };
 
+    // AES block size = 16 bytes, PKCS7 padding ensures output is block-aligned
+    // Using bit-shift: ((n / 16) + 1) * 16 = ((n >> 4) + 1) << 4
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int GetCipherTextLength(int dataLength) => ((dataLength >> 4) + 1) << 4;
+
     #region 验证方法
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -35,11 +41,11 @@ public static class AesCrypt
     {
         if (data.IsEmpty)
         {
-            throw new("Data cannot be empty");
+            throw new ArgumentException("Data cannot be empty.", nameof(data));
         }
         if (string.IsNullOrEmpty(password))
         {
-            throw new("Password cannot be null or empty");
+            throw new ArgumentNullException(nameof(password), "Password cannot be null or empty.");
         }
     }
 
@@ -58,34 +64,35 @@ public static class AesCrypt
         var salt = CryptographicUtilities.GenerateSalt();
         var iv = CryptographicUtilities.GenerateIV();
         var key = CryptographicUtilities.DeriveKey(password, salt, keyLength);
+        var cipherTextLength = GetCipherTextLength(data.Length);
+        var poolBuffer = ArrayPool<byte>.Shared.Rent(SaltLength + IvLength + cipherTextLength);
         try
         {
-            // 生成加密数据
+            // 将 salt 和 IV 写入池化缓冲区的开头
+            salt.CopyTo(poolBuffer, 0);
+            iv.CopyTo(poolBuffer, SaltLength);
+
+            // 使用 MemoryStream 直接包装池化缓冲区切片（从 IV 之后开始），避免 ms.ToArray() 额外分配
+            using var ms = new MemoryStream(poolBuffer, SaltLength + IvLength, cipherTextLength);
             using var aes = Aes.Create();
             aes.Key = key;
             aes.IV = iv;
             aes.Mode = CipherMode.CBC;
             aes.Padding = PaddingMode.PKCS7;
-            var encryptor = aes.CreateEncryptor();
-            byte[] encryptedData;
-            using (var ms = new MemoryStream())
-            using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
-            {
-                cs.Write(data);
-                cs.FlushFinalBlock();
-                encryptedData = ms.ToArray();
-            }
+            using var cs = new CryptoStream(ms, aes.CreateEncryptor(), CryptoStreamMode.Write);
+            cs.Write(data);
+            cs.FlushFinalBlock();
+            // ms.Length 现在是加密数据长度（不含 salt+IV 前缀）
 
             // 组合输出：[salt][iv][encryptedData]
-            var result = new byte[SaltLength + IvLength + encryptedData.Length];
-            salt.CopyTo(result, 0);
-            iv.CopyTo(result, SaltLength);
-            encryptedData.CopyTo(result, SaltLength + IvLength);
+            var result = new byte[SaltLength + IvLength + ms.Length];
+            Buffer.BlockCopy(poolBuffer, 0, result, 0, SaltLength + IvLength + (int)ms.Length);
             return result;
         }
         finally
         {
             CryptographicUtilities.SecureClear(key);
+            ArrayPool<byte>.Shared.Return(poolBuffer, clearArray: true);
         }
     }
 
@@ -100,7 +107,7 @@ public static class AesCrypt
         ValidateInput(encryptedData, password);
         if (encryptedData.Length < SaltLength + IvLength + 16) // 最小长度检查
         {
-            throw new("Invalid encrypted data format");
+            throw new CryptographicException("Invalid encrypted data format: data is too short.");
         }
         var keyLength = GetKeyLength(model);
         var salt = encryptedData[..SaltLength].ToArray();
@@ -125,7 +132,7 @@ public static class AesCrypt
         }
         catch (CryptographicException ex)
         {
-            throw new("Decryption failed. Check password and data integrity.", ex);
+            throw new CryptographicException("Decryption failed. Check password and data integrity.", ex);
         }
         finally
         {
@@ -214,11 +221,11 @@ public static class AesCrypt
     {
         if (input == null || output == null)
         {
-            throw new("Input and output streams cannot be null");
+            throw new ArgumentNullException(input == null ? nameof(input) : nameof(output), "Input and output streams cannot be null.");
         }
         if (string.IsNullOrEmpty(password))
         {
-            throw new("Password cannot be null or empty");
+            throw new ArgumentNullException(nameof(password), "Password cannot be null or empty.");
         }
         var keyLength = GetKeyLength(model);
         var salt = CryptographicUtilities.GenerateSalt();
@@ -257,11 +264,11 @@ public static class AesCrypt
     {
         if (input == null || output == null)
         {
-            throw new("Input and output streams cannot be null");
+            throw new ArgumentNullException(input == null ? nameof(input) : nameof(output), "Input and output streams cannot be null.");
         }
         if (string.IsNullOrEmpty(password))
         {
-            throw new("Password cannot be null or empty");
+            throw new ArgumentNullException(nameof(password), "Password cannot be null or empty.");
         }
         var keyLength = GetKeyLength(model);
 
@@ -270,11 +277,11 @@ public static class AesCrypt
         var iv = new byte[IvLength];
         if (await input.ReadAsync(salt.AsMemory(0, SaltLength), cancellationToken) != SaltLength)
         {
-            throw new("Failed to read salt from input stream");
+            throw new CryptographicException("Failed to read salt from input stream: stream is too short.");
         }
         if (await input.ReadAsync(iv.AsMemory(0, IvLength), cancellationToken) != IvLength)
         {
-            throw new("Failed to read IV from input stream");
+            throw new CryptographicException("Failed to read IV from input stream: stream is too short.");
         }
         var key = CryptographicUtilities.DeriveKey(password, salt, keyLength);
         try
@@ -289,7 +296,7 @@ public static class AesCrypt
         }
         catch (CryptographicException ex)
         {
-            throw new("Decryption failed. Check password and data integrity.", ex);
+            throw new CryptographicException("Decryption failed. Check password and data integrity.", ex);
         }
         finally
         {
