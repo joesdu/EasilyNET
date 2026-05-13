@@ -16,7 +16,5 @@
     <ItemGroup>
         <PackageReference Include="MongoDB.Analyzer" />
         <PackageReference Include="MongoDB.Driver" />
-        <PackageReference Include="SharpCompress" />
-        <PackageReference Include="Snappier" />
     </ItemGroup>
 </Project>
