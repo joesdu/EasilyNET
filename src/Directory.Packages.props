@@ -18,14 +18,12 @@
     <PackageVersion Include="MongoDB.Analyzer" Version="2.0.0" />
     <PackageVersion Include="MongoDB.Driver" Version="3.8.1" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.2.1" />
-    <PackageVersion Include="SharpCompress" Version="0.48.0" />
-    <PackageVersion Include="Snappier" Version="1.3.1" />
-    <PackageVersion Include="Spectre.Console.Json" Version="0.55.3-alpha.0.13" />
+    <PackageVersion Include="Spectre.Console.Json" Version="0.55.3-alpha.0.14" />
     <!--microsoft asp.net core -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="11.0.0-preview.3.26207.106" />
-    <PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.5.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="11.0.0-preview.4.26230.115" />
+    <PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.6.0" />
     <!-- SourceLink for NuGet symbol debugging -->
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="11.0.100-preview.3.26207.106" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="11.0.100-preview.4.26230.115" />
     <!--microsoft source generator-->
     <!--<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.12.0-beta1.25218.8" />-->
     <!--<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />-->
