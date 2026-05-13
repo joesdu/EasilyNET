@@ -42,34 +42,31 @@ public static class CollectionIndexExtensions
         ArgumentNullException.ThrowIfNull(app);
         var serviceProvider = app.ApplicationServices;
         var lifetime = serviceProvider.GetRequiredService<IHostApplicationLifetime>();
-        lifetime.ApplicationStarted.Register(void () =>
+        lifetime.ApplicationStarted.Register(void () => _ = Task.Run(() =>
         {
-            _ = Task.Run(() =>
+            using var scope = serviceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetService<T>();
+            ArgumentNullException.ThrowIfNull(db, nameof(T));
+            var logger = scope.ServiceProvider.GetService<ILogger<T>>();
+            // 获取MongoOptions配置
+            var options = scope.ServiceProvider.GetRequiredService<BasicClientOptions>();
+            foreach (var collectionName in db.Database.ListCollectionNames().ToEnumerable().Where(c => c.IsNotNullOrWhiteSpace()))
             {
-                using var scope = serviceProvider.CreateScope();
-                var db = scope.ServiceProvider.GetService<T>();
-                ArgumentNullException.ThrowIfNull(db, nameof(T));
-                var logger = scope.ServiceProvider.GetService<ILogger<T>>();
-                // 获取MongoOptions配置
-                var options = scope.ServiceProvider.GetRequiredService<BasicClientOptions>();
-                foreach (var collectionName in db.Database.ListCollectionNames().ToEnumerable().Where(c => c.IsNotNullOrWhiteSpace()))
+                if (collectionName.StartsWith("system.", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (collectionName.StartsWith("system.", StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
-                    CollectionCache.TryAdd(collectionName, 0);
+                    continue;
                 }
-                try
-                {
-                    EnsureIndexes(db, MongoServiceExtensionsHelpers.UseCamelCase, logger, options);
-                }
-                catch (Exception ex)
-                {
-                    logger?.LogError(ex, "Failed to create MongoDB indexes for context {ContextType}.", typeof(T).Name);
-                }
-            }, lifetime.ApplicationStopping);
-        });
+                CollectionCache.TryAdd(collectionName, 0);
+            }
+            try
+            {
+                EnsureIndexes(db, MongoServiceExtensionsHelpers.UseCamelCase, logger, options);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Failed to create MongoDB indexes for context {ContextType}.", typeof(T).Name);
+            }
+        }, lifetime.ApplicationStopping));
         return app;
     }
 
