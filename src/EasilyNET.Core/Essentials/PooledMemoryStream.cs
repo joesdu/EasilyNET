@@ -82,9 +82,14 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     ///     <para xml:lang="en">Thrown when the array pool is null</para>
     ///     <para xml:lang="zh">当数组池为空时抛出</para>
     /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     <para xml:lang="en">Thrown when capacity is negative</para>
+    ///     <para xml:lang="zh">当容量为负数时抛出</para>
+    /// </exception>
     public PooledMemoryStream(ArrayPool<byte> arrayPool, int capacity = 0)
     {
         _pool = arrayPool ?? throw new ArgumentNullException(nameof(arrayPool));
+        ArgumentOutOfRangeException.ThrowIfNegative(capacity);
         _data = _pool.Rent(capacity > 0 ? capacity : DefaultCapacity);
     }
 
@@ -508,14 +513,14 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     /// </summary>
     /// <remarks>
     ///     <para xml:lang="en">
-    ///     Note: Unlike BCL <see cref="MemoryStream"/>.GetBuffer() which returns the internal buffer reference,
-    ///     this method always returns a <b>new copy</b> trimmed to <see cref="Length"/>.
-    ///     For a reference to the internal buffer (use with caution), see <see cref="ToArraySegment"/>.
+    ///     Note: Unlike BCL <see cref="MemoryStream" />.GetBuffer() which returns the internal buffer reference,
+    ///     this method always returns a <b>new copy</b> trimmed to <see cref="Length" />.
+    ///     For a reference to the internal buffer (use with caution), see <see cref="ToArraySegment" />.
     ///     </para>
     ///     <para xml:lang="zh">
-    ///     注意：与 BCL <see cref="MemoryStream"/>.GetBuffer() 返回内部缓冲区引用不同，
-    ///     此方法始终返回裁剪至 <see cref="Length"/> 的<b>新副本</b>。
-    ///     若需内部缓冲区的引用（请谨慎使用），请参见 <see cref="ToArraySegment"/>。
+    ///     注意：与 BCL <see cref="MemoryStream" />.GetBuffer() 返回内部缓冲区引用不同，
+    ///     此方法始终返回裁剪至 <see cref="Length" /> 的<b>新副本</b>。
+    ///     若需内部缓冲区的引用（请谨慎使用），请参见 <see cref="ToArraySegment" />。
     ///     </para>
     /// </remarks>
     /// <returns>
@@ -536,7 +541,7 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     /// </summary>
     /// <remarks>
     ///     <para xml:lang="en">
-    ///     This method is functionally identical to <see cref="GetBuffer"/>.
+    ///     This method is functionally identical to <see cref="GetBuffer" />.
     ///     </para>
     /// </remarks>
     /// <returns>

@@ -15,7 +15,7 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
 {
     private readonly AsyncLock _asyncLock = new();
     private readonly ResiliencePipeline _connectionPipeline = pp.GetPipeline(Constant.ConnectionPipelineName);
-    private readonly RabbitConfig config = options.Get(Constant.OptionName);
+    private AsyncEventHandler<ConnectionBlockedEventArgs>? _blockedHandler;
 
     // 用于让并发调用等待连接就绪，避免频繁抛出异常
     private TaskCompletionSource<bool> _connectionReadyTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -33,7 +33,8 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
 
     // 保存事件委托引用，用于在 DisposeAsync 中正确注销
     private AsyncEventHandler<ShutdownEventArgs>? _shutdownHandler;
-    private AsyncEventHandler<ConnectionBlockedEventArgs>? _blockedHandler;
+
+    private RabbitConfig Config => options.Get(Constant.OptionName);
 
     public async ValueTask DisposeAsync()
     {
@@ -257,10 +258,10 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
                     _currentConnection = await CreateConnectionAsync(ct).ConfigureAwait(false);
                     RegisterConnectionEvents(ct);
                     _currentChannel = await CreateChannelAsync(ct).ConfigureAwait(false);
-                    if (_consumerChannelSlots is null && config.ConsumerChannelLimit > 0)
+                    if (_consumerChannelSlots is null && Config.ConsumerChannelLimit > 0)
                     {
                         // 初始化槽位限制，只在首个成功连接时创建
-                        _consumerChannelSlots = new(config.ConsumerChannelLimit, config.ConsumerChannelLimit);
+                        _consumerChannelSlots = new(Config.ConsumerChannelLimit, Config.ConsumerChannelLimit);
                     }
                 }, cancellationToken, cancellationToken).ConfigureAwait(false);
                 _connectionReadyTcs.TrySetResult(true);
@@ -282,20 +283,20 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
     private async Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
     {
         // 优先使用 AmqpTcpEndpoint 列表进行连接，这对于 DDNS 和集群环境更具弹性
-        if (config.AmqpTcpEndpoints is not null && config.AmqpTcpEndpoints.Count > 0)
+        if (Config.AmqpTcpEndpoints is not null && Config.AmqpTcpEndpoints.Count > 0)
         {
             if (logger.IsEnabled(LogLevel.Information))
             {
                 logger.LogInformation("Attempting to connect to RabbitMQ using endpoint list...");
             }
-            return await connFactory.CreateConnectionAsync(config.AmqpTcpEndpoints, config.ApplicationName, cancellationToken).ConfigureAwait(false);
+            return await connFactory.CreateConnectionAsync(Config.AmqpTcpEndpoints, Config.ApplicationName, cancellationToken).ConfigureAwait(false);
         }
         // 如果未提供列表，则回退到使用单个 Host 的传统方式
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Attempting to connect to RabbitMQ using single host {Host}...", config.Host);
+            logger.LogInformation("Attempting to connect to RabbitMQ using single host {Host}...", Config.Host);
         }
-        return await connFactory.CreateConnectionAsync(config.ApplicationName, cancellationToken).ConfigureAwait(false);
+        return await connFactory.CreateConnectionAsync(Config.ApplicationName, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<IChannel> CreateChannelAsync(CancellationToken cancellationToken) =>
@@ -305,7 +306,7 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
 
     private async Task<IChannel> CreateChannelAsync(IConnection connection, CancellationToken cancellationToken)
     {
-        var channelOptions = new CreateChannelOptions(config.PublisherConfirms, config.PublisherConfirms);
+        var channelOptions = new CreateChannelOptions(Config.PublisherConfirms, Config.PublisherConfirms);
         return await connection.CreateChannelAsync(channelOptions, cancellationToken).ConfigureAwait(false);
     }
 
@@ -345,7 +346,6 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
             ConnectionDisconnected?.Invoke(this, EventArgs.Empty); // 触发断开事件
             await Task.CompletedTask;
         };
-
         _currentConnection.ConnectionShutdownAsync += _shutdownHandler;
         _currentConnection.ConnectionBlockedAsync += _blockedHandler;
         _eventsRegistered = true;
@@ -431,7 +431,7 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
             _connectionReadyTcs.TrySetResult(true);
             return;
         }
-        var baseInterval = TimeSpan.FromSeconds(Math.Max(1, config.ReconnectIntervalSeconds));
+        var baseInterval = TimeSpan.FromSeconds(Math.Max(1, Config.ReconnectIntervalSeconds));
         var attempt = 0;
         while (!cancellationToken.IsCancellationRequested && !_disposed)
         {

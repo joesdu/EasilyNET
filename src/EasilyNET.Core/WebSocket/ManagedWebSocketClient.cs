@@ -219,8 +219,14 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     ///     <para xml:lang="zh">当收到消息时发生。</para>
     /// </summary>
     /// <remarks>
-    ///     <para xml:lang="en">This event is synchronous. Do not use <c>async</c> lambdas with it unless you copy <see cref="WebSocketMessageReceivedEventArgs.Data" /> first. For asynchronous processing, prefer <see cref="MessageReceivedAsync" />.</para>
-    ///     <para xml:lang="zh">此事件是同步事件。除非先复制 <see cref="WebSocketMessageReceivedEventArgs.Data" />，否则不要在此事件上使用 <c>async</c> lambda。异步处理请优先使用 <see cref="MessageReceivedAsync" />。</para>
+    ///     <para xml:lang="en">
+    ///     This event is synchronous. Do not use <c>async</c> lambdas with it unless you copy
+    ///     <see cref="WebSocketMessageReceivedEventArgs.Data" /> first. For asynchronous processing, prefer <see cref="MessageReceivedAsync" />.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     此事件是同步事件。除非先复制 <see cref="WebSocketMessageReceivedEventArgs.Data" />，否则不要在此事件上使用 <c>async</c> lambda。异步处理请优先使用
+    ///     <see cref="MessageReceivedAsync" />。
+    ///     </para>
     /// </remarks>
     public event EventHandler<WebSocketMessageReceivedEventArgs>? MessageReceived;
 
@@ -229,7 +235,10 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     ///     <para xml:lang="zh">当收到消息时发生，并允许异步处理器在池化接收缓冲区归还前完成处理。</para>
     /// </summary>
     /// <remarks>
-    ///     <para xml:lang="en">Prefer this event when message processing needs <c>await</c>. The <see cref="WebSocketMessageReceivedEventArgs.Data" /> buffer remains valid until every subscribed async handler completes.</para>
+    ///     <para xml:lang="en">
+    ///     Prefer this event when message processing needs <c>await</c>. The <see cref="WebSocketMessageReceivedEventArgs.Data" />
+    ///     buffer remains valid until every subscribed async handler completes.
+    ///     </para>
     ///     <para xml:lang="zh">当消息处理需要 <c>await</c> 时优先使用此事件。直到所有已订阅的异步处理器完成前，<see cref="WebSocketMessageReceivedEventArgs.Data" /> 缓冲区都会保持有效。</para>
     /// </remarks>
     public event Func<ManagedWebSocketClient, WebSocketMessageReceivedEventArgs, ValueTask>? MessageReceivedAsync;
@@ -1056,7 +1065,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         {
             return;
         }
-        foreach (Func<ManagedWebSocketClient, WebSocketMessageReceivedEventArgs, ValueTask> handler in handlers.GetInvocationList().Cast<Func<ManagedWebSocketClient, WebSocketMessageReceivedEventArgs, ValueTask>>())
+        foreach (var handler in handlers.GetInvocationList().Cast<Func<ManagedWebSocketClient, WebSocketMessageReceivedEventArgs, ValueTask>>())
         {
             try
             {

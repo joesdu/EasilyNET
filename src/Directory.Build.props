@@ -1,29 +1,29 @@
 <Project>
-    <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
-    <PropertyGroup>
-        <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
-    </PropertyGroup>
-    
-    <!-- SourceLink Configuration -->
-    <PropertyGroup>
-        <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    </PropertyGroup>
-    <ItemGroup>
-        <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
-    </ItemGroup>
-    
-    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-        <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\EasilyNET.snk</AssemblyOriginatorKeyFile>
-        <DelaySign>false</DelaySign>
-        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-        <Copyright>© joesdu. All rights reserved.</Copyright>
-        <!-- see https://github.com/dotnet/sdk/issues/2679 -->
-        <DebugType>portable</DebugType>
-        <DelaySign>False</DelaySign>
-        <EmbedUntrackedSources>true</EmbedUntrackedSources>
-        <NoWarn>$(NoWarn);</NoWarn>
-        <Optimize>True</Optimize>
-        <SignAssembly>True</SignAssembly>
-        <TreatSpecificWarningsAsErrors />
-    </PropertyGroup>
+	<Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+	<PropertyGroup>
+		<TargetFrameworks>net10.0;net11.0</TargetFrameworks>
+	</PropertyGroup>
+
+	<!-- SourceLink Configuration -->
+	<PropertyGroup>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+	</ItemGroup>
+
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\EasilyNET.snk</AssemblyOriginatorKeyFile>
+		<DelaySign>false</DelaySign>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+		<Copyright>© joesdu. All rights reserved.</Copyright>
+		<!-- see https://github.com/dotnet/sdk/issues/2679 -->
+		<DebugType>portable</DebugType>
+		<DelaySign>False</DelaySign>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<NoWarn>$(NoWarn);</NoWarn>
+		<Optimize>True</Optimize>
+		<SignAssembly>True</SignAssembly>
+		<TreatSpecificWarningsAsErrors />
+	</PropertyGroup>
 </Project>

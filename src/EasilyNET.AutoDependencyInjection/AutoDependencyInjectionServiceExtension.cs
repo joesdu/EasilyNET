@@ -19,6 +19,11 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static class AutoDependencyInjectionServiceExtension
 {
     /// <summary>
+    /// Lock object for thread-safe service registry creation to avoid lock hijacking.
+    /// </summary>
+    private static readonly Lock _registrySyncLock = new();
+
+    /// <summary>
     ///     <para xml:lang="en">Get the application host</para>
     ///     <para xml:lang="zh">获取应用程序构建器</para>
     /// </summary>
@@ -172,7 +177,7 @@ public static class AutoDependencyInjectionServiceExtension
                 return existing;
             }
             // Slow path: ensure only a single ServiceRegistry is created in concurrent scenarios.
-            lock (services)
+            lock (_registrySyncLock)
             {
                 // Double-check after acquiring the lock in case another thread already registered it.
                 descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(ServiceRegistry));
