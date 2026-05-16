@@ -25,6 +25,6 @@ internal sealed class ResponseTimeMiddleware(RequestDelegate next)
             context.Response.Headers["X-Response-Time"] = $"{elapsedMilliseconds} ms";
             return Task.CompletedTask;
         });
-        await next(context);
+        await next(context).ConfigureAwait(false);
     }
 }

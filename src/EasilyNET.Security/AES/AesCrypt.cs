@@ -92,7 +92,7 @@ public static class AesCrypt
         finally
         {
             CryptographicUtilities.SecureClear(key);
-            ArrayPool<byte>.Shared.Return(poolBuffer, clearArray: true);
+            ArrayPool<byte>.Shared.Return(poolBuffer, true);
         }
     }
 

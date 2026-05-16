@@ -27,12 +27,10 @@ internal static class BackoffUtility
         var b = baseDelay ?? DefaultMin;
         var minDelay = min ?? DefaultMin;
         var maxDelay = max ?? DefaultMax;
-        double rawMs;
-        try
-        {
-            rawMs = b.TotalMilliseconds * Math.Pow(2, attempt);
-        }
-        catch
+        var rawMs = b.TotalMilliseconds * Math.Pow(2, attempt);
+
+        // Guard against overflow (Math.Pow(2, 1024) → Infinity)
+        if (double.IsInfinity(rawMs) || double.IsNaN(rawMs))
         {
             rawMs = b.TotalMilliseconds;
         }

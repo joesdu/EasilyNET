@@ -17,7 +17,7 @@ internal sealed class EventBus(
     ILogger<EventBus> logger,
     IOptionsMonitor<RabbitConfig> options) : IBus
 {
-    private readonly RabbitConfig _config = options.Get(Constant.OptionName);
+    private RabbitConfig Config => options.Get(Constant.OptionName);
 
     public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, cancellationToken).ConfigureAwait(false);
 
@@ -138,11 +138,13 @@ internal sealed class EventBus(
         {
             return;
         }
+        // 一次性快照配置，避免 LINQ 谓词中多次访问 IOptionsMonitor 拿到不同快照
+        var cfg = Config;
         // 过滤出需要验证的配置
         var configsToValidate = configurations
                                 .Where(c => c.Exchange.Type != EModel.None &&
-                                            !(c.SkipExchangeDeclare ?? _config.SkipExchangeDeclare) &&
-                                            (c.ValidateExchangeOnStartup ?? _config.ValidateExchangesOnStartup))
+                                            !(c.SkipExchangeDeclare ?? cfg.SkipExchangeDeclare) &&
+                                            (c.ValidateExchangeOnStartup ?? cfg.ValidateExchangesOnStartup))
                                 .ToList();
         if (configsToValidate.Count == 0)
         {
