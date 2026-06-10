@@ -22,7 +22,7 @@
     <PackageVersion Include="Spectre.Console.Json" Version="0.56.0" />
     <!--microsoft asp.net core -->
     <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="11.0.0-preview.4.26230.115" />
-    <PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.6.0" />
+    <PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.7.0" />
     <!-- SourceLink for NuGet symbol debugging -->
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="11.0.100-preview.4.26230.115" />
     <!--microsoft source generator-->
