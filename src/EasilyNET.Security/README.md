@@ -2,7 +2,7 @@
 
 常用加密/哈希算法封装，降低使用复杂度，面向 .NET 高性能与易用性。
 
-- 算法：AES、DES、RC4、TripleDES、RSA、SM2、SM3、SM4、RIPEMD(128/160/256/320)
+- 算法：AES、RSA、SM2、SM3、SM4、RIPEMD(128/160/256/320)
 - RSA 支持 XML/Base64/PEM 互转，提供签名验签与文件 SHA256
 - 国密算法基于 BouncyCastle 实现（SM2/SM3/RIPEMD）
 
@@ -29,22 +29,6 @@ var plain = AesCrypt.DecryptFromBase64(cipher, "pwd", AesKeyModel.AES256);
 - 支持 AES128/192/256（通过 `AesKeyModel`）
 - 默认模式：CBC + PKCS7
 - 提供字符串便捷方法（Base64、Hex）
-
-#### DES / TripleDES（兼容性用途）
-
-- 已标记为不安全/遗留算法，仅建议用于兼容旧系统
-- 默认模式：CBC + PKCS7
-- **注意**：密钥会被内部 hash 处理，密文仅能用本库解密
-
-#### RC4（不安全，仅兼容）
-
-- **强烈不推荐用于新系统**
-- 支持原始字节与“密码派生”的便捷方法
-
-```csharp
-var cipher = Rc4Crypt.EncryptToBase64("hello", "pwd");
-var plain = Rc4Crypt.DecryptFromBase64(cipher, "pwd");
-```
 
 #### RSA
 
