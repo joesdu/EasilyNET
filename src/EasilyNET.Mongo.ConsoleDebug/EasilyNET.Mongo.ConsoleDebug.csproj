@@ -15,7 +15,6 @@
     
     <ItemGroup>
         <PackageReference Include="MongoDB.Driver" />
-        <PackageReference Include="SharpCompress" />
         <PackageReference Include="Spectre.Console.Json" />
     </ItemGroup>
     

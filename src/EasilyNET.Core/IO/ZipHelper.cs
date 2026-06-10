@@ -162,14 +162,14 @@ public static class ZipHelper
                 File.Delete(destinationFile);
             }
             await using var fs = new FileStream(destinationFile, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
-            using var archive = new ZipArchive(fs, ZipArchiveMode.Create, true);
+            await using var archive = new ZipArchive(fs, ZipArchiveMode.Create, true);
             var basePath = Path.GetFullPath(sourceDirectory);
             foreach (var file in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var relative = Path.GetRelativePath(basePath, file);
                 var entry = archive.CreateEntry(relative, compressionLevel);
-                await using var entryStream = entry.Open();
+                await using var entryStream = await entry.OpenAsync(cancellationToken);
                 await using var input = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
                 await input.CopyToAsync(entryStream, cancellationToken);
             }
@@ -194,7 +194,7 @@ public static class ZipHelper
         {
             Directory.CreateDirectory(destinationDirectory);
             await using var fs = new FileStream(zipFile, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
-            using var archive = new ZipArchive(fs, ZipArchiveMode.Read, true);
+            await using var archive = new ZipArchive(fs, ZipArchiveMode.Read, true);
             foreach (var entry in archive.Entries)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -208,7 +208,7 @@ public static class ZipHelper
                 {
                     continue; // Directory entry
                 }
-                await using var entryStream = entry.Open();
+                await using var entryStream = await entry.OpenAsync(cancellationToken);
                 await using var outStream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
                 await entryStream.CopyToAsync(outStream, cancellationToken);
             }
@@ -235,7 +235,7 @@ public static class ZipHelper
             // Get all entry names first using a single open
             List<string> entries;
             await using (var fs = new FileStream(zipFile, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.SequentialScan))
-            using (var archive = new ZipArchive(fs, ZipArchiveMode.Read, false))
+            await using (var archive = new ZipArchive(fs, ZipArchiveMode.Read, false))
             {
                 entries = archive.Entries.Select(e => e.FullName).ToList();
             }
@@ -248,7 +248,7 @@ public static class ZipHelper
             {
                 // For thread-safety, open the archive per task
                 await using var fs2 = new FileStream(zipFile, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
-                using var archive2 = new ZipArchive(fs2, ZipArchiveMode.Read, true);
+                await using var archive2 = new ZipArchive(fs2, ZipArchiveMode.Read, true);
                 var entry2 = archive2.GetEntry(entryName);
                 if (entry2 is null || string.IsNullOrEmpty(entry2.Name))
                 {
@@ -260,7 +260,7 @@ public static class ZipHelper
                 {
                     Directory.CreateDirectory(directoryPath);
                 }
-                await using var entryStream = entry2.Open();
+                await using var entryStream = await entry2.OpenAsync(ct);
                 await using var outStream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
                 await entryStream.CopyToAsync(outStream, ct);
             });
@@ -293,7 +293,7 @@ public static class ZipHelper
                 File.Delete(destinationFile);
             }
             await using var fs = new FileStream(destinationFile, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
-            using var archive = new ZipArchive(fs, ZipArchiveMode.Create, true);
+            await using var archive = new ZipArchive(fs, ZipArchiveMode.Create, true);
             using var writeLock = new SemaphoreSlim(1, 1);
             var basePath = Path.GetFullPath(sourceDirectory);
             var files = Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories).ToList();
@@ -322,7 +322,7 @@ public static class ZipHelper
                     try
                     {
                         var entry = archive.CreateEntry(relative, compressionLevel);
-                        await using var entryStream = entry.Open();
+                        await using var entryStream = await entry.OpenAsync(ct);
                         await buffer.CopyToAsync(entryStream, ct);
                     }
                     finally
@@ -337,7 +337,7 @@ public static class ZipHelper
                     try
                     {
                         var entry = archive.CreateEntry(relative, compressionLevel);
-                        await using var entryStream = entry.Open();
+                        await using var entryStream = await entry.OpenAsync(ct);
                         if (fi is { Exists: true, Length: > 0 })
                         {
                             await using var input = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
@@ -380,9 +380,9 @@ public static class ZipHelper
                 File.Delete(destinationZipFile);
             }
             await using var fs = new FileStream(destinationZipFile, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
-            using var archive = new ZipArchive(fs, ZipArchiveMode.Create, true);
+            await using var archive = new ZipArchive(fs, ZipArchiveMode.Create, true);
             var entry = archive.CreateEntry(Path.GetFileName(sourceFile), compressionLevel);
-            await using var entryStream = entry.Open();
+            await using var entryStream = await entry.OpenAsync(cancellationToken);
             await using var input = new FileStream(sourceFile, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
             await input.CopyToAsync(entryStream, cancellationToken);
         }
@@ -421,10 +421,10 @@ public static class ZipHelper
         ArgumentNullException.ThrowIfNull(data);
         // 无需线程安全: 异步方法内局部变量，生命周期完全封闭
         await using var ms = new PooledMemoryStream();
-        using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, true))
+        await using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, true))
         {
             var entry = archive.CreateEntry(entryName, compressionLevel);
-            await using var entryStream = entry.Open();
+            await using var entryStream = await entry.OpenAsync(cancellationToken);
             await entryStream.WriteAsync(data, cancellationToken);
         }
         return ms.ToArray();
