@@ -6,7 +6,6 @@ using EasilyNET.Mongo.AspNetCore.Indexing;
 using EasilyNET.Mongo.AspNetCore.Options;
 using EasilyNET.Mongo.Core;
 using EasilyNET.Mongo.Core.Attributes;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
@@ -36,11 +35,11 @@ public static class CollectionIndexExtensions
     /// <summary>
     /// 对标记 MongoContext 的实体对象，自动创建 MongoDB 索引（启动后异步执行，不阻塞启动）
     /// </summary>
-    /// <param name="app">IApplicationBuilder</param>
-    public static IApplicationBuilder UseCreateMongoIndexes<T>(this IApplicationBuilder app) where T : MongoContext
+    /// <param name="host">IHost（WebApplication 同时实现 IHost，最小托管下调用方式不变）</param>
+    public static IHost UseCreateMongoIndexes<T>(this IHost host) where T : MongoContext
     {
-        ArgumentNullException.ThrowIfNull(app);
-        var serviceProvider = app.ApplicationServices;
+        ArgumentNullException.ThrowIfNull(host);
+        var serviceProvider = host.Services;
         var lifetime = serviceProvider.GetRequiredService<IHostApplicationLifetime>();
         lifetime.ApplicationStarted.Register(void () => _ = Task.Run(() =>
         {
@@ -67,7 +66,7 @@ public static class CollectionIndexExtensions
                 logger?.LogError(ex, "Failed to create MongoDB indexes for context {ContextType}.", typeof(T).Name);
             }
         }, lifetime.ApplicationStopping));
-        return app;
+        return host;
     }
 
     private static void EnsureIndexes<T>(T dbContext, bool useCamelCase, ILogger? logger, BasicClientOptions options) where T : MongoContext

@@ -2,7 +2,7 @@ using System.Reflection;
 using EasilyNET.Core.Misc;
 using EasilyNET.Mongo.Core;
 using EasilyNET.Mongo.Core.Attributes;
-using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -39,13 +39,13 @@ public static class TimeSeriesCollectionExtensions
     ///     </para>
     ///     <para xml:lang="zh">对标记 <see cref="TimeSeriesCollectionAttribute" /> 的实体对象,自动创建 MongoDB 时序集合</para>
     /// </summary>
-    /// <param name="app">
-    ///     <see cref="IApplicationBuilder" />
+    /// <param name="host">
+    ///     <see cref="IHost" />（WebApplication 同时实现 IHost，最小托管下调用方式不变）
     /// </param>
-    public static IApplicationBuilder UseCreateMongoTimeSeriesCollection<T>(this IApplicationBuilder app) where T : MongoContext
+    public static IHost UseCreateMongoTimeSeriesCollection<T>(this IHost host) where T : MongoContext
     {
-        ArgumentNullException.ThrowIfNull(app);
-        var serviceProvider = app.ApplicationServices;
+        ArgumentNullException.ThrowIfNull(host);
+        var serviceProvider = host.Services;
         using var scope = serviceProvider.CreateScope();
         var db = scope.ServiceProvider.GetService<T>();
         ArgumentNullException.ThrowIfNull(db, nameof(T));
@@ -55,7 +55,7 @@ public static class TimeSeriesCollectionExtensions
         // 获取当前数据库的现有集合名称。
         var existingCollections = new HashSet<string>(db.Database.ListCollectionNames().ToList(), StringComparer.Ordinal);
         EnsureTimeSeriesCollections(db.Database, existingCollections, logger);
-        return app;
+        return host;
     }
 
     private static void EnsureTimeSeriesCollections(IMongoDatabase db, HashSet<string> existingCollections, ILogger? logger)

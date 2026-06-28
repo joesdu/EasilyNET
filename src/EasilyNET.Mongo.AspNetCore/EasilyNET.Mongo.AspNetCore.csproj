@@ -14,9 +14,16 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+        <!-- 初始化扩展已从 IApplicationBuilder 改为 IHost，不再使用任何 ASP.NET Core 专属 API，
+             因此改用所需的 Microsoft.Extensions.* 子集，使其也适用于 Worker/控制台/通用 Host。
+             Hosting.Abstractions 提供 IHost/IHostApplicationLifetime/IHostedService，
+             Diagnostics.HealthChecks 提供 IHealthChecksBuilder/IHealthCheck，
+             Configuration/Logging 抽象由上述包传递引入。 -->
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     </ItemGroup>
-    
+
     <ItemGroup>
         <ProjectReference Include="..\EasilyNET.Core\EasilyNET.Core.csproj" />
         <ProjectReference Include="..\EasilyNET.Mongo.Core\EasilyNET.Mongo.Core.csproj" />
