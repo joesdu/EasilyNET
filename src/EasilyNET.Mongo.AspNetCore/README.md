@@ -285,13 +285,12 @@ builder.Services.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standa
 
 ## 自动创建索引
 
-通过 `[MongoIndex]` / `[MongoCompoundIndex]` 特性声明索引（见 `EasilyNET.Mongo.Core` 文档），然后在应用启动时调用：
+通过 `[MongoIndex]` / `[MongoCompoundIndex]` 特性声明索引（见 `EasilyNET.Mongo.Core` 文档），然后在注册服务时调用：
 
 ```csharp
-var app = builder.Build();
-
-// 自动扫描所有带索引特性的实体，后台创建/更新索引（不阻塞应用启动）
-app.UseCreateMongoIndexes<MyDbContext>();
+// 注册托管后台服务：应用启动后自动扫描所有带索引特性的实体，
+// 使用异步驱动 API 创建/更新索引（不阻塞应用启动），完成后结束。
+builder.Services.AddMongoIndexCreation<MyDbContext>();
 ```
 
 框架会：
@@ -343,11 +342,11 @@ public class SensorReading
 }
 ```
 
-在 `Program.cs` 中启用自动创建：
+在注册服务时启用自动创建（托管后台服务，启动后异步执行，不阻塞启动）：
 
 ```csharp
 // 若集合不存在则自动创建，已存在则跳过
-app.UseCreateMongoTimeSeriesCollection<MyDbContext>();
+builder.Services.AddMongoTimeSeriesCollectionCreation<MyDbContext>();
 ```
 
 > ⚠️ 时序集合一旦创建，`timeField`/`metaField` 不可修改。`system.profile` 是保留名称不能使用。
@@ -380,7 +379,7 @@ public class AuditLog
 ```
 
 ```csharp
-app.UseCreateMongoCappedCollections<MyDbContext>();
+builder.Services.AddMongoCappedCollectionCreation<MyDbContext>();
 ```
 
 > ⚠️ Capped 集合不支持删除单个文档（只能 `drop` 整个集合）。
@@ -438,19 +437,13 @@ public class ApplicationLog
 
 > 💡 如果实体已在 `MongoContext` 上声明为 `IMongoCollection<T>` 属性，则无需设置 `CollectionName`，集合名称会自动解析。
 
-在启动时调用：
+在服务注册阶段添加后台服务（启动后异步创建，不阻塞应用启动）：
 
 ```csharp
-// 方式 1（推荐）：在服务注册阶段添加后台服务，自动创建索引
 builder.Services.AddMongoSearchIndexCreation<MyDbContext>();
 ```
 
-```csharp
-// 方式 2：在中间件管道中调用（异步后台创建，不阻塞应用启动）
-app.UseCreateMongoSearchIndexes<MyDbContext>();
-```
-
-> 两种方式均需要 MongoDB Atlas 或 MongoDB 8.2+ 社区版。不支持的环境会记录警告并跳过，不影响应用启动。
+> 需要 MongoDB Atlas 或 MongoDB 8.2+ 社区版。不支持的环境会记录警告并跳过，不影响应用启动。
 
 在代码中执行向量搜索：
 
@@ -781,14 +774,9 @@ internal sealed class MongoModule : AppModule
         context.Services.RegisterSerializer(new JsonObjectSerializer());
         context.Services.RegisterDynamicSerializer();
         context.Services.RegisterGlobalEnumKeyDictionarySerializer();
-    }
-
-    public override async Task ApplicationInitialization(ApplicationContext context)
-    {
-        var app = context.GetApplicationHost() as IApplicationBuilder;
-        app?.UseCreateMongoIndexes<DbContext>();
-        app?.UseCreateMongoIndexes<DbContext2>();
-        await base.ApplicationInitialization(context);
+        // 注册索引自动创建的后台服务（启动后异步执行，不阻塞启动）
+        context.Services.AddMongoIndexCreation<DbContext>();
+        context.Services.AddMongoIndexCreation<DbContext2>();
     }
 }
 ```
@@ -875,5 +863,4 @@ docker compose -f docker-compose.mongo.rs.yml up -d
 1. 确认使用的是 MongoDB Atlas 或 MongoDB 8.2+ 社区版
 2. Atlas 侧索引创建是异步的，通常需要几秒到几分钟
 3. 检查日志中是否有 `Failed to ensure search indexes` 错误
-4. 确认已在服务注册阶段调用 `builder.Services.AddMongoSearchIndexCreation<MyDbContext>()`（推荐）
-   或使用兼容方式 `app.UseCreateMongoSearchIndexes<MyDbContext>()`
+4. 确认已在服务注册阶段调用 `builder.Services.AddMongoSearchIndexCreation<MyDbContext>()`

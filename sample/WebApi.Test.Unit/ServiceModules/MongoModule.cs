@@ -80,13 +80,8 @@ internal sealed class MongoModule : AppModule
         context.Services.RegisterSerializer(new JsonObjectSerializer());
         context.Services.RegisterDynamicSerializer();
         context.Services.RegisterGlobalEnumKeyDictionarySerializer();
-    }
-
-    public override async Task ApplicationInitialization(ApplicationContext context)
-    {
-        var app = context.GetApplicationHost();
-        app.UseCreateMongoIndexes<DbContext>();
-        app.UseCreateMongoIndexes<DbContext2>();
-        await base.ApplicationInitialization(context);
+        // 注册索引自动创建的后台服务（启动后异步执行，不阻塞启动）
+        context.Services.AddMongoIndexCreation<DbContext>();
+        context.Services.AddMongoIndexCreation<DbContext2>();
     }
 }

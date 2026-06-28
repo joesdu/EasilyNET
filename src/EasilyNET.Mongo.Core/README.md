@@ -147,7 +147,7 @@ var collection = db.GetCollection<LogEntry>("logs_2026_01");
 
 ### MongoIndexAttribute —— 单字段索引
 
-**作用**：标记单个属性，告诉框架在该字段上自动创建索引。应用启动时由 `UseCreateMongoIndexes<T>()` 自动执行。
+**作用**：标记单个属性，告诉框架在该字段上自动创建索引。注册 `AddMongoIndexCreation<T>()` 后，由托管后台服务在应用启动后自动执行。
 
 **适用场景**：
 
@@ -299,11 +299,10 @@ public class StockTick
 }
 ```
 
-在 `Program.cs` 中启用自动创建：
+在注册服务时启用自动创建（托管后台服务，启动后异步执行，不阻塞启动）：
 
 ```csharp
-// 在 app.UseXxx() 之后调用
-app.UseCreateMongoTimeSeriesCollection<MyDbContext>();
+builder.Services.AddMongoTimeSeriesCollectionCreation<MyDbContext>();
 ```
 
 > ⚠️ **注意**：
@@ -353,10 +352,10 @@ public class AuditLog
 }
 ```
 
-在 `Program.cs` 中启用自动创建：
+在注册服务时启用自动创建（托管后台服务，启动后异步执行，不阻塞启动）：
 
 ```csharp
-app.UseCreateMongoCappedCollections<MyDbContext>();
+builder.Services.AddMongoCappedCollectionCreation<MyDbContext>();
 ```
 
 > ⚠️ **注意**：
@@ -421,10 +420,10 @@ public class ApplicationLog
 
 > 💡 如果实体已在 `MongoContext` 上声明为 `IMongoCollection<T>` 属性，则无需设置 `CollectionName`，集合名称会自动解析。
 
-应用启动时自动创建（异步，不阻塞启动）：
+在服务注册阶段添加后台服务，应用启动后自动创建（异步，不阻塞启动）：
 
 ```csharp
-app.UseCreateMongoSearchIndexes<MyDbContext>();
+builder.Services.AddMongoSearchIndexCreation<MyDbContext>();
 ```
 
 ### SearchFieldAttribute —— 搜索字段

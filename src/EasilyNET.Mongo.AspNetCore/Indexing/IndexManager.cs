@@ -14,12 +14,13 @@ internal static class IndexManager
     /// <summary>
     /// 获取集合中现有的所有索引
     /// </summary>
-    internal static Dictionary<string, IndexDefinition> GetExistingIndexes(IMongoCollection<BsonDocument> collection, ILogger? logger)
+    internal static async Task<Dictionary<string, IndexDefinition>> GetExistingIndexesAsync(IMongoCollection<BsonDocument> collection, ILogger? logger, CancellationToken ct)
     {
         var existingIndexes = new Dictionary<string, IndexDefinition>();
         try
         {
-            var indexDocs = collection.Indexes.List().ToList();
+            using var cursor = await collection.Indexes.ListAsync(cancellationToken: ct).ConfigureAwait(false);
+            var indexDocs = await cursor.ToListAsync(ct).ConfigureAwait(false);
             if (logger is not null && logger.IsEnabled(LogLevel.Debug))
             {
                 logger.LogDebug("Found {Count} existing indexes in collection {CollectionName}.", indexDocs.Count, collection.CollectionNamespace.CollectionName);
@@ -81,7 +82,7 @@ internal static class IndexManager
     /// <summary>
     /// 管理索引：比对现有索引和需要的索引，执行增删改操作
     /// </summary>
-    internal static void ManageIndexes(IMongoCollection<BsonDocument> collection, Dictionary<string, IndexDefinition> existingIndexes, List<IndexDefinition> requiredIndexes, ILogger? logger, BasicClientOptions options)
+    internal static async Task ManageIndexesAsync(IMongoCollection<BsonDocument> collection, Dictionary<string, IndexDefinition> existingIndexes, List<IndexDefinition> requiredIndexes, ILogger? logger, BasicClientOptions options, CancellationToken ct)
     {
         var collectionName = collection.CollectionNamespace.CollectionName;
         var processedExistingIndexes = new HashSet<string>();
@@ -89,6 +90,7 @@ internal static class IndexManager
         // 1. 检查需要创建或更新的索引
         foreach (var requiredIndex in requiredIndexes)
         {
+            ct.ThrowIfCancellationRequested();
             // 首先检查是否有相同字段的索引（基于字段匹配，而不是名称匹配）
             var matchingIndex = FindMatchingIndex(existingIndexes.Values, requiredIndex);
             if (matchingIndex is not null)
@@ -114,15 +116,15 @@ internal static class IndexManager
                     {
                         // 尝试先创建目标索引，以尽量降低“无索引窗口”。
                         // 若 MongoDB 报冲突（常见于同 key 但不同选项），再回退到 Drop + Create。
-                        var createdFirst = TryCreateIndexWithFallback(collection, requiredIndex, logger);
+                        var createdFirst = await TryCreateIndexWithFallbackAsync(collection, requiredIndex, logger, ct).ConfigureAwait(false);
                         if (!createdFirst)
                         {
-                            DropIndex(collection, matchingIndex.Name, logger);
-                            CreateIndex(collection, requiredIndex, logger);
+                            await DropIndexAsync(collection, matchingIndex.Name, logger, ct).ConfigureAwait(false);
+                            await CreateIndexAsync(collection, requiredIndex, logger, ct).ConfigureAwait(false);
                         }
                         else
                         {
-                            DropIndex(collection, matchingIndex.Name, logger);
+                            await DropIndexAsync(collection, matchingIndex.Name, logger, ct).ConfigureAwait(false);
                         }
                     }
                     catch (Exception ex)
@@ -147,7 +149,7 @@ internal static class IndexManager
                     }
                     try
                     {
-                        DropIndex(collection, requiredIndex.Name, logger);
+                        await DropIndexAsync(collection, requiredIndex.Name, logger, ct).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -165,7 +167,7 @@ internal static class IndexManager
                 }
                 try
                 {
-                    CreateIndex(collection, requiredIndex, logger);
+                    await CreateIndexAsync(collection, requiredIndex, logger, ct).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -181,6 +183,7 @@ internal static class IndexManager
         // 2. 检查需要删除的索引（存在于数据库但不在需要的索引中且未被处理过）
         foreach (var existingIndexName in existingIndexes.Keys.Where(existingIndexName => !processedExistingIndexes.Contains(existingIndexName)))
         {
+            ct.ThrowIfCancellationRequested();
             if (!options.DropUnmanagedIndexes)
             {
                 // 安全模式：仅记录未管理的索引，不删除
@@ -203,14 +206,14 @@ internal static class IndexManager
             {
                 logger.LogWarning("Dropping unmanaged index {IndexName} from collection {CollectionName}.", existingIndexName, collectionName);
             }
-            DropIndex(collection, existingIndexName, logger);
+            await DropIndexAsync(collection, existingIndexName, logger, ct).ConfigureAwait(false);
         }
     }
 
     /// <summary>
     /// 创建索引
     /// </summary>
-    private static void CreateIndex(IMongoCollection<BsonDocument> collection, IndexDefinition indexDef, ILogger? logger)
+    private static async Task CreateIndexAsync(IMongoCollection<BsonDocument> collection, IndexDefinition indexDef, ILogger? logger, CancellationToken ct)
     {
         var builder = Builders<BsonDocument>.IndexKeys;
         IndexKeysDefinition<BsonDocument> keysDef;
@@ -292,7 +295,7 @@ internal static class IndexManager
         }
         try
         {
-            collection.Indexes.CreateOne(new CreateIndexModel<BsonDocument>(keysDef, options));
+            await collection.Indexes.CreateOneAsync(new CreateIndexModel<BsonDocument>(keysDef, options), cancellationToken: ct).ConfigureAwait(false);
             if (logger is not null && logger.IsEnabled(LogLevel.Information))
             {
                 logger.LogInformation("Successfully created index {IndexName} on collection {CollectionName}.", indexDef.Name, collection.CollectionNamespace.CollectionName);
@@ -308,11 +311,11 @@ internal static class IndexManager
         }
     }
 
-    private static void DropIndex(IMongoCollection<BsonDocument> collection, string indexName, ILogger? logger)
+    private static async Task DropIndexAsync(IMongoCollection<BsonDocument> collection, string indexName, ILogger? logger, CancellationToken ct)
     {
         try
         {
-            collection.Indexes.DropOne(indexName);
+            await collection.Indexes.DropOneAsync(indexName, ct).ConfigureAwait(false);
         }
         catch (MongoCommandException ex) when (ex.CodeName == "IndexNotFound" || ex.Message.Contains("index not found"))
         {
@@ -328,11 +331,11 @@ internal static class IndexManager
         }
     }
 
-    private static bool TryCreateIndexWithFallback(IMongoCollection<BsonDocument> collection, IndexDefinition requiredIndex, ILogger? logger)
+    private static async Task<bool> TryCreateIndexWithFallbackAsync(IMongoCollection<BsonDocument> collection, IndexDefinition requiredIndex, ILogger? logger, CancellationToken ct)
     {
         try
         {
-            CreateIndex(collection, requiredIndex, logger);
+            await CreateIndexAsync(collection, requiredIndex, logger, ct).ConfigureAwait(false);
             return true;
         }
         catch (MongoCommandException ex) when (ex.CodeName is "IndexOptionsConflict" or "IndexKeySpecsConflict" ||
