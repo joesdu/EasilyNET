@@ -315,10 +315,7 @@ internal static class IndexManager
     {
         try
         {
-            await collection.Indexes.DropOneAsync(indexName, ct).ConfigureAwait(false);
-        }
-        catch (MongoCommandException ex) when (ex.CodeName == "IndexNotFound" || ex.Message.Contains("index not found"))
-        {
+        catch (MongoCommandException ex) when (ex.CodeName == "IndexNotFound" || ex.Message.Contains("index not found", StringComparison.OrdinalIgnoreCase))
             // Ignore
         }
         catch (Exception ex)
