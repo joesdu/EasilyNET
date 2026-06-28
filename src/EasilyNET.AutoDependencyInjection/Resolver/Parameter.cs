@@ -1,7 +1,7 @@
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedType.Global
 
-namespace EasilyNET.AutoDependencyInjection;
+namespace EasilyNET.AutoDependencyInjection.Resolver;
 
 /// <summary>
 /// Parameter abstraction for dynamic constructor selection/overrides inspired by Autofac.

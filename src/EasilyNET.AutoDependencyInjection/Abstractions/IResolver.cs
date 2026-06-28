@@ -1,3 +1,5 @@
+using EasilyNET.AutoDependencyInjection.Resolver;
+
 namespace EasilyNET.AutoDependencyInjection.Abstractions;
 
 /// <summary>

@@ -1,11 +1,11 @@
-using System.Collections.Concurrent;
-using System.Reflection;
 using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
+using EasilyNET.AutoDependencyInjection.Registry;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Concurrent;
+using System.Reflection;
 
-#pragma warning disable IDE0130 // 命名空间与文件夹结构不匹配
-namespace EasilyNET.AutoDependencyInjection;
+namespace EasilyNET.AutoDependencyInjection.Resolver;
 
 /// <summary>
 ///     <para xml:lang="en">Creates a new resolver instance</para>
@@ -23,7 +23,7 @@ namespace EasilyNET.AutoDependencyInjection;
 ///     <para xml:lang="en">The service scope (optional)</para>
 ///     <para xml:lang="zh">服务作用域（可选）</para>
 /// </param>
-internal sealed class Resolver(IServiceProvider provider, ServiceRegistry? registry = null, IServiceScope? scope = null) : IResolver
+internal sealed class DefaultResolver(IServiceProvider provider, ServiceRegistry? registry = null, IServiceScope? scope = null) : IResolver
 {
     // 缓存构造函数及其参数信息，避免重复反射
     private static readonly ConcurrentDictionary<Type, ConstructorCache> CtorCache = [];

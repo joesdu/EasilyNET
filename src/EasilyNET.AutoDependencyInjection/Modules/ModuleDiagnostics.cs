@@ -1,5 +1,6 @@
 using System.Reflection;
 using EasilyNET.AutoDependencyInjection.Abstractions;
+using EasilyNET.AutoDependencyInjection.Registry;
 
 namespace EasilyNET.AutoDependencyInjection.Modules;
 

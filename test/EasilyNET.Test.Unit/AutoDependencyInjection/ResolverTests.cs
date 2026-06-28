@@ -1,5 +1,5 @@
-using EasilyNET.AutoDependencyInjection;
 using EasilyNET.AutoDependencyInjection.Abstractions;
+using EasilyNET.AutoDependencyInjection.Resolver;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EasilyNET.Test.Unit.AutoDependencyInjection;

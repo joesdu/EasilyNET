@@ -3,7 +3,10 @@ using EasilyNET.AutoDependencyInjection.Abstractions;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Factories;
 using EasilyNET.AutoDependencyInjection.Modules;
+using EasilyNET.AutoDependencyInjection.Registry;
+using EasilyNET.AutoDependencyInjection.Resolver;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
 // ReSharper disable UnusedMember.Global
@@ -148,13 +151,22 @@ public static class AutoDependencyInjectionServiceExtension
         public IServiceCollection AddApplicationModules<T>() where T : AppModule
         {
             ArgumentNullException.ThrowIfNull(services);
+            // 幂等保护：若已装配过模块（IStartupModuleRunner 已注册），直接返回，避免重复注册
+            // IObjectAccessor/IResolver/Runner 等基础设施以及重复装配模块。
+            if (services.Any(d => d.ServiceType == typeof(IStartupModuleRunner)))
+            {
+                return services;
+            }
             // 确保 ServiceRegistry 首先被注册
             _ = services.GetOrCreateRegistry();
             services.AddSingleton<IObjectAccessor<IHost>>(new ObjectAccessor<IHost>());
-            services.AddScoped<IResolver>(sp => new Resolver(sp, sp.GetRequiredService<ServiceRegistry>()));
+            services.AddScoped<IResolver>(sp => new DefaultResolver(sp, sp.GetRequiredService<ServiceRegistry>()));
             services.AddSingleton(typeof(INamedServiceFactory<>), typeof(NamedServiceFactory<>));
             // Autofac-style implicit relationship types
             services.AddTransient(typeof(IIndex<,>), typeof(KeyedServiceIndex<,>));
+            // Lazy<T> implicit relationship: defers resolution until first Value access.
+            // TryAdd so a consumer's own Lazy<> registration (if any) always wins; closed Lazy<TFoo> registrations also take precedence.
+            services.TryAddTransient(typeof(Lazy<>), typeof(LazyResolver<>));
             // Register module diagnostics
             services.AddSingleton<IModuleDiagnostics>(sp =>
                 new ModuleDiagnostics(sp.GetRequiredService<IStartupModuleRunner>(), sp.GetRequiredService<ServiceRegistry>()));

@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EasilyNET.AutoDependencyInjection;
+namespace EasilyNET.AutoDependencyInjection.Registry;
 
 /// <summary>
 ///     <para xml:lang="en">
@@ -15,6 +15,12 @@ namespace EasilyNET.AutoDependencyInjection;
 /// </summary>
 internal sealed class ServiceRegistry
 {
+    /// <summary>
+    ///     <para xml:lang="en">Caches key-type equality validation results to avoid repeated reflection on every named registration.</para>
+    ///     <para xml:lang="zh">缓存键类型的相等性校验结果，避免每次命名注册都重复反射。</para>
+    /// </summary>
+    private static readonly ConcurrentDictionary<Type, bool> KeyTypeValidationCache = new();
+
     /// <summary>
     ///     <para xml:lang="en">
     ///     Named/Keyed services registry, keyed by (key, service type) to avoid collisions.
@@ -171,20 +177,31 @@ internal sealed class ServiceRegistry
     private static void ValidateKeyEquality(object key)
     {
         var keyType = key.GetType();
-        // Value types and strings have proper equality semantics by default
-        if (keyType.IsValueType || keyType == typeof(string))
+        // 校验结果按类型缓存，反射只在每个类型首次出现时执行一次。
+        if (KeyTypeValidationCache.GetOrAdd(keyType, static t => HasProperEqualitySemantics(t)))
         {
             return;
         }
-        // Check if Equals is overridden (declared in a type other than System.Object)
+        throw new ArgumentException($"The key type '{keyType.Name}' does not override Equals and/or GetHashCode. " +
+                                    "Service keys must be value types, strings, or reference types with proper equality implementation. " +
+                                    "This is required for correct dictionary lookups.",
+            nameof(key));
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">Determines whether a key type has proper equality semantics for dictionary lookups.</para>
+    ///     <para xml:lang="zh">判断键类型是否具备用于字典查找的正确相等性语义。</para>
+    /// </summary>
+    private static bool HasProperEqualitySemantics(Type keyType)
+    {
+        // Value types and strings have proper equality semantics by default
+        if (keyType.IsValueType || keyType == typeof(string))
+        {
+            return true;
+        }
+        // Reference types must override both Equals and GetHashCode (declared in a type other than System.Object)
         var equalsMethod = keyType.GetMethod(nameof(Equals), [typeof(object)]);
         var getHashCodeMethod = keyType.GetMethod(nameof(GetHashCode), Type.EmptyTypes);
-        if (equalsMethod?.DeclaringType == typeof(object) || getHashCodeMethod?.DeclaringType == typeof(object))
-        {
-            throw new ArgumentException($"The key type '{keyType.Name}' does not override Equals and/or GetHashCode. " +
-                                        "Service keys must be value types, strings, or reference types with proper equality implementation. " +
-                                        "This is required for correct dictionary lookups.",
-                nameof(key));
-        }
+        return equalsMethod?.DeclaringType != typeof(object) && getHashCodeMethod?.DeclaringType != typeof(object);
     }
 }

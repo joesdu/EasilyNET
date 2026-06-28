@@ -14,7 +14,10 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+        <!-- 仅使用 Microsoft.Extensions.* 的子集（DI 具体实现 + Hosting 抽象），不依赖任何 ASP.NET Core 专属 API。
+             Hosting.Abstractions 会传递引入 Configuration/Logging 抽象，DI 具体包提供 BuildServiceProvider 等。 -->
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     </ItemGroup>
     
     <ItemGroup>
