@@ -15,7 +15,7 @@ namespace WebApi.Test.Unit.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [ApiExplorerSettings(GroupName = "MongoTest")]
-public class MongoTestController(DbContext db) : ControllerBase
+public class MongoTestController(DbContext db, DbContext2 db2) : ControllerBase
 {
     private readonly FilterDefinitionBuilder<MongoTest> bf = Builders<MongoTest>.Filter;
 
@@ -79,6 +79,23 @@ public class MongoTestController(DbContext db) : ControllerBase
     public async Task PostOneTest()
     {
         var coll = db.GetCollection<dynamic>("test.new1");
+        await coll.InsertOneAsync(new
+        {
+            Decimal = 3.235223462346m,
+            Double = 3.14d,
+            Int32 = 123,
+            Data = "test"
+        });
+    }
+
+    /// <summary>
+    /// 添加一个动态数据,可便于快速测试一些代码.
+    /// </summary>
+    /// <returns></returns>
+    [HttpPost("PostOneTestToDb2")]
+    public async Task PostOneTestToDb2()
+    {
+        var coll = db2.GetCollection<dynamic>("test.new1");
         await coll.InsertOneAsync(new
         {
             Decimal = 3.235223462346m,
