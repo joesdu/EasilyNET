@@ -1,6 +1,7 @@
-using System.Collections.Concurrent;
-using EasilyNET.AutoDependencyInjection;
 using EasilyNET.AutoDependencyInjection.Abstractions;
+using EasilyNET.AutoDependencyInjection.Registry;
+using EasilyNET.AutoDependencyInjection.Resolver;
+using System.Collections.Concurrent;
 
 // ReSharper disable UnusedMember.Global
 
@@ -28,11 +29,11 @@ public static class ServiceProviderExtension
             var registry = provider.GetService<ServiceRegistry>();
             if (!createScope)
             {
-                return new Resolver(provider, registry);
+                return new DefaultResolver(provider, registry);
             }
             var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
             var scope = scopeFactory.CreateScope();
-            return new Resolver(scope.ServiceProvider, registry, scope);
+            return new DefaultResolver(scope.ServiceProvider, registry, scope);
         }
 
         /// <summary>

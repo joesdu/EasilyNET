@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EasilyNET.AutoDependencyInjection;
+namespace EasilyNET.AutoDependencyInjection.Registry;
 
 /// <summary>
 ///     <para xml:lang="en">

@@ -35,6 +35,7 @@
 - 支持命名解析、键控解析
 - 支持 `Owned<T>` 受控生命周期管理
 - 支持 `IIndex<TKey, TService>` 键控服务索引
+- 支持 `Lazy<T>` 隐式延迟解析 (调用 `AddApplicationModules` 后自动注册, 首次访问 `.Value` 时才解析 `T`)
 - 支持参数化工厂 (`Func<TParam, TService>`、`Func<T1, T2, ..., TService>` 最多 4 参数强类型，以及通用
   `Func<object[], TService>` 支持 5+ 参数)
 
@@ -113,6 +114,18 @@ owned.Dispose();
 // 6. 创建独立作用域的 Resolver
 using var scopedResolver = provider.CreateResolver(createScope: true);
 var scopedService = scopedResolver.Resolve<IScopedService>();
+```
+
+#### Lazy&lt;T&gt; 隐式延迟解析
+
+调用 `AddApplicationModules` 后, 框架会自动注册开放泛型 `Lazy<>` (使用 `TryAdd`, 不会覆盖你已有的注册)。
+直接在构造函数注入 `Lazy<T>` 即可延迟解析, 首次访问 `.Value` 时才从当前作用域解析 `T`, 适用于打破构造期循环依赖或推迟昂贵依赖的创建:
+
+```csharp
+public sealed class MyHub(Lazy<IHeavyService> heavy)
+{
+    public void DoWork() => heavy.Value.Run(); // 首次 .Value 时才解析 IHeavyService
+}
 ```
 
 #### IServiceProvider 扩展方法

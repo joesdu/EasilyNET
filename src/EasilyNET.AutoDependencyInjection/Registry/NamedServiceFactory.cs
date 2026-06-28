@@ -1,7 +1,8 @@
 using EasilyNET.AutoDependencyInjection.Abstractions;
+using EasilyNET.AutoDependencyInjection.Resolver;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EasilyNET.AutoDependencyInjection;
+namespace EasilyNET.AutoDependencyInjection.Registry;
 
 /// <summary>
 ///     <para xml:lang="en">Factory for creating named/keyed service instances</para>
@@ -16,13 +17,13 @@ internal sealed class NamedServiceFactory<T>(IServiceProvider provider) : INamed
     /// <inheritdoc />
     public T Create(object key, params Parameter[] parameters)
     {
-        // 对于无参数的情况，直接使用内置的 keyed service 解析，避免创建 Resolver
+        // 对于无参数的情况，直接使用内置的 keyed service 解析，避免创建 DefaultResolver
         if (parameters.Length == 0)
         {
             return (T)provider.GetRequiredKeyedService(typeof(T), key);
         }
-        // 需要参数覆盖时才创建 Resolver
-        using var resolver = new Resolver(provider, provider.GetRequiredService<ServiceRegistry>());
+        // 需要参数覆盖时才创建 DefaultResolver
+        using var resolver = new DefaultResolver(provider, provider.GetRequiredService<ServiceRegistry>());
         return resolver.ResolveKeyed<T>(key, parameters);
     }
 }

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EasilyNET.AutoDependencyInjection;
+namespace EasilyNET.AutoDependencyInjection.Registry;
 
 /// <summary>
 ///     <para xml:lang="en">Descriptor for a named/keyed service registration</para>
