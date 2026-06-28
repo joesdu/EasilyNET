@@ -90,9 +90,11 @@ public sealed class EnumKeyDictionarySerializer<TKey, TValue> : SerializerBase<D
     {
         if (context.Reader.CurrentBsonType == BsonType.Null)
         {
-            // Round-trips a null dictionary field written by Serialize.
+            // A BSON null (written by Serialize for a null field) deserializes to a non-null empty dictionary.
+            // Returning a non-null collection avoids both the `!` null-suppression and NRE-prone null returns,
+            // and matches the non-nullable return contract of the base serializer.
             context.Reader.ReadNull();
-            return null!;
+            return [];
         }
         var dictionary = new Dictionary<TKey, TValue>();
         context.Reader.ReadStartDocument();
