@@ -84,9 +84,9 @@ internal sealed class MongoModule : AppModule
 
     public override async Task ApplicationInitialization(ApplicationContext context)
     {
-        var app = context.GetApplicationHost() as IApplicationBuilder;
-        app?.UseCreateMongoIndexes<DbContext>();
-        app?.UseCreateMongoIndexes<DbContext2>();
+        var app = context.GetApplicationHost();
+        app.UseCreateMongoIndexes<DbContext>();
+        app.UseCreateMongoIndexes<DbContext2>();
         await base.ApplicationInitialization(context);
     }
 }
