@@ -182,7 +182,7 @@ internal sealed class IndexCreationBackgroundService<T>(IServiceProvider service
             {
                 logger.LogError(ex, "Failed to manage indexes for collection {CollectionName}.", collectionName);
             }
-            throw;
+            // Best-effort: do not abort processing other collections.
         }
     }
 }
