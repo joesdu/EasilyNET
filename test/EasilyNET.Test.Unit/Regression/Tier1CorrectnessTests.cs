@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Numerics;
 using EasilyNET.Core.Essentials;
 using EasilyNET.Core.Misc;
@@ -57,6 +58,25 @@ public class Tier1CorrectnessTests
         Assert.IsFalse("a3800138000".IsPhoneNumber());  // non-digit
         Assert.IsFalse("1".IsPhoneNumber());            // must not throw IndexOutOfRange
         Assert.IsFalse("".IsPhoneNumber());
+    }
+
+    #endregion
+
+    #region StringExtensions.Validate ReDoS protection (match timeout)
+
+    [TestMethod]
+    public void Validate_CatastrophicBacktracking_ShouldTimeout()
+    {
+        // "(a+)+$" against many 'a's followed by a non-matching char triggers catastrophic backtracking.
+        var input = new string('a', 40) + "!";
+        Assert.ThrowsExactly<RegexMatchTimeoutException>(() => input.Validate("^(a+)+$", TimeSpan.FromMilliseconds(100)));
+    }
+
+    [TestMethod]
+    public void Validate_NormalPattern_ShouldStillMatch()
+    {
+        Assert.IsTrue("12345".Validate(@"^\d+$"));
+        Assert.IsFalse("12a45".Validate(@"^\d+$"));
     }
 
     #endregion
