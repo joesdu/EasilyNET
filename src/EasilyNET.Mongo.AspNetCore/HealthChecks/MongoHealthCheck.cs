@@ -25,7 +25,8 @@ internal sealed class MongoHealthCheck(IMongoClient client, string? databaseName
         {
             var database = client.GetDatabase(databaseName ?? "admin");
             var result = await database.RunCommandAsync<BsonDocument>(new BsonDocument("ping", 1), cancellationToken: cancellationToken).ConfigureAwait(false);
-            return result.Contains("ok") && result["ok"].AsDouble.AreAlmostEqual(1.0)
+            // The server may return "ok" as Int32 or Double; ToDouble() coerces either, whereas AsDouble throws on Int32.
+            return result.Contains("ok") && result["ok"].ToDouble().AreAlmostEqual(1.0)
                        ? HealthCheckResult.Healthy("MongoDB is responding to ping.")
                        : HealthCheckResult.Unhealthy("MongoDB ping returned unexpected result.");
         }

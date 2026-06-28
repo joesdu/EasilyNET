@@ -115,6 +115,13 @@ public sealed class ActivityEventDiagnosticsSubscriber : IEventSubscriber
         {
             return;
         }
+        // Bail out before starting an Activity if the command document has no element matching the command
+        // name; otherwise StartActivity would set Activity.Current to an Activity that is never added to the
+        // map and never stopped, leaking it and corrupting subsequent trace nesting.
+        if (@event.Command.Elements.All(c => c.Name != @event.CommandName))
+        {
+            return;
+        }
         // ReSharper disable once ExplicitCallerInfoArgument
         var activity = ActivitySource.StartActivity(ActivityName, ActivityKind.Client);
         if (activity is null)
@@ -122,10 +129,6 @@ public sealed class ActivityEventDiagnosticsSubscriber : IEventSubscriber
             return;
         }
         var databaseName = @event.DatabaseNamespace?.DatabaseName;
-        if (@event.Command.Elements.All(c => c.Name != @event.CommandName))
-        {
-            return;
-        }
         var collName = @event.Command.Elements.First(c => c.Name == @event.CommandName).Value.ToString() ?? "N/A";
         // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/database/database-spans.md
         activity.DisplayName = string.IsNullOrEmpty(collName) ? $"{@event.CommandName} {databaseName}" : $"{@event.CommandName} {collName}";

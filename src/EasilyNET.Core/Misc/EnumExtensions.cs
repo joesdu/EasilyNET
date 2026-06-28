@@ -45,7 +45,8 @@ public static class EnumExtensions
         /// </param>
         public static IEnumerable<T> GetValues<T>(params T[] exclude) where T : Enum
         {
-            var allValues = Enum.GetValues(typeof(T)).Cast<T>();
+            // Enum.GetValues<T>() returns a typed array directly, avoiding the boxing + Cast<T> enumerator.
+            var allValues = Enum.GetValues<T>();
             return exclude.Length is 0 ? allValues : allValues.Except(exclude);
         }
     }

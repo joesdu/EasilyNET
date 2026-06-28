@@ -1,5 +1,7 @@
 // ReSharper disable SuggestBaseTypeForParameter
 
+using System.Security.Cryptography;
+
 namespace EasilyNET.Security;
 
 /// <summary>
@@ -294,7 +296,25 @@ internal sealed class Sm4
         }
         else
         {
+            if (input.Length == 0 || input.Length % 16 != 0)
+            {
+                throw new CryptographicException("Invalid SM4 ciphertext length: must be a non-zero multiple of 16.");
+            }
             int p = input[^1];
+            if (p is < 1 or > 16 || p > input.Length)
+            {
+                throw new CryptographicException("Invalid PKCS7 padding.");
+            }
+            // Verify every padding byte equals p without an early-out, to avoid a padding-oracle timing side channel.
+            var diff = 0;
+            for (var i = 0; i < p; i++)
+            {
+                diff |= input[input.Length - 1 - i] ^ p;
+            }
+            if (diff != 0)
+            {
+                throw new CryptographicException("Invalid PKCS7 padding.");
+            }
             ret = new byte[input.Length - p];
             input[..^p].CopyTo(ret);
         }
@@ -348,16 +368,19 @@ internal sealed class Sm4
             input = Padding(input, ESm4Model.Encrypt);
         }
         var length = input.Length;
-        var bins = new byte[length];
-        input.CopyTo(bins);
         var bous = new byte[length];
         Span<byte> inBytes = stackalloc byte[16];
         Span<byte> outBytes = stackalloc byte[16];
         for (var i = 0; length > 0; length -= 16, i++)
         {
-            input.Slice(i * 16, length > 16 ? 16 : length).CopyTo(inBytes);
+            var n = length > 16 ? 16 : length;
+            if (n < 16)
+            {
+                inBytes.Clear(); // avoid feeding stale bytes from the previous block into a partial final block
+            }
+            input.Slice(i * 16, n).CopyTo(inBytes);
             OneRound(ctx.Key, inBytes, outBytes);
-            outBytes.CopyTo(bous.AsSpan(i * 16));
+            outBytes[..n].CopyTo(bous.AsSpan(i * 16, n));
         }
         if (ctx is { IsPadding: true, Mode: ESm4Model.Decrypt })
         {
@@ -373,9 +396,7 @@ internal sealed class Sm4
             input = Padding(input, ESm4Model.Encrypt);
         }
         var length = input.Length;
-        var bins = new byte[length];
-        input.CopyTo(bins);
-        var bousList = new List<byte>();
+        var bous = new byte[length];
         Span<byte> ivBytes = stackalloc byte[16];
         iv.CopyTo(ivBytes);
         Span<byte> inBytes = stackalloc byte[16];
@@ -386,17 +407,19 @@ internal sealed class Sm4
         {
             for (var j = 0; length > 0; length -= 16, j++)
             {
-                input.Slice(j * 16, length > 16 ? 16 : length).CopyTo(inBytes);
+                var n = length > 16 ? 16 : length;
+                if (n < 16)
+                {
+                    inBytes.Clear();
+                }
+                input.Slice(j * 16, n).CopyTo(inBytes);
                 for (i = 0; i < 16; i++)
                 {
                     outBytes[i] = (byte)(inBytes[i] ^ ivBytes[i]);
                 }
                 OneRound(ctx.Key, outBytes, out1);
                 out1.CopyTo(ivBytes);
-                for (var k = 0; k < 16; k++)
-                {
-                    bousList.Add(out1[k]);
-                }
+                out1[..n].CopyTo(bous.AsSpan(j * 16, n));
             }
         }
         else
@@ -404,21 +427,22 @@ internal sealed class Sm4
             Span<byte> temp = stackalloc byte[16];
             for (var j = 0; length > 0; length -= 16, j++)
             {
-                input.Slice(j * 16, length > 16 ? 16 : length).CopyTo(inBytes);
+                var n = length > 16 ? 16 : length;
+                if (n < 16)
+                {
+                    inBytes.Clear();
+                }
+                input.Slice(j * 16, n).CopyTo(inBytes);
                 inBytes.CopyTo(temp);
                 OneRound(ctx.Key, inBytes, outBytes);
                 for (i = 0; i < 16; i++)
                 {
                     out1[i] = (byte)(outBytes[i] ^ ivBytes[i]);
                 }
-                ivBytes.Clear();      // Clear the previous IV
                 temp.CopyTo(ivBytes); // Update IV with the current block's ciphertext
-                for (var k = 0; k < 16; k++)
-                {
-                    bousList.Add(out1[k]);
-                }
+                out1[..n].CopyTo(bous.AsSpan(j * 16, n));
             }
         }
-        return ctx is { IsPadding: true, Mode: ESm4Model.Decrypt } ? Padding(bousList.ToArray(), ESm4Model.Decrypt) : [.. bousList];
+        return ctx is { IsPadding: true, Mode: ESm4Model.Decrypt } ? Padding(bous, ESm4Model.Decrypt) : bous;
     }
 }

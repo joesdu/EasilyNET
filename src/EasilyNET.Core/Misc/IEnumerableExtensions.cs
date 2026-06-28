@@ -182,7 +182,10 @@ public static class IEnumerableExtensions
         /// <param name="condition"></param>
         public IEnumerable<TFirst> IntersectBy<TSecond>(IEnumerable<TSecond> second, Func<TFirst, TSecond, bool> condition)
         {
-            return first.AsNotNull().Where(f => second.Any(s => condition(f, s)));
+            // Materialize 'second' once; otherwise a lazy source (e.g. a Select projection or query) is
+            // re-executed for every element of 'first'.
+            var secondList = second as IReadOnlyCollection<TSecond> ?? second.ToList();
+            return first.AsNotNull().Where(f => secondList.Any(s => condition(f, s)));
         }
 
         /// <summary>
@@ -213,7 +216,9 @@ public static class IEnumerableExtensions
         /// <param name="condition"></param>
         public IEnumerable<TFirst> ExceptBy<TSecond>(IEnumerable<TSecond> second, Func<TFirst, TSecond, bool> condition)
         {
-            return first.AsNotNull().Where(f => !second.Any(s => condition(f, s)));
+            // Materialize 'second' once; otherwise a lazy source is re-executed for every element of 'first'.
+            var secondList = second as IReadOnlyCollection<TSecond> ?? second.ToList();
+            return first.AsNotNull().Where(f => !secondList.Any(s => condition(f, s)));
         }
 
         /// <summary>

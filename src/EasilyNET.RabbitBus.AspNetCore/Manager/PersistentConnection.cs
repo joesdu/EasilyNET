@@ -306,7 +306,11 @@ internal sealed class PersistentConnection(IConnectionFactory connFactory, IOpti
 
     private async Task<IChannel> CreateChannelAsync(IConnection connection, CancellationToken cancellationToken)
     {
-        var channelOptions = new CreateChannelOptions(Config.PublisherConfirms, Config.PublisherConfirms);
+        // Enable publisher confirmations but NOT the client's built-in confirmation tracking: this library
+        // does its own confirm tracking (EventPublisher._outstandingConfirms + BasicAcks/BasicNacks handlers
+        // + timeout monitor). Enabling client-side tracking as well would make BasicPublishAsync block on,
+        // and throw for, confirms internally, double-handling/conflicting with the manual tracking.
+        var channelOptions = new CreateChannelOptions(Config.PublisherConfirms, publisherConfirmationTrackingEnabled: false);
         return await connection.CreateChannelAsync(channelOptions, cancellationToken).ConfigureAwait(false);
     }
 

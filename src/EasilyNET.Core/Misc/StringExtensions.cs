@@ -20,6 +20,9 @@ namespace EasilyNET.Core.Misc;
 /// </summary>
 public static partial class StringExtensions
 {
+    // Cache compiled regexes by pattern so Validate/IsNumber don't recompile on every call.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Regex> RegexCache = new();
+
     [GeneratedRegex(@"\s")]
     private static partial Regex RemoveWhiteSpaceRegex();
 
@@ -243,7 +246,7 @@ public static partial class StringExtensions
             {
                 return false;
             }
-            var myRegex = new Regex(express);
+            var myRegex = RegexCache.GetOrAdd(express, static p => new Regex(p, RegexOptions.Compiled));
             return myRegex.IsMatch(value);
         }
 
@@ -349,7 +352,22 @@ public static partial class StringExtensions
         ///     <para xml:lang="en">Match phone number</para>
         ///     <para xml:lang="zh">匹配手机号码</para>
         /// </summary>
-        public bool IsPhoneNumber() => !string.IsNullOrWhiteSpace(value) && value[0] == '1' && (value[1] > '2' || value[1] <= '9');
+        public bool IsPhoneNumber()
+        {
+            // Mainland China mobile number: 11 digits, starts with '1', second digit in 3-9, all digits.
+            if (string.IsNullOrWhiteSpace(value) || value.Length != 11 || value[0] != '1' || value[1] < '3' || value[1] > '9')
+            {
+                return false;
+            }
+            foreach (var c in value)
+            {
+                if (c is < '0' or > '9')
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
 
         /// <summary>
         ///     <para xml:lang="en">Convert string to DateTime, supports multiple formats</para>

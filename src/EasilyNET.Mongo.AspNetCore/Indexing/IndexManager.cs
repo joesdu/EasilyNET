@@ -39,7 +39,8 @@ internal static class IndexManager
                     Keys = indexDoc["key"].AsBsonDocument,
                     Unique = indexDoc.Contains("unique") && indexDoc["unique"].AsBoolean,
                     Sparse = indexDoc.Contains("sparse") && indexDoc["sparse"].AsBoolean,
-                    ExpireAfterSeconds = indexDoc.Contains("expireAfterSeconds") ? indexDoc["expireAfterSeconds"].AsInt32 : null
+                    // expireAfterSeconds may be stored as Int32/Int64/Double; ToInt32() coerces, AsInt32 would throw.
+                    ExpireAfterSeconds = indexDoc.Contains("expireAfterSeconds") ? indexDoc["expireAfterSeconds"].ToInt32() : null
                 };
 
                 // 解析排序规则

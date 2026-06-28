@@ -258,6 +258,15 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
 
     internal Ulid(ReadOnlySpan<char> base32)
     {
+        // Reject any symbol that is not a valid Crockford Base32 character; otherwise invalid input
+        // silently decodes to a garbage Ulid (CharToBase32 maps unknown chars to 255).
+        foreach (var c in base32)
+        {
+            if (c >= CharToBase32.Length || CharToBase32[c] == 255)
+            {
+                throw new FormatException("invalid base32 character: " + c);
+            }
+        }
         // unroll-code is based on NUlid.
         randomness9 = (byte)((CharToBase32[base32[24]] << 5) | CharToBase32[base32[25]]); // eliminate bounds-check of span
         timestamp0 = (byte)((CharToBase32[base32[0]] << 5) | CharToBase32[base32[1]]);
@@ -526,6 +535,15 @@ public readonly struct Ulid : IEquatable<Ulid>, ISpanFormattable, ISpanParsable<
         if (base32.Length != 26)
         {
             throw new ArgumentException("invalid base32 length, length:" + base32.Length);
+        }
+        // Reject any byte that is not a valid Crockford Base32 symbol; otherwise invalid input
+        // silently decodes to a garbage Ulid (CharToBase32 maps unknown symbols to 255).
+        foreach (var b in base32)
+        {
+            if (b >= CharToBase32.Length || CharToBase32[b] == 255)
+            {
+                throw new FormatException("invalid base32 symbol: " + b);
+            }
         }
         var ulid = default(Ulid);
         Unsafe.Add(ref Unsafe.As<Ulid, byte>(ref ulid), 15) = (byte)((CharToBase32[base32[24]] << 5) | CharToBase32[base32[25]]);
@@ -1239,12 +1257,25 @@ static file class RandomProvider
     // 优先使用 Random.Shared (线程安全, .NET 6+)
     public static Random GetRandom() => Random.Shared;
 
+    [ThreadStatic]
+    private static XorShift64? t_xorShift;
+
     public static XorShift64 GetXorShift64()
     {
+        // Reuse a per-thread XorShift64 seeded once from a cryptographic source. Allocating a fresh instance
+        // and calling RandomNumberGenerator.Fill on every NewUlid() defeated the purpose of a fast PRNG; the
+        // per-thread instance is advanced (its state mutates) on each Ulid construction, so IDs stay distinct.
+        var instance = t_xorShift;
+        if (instance is not null)
+        {
+            return instance;
+        }
         Span<byte> buffer = stackalloc byte[sizeof(ulong)];
         RandomNumberGenerator.Fill(buffer);
         var seed = BitConverter.ToUInt64(buffer);
-        return new(seed);
+        instance = new(seed);
+        t_xorShift = instance;
+        return instance;
     }
 }
 

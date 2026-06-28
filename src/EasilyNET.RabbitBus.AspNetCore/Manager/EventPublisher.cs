@@ -203,18 +203,33 @@ internal sealed class EventPublisher : IAsyncDisposable
 
                         // 4. 发布消息
                         var item = context;
-                        await _pipeline.ExecuteAsync(async ct =>
+                        if (_logger.IsEnabled(LogLevel.Trace))
                         {
-                            if (_logger.IsEnabled(LogLevel.Trace))
+                            _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}, Sequence: {Sequence}", item.Event.GetType().Name, item.Event.EventId, sequenceNumber);
+                        }
+                        // Headers exchange ignores routing key, always use empty string
+                        var effectiveRoutingKey = item.Config.Exchange.Type == EModel.Headers
+                                                      ? string.Empty
+                                                      : item.RoutingKey ?? item.Config.Exchange.RoutingKey;
+                        // mandatory: true so an unroutable message is returned (OnBasicReturn) and observable,
+                        // instead of being silently discarded yet positively confirmed by the broker.
+                        if (_rabbitConfig.PublisherConfirms)
+                        {
+                            // Confirms on: the sequence number was pre-allocated and registered above, so the
+                            // publish MUST happen exactly once. Wrapping it in the retry pipeline would re-publish
+                            // under a new sequence number on a transient error (duplicate delivery) while the
+                            // registered confirm never matches. Re-publishing on failure is instead handled by the
+                            // confirm-timeout / nack -> retry-channel path.
+                            await channel.BasicPublishAsync(item.Config.Exchange.Name, effectiveRoutingKey, true, item.Properties, item.Body, _cts.Token).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            // No confirms: there is no sequence-number coupling, so transient-retry is safe here.
+                            await _pipeline.ExecuteAsync(async ct =>
                             {
-                                _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}, Sequence: {Sequence}", item.Event.GetType().Name, item.Event.EventId, sequenceNumber);
-                            }
-                            // Headers exchange ignores routing key, always use empty string
-                            var effectiveRoutingKey = item.Config.Exchange.Type == EModel.Headers
-                                                          ? string.Empty
-                                                          : item.RoutingKey ?? item.Config.Exchange.RoutingKey;
-                            await channel.BasicPublishAsync(item.Config.Exchange.Name, effectiveRoutingKey, false, item.Properties, item.Body, ct).ConfigureAwait(false);
-                        }, _cts.Token).ConfigureAwait(false);
+                                await channel.BasicPublishAsync(item.Config.Exchange.Name, effectiveRoutingKey, true, item.Properties, item.Body, ct).ConfigureAwait(false);
+                            }, _cts.Token).ConfigureAwait(false);
+                        }
                         RabbitBusMetrics.PublishedNormal.Add(1);
 
                         // 成功处理，重置错误计数
