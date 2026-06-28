@@ -152,14 +152,23 @@ public sealed class SimpleEventAggregator : IEventAggregator, IDisposable
             {
                 snapshot = [.. _subscribers];
             }
-            var deadSubscribers = snapshot.Where(sub => !sub.Invoke(message)).ToList();
-            if (deadSubscribers.Count <= 0)
+            List<Subscription>? deadSubscribers = null;
+            foreach (var sub in snapshot)
+            {
+                if (!sub.Invoke(message))
+                {
+                    (deadSubscribers ??= []).Add(sub);
+                }
+            }
+            // No allocation/removal on the common (no dead subscribers) path.
+            if (deadSubscribers is null)
             {
                 return;
             }
+            var dead = new HashSet<Subscription>(deadSubscribers); // O(1) Contains -> RemoveAll is O(n), not O(n*m)
             lock (_lock)
             {
-                _subscribers.RemoveAll(deadSubscribers.Contains);
+                _subscribers.RemoveAll(dead.Contains);
             }
         }
 
