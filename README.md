@@ -122,11 +122,11 @@ docker compose -f docker-compose.basic.service.yml up -d
 
 - RabbitBus
     - [EasilyNET.RabbitBus.Core](./src/EasilyNET.RabbitBus.Core/README.md)
-    - [EasilyNET.RabbitBus.AspNetCore](./src/EasilyNET.RabbitBus.AspNetCore/README.md)
+    - [EasilyNET.RabbitBus](./src/EasilyNET.RabbitBus/README.md)
 
 - Mongo
     - [EasilyNET.Mongo.Core](./src/EasilyNET.Mongo.Core/README.md)
-    - [EasilyNET.Mongo.AspNetCore](./src/EasilyNET.Mongo.AspNetCore/README.md)
+    - [EasilyNET.Mongo](./src/EasilyNET.Mongo/README.md)
     - [EasilyNET.Mongo.ConsoleDebug](./src/EasilyNET.Mongo.ConsoleDebug/README.md)
 
 - Security
@@ -160,9 +160,9 @@ Module docs are listed above. Some Mongo sub-packages currently have no standalo
 | [EasilyNET.Core][8]                     | ![Nuget][9]  | ![Nuget][10] | [文档](./src/EasilyNET.Core/README.md)                    |
 | [EasilyNET.WebCore][11]                 | ![Nuget][12] | ![Nuget][13] | [文档](./src/EasilyNET.WebCore/README.md)                 |
 | [EasilyNET.AutoDependencyInjection][14] | ![Nuget][15] | ![Nuget][16] | [文档](./src/EasilyNET.AutoDependencyInjection/README.md) |
-| [EasilyNET.RabbitBus.AspNetCore][17]    | ![Nuget][18] | ![Nuget][19] | [文档](./src/EasilyNET.RabbitBus.AspNetCore/README.md)    |
+| [EasilyNET.RabbitBus][17]    | ![Nuget][18] | ![Nuget][19] | [文档](./src/EasilyNET.RabbitBus/README.md)    |
 | [EasilyNET.Security][20]                | ![Nuget][21] | ![Nuget][22] | [文档](./src/EasilyNET.Security/README.md)                |
-| [EasilyNET.Mongo.AspNetCore][23]        | ![Nuget][24] | ![Nuget][25] | [文档](./src/EasilyNET.Mongo.AspNetCore/README.md)        |
+| [EasilyNET.Mongo][23]        | ![Nuget][24] | ![Nuget][25] | [文档](./src/EasilyNET.Mongo/README.md)        |
 | [EasilyNET.Mongo.ConsoleDebug][26]      | ![Nuget][27] | ![Nuget][28] | [文档](./src/EasilyNET.Mongo.ConsoleDebug/README.md)      |
 
 #### 感谢 [JetBrains](https://www.jetbrains.com/shop/eform/opensource) 对本项目的支持!
@@ -224,11 +224,11 @@ Module docs are listed above. Some Mongo sub-packages currently have no standalo
 
 [16]: https://img.shields.io/nuget/dt/EasilyNET.AutoDependencyInjection
 
-[17]: https://www.nuget.org/packages/EasilyNET.RabbitBus.AspNetCore
+[17]: https://www.nuget.org/packages/EasilyNET.RabbitBus
 
-[18]: https://img.shields.io/nuget/v/EasilyNET.RabbitBus.AspNetCore
+[18]: https://img.shields.io/nuget/v/EasilyNET.RabbitBus
 
-[19]: https://img.shields.io/nuget/dt/EasilyNET.RabbitBus.AspNetCore
+[19]: https://img.shields.io/nuget/dt/EasilyNET.RabbitBus
 
 [20]: https://www.nuget.org/packages/EasilyNET.Security
 
@@ -236,11 +236,11 @@ Module docs are listed above. Some Mongo sub-packages currently have no standalo
 
 [22]: https://img.shields.io/nuget/dt/EasilyNET.Security
 
-[23]: https://www.nuget.org/packages/EasilyNET.Mongo.AspNetCore
+[23]: https://www.nuget.org/packages/EasilyNET.Mongo
 
-[24]: https://img.shields.io/nuget/v/EasilyNET.Mongo.AspNetCore
+[24]: https://img.shields.io/nuget/v/EasilyNET.Mongo
 
-[25]: https://img.shields.io/nuget/dt/EasilyNET.Mongo.AspNetCore
+[25]: https://img.shields.io/nuget/dt/EasilyNET.Mongo
 
 [26]: https://www.nuget.org/packages/EasilyNET.Mongo.ConsoleDebug
 

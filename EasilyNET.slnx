@@ -44,12 +44,12 @@
     <Folder Name="/src/Framework/">
         <Project Path="src/EasilyNET.AutoDependencyInjection.Core/EasilyNET.AutoDependencyInjection.Core.csproj" />
         <Project Path="src/EasilyNET.AutoDependencyInjection/EasilyNET.AutoDependencyInjection.csproj" />
-        <Project Path="src/EasilyNET.RabbitBus.AspNetCore/EasilyNET.RabbitBus.AspNetCore.csproj" />
+        <Project Path="src/EasilyNET.RabbitBus/EasilyNET.RabbitBus.csproj" />
         <Project Path="src/EasilyNET.RabbitBus.Core/EasilyNET.RabbitBus.Core.csproj" />
         <Project Path="src/EasilyNET.Security/EasilyNET.Security.csproj" />
     </Folder>
     <Folder Name="/src/Mongo/">
-        <Project Path="src/EasilyNET.Mongo.AspNetCore/EasilyNET.Mongo.AspNetCore.csproj" />
+        <Project Path="src/EasilyNET.Mongo/EasilyNET.Mongo.csproj" />
         <Project Path="src/EasilyNET.Mongo.ConsoleDebug/EasilyNET.Mongo.ConsoleDebug.csproj" />
         <Project Path="src/EasilyNET.Mongo.Core/EasilyNET.Mongo.Core.csproj" />
     </Folder>

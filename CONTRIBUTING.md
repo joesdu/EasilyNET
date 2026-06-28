@@ -83,8 +83,8 @@ dotnet run
   - `EasilyNET.Core/`: Core utilities and extensions
   - `EasilyNET.WebCore/`: Web API related components
   - `EasilyNET.AutoDependencyInjection/`: Dependency injection framework
-  - `EasilyNET.RabbitBus.AspNetCore/`: RabbitMQ message bus for ASP.NET Core
-  - `EasilyNET.Mongo.AspNetCore/`: MongoDB integration for ASP.NET Core
+  - `EasilyNET.RabbitBus/`: RabbitMQ message bus for ASP.NET Core
+  - `EasilyNET.Mongo/`: MongoDB integration for ASP.NET Core
   - `EasilyNET.Security/`: Security and encryption utilities
 - `sample/`: Sample applications and usage examples
 - `test/`: Unit tests and benchmarks

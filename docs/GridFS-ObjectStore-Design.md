@@ -2,7 +2,7 @@
 
 ## 概述
 
-本文档描述了在 `EasilyNET.Mongo.AspNetCore` 库中构建的高级 GridFS 对象存储 API 设计。该设计的目标是在 MongoDB GridFS 之上构建一层类似 S3/MinIO/Azure Blob Storage 的对象存储体验，同时保持"包装但不隐藏"的设计理念——用户始终可以访问底层的 `IGridFSBucket`。
+本文档描述了在 `EasilyNET.Mongo` 库中构建的高级 GridFS 对象存储 API 设计。该设计的目标是在 MongoDB GridFS 之上构建一层类似 S3/MinIO/Azure Blob Storage 的对象存储体验，同时保持"包装但不隐藏"的设计理念——用户始终可以访问底层的 `IGridFSBucket`。
 
 ---
 
@@ -80,7 +80,7 @@ services.AddGridFSBucket(opt => {
 ## 3. 目录结构
 
 ```
-EasilyNET.Mongo.AspNetCore/
+EasilyNET.Mongo/
 ├── GridFS/                              # 新增
 │   ├── IGridFSObjectStore.cs            # 核心接口
 │   ├── IGridFSObjectStoreFactory.cs     # 多桶工厂
@@ -108,7 +108,7 @@ EasilyNET.Mongo.AspNetCore/
 ### 4.1 IGridFSObjectStore
 
 ```csharp
-namespace EasilyNET.Mongo.AspNetCore.GridFS;
+namespace EasilyNET.Mongo.GridFS;
 
 public interface IGridFSObjectStore
 {

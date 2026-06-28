@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    
+    <PropertyGroup>
+        <AssemblyTitle>$(PackagePrefix).RabbitBus</AssemblyTitle>
+        <AssemblyName>$(PackagePrefix).RabbitBus</AssemblyName>
+        <PackageId>$(PackagePrefix).RabbitBus</PackageId>
+        <PackageTags>RabbitMQ;EventBus</PackageTags>
+        <RootNamespace>EasilyNET.RabbitBus</RootNamespace>
+    </PropertyGroup>
+    
+    <PropertyGroup>
+        <PackageProjectUrl>https://www.nuget.org/packages/EasilyNET.RabbitBus</PackageProjectUrl>
+        <Description>基于RabbitMQ实现的消息总线,参考eShop EventBus</Description>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <!-- 实际未使用任何 ASP.NET Core 专属 API（其 "Middleware" 是总线自有的 IEventMiddleware 概念），
+             因此改用所需的 Microsoft.Extensions.* 子集，使其也适用于 Worker/控制台/通用 Host，而非强依赖 ASP.NET Core 运行时。
+             Hosting.Abstractions 提供 BackgroundService，Diagnostics.HealthChecks 提供 IHealthCheck/AddHealthChecks，
+             Logging 抽象由上述包传递引入。 -->
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Options" />
+        <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+        <PackageReference Include="Microsoft.Extensions.Resilience" />
+        <PackageReference Include="RabbitMQ.Client" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <ProjectReference Include="..\EasilyNET.RabbitBus.Core\EasilyNET.RabbitBus.Core.csproj" />
+    </ItemGroup>
+
+</Project>

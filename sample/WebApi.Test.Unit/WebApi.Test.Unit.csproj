@@ -41,8 +41,8 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\EasilyNET.AutoDependencyInjection\EasilyNET.AutoDependencyInjection.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.Mongo.ConsoleDebug\EasilyNET.Mongo.ConsoleDebug.csproj" />
-        <ProjectReference Include="..\..\src\EasilyNET.Mongo.AspNetCore\EasilyNET.Mongo.AspNetCore.csproj" />
-        <ProjectReference Include="..\..\src\EasilyNET.RabbitBus.AspNetCore\EasilyNET.RabbitBus.AspNetCore.csproj" />
+        <ProjectReference Include="..\..\src\EasilyNET.Mongo\EasilyNET.Mongo.csproj" />
+        <ProjectReference Include="..\..\src\EasilyNET.RabbitBus\EasilyNET.RabbitBus.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.Security\EasilyNET.Security.csproj" />
         <ProjectReference Include="..\..\src\EasilyNET.WebCore\EasilyNET.WebCore.csproj" />
     </ItemGroup>
