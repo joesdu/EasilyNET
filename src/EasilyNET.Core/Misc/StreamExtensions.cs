@@ -143,10 +143,14 @@ public static class StreamExtensions
         ///     <para xml:lang="en">Close stream after reading</para>
         ///     <para xml:lang="zh">读取完毕后关闭流</para>
         /// </param>
-        public async Task<List<string>> ReadAllLinesAsync(bool closeAfter = true)
+        /// <param name="cancellationToken">
+        ///     <para xml:lang="en">Cancellation token</para>
+        ///     <para xml:lang="zh">取消令牌</para>
+        /// </param>
+        public async Task<List<string>> ReadAllLinesAsync(bool closeAfter = true, CancellationToken cancellationToken = default)
         {
             var stringList = new List<string>();
-            while (await stream.ReadLineAsync().ConfigureAwait(false) is { } str)
+            while (await stream.ReadLineAsync(cancellationToken).ConfigureAwait(false) is { } str)
             {
                 stringList.Add(str);
             }
@@ -288,11 +292,15 @@ public static class StreamExtensions
         ///     <para xml:lang="en">Close stream after reading</para>
         ///     <para xml:lang="zh">读取完毕后关闭流</para>
         /// </param>
-        public async Task<List<string>> ReadAllLinesAsync(Encoding encoding, bool closeAfter = true)
+        /// <param name="cancellationToken">
+        ///     <para xml:lang="en">Cancellation token</para>
+        ///     <para xml:lang="zh">取消令牌</para>
+        /// </param>
+        public async Task<List<string>> ReadAllLinesAsync(Encoding encoding, bool closeAfter = true, CancellationToken cancellationToken = default)
         {
             using var sr = new StreamReader(stream, encoding);
             var stringList = new List<string>();
-            while (await sr.ReadLineAsync().ConfigureAwait(false) is { } str)
+            while (await sr.ReadLineAsync(cancellationToken).ConfigureAwait(false) is { } str)
             {
                 stringList.Add(str);
             }
@@ -315,10 +323,14 @@ public static class StreamExtensions
         ///     <para xml:lang="en">Close stream after reading</para>
         ///     <para xml:lang="zh">读取完毕后关闭流</para>
         /// </param>
-        public async Task<string> ReadAllTextAsync(Encoding encoding, bool closeAfter = true)
+        /// <param name="cancellationToken">
+        ///     <para xml:lang="en">Cancellation token</para>
+        ///     <para xml:lang="zh">取消令牌</para>
+        /// </param>
+        public async Task<string> ReadAllTextAsync(Encoding encoding, bool closeAfter = true, CancellationToken cancellationToken = default)
         {
             using var sr = new StreamReader(stream, encoding);
-            var text = await sr.ReadToEndAsync().ConfigureAwait(false);
+            var text = await sr.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
             if (closeAfter)
             {
                 await stream.DisposeAsync().ConfigureAwait(false);
@@ -342,12 +354,16 @@ public static class StreamExtensions
         ///     <para xml:lang="en">Close stream after writing</para>
         ///     <para xml:lang="zh">写入完毕后关闭流</para>
         /// </param>
-        public async Task WriteAllTextAsync(string content, Encoding encoding, bool closeAfter = true)
+        /// <param name="cancellationToken">
+        ///     <para xml:lang="en">Cancellation token</para>
+        ///     <para xml:lang="zh">取消令牌</para>
+        /// </param>
+        public async Task WriteAllTextAsync(string content, Encoding encoding, bool closeAfter = true, CancellationToken cancellationToken = default)
         {
             await using var sw = new StreamWriter(stream, encoding);
             stream.SetLength(0);
-            await sw.WriteAsync(content).ConfigureAwait(false);
-            await sw.FlushAsync().ConfigureAwait(false);
+            await sw.WriteAsync(content.AsMemory(), cancellationToken).ConfigureAwait(false);
+            await sw.FlushAsync(cancellationToken).ConfigureAwait(false);
             if (closeAfter)
             {
                 await stream.DisposeAsync().ConfigureAwait(false);
@@ -370,15 +386,19 @@ public static class StreamExtensions
         ///     <para xml:lang="en">Close stream after writing</para>
         ///     <para xml:lang="zh">写入完毕后关闭流</para>
         /// </param>
-        public async Task WriteAllLinesAsync(IEnumerable<string> lines, Encoding encoding, bool closeAfter = true)
+        /// <param name="cancellationToken">
+        ///     <para xml:lang="en">Cancellation token</para>
+        ///     <para xml:lang="zh">取消令牌</para>
+        /// </param>
+        public async Task WriteAllLinesAsync(IEnumerable<string> lines, Encoding encoding, bool closeAfter = true, CancellationToken cancellationToken = default)
         {
             await using var sw = new StreamWriter(stream, encoding);
             stream.SetLength(0);
             foreach (var line in lines)
             {
-                await sw.WriteLineAsync(line).ConfigureAwait(false);
+                await sw.WriteLineAsync(line.AsMemory(), cancellationToken).ConfigureAwait(false);
             }
-            await sw.FlushAsync().ConfigureAwait(false);
+            await sw.FlushAsync(cancellationToken).ConfigureAwait(false);
             if (closeAfter)
             {
                 await stream.DisposeAsync().ConfigureAwait(false);

@@ -115,6 +115,29 @@ public static class AutoDependencyInjectionServiceExtension
     extension(IServiceCollection services)
     {
         /// <summary>
+        ///     <para xml:lang="en">
+        ///     Configure a filter applied to each attribute-discovered implementation type during auto-registration.
+        ///     Types for which the predicate returns <see langword="false" /> are skipped. Call before
+        ///     <see cref="AddApplicationModules{T}" />.
+        ///     </para>
+        ///     <para xml:lang="zh">
+        ///     配置自动注册时对每个被特性发现的实现类型应用的过滤器。谓词返回 <see langword="false" /> 的类型将被跳过。
+        ///     需在 <see cref="AddApplicationModules{T}" /> 之前调用。
+        ///     </para>
+        /// </summary>
+        /// <param name="filter">
+        ///     <para xml:lang="en">Predicate that returns <see langword="true" /> to register the type, <see langword="false" /> to skip it.</para>
+        ///     <para xml:lang="zh">返回 <see langword="true" /> 表示注册该类型,<see langword="false" /> 表示跳过。</para>
+        /// </param>
+        public IServiceCollection ConfigureAutoInjectionFilter(Func<Type, bool> filter)
+        {
+            ArgumentNullException.ThrowIfNull(services);
+            ArgumentNullException.ThrowIfNull(filter);
+            services.GetOrCreateRegistry().RegistrationFilter = filter;
+            return services;
+        }
+
+        /// <summary>
         ///     <para xml:lang="en">Inject services</para>
         ///     <para xml:lang="zh">注入服务</para>
         /// </summary>

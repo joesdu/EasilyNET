@@ -80,7 +80,7 @@ internal static class MongoServiceExtensionsHelpers
         {
             ConventionRegistry.Register(entry.Name, entry.Pack, _ => true);
         }
-        RegisterIdGeneratorAndSerializers(options.ObjectIdToStringTypes);
+        RegisterIdGeneratorAndSerializers(options.ObjectIdToStringTypes, options.DateTimeSerializerKind, options.RegisterDefaultSerializers);
     }
 
     /// <summary>
@@ -106,7 +106,8 @@ internal static class MongoServiceExtensionsHelpers
             new NamedIdMemberConvention("Id", "ID"),
             new EnumRepresentationConvention(BsonType.String)
         }, _ => true);
-        RegisterIdGeneratorAndSerializers([]);
+        // Default path (ConfigureMongoConventions not called): keep the historical Local kind and register built-ins.
+        RegisterIdGeneratorAndSerializers([], DateTimeKind.Local, true);
     }
 
     /// <summary>
@@ -119,13 +120,13 @@ internal static class MongoServiceExtensionsHelpers
     ///     用户自定义和默认约定注册路径共用此方法。
     ///     </para>
     /// </summary>
-    private static void RegisterIdGeneratorAndSerializers(List<Type> objectIdToStringTypes)
+    private static void RegisterIdGeneratorAndSerializers(List<Type> objectIdToStringTypes, DateTimeKind dateTimeKind, bool registerDefaultSerializers)
     {
         ConventionRegistry.Register($"{Constant.Pack}-id-generator", new ConventionPack
         {
             new StringToObjectIdIdGeneratorConvention() //ObjectId → String mapping ObjectId
         }, x => !objectIdToStringTypes.Contains(x));
-        // 确保全局序列化器只注册一次
-        _ = MongoServiceExtensions.FirstInitialization.Value;
+        // 确保全局序列化器只注册一次(Kind/是否注册由配置决定)
+        MongoServiceExtensions.EnsureGlobalSerializers(dateTimeKind, registerDefaultSerializers);
     }
 }

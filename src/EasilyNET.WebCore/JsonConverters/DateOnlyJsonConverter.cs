@@ -30,7 +30,7 @@ public sealed class DateOnlyJsonConverter : JsonConverter<DateOnly?>
         var str = reader.GetString();
         return string.IsNullOrWhiteSpace(str)
                    ? null
-                   : DateOnly.TryParseExact(str, Constant.DateFormat, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var result)
+                   : DateOnly.TryParseExact(str, Constant.DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result)
                        ? result
                        : null;
     }
@@ -40,7 +40,7 @@ public sealed class DateOnlyJsonConverter : JsonConverter<DateOnly?>
     {
         if (value.HasValue)
         {
-            writer.WriteStringValue(value.Value.ToString(Constant.DateFormat, CultureInfo.CurrentCulture));
+            writer.WriteStringValue(value.Value.ToString(Constant.DateFormat, CultureInfo.InvariantCulture));
         }
         else
         {

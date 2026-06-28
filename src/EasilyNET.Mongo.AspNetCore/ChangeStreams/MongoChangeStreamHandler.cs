@@ -113,6 +113,18 @@ public abstract class MongoChangeStreamHandler<TDocument>(
             catch (Exception ex)
             {
                 retryCount++;
+                // If the saved resume token is no longer usable (oplog history lost / fatal change-stream error),
+                // clear it so the next attempt restarts from the current position instead of retrying forever
+                // against the same failing token.
+                if (IsResumeTokenInvalid(ex))
+                {
+                    Interlocked.Exchange(ref _resumeToken, null);
+                    if (_options.PersistResumeToken)
+                    {
+                        await DeleteResumeTokenAsync(stoppingToken).ConfigureAwait(false);
+                    }
+                    logger.LogWarning(ex, "Resume token for collection {CollectionName} is no longer valid; restarting the change stream from the current position.", collectionName);
+                }
                 if (_options.MaxRetryAttempts > 0 && retryCount > _options.MaxRetryAttempts)
                 {
                     logger.LogError(ex, "Change stream for collection {CollectionName} exceeded max retry attempts ({MaxRetries}). Stopping.",
@@ -199,6 +211,24 @@ public abstract class MongoChangeStreamHandler<TDocument>(
     {
         var delay = TimeSpan.FromTicks(_options.RetryDelay.Ticks * (long)Math.Pow(2, retryCount - 1));
         return delay > _options.MaxRetryDelay ? _options.MaxRetryDelay : delay;
+    }
+
+    // MongoDB server error codes that mean the change-stream resume point is gone:
+    // 286 = ChangeStreamHistoryLost, 280 = ChangeStreamFatalError.
+    private static bool IsResumeTokenInvalid(Exception ex) => ex is MongoCommandException { Code: 286 or 280 };
+
+    private async Task DeleteResumeTokenAsync(CancellationToken ct)
+    {
+        try
+        {
+            var tokenCollection = database.GetCollection<BsonDocument>(_options.ResumeTokenCollectionName);
+            var handlerName = GetType().FullName ?? GetType().Name;
+            await tokenCollection.DeleteOneAsync(Builders<BsonDocument>.Filter.Eq("_id", handlerName), ct).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to delete invalid resume token for change stream handler.");
+        }
     }
 
     private async Task<BsonDocument?> LoadResumeTokenAsync(CancellationToken ct)

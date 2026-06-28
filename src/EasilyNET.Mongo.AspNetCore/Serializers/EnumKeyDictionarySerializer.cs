@@ -65,6 +65,12 @@ public sealed class EnumKeyDictionarySerializer<TKey, TValue> : SerializerBase<D
     /// <inheritdoc />
     public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, Dictionary<TKey, TValue> value)
     {
+        if (value is null)
+        {
+            // A null dictionary field must serialize to BSON null, not throw a NullReferenceException in the foreach.
+            context.Writer.WriteNull();
+            return;
+        }
         context.Writer.WriteStartDocument();
         foreach (var kvp in value)
         {
@@ -82,6 +88,14 @@ public sealed class EnumKeyDictionarySerializer<TKey, TValue> : SerializerBase<D
     /// <inheritdoc />
     public override Dictionary<TKey, TValue> Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
     {
+        if (context.Reader.CurrentBsonType == BsonType.Null)
+        {
+            // A BSON null (written by Serialize for a null field) deserializes to a non-null empty dictionary.
+            // Returning a non-null collection avoids both the `!` null-suppression and NRE-prone null returns,
+            // and matches the non-nullable return contract of the base serializer.
+            context.Reader.ReadNull();
+            return [];
+        }
         var dictionary = new Dictionary<TKey, TValue>();
         context.Reader.ReadStartDocument();
         while (context.Reader.ReadBsonType() != BsonType.EndOfDocument)

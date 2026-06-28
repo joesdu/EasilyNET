@@ -339,11 +339,10 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
     {
         if (config?.OrderedHandlers.Count > 0)
         {
-            return config.OrderedHandlers
+            return [.. config.OrderedHandlers
                          .Where(h => config.IgnoredHandlers.Count == 0 || !config.IgnoredHandlers.Contains(h.HandlerType))
                          .OrderBy(h => h.Order)
-                         .Select(h => h.HandlerType)
-                         .ToList();
+                         .Select(h => h.HandlerType)];
         }
         return handlerTypes;
     }
@@ -428,23 +427,54 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
     /// </summary>
     private async Task ProcessHandlersConcurrently(List<Type> handlerTypes, Type eventType, IServiceProvider provider, object @event, int consumerIndex, ResiliencePipeline pipeline, CancellationToken ct)
     {
-        var tasks = new List<Task>(handlerTypes.Count);
-        tasks.AddRange(handlerTypes.Select(handlerType => InvokeHandlerAsync(handlerType, eventType, provider, @event, consumerIndex, pipeline, ct)));
+        // Honor the configured HandlerMaxDegreeOfParallelism instead of fanning out unbounded; a null gate
+        // means "no limit" (dop <= 0, or fewer handlers than the cap).
+        var dop = rabbitOptions.Get(Constant.OptionName).HandlerMaxDegreeOfParallelism;
+        var gate = dop > 0 && dop < handlerTypes.Count ? new SemaphoreSlim(dop, dop) : null;
         try
         {
-            await Task.WhenAll(tasks).ConfigureAwait(false);
-        }
-        catch
-        {
-            // 详细异常信息会在 InvokeHandlerAsync 中逐个记录。
-            // 这里仅做汇总，避免重复打印异常栈，但让并发失败更容易定位。
-            if (logger.IsEnabled(LogLevel.Error))
+            var tasks = new List<Task>(handlerTypes.Count);
+            tasks.AddRange(handlerTypes.Select(InvokeGatedAsync));
+            try
             {
-                var failedHandlers = tasks.Count(static t => t.IsFaulted);
-                logger.LogError("Concurrent handlers failed for event {EventName} on consumer {ConsumerIndex}. FailedHandlers={FailedHandlers}/{TotalHandlers}",
-                    eventType.Name, consumerIndex, failedHandlers, handlerTypes.Count);
+                await Task.WhenAll(tasks).ConfigureAwait(false);
             }
-            throw;
+            catch
+            {
+                // 详细异常信息会在 InvokeHandlerAsync 中逐个记录。
+                // 这里仅做汇总，避免重复打印异常栈，但让并发失败更容易定位。
+                if (logger.IsEnabled(LogLevel.Error))
+                {
+                    var failedHandlers = tasks.Count(static t => t.IsFaulted);
+                    logger.LogError("Concurrent handlers failed for event {EventName} on consumer {ConsumerIndex}. FailedHandlers={FailedHandlers}/{TotalHandlers}",
+                        eventType.Name, consumerIndex, failedHandlers, handlerTypes.Count);
+                }
+                throw;
+            }
+        }
+        finally
+        {
+            gate?.Dispose();
+        }
+        async Task InvokeGatedAsync(Type handlerType)
+        {
+            var acquired = false;
+            if (gate is not null)
+            {
+                await gate.WaitAsync(ct).ConfigureAwait(false);
+                acquired = true;
+            }
+            try
+            {
+                await InvokeHandlerAsync(handlerType, eventType, provider, @event, consumerIndex, pipeline, ct).ConfigureAwait(false);
+            }
+            finally
+            {
+                if (acquired)
+                {
+                    gate!.Release();
+                }
+            }
         }
     }
 

@@ -420,7 +420,14 @@ public sealed class BigNumber : IEquatable<BigNumber>, IComparable<BigNumber>
             var arr = number.Split(split);
             Whole = BigInteger.Parse(arr[0]);
             Numerator = BigInteger.Parse(arr[1]);
-            Denominator = new(Math.Pow(10, arr[1].Length));
+            // BigInteger.Pow keeps full precision; Math.Pow(10, n) rounds through double beyond ~15 digits.
+            Denominator = BigInteger.Pow(10, arr[1].Length);
+            // A negative mixed number shares its sign across the fractional part: "-1,5" = -(1 + 5/10) = -1.5.
+            // Guard the "-0,5" case too, where Whole parses to 0 but the token is negative.
+            if (Numerator > 0 && arr[0].AsSpan().TrimStart().StartsWith("-"))
+            {
+                Numerator = -Numerator;
+            }
             Sign = GetSign();
             Simplify();
         }

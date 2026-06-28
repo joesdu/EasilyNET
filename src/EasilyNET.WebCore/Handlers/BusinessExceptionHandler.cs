@@ -32,7 +32,8 @@ public sealed class BusinessExceptionHandler(IHostEnvironment env) : IExceptionH
                               """;
         }
         httpContext.Response.StatusCode = details.Status.Value;
-        await httpContext.Response.WriteAsJsonAsync(details, cancellationToken);
+        // RFC 7807: ProblemDetails responses should use the application/problem+json media type.
+        await httpContext.Response.WriteAsJsonAsync(details, options: null, contentType: "application/problem+json", cancellationToken);
         return true;
     }
 }

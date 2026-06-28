@@ -163,20 +163,26 @@ public static partial class NumberExtensions
             {
                 var floatA = a.ConvertTo<float>();
                 var floatB = b.ConvertTo<float>();
-                return Math.Abs(floatA - floatB) < epsilon * Math.Max((sbyte)Math.Abs(floatA), (sbyte)Math.Abs(floatB));
+                var diff = Math.Abs(floatA - floatB);
+                // Combined absolute-or-relative tolerance: the absolute term handles values near zero,
+                // the relative term (epsilon scaled by magnitude) handles large values.
+                return diff <= epsilon || diff <= epsilon * Math.Max(Math.Abs(floatA), Math.Abs(floatB));
             }
             if (typeof(T) == typeof(double))
             {
                 var doubleA = a.ConvertTo<double>();
                 var doubleB = b.ConvertTo<double>();
-                return Math.Abs(doubleA - doubleB) < epsilon * Math.Max((sbyte)Math.Abs(doubleA), (sbyte)Math.Abs(doubleB));
+                var diff = Math.Abs(doubleA - doubleB);
+                return diff <= epsilon || diff <= epsilon * Math.Max(Math.Abs(doubleA), Math.Abs(doubleB));
             }
             // ReSharper disable once InvertIf
             if (typeof(T) == typeof(decimal))
             {
                 var decimalA = a.ConvertTo<decimal>();
                 var decimalB = b.ConvertTo<decimal>();
-                return Math.Abs(decimalA - decimalB) < epsilon.ConvertTo<decimal>() * Math.Max((sbyte)Math.Abs(decimalA), (sbyte)Math.Abs(decimalB));
+                var eps = epsilon.ConvertTo<decimal>();
+                var diff = Math.Abs(decimalA - decimalB);
+                return diff <= eps || diff <= eps * Math.Max(Math.Abs(decimalA), Math.Abs(decimalB));
             }
             throw new NotSupportedException("Unsupported types, only the following types are supported: float, double, and decimal.");
         }

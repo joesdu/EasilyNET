@@ -210,9 +210,9 @@ public static class CoordinateConvert
     /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool OutOfChina(double lon, double lat) =>
-        // https://cn.bing.com/search?q=%E4%B8%AD%E5%9B%BD%E7%BB%8F%E7%BA%AC%E5%BA%A6%E8%8C%83%E5%9B%B4&qs=n&form=QBRE&sp=-1&pq=%E4%B8%AD%E5%9B%BD%E7%BB%8F%E7%BA%AC%E5%BA%A6%E8%8C%83%E5%9B%B4&sc=5-7&sk=&cvid=A687C2BEA56F4B08BE0913ADDA0C6674&ghsh=0&ghacc=0&ghpl=
-        // 经度范围:73°33′E至135°05′E; 纬度范围:3°51′N至53°33′N
-        lon is < 73.33 or > 135.05 || lat is < 3.51 or > 53.33;
+        // 使用 GCJ-02 算法约定的宽松国境包围盒(与 TransformLat/TransformLon 偏移函数配套)。
+        // 注意:不能把角分当作小数位(73°33′ = 73.55° 而非 73.33°),否则会把边境坐标误判为境外而漏掉偏移。
+        lon is < 72.004 or > 137.8347 || lat is < 0.8293 or > 55.8271;
 
     /// <summary>
     ///     <para xml:lang="en">Transforms the latitude</para>

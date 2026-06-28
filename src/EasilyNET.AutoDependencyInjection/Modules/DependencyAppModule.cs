@@ -25,18 +25,35 @@ public sealed class DependencyAppModule : AppModule
     private static void AddAutoInjection(IServiceCollection services, ILogger logger)
     {
         var registry = services.GetOrCreateRegistry();
+        // Registration order is irrelevant to Microsoft.Extensions.DependencyInjection resolution,
+        // so we register in discovery order. (A prior interface-graph "topological sort" added no value
+        // and could throw a false "cyclic dependency" error.)
         var types = AssemblyHelper.FindTypesByAttribute<DependencyInjectionAttribute>().ToList();
-        var sortedTypes = TopologicalSort(types);
+        // Apply the optional user-supplied registration filter (e.g. to exclude types by namespace/assembly).
+        if (registry.RegistrationFilter is { } filter)
+        {
+            types = [.. types.Where(filter)];
+        }
         if (logger.IsEnabled(LogLevel.Debug))
         {
-            logger.LogDebug("Auto-registering {Count} services", sortedTypes.Count);
+            logger.LogDebug("Auto-registering {Count} services", types.Count);
         }
-        foreach (var impl in sortedTypes)
+        foreach (var impl in types)
         {
             var attr = impl.GetCustomAttribute<DependencyInjectionAttribute>();
             var lifetime = attr?.Lifetime;
             if (lifetime is null)
             {
+                continue;
+            }
+            // A type that cannot be instantiated (abstract / interface / open generic) would throw at
+            // resolve time when used with a CreateInstance factory, so skip it with a warning.
+            if (impl.IsAbstract || impl.IsInterface || impl.ContainsGenericParameters)
+            {
+                if (logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning("Skipped registration: {Implementation} is abstract, an interface, or an open generic and cannot be instantiated.", impl.Name);
+                }
                 continue;
             }
             // ====== KeyedService 注册逻辑 ======
@@ -86,8 +103,8 @@ public sealed class DependencyAppModule : AppModule
                 continue;
             }
             // ====== 普通服务注册逻辑（无 ServiceKey）======
-            // 1. 处理 AddSelf + SelfOnly：仅注册自身
-            if (attr is { AddSelf: true, SelfOnly: true })
+            // 1. SelfOnly：仅注册自身（忽略接口/抽象基类），无论是否设置 AddSelf。
+            if (attr is { SelfOnly: true })
             {
                 registry.RegisterImplementation(impl, impl);
                 services.Add(new(impl, p => p.CreateInstance(impl), lifetime.Value));
@@ -97,7 +114,8 @@ public sealed class DependencyAppModule : AppModule
                 }
                 continue;
             }
-            // 2. 处理 AsType：注册指定的服务类型
+            // 2. 计算需要暴露的服务类型集合：AsType 显式指定，或自动发现接口/抽象基类。
+            List<Type> serviceTypes;
             if (attr?.AsType is not null)
             {
                 if (!impl.IsBaseOn(attr.AsType))
@@ -108,88 +126,38 @@ public sealed class DependencyAppModule : AppModule
                     }
                     continue;
                 }
-                registry.RegisterImplementation(attr.AsType, impl);
-                services.Add(new(attr.AsType, p => p.CreateInstance(impl), lifetime.Value));
-                if (logger.IsEnabled(LogLevel.Trace))
-                {
-                    logger.LogTrace("Registered service: {ServiceType} -> {Implementation}", attr.AsType.Name, impl.Name);
-                }
-                // AsType 指定后，如果还需要注册自身，需要显式设置 AddSelf
-                if (attr.AddSelf)
-                {
-                    registry.RegisterImplementation(impl, impl);
-                    services.Add(new(impl, p => p.CreateInstance(impl), lifetime.Value));
-                }
-                continue;
+                serviceTypes = [attr.AsType];
             }
-            // 3. 自动注册接口和抽象类
-            var serviceTypes = GetServiceTypes(impl);
-            // 3.1 如果需要注册自身（显式指定 AddSelf）
-            if (attr?.AddSelf is true)
+            else
+            {
+                serviceTypes = [.. GetServiceTypes(impl)];
+            }
+            // 3. 当需要 AddSelf、没有可暴露的服务类型（回退为仅自身），或存在多个服务类型时，
+            //    先以具体类型注册一个“锚点”，其余服务类型通过 GetRequiredService 转发到该锚点，
+            //    从而保证 Singleton/Scoped 下所有服务类型共享同一实例（修复多接口产生多个单例实例的缺陷）。
+            var addSelf = attr?.AddSelf is true;
+            var needAnchor = addSelf || serviceTypes.Count != 1;
+            if (needAnchor)
             {
                 registry.RegisterImplementation(impl, impl);
                 services.Add(new(impl, p => p.CreateInstance(impl), lifetime.Value));
             }
-            // 3.2 注册所有接口和抽象类
-            if (serviceTypes.Count > 0)
+            foreach (var serviceType in serviceTypes)
             {
-                foreach (var serviceType in serviceTypes)
-                {
-                    registry.RegisterImplementation(serviceType, impl);
-                    services.Add(new(serviceType, p => p.CreateInstance(impl), lifetime.Value));
-                    if (logger.IsEnabled(LogLevel.Trace))
-                    {
-                        logger.LogTrace("Registered service: {ServiceType} -> {Implementation}", serviceType.Name, impl.Name);
-                    }
-                }
-            }
-            else if (attr?.AddSelf is not true)
-            {
-                // 3.3 没有接口或抽象类，且未显式声明 AddSelf 时，仅注册自身
-                registry.RegisterImplementation(impl, impl);
-                services.Add(new(impl, p => p.CreateInstance(impl), lifetime.Value));
+                registry.RegisterImplementation(serviceType, impl);
+                services.Add(needAnchor
+                    ? new ServiceDescriptor(serviceType, p => p.GetRequiredService(impl), lifetime.Value)
+                    : new ServiceDescriptor(serviceType, p => p.CreateInstance(impl), lifetime.Value));
                 if (logger.IsEnabled(LogLevel.Trace))
                 {
-                    logger.LogTrace("Registered self service: {ServiceType}", impl.Name);
+                    logger.LogTrace("Registered service: {ServiceType} -> {Implementation}", serviceType.Name, impl.Name);
                 }
             }
         }
         if (logger.IsEnabled(LogLevel.Debug))
         {
-            logger.LogDebug("Completed auto-registration of {Count} services", sortedTypes.Count);
+            logger.LogDebug("Completed auto-registration of {Count} services", types.Count);
         }
-    }
-
-    private static List<Type> TopologicalSort(List<Type> types)
-    {
-        var typeSet = new HashSet<Type>(types);
-        var sorted = new List<Type>(types.Count);
-        var visited = new Dictionary<Type, bool>(types.Count);
-        foreach (var type in types)
-        {
-            Visit(type, typeSet, sorted, visited);
-        }
-        return sorted;
-    }
-
-    private static void Visit(Type type, HashSet<Type> types, List<Type> sorted, Dictionary<Type, bool> visited)
-    {
-        if (visited.TryGetValue(type, out var inProcess))
-        {
-            if (inProcess)
-            {
-                throw new InvalidOperationException($"Cyclic dependency found involving type '{type.Name}'.");
-            }
-            return;
-        }
-        visited[type] = true;
-        var dependencies = GetServiceTypes(type);
-        foreach (var dependency in dependencies.Where(types.Contains))
-        {
-            Visit(dependency, types, sorted, visited);
-        }
-        visited[type] = false;
-        sorted.Add(type);
     }
 
     private static HashSet<Type> GetServiceTypes(Type implementation)

@@ -336,11 +336,17 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
         {
             throw new ArgumentOutOfRangeException(nameof(value));
         }
-        if (value > _data.Length)
+        var newLength = (int)value;
+        if (newLength > _data.Length)
         {
-            SetCapacity((int)value);
+            SetCapacity(newLength);
         }
-        _length = (int)value;
+        if (newLength > _length)
+        {
+            // Zero the newly exposed region so reads don't return stale pooled/truncated data (matches MemoryStream).
+            Array.Clear(_data, _length, newLength - _length);
+        }
+        _length = newLength;
         if (_position > _length)
         {
             _position = _length;
@@ -646,12 +652,17 @@ public sealed class PooledMemoryStream : Stream, IEnumerable<byte>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EnsureCapacity(long required)
     {
-        if (required <= _data.Length)
+        if (required > _data.Length)
         {
-            return;
+            var newCapacity = (int)Math.Max(required, _data.Length * OverExpansionFactor);
+            SetCapacity(newCapacity);
         }
-        var newCapacity = (int)Math.Max(required, _data.Length * OverExpansionFactor);
-        SetCapacity(newCapacity);
+        // When writing past the current logical end (e.g. after Seek beyond length), zero the skipped
+        // gap so it cannot expose stale pooled data. Matches MemoryStream semantics.
+        if (_position > _length)
+        {
+            Array.Clear(_data, _length, (int)(_position - _length));
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

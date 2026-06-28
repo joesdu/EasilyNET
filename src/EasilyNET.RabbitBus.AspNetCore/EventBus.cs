@@ -19,11 +19,11 @@ internal sealed class EventBus(
 {
     private RabbitConfig Config => options.Get(Constant.OptionName);
 
-    public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, cancellationToken).ConfigureAwait(false);
+    public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, headers, cancellationToken).ConfigureAwait(false);
 
-    public async Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatchInternal(events, routingKey, priority, cancellationToken).ConfigureAwait(false);
+    public async Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatchInternal(events, routingKey, priority, headers, cancellationToken).ConfigureAwait(false);
 
-    public async Task Publish(object @event, Type eventType, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default)
+    public async Task Publish(object @event, Type eventType, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (@event is not IEvent evt)
@@ -41,7 +41,7 @@ internal sealed class EventBus(
         }
         try
         {
-            await eventPublisher.Publish(config, evt, routingKey, priority, cancellationToken).ConfigureAwait(false);
+            await eventPublisher.Publish(config, evt, routingKey, priority, headers, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -221,7 +221,7 @@ internal sealed class EventBus(
 
     #region Internal Publish Helpers
 
-    private async Task PublishInternal<T>(T @event, string? routingKey, byte? priority, CancellationToken ct) where T : IEvent
+    private async Task PublishInternal<T>(T @event, string? routingKey, byte? priority, IReadOnlyDictionary<string, object?>? headers, CancellationToken ct) where T : IEvent
     {
         ct.ThrowIfCancellationRequested();
         var config = eventRegistry.GetConfiguration<T>();
@@ -235,7 +235,7 @@ internal sealed class EventBus(
         }
         try
         {
-            await eventPublisher.Publish(config, @event, routingKey, priority, ct).ConfigureAwait(false);
+            await eventPublisher.Publish(config, @event, routingKey, priority, headers, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -251,7 +251,7 @@ internal sealed class EventBus(
         }
     }
 
-    private async Task PublishBatchInternal<T>(IEnumerable<T> events, string? routingKey, byte? priority, CancellationToken ct) where T : IEvent
+    private async Task PublishBatchInternal<T>(IEnumerable<T> events, string? routingKey, byte? priority, IReadOnlyDictionary<string, object?>? headers, CancellationToken ct) where T : IEvent
     {
         ct.ThrowIfCancellationRequested();
         // 避免多次枚举
@@ -274,7 +274,7 @@ internal sealed class EventBus(
         }
         try
         {
-            await eventPublisher.PublishBatch(config, list, routingKey, priority, ct).ConfigureAwait(false);
+            await eventPublisher.PublishBatch(config, list, routingKey, priority, headers, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

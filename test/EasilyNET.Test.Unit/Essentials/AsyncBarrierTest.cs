@@ -47,6 +47,23 @@ public class AsyncBarrierTest
     }
 
     [TestMethod]
+    public async Task CanceledWaiter_ShouldFreeSlot_AndNotDeadlockSubsequentBarrier()
+    {
+        var barrier = new AsyncBarrier(2);
+        using var cts = new CancellationTokenSource();
+        // First participant arrives and waits (barrier needs 2).
+        var canceledWait = barrier.SignalAndWait(cts.Token);
+        // Cancel it; the canceled waiter must be removed so it no longer occupies a participant slot.
+        await cts.CancelAsync();
+        await Assert.ThrowsExactlyAsync<TaskCanceledException>(async () => await canceledWait);
+        // Reuse the barrier: two fresh participants must complete. If the canceled waiter still held a slot,
+        // the first would pair with the dead waiter and the second would hang forever.
+        var t1 = barrier.SignalAndWait(CancellationToken.None);
+        var t2 = barrier.SignalAndWait(CancellationToken.None);
+        await Task.WhenAll(t1.AsTask(), t2.AsTask()).WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    [TestMethod]
     public async Task LessParticipants_ShouldWaitIndefinitely()
     {
         var barrier = new AsyncBarrier(3);

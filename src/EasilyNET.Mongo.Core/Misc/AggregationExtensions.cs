@@ -56,6 +56,7 @@ public static class AggregationExtensions
             string asField,
             FilterDefinition<TDocument>? filter = null,
             bool preserveNullAndEmpty = true,
+            AggregateOptions? options = null,
             CancellationToken cancellationToken = default)
         {
             var localFieldName = ResolveFieldName(localField);
@@ -81,7 +82,7 @@ public static class AggregationExtensions
             }
             pipeline.Add(new("$unwind", unwindDoc));
             var bsonCollection = collection.Database.GetCollection<BsonDocument>(collection.CollectionNamespace.CollectionName);
-            return await bsonCollection.Aggregate<BsonDocument>(pipeline).ToListAsync(cancellationToken).ConfigureAwait(false);
+            return await bsonCollection.Aggregate<BsonDocument>(pipeline, options, cancellationToken).ToListAsync(cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -95,6 +96,7 @@ public static class AggregationExtensions
         public async Task<Dictionary<string, long>> GroupByCountAsync(
             Expression<Func<TDocument, object?>> groupByField,
             FilterDefinition<TDocument>? filter = null,
+            AggregateOptions? options = null,
             CancellationToken cancellationToken = default)
         {
             var fieldName = ResolveFieldName(groupByField);
@@ -112,7 +114,7 @@ public static class AggregationExtensions
             }));
             pipeline.Add(new("$sort", new BsonDocument("count", -1)));
             var bsonCollection = collection.Database.GetCollection<BsonDocument>(collection.CollectionNamespace.CollectionName);
-            var results = await bsonCollection.Aggregate<BsonDocument>(pipeline).ToListAsync(cancellationToken).ConfigureAwait(false);
+            var results = await bsonCollection.Aggregate<BsonDocument>(pipeline, options).ToListAsync(cancellationToken).ConfigureAwait(false);
             var dict = new Dictionary<string, long>();
             foreach (var doc in results)
             {
@@ -134,6 +136,7 @@ public static class AggregationExtensions
             Expression<Func<TDocument, object?>> groupByField,
             BsonValue[] boundaries,
             string? defaultBucket = "Other",
+            AggregateOptions? options = null,
             CancellationToken cancellationToken = default)
         {
             var fieldName = ResolveFieldName(groupByField);
@@ -149,7 +152,7 @@ public static class AggregationExtensions
             }
             var pipeline = new List<BsonDocument> { new("$bucket", bucketStage) };
             var bsonCollection = collection.Database.GetCollection<BsonDocument>(collection.CollectionNamespace.CollectionName);
-            return await bsonCollection.Aggregate<BsonDocument>(pipeline).ToListAsync(cancellationToken).ConfigureAwait(false);
+            return await bsonCollection.Aggregate<BsonDocument>(pipeline, options, cancellationToken).ToListAsync(cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -161,7 +164,7 @@ public static class AggregationExtensions
         ///     执行 <c>$facet</c> 管道以并行运行多个聚合管道并在单个文档中返回其结果。
         ///     </para>
         /// </summary>
-        public async Task<BsonDocument> FacetAsync(Dictionary<string, BsonDocument[]> facets, CancellationToken cancellationToken = default)
+        public async Task<BsonDocument> FacetAsync(Dictionary<string, BsonDocument[]> facets, AggregateOptions? options = null, CancellationToken cancellationToken = default)
         {
             var facetDoc = new BsonDocument();
             foreach (var (name, stages) in facets)
@@ -170,7 +173,7 @@ public static class AggregationExtensions
             }
             var pipeline = new List<BsonDocument> { new("$facet", facetDoc) };
             var bsonCollection = collection.Database.GetCollection<BsonDocument>(collection.CollectionNamespace.CollectionName);
-            var results = await bsonCollection.Aggregate<BsonDocument>(pipeline).ToListAsync(cancellationToken).ConfigureAwait(false);
+            var results = await bsonCollection.Aggregate<BsonDocument>(pipeline, options, cancellationToken).ToListAsync(cancellationToken).ConfigureAwait(false);
             return results.Count > 0 ? results[0] : [];
         }
     }

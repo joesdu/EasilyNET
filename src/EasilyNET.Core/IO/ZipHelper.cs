@@ -237,7 +237,7 @@ public static class ZipHelper
             await using (var fs = new FileStream(zipFile, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.SequentialScan))
             await using (var archive = new ZipArchive(fs, ZipArchiveMode.Read, false))
             {
-                entries = archive.Entries.Select(e => e.FullName).ToList();
+                entries = [.. archive.Entries.Select(e => e.FullName)];
             }
             if (entries.Count == 0)
             {
@@ -408,7 +408,7 @@ public static class ZipHelper
             using var entryStream = entry.Open();
             entryStream.Write(data, 0, data.Length);
         }
-        return ms.ToArray();
+        return [.. ms];
     }
 
     /// <summary>
@@ -427,6 +427,6 @@ public static class ZipHelper
             await using var entryStream = await entry.OpenAsync(cancellationToken);
             await entryStream.WriteAsync(data, cancellationToken);
         }
-        return ms.ToArray();
+        return [.. ms];
     }
 }

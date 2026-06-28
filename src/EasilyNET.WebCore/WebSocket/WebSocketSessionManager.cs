@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
@@ -44,19 +43,14 @@ public sealed class WebSocketSessionManager : IWebSocketSessionManager, IWebSock
     }
 
     /// <inheritdoc />
-    public async Task BroadcastTextAsync(string text, CancellationToken cancellationToken = default)
+    public Task BroadcastTextAsync(string text, CancellationToken cancellationToken = default)
     {
-        var byteCount = Encoding.UTF8.GetByteCount(text);
-        var rented = ArrayPool<byte>.Shared.Rent(byteCount);
-        try
-        {
-            var bytesWritten = Encoding.UTF8.GetBytes(text, rented);
-            await BroadcastAsync(rented.AsMemory(0, bytesWritten), WebSocketMessageType.Text, cancellationToken).ConfigureAwait(false);
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(rented);
-        }
+        // Encode once into a managed array shared (read-only) by every session. A pooled buffer MUST NOT be
+        // used here: BroadcastAsync only enqueues to each session's send channel and returns before the actual
+        // socket send completes, so returning the buffer to the pool would corrupt in-flight sends. The managed
+        // array stays alive (GC) until all sessions have transmitted it.
+        var bytes = Encoding.UTF8.GetBytes(text);
+        return BroadcastAsync(bytes, WebSocketMessageType.Text, cancellationToken);
     }
 
     /// <inheritdoc />

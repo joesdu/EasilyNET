@@ -26,7 +26,7 @@ public sealed class DecimalJsonConverter : JsonConverter<decimal?>
         var str = reader.GetString();
         return string.IsNullOrWhiteSpace(str)
                    ? null
-                   : decimal.TryParse(str, CultureInfo.CurrentCulture, out var result)
+                   : decimal.TryParse(str, NumberStyles.Number, CultureInfo.InvariantCulture, out var result)
                        ? result
                        : null;
     }
@@ -36,7 +36,8 @@ public sealed class DecimalJsonConverter : JsonConverter<decimal?>
     {
         if (value.HasValue)
         {
-            writer.WriteStringValue(value.Value.ToString(CultureInfo.CurrentCulture));
+            // Emit as a real JSON number (culture-invariant), not a quoted, culture-dependent string.
+            writer.WriteNumberValue(value.Value);
         }
         else
         {

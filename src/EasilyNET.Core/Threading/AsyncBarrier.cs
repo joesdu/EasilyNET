@@ -51,7 +51,10 @@ public sealed class AsyncBarrier
 {
     private readonly int participantCount;
     private readonly Lock syncRoot = new();
-    private readonly Stack<Waiter> waiters;
+
+    // A List (not a Stack) so a waiter whose token is canceled can be removed by reference; otherwise a
+    // canceled waiter keeps occupying a participant slot, inflating the count and deadlocking the barrier.
+    private readonly List<Waiter> waiters;
 
     /// <summary>
     ///     <para xml:lang="en">Initializes a new instance of the <see cref="AsyncBarrier" /> class with the specified number of participants</para>
@@ -75,6 +78,19 @@ public sealed class AsyncBarrier
         waiters = new(participants - 1);
     }
 
+    private void RemoveCanceledWaiter(Waiter waiter, CancellationToken cancellationToken)
+    {
+        lock (syncRoot)
+        {
+            // Free the canceled waiter's slot. Do NOT dispose the registration here: we may be running inside
+            // its own callback, and CancellationTokenRegistration.Dispose() would block waiting for itself.
+            if (waiters.Remove(waiter))
+            {
+                waiter.CompletionSource.TrySetCanceled(cancellationToken);
+            }
+        }
+    }
+
     /// <summary>
     ///     <para xml:lang="en">Signals that a participant has reached the barrier and waits for all other participants to reach the barrier</para>
     ///     <para xml:lang="zh">表示一个参与者已到达屏障，并等待所有其他参与者到达屏障</para>
@@ -93,30 +109,39 @@ public sealed class AsyncBarrier
         {
             if (waiters.Count + 1 == participantCount)
             {
-                while (waiters.Count > 0)
+                foreach (var w in waiters)
                 {
-                    var waiter = waiters.Pop();
-                    waiter.CompletionSource.TrySetResult(default);
-                    waiter.CancellationRegistration.Dispose();
+                    w.CompletionSource.TrySetResult(default);
+                    // Unregister (not Dispose) so we never block on a cancellation callback that is waiting for
+                    // this same lock; a non-fired registration is simply detached.
+                    w.CancellationRegistration.Unregister();
                 }
+                waiters.Clear();
                 return new(cancellationToken.IsCancellationRequested
                                ? Task.FromCanceled(cancellationToken)
                                : Task.CompletedTask);
             }
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return new(Task.FromCanceled(cancellationToken));
+            }
             TaskCompletionSource<EmptyStruct> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            var ctr = cancellationToken.CanBeCanceled
-                          ? cancellationToken.Register(static (tcs, ct) => ((TaskCompletionSource<EmptyStruct>)tcs!).TrySetCanceled(ct), tcs)
-                          : default;
-            waiters.Push(new(tcs, ctr));
+            var waiter = new Waiter(tcs);
+            waiters.Add(waiter);
+            if (cancellationToken.CanBeCanceled)
+            {
+                // syncRoot is reentrant, so a registration that fires synchronously here is safe.
+                waiter.CancellationRegistration = cancellationToken.Register(() => RemoveCanceledWaiter(waiter, cancellationToken));
+            }
             return new(tcs.Task);
         }
     }
 
-    private readonly struct Waiter(TaskCompletionSource<EmptyStruct> completionSource, CancellationTokenRegistration cancellationRegistration)
+    private sealed class Waiter(TaskCompletionSource<EmptyStruct> completionSource)
     {
         internal TaskCompletionSource<EmptyStruct> CompletionSource => completionSource;
 
-        internal CancellationTokenRegistration CancellationRegistration => cancellationRegistration;
+        internal CancellationTokenRegistration CancellationRegistration { get; set; }
     }
 }
 

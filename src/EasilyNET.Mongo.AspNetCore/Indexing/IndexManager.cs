@@ -39,7 +39,8 @@ internal static class IndexManager
                     Keys = indexDoc["key"].AsBsonDocument,
                     Unique = indexDoc.Contains("unique") && indexDoc["unique"].AsBoolean,
                     Sparse = indexDoc.Contains("sparse") && indexDoc["sparse"].AsBoolean,
-                    ExpireAfterSeconds = indexDoc.Contains("expireAfterSeconds") ? indexDoc["expireAfterSeconds"].AsInt32 : null
+                    // expireAfterSeconds may be stored as Int32/Int64/Double; ToInt32() coerces, AsInt32 would throw.
+                    ExpireAfterSeconds = indexDoc.Contains("expireAfterSeconds") ? indexDoc["expireAfterSeconds"].ToInt32() : null
                 };
 
                 // 解析排序规则
@@ -264,8 +265,9 @@ internal static class IndexManager
         var options = new CreateIndexOptions
         {
             Name = indexDef.Name,
-            Unique = indexDef.Unique,
-            Background = true
+            Unique = indexDef.Unique
+            // Note: CreateIndexOptions.Background is a no-op since MongoDB 4.2 (index builds use an optimized
+            // build process that no longer blocks); intentionally omitted to avoid implying non-blocking behavior.
         };
         // 只在非时序集合时设置 Sparse
         if (indexDef.Sparse)

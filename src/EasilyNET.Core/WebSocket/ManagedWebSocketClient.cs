@@ -1065,8 +1065,10 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         {
             return;
         }
-        foreach (var handler in handlers.GetInvocationList().Cast<Func<ManagedWebSocketClient, WebSocketMessageReceivedEventArgs, ValueTask>>())
+        var invocationList = handlers.GetInvocationList();
+        foreach (var d in invocationList)
         {
+            var handler = (Func<ManagedWebSocketClient, WebSocketMessageReceivedEventArgs, ValueTask>)d;
             try
             {
                 await handler(this, e).ConfigureAwait(false);

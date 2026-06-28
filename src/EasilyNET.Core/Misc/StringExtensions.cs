@@ -1,3 +1,5 @@
+using EasilyNET.Core.Commons;
+using EasilyNET.Core.Enums;
 using System.Collections.Specialized;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -5,8 +7,6 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using EasilyNET.Core.Commons;
-using EasilyNET.Core.Enums;
 
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedType.Global
@@ -20,6 +20,10 @@ namespace EasilyNET.Core.Misc;
 /// </summary>
 public static partial class StringExtensions
 {
+    // Default upper bound on a single regex evaluation in Validate, to mitigate ReDoS (catastrophic backtracking)
+    // when the pattern and/or input are attacker-influenced.
+    private static readonly TimeSpan DefaultRegexTimeout = TimeSpan.FromSeconds(2);
+
     [GeneratedRegex(@"\s")]
     private static partial Regex RemoveWhiteSpaceRegex();
 
@@ -237,14 +241,26 @@ public static partial class StringExtensions
         ///     <para xml:lang="en">Content of the regular expression</para>
         ///     <para xml:lang="zh">正则表达式的内容</para>
         /// </param>
-        public bool Validate(string express)
+        /// <param name="matchTimeout">
+        ///     <para xml:lang="en">
+        ///     Maximum time allowed for a single match before a <see cref="RegexMatchTimeoutException" /> is thrown
+        ///     (ReDoS protection). Defaults to 2 seconds when <see langword="null" />.
+        ///     </para>
+        ///     <para xml:lang="zh">单次匹配的最长耗时,超时将抛出 <see cref="RegexMatchTimeoutException" />(防 ReDoS)。为 <see langword="null" /> 时默认 2 秒。</para>
+        /// </param>
+        /// <exception cref="RegexMatchTimeoutException">
+        ///     <para xml:lang="en">Thrown when the match does not complete within <paramref name="matchTimeout" />.</para>
+        ///     <para xml:lang="zh">当匹配未在 <paramref name="matchTimeout" /> 内完成时抛出。</para>
+        /// </exception>
+        public bool Validate(string express, TimeSpan? matchTimeout = null)
         {
             if (string.IsNullOrWhiteSpace(value))
             {
                 return false;
             }
-            var myRegex = new Regex(express);
-            return myRegex.IsMatch(value);
+            // Use the static Regex.IsMatch (reuses the runtime's bounded built-in regex cache) with a match timeout
+            // so a pathological pattern/input cannot hang the thread via catastrophic backtracking (ReDoS).
+            return Regex.IsMatch(value, express, RegexOptions.None, matchTimeout ?? DefaultRegexTimeout);
         }
 
         /// <summary>
@@ -349,7 +365,22 @@ public static partial class StringExtensions
         ///     <para xml:lang="en">Match phone number</para>
         ///     <para xml:lang="zh">匹配手机号码</para>
         /// </summary>
-        public bool IsPhoneNumber() => !string.IsNullOrWhiteSpace(value) && value[0] == '1' && (value[1] > '2' || value[1] <= '9');
+        public bool IsPhoneNumber()
+        {
+            // Mainland China mobile number: 11 digits, starts with '1', second digit in 3-9, all digits.
+            if (string.IsNullOrWhiteSpace(value) || value.Length != 11 || value[0] != '1' || value[1] < '3' || value[1] > '9')
+            {
+                return false;
+            }
+            foreach (var c in value)
+            {
+                if (c is < '0' or > '9')
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
 
         /// <summary>
         ///     <para xml:lang="en">Convert string to DateTime, supports multiple formats</para>

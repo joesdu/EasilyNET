@@ -142,6 +142,108 @@ public static class AesCrypt
 
     #endregion
 
+    #region 外部密钥 (Raw Key) API
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ValidateKey(ReadOnlySpan<byte> key)
+    {
+        if (key.Length is not (16 or 24 or 32))
+        {
+            throw new ArgumentException("AES key must be 16, 24, or 32 bytes (AES-128/192/256).", nameof(key));
+        }
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Encrypts data with a caller-supplied raw AES key (16/24/32 bytes), for deterministic/interop scenarios
+    ///     where the key is managed externally rather than derived from a password. A fresh random IV is generated
+    ///     per call and prefixed to the output: the format is <c>[iv(16)][ciphertext]</c> (no salt). Decrypt with
+    ///     <see cref="DecryptWithKey" /> — this format is NOT interchangeable with the password-based
+    ///     <see cref="Encrypt" />/<see cref="Decrypt" /> (which use <c>[salt][iv][ciphertext]</c>).
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     使用调用方提供的原始 AES 密钥(16/24/32 字节)加密,适用于密钥由外部管理(非口令派生)的确定性/互操作场景。
+    ///     每次调用生成随机 IV 并前置,格式为 <c>[iv(16)][密文]</c>(不含盐)。请用 <see cref="DecryptWithKey" /> 解密;
+    ///     该格式与基于口令的 <see cref="Encrypt" />/<see cref="Decrypt" />(<c>[盐][iv][密文]</c>)不通用。
+    ///     </para>
+    /// </summary>
+    public static byte[] EncryptWithKey(ReadOnlySpan<byte> data, ReadOnlySpan<byte> key)
+    {
+        if (data.IsEmpty)
+        {
+            throw new ArgumentException("Data cannot be empty.", nameof(data));
+        }
+        ValidateKey(key);
+        var iv = CryptographicUtilities.GenerateIV();
+        var keyArr = key.ToArray();
+        try
+        {
+            using var aes = Aes.Create();
+            aes.Key = keyArr;
+            aes.IV = iv;
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+            using var ms = new MemoryStream();
+            ms.Write(iv);
+            using (var cs = new CryptoStream(ms, aes.CreateEncryptor(), CryptoStreamMode.Write))
+            {
+                cs.Write(data);
+                cs.FlushFinalBlock();
+            }
+            return ms.ToArray();
+        }
+        finally
+        {
+            CryptographicUtilities.SecureClear(keyArr);
+        }
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Decrypts data produced by <see cref="EncryptWithKey" /> using the caller-supplied raw AES key. Expects the
+    ///     <c>[iv(16)][ciphertext]</c> format.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     使用调用方提供的原始 AES 密钥解密 <see cref="EncryptWithKey" /> 生成的数据,期望 <c>[iv(16)][密文]</c> 格式。
+    ///     </para>
+    /// </summary>
+    public static byte[] DecryptWithKey(ReadOnlySpan<byte> encryptedData, ReadOnlySpan<byte> key)
+    {
+        ValidateKey(key);
+        if (encryptedData.Length < IvLength + 16)
+        {
+            throw new CryptographicException("Invalid encrypted data format: data is too short.");
+        }
+        var iv = encryptedData[..IvLength].ToArray();
+        var cipherData = encryptedData[IvLength..];
+        var keyArr = key.ToArray();
+        try
+        {
+            using var aes = Aes.Create();
+            aes.Key = keyArr;
+            aes.IV = iv;
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+            using var ms = new MemoryStream();
+            using (var cs = new CryptoStream(ms, aes.CreateDecryptor(), CryptoStreamMode.Write))
+            {
+                cs.Write(cipherData);
+                cs.FlushFinalBlock();
+            }
+            return ms.ToArray();
+        }
+        catch (CryptographicException ex)
+        {
+            throw new CryptographicException("Decryption failed. Check key and data integrity.", ex);
+        }
+        finally
+        {
+            CryptographicUtilities.SecureClear(keyArr);
+        }
+    }
+
+    #endregion
+
     #region 字符串加密 (Base64/Hex)
 
     /// <summary>

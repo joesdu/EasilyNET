@@ -40,6 +40,30 @@ public sealed class MongoConventionOptions
     public List<Type> ObjectIdToStringTypes { get; set; } = [];
 
     /// <summary>
+    ///     <para xml:lang="en">
+    ///     The <see cref="DateTimeKind" /> used by the built-in global <c>DateTime</c> serializer. Default is
+    ///     <see cref="DateTimeKind.Local" /> (kept for backward compatibility). Set to <see cref="DateTimeKind.Utc" />
+    ///     to avoid cross-timezone drift when the same data is read on hosts in different timezones.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     内置全局 <c>DateTime</c> 序列化器使用的 <see cref="DateTimeKind" />。默认 <see cref="DateTimeKind.Local" />（为向后兼容保留）。
+    ///     设为 <see cref="DateTimeKind.Utc" /> 可避免同一数据在不同时区主机上读取时产生时间漂移。
+    ///     </para>
+    /// </summary>
+    public DateTimeKind DateTimeSerializerKind { get; set; } = DateTimeKind.Local;
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Whether to register the library's built-in global <c>DateTime</c>/<c>Decimal</c> serializers.
+    ///     Set to <see langword="false" /> to register your own (improves testability and avoids the global static side effect).
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     是否注册本库内置的全局 <c>DateTime</c>/<c>Decimal</c> 序列化器。设为 <see langword="false" /> 可改为注册自定义序列化器（利于单测，避免全局静态副作用）。
+    ///     </para>
+    /// </summary>
+    public bool RegisterDefaultSerializers { get; set; } = true;
+
+    /// <summary>
     ///     <para xml:lang="en">Gets the registered convention packs (read-only).</para>
     ///     <para xml:lang="zh">获取已注册的约定包列表（只读）。</para>
     /// </summary>

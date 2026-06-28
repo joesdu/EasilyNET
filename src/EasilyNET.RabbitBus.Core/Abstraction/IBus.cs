@@ -35,11 +35,15 @@ public interface IBus
     ///     </para>
     ///     <para xml:lang="zh">优先级。使用优先级需要先使用事件配置为队列声明"x-max-priority"参数否则也不会生效,推荐设置0-9之间的数值</para>
     /// </param>
+    /// <param name="headers">
+    ///     <para xml:lang="en">Optional per-message headers, merged over (and overriding) the event configuration headers.</para>
+    ///     <para xml:lang="zh">可选的逐条消息头,会合并并覆盖事件配置中的静态消息头。</para>
+    /// </param>
     /// <param name="cancellationToken">
     ///     <para xml:lang="en">CancellationToken</para>
     ///     <para xml:lang="zh">取消令牌</para>
     /// </param>
-    Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent;
+    Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) where T : IEvent;
 
     /// <summary>
     ///     <para xml:lang="en">Publishes multiple events in batch</para>
@@ -67,11 +71,15 @@ public interface IBus
     ///     </para>
     ///     <para xml:lang="zh">优先级。使用优先级需要先使用事件配置为队列声明"x-max-priority"参数否则也不会生效,推荐设置0-9之间的数值</para>
     /// </param>
+    /// <param name="headers">
+    ///     <para xml:lang="en">Optional per-message headers, merged over (and overriding) the event configuration headers.</para>
+    ///     <para xml:lang="zh">可选的逐条消息头,会合并并覆盖事件配置中的静态消息头。</para>
+    /// </param>
     /// <param name="cancellationToken">
     ///     <para xml:lang="en">CancellationToken</para>
     ///     <para xml:lang="zh">取消令牌</para>
     /// </param>
-    Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent;
+    Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) where T : IEvent;
 
     /// <summary>
     ///     <para xml:lang="en">Publishes an event (non-generic)</para>
@@ -99,9 +107,13 @@ public interface IBus
     ///     </para>
     ///     <para xml:lang="zh">优先级。使用优先级需要先使用事件配置为队列声明"x-max-priority"参数否则也不会生效,推荐设置0-9之间的数值</para>
     /// </param>
+    /// <param name="headers">
+    ///     <para xml:lang="en">Optional per-message headers, merged over (and overriding) the event configuration headers.</para>
+    ///     <para xml:lang="zh">可选的逐条消息头,会合并并覆盖事件配置中的静态消息头。</para>
+    /// </param>
     /// <param name="cancellationToken">
     ///     <para xml:lang="en">CancellationToken</para>
     ///     <para xml:lang="zh">取消令牌</para>
     /// </param>
-    Task Publish(object @event, Type eventType, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default);
+    Task Publish(object @event, Type eventType, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default);
 }

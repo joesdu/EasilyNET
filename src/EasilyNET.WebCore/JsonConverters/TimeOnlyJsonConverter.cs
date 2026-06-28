@@ -22,7 +22,7 @@ public sealed class TimeOnlyJsonConverter : JsonConverter<TimeOnly?>
         var str = reader.GetString();
         return string.IsNullOrWhiteSpace(str)
                    ? null
-                   : TimeOnly.TryParseExact(str, Constant.TimeFormat, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var result)
+                   : TimeOnly.TryParseExact(str, Constant.TimeFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result)
                        ? result
                        : null;
     }
@@ -32,7 +32,7 @@ public sealed class TimeOnlyJsonConverter : JsonConverter<TimeOnly?>
     {
         if (value.HasValue)
         {
-            writer.WriteStringValue(value.Value.ToString(Constant.TimeFormat, CultureInfo.CurrentCulture));
+            writer.WriteStringValue(value.Value.ToString(Constant.TimeFormat, CultureInfo.InvariantCulture));
         }
         else
         {

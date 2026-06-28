@@ -1,3 +1,4 @@
+using System.Globalization;
 using EasilyNET.Core.Misc;
 
 namespace EasilyNET.Core.IdCard;
@@ -42,7 +43,7 @@ public static class IDCardValidation
         {
             return false;
         }
-        if (!DateTime.TryParse($"{no.Slice(6, 4)}-{no.Slice(10, 2)}-{no.Slice(12, 2)}", out _))
+        if (!DateTime.TryParseExact($"{no.Slice(6, 4)}-{no.Slice(10, 2)}-{no.Slice(12, 2)}", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
         {
             return false; // 生日验证
         }
@@ -52,7 +53,8 @@ public static class IDCardValidation
             sum += Wi[i] * (no[i] - 48);
         }
         var y = sum % 11;
-        return verifyCode[y] == no[17];
+        // The check character may be supplied in lower case ('x'); compare case-insensitively.
+        return verifyCode[y] == char.ToUpperInvariant(no[17]);
     }
 
     /// <summary>
@@ -65,7 +67,7 @@ public static class IDCardValidation
         {
             return false;
         }
-        return IsValidProvince(no[..2]) && DateTime.TryParse($"19{no.Slice(6, 2)}-{no.Slice(8, 2)}-{no.Slice(10, 2)}", out _); // 生日验证
+        return IsValidProvince(no[..2]) && DateTime.TryParseExact($"19{no.Slice(6, 2)}-{no.Slice(8, 2)}-{no.Slice(10, 2)}", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _); // 生日验证
     }
 
     /// <summary>

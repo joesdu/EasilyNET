@@ -81,8 +81,9 @@ internal sealed class StringToObjectIdIdGeneratorConvention : ConventionBase, IP
         }
         // 获取Id成员映射
         var idMemberMap = classMap.IdMemberMap;
-        // 如果Id生成器为空且成员类型为string，则设置自定义Id生成器和序列化器
-        if (idMemberMap is { IdGenerator: null } && idMemberMap.MemberType == typeof(string))
+        // 如果Id生成器为空且成员类型为string，则设置自定义Id生成器和序列化器。
+        // 必须先判断 IsFrozen：对已冻结(已注册并被使用)的 ClassMap 调用 SetIdGenerator/SetSerializer 会抛 InvalidOperationException。
+        if (!classMap.IsFrozen && idMemberMap is { IdGenerator: null } && idMemberMap.MemberType == typeof(string))
         {
             idMemberMap.SetIdGenerator(new CustomStringObjectIdGenerator()).SetSerializer(new StringSerializer(BsonType.ObjectId));
         }

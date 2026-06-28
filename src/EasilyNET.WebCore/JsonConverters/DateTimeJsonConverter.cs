@@ -29,7 +29,7 @@ public sealed class DateTimeJsonConverter : JsonConverter<DateTime?>
         var str = reader.GetString();
         return string.IsNullOrWhiteSpace(str)
                    ? null
-                   : DateTime.TryParseExact(str, Constant.DateTimeFormat, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var result)
+                   : DateTime.TryParseExact(str, Constant.DateTimeFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result)
                        ? result
                        : null;
     }
@@ -39,7 +39,7 @@ public sealed class DateTimeJsonConverter : JsonConverter<DateTime?>
     {
         if (value.HasValue)
         {
-            writer.WriteStringValue(value.Value.ToString(Constant.DateTimeFormat, CultureInfo.CurrentCulture));
+            writer.WriteStringValue(value.Value.ToString(Constant.DateTimeFormat, CultureInfo.InvariantCulture));
         }
         else
         {
