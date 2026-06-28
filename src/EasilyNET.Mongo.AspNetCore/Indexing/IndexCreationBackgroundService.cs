@@ -146,7 +146,11 @@ internal sealed class IndexCreationBackgroundService<T>(IServiceProvider service
                 }
             }
             var isTimeSeries = collectionOptions.TryGetValue(collectionName, out var isTs) && isTs;
-            await EnsureIndexesForCollectionAsync(collection!, entityType, useCamelCase, isTimeSeries, options, ct).ConfigureAwait(false);
+            if (collection is null)
+            {
+                continue;
+            }
+            await EnsureIndexesForCollectionAsync(collection, entityType, useCamelCase, isTimeSeries, options, ct).ConfigureAwait(false);
         }
     }
 
