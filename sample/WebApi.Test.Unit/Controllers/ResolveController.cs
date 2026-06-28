@@ -1,5 +1,5 @@
-using EasilyNET.AutoDependencyInjection;
 using EasilyNET.AutoDependencyInjection.Core.Attributes;
+using EasilyNET.AutoDependencyInjection.Resolver;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Test.Unit.Controllers;

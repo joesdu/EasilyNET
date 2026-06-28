@@ -20,7 +20,7 @@ namespace EasilyNET.AutoDependencyInjection.Resolver;
 public sealed class Owned<T> : IDisposable
 {
     private readonly IServiceScope _scope;
-    private bool _disposed;
+    private int _disposed;
 
     internal Owned(IServiceScope scope, T value)
     {
@@ -37,11 +37,11 @@ public sealed class Owned<T> : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        if (_disposed)
+        // 原子地将 _disposed 由 0 置 1，确保并发下作用域只被释放一次
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
         {
             return;
         }
-        _disposed = true;
         _scope.Dispose();
     }
 }

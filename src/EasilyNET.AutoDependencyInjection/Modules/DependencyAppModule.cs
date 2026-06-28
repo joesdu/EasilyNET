@@ -115,7 +115,8 @@ public sealed class DependencyAppModule : AppModule
                 continue;
             }
             // 2. 计算需要暴露的服务类型集合：AsType 显式指定，或自动发现接口/抽象基类。
-            List<Type> serviceTypes;
+            //    GetServiceTypes 已返回去重后的 HashSet，直接复用，避免再拷贝成 List。
+            IReadOnlyCollection<Type> serviceTypes;
             if (attr?.AsType is not null)
             {
                 if (!impl.IsBaseOn(attr.AsType))
@@ -130,7 +131,7 @@ public sealed class DependencyAppModule : AppModule
             }
             else
             {
-                serviceTypes = [.. GetServiceTypes(impl)];
+                serviceTypes = GetServiceTypes(impl);
             }
             // 3. 当需要 AddSelf、没有可暴露的服务类型（回退为仅自身），或存在多个服务类型时，
             //    先以具体类型注册一个“锚点”，其余服务类型通过 GetRequiredService 转发到该锚点，

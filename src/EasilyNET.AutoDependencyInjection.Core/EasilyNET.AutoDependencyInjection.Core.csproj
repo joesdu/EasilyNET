@@ -14,7 +14,8 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+        <!-- 仅需 ServiceLifetime 枚举，引用最小的 DI 抽象包，避免把整个 ASP.NET Core 共享框架强加给下游消费者 -->
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     </ItemGroup>
 
 </Project>

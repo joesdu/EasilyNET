@@ -151,6 +151,12 @@ public static class AutoDependencyInjectionServiceExtension
         public IServiceCollection AddApplicationModules<T>() where T : AppModule
         {
             ArgumentNullException.ThrowIfNull(services);
+            // 幂等保护：若已装配过模块（IStartupModuleRunner 已注册），直接返回，避免重复注册
+            // IObjectAccessor/IResolver/Runner 等基础设施以及重复装配模块。
+            if (services.Any(d => d.ServiceType == typeof(IStartupModuleRunner)))
+            {
+                return services;
+            }
             // 确保 ServiceRegistry 首先被注册
             _ = services.GetOrCreateRegistry();
             services.AddSingleton<IObjectAccessor<IHost>>(new ObjectAccessor<IHost>());
