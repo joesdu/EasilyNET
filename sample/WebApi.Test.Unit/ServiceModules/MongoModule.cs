@@ -1,6 +1,6 @@
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.Mongo.AspNetCore.Serializers;
+using EasilyNET.Mongo.Serializers;
 using EasilyNET.Mongo.ConsoleDebug.Subscribers;
 using WebApi.Test.Unit.Common;
 

@@ -2,7 +2,7 @@ using System.Net;
 using System.Text.Json.Serialization;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.Mongo.AspNetCore.JsonConverters;
+using EasilyNET.Mongo.JsonConverters;
 using EasilyNET.WebCore.JsonConverters;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;

@@ -34,7 +34,7 @@ Fluent API、聚合管道扩展以及地理空间查询工具。业务层和 Asp
 dotnet add package EasilyNET.Mongo.Core
 ```
 
-> 通常你不需要直接安装此包，因为 `EasilyNET.Mongo.AspNetCore` 已自动引用它。
+> 通常你不需要直接安装此包，因为 `EasilyNET.Mongo` 已自动引用它。
 
 ---
 

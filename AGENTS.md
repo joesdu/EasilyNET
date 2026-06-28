@@ -18,9 +18,9 @@ EasilyNET/
 │   ├── EasilyNET.AutoDependencyInjection/      # Module system + IResolver
 │   ├── EasilyNET.AutoDependencyInjection.Core/  # DI attributes only
 │   ├── EasilyNET.RabbitBus.Core/               # Event bus abstractions
-│   ├── EasilyNET.RabbitBus.AspNetCore/          # RabbitMQ event bus impl
+│   ├── EasilyNET.RabbitBus/          # RabbitMQ event bus impl
 │   ├── EasilyNET.Mongo.Core/                   # MongoContext, attributes, enums
-│   ├── EasilyNET.Mongo.AspNetCore/             # MongoDB driver wrapper + serializers
+│   ├── EasilyNET.Mongo/             # MongoDB driver wrapper + serializers
 │   ├── EasilyNET.Mongo.ConsoleDebug/           # Mongo diagnostics (Spectre.Console)
 │   └── EasilyNET.Security/   # Crypto (AES/SM2-4/RSA/RIPEMD/DES/RC4)
 ├── sample/WebApi.Test.Unit/  # Integration sample (DI module orchestration)
@@ -36,8 +36,8 @@ EasilyNET/
 EasilyNET.Core (root - zero external deps)
 ├── EasilyNET.WebCore
 ├── EasilyNET.AutoDependencyInjection (+ AutoDependencyInjection.Core)
-├── EasilyNET.RabbitBus.Core → EasilyNET.RabbitBus.AspNetCore
-├── EasilyNET.Mongo.Core → EasilyNET.Mongo.AspNetCore
+├── EasilyNET.RabbitBus.Core → EasilyNET.RabbitBus
+├── EasilyNET.Mongo.Core → EasilyNET.Mongo
 └── (no dep) EasilyNET.Security, EasilyNET.Mongo.ConsoleDebug
 ```
 
@@ -48,10 +48,10 @@ EasilyNET.Core (root - zero external deps)
 | Add new library | `src/` | Follow existing project structure, no TFM in csproj |
 | DI module example | `sample/WebApi.Test.Unit/AppWebModule.cs` | DependsOn ordering |
 | JSON converters | `src/EasilyNET.WebCore/JsonConverters/` | DateOnly/TimeOnly/DateTime/Decimal/Bool |
-| RabbitMQ event handling | `src/EasilyNET.RabbitBus.AspNetCore/Manager/` | EventBus, EventPublisher, EventHandlerInvoker |
-| MongoDB serializers | `src/EasilyNET.Mongo.AspNetCore/Serializers/` | Custom BSON serializers |
-| MongoDB indexing | `src/EasilyNET.Mongo.AspNetCore/Indexing/` | Attribute-based index creation |
-| Atlas Search/Vector | `src/EasilyNET.Mongo.AspNetCore/SearchIndex/` | Search index definition + manager |
+| RabbitMQ event handling | `src/EasilyNET.RabbitBus/Manager/` | EventBus, EventPublisher, EventHandlerInvoker |
+| MongoDB serializers | `src/EasilyNET.Mongo/Serializers/` | Custom BSON serializers |
+| MongoDB indexing | `src/EasilyNET.Mongo/Indexing/` | Attribute-based index creation |
+| Atlas Search/Vector | `src/EasilyNET.Mongo/SearchIndex/` | Search index definition + manager |
 | Crypto algorithms | `src/EasilyNET.Security/` | SM2/SM3/SM4, AES, RSA, RIPEMD, DES, RC4 |
 | CI configuration | `.github/workflows/build_test.yml` | PR validation (ubuntu, pwsh) |
 | Release pipeline | `.github/workflows/releaser.yml` | Tag-triggered NuGet push |

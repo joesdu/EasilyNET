@@ -1,0 +1,107 @@
+using EasilyNET.RabbitBus.Core.Abstraction;
+using Polly;
+
+namespace EasilyNET.RabbitBus.Configs;
+
+/// <summary>
+///     <para xml:lang="en">Event configuration for RabbitMQ</para>
+///     <para xml:lang="zh">RabbitMQ事件配置</para>
+/// </summary>
+public sealed class EventConfiguration
+{
+    /// <summary>
+    ///     <para xml:lang="en">Event type</para>
+    ///     <para xml:lang="zh">事件类型</para>
+    /// </summary>
+    public Type EventType { get; set; } = typeof(IEvent);
+
+    /// <summary>
+    ///     <para xml:lang="en">Exchange configuration</para>
+    ///     <para xml:lang="zh">交换机配置</para>
+    /// </summary>
+    public ExchangeConfig Exchange { get; } = new();
+
+    /// <summary>
+    ///     <para xml:lang="en">Queue configuration</para>
+    ///     <para xml:lang="zh">队列配置</para>
+    /// </summary>
+    public QueueConfig Queue { get; } = new();
+
+    /// <summary>
+    ///     <para xml:lang="en">QoS configuration</para>
+    ///     <para xml:lang="zh">QoS配置</para>
+    /// </summary>
+    public QosConfig Qos { get; } = new();
+
+    /// <summary>
+    ///     <para xml:lang="en">Headers configuration</para>
+    ///     <para xml:lang="zh">头部配置</para>
+    /// </summary>
+    public Dictionary<string, object?> Headers { get; } = [];
+
+    /// <summary>
+    ///     <para xml:lang="en">Ignored handler types</para>
+    ///     <para xml:lang="zh">被忽略的处理器类型</para>
+    /// </summary>
+    public List<Type> IgnoredHandlers { get; } = [];
+
+    /// <summary>
+    ///     <para xml:lang="en">Explicitly registered handler types for this event (order preserved as added)</para>
+    ///     <para xml:lang="zh">为该事件显式注册的处理器类型(按添加顺序保留)</para>
+    /// </summary>
+    public List<Type> Handlers { get; } = [];
+
+    /// <summary>
+    ///     <para xml:lang="en">Whether to enable this event</para>
+    ///     <para xml:lang="zh">是否启用此事件</para>
+    /// </summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    ///     <para xml:lang="en">Whether handlers should be executed sequentially to maintain order</para>
+    ///     <para xml:lang="zh">是否按顺序执行处理器以保持顺序</para>
+    /// </summary>
+    public bool SequentialHandlerExecution { get; set; }
+
+    /// <summary>
+    ///     <para xml:lang="en">Number of threads to use for processing event handlers. 1 or less means single-threaded, greater than 1 means multi-threaded</para>
+    ///     <para xml:lang="zh">用于处理事件处理器的线程数。1或小于1表示单线程，大于1表示多线程</para>
+    /// </summary>
+    public int HandlerThreadCount { get; set; } = 1;
+
+    /// <summary>
+    ///     <para xml:lang="en">Override: skip exchange declare for this event</para>
+    ///     <para xml:lang="zh">可选覆盖：此事件是否跳过交换机声明</para>
+    /// </summary>
+    public bool? SkipExchangeDeclare { get; set; }
+
+    /// <summary>
+    ///     <para xml:lang="en">Override: validate exchange on startup for this event</para>
+    ///     <para xml:lang="zh">可选覆盖：启动时是否验证此事件的交换机</para>
+    /// </summary>
+    public bool? ValidateExchangeOnStartup { get; set; }
+
+    /// <summary>
+    ///     <para xml:lang="en">Optional middleware type for this event. Must implement IEventMiddleware&lt;TEvent&gt;</para>
+    ///     <para xml:lang="zh">此事件的可选中间件类型。必须实现 IEventMiddleware&lt;TEvent&gt;</para>
+    /// </summary>
+    public Type? MiddlewareType { get; set; }
+
+    /// <summary>
+    ///     <para xml:lang="en">Optional fallback handler type for this event. Must implement IEventFallbackHandler&lt;TEvent&gt;</para>
+    ///     <para xml:lang="zh">此事件的可选回退处理器类型。必须实现 IEventFallbackHandler&lt;TEvent&gt;</para>
+    /// </summary>
+    public Type? FallbackHandlerType { get; set; }
+
+    /// <summary>
+    ///     <para xml:lang="en">Handler configurations with explicit ordering support. Takes precedence over <see cref="Handlers" /> when populated</para>
+    ///     <para xml:lang="zh">带显式排序支持的处理器配置。当有值时优先于 <see cref="Handlers" /></para>
+    /// </summary>
+    public List<HandlerConfiguration> OrderedHandlers { get; } = [];
+
+    /// <summary>
+    ///     <para xml:lang="en">Optional custom resilience pipeline builder for handler execution</para>
+    ///     <para xml:lang="zh">处理器执行的可选自定义弹性管道构建器</para>
+    /// </summary>
+    public Action<ResiliencePipelineBuilder>? CustomHandlerResilience { get; set; }
+}
