@@ -32,21 +32,37 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class MongoServiceExtensions
 {
+    // Guards the one-time registration of the built-in global serializers.
+    private static int _serializersRegistered;
+
     /// <summary>
     ///     <para xml:lang="en">
-    ///     Lazy&lt;T&gt; provides a thread-safe lazy initialization mechanism to ensure that the global serializer registration logic is
-    ///     executed only once. This variable is used to register global DateTime and Decimal serializers on first access.
+    ///     Registers the built-in global <c>DateTime</c>/<c>Decimal</c> serializers exactly once, honoring the configured
+    ///     <see cref="DateTimeKind" />. When <paramref name="register" /> is <see langword="false" /> nothing is registered,
+    ///     allowing callers to supply their own serializers.
     ///     </para>
-    ///     <para xml:lang="zh">Lazy&lt;T&gt; 提供了线程安全的延迟初始化机制，确保全局序列化器的注册逻辑只执行一次。该变量用于在第一次访问时注册全局的 DateTime 和 Decimal 序列化器。</para>
+    ///     <para xml:lang="zh">
+    ///     按配置的 <see cref="DateTimeKind" /> 注册内置的全局 <c>DateTime</c>/<c>Decimal</c> 序列化器（仅一次）。当 <paramref name="register" />
+    ///     为 <see langword="false" /> 时不注册，便于调用方自定义序列化器。
+    ///     </para>
     /// </summary>
-    internal static readonly Lazy<bool> FirstInitialization = new(() =>
+    /// <param name="dateTimeKind">The <see cref="DateTimeKind" /> for the global DateTime serializer.</param>
+    /// <param name="register">Whether to register the built-in serializers.</param>
+    internal static void EnsureGlobalSerializers(DateTimeKind dateTimeKind, bool register)
     {
-        // 注册全局 DateTime 序列化器，将 DateTime 序列化为本地时间
-        BsonSerializer.RegisterSerializer(new DateTimeSerializer(DateTimeKind.Local));
+        if (!register)
+        {
+            return;
+        }
+        if (Interlocked.Exchange(ref _serializersRegistered, 1) != 0)
+        {
+            return;
+        }
+        // 注册全局 DateTime 序列化器(Kind 可配置)
+        BsonSerializer.RegisterSerializer(new DateTimeSerializer(dateTimeKind));
         // 注册全局 Decimal 序列化器，将 decimal 序列化为 Decimal128
         BsonSerializer.RegisterSerializer(new DecimalSerializer(BsonType.Decimal128));
-        return true;
-    });
+    }
 
     /// <param name="services">
     ///     <see cref="IServiceCollection" />

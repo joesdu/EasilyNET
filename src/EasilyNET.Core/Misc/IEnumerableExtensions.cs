@@ -104,6 +104,74 @@ public static class IEnumerableExtensions
         return treeList;
     }
 
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Build a tree from a flat list using id/parentId key selectors. Children are grouped once into a lookup,
+    ///     so this runs in O(n) (unlike the predicate-based <c>ToTree</c> overload which re-scans per level).
+    ///     A node is treated as a root when its parent key is <see langword="null" /> or equal to <paramref name="rootParentId" />.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     使用 id/父 id 键选择器从扁平列表构建树。子节点会被一次性分组到查找表中，整体复杂度 O(n)
+    ///     （区别于按谓词逐层重扫的 <c>ToTree</c> 重载）。当某节点的父键为 <see langword="null" /> 或等于
+    ///     <paramref name="rootParentId" /> 时，将其视为根节点。
+    ///     </para>
+    /// </summary>
+    /// <typeparam name="T">元素类型</typeparam>
+    /// <typeparam name="TKey">键类型</typeparam>
+    /// <param name="list">扁平数据</param>
+    /// <param name="idSelector">节点 id 选择器</param>
+    /// <param name="parentIdSelector">父 id 选择器(根节点返回 null 或 <paramref name="rootParentId" />)</param>
+    /// <param name="addChildren">将子节点集合附加到父节点的回调</param>
+    /// <param name="rootParentId">根节点的父 id 值(默认 null)</param>
+    public static List<T> ToTree<T, TKey>(this IEnumerable<T> list, Func<T, TKey> idSelector, Func<T, TKey?> parentIdSelector, Action<T, IEnumerable<T>> addChildren, TKey? rootParentId = default)
+        where TKey : notnull
+    {
+        ArgumentNullException.ThrowIfNull(list);
+        ArgumentNullException.ThrowIfNull(idSelector);
+        ArgumentNullException.ThrowIfNull(parentIdSelector);
+        ArgumentNullException.ThrowIfNull(addChildren);
+        var items = list as IReadOnlyCollection<T> ?? [.. list];
+        var roots = new List<T>();
+        // Group children by parent key once (O(n)). Keyed by TKey (notnull); the `is { } pid` pattern extracts
+        // the non-null key for both value and reference key types.
+        var childrenByParent = new Dictionary<TKey, List<T>>();
+        foreach (var item in items)
+        {
+            // A node is a root when its parent key is null, or equals rootParentId (when rootParentId is set).
+            if (parentIdSelector(item) is { } pid && !(rootParentId is { } rp && EqualityComparer<TKey>.Default.Equals(pid, rp)))
+            {
+                if (!childrenByParent.TryGetValue(pid, out var bucket))
+                {
+                    bucket = [];
+                    childrenByParent[pid] = bucket;
+                }
+                bucket.Add(item);
+            }
+            else
+            {
+                roots.Add(item);
+            }
+        }
+        foreach (var root in roots)
+        {
+            Attach(root);
+        }
+        return roots;
+
+        void Attach(T node)
+        {
+            if (!childrenByParent.TryGetValue(idSelector(node), out var children))
+            {
+                return;
+            }
+            foreach (var child in children)
+            {
+                Attach(child);
+            }
+            addChildren(node, children);
+        }
+    }
+
     /// <param name="items">The enumerable to search.</param>
     /// <typeparam name="T"></typeparam>
     extension<T>(IEnumerable<T> items)
@@ -367,7 +435,8 @@ public static class IEnumerableExtensions
         /// <typeparam name="TResult"></typeparam>
         /// <param name="selector"></param>
         /// <param name="maxParallelCount">最大并行数</param>
-        public async Task<List<TResult>> SelectAsync<TResult>(Func<TFirst, Task<TResult>> selector, int maxParallelCount)
+        /// <param name="cancellationToken">取消口令</param>
+        public async Task<List<TResult>> SelectAsync<TResult>(Func<TFirst, Task<TResult>> selector, int maxParallelCount, CancellationToken cancellationToken = default)
         {
             var source = first.AsNotNull().ToList();
             if (source.Count == 0)
@@ -375,7 +444,7 @@ public static class IEnumerableExtensions
                 return [];
             }
             var results = new TResult[source.Count];
-            var options = new ParallelOptions { MaxDegreeOfParallelism = maxParallelCount };
+            var options = new ParallelOptions { MaxDegreeOfParallelism = maxParallelCount, CancellationToken = cancellationToken };
             await Parallel.ForEachAsync(Enumerable.Range(0, source.Count), options, async (i, _) => results[i] = await selector(source[i]));
             return [.. results];
         }
@@ -387,7 +456,8 @@ public static class IEnumerableExtensions
         /// <typeparam name="TResult"></typeparam>
         /// <param name="selector"></param>
         /// <param name="maxParallelCount">最大并行数</param>
-        public async Task<List<TResult>> SelectAsync<TResult>(Func<TFirst, int, Task<TResult>> selector, int maxParallelCount)
+        /// <param name="cancellationToken">取消口令</param>
+        public async Task<List<TResult>> SelectAsync<TResult>(Func<TFirst, int, Task<TResult>> selector, int maxParallelCount, CancellationToken cancellationToken = default)
         {
             var source = first.AsNotNull().ToList();
             if (source.Count == 0)
@@ -395,7 +465,7 @@ public static class IEnumerableExtensions
                 return [];
             }
             var results = new TResult[source.Count];
-            var options = new ParallelOptions { MaxDegreeOfParallelism = maxParallelCount };
+            var options = new ParallelOptions { MaxDegreeOfParallelism = maxParallelCount, CancellationToken = cancellationToken };
             await Parallel.ForEachAsync(Enumerable.Range(0, source.Count), options, async (i, _) => results[i] = await selector(source[i], i));
             return [.. results];
         }

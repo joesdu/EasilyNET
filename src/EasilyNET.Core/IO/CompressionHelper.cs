@@ -30,7 +30,7 @@ public static class CompressionHelper
         {
             deflateStream.Write(data, 0, data.Length);
         }
-        return memoryStream.ToArray();
+        return [.. memoryStream];
     }
 
     /// <summary>
@@ -46,7 +46,7 @@ public static class CompressionHelper
         {
             deflateStream.Write(data, 0, data.Length);
         }
-        return memoryStream.ToArray();
+        return [.. memoryStream];
     }
 
     /// <summary>
@@ -65,7 +65,7 @@ public static class CompressionHelper
         using var deflateStream = new DeflateStream(memoryStream, CompressionMode.Decompress);
         using var decompressedMemoryStream = new PooledMemoryStream();
         deflateStream.CopyTo(decompressedMemoryStream);
-        return decompressedMemoryStream.ToArray();
+        return [.. decompressedMemoryStream];
     }
 
     /// <summary>
@@ -81,7 +81,7 @@ public static class CompressionHelper
         {
             await deflateStream.WriteAsync(data.AsMemory(), cancellationToken);
         }
-        return memoryStream.ToArray();
+        return [.. memoryStream];
     }
 
     /// <summary>
@@ -97,7 +97,7 @@ public static class CompressionHelper
         {
             await deflateStream.WriteAsync(data.AsMemory(), cancellationToken);
         }
-        return memoryStream.ToArray();
+        return [.. memoryStream];
     }
 
     /// <summary>
@@ -112,7 +112,7 @@ public static class CompressionHelper
         await using var deflateStream = new DeflateStream(input, CompressionMode.Decompress);
         await using var output = new PooledMemoryStream();
         await deflateStream.CopyToAsync(output, cancellationToken);
-        return output.ToArray();
+        return [.. output];
     }
 
     /// <summary>
@@ -160,7 +160,7 @@ public static class CompressionHelper
     public static async Task<IReadOnlyList<byte[]>> CompressManyAsync(IEnumerable<byte[]> payloads, CompressionLevel compressionLevel = CompressionLevel.Optimal, int degreeOfParallelism = 0, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(payloads);
-        var list = payloads as IList<byte[]> ?? payloads.ToList();
+        var list = payloads as IList<byte[]> ?? [.. payloads];
         if (list.Count == 0)
         {
             return [];
@@ -182,7 +182,7 @@ public static class CompressionHelper
     public static async Task<IReadOnlyList<byte[]>> DecompressManyAsync(IEnumerable<byte[]> payloads, int degreeOfParallelism = 0, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(payloads);
-        var list = payloads as IList<byte[]> ?? payloads.ToList();
+        var list = payloads as IList<byte[]> ?? [.. payloads];
         if (list.Count == 0)
         {
             return [];
@@ -204,7 +204,7 @@ public static class CompressionHelper
     public static async Task CompressManyAsync(IEnumerable<(Stream source, Stream destination)> jobs, CompressionLevel compressionLevel = CompressionLevel.Optimal, int degreeOfParallelism = 0, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(jobs);
-        var list = jobs as IList<(Stream source, Stream destination)> ?? jobs.ToList();
+        var list = jobs as IList<(Stream source, Stream destination)> ?? [.. jobs];
         if (list.Count == 0)
         {
             return;
@@ -224,7 +224,7 @@ public static class CompressionHelper
     public static async Task DecompressManyAsync(IEnumerable<(Stream source, Stream destination)> jobs, int degreeOfParallelism = 0, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(jobs);
-        var list = jobs as IList<(Stream source, Stream destination)> ?? jobs.ToList();
+        var list = jobs as IList<(Stream source, Stream destination)> ?? [.. jobs];
         if (list.Count == 0)
         {
             return;

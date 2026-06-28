@@ -75,7 +75,7 @@ internal sealed class MessageConfirmService(EventPublisher eventPublisher, IBus 
                 try
                 {
                     var eventType = msg.Event.GetType();
-                    await iBus.Publish(msg.Event, eventType, msg.RoutingKey, msg.Priority, stoppingToken).ConfigureAwait(false);
+                    await iBus.Publish(msg.Event, eventType, msg.RoutingKey, msg.Priority, cancellationToken: stoppingToken).ConfigureAwait(false);
                     RabbitBusMetrics.PublishRetried.Add(1);
                 }
                 catch (Exception ex)

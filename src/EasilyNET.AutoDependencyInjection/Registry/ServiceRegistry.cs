@@ -36,6 +36,18 @@ internal sealed class ServiceRegistry
     private ConcurrentDictionary<Type, Type> ServiceImplementations { get; } = [];
 
     /// <summary>
+    ///     <para xml:lang="en">
+    ///     Optional predicate applied to each attribute-discovered implementation type during auto-registration.
+    ///     When it returns <see langword="false" />, that type is skipped. <see langword="null" /> means register all.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     可选的过滤谓词，自动注册时对每个被特性发现的实现类型应用；返回 <see langword="false" /> 则跳过该类型。
+    ///     为 <see langword="null" /> 时注册全部。
+    ///     </para>
+    /// </summary>
+    internal Func<Type, bool>? RegistrationFilter { get; set; }
+
+    /// <summary>
     ///     <para xml:lang="en">Register a named/keyed service</para>
     ///     <para xml:lang="zh">注册命名/键控服务</para>
     /// </summary>

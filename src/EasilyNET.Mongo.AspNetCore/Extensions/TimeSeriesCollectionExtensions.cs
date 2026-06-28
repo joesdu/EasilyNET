@@ -172,7 +172,8 @@ public static class TimeSeriesCollectionExtensions
                 try
                 {
                     var indexKeysDefinition = Builders<BsonDocument>.IndexKeys.Ascending(metaFieldName).Ascending(timeFieldName);
-                    var createIndexOptions = new CreateIndexOptions { Name = indexName, Background = true };
+                    // Background is a no-op since MongoDB 4.2; omitted intentionally.
+                    var createIndexOptions = new CreateIndexOptions { Name = indexName };
                     collection.Indexes.CreateOne(new CreateIndexModel<BsonDocument>(indexKeysDefinition, createIndexOptions));
                     if (logger is not null && logger.IsEnabled(LogLevel.Information))
                     {

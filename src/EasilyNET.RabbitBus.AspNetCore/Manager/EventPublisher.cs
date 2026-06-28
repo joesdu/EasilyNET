@@ -131,7 +131,7 @@ internal sealed class EventPublisher : IAsyncDisposable
     // 计算指数退避时间 2^n * 1s 带上限
     private static TimeSpan CalcBackoff(int retryCount) => BackoffUtility.Exponential(retryCount, MinRetryDelay, MinRetryDelay, MaxRetryDelay);
 
-    private static BasicProperties BuildBasicProperties(EventConfiguration config, byte priority, Activity? activity = null)
+    private static BasicProperties BuildBasicProperties(EventConfiguration config, byte priority, Activity? activity = null, IReadOnlyDictionary<string, object?>? headers = null)
     {
         var bp = new BasicProperties
         {
@@ -142,6 +142,15 @@ internal sealed class EventPublisher : IAsyncDisposable
         if (config.Headers.Count > 0)
         {
             bp.Headers = new Dictionary<string, object?>(config.Headers);
+        }
+        // Per-message headers override the static per-event configuration headers.
+        if (headers is { Count: > 0 })
+        {
+            bp.Headers ??= new Dictionary<string, object?>();
+            foreach (var kv in headers)
+            {
+                bp.Headers[kv.Key] = kv.Value;
+            }
         }
         if (activity is null)
         {
@@ -393,7 +402,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         }
     }
 
-    public async Task Publish<T>(EventConfiguration config, T @event, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
+    public async Task Publish<T>(EventConfiguration config, T @event, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) where T : IEvent
     {
         cancellationToken.ThrowIfCancellationRequested();
         // ReSharper disable once ExplicitCallerInfoArgument
@@ -410,7 +419,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         try
         {
             var body = _serializer.Serialize(@event, @event.GetType());
-            var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), activity);
+            var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), activity, headers);
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var context = new PublishContext(@event, routingKey, properties, body, tcs, config);
             await _publishChannel.Writer.WriteAsync(context, cancellationToken).ConfigureAwait(false);
@@ -432,7 +441,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         }
     }
 
-    public async Task PublishBatch<T>(EventConfiguration config, IEnumerable<T> events, string? routingKey = null, byte? priority = 0, CancellationToken cancellationToken = default) where T : IEvent
+    public async Task PublishBatch<T>(EventConfiguration config, IEnumerable<T> events, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) where T : IEvent
     {
         var list = events.ToList();
         if (list.Count is 0)
@@ -445,7 +454,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         activity?.SetTag("messaging.destination", config.Exchange.Name);
         activity?.SetTag("messaging.destination_kind", "exchange");
         activity?.SetTag("messaging.rabbitmq.routing_key", routingKey ?? config.Exchange.RoutingKey);
-        var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), activity);
+        var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), activity, headers);
         var tcsList = new List<(TaskCompletionSource<bool> Tcs, string EventId)>(list.Count);
         foreach (var @event in list)
         {

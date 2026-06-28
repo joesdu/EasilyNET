@@ -265,8 +265,9 @@ internal static class IndexManager
         var options = new CreateIndexOptions
         {
             Name = indexDef.Name,
-            Unique = indexDef.Unique,
-            Background = true
+            Unique = indexDef.Unique
+            // Note: CreateIndexOptions.Background is a no-op since MongoDB 4.2 (index builds use an optimized
+            // build process that no longer blocks); intentionally omitted to avoid implying non-blocking behavior.
         };
         // 只在非时序集合时设置 Sparse
         if (indexDef.Sparse)

@@ -29,6 +29,11 @@ public sealed class DependencyAppModule : AppModule
         // so we register in discovery order. (A prior interface-graph "topological sort" added no value
         // and could throw a false "cyclic dependency" error.)
         var types = AssemblyHelper.FindTypesByAttribute<DependencyInjectionAttribute>().ToList();
+        // Apply the optional user-supplied registration filter (e.g. to exclude types by namespace/assembly).
+        if (registry.RegistrationFilter is { } filter)
+        {
+            types = [.. types.Where(filter)];
+        }
         if (logger.IsEnabled(LogLevel.Debug))
         {
             logger.LogDebug("Auto-registering {Count} services", types.Count);

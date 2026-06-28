@@ -339,11 +339,10 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
     {
         if (config?.OrderedHandlers.Count > 0)
         {
-            return config.OrderedHandlers
+            return [.. config.OrderedHandlers
                          .Where(h => config.IgnoredHandlers.Count == 0 || !config.IgnoredHandlers.Contains(h.HandlerType))
                          .OrderBy(h => h.Order)
-                         .Select(h => h.HandlerType)
-                         .ToList();
+                         .Select(h => h.HandlerType)];
         }
         return handlerTypes;
     }
