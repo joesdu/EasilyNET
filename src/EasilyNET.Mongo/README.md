@@ -870,3 +870,535 @@ docker compose -f docker-compose.mongo.rs.yml up -d
 2. Atlas 侧索引创建是异步的，通常需要几秒到几分钟
 3. 检查日志中是否有 `Failed to ensure search indexes` 错误
 4. 确认已在服务注册阶段调用 `builder.Services.AddMongoSearchIndexCreation<MyDbContext>()`
+
+---
+
+# EasilyNET MongoDB 套件 · 完整使用文档与场景选型指南
+
+> 本节是对 `EasilyNET.Mongo`、`EasilyNET.Mongo.Core`、`EasilyNET.Mongo.ConsoleDebug` 三个包的**统一汇总**，
+> 侧重「有哪些功能 / 什么场景该用哪个 / 怎么用」。如需某个功能的最细节说明，可对照各包自带的 `README.md`：
+>
+> - `EasilyNET.Mongo.Core/README.md` —— 上下文基类、特性、批量写入、聚合、地理空间
+> - `EasilyNET.Mongo/README.md`（即本文件上半部分） —— 服务注册、序列化、自动建索引/集合、变更流、GridFS、健康检查
+> - `EasilyNET.Mongo.ConsoleDebug/README.md` —— 命令行调试输出与 OpenTelemetry 诊断
+
+---
+
+## 目录（套件总览）
+
+- [1. 套件结构与选型](#1-套件结构与选型)
+- [2. 功能 → 场景速查表](#2-功能--场景速查表)
+- [3. 最小可用配置（5 分钟上手）](#3-最小可用配置5-分钟上手)
+- [4. 连接与上下文](#4-连接与上下文)
+- [5. 序列化与命名约定](#5-序列化与命名约定)
+- [6. 自动建索引 / 集合（启动后台服务）](#6-自动建索引--集合启动后台服务)
+- [7. 查询增强：聚合、批量写入、地理空间](#7-查询增强聚合批量写入地理空间)
+- [8. 实时数据：变更流（Change Stream）](#8-实时数据变更流change-stream)
+- [9. 文件存储：GridFS](#9-文件存储gridfs)
+- [10. 全文 / 向量搜索（Atlas Search）](#10-全文--向量搜索atlas-search)
+- [11. 健康检查](#11-健康检查)
+- [12. 调试与可观测性（ConsoleDebug）](#12-调试与可观测性consoledebug)
+- [13. 部署前提与环境矩阵](#13-部署前提与环境矩阵)
+- [14. 常见问题排查](#14-常见问题排查)
+
+---
+
+## 1. 套件结构与选型
+
+| 包 | 角色 | 关键依赖 | 何时引用 |
+|---|---|---|---|
+| **EasilyNET.Mongo.Core** | 核心基础库：`MongoContext` 基类、全部特性、聚合/批量/地理空间扩展 | `MongoDB.Driver` | 仅写实体与查询逻辑、不需要 DI 注册时（如类库项目）。通常被 `EasilyNET.Mongo` 自动引用，无需单独安装。 |
+| **EasilyNET.Mongo** | 宿主集成层：DI 注册、序列化、自动建索引/集合、变更流、GridFS、健康检查 | `Microsoft.Extensions.Hosting.Abstractions`、`HealthChecks`、`Mongo.Core` | 任意 .NET 宿主（ASP.NET Core / Worker / 控制台 / 通用 Host）需要开箱即用集成时。**绝大多数项目装这个即可。** |
+| **EasilyNET.Mongo.ConsoleDebug** | 诊断层：命令输出到控制台 + OpenTelemetry 诊断 | `MongoDB.Driver`、`Spectre.Console.Json` | 开发期想看 MongoDB 实际执行命令，或接入 APM/链路追踪时按需引用。 |
+
+- 目标框架：`net10.0`、`net11.0`。
+- `EasilyNET.Mongo` 已不再依赖 ASP.NET Core 共享框架（由 `EasilyNET.Mongo.AspNetCore` 重命名而来），可用于任意 Host。
+
+```bash
+dotnet add package EasilyNET.Mongo              # 主包（含 Core）
+dotnet add package EasilyNET.Mongo.ConsoleDebug # 可选，调试/诊断
+```
+
+---
+
+## 2. 功能 → 场景速查表
+
+| 你的需求 | 用什么 | 注册 / 标记入口 | 运行环境要求 |
+|---|---|---|---|
+| 连接数据库、集中管理集合 | 继承 `MongoContext` | `AddMongoContext<T>(...)` | 任意 |
+| 生产环境超时/连接池/重试调优 | `Resilience` 选项 | `c.Resilience.Enable = true` | 任意 |
+| 字段名驼峰、`_id↔Id`、枚举存字符串 | 内置约定（默认开启） | 不调用即默认；或 `ConfigureMongoConventions` | 任意 |
+| `DateOnly`/`TimeOnly`/`JsonNode`/枚举键字典 持久化 | 自定义序列化器 | `RegisterSerializer(...)` 等 | 任意 |
+| 启动时按特性自动建普通/复合/TTL/地理索引 | `[MongoIndex]` / `[MongoCompoundIndex]` | `AddMongoIndexCreation<T>()` | 任意 |
+| 固定大小日志/环形缓冲 | `[CappedCollection]` | `AddMongoCappedCollectionCreation<T>()` | 任意 |
+| 时序数据（IoT/监控/行情） | `[TimeSeriesCollection]` | `AddMongoTimeSeriesCollectionCreation<T>()` | MongoDB 5.0+ |
+| 关联查询、分组统计、分桶、多维聚合 | 聚合扩展 | `LookupAndUnwindAsync` / `GroupByCountAsync` / `BucketAsync` / `FacetAsync` | 任意 |
+| 一次往返完成混合增删改 | 批量写入 Fluent | `BulkWriteAsync(bulk => ...)` | 任意 |
+| 附近搜索 / 区域筛选 / 含距离排序 | 地理空间扩展 | `NearSphere` / `GeoWithin` / `GeoNearAsync` | 需 `2dsphere` 索引 |
+| 实时监听数据变更、跨系统同步、审计 | `MongoChangeStreamHandler<T>` | `AddMongoChangeStreamHandler<H>()` | **副本集 / Atlas** |
+| 大文件存储（>16MB） | GridFS | `AddGridFSBucket<T>(...)` | 任意 |
+| 中文全文搜索 / 自动补全 | `[MongoSearchIndex]` + `[SearchField]` | `AddMongoSearchIndexCreation<T>()` | **Atlas 或 MongoDB 8.2+** |
+| AI 语义搜索 / RAG | `[MongoSearchIndex(VectorSearch)]` + `[VectorField]` | `AddMongoSearchIndexCreation<T>()` | **Atlas 或 MongoDB 8.2+** |
+| K8s 探针 / 连通性监控 | 健康检查 | `AddMongoHealthCheck<T>()` | 任意 |
+| 开发期查看执行命令 | ConsoleDebug 订阅器 | `ActivityEventConsoleDebugSubscriber` | 任意 |
+| APM / 分布式链路追踪 | OpenTelemetry 订阅器 | `ActivityEventDiagnosticsSubscriber` | 任意 |
+
+---
+
+## 3. 最小可用配置（5 分钟上手）
+
+```csharp
+// 1) 定义上下文
+public class AppDbContext : MongoContext
+{
+    public IMongoCollection<Order> Orders { get; set; } = default!;
+    public IMongoCollection<User>  Users  { get; set; } = default!;
+}
+
+// 2) appsettings.json
+//   { "ConnectionStrings": { "Mongo": "mongodb://localhost:27017/mydb" } }
+
+// 3) 注册
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddMongoContext<AppDbContext>(builder.Configuration, c =>
+{
+    c.DatabaseName = "mydb";
+});
+
+// 4) 使用（构造函数注入 AppDbContext）
+public class OrderService(AppDbContext db)
+{
+    public Task<List<Order>> AllAsync() => db.Orders.Find(_ => true).ToListAsync();
+}
+```
+
+> ⚠️ **重要变更**：本套件**不再**向 DI 注册 `IMongoClient` / `IMongoDatabase`。请通过 `MongoContext` 子类的
+> `db.Client` / `db.Database` 访问，避免多上下文歧义。
+
+---
+
+## 4. 连接与上下文
+
+### 4.1 `MongoContext`（核心类型）
+
+| 成员 | 说明 |
+|---|---|
+| `Client` | `IMongoClient` 实例 |
+| `Database` | 连接串 / 选项中指定的数据库（默认库名 `easilynet`） |
+| `GetCollection<T>(name)` | 运行时动态集合名场景（如按月分表 `logs_2026_01`） |
+| `StartSessionAsync(startTransaction=false, ct)` | 开启会话/事务（**需副本集或 Atlas**） |
+
+事务示例：
+
+```csharp
+using var session = await db.StartSessionAsync(startTransaction: true);
+try
+{
+    await db.Accounts.UpdateOneAsync(session, fromFilter, decUpdate);
+    await db.Accounts.UpdateOneAsync(session, toFilter,   incUpdate);
+    await session.CommitTransactionAsync();
+}
+catch { await session.AbortTransactionAsync(); throw; }
+```
+
+### 4.2 三种注册方式
+
+```csharp
+// 方式 1：IConfiguration（推荐）—— 读取 ConnectionStrings:Mongo 或环境变量 CONNECTIONSTRINGS_MONGO
+builder.Services.AddMongoContext<AppDbContext>(builder.Configuration, c => c.DatabaseName = "mydb");
+
+// 方式 2：连接字符串
+builder.Services.AddMongoContext<AppDbContext>("mongodb://localhost:27017/mydb", c => c.DatabaseName = "mydb");
+
+// 方式 3：MongoClientSettings（高级：自定义凭据、集群配置）
+builder.Services.AddMongoContext<AppDbContext>(
+    new MongoClientSettings { Servers = [new("127.0.0.1", 27017)] },
+    c => c.DatabaseName = "mydb");
+```
+
+### 4.3 弹性连接（`Resilience`）
+
+生产建议显式开启，与驱动内置自动恢复协同工作（括号为默认值）：
+
+```csharp
+c.Resilience.Enable = true;
+c.Resilience.ServerSelectionTimeout = TimeSpan.FromSeconds(10);
+c.Resilience.ConnectTimeout         = TimeSpan.FromSeconds(10);
+c.Resilience.SocketTimeout          = TimeSpan.FromSeconds(60);
+c.Resilience.WaitQueueTimeout       = TimeSpan.FromMinutes(1);
+c.Resilience.HeartbeatInterval      = TimeSpan.FromSeconds(10);
+c.Resilience.MaxConnectionPoolSize  = 100;
+c.Resilience.MinConnectionPoolSize  = null;   // null = 驱动默认
+c.Resilience.RetryReads  = true;
+c.Resilience.RetryWrites = true;
+```
+
+| 场景 | 推荐 |
+|---|---|
+| 同区域低延迟 | `ConnectTimeout=5s`，`ServerSelectionTimeout=5s` |
+| 跨区域高延迟 | `ConnectTimeout=20s`，`ServerSelectionTimeout=30s` |
+| 高并发大流量 | `MaxConnectionPoolSize=200+`，`WaitQueueTimeout=30s` |
+| 单节点/代理 | 连接串加 `directConnection=true` 或 `loadBalanced=true` |
+
+> 弹性配置无法解决网络/认证/拓扑错误，先排查连接串。
+
+---
+
+## 5. 序列化与命名约定
+
+### 5.1 默认约定（未调用 `ConfigureMongoConventions` 时自动生效）
+
+| 功能 | 示例 |
+|---|---|
+| 驼峰字段名 | `PageSize` → `pageSize` |
+| `_id ↔ Id/ID` 映射 | `_id` ↔ `Id` |
+| 枚举存字符串 | `Gender.Male` → `"Male"` |
+| 忽略未知字段 | 向前兼容 |
+| `DateTime` 本地化 | 反序列化设为 `DateTimeKind.Local` |
+| `decimal` → `Decimal128` | 避免金额精度丢失 |
+
+自定义全局约定（**必须在所有 `AddMongoContext` 之前、最多调用一次**；一旦调用则只用你声明的约定）：
+
+```csharp
+builder.Services.ConfigureMongoConventions(c =>
+{
+    c.DateTimeSerializerKind = DateTimeKind.Utc;        // 跨时区部署建议 Utc
+    c.ObjectIdToStringTypes  = [typeof(SomeEntity)];    // 这些类型的 Id 存为 string（$unwind 场景常用）
+    c.AddConvention("default", new ConventionPack
+    {
+        new CamelCaseElementNameConvention(),
+        new IgnoreExtraElementsConvention(true),
+        new NamedIdMemberConvention("Id", "ID"),
+        new EnumRepresentationConvention(BsonType.String)
+    });
+});
+```
+
+### 5.2 自定义序列化器（在 `AddMongoContext` 之后注册）
+
+```csharp
+// DateOnly / TimeOnly —— 字符串可读，或 Ticks 省空间（二者同类型只能选其一）
+builder.Services.RegisterSerializer(new DateOnlySerializerAsString());     // 默认 "yyyy-MM-dd"
+builder.Services.RegisterSerializer(new TimeOnlySerializerAsString());     // 默认 "HH:mm:ss.ffffff"
+// builder.Services.RegisterSerializer(new DateOnlySerializerAsTicks());
+
+// 动态类型 / 匿名对象（快速验证、原型）
+builder.Services.RegisterDynamicSerializer();
+
+// System.Text.Json 类型
+builder.Services.RegisterSerializer(new JsonNodeSerializer());
+builder.Services.RegisterSerializer(new JsonObjectSerializer());
+
+// 枚举键字典 Dictionary<TEnum, TValue> 等
+builder.Services.RegisterGlobalEnumKeyDictionarySerializer();
+```
+
+- `BsonDocumentJsonConverter`：在 Web API 中直接收发 `BsonDocument` 负载时，注册到 `JsonOptions.Converters`。
+
+---
+
+## 6. 自动建索引 / 集合（启动后台服务）
+
+所有 `AddMongoXxxCreation<T>()` 均注册为**托管后台服务**：应用启动后**异步执行一次（不阻塞启动）**，完成即结束。
+
+### 6.1 索引
+
+```csharp
+public class Order
+{
+    public string Id { get; set; }
+    [MongoIndex(EIndexType.Ascending)]                       public string UserId { get; set; }
+    [MongoIndex(EIndexType.Ascending, Unique = true)]        public string OrderNo { get; set; }
+    [MongoIndex(EIndexType.Descending)]                      public DateTime CreatedAt { get; set; }
+    [MongoIndex(EIndexType.Ascending, ExpireAfterSeconds = 2592000)] public DateTime ExpireAt { get; set; } // TTL
+    [MongoIndex(EIndexType.Ascending, Sparse = true)]        public string? ExternalId { get; set; }
+}
+
+// 复合索引（类级）：遵循 ESR —— 等值→排序→范围
+[MongoCompoundIndex(["userId", "createdAt"], [EIndexType.Ascending, EIndexType.Descending], Name = "idx_user_time")]
+public class Order { /* ... */ }
+
+builder.Services.AddMongoIndexCreation<AppDbContext>();
+```
+
+`EIndexType`：`Ascending` / `Descending` / `Geo2D` / `Geo2DSphere`(推荐地理) / `Hashed`(分片键) / `Text` / `Multikey`(数组自动) / `Wildcard`(动态字段)。
+
+**索引清理策略**（默认安全模式，只新增/更新、不删除手工索引）：
+
+```csharp
+c.DropUnmanagedIndexes = true;            // ⚠️ 谨慎：会删除代码外的索引
+c.ProtectedIndexPrefixes.Add("dba_");     // 即便开启清理，这些前缀也保护不删
+```
+
+### 6.2 固定大小集合（Capped）—— 日志、审计、环形缓冲
+
+```csharp
+[CappedCollection("operation_logs", maxSize: 100 * 1024 * 1024)]          // 100MB 上限
+[CappedCollection("audit_logs", maxSize: 50 * 1024 * 1024, MaxDocuments = 50000)] // 同时限大小+条数
+public class OperationLog { /* ... */ }
+
+builder.Services.AddMongoCappedCollectionCreation<AppDbContext>();
+```
+
+> 不支持删除单文档（只能 `drop` 整个集合）；`MaxDocuments` 必须配合 `MaxSize`。
+
+### 6.3 时序集合（Time Series）—— IoT / 监控 / 行情
+
+```csharp
+[TimeSeriesCollection("sensor_readings", timeField: "timestamp", metaField: "deviceId",
+    granularity: TimeSeriesGranularity.Seconds, ExpireAfter = 86400 * 30)] // 可选 30 天 TTL
+public class SensorReading
+{
+    public DateTime Timestamp { get; set; }  // timeField
+    public string DeviceId { get; set; }     // metaField
+    public double Temperature { get; set; }
+}
+
+builder.Services.AddMongoTimeSeriesCollectionCreation<AppDbContext>();
+```
+
+> 需 MongoDB 5.0+；`timeField`/`metaField` 创建后不可改；`system.profile` 为保留名。框架会自动为 `(metaField, timeField)` 建复合索引，并跳过时序时间字段的常规索引。
+
+---
+
+## 7. 查询增强：聚合、批量写入、地理空间
+
+> 这些是 `EasilyNET.Mongo.Core` 提供的 `IMongoCollection<T>` 扩展，任意环境可用。
+
+### 7.1 聚合扩展
+
+```csharp
+// 关联查询（LEFT JOIN）：$lookup + $unwind
+var rows = await db.Orders.LookupAndUnwindAsync<User>(
+    foreignCollectionName: "users", localField: o => o.UserId, foreignField: u => u.Id,
+    asField: "user", preserveNullAndEmpty: true); // false = INNER JOIN
+
+// 分组计数：GROUP BY status
+var counts = await db.Orders.GroupByCountAsync(o => o.Status);
+
+// 区间分布
+var dist = await db.Orders.BucketAsync(o => o.Amount,
+    boundaries: [0, 100, 500, 1000, 5000, (BsonValue)BsonMaxKey.Value], defaultBucket: "其它");
+
+// 多维并行聚合（电商多面统计）
+var facet = await db.Products.FacetAsync(new() { ["byBrand"] = [ /* stages */ ] });
+```
+
+### 7.2 批量写入 Fluent —— 迁移、批量导入、原子混合操作
+
+```csharp
+var r = await db.Orders.BulkWriteAsync(bulk => bulk
+    .InsertOne(new Order { /* ... */ })
+    .UpdateOne(filter, Builders<Order>.Update.Set(o => o.Status, "shipped"))
+    .UpdateMany(staleFilter, timeoutUpdate)
+    .ReplaceOne(idFilter, replacement, isUpsert: true)
+    .DeleteMany(Builders<Order>.Filter.Lt(o => o.CreatedAt, DateTime.UtcNow.AddYears(-3))));
+// r.InsertedCount / r.ModifiedCount / r.DeletedCount
+```
+
+### 7.3 地理空间 —— 附近门店、区域筛选
+
+```csharp
+public class Store
+{
+    [MongoIndex(EIndexType.Geo2DSphere)]   // 前提：2dsphere 索引
+    public GeoJsonPoint<GeoJson2DGeographicCoordinates> Location { get; set; }
+}
+
+// 5 公里内（注意经度在前、纬度在后）
+var near = GeoQueryExtensions.NearSphere<Store>(s => s.Location, 121.4737, 31.2304, maxDistanceMeters: 5000);
+var list = await db.Stores.Find(near).ToListAsync();
+
+// 含距离排序（结果附加 distance 字段，单位米）
+var withDist = await db.Stores.GeoNearAsync(s => s.Location, GeoPoint.From(121.4737, 31.2304),
+    new GeoNearOptions { MaxDistanceMeters = 10_000, Limit = 20, DistanceField = "distance" });
+```
+
+工厂：`GeoPoint.From(lon, lat)`、`GeoPolygon.From((lon,lat), ... , 闭合点)`。
+过滤器：`NearSphere`（按距离）、`GeoWithin`（区域内，更快但无距离）、`GeoIntersects`（相交）。
+
+---
+
+## 8. 实时数据：变更流（Change Stream）
+
+> **要求：副本集或 Atlas**（单节点不支持）。用于跨系统同步、事件驱动、审计追踪。
+
+```csharp
+public class OrderChangeStreamHandler : MongoChangeStreamHandler<Order>
+{
+    public OrderChangeStreamHandler(AppDbContext db, ILogger<OrderChangeStreamHandler> logger)
+        : base(db.Database, collectionName: "orders", logger, new ChangeStreamHandlerOptions
+        {
+            PersistResumeToken = true,                 // 重启后断点续传，不丢事件
+            MaxRetryAttempts = 5,                      // 0 = 无限重试
+            RetryDelay = TimeSpan.FromSeconds(2),      // 指数退避 2→4→8…
+            MaxRetryDelay = TimeSpan.FromSeconds(60),
+            FullDocument = ChangeStreamFullDocumentOption.UpdateLookup,
+        }) { }
+
+    protected override ChangeStreamOperationType[]? WatchOperations =>
+        [ChangeStreamOperationType.Insert, ChangeStreamOperationType.Update];
+
+    protected override Task HandleChangeAsync(ChangeStreamDocument<Order> change, CancellationToken ct)
+    {
+        // 处理器为 Singleton，Scoped 服务需用 IServiceScopeFactory.CreateScope()
+        return Task.CompletedTask;
+    }
+}
+
+builder.Services.AddMongoChangeStreamHandler<OrderChangeStreamHandler>();
+```
+
+| 选项 | 默认 | 说明 |
+|---|---|---|
+| `MaxRetryAttempts` | 5 | 0=无限 |
+| `RetryDelay` / `MaxRetryDelay` | 2s / 60s | 指数退避 |
+| `PersistResumeToken` | false | 持久化恢复令牌（重启续传） |
+| `ResumeTokenCollectionName` | `_changeStreamResumeTokens` | 令牌集合名 |
+| `FullDocument` | `UpdateLookup` | 更新事件是否带完整文档 |
+
+---
+
+## 9. 文件存储：GridFS
+
+适合不想引入额外对象存储、又要存大文件（>16MB）的场景。
+
+```csharp
+// 默认库（fs.files / fs.chunks）
+builder.Services.AddGridFSBucket<AppDbContext>();
+
+// 自定义桶名 / 块大小
+builder.Services.AddGridFSBucket<AppDbContext>(o => { o.BucketName = "uploads"; o.ChunkSizeBytes = 512 * 1024; });
+
+// 独立库 + 键控注入（多桶）
+builder.Services.AddGridFSBucket<AppDbContext>("media", "file-db", o => o.BucketName = "media");
+// 注入：MediaService([FromKeyedServices("media")] IGridFSBucket bucket)
+```
+
+常用操作：`UploadFromStreamAsync` / `DownloadToStreamAsync` / `DownloadToStreamByNameAsync` / `DeleteAsync` / `FindAsync`。
+
+---
+
+## 10. 全文 / 向量搜索（Atlas Search）
+
+> **要求：MongoDB Atlas 或 MongoDB 8.2+ 社区版**。不支持的环境会记录警告并跳过，不影响启动。
+
+```csharp
+[MongoSearchIndex(Name = "product_search")]
+[MongoSearchIndex(Name = "product_vector", Type = ESearchIndexType.VectorSearch)]
+public class Product
+{
+    [SearchField(ESearchFieldType.String, IndexName = "product_search", AnalyzerName = "lucene.chinese")]
+    [SearchField(ESearchFieldType.Autocomplete, IndexName = "product_search", AnalyzerName = "lucene.chinese")]
+    public string Name { get; set; }
+
+    [SearchField(ESearchFieldType.Number, IndexName = "product_search")]
+    public decimal Price { get; set; }
+
+    // AI 嵌入向量（OpenAI text-embedding-ada-002 = 1536 维）
+    [VectorField(Dimensions = 1536, Similarity = EVectorSimilarity.Cosine, IndexName = "product_vector")]
+    public float[] Embedding { get; set; }
+
+    // 向量搜索预过滤字段（先缩小范围再算相似度）
+    [VectorFilterField(IndexName = "product_vector")]
+    public string Category { get; set; }
+}
+
+builder.Services.AddMongoSearchIndexCreation<AppDbContext>();
+```
+
+- `ESearchFieldType`：`String`/`Autocomplete`/`Number`/`Date`/`Boolean`/`ObjectId`/`Geo`/`Token`(精确)/`Document`。
+- `EVectorSimilarity`：`Cosine`(推荐，归一化文本嵌入) / `DotProduct` / `Euclidean`。
+- 实体若**未**在 `MongoContext` 上声明集合属性，需在 `[MongoSearchIndex]` 上设 `CollectionName`，框架通过程序集扫描发现。
+
+向量检索（`$vectorSearch`）：
+
+```csharp
+var qv = await embedding.GetEmbeddingAsync("蓝牙耳机 降噪");
+var pipeline = new BsonDocument[]
+{
+    new("$vectorSearch", new BsonDocument
+    {
+        { "index", "product_vector" }, { "path", "embedding" },
+        { "queryVector", new BsonArray(qv.Select(f => (BsonValue)f)) },
+        { "numCandidates", 150 }, { "limit", 10 },
+        { "filter", new BsonDocument("category", "电子产品") }   // 预过滤
+    })
+};
+var hits = await db.Products.Aggregate<BsonDocument>(pipeline).ToListAsync();
+```
+
+---
+
+## 11. 健康检查
+
+```csharp
+builder.Services.AddHealthChecks()
+    .AddMongoHealthCheck<AppDbContext>(
+        name: "mongodb", failureStatus: HealthStatus.Unhealthy,
+        tags: ["db", "mongodb"], timeout: TimeSpan.FromSeconds(5));
+
+app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/ready", new() { Predicate = c => c.Tags.Contains("db") }); // K8s 就绪
+app.MapHealthChecks("/health/live",  new() { Predicate = _ => false });                  // K8s 存活
+```
+
+通过对数据库发送 `ping` 命令验证连通性。
+
+---
+
+## 12. 调试与可观测性（ConsoleDebug）
+
+通过 `ClientSettings` 在 `ClusterConfigurator` 上挂订阅器：
+
+```csharp
+builder.Services.AddMongoContext<AppDbContext>(builder.Configuration, c =>
+{
+    c.ClientSettings = cs => cs.ClusterConfigurator = cb =>
+    {
+        // 开发期：命令以面板形式输出到控制台
+        if (builder.Environment.IsDevelopment())
+            cb.Subscribe(new ActivityEventConsoleDebugSubscriber(new() { Enable = true }));
+
+        // 任意环境：OpenTelemetry 诊断（接 APM / Jaeger / Tempo）
+        cb.Subscribe(new ActivityEventDiagnosticsSubscriber(new()
+        {
+            CaptureCommandText = true,     // 捕获命令文本
+            ExcludeGridFSChunks = true,    // 默认开启，避免 chunks 二进制撑爆内存
+            MaxCommandTextLength = 1000    // 超长截断（0 = 不限）
+        }));
+    };
+});
+```
+
+- `ConsoleDebugInstrumentationOptions`：`Enable`、`ShouldStartCollection`（按集合名过滤输出）。
+- `ActivityEventDiagnosticsSubscriber` 按 OpenTelemetry 语义约定打 `db.system`、`db.namespace`、`db.operation.name` 等标签。
+- ⚠️ GridFS 场景务必保留 `ExcludeGridFSChunks = true`，否则会捕获大量二进制数据。
+
+---
+
+## 13. 部署前提与环境矩阵
+
+| 功能 | 单节点 Standalone | 副本集 / 分片 | Atlas | 备注 |
+|---|:---:|:---:|:---:|---|
+| 基本读写 / 索引 / Capped / GridFS | ✅ | ✅ | ✅ | — |
+| 多文档事务 | ❌ | ✅ | ✅ | `StartSessionAsync(true)` |
+| 变更流 | ❌ | ✅ | ✅ | — |
+| 时序集合 | ✅ | ✅ | ✅ | MongoDB 5.0+ |
+| Atlas Search / Vector Search | ⚠️ 仅 8.2+ | ⚠️ 仅 8.2+ | ✅ | 社区版需 8.2+ |
+
+> 本地开发副本集（变更流/事务）可用项目提供的 `docker compose -f docker-compose.mongo.rs.yml up -d`。
+
+---
+
+## 14. 常见问题排查
+
+| 现象 | 可能原因 / 解决 |
+|---|---|
+| `MongoConnectionPoolPausedException`（连接池暂停） | 网络/防火墙、认证/TLS、单节点未加 `directConnection=true`、副本集名不匹配、连接池耗尽。连接串显式设 `serverSelectionTimeoutMS`、`connectTimeoutMS`、`socketTimeoutMS`。 |
+| `Change stream not supported on Standalone` | 变更流需副本集/Atlas，启动本地副本集。 |
+| Atlas Search 索引未生成 | 确认 Atlas 或 8.2+；索引创建异步需等待；查日志 `Failed to ensure search indexes`；确认已调用 `AddMongoSearchIndexCreation<T>()`。 |
+| 注入 `IMongoClient`/`IMongoDatabase` 报找不到 | 已不再注册，改用 `db.Client` / `db.Database`。 |
+| `ConfigureMongoConventions` 不生效 | 必须在所有 `AddMongoContext` **之前**调用，且最多一次。 |
+| 同类型 `DateOnly` 序列化器冲突 | String 与 Ticks 同类型只能注册其一。 |
+| 跨时区读到的时间不一致 | `ConfigureMongoConventions` 中设 `DateTimeSerializerKind = DateTimeKind.Utc`。 |

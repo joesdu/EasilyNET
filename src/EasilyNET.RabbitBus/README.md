@@ -959,3 +959,277 @@ services.AddResiliencePipeline(Constant.HandlerPipelineName, (builder, context) 
     - 配置死信存储/队列处理失败消息
     - 设置监控告警机制
     - 记录详细的错误日志
+
+---
+
+# EasilyNET.RabbitBus 套件 · 完整使用文档与场景选型指南
+
+> 本节是对 `EasilyNET.RabbitBus`、`EasilyNET.RabbitBus.Core` 两个包的**统一汇总**，侧重「有哪些能力 / 什么场景该用哪个 / 怎么选」。
+> 上文已给出每个功能的细粒度用法与完整配置参考表，本节聚焦**全局视角与选型决策**，便于快速上手与排错。
+
+---
+
+## 目录（套件总览）
+
+- [1. 套件结构与选型](#1-套件结构与选型)
+- [2. 交换机模式（EModel）选型](#2-交换机模式emodel选型)
+- [3. 功能 → 场景速查表](#3-功能--场景速查表)
+- [4. 最小可用配置（5 分钟上手）](#4-最小可用配置5-分钟上手)
+- [5. 核心抽象一览（Core 包）](#5-核心抽象一览core-包)
+- [6. 发布 API（IBus）](#6-发布-apiibus)
+- [7. 消费链路：中间件 / 处理器 / 回退](#7-消费链路中间件--处理器--回退)
+- [8. 可靠性：发布确认、重试、死信](#8-可靠性发布确认重试死信)
+- [9. 配置预设（按场景套用）](#9-配置预设按场景套用)
+- [10. 可观测性：指标与追踪](#10-可观测性指标与追踪)
+- [11. 部署前提与环境矩阵](#11-部署前提与环境矩阵)
+- [12. 常见问题排查](#12-常见问题排查)
+
+---
+
+## 1. 套件结构与选型
+
+| 包 | 角色 | 关键依赖 | 何时引用 |
+|---|---|---|---|
+| **EasilyNET.RabbitBus.Core** | 契约层：`IEvent` / `Event`、`IEventHandler` / `IEventMiddleware` / `IEventFallbackHandler`、`IBus`、`IBusSerializer`、`EModel`、`ConsumerAction`、`EventContext` | 无（纯抽象） | 把**事件消息定义**独立成库、供生产者与消费者共享时单独引用，避免重复声明、减少传递依赖。 |
+| **EasilyNET.RabbitBus** | 实现层：DI 注册、流式配置、连接/发布/消费/重试/死信、健康检查、指标、OpenTelemetry | `RabbitMQ.Client`、`Microsoft.Extensions.*`、`Microsoft.Extensions.Resilience`(Polly)、`Core` | 真正要收发消息的进程（API / Worker / 控制台 / 通用 Host）。**主程序装这个即可。** |
+
+- 目标框架：`net10.0`、`net11.0`。
+- `EasilyNET.RabbitBus` 已不再依赖 ASP.NET Core 共享框架（由 `EasilyNET.RabbitBus.AspNetCore` 重命名而来），可用于任意 Host。
+- ⚠️ **延迟消息已移除**：不再支持 `rabbitmq-delayed-message-exchange` 插件（官方已于 2026-01-29 停止维护）。延迟/重试请改用 DLX + TTL 或外部调度器（详见上文「关于延迟消息功能的移除说明」）。
+
+```bash
+dotnet add package EasilyNET.RabbitBus        # 主包（含 Core）
+# 仅共享事件契约的项目（如领域模型库）可只引用：
+dotnet add package EasilyNET.RabbitBus.Core
+```
+
+**典型分层**：领域/契约库引用 `Core` 定义 `XxxEvent : Event`；生产者与消费者进程引用 `EasilyNET.RabbitBus`，各自注册同一事件即可互通。
+
+---
+
+## 2. 交换机模式（EModel）选型
+
+`AddEvent<T>(EModel, exchangeName, routingKey, queueName)` 的第一个参数决定路由语义：
+
+| EModel | RabbitMQ 交换机 | 路由依据 | 适用场景 |
+|---|---|---|---|
+| `None` | 默认交换机 | routingKey 默认取队列名 | 最简单的点对点：一个事件→一个队列，无需声明交换机 |
+| `Routing` | `direct` | routingKey 精确匹配 | 定向投递：按 key 路由到指定队列（最常用） |
+| `Topics` | `topic` | routingKey 模式匹配（`order.*` / `user.#`） | 灵活路由：一类消息多种细分（如 `order.created` / `order.paid`），生产者可在 `Publish` 时覆盖 routingKey |
+| `PublishSubscribe` | `fanout` | 忽略 routingKey，广播 | 一条消息多方消费：通知广播、缓存失效、扇出 |
+| `Headers` | `headers` | 消息头 + 绑定参数（`x-match=all/any`）匹配 | 多维度内容过滤（如 `format=pdf & type=report`），不依赖 routingKey |
+
+> `Headers` 模式性能略低于 direct/topic（逐键匹配），仅在确需多维过滤时使用。
+
+---
+
+## 3. 功能 → 场景速查表
+
+| 你的需求 | 用什么 | 入口 |
+|---|---|---|
+| 定义事件 | 继承 `Event`（自带雪花 `EventId`）或实现 `IEvent` | Core 包 |
+| 消费事件 | 实现 `IEventHandler<T>` | `.WithHandler<H>()` |
+| 一个事件多个处理器 | 注册多个 Handler | 多次 `.WithHandler<H>()` |
+| 处理器顺序执行 | `SequentialHandlerExecution = true` + `order` | `.ConfigureEvent(...)` / `.WithHandler<H>(order)` |
+| 提高单事件消费并行度 | 多消费者通道 | `.WithHandlerThreadCount(n)` |
+| 事务 / 幂等 / 审计（横切） | 中间件（可短路 `next()`） | `.WithMiddleware<M>()` |
+| 重试耗尽后自定义处置 | 回退处理器返回 `ConsumerAction` | `.WithFallbackHandler<F>()` |
+| 单事件独立重试/超时策略 | Polly 弹性管道 | `.WithHandlerResilience(b => ...)` |
+| 跳过某个已注册处理器 | 忽略 | `c.IgnoreHandler<T, H>()` |
+| 优先级队列 | 队列参数 `x-max-priority` + 发布 `priority` | `.WithEventQueueArgs(...)` |
+| 事件级 QoS（预取） | 覆盖全局 | `.WithEventQos(prefetchCount)` |
+| 自定义序列化（MsgPack 等） | 实现 `IBusSerializer` | `c.WithSerializer<S>()` |
+| 批量发布提吞吐 | 批量 API | `bus.PublishBatch(events)` |
+| 可靠投递不丢消息 | 发布确认 + 背压 | `c.WithResilience(publisherConfirms: true)` |
+| 失败消息落库/转存 | 自定义死信存储 | 实现 `IDeadLetterStore` 并注册 |
+| 健康检查 | 已自动注册 | `app.MapHealthChecks("/health")` |
+| 指标 / 链路追踪 | Meter & ActivitySource：`EasilyNET.RabbitBus` | OpenTelemetry `AddSource/AddMeter` |
+
+---
+
+## 4. 最小可用配置（5 分钟上手）
+
+```csharp
+// 1) 事件（Core 包）：自带雪花 EventId
+public class TestEvent : Event { public string Message { get; set; } = default!; }
+
+// 2) 处理器
+public class TestEventHandler(ILogger<TestEventHandler> logger) : IEventHandler<TestEvent>
+{
+    public Task HandleAsync(TestEvent e)
+    {
+        logger.LogInformation("收到: {msg}", e.Message);
+        return Task.CompletedTask;
+    }
+}
+
+// 3) 注册
+builder.Services.AddRabbitBus(c =>
+{
+    c.WithConnection(f => f.Uri = new(builder.Configuration.GetConnectionString("Rabbit")!));
+    c.AddEvent<TestEvent>(EModel.Routing, "test.exchange", "test.key", "test.queue")
+     .WithHandler<TestEventHandler>()
+     .And();
+});
+
+// 4) 发布（注入 IBus）
+public class FooService(IBus bus)
+{
+    public Task SendAsync() => bus.Publish(new TestEvent { Message = "hello" });
+}
+```
+
+> ⚠️ 只有通过 `.WithHandler<H>()` **显式注册**的处理器才会创建消费者并注入 DI。Handler/Middleware/Fallback 均为 **Scoped** 生命周期（每条消息独立作用域，可安全注入 `DbContext`）。
+
+---
+
+## 5. 核心抽象一览（Core 包）
+
+| 类型 | 作用 | 关键成员 |
+|---|---|---|
+| `IEvent` / `Event` | 事件契约 / 默认实现 | `string EventId`（雪花 ID，可用于幂等/关联） |
+| `IEventHandler<in TEvent>` | 消费者 | `Task HandleAsync(TEvent e)` |
+| `IEventMiddleware<TEvent>` | 处理器链中间件 | `Task HandleAsync(EventContext<TEvent> ctx, Func<Task> next)` |
+| `IEventFallbackHandler<in TEvent>` | 重试耗尽后的兜底 | `Task<ConsumerAction> OnFallbackAsync(TEvent e, Exception ex, int retryCount)` |
+| `EventContext<TEvent>` | 中间件上下文 | `Event` / `Headers` / `CancellationToken` |
+| `ConsumerAction` | 消息处置枚举 | `Ack` / `Nack` / `Requeue` / `DeadLetter` |
+| `IBus` | 发布入口 | `Publish` / `PublishBatch` / `Publish(object, Type, ...)` |
+| `IBusSerializer` | 序列化器 | `byte[] Serialize(...)` / `object? Deserialize(...)` |
+| `EModel` | 交换机模式 | 见上表 |
+
+---
+
+## 6. 发布 API（IBus）
+
+```csharp
+// 单条（按事件配置路由）
+await bus.Publish(new TestEvent { Message = "normal" });
+
+// 覆盖 routingKey（Topic 多路由生产者）
+await bus.Publish(new TestEvent { Message = "t" }, routingKey: "order.paid");
+
+// 优先级（需队列声明 x-max-priority，推荐 0-9）
+await bus.Publish(new TestEvent { Message = "p" }, priority: 5);
+
+// 逐条消息头（合并并覆盖事件静态 Headers）
+await bus.Publish(e, headers: new Dictionary<string, object?> { ["x-tenant"] = "t1" });
+
+// 批量（减少网络往返；按消息大小调 BatchSize，默认 100）
+await bus.PublishBatch(events);
+
+// 非泛型（运行时动态类型）
+await bus.Publish(obj, typeof(TestEvent));
+```
+
+> 未注册或被禁用的事件：发布时记录警告并直接返回（不抛异常）。
+
+---
+
+## 7. 消费链路：中间件 / 处理器 / 回退
+
+```text
+消息到达 → 反序列化 → [中间件 HandleAsync] → 处理器链（顺序/并发） → Ack
+                          ↓ (重试耗尽仍异常)
+                 [回退处理器 OnFallbackAsync] → ConsumerAction → Ack/Nack/Requeue/DeadLetter
+```
+
+- **处理器执行模式**：默认并发（高吞吐）；`SequentialHandlerExecution = true` 时按 `order` 顺序依次执行（值越小越先）。
+- **中间件**：包裹整条处理器链，不调用 `next()` 即短路（幂等命中直接返回）。每事件最多一个；DI 解析失败会抛 `InvalidOperationException`（不静默跳过）。
+- **回退处理器**：Polly 重试耗尽后调用，按异常类型返回 `ConsumerAction` 决定消息命运；未配置时默认 Nack。
+
+详见上文「消费者中间件管道」「消费者回退处理器」「处理器显式排序」「自定义弹性管道」章节的完整示例。
+
+---
+
+## 8. 可靠性：发布确认、重试、死信
+
+| 机制 | 说明 | 关键配置 |
+|---|---|---|
+| 发布确认（Publisher Confirms） | 等待 broker ack，确保投递；按 seq 跟踪、超时 nack | `WithResilience(publisherConfirms: true, confirmTimeoutMs: 30000)` |
+| 发布背压 | 未确认数达阈值时短暂等待，防内存暴涨 | `maxOutstandingConfirms`（默认 1000，常见 500~5000） |
+| 后台重试 | Nack/确认超时进入重试队列，指数退避 + 抖动（1s→30s 封顶） | `retryCount`、`retryIntervalSeconds` |
+| 死信 | 超过 `retryCount` 后写入死信存储 | 内置 `InMemoryDeadLetterStore`；自定义实现 `IDeadLetterStore` 并 `AddSingleton` 覆盖 |
+| 重试队列容量 | 固定上限或按内存动态估算 | `WithRetryQueueSizing(maxSize, memoryRatio, avgEntryBytes)` |
+
+`IDeadLetterMessage` 成员：`EventType` / `EventId` / `CreatedUtc` / `RetryCount` / `OriginalEvent`（可重放）。
+自定义死信存储（Redis 等）完整模板见上文「自定义死信存储」章节。
+
+---
+
+## 9. 配置预设（按场景套用）
+
+```csharp
+// 高吞吐（日志、埋点、可容忍极少丢失）
+c.WithConsumerSettings(dispatchConcurrency: 50, prefetchCount: 200);
+c.WithResilience(retryCount: 3, publisherConfirms: false);   // 关确认换吞吐
+// 事件级：.WithEventQos(prefetchCount: 100).WithHandlerThreadCount(8)
+
+// 高可靠（金融、订单、关键业务）
+c.WithConsumerSettings(dispatchConcurrency: 5, prefetchCount: 20);
+c.WithResilience(retryCount: 10, publisherConfirms: true);   // 开确认保不丢
+// 事件级：.WithEventQos(prefetchCount: 10).WithHandlerThreadCount(1)
+
+// 外部已统一声明交换机（IaC/运维侧）
+c.WithExchangeSettings(skipExchangeDeclare: true, validateExchangesOnStartup: false);
+
+// 集群连接（多节点用 ConnectionFactory，DDNS/集群更稳）
+c.WithConnection(f => { f.HostName = "rabbitmq-cluster"; f.UserName = "user"; f.Password = "pwd"; f.Port = 5672; f.VirtualHost = "/"; });
+```
+
+> `WithExchangeSettings()` 一旦调用且不传参，`validateExchangesOnStartup` 即变为 `false`，注意按需显式传 `true`。
+
+---
+
+## 10. 可观测性：指标与追踪
+
+```csharp
+// 指标 Meter 名 & 追踪 ActivitySource 名 均为 "EasilyNET.RabbitBus"
+builder.Services.AddOpenTelemetry()
+    .WithTracing(t => t.AddSource("EasilyNET.RabbitBus"))     // 发布/消费 span，自动透传 traceparent
+    .WithMetrics(m => m.AddMeter("EasilyNET.RabbitBus"));
+```
+
+关键指标（点分式命名，旧下划线命名已弃用）：
+
+| 类别 | 指标 |
+|---|---|
+| 发布 | `rabbitmq.publish.normal.total`、`rabbitmq.publish.retried.total`、`rabbitmq.publish.discarded.total` |
+| 确认 | `rabbitmq.publish.confirm.ack.total`、`rabbitmq.publish.confirm.nack.total`、`rabbitmq.publish.outstanding.confirms` |
+| 重试/死信 | `rabbitmq.retry.enqueued.total`、`rabbitmq.deadletter.total` |
+| 连接 | `rabbitmq.connection.reconnects.total`、`rabbitmq.connection.active`、`rabbitmq.channel.active`、`rabbitmq.connection.state` |
+
+```bash
+# 开发期快速观察
+dotnet-counters monitor --process <pid> --counters EasilyNET.RabbitBus
+```
+
+健康检查 `RabbitBusHealthCheck` 已自动注册：通道开启=Healthy，存在但关闭=Degraded，获取失败=Unhealthy。
+
+---
+
+## 11. 部署前提与环境矩阵
+
+| 能力 | 要求 |
+|---|---|
+| 基础收发 / direct / topic / fanout / headers | RabbitMQ 3.x+（单点或集群均可） |
+| 优先级队列 | 队列声明 `x-max-priority` |
+| 发布确认 / 背压 | 无特殊要求（开 `publisherConfirms`） |
+| 集群高可用 | 多节点 + 镜像/Quorum 队列（运维侧配置） |
+| 延迟消息 | ❌ 已移除插件支持，改用 DLX + TTL 或外部调度器 |
+
+连接配置支持：连接串 `Uri`、单点 `HostName/Port/...`、或多端点 `AmqpTcpEndpoints`（集群/DDNS 更稳）。
+
+---
+
+## 12. 常见问题排查
+
+| 现象 | 可能原因 / 解决 |
+|---|---|
+| 连接失败 | 检查连接串格式、RabbitMQ 运行状态、用户名/密码/虚拟主机权限 |
+| 处理器不触发 | 是否用 `.WithHandler<H>()` **显式注册**；事件是否 `Enabled`；交换机/队列/绑定是否正确 |
+| 消息丢失 | 开启 `publisherConfirms`；确认消费端正确 Ack；交换机/队列已正确声明 |
+| 启动报交换机类型不匹配 | `ValidateExchangesOnStartup=true` 时被动校验失败；修正交换机类型或外部统一声明并 `SkipExchangeDeclare=true` |
+| 注入 Singleton 状态丢失 | Handler/Middleware/Fallback 已改为 **Scoped**；共享状态请注入独立的 Singleton 服务 |
+| 吞吐不足 | 提高 `dispatchConcurrency`、`prefetchCount`、`WithHandlerThreadCount`；高吞吐可关闭 `publisherConfirms` |
+| 内存增长 | 合理设置 `prefetchCount` 与 `maxOutstandingConfirms`；监控队列积压；调小重试队列容量 |
+| 想要延迟投递 | 插件已移除：用死信交换机（DLX）+ TTL，或外部调度器 + 持久化存储 |
