@@ -738,3 +738,252 @@ public class ModuleB : AppModule { }
   示例项目: [WPF](https://github.com/joesdu/WpfAutoDISample) | [WinForms](https://github.com/joesdu/WinFormAutoDISample) | [WinUI3](https://github.com/joesdu/WinUIAutoDISample)
 - 🐛 问题反馈: [GitHub Issues](https://github.com/joesdu/EasilyNET/issues)
 - 💡 功能建议: 欢迎提交 Pull Request
+
+---
+
+# EasilyNET.AutoDependencyInjection 套件 · 完整使用文档与场景选型指南
+
+> 本节是对 `EasilyNET.AutoDependencyInjection`、`EasilyNET.AutoDependencyInjection.Core` 两个包的**统一汇总**，
+> 侧重「有哪些能力 / 什么场景该用哪个 / 怎么选」。上文已给出每个功能的细粒度用法、桌面/Web 集成与 FAQ，本节聚焦**全局视角与选型决策**。
+
+---
+
+## 目录（套件总览）
+
+- [1. 套件结构与选型](#1-套件结构与选型)
+- [2. 两大能力：模块化 + 自动注入](#2-两大能力模块化--自动注入)
+- [3. 功能 → 场景速查表](#3-功能--场景速查表)
+- [4. 最小可用配置（5 分钟上手）](#4-最小可用配置5-分钟上手)
+- [5. 模块生命周期与执行顺序](#5-模块生命周期与执行顺序)
+- [6. `[DependencyInjection]` 注册策略选型](#6-dependencyinjection-注册策略选型)
+- [7. 高级解析器（IResolver）速查](#7-高级解析器iresolver速查)
+- [8. 隐式关系类型（Lazy / IIndex / Owned / Func 工厂）](#8-隐式关系类型lazy--iindex--owned--func-工厂)
+- [9. 平台与环境矩阵](#9-平台与环境矩阵)
+- [10. 常见问题排查](#10-常见问题排查)
+
+---
+
+## 1. 套件结构与选型
+
+| 包 | 角色 | 关键依赖 | 何时引用 |
+|---|---|---|---|
+| **EasilyNET.AutoDependencyInjection.Core** | 契约层：`[DependencyInjection]`、`[IgnoreDependency]` 两个特性 | 无 | 只想在领域/业务库的类上**打注册特性**、但不引入完整框架时单独引用，避免传递依赖。 |
+| **EasilyNET.AutoDependencyInjection** | 实现层：模块系统（`AppModule`/`DependsOn`）、自动注入扫描、`IResolver` 高级解析、`IModuleDiagnostics`、DI 入口扩展 | `Microsoft.Extensions.DependencyInjection`、`Hosting.Abstractions`、`Core` | 真正要启用模块化与自动注入的宿主（Web / Worker / WPF / WinForms / WinUI3）。**主程序装这个即可。** |
+
+- 目标框架：`net10.0`、`net11.0`。
+- 不依赖任何 ASP.NET Core 专属 API，可用于 Web / 桌面 / 控制台 / 通用 Host。
+
+```bash
+dotnet add package EasilyNET.AutoDependencyInjection        # 主包（含 Core）
+# 仅在类库上打注册特性、不引入框架的项目可只引用：
+dotnet add package EasilyNET.AutoDependencyInjection.Core
+```
+
+---
+
+## 2. 两大能力：模块化 + 自动注入
+
+本套件解决两件事，可单用也可合用：
+
+| 能力 | 解决的问题 | 核心类型 |
+|---|---|---|
+| **模块化（AppModule）** | 服务注册与中间件配置散落、顺序难管理 | `AppModule` + `[DependsOn]`，拓扑排序、循环依赖检测、按配置启停 |
+| **自动注入** | 大量 `services.AddXxx<I, C>()` 样板代码 | `[DependencyInjection]` 特性 + 内置 `DependencyAppModule` 扫描注册 |
+
+> `DependencyAppModule` 是内置模块：根模块 `[DependsOn(typeof(DependencyAppModule))]` 后，所有带 `[DependencyInjection]` 的类自动注册。
+
+---
+
+## 3. 功能 → 场景速查表
+
+| 你的需求 | 用什么 | 入口 |
+|---|---|---|
+| 自动注册某个服务 | `[DependencyInjection(lifetime)]` | Core 包特性 |
+| 排除某类/接口不被扫描 | `[IgnoreDependency]` | Core 包特性 |
+| 注册键控服务（多实现） | `ServiceKey` | `[DependencyInjection(..., ServiceKey = "x")]` |
+| 同时注册接口 + 自身 / 仅自身 | `AddSelf` / `SelfOnly` | 特性属性（窗口类常用 `AddSelf+SelfOnly`） |
+| 指定注册为某基类/接口（提性能） | `AsType` | 特性属性 |
+| 按功能域组织注册与中间件 | 自定义 `AppModule` | 重写 `ConfigureServices` 等 |
+| 声明模块初始化顺序 | `[DependsOn(...)]` | 拓扑排序，依赖先行 |
+| 按配置/环境启停模块 | 重写 `GetEnable(context)` | 读 `context.Configuration` |
+| 配置中间件（Web） | 重写 `ApplicationInitialization` | `context.GetApplicationHost()` |
+| 应用停止时清理资源 | 重写 `ApplicationShutdown` | 按模块**逆序**调用 |
+| 缩小自动扫描范围 | `ConfigureAutoInjectionFilter` | 须在 `AddApplicationModules` 之前 |
+| 运行时按参数覆盖构造依赖 | `IResolver` + `Parameter` | `provider.Resolve<T>(...)` |
+| 命名/键控解析 | `ResolveNamed` / `ResolveKeyed` | `IResolver` / `IServiceProvider` 扩展 |
+| 打破构造期循环依赖 | `Lazy<T>` 隐式延迟 | 直接注入 `Lazy<T>` |
+| 运行时传参创建实例 | 参数化工厂 | `AddParameterizedFactory<...>()` |
+| 受控生命周期（用完即释放作用域） | `Owned<T>` | `ResolveOwned<T>()` / `AddOwnedFactory<T>()` |
+| 查看已加载模块/注册服务/校验依赖 | `IModuleDiagnostics` | 注入后调用 |
+
+---
+
+## 4. 最小可用配置（5 分钟上手）
+
+```csharp
+// 1) 业务服务打特性即自动注册（默认 Scoped，注册其实现的接口）
+[DependencyInjection(ServiceLifetime.Scoped)]
+public class OrderService : IOrderService { /* ... */ }
+
+// 2) 根模块依赖内置 DependencyAppModule（提供自动注入）
+[DependsOn(typeof(DependencyAppModule))]
+public class AppWebModule : AppModule
+{
+    public override void ConfigureServices(ConfigureServicesContext context)
+    {
+        context.Services.AddHttpContextAccessor();
+    }
+
+    public override Task ApplicationInitialization(ApplicationContext context)
+    {
+        var app = context.GetApplicationHost() as IApplicationBuilder;
+        app?.UseAuthorization();
+        return Task.CompletedTask;
+    }
+}
+
+// 3) Program.cs
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddApplicationModules<AppWebModule>();   // 注册模块系统 + 自动注入
+var app = builder.Build();
+app.InitializeApplication();                              // 执行各模块 ApplicationInitialization
+app.MapControllers();
+app.Run();
+```
+
+> 桌面端（WPF/WinForms/WinUI3）把 `GetApplicationHost()` 转为 `IHost`，窗口类用 `[DependencyInjection(Singleton, AddSelf = true, SelfOnly = true)]`（详见上文桌面集成章节）。
+
+---
+
+## 5. 模块生命周期与执行顺序
+
+```text
+AddApplicationModules<T>()
+  → 按 [DependsOn] 拓扑排序加载模块（依赖在前，循环依赖直接抛 InvalidOperationException）
+  → 每个模块 GetEnable(context)：返回 false 则跳过
+  → ConfigureServices(context)        // 同步，99% 注册都在这里
+  → ConfigureServicesAsync(context)   // 异步（罕见；实现需 ConfigureAwait(false)）
+  → [构建 ServiceProvider]
+InitializeApplication() / InitializeApplicationAsync()
+  → ApplicationInitializationSync(context)   // 同步中间件配置，先于异步
+  → ApplicationInitialization(context)       // 异步中间件配置
+ShutdownApplication() / ShutdownApplicationAsync()
+  → ApplicationShutdown(context)             // 按模块【逆序】，用于资源清理
+```
+
+| 阶段 | 方法 | 同步/异步 | 典型用途 |
+|---|---|---|---|
+| 启停判定 | `GetEnable` | 同步 | 按配置/环境决定是否加载模块 |
+| 注册 | `ConfigureServices` | 同步 | 注册服务（首选） |
+| 注册 | `ConfigureServicesAsync` | 异步 | 极少数需异步的初始化 |
+| 初始化 | `ApplicationInitializationSync` | 同步 | 同步中间件 |
+| 初始化 | `ApplicationInitialization` | 异步 | 中间件 / 应用配置 |
+| 关闭 | `ApplicationShutdown` | 异步 | 逆序清理资源 |
+
+> 配置访问推荐 `context.Configuration`（无需构建临时 ServiceProvider）；环境用 `context.Environment`（非托管场景可能为 null）。
+
+---
+
+## 6. `[DependencyInjection]` 注册策略选型
+
+| 想要的效果 | 写法 | 结果 |
+|---|---|---|
+| 注册接口（默认） | `[DependencyInjection(ServiceLifetime.Scoped)]` | `IFoo → Foo` |
+| 接口 + 自身都能取 | `AddSelf = true` | `IFoo → Foo` 且 `Foo → Foo` |
+| 只注册自身（窗口/页面） | `AddSelf = true, SelfOnly = true` | 仅 `Foo → Foo`（不注册父类/接口） |
+| 多实现按键区分 | `ServiceKey = "redis"` | KeyedService，`ResolveKeyed<ICache>("redis")` |
+| 显式指定服务类型 | `AsType = typeof(IFoo)` | 注册为 `IFoo`，减少反射、提性能 |
+| 排除扫描 | 类/接口上加 `[IgnoreDependency]` | 不被自动注册（`IDisposable`/`IAsyncDisposable` 自动跳过） |
+
+特性属性默认值：`Lifetime`（构造传入）、`AddSelf=false`、`SelfOnly=false`、`ServiceKey=null`、`AsType=null`。
+缩小扫描范围（须在 `AddApplicationModules` 前）：
+
+```csharp
+services.ConfigureAutoInjectionFilter(t => t.Assembly == typeof(MyService).Assembly)
+        .AddApplicationModules<AppWebModule>();
+```
+
+---
+
+## 7. 高级解析器（IResolver）速查
+
+`IResolver` 在标准 `IServiceProvider` 之上提供**构造参数覆盖 + 命名/键控解析**（类 Autofac）。基础解析仍建议直接用 `IServiceProvider`。
+
+```csharp
+using var resolver = provider.CreateResolver(createScope: true); // true=独立作用域，由 resolver 释放
+var svc = resolver.Resolve<IMyService>(
+    new NamedParameter("connectionString", "Server=localhost"), // 按参数名
+    new TypedParameter(typeof(ILogger), logger),                // 按类型
+    new PositionalParameter(0, "first"),                        // 按位置（0 基）
+    new ResolvedParameter((t, n) => n == "id", (sp, t, n) => Guid.NewGuid())); // 自定义谓词
+
+var keyed = provider.ResolveKeyed<ICache>("redis");
+var named = provider.ResolveNamed<ICache>("primary");
+```
+
+| 方法 | 用途 |
+|---|---|
+| `Resolve<T>(params Parameter[])` | 解析 + 参数覆盖，失败抛异常 |
+| `ResolveKeyed<T>(key, params?)` | 键控解析 |
+| `ResolveNamed<T>(name, params?)` | 命名解析 |
+| `CreateResolver(createScope)` | 创建 resolver（可选独立作用域） |
+
+`Parameter` 匹配优先级：Named（名）→ Typed（类型/可赋值）→ Positional（位置）→ Resolved（谓词）；都不匹配则回退容器解析。构造函数按「能满足所有参数」贪心择优，元数据已缓存。
+
+---
+
+## 8. 隐式关系类型（Lazy / IIndex / Owned / Func 工厂）
+
+调用 `AddApplicationModules` 后自动注册以下能力（`Lazy<>` 用 `TryAdd`，不覆盖你已有注册）：
+
+```csharp
+// 延迟解析：打破构造期循环依赖 / 推迟昂贵依赖
+public sealed class Hub(Lazy<IHeavy> heavy) { void Go() => heavy.Value.Run(); }
+
+// 键控索引：按 key 取服务
+public sealed class Dispatcher(IIndex<string, IHandler> handlers)
+{
+    void On(string k) { if (handlers.TryGet(k, out var h)) h!.Handle(); }
+}
+
+// 参数化工厂：运行时传参创建（1-4 参强类型，5+ 用 object[]）
+services.AddParameterizedFactory<string, IFooService>();                 // Func<string, IFoo>
+services.AddParameterizedFactory<MyService>(typeof(string), typeof(int), typeof(bool), typeof(string), typeof(double));
+
+// 受控生命周期：用完释放作用域及其 Scoped 依赖
+var owned = provider.ResolveOwned<IScopedService>();
+owned.Value.Do();
+owned.Dispose();
+services.AddOwnedFactory<IScopedService>();   // 注入 Func<Owned<IScopedService>>
+```
+
+> 多参工厂内部用 `PositionalParameter` 按位置匹配，参数类型相同也能区分；`object[]` 重载在调用时按 `paramTypes` 做运行时校验，数量/类型不符抛 `ArgumentException`。
+
+---
+
+## 9. 平台与环境矩阵
+
+| 平台 | 获取 Host | 备注 |
+|---|---|---|
+| ASP.NET Core | `GetApplicationHost() as WebApplication` / `as IApplicationBuilder` | 中间件在 `ApplicationInitialization` 配置 |
+| WPF / WinForms / WinUI3 | `GetApplicationHost() as IHost` | 窗口类需 `AddSelf=true, SelfOnly=true` |
+| Worker / 控制台 / 通用 Host | `GetApplicationHost() as IHost` | 无中间件管道，仅服务注册与初始化 |
+
+- 桌面应用面向 .NET（非 .NET Framework）。
+- 诊断：注入 `IModuleDiagnostics` → `GetLoadedModules()` / `GetAutoRegisteredServices()` / `ValidateModuleDependencies()`。
+
+---
+
+## 10. 常见问题排查
+
+| 现象 | 可能原因 / 解决 |
+|---|---|
+| `GetRequiredService<MainWindow>()` 取不到 | 窗口类需 `[DependencyInjection(Singleton, AddSelf = true, SelfOnly = true)]`（默认会注册父类 `Window`） |
+| 服务没被自动注册 | 类未打 `[DependencyInjection]`；被 `[IgnoreDependency]` 或 `ConfigureAutoInjectionFilter` 过滤；是抽象/接口/开放泛型（会跳过） |
+| `Circular dependency detected` | `[DependsOn]` 形成环；改为共同依赖同一基模块，确保依赖图是 DAG |
+| 自动注入未生效 | 根模块缺少 `[DependsOn(typeof(DependencyAppModule))]` |
+| 过滤器不起作用 | `ConfigureAutoInjectionFilter` 必须在 `AddApplicationModules<T>` **之前**调用 |
+| 配置在 `ConfigureServices` 里取不到 | 用 `context.Configuration`（而非构建临时 ServiceProvider） |
+| Singleton 注入 Scoped 报错/泄漏 | 不要在 Singleton 直接注入 Scoped；改用 `IServiceScopeFactory`、`Resolver(createScope:true)` 或 `Owned<T>` |
+| 中间件顺序不对 | 中间件在各模块 `ApplicationInitialization` 中按模块依赖顺序执行，调整 `[DependsOn]` |
+| v4.x 升级后 `ConfigureServices` 编译错误 | v5.x 已改为同步 `void`，移除 `async/await`；异步逻辑挪到 `ConfigureServicesAsync` |
