@@ -23,13 +23,16 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
     // Object-lifetime cancellation. Once cancelled, the client is shutting down permanently.
     private readonly CancellationTokenSource _disposeCts = new();
-    private readonly Task _persistentSendLoopTask; // 持久单一 SendLoop
+    private readonly Task _persistentDispatchLoopTask; // 持久单一消息分发循环（解耦接收与用户回调）
+    private readonly Task _persistentSendLoopTask;     // 持久单一 SendLoop
+    private readonly Channel<ReceivedEnvelope> _receiveChannel;
     private readonly Channel<WebSocketMessage> _sendChannel;
+
+    // 确保单个断开/关闭事件在一次连接生命周期内最多触发一次 Closed。连接成功时重置为 0。
+    private int _closedRaisedFlag;
 
     // Use int with Interlocked.Exchange to guarantee atomic check-and-set across concurrent callers.
     private int _disposedFlag;
-
-    private long _lastReceiveTimestamp;
 
     /// <summary>
     /// 用于标记用户主动调用了 DisconnectAsync，阻止自动重连。
@@ -66,11 +69,19 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         };
         _sendChannel = Channel.CreateBounded<WebSocketMessage>(channelOptions);
 
-        // Initialize last receive time to "now" so heartbeat timeout doesn't immediately fire
-        // before any connection/receive activity happens.
-        _lastReceiveTimestamp = Stopwatch.GetTimestamp();
+        // Decouple message receiving from user-callback dispatch so a slow handler can never stall the
+        // receive loop (which would otherwise freeze heartbeat liveness tracking and trigger a false timeout).
+        var receiveChannelOptions = new BoundedChannelOptions(Options.ReceiveDispatchQueueCapacity)
+        {
+            FullMode = BoundedChannelFullMode.Wait,
+            SingleReader = true,
+            SingleWriter = false
+        };
+        _receiveChannel = Channel.CreateBounded<ReceivedEnvelope>(receiveChannelOptions);
         _persistentSendLoopTask = Task.Run(PersistentSendLoop, _disposeCts.Token);
         _ = ObserveBackgroundTask(_persistentSendLoopTask, nameof(PersistentSendLoop));
+        _persistentDispatchLoopTask = Task.Run(PersistentDispatchLoop, _disposeCts.Token);
+        _ = ObserveBackgroundTask(_persistentDispatchLoopTask, nameof(PersistentDispatchLoop));
     }
 
     private bool IsDisposed => Volatile.Read(ref _disposedFlag) != 0;
@@ -100,22 +111,24 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         await _disposeCts.CancelAsync().ConfigureAwait(false);
         await CancelConnectionAsync().ConfigureAwait(false);
 
-        // 等待持久 SendLoop 优雅退出
-        var completedTask = await Task.WhenAny(_persistentSendLoopTask, Task.Delay(3000)).ConfigureAwait(false);
-        if (completedTask == _persistentSendLoopTask)
+        // 等待持久后台循环（SendLoop + DispatchLoop）优雅退出。
+        // DispatchLoop 退出时会在其 finally 中清空接收队列并归还所有未投递缓冲区。
+        var backgroundLoops = Task.WhenAll(_persistentSendLoopTask, _persistentDispatchLoopTask);
+        var completedTask = await Task.WhenAny(backgroundLoops, Task.Delay(3000)).ConfigureAwait(false);
+        if (completedTask == backgroundLoops)
         {
             try
             {
-                await _persistentSendLoopTask.ConfigureAwait(false);
+                await backgroundLoops.ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
-                // Expected: the persistent send loop is cancelled by _disposeCts during disposal.
+                // Expected: the persistent background loops are cancelled by _disposeCts during disposal.
             }
         }
         else
         {
-            Debug.WriteLine("[ManagedWebSocketClient] Persistent SendLoop did not exit within 3 seconds during disposal; continuing with best-effort cleanup.");
+            Debug.WriteLine("[ManagedWebSocketClient] Persistent background loops did not exit within 3 seconds during disposal; continuing with best-effort cleanup.");
         }
         // 2. Acquire lock to ensure no concurrent connect/disconnect/reconnect is running.
         // Since all CTS tokens are already cancelled, background loops will exit soon and release the lock.
@@ -423,8 +436,8 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     /// </summary>
     public Task SendTextAsync(string text, CancellationToken cancellationToken = default)
     {
-        var byteCount = Encoding.UTF8.GetByteCount(text);
-        var rented = ArrayPool<byte>.Shared.Rent(byteCount);
+        // 按上界一次性租用，省去 GetByteCount 的额外扫描；实际写入长度以 GetBytes 返回值为准。
+        var rented = ArrayPool<byte>.Shared.Rent(Encoding.UTF8.GetMaxByteCount(text.Length));
         var bytesUsed = Encoding.UTF8.GetBytes(text, rented);
         return SendAsyncInternal(new(rented, 0, bytesUsed), WebSocketMessageType.Text, true, rented, cancellationToken);
     }
@@ -506,6 +519,8 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     throw new OperationCanceledException("Connection attempt aborted after socket connect.");
                 }
                 connectedStateChanged = TryUpdateState(WebSocketClientState.Connected);
+                // 新的连接生命周期开始：允许后续断开再次触发一次 Closed。
+                Interlocked.Exchange(ref _closedRaisedFlag, 0);
             }
             finally
             {
@@ -513,19 +528,11 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             }
             PublishStateChanged(connectedStateChanged);
 
-            // Mark the connection as alive at the moment we become connected.
-            UpdateLastReceiveTimestamp();
-
             // Extract token to a local so that CA2025 is not triggered:
             // session is IDisposable, but CancellationToken is a value type copied here before any await.
             var sessionToken = session.Token;
             // ReSharper disable once AccessToDisposedClosure
             _ = ObserveBackgroundTask(Task.Run(() => ReceiveLoop(session), sessionToken), nameof(ReceiveLoop));
-            if (Options.HeartbeatEnabled)
-            {
-                // ReSharper disable once AccessToDisposedClosure
-                _ = ObserveBackgroundTask(Task.Run(() => HeartbeatLoop(session), sessionToken), nameof(HeartbeatLoop));
-            }
         }
         catch (Exception)
         {
@@ -600,14 +607,15 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
     private async Task ReceiveLoop(ConnectionSession session)
     {
-        var buffer = ArrayPool<byte>.Shared.Rent(Options.ReceiveBufferSize);
+        var bufferSize = Options.ReceiveBufferSize;
+        var buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
         var token = session.Token;
         var maxSize = Options.MaxMessageSize;
         try
         {
             while (!token.IsCancellationRequested && IsSessionOpen(session))
             {
-                var result = await session.Socket.ReceiveAsync(buffer.AsMemory(0, Options.ReceiveBufferSize), token).ConfigureAwait(false);
+                var result = await session.Socket.ReceiveAsync(buffer.AsMemory(0, bufferSize), token).ConfigureAwait(false);
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     await HandleServerClose(session, session.Socket.CloseStatus, session.Socket.CloseStatusDescription).ConfigureAwait(false);
@@ -650,7 +658,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                         {
                             break;
                         }
-                        result = await session.Socket.ReceiveAsync(buffer.AsMemory(0, Options.ReceiveBufferSize), token).ConfigureAwait(false);
+                        result = await session.Socket.ReceiveAsync(buffer.AsMemory(0, bufferSize), token).ConfigureAwait(false);
                         if (result.MessageType != WebSocketMessageType.Close)
                         {
                             continue;
@@ -663,20 +671,24 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     messageLength = finalLength;
                     ms.GetSpan().CopyTo(rentedMessageArray);
                 }
-                UpdateLastReceiveTimestamp();
-
-                // 心跳响应过滤
-                if (IsHeartbeatResponse(rentedMessageArray.AsSpan(0, messageLength), result.MessageType))
-                {
-                    ArrayPool<byte>.Shared.Return(rentedMessageArray);
-                    continue;
-                }
-                using var args = new WebSocketMessageReceivedEventArgs(new(rentedMessageArray, 0, messageLength),
+                var args = new WebSocketMessageReceivedEventArgs(new(rentedMessageArray, 0, messageLength),
                     result.MessageType,
                     true,
                     rentedMessageArray);
-                OnMessageReceived(args); // EN: client disposes buffer after all subscribers return; Data is only valid during callback. / ZH: 事件返回后由客户端统一 Dispose，Data 仅在回调期间有效
-                await OnMessageReceivedAsync(args).ConfigureAwait(false);
+                // 入队给专门的分发循环处理；分发循环负责调用订阅者并在完成后归还缓冲区。
+                // 这样慢处理器不会阻塞接收循环。队列满时此处会产生背压（等待空间）。
+                // 连同所属 session 一起入队：分发时据此判定该消息是否仍属于当前活动连接，
+                // 避免旧连接的残留消息在断开/重连/释放后投递给用户回调（破坏 Closed 终态语义）。
+                try
+                {
+                    await _receiveChannel.Writer.WriteAsync(new(args, session), token).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // 入队失败（取消等）：归还缓冲区，避免泄漏；异常交由外层统一处理。
+                    args.Dispose();
+                    throw;
+                }
             }
         }
         catch (OperationCanceledException) { }
@@ -692,49 +704,64 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     }
 
     /// <summary>
-    /// Updates the last receive timestamp using high-resolution timer.
+    /// 持久消息分发循环：从接收队列读取消息事件，按顺序投递给同步/异步订阅者，
+    /// 完成后归还池化缓冲区。与 <see cref="ReceiveLoop" /> 解耦，确保用户回调耗时不会阻塞接收循环。
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void UpdateLastReceiveTimestamp() => Volatile.Write(ref _lastReceiveTimestamp, Stopwatch.GetTimestamp());
+    /// <remarks>
+    /// 投递前做一道门禁：仅当消息所属 session 仍是当前活动连接、且客户端未被释放时才投递。
+    /// 否则（已断开 / 重连为新 session / 已释放）丢弃该消息并归还缓冲区——避免旧连接的残留消息
+    /// 在 Closed 之后或跨连接投递给用户回调，保证 Closed 作为该连接生命周期的终态回调。
+    /// </remarks>
+    private async Task PersistentDispatchLoop()
+    {
+        var token = _disposeCts.Token;
+        try
+        {
+            while (await _receiveChannel.Reader.WaitToReadAsync(token).ConfigureAwait(false))
+            {
+                while (!token.IsCancellationRequested && _receiveChannel.Reader.TryRead(out var envelope))
+                {
+                    var args = envelope.Args;
+                    try
+                    {
+                        // 门禁：消息所属连接已不是当前活动连接（已断开/重连），或客户端已释放 → 丢弃不投递。
+                        if (IsDisposed || !IsCurrentSession(envelope.Session))
+                        {
+                            continue;
+                        }
+                        // EN: Data is only valid during the callback; buffer is returned right after subscribers complete.
+                        // ZH: Data 仅在回调期间有效；订阅者完成后立即归还缓冲区。
+                        OnMessageReceived(args);
+                        await OnMessageReceivedAsync(args).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        args.Dispose();
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            OnError(new(ex, nameof(PersistentDispatchLoop)));
+        }
+        finally
+        {
+            // 归还队列中所有尚未投递的缓冲区，避免在关闭/取消时泄漏。
+            DrainReceiveChannel();
+        }
+    }
 
     /// <summary>
-    ///     <para xml:lang="en">Checks if the received data is a heartbeat response message.</para>
-    ///     <para xml:lang="zh">检查接收到的数据是否为心跳响应消息。</para>
+    /// 清空接收队列并归还其中所有未投递消息的池化缓冲区。仅由分发循环（唯一读取者）调用。
     /// </summary>
-    /// <param name="data">
-    ///     <para xml:lang="en">The received data.</para>
-    ///     <para xml:lang="zh">接收到的数据。</para>
-    /// </param>
-    /// <param name="messageType">
-    ///     <para xml:lang="en">The WebSocket message type.</para>
-    ///     <para xml:lang="zh">WebSocket 消息类型。</para>
-    /// </param>
-    /// <returns>
-    ///     <para xml:lang="en">True if the data matches the heartbeat response pattern and message type; otherwise, false.</para>
-    ///     <para xml:lang="zh">如果数据和消息类型都匹配心跳响应模式则返回 true；否则返回 false。</para>
-    /// </returns>
-    /// <remarks>
-    ///     <para xml:lang="en">
-    ///     The heartbeat response is only filtered when:
-    ///     1. HeartbeatResponseMessage is not empty (filtering is enabled)
-    ///     2. The message type matches HeartbeatResponseMessageType (allows response type to differ from send type)
-    ///     3. The message content exactly matches HeartbeatResponseMessage
-    ///     </para>
-    ///     <para xml:lang="zh">
-    ///     心跳响应仅在以下条件都满足时才被过滤：
-    ///     1. HeartbeatResponseMessage 不为空（启用过滤）
-    ///     2. 消息类型与 HeartbeatResponseMessageType 匹配（允许响应类型与发送类型不同）
-    ///     3. 消息内容与 HeartbeatResponseMessage 完全匹配
-    ///     </para>
-    /// </remarks>
-    private bool IsHeartbeatResponse(ReadOnlySpan<byte> data, WebSocketMessageType messageType)
+    private void DrainReceiveChannel()
     {
-        var expectedResponse = Options.HeartbeatResponseMessage;
-        // 使用独立的 HeartbeatResponseMessageType（而非发送侧的 HeartbeatMessageType），
-        // 支持服务端以不同消息类型（如 Text）响应心跳（如 Binary）的场景。
-        return !expectedResponse.IsEmpty &&
-               messageType == Options.HeartbeatResponseMessageType &&
-               data.SequenceEqual(expectedResponse.Span);
+        while (_receiveChannel.Reader.TryRead(out var envelope))
+        {
+            envelope.Args.Dispose();
+        }
     }
 
     private void FailPendingSends(Exception exception)
@@ -761,98 +788,6 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         if (droppedFireAndForgetMessages)
         {
             OnError(new(exception, "Queued fire-and-forget WebSocket message was dropped before send completion."));
-        }
-    }
-
-    private async Task HeartbeatLoop(ConnectionSession session)
-    {
-        // 使用 PeriodicTimer 按心跳间隔发送心跳
-        using var timer = new PeriodicTimer(Options.HeartbeatInterval);
-        var token = session.Token;
-        try
-        {
-            while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
-            {
-                if (!IsSessionOpen(session))
-                {
-                    return; // 当 socket 关闭时退出心跳循环，避免浪费资源
-                }
-
-                // 先发送心跳，入队失败（队列满）则跳过本次 tick
-                var pingData = Options.HeartbeatMessageFactory?.Invoke() ?? ReadOnlyMemory<byte>.Empty;
-
-                // 仅当需要超时检测时才分配 TCS，以绑定超时计时起点到"实际发送完成"而非"入队时间"
-                var pingTcs = Options.HeartbeatTimeout > TimeSpan.Zero
-                                  ? new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)
-                                  : null;
-                if (!_sendChannel.Writer.TryWrite(new(pingData, Options.HeartbeatMessageType, true, pingTcs)))
-                {
-                    // Queue full — heartbeat skipped; do NOT start timeout tracking to prevent false timeout.
-                    // This is a transient backpressure condition and is intentionally not surfaced via OnError.
-                    pingTcs?.TrySetCanceled(token);
-                    continue;
-                }
-                if (Options.HeartbeatTimeout <= TimeSpan.Zero)
-                {
-                    continue;
-                }
-
-                // 等待 SendLoop 真正将心跳帧发送到 socket 后，再开始超时计时，
-                // 避免队列积压时超时判断偏早引发误重连。
-                try
-                {
-                    await pingTcs!.Task.WaitAsync(token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    return;
-                }
-                catch (Exception)
-                {
-                    // 发送失败（如连接已关闭）：SendLoop 已通过 OnError 上报，此处跳过超时检查避免误重连
-                    continue;
-                }
-
-                // 记录本次心跳实际发送完成时刻（局部变量，避免跨 tick 的共享状态竞态）
-                var sentTimestamp = Stopwatch.GetTimestamp();
-
-                // 等待 HeartbeatTimeout 后再做超时判断：
-                // 确保 ReceiveLoop 有足够时间将 _lastReceiveTimestamp 更新到本次心跳之后，
-                // 从而彻底消除"超时检查与消息接收并发"引起的误判。
-                try
-                {
-                    await Task.Delay(Options.HeartbeatTimeout, token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    return;
-                }
-
-                // 等待结束后再读取 lastReceive：
-                // 若在 HeartbeatTimeout 内收到任何消息，lastReceive >= sentTimestamp → 连接正常
-                var lastReceive = Volatile.Read(ref _lastReceiveTimestamp);
-                if (lastReceive >= sentTimestamp)
-                {
-                    continue;
-                }
-
-                // 二次校验：让调度器有机会处理任何待处理的接收操作，再次确认超时状态，降低竞态误判
-                await Task.Yield();
-                if (Volatile.Read(ref _lastReceiveTimestamp) >= sentTimestamp)
-                {
-                    continue;
-                }
-                var elapsedSinceHeartbeat = Stopwatch.GetElapsedTime(sentTimestamp);
-                var elapsedSinceReceive = Stopwatch.GetElapsedTime(lastReceive);
-                var ex = new TimeoutException($"WebSocket heartbeat timeout: no response for {elapsedSinceHeartbeat.TotalMilliseconds:N0}ms after heartbeat sent (last receive was {elapsedSinceReceive.TotalMilliseconds:N0}ms ago).");
-                OnError(new(ex, "HeartbeatLoop timeout"));
-                await HandleConnectionLoss(session, ex).ConfigureAwait(false);
-                return;
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Normal cancellation
         }
     }
 
@@ -1066,6 +1001,20 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             return;
         }
         var invocationList = handlers.GetInvocationList();
+        // 单订阅者快速路径：避免高频接收场景下逐条消息分配/遍历 Delegate[] 的开销。
+        if (invocationList.Length == 1)
+        {
+            try
+            {
+                await handlers(this, e).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ManagedWebSocketClient] MessageReceivedAsync handler error: {ex.GetType().Name}: {ex.Message}");
+                OnError(new(ex, "MessageReceivedAsync handler"));
+            }
+            return;
+        }
         foreach (var d in invocationList)
         {
             var handler = (Func<ManagedWebSocketClient, WebSocketMessageReceivedEventArgs, ValueTask>)d;
@@ -1109,6 +1058,12 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
     private void OnClosed(WebSocketClosedEventArgs e)
     {
+        // 一次连接生命周期内只触发一次 Closed：避免用户主动断开与后台重连耗尽等竞态路径重复上报。
+        // 标志在每次成功连接（进入 Connected）时重置，因此后续的关闭仍能正常触发。
+        if (Interlocked.Exchange(ref _closedRaisedFlag, 1) != 0)
+        {
+            return;
+        }
         try
         {
             Closed?.Invoke(this, e);
@@ -1246,6 +1201,11 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             {
                 return null;
             }
+            // Disposed 是终止态：一旦进入便不可离开，防止并发的 Connect/Reconnect 失败回退把状态改回 Disconnected。
+            if (current == (int)WebSocketClientState.Disposed && newState != WebSocketClientState.Disposed)
+            {
+                return null;
+            }
             var original = Interlocked.CompareExchange(ref _state, (int)newState, current);
             if (original == current)
             {
@@ -1265,6 +1225,11 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static TimeSpan NormalizeDisposeLockTimeout(TimeSpan timeout) => timeout > TimeSpan.Zero ? timeout : TimeSpan.Zero;
+
+    /// <summary>
+    /// 接收队列中的消息信封：携带消息事件参数及其所属连接，供分发循环判定消息归属。
+    /// </summary>
+    private readonly record struct ReceivedEnvelope(WebSocketMessageReceivedEventArgs Args, ConnectionSession Session);
 
     private sealed class ConnectionSession(ClientWebSocket socket, CancellationTokenSource cancellationSource) : IDisposable
     {

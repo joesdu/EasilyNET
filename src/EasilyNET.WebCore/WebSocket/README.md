@@ -1,160 +1,319 @@
-# WebSocket Server
+# WebSocket Server — ASP.NET Core 服务端
 
-基于 ASP.NET Core 的高性能 WebSocket 服务端实现。
+基于 ASP.NET Core 的高性能 WebSocket 服务端。你只需继承一个 `WebSocketHandler` 基类、重写几个事件方法，剩下的连接生命周期管理、并发发送、会话跟踪、广播、内存池化全部由框架处理。
 
-## 功能特性
+> 命名空间：`EasilyNET.WebCore.WebSocket`
+> 注册扩展位于 `Microsoft.Extensions.DependencyInjection` / `Microsoft.AspNetCore.Builder`（`using` 这两个即可）
+> 程序集：`EasilyNET.WebCore`
 
-- **高性能**: 使用 `System.Threading.Channels` 实现发送队列，支持高并发发送，非阻塞。
-- **低分配**: 使用 `ArrayPool<byte>` 和 `PooledMemoryStream` 优化内存使用，减少 GC 压力。
-- **心跳机制**: 使用 `PeriodicTimer` 高效检测死链，可配置超时断开。
-- **会话管理**: 提供 `IWebSocketSessionManager` 支持会话跟踪和广播功能。
-- **全局唯一 ID**: 使用 `Ulid` 生成全局唯一的会话标识符。
-- **会话元数据**: 通过 `IWebSocketSession.Items` 存储会话级别的自定义数据。
-- **易用性**: 提供 `WebSocketHandler` 基类，只需关注业务逻辑。
-- **集成**: 无缝集成 ASP.NET Core 中间件管道。
-- **现代化 API**: 使用 `TimeSpan` 配置时间参数，符合 .NET 设计规范。
+> **保活说明**：连接保活/死链检测采用 **WebSocket 协议层 Ping/Pong**（由运行时处理），通过 `KeepAliveInterval` + `KeepAliveTimeout` 启用。**不提供应用层"ping/pong 消息"心跳**——避免无谓的复杂度与混淆。详见[保活与死链检测](#保活与死链检测)。
 
-## 使用指南
+---
 
-### 1. 定义处理程序
+## 目录
 
-继承 `WebSocketHandler` 并重写相关方法：
+- [3 步快速上手](#3-步快速上手)
+- [核心概念（建立心智模型）](#核心概念建立心智模型)
+- [分步详解](#分步详解)
+  - [1. 定义处理程序](#1-定义处理程序-websockethandler)
+  - [2. 注册服务](#2-注册服务)
+  - [3. 映射路由](#3-映射路由)
+- [会话与广播](#会话与广播)
+- [保活与死链检测](#保活与死链检测)
+- [完整配置表](#完整配置表)
+- [核心组件](#核心组件)
+- [最佳实践](#最佳实践)
+- [常见问题 FAQ](#常见问题-faq)
+
+---
+
+## 3 步快速上手
 
 ```csharp
-public class ChatHandler : WebSocketHandler
+// ① 定义处理程序：重写你关心的事件
+public sealed class EchoHandler(ILogger<EchoHandler> logger) : WebSocketHandler
 {
-    private readonly IWebSocketSessionManager _sessionManager;
-
-    public ChatHandler(IWebSocketSessionManager sessionManager)
+    public override Task OnConnectedAsync(IWebSocketSession session)
     {
-        _sessionManager = sessionManager;
+        logger.LogInformation("已连接: {Id}", session.Id);
+        return session.SendTextAsync("welcome");
     }
 
-    public override async Task OnConnectedAsync(IWebSocketSession session)
-    {
-        Console.WriteLine($"Client connected: {session.Id}");
-        
-        // 存储会话级别的数据
-        session.Items["ConnectedAt"] = DateTime.UtcNow;
-        session.Items["Username"] = "Anonymous";
-        
-        await session.SendTextAsync("Welcome to the chat!");
-        
-        // 广播给所有其他用户
-        await _sessionManager.BroadcastTextAsync($"User {session.Id} joined the chat!");
-    }
-
-    public override async Task OnDisconnectedAsync(IWebSocketSession session)
-    {
-        Console.WriteLine($"Client disconnected: {session.Id}");
-        await _sessionManager.BroadcastTextAsync($"User {session.Id} left the chat!");
-    }
-
+    // 唯一必须实现的方法
     public override async Task OnMessageAsync(IWebSocketSession session, WebSocketMessage message)
     {
         if (message.MessageType == WebSocketMessageType.Text)
         {
             var text = Encoding.UTF8.GetString(message.Data.Span);
-            Console.WriteLine($"Received from {session.Id}: {text}");
-
-            // 广播消息给所有连接的客户端
-            await _sessionManager.BroadcastTextAsync($"[{session.Id}]: {text}");
+            await session.SendTextAsync($"echo: {text}");
         }
     }
+}
+```
 
-    public override async Task OnErrorAsync(IWebSocketSession session, Exception exception)
+```csharp
+// ② 注册：Handler 必须进 DI 容器；SessionManager 可选（需要广播时加）
+builder.Services.AddSingleton<EchoHandler>();
+builder.Services.AddWebSocketSessionManager();   // 可选
+
+// ③ 映射：先 UseWebSockets()，再把 Handler 映射到路径
+var app = builder.Build();
+app.UseWebSockets();
+app.MapWebSocketHandler<EchoHandler>("/ws/echo");
+app.Run();
+```
+
+客户端连 `ws://your-host/ws/echo` 即可。默认参数即生产可用：4MB 单条消息上限、自动会话清理。建议再配上协议层保活（见下文）。
+
+---
+
+## 核心概念（建立心智模型）
+
+### ① 事件回调的顺序保证
+
+每个连接的回调遵循严格顺序：
+
+```
+OnConnectedAsync  →  OnMessageAsync × N  →  OnDisconnectedAsync
+        （任意阶段出错则额外触发 OnErrorAsync）
+```
+
+- **`OnConnectedAsync` 一定在任何 `OnMessageAsync` 之前完成**。所以你可以放心在 `OnConnectedAsync` 里做鉴权、初始化 `session.Items`，不用担心消息"插队"先到。
+- `OnMessageAsync` 按消息到达顺序**串行**调用（单分发循环），同一连接内不会并发回调。
+- 只有当 `OnConnectedAsync` 成功返回后，框架才认为"已连接"，断开时才会调用 `OnDisconnectedAsync`。
+
+### ② 接收与回调解耦
+
+接收循环只负责从 socket 读取、组装完整消息，然后入队给独立的分发循环调用 `OnMessageAsync`。因此你的 `OnMessageAsync` **再慢也不会阻塞接收循环**。分发队列满（`ReceiveDispatchQueueCapacity`）时对接收侧背压，限制内存。
+
+### ③ 发送是"入队 + 后台单线程发送"
+
+`session.SendAsync` / `SendTextAsync` / `SendBinaryAsync` 把消息放进有界队列，由唯一发送循环按顺序写出。多处并发调用同一 session 的发送是安全的（不会交错损坏帧）。发送为**即发即弃**：方法在入队成功后即返回，实际发送错误记入日志。
+
+### ④ `message.Data` 的有效期
+
+`OnMessageAsync` 的 `message.Data` 是该条消息的独立数组，在回调内可安全读取。需要长期保留时仍建议 `ToArray()` 拷贝。`Encoding.UTF8.GetString(message.Data.Span)` 是最常见的读法。
+
+### ⑤ 自动防护：超大消息
+
+单条消息累计超过 `MaxMessageSize`（默认 4MB）时，框架会以 `MessageTooBig` 关闭该连接并记录告警——防止恶意或异常客户端用超大消息/永不结束的分片耗尽服务端内存。
+
+---
+
+## 分步详解
+
+### 1. 定义处理程序 (`WebSocketHandler`)
+
+`WebSocketHandler` 有 4 个方法，只有 `OnMessageAsync` 是 `abstract` 必须实现，其余 `virtual` 可选重写：
+
+| 方法                    | 必须 | 触发时机                  |
+|-----------------------|----|-----------------------|
+| `OnConnectedAsync`    | 否  | 连接建立、进入消息循环前          |
+| `OnMessageAsync`      | **是** | 每收到一条完整消息             |
+| `OnDisconnectedAsync` | 否  | 连接断开（仅当曾成功 `OnConnected`） |
+| `OnErrorAsync`        | 否  | 接收/处理过程中发生异常          |
+
+> Handler 实例由 DI 解析。它通常是**单例**，被所有连接共享——因此**不要在 Handler 字段里存单个连接的状态**，按连接的数据请放在 `session.Items` 里。
+
+```csharp
+public sealed class ChatHandler(
+    IWebSocketSessionManager sessions,
+    ILogger<ChatHandler> logger) : WebSocketHandler
+{
+    public override async Task OnConnectedAsync(IWebSocketSession session)
     {
-        Console.WriteLine($"Error on {session.Id}: {exception.Message}");
+        // 按连接的数据存在 session.Items（线程安全字典）
+        session.Items["JoinedAt"] = DateTime.UtcNow;
+        session.Items["Name"] = "匿名";
+
+        await session.SendTextAsync("欢迎加入聊天室！");
+        await sessions.BroadcastTextAsync($"用户 {session.Id} 加入了");
+    }
+
+    public override async Task OnMessageAsync(IWebSocketSession session, WebSocketMessage message)
+    {
+        if (message.MessageType != WebSocketMessageType.Text) return;
+        var text = Encoding.UTF8.GetString(message.Data.Span);
+        var name = session.Items["Name"] as string ?? session.Id;
+        await sessions.BroadcastTextAsync($"[{name}]: {text}");
+    }
+
+    public override async Task OnDisconnectedAsync(IWebSocketSession session)
+        => await sessions.BroadcastTextAsync($"用户 {session.Id} 离开了");
+
+    public override Task OnErrorAsync(IWebSocketSession session, Exception exception)
+    {
+        logger.LogWarning(exception, "会话 {Id} 出错", session.Id);
+        return Task.CompletedTask;
     }
 }
 ```
 
 ### 2. 注册服务
 
-在 `Program.cs` 中注册 Handler 和 SessionManager：
-
 ```csharp
-// 注册会话管理器（可选，但推荐用于广播和会话跟踪）
-builder.Services.AddWebSocketSessionManager();
-
-// 注册 Handler（通常为单例）
+// Handler 必须注册到 DI（MapWebSocketHandler 会校验，未注册会抛异常）
 builder.Services.AddSingleton<ChatHandler>();
+
+// 会话管理器：需要广播 / 遍历在线连接时注册（单例）
+builder.Services.AddWebSocketSessionManager();
 ```
 
-### 3. 映射路由
+> 如果你用 EasilyNET 的 `AutoDependencyInjection`，也可以给 Handler 打 `[DependencyInjection(ServiceLifetime.Singleton)]` 特性自动注册。
 
-在 `Program.cs` 中配置中间件管道：
+### 3. 映射路由
 
 ```csharp
 var app = builder.Build();
 
-app.UseWebSockets(); // 必须先启用 WebSockets
+app.UseWebSockets();   // ⚠️ 必须在 MapWebSocketHandler 之前调用
 
-app.MapWebSocketHandler<ChatHandler>("/ws", new WebSocketSessionOptions
+// 用默认配置
+app.MapWebSocketHandler<ChatHandler>("/ws/chat");
+
+// 或自定义配置
+app.MapWebSocketHandler<ChatHandler>("/ws/chat", new WebSocketSessionOptions
 {
-    ReceiveBufferSize = 16384,                              // 接收缓冲区大小
-    SendQueueCapacity = 1000,                               // 发送队列容量
-    HeartbeatEnabled = true,                                // 启用心跳
-    HeartbeatInterval = TimeSpan.FromSeconds(30),           // 心跳间隔
-    HeartbeatTimeout = TimeSpan.FromSeconds(10),            // 心跳超时
-    HeartbeatMessageType = WebSocketMessageType.Binary,     // 心跳消息类型
-    CloseTimeout = TimeSpan.FromSeconds(5)                  // 关闭超时
+    ReceiveBufferSize = 16384,
+    MaxMessageSize = 4 * 1024 * 1024,
+    SendQueueCapacity = 1000,
+    ReceiveDispatchQueueCapacity = 1024,
+    CloseTimeout = TimeSpan.FromSeconds(5),
+    // 协议层保活 + 死链检测
+    KeepAliveInterval = TimeSpan.FromSeconds(15),
+    KeepAliveTimeout = TimeSpan.FromSeconds(10)
 });
 
 app.Run();
 ```
 
-## 核心组件
+> 忘记 `app.UseWebSockets()` 会导致升级握手失败；Handler 未注册到 DI 则 `MapWebSocketHandler` 会抛 `InvalidOperationException` 明确提示。
 
-| 组件                         | 说明                                                                                  |
-|----------------------------|-------------------------------------------------------------------------------------|
-| `IWebSocketSession`        | 代表一个客户端连接，提供 `SendAsync`、`SendTextAsync`、`SendBinaryAsync` 等方法，以及 `Items` 字典存储会话数据。 |
-| `IWebSocketSessionManager` | 会话管理器接口，提供 `GetAllSessions()`、`GetSession(id)`、`BroadcastAsync()` 等方法。              |
-| `WebSocketSessionManager`  | 会话管理器默认实现，线程安全，支持会话跟踪和广播。                                                           |
-| `WebSocketHandler`         | 业务逻辑基类，处理连接、断开、消息、错误事件。                                                             |
-| `WebSocketSessionOptions`  | 会话配置选项，包括缓冲区大小、心跳设置等。                                                               |
+---
 
-## 会话管理器 API
+## 会话与广播
+
+注册 `AddWebSocketSessionManager()` 后，可注入 `IWebSocketSessionManager` 操作全部在线连接：
 
 ```csharp
 public interface IWebSocketSessionManager
 {
-    // 获取活动会话数量
-    int Count { get; }
-    
-    // 获取所有活动会话
-    IReadOnlyCollection<IWebSocketSession> GetAllSessions();
-    
-    // 根据 ID 获取会话
-    IWebSocketSession? GetSession(string id);
-    
-    // 向所有会话广播消息
-    Task BroadcastAsync(ReadOnlyMemory<byte> message, WebSocketMessageType messageType = WebSocketMessageType.Text, CancellationToken cancellationToken = default);
-    
-    // 向所有会话广播文本消息
+    int Count { get; }                                    // 在线连接数
+    IReadOnlyCollection<IWebSocketSession> GetAllSessions(); // 所有连接快照
+    IWebSocketSession? GetSession(string id);             // 按 ID 取连接
+    Task BroadcastAsync(ReadOnlyMemory<byte> message,
+        WebSocketMessageType messageType = WebSocketMessageType.Text,
+        CancellationToken cancellationToken = default);   // 广播
     Task BroadcastTextAsync(string text, CancellationToken cancellationToken = default);
 }
 ```
 
-## 性能特性
+```csharp
+// 在任意服务中注入并使用
+public class NotifyService(IWebSocketSessionManager sessions)
+{
+    public Task PushToAllAsync(string msg) => sessions.BroadcastTextAsync(msg);
 
-- **零分配接收**: 接收缓冲区从 `ArrayPool<byte>` 租借，避免频繁分配。
-- **池化内存流**: 使用 `PooledMemoryStream` 组装大消息，减少内存碎片。
-- **零拷贝消息传递**: 使用 `ToArraySegment()` 直接引用内部缓冲区，避免额外复制。
-- **高效心跳**: 使用 `PeriodicTimer` 替代 `Task.Delay`，更高效且取消更及时。
-- **内联优化**: 关键路径使用 `[MethodImpl(MethodImplOptions.AggressiveInlining)]` 优化。
-- **全局唯一 ID**: 使用 `Ulid` 生成时间有序的全局唯一会话标识符。
+    public Task PushToOneAsync(string sessionId, string msg)
+        => sessions.GetSession(sessionId)?.SendTextAsync(msg) ?? Task.CompletedTask;
 
-## 配置说明
+    public int Online => sessions.Count;
+}
+```
 
-| 属性                        | 类型                            | 默认值      | 说明                         |
-|---------------------------|-------------------------------|----------|----------------------------|
-| `SendQueueCapacity`       | `int`                         | 1000     | 发送队列容量                     |
-| `ReceiveBufferSize`       | `int`                         | 16384    | 接收缓冲区大小（字节）                |
-| `HeartbeatEnabled`        | `bool`                        | `true`   | 是否启用心跳                     |
-| `HeartbeatInterval`       | `TimeSpan`                    | 30 秒     | 心跳间隔                       |
-| `HeartbeatTimeout`        | `TimeSpan`                    | 10 秒     | 心跳超时                       |
-| `HeartbeatMessageType`    | `WebSocketMessageType`        | `Binary` | 心跳消息类型（Binary 兼容大多数客户端）    |
-| `HeartbeatMessageFactory` | `Func<ReadOnlyMemory<byte>>?` | "ping"   | 心跳消息工厂，设为 null 禁用发送（仅超时检测） |
-| `CloseTimeout`            | `TimeSpan`                    | 5 秒      | 关闭超时                       |
+> 会话在中间件层自动注册/注销：连接进入即加入管理器，连接结束（无论正常还是异常）即移除，无需手动维护。
+> 广播为**即发即弃**：`BroadcastTextAsync` 把消息入队到每个连接后即返回，不等待真正发送完成。
 
+---
+
+## 保活与死链检测
+
+服务端的连接保活同样走 **WebSocket 协议层 Ping/Pong**，由运行时自动收发。通过两个选项启用：
+
+| 选项 | 作用 |
+|---|---|
+| `KeepAliveInterval` | 运行时按此间隔发送协议层 PING |
+| `KeepAliveTimeout`（.NET 8+） | 发送 PING 后超时无 PONG → 运行时 abort 连接 |
+
+```csharp
+app.MapWebSocketHandler<ChatHandler>("/ws/chat", new WebSocketSessionOptions
+{
+    KeepAliveInterval = TimeSpan.FromSeconds(15),
+    KeepAliveTimeout = TimeSpan.FromSeconds(10)
+});
+```
+
+为 `null` 时回退到 `app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = ..., KeepAliveTimeout = ... })` 配置的**全局默认值**，因此你也可以在 `UseWebSockets` 处统一设置、各路径不再单独配置。连接死掉时运行时 abort → 接收循环抛异常 → 框架走清理流程并调用 `OnDisconnectedAsync`。
+
+> **与本库客户端对接**：`ManagedWebSocketClient`（`EasilyNET.Core`）同样使用协议层保活。两端都设置 `KeepAliveInterval` + `KeepAliveTimeout` 即可，**无需在 `OnMessageAsync` 里处理任何心跳消息**。
+
+> ⚠️ 协议层 Pong 由对端运行时自动回复，只证明"传输 + 运行时存活"。若要验证对端**业务循环**真的在处理消息，请在业务消息里自行附带探活（属普通业务逻辑）。
+
+---
+
+## 完整配置表
+
+| 属性                           | 类型                            | 默认值      | 说明                                                       |
+|------------------------------|-------------------------------|----------|----------------------------------------------------------|
+| `SendQueueCapacity`          | `int`                         | 1000     | 每连接发送队列容量（满时发送背压等待）                                      |
+| `ReceiveBufferSize`          | `int`                         | 16384    | 单次接收缓冲区大小（字节）                                            |
+| `MaxMessageSize`             | `long`                        | 4MB      | 单条入站消息上限，超限以 `MessageTooBig` 断连防内存耗尽；设 0 或负数禁用（不推荐）      |
+| `ReceiveDispatchQueueCapacity`| `int`                        | 1024     | 接收分发队列容量；解耦 `OnMessageAsync` 与接收循环，满时对接收侧背压             |
+| `CloseTimeout`               | `TimeSpan`                    | 5 秒      | 关闭握手超时，防止对端不响应导致挂起                                       |
+| `KeepAliveInterval`          | `TimeSpan?`                   | `null`   | **协议层** PING 间隔（接受连接时透传）；`null` 用 `UseWebSockets` 的全局默认 |
+| `KeepAliveTimeout`           | `TimeSpan?`                   | `null`   | **协议层** PING/PONG 超时（.NET 8+）；与 `KeepAliveInterval` 同设即开启死链检测 |
+
+---
+
+## 核心组件
+
+| 组件                         | 说明                                                                          |
+|----------------------------|-----------------------------------------------------------------------------|
+| `WebSocketHandler`         | 业务逻辑基类。重写 `OnConnected/OnMessage/OnDisconnected/OnError` 即可                  |
+| `IWebSocketSession`        | 单个客户端连接。提供 `Id`、`State`、`Items` 及 `SendAsync/SendTextAsync/SendBinaryAsync/CloseAsync` |
+| `IWebSocketSessionManager` | 会话管理器接口：`Count`、`GetAllSessions`、`GetSession`、`BroadcastAsync/BroadcastTextAsync` |
+| `WebSocketSessionManager`  | 默认实现，线程安全，单例                                                                |
+| `WebSocketSessionOptions`  | 每个映射路径的会话配置                                                                 |
+| `MapWebSocketHandler<T>`   | 把 Handler 映射到路径的扩展方法                                                        |
+| `AddWebSocketSessionManager` | 注册会话管理器的扩展方法                                                              |
+
+`IWebSocketSession` 常用成员：
+
+```csharp
+string Id { get; }                        // Ulid，全局唯一、时间有序
+WebSocketState State { get; }             // 底层连接状态
+IDictionary<string, object?> Items { get; } // 按连接的线程安全数据袋
+Task SendTextAsync(string text, ...);
+Task SendBinaryAsync(byte[] bytes, ...);
+Task SendAsync(ReadOnlyMemory<byte> message, WebSocketMessageType type, ...);
+Task CloseAsync(WebSocketCloseStatus status, string? description, ...); // 主动关闭某连接
+```
+
+---
+
+## 最佳实践
+
+- **Handler 是共享单例**：不要用字段存单连接状态，按连接的数据放 `session.Items`；跨连接的共享状态需自行保证线程安全。
+- **开启协议层保活**：生产环境建议设置 `KeepAliveInterval` + `KeepAliveTimeout`（或在 `UseWebSockets` 处全局设置），自动检测并清理死链。
+- **回调里捕获异常**：未捕获的异常会走 `OnErrorAsync`，但建议在业务代码内自行处理关键路径。
+- **鉴权放在 `OnConnectedAsync`**：因为它保证先于任何消息执行；鉴权失败可 `await session.CloseAsync(...)` 主动断开。
+- **合理设置 `MaxMessageSize`**：对外暴露的服务务必保留上限以防滥用；需要大消息时同时调大客户端与服务端上限。
+
+---
+
+## 常见问题 FAQ
+
+**Q：客户端连不上 / 升级握手失败？**
+A：确认在 `MapWebSocketHandler` **之前**调用了 `app.UseWebSockets()`，且路径一致。
+
+**Q：启动即抛"handler ... is not registered"？**
+A：Handler 必须注册到 DI（`AddSingleton<T>()` 或 `[DependencyInjection]` 特性）后才能 `MapWebSocketHandler<T>`。
+
+**Q：怎么自动清理掉线/僵死的连接？**
+A：设置 `KeepAliveInterval` + `KeepAliveTimeout` 开启协议层死链检测；运行时 abort 后框架会触发清理与 `OnDisconnectedAsync`。
+
+**Q：`OnMessageAsync` 会并发调用吗？**
+A：同一连接内不会——按到达顺序串行。不同连接之间是并行的（各有独立循环）。
+
+**Q：超大消息为什么连接被关了？**
+A：超过 `MaxMessageSize`（默认 4MB）会以 `MessageTooBig` 主动关闭，调大该值或在客户端分块发送。
