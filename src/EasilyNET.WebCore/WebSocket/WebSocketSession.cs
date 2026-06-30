@@ -138,9 +138,9 @@ internal sealed class WebSocketSession : IWebSocketSession
                 timeoutCts.CancelAfter(_options.CloseTimeout);
                 await _socket.CloseAsync(closeStatus, statusDescription, timeoutCts.Token).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                // Ignore: the close handshake timed out or was cancelled.
+                // Ignore: the close handshake timed out.
             }
             catch (WebSocketException)
             {
