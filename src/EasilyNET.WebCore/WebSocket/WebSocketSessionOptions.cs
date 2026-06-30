@@ -11,12 +11,6 @@ namespace EasilyNET.WebCore.WebSocket;
 public sealed class WebSocketSessionOptions
 {
     /// <summary>
-    ///     <para xml:lang="en">Cached default heartbeat message bytes ("ping").</para>
-    ///     <para xml:lang="zh">缓存的默认心跳消息字节（"ping"）。</para>
-    /// </summary>
-    private static readonly byte[] DefaultHeartbeatMessage = "ping"u8.ToArray();
-
-    /// <summary>
     ///     <para xml:lang="en">Gets or sets the capacity of the send queue. Default is 1000.</para>
     ///     <para xml:lang="zh">获取或设置发送队列的容量。默认为 1000。</para>
     /// </summary>
@@ -29,62 +23,34 @@ public sealed class WebSocketSessionOptions
     public int ReceiveBufferSize { get; set; } = 16384;
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets whether heartbeat (keep-alive) is enabled. Default is <c>true</c>.</para>
-    ///     <para xml:lang="zh">获取或设置是否启用心跳（保活）。默认为 <c>true</c>。</para>
+    ///     <para xml:lang="en">
+    ///     Gets or sets the maximum allowed inbound message size in bytes. Default is 4MB (4 * 1024 * 1024).
+    ///     Messages exceeding this size cause the connection to be closed with <see cref="WebSocketCloseStatus.MessageTooBig" /> to prevent memory
+    ///     exhaustion by malicious or buggy clients. Set to 0 or a negative value to disable the limit (not recommended).
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     获取或设置允许的最大入站消息大小（字节）。默认为 4MB (4 * 1024 * 1024)。
+    ///     超过此大小的消息会导致连接以 <see cref="WebSocketCloseStatus.MessageTooBig" /> 关闭，以防止恶意或有缺陷的客户端耗尽服务端内存。
+    ///     设置为 0 或负数可禁用该限制（不推荐）。
+    ///     </para>
     /// </summary>
-    public bool HeartbeatEnabled { get; set; } = true;
+    public long MaxMessageSize { get; set; } = 4 * 1024 * 1024;
 
     /// <summary>
-    ///     <para xml:lang="en">Gets or sets the heartbeat interval. Default is 30 seconds.</para>
-    ///     <para xml:lang="zh">获取或设置心跳间隔。默认为 30 秒。</para>
-    /// </summary>
-    public TimeSpan HeartbeatInterval { get; set; } = TimeSpan.FromSeconds(30);
-
-    /// <summary>
-    ///     <para xml:lang="en">Gets or sets the heartbeat timeout. Default is 10 seconds.</para>
-    ///     <para xml:lang="zh">获取或设置心跳超时。默认为 10 秒。</para>
+    ///     <para xml:lang="en">
+    ///     Gets or sets the capacity of the internal queue that decouples message receiving from <see cref="WebSocketHandler.OnMessageAsync" /> dispatch.
+    ///     Default is 1024.
+    ///     </para>
+    ///     <para xml:lang="zh">获取或设置用于将消息接收与 <see cref="WebSocketHandler.OnMessageAsync" /> 分发解耦的内部队列容量。默认为 1024。</para>
     ///     <remarks>
     ///         <para xml:lang="en">
-    ///         If no data is received within this window after a heartbeat is sent, the connection is considered stale.
-    ///         Set to <see cref="TimeSpan.Zero" /> to disable timeout checking.
+    ///         Decoupling ensures a slow message handler cannot stall the receive loop. When the queue is full, the receive loop applies backpressure by
+    ///         waiting for space.
     ///         </para>
-    ///         <para xml:lang="zh">
-    ///         如果在心跳发送后的此时间窗口内未收到任何数据，则认为连接已失效。
-    ///         设置为 <see cref="TimeSpan.Zero" /> 可禁用超时检测。
-    ///         </para>
+    ///         <para xml:lang="zh">解耦确保慢处理器不会阻塞接收循环。当队列已满时，接收循环通过等待空间产生背压。</para>
     ///     </remarks>
     /// </summary>
-    public TimeSpan HeartbeatTimeout { get; set; } = TimeSpan.FromSeconds(10);
-
-    /// <summary>
-    ///     <para xml:lang="en">Gets or sets the WebSocket message type for heartbeat messages. Default is <see cref="WebSocketMessageType.Binary" />.</para>
-    ///     <para xml:lang="zh">获取或设置心跳消息的 WebSocket 消息类型。默认为 <see cref="WebSocketMessageType.Binary" />。</para>
-    ///     <remarks>
-    ///         <para xml:lang="en">
-    ///         Use <see cref="WebSocketMessageType.Binary" /> for compatibility with most client implementations.
-    ///         Use <see cref="WebSocketMessageType.Text" /> if your client expects text-based heartbeat messages.
-    ///         </para>
-    ///         <para xml:lang="zh">
-    ///         使用 <see cref="WebSocketMessageType.Binary" /> 以兼容大多数客户端实现。
-    ///         如果客户端期望文本类型的心跳消息，请使用 <see cref="WebSocketMessageType.Text" />。
-    ///         </para>
-    ///     </remarks>
-    /// </summary>
-    public WebSocketMessageType HeartbeatMessageType { get; set; } = WebSocketMessageType.Binary;
-
-    /// <summary>
-    ///     <para xml:lang="en">Gets or sets the factory function to create heartbeat messages. Default is "ping".</para>
-    ///     <para xml:lang="zh">获取或设置创建心跳消息的工厂函数。默认为 "ping"。</para>
-    ///     <remarks>
-    ///         <para xml:lang="en">
-    ///         Set to null to disable sending heartbeat messages (only timeout detection will be performed).
-    ///         </para>
-    ///         <para xml:lang="zh">
-    ///         设置为 null 可禁用发送心跳消息（仅执行超时检测）。
-    ///         </para>
-    ///     </remarks>
-    /// </summary>
-    public Func<ReadOnlyMemory<byte>>? HeartbeatMessageFactory { get; set; } = DefaultHeartbeatMessageFactory;
+    public int ReceiveDispatchQueueCapacity { get; set; } = 1024;
 
     /// <summary>
     ///     <para xml:lang="en">Gets or sets the close timeout. Default is 5 seconds.</para>
@@ -93,8 +59,31 @@ public sealed class WebSocketSessionOptions
     public TimeSpan CloseTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
-    ///     <para xml:lang="en">Default heartbeat message factory that returns "ping" as bytes.</para>
-    ///     <para xml:lang="zh">默认心跳消息工厂，返回 "ping" 字节。</para>
+    ///     <para xml:lang="en">
+    ///     Gets or sets the protocol-level keep-alive (PING) interval applied when accepting the connection. Leave <c>null</c> to use the server's global
+    ///     default configured via <c>app.UseWebSockets(...)</c>.
+    ///     </para>
+    ///     <para xml:lang="zh">获取或设置接受连接时应用的协议层保活（PING）间隔。保持 <c>null</c> 则使用 <c>app.UseWebSockets(...)</c> 配置的服务端全局默认值。</para>
+    ///     <remarks>
+    ///         <para xml:lang="en">
+    ///         This is the transport-level keep-alive handled by the runtime. Combine with <see cref="KeepAliveTimeout" /> to enable automatic
+    ///         dead-connection detection (PING/PONG strategy).
+    ///         </para>
+    ///         <para xml:lang="zh">这是由运行时处理的传输层保活。与 <see cref="KeepAliveTimeout" /> 配合即可启用自动死连接检测（PING/PONG 策略）。</para>
+    ///     </remarks>
     /// </summary>
-    private static ReadOnlyMemory<byte> DefaultHeartbeatMessageFactory() => DefaultHeartbeatMessage;
+    public TimeSpan? KeepAliveInterval { get; set; }
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Gets or sets the protocol-level keep-alive timeout (.NET 8+) applied when accepting the connection. When combined with
+    ///     <see cref="KeepAliveInterval" />, the runtime uses a PING/PONG strategy and aborts the connection if no PONG is received within this duration,
+    ///     providing automatic dead-connection detection at the protocol layer. Leave <c>null</c> to use the server's global default.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     获取或设置接受连接时应用的协议层保活超时（.NET 8+）。与 <see cref="KeepAliveInterval" /> 配合时，运行时采用 PING/PONG 策略：超时内未收到 PONG 则中止连接，
+    ///     从而在协议层自动完成死连接检测。保持 <c>null</c> 则使用服务端全局默认值。
+    ///     </para>
+    /// </summary>
+    public TimeSpan? KeepAliveTimeout { get; set; }
 }

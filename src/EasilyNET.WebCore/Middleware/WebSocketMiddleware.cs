@@ -51,7 +51,13 @@ internal sealed class WebSocketMiddleware<THandler>(
     {
         if (context.WebSockets.IsWebSocketRequest)
         {
-            using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+            // 透传协议层保活配置；属性为 null 时回退到 app.UseWebSockets(...) 的全局默认值。
+            var acceptContext = new WebSocketAcceptContext
+            {
+                KeepAliveInterval = options.KeepAliveInterval,
+                KeepAliveTimeout = options.KeepAliveTimeout
+            };
+            using var webSocket = await context.WebSockets.AcceptWebSocketAsync(acceptContext);
             // Use auto-generated Ulid for globally unique session ID
             var session = new WebSocketSession(webSocket, handler, options, logger);
             sessionRegistry?.AddSession(session);

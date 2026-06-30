@@ -10,7 +10,7 @@ internal sealed class WebSocketClientTestService(ILogger<WebSocketClientTestServ
 {
     private ManagedWebSocketClient? _client;
 
-    private static bool TestMode => false;
+    private static bool TestMode => !false;
 
     private static ManagedWebSocketClient CreateClient(ILogger logger, Uri serverUri)
     {
@@ -19,9 +19,9 @@ internal sealed class WebSocketClientTestService(ILogger<WebSocketClientTestServ
             ServerUri = serverUri,
             AutoReconnect = true,
             ReconnectDelay = TimeSpan.FromSeconds(1),
-            HeartbeatEnabled = true,
-            HeartbeatInterval = TimeSpan.FromSeconds(5), // 测试时加快心跳频率
-            HeartbeatTimeout = TimeSpan.FromSeconds(3)   // 必须小于 HeartbeatInterval
+            // 协议层保活 + 死连接检测（替代旧的应用层心跳）
+            KeepAliveInterval = TimeSpan.FromSeconds(5),
+            KeepAliveTimeout = TimeSpan.FromSeconds(3)
         };
         var client = new ManagedWebSocketClient(options);
         client.MessageReceived += (_, e) =>

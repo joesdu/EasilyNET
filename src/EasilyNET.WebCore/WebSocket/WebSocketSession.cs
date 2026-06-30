@@ -1,8 +1,6 @@
 using System.Buffers;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Net.WebSockets;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Channels;
 using EasilyNET.Core.Essentials;
@@ -18,16 +16,9 @@ internal sealed class WebSocketSession : IWebSocketSession
     private readonly ConcurrentDictionary<string, object?> _items = new();
     private readonly ILogger _logger;
     private readonly WebSocketSessionOptions _options;
+    private readonly Channel<WebSocketMessage> _receiveChannel;
     private readonly Channel<WebSocketMessage> _sendChannel;
     private readonly System.Net.WebSockets.WebSocket _socket;
-
-    /// <summary>
-    /// 最后发送心跳的时间戳。用于确保远端有足够时间响应心跳。
-    /// 初始值为 0 表示尚未发送任何心跳。
-    /// </summary>
-    private long _lastHeartbeatSentTimestamp;
-
-    private long _lastReceiveTimestamp;
 
     /// <summary>
     ///     <para xml:lang="en">Initializes a new instance of the <see cref="WebSocketSession" /> class with a custom session ID.</para>
@@ -68,8 +59,15 @@ internal sealed class WebSocketSession : IWebSocketSession
             SingleWriter = false
         };
         _sendChannel = Channel.CreateBounded<WebSocketMessage>(channelOptions);
-        _lastReceiveTimestamp = Stopwatch.GetTimestamp();
-        _lastHeartbeatSentTimestamp = 0; // 尚未发送心跳
+        // 将消息接收与用户回调分发解耦：接收循环只负责入队，由独立的分发循环调用 OnMessageAsync。
+        // 这样慢处理器不会阻塞接收循环。
+        var receiveChannelOptions = new BoundedChannelOptions(options.ReceiveDispatchQueueCapacity)
+        {
+            FullMode = BoundedChannelFullMode.Wait,
+            SingleReader = true,
+            SingleWriter = true
+        };
+        _receiveChannel = Channel.CreateBounded<WebSocketMessage>(receiveChannelOptions);
     }
 
     /// <summary>
@@ -105,8 +103,8 @@ internal sealed class WebSocketSession : IWebSocketSession
 
     public Task SendTextAsync(string text, CancellationToken cancellationToken = default)
     {
-        var byteCount = Encoding.UTF8.GetByteCount(text);
-        var rented = ArrayPool<byte>.Shared.Rent(byteCount);
+        // 按上界一次性租用，省去 GetByteCount 的额外扫描；实际写入长度以 GetBytes 返回值为准。
+        var rented = ArrayPool<byte>.Shared.Rent(Encoding.UTF8.GetMaxByteCount(text.Length));
         var bytesUsed = Encoding.UTF8.GetBytes(text, rented);
         return SendAsyncInternal(new(rented, 0, bytesUsed), WebSocketMessageType.Text, true, rented, cancellationToken);
     }
@@ -131,7 +129,14 @@ internal sealed class WebSocketSession : IWebSocketSession
         {
             try
             {
-                await _socket.CloseAsync(closeStatus, statusDescription, cancellationToken).ConfigureAwait(false);
+                // CloseAsync 会等待对端的关闭确认；对不响应的客户端必须设置超时，否则可能无限挂起。
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutCts.CancelAfter(_options.CloseTimeout);
+                await _socket.CloseAsync(closeStatus, statusDescription, timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Ignore: the close handshake timed out or was cancelled.
             }
             catch (WebSocketException)
             {
@@ -154,8 +159,9 @@ internal sealed class WebSocketSession : IWebSocketSession
             }
             throw new WebSocketException(WebSocketError.InvalidState, "WebSocket is not open.");
         }
-        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var msg = new WebSocketMessage(message, messageType, endOfMessage, tcs, rentedArray);
+        // 发送为即发即弃（入队后即返回），不再分配从不被 await 的 TaskCompletionSource。
+        // 入队失败由 WriteAsync 直接抛出；实际发送错误由 SendLoop 记录日志。
+        var msg = new WebSocketMessage(message, messageType, endOfMessage, null, rentedArray);
         try
         {
             await _sendChannel.Writer.WriteAsync(msg, cancellationToken).ConfigureAwait(false);
@@ -168,29 +174,26 @@ internal sealed class WebSocketSession : IWebSocketSession
             }
             throw;
         }
-        // await tcs.Task.ConfigureAwait(false); // Optional: wait for actual send
     }
 
     internal async Task ProcessAsync(CancellationToken cancellationToken)
     {
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
         var token = linkedCts.Token;
-        var sendTask = SendLoopAsync(token);
-        var receiveTask = ReceiveLoopAsync(token);
-        Task? heartbeatTask = null;
-        if (_options.HeartbeatEnabled)
-        {
-            heartbeatTask = HeartbeatLoopAsync(token);
-        }
         var isConnected = false;
-        var allTasks = heartbeatTask != null
-                           ? new[] { sendTask, receiveTask, heartbeatTask }
-                           : new[] { sendTask, receiveTask };
+        Task? sendTask = null;
+        Task? receiveTask = null;
+        Task? dispatchTask = null;
         try
         {
+            // 先完成连接回调，确保 OnConnectedAsync 在任何 OnMessageAsync 之前执行，
+            // 避免处理器在初始化（如鉴权、状态准备）完成前就收到消息。
             await _handler.OnConnectedAsync(this).ConfigureAwait(false);
             isConnected = true;
-            await Task.WhenAny(allTasks).ConfigureAwait(false);
+            sendTask = SendLoopAsync(token);
+            dispatchTask = DispatchLoopAsync(token);
+            receiveTask = ReceiveLoopAsync(token);
+            await Task.WhenAny(sendTask, receiveTask, dispatchTask).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -200,22 +203,30 @@ internal sealed class WebSocketSession : IWebSocketSession
         {
             // 通知所有循环停止
             await _cts.CancelAsync().ConfigureAwait(false);
-            // 完成发送通道，确保 SendLoop 不会挂起在 WaitToReadAsync
+            // 完成两条通道，确保 SendLoop / DispatchLoop 不会挂起在 WaitToReadAsync
             _sendChannel.Writer.TryComplete();
-            // 等待所有循环结束，避免未观察到的异常
-            try
+            _receiveChannel.Writer.TryComplete();
+            // 等待所有已启动的循环结束，避免未观察到的异常
+            var startedTasks = new[] { sendTask, receiveTask, dispatchTask }
+                               .Where(static t => t is not null)
+                               .Cast<Task>()
+                               .ToArray();
+            if (startedTasks.Length > 0)
             {
-                await Task.WhenAll(allTasks).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // 取消是正常行为
-            }
-            catch (Exception ex)
-            {
-                if (_logger.IsEnabled(LogLevel.Debug))
+                try
                 {
-                    _logger.LogDebug(ex, "[WebSocketSession:{Id}] Error during task cleanup", Id);
+                    await Task.WhenAll(startedTasks).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // 取消是正常行为
+                }
+                catch (Exception ex)
+                {
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                    {
+                        _logger.LogDebug(ex, "[WebSocketSession:{Id}] Error during task cleanup", Id);
+                    }
                 }
             }
             if (isConnected)
@@ -248,13 +259,15 @@ internal sealed class WebSocketSession : IWebSocketSession
     private async Task ReceiveLoopAsync(CancellationToken token)
     {
         // 从 ArrayPool 租借接收缓冲区,避免每次循环分配
-        var buffer = ArrayPool<byte>.Shared.Rent(_options.ReceiveBufferSize);
+        var bufferSize = _options.ReceiveBufferSize;
+        var maxSize = _options.MaxMessageSize;
+        var buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
         try
         {
             while (!token.IsCancellationRequested && _socket.State == WebSocketState.Open)
             {
                 // 第一帧接收
-                var result = await _socket.ReceiveAsync(buffer.AsMemory(0, _options.ReceiveBufferSize), token).ConfigureAwait(false);
+                var result = await _socket.ReceiveAsync(buffer.AsMemory(0, bufferSize), token).ConfigureAwait(false);
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     if (_socket.State == WebSocketState.CloseReceived)
@@ -267,6 +280,11 @@ internal sealed class WebSocketSession : IWebSocketSession
                 if (result.EndOfMessage)
                 {
                     // 单帧快速路径：直接复制缓冲区，无需 PooledMemoryStream
+                    if (maxSize > 0 && result.Count > maxSize)
+                    {
+                        await CloseForOversizedMessageAsync(result.Count).ConfigureAwait(false);
+                        return;
+                    }
                     data = buffer.AsSpan(0, result.Count).ToArray();
                 }
                 else
@@ -279,7 +297,7 @@ internal sealed class WebSocketSession : IWebSocketSession
                     }
                     do
                     {
-                        result = await _socket.ReceiveAsync(buffer.AsMemory(0, _options.ReceiveBufferSize), token).ConfigureAwait(false);
+                        result = await _socket.ReceiveAsync(buffer.AsMemory(0, bufferSize), token).ConfigureAwait(false);
                         if (result.MessageType == WebSocketMessageType.Close)
                         {
                             if (_socket.State == WebSocketState.CloseReceived)
@@ -290,15 +308,20 @@ internal sealed class WebSocketSession : IWebSocketSession
                         }
                         if (result.Count > 0)
                         {
+                            // 在写入前累加校验，防止恶意客户端通过超大消息（或永不结束的分片）耗尽内存
+                            if (maxSize > 0 && (ulong)ms.Length + (ulong)result.Count > (ulong)maxSize)
+                            {
+                                await CloseForOversizedMessageAsync(ms.Length + result.Count).ConfigureAwait(false);
+                                return;
+                            }
                             ms.Write(buffer.AsSpan(0, result.Count));
                         }
                     } while (!result.EndOfMessage);
                     data = ms.ToArray();
                 }
 
-                // 更新最后接收时间戳
-                UpdateLastReceiveTimestamp();
-                await _handler.OnMessageAsync(this, new(data, result.MessageType, true)).ConfigureAwait(false);
+                // 入队给分发循环处理；队列满时此处产生背压。data 为独立的托管数组，无池化生命周期约束。
+                await _receiveChannel.Writer.WriteAsync(new(data, result.MessageType, true), token).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -328,94 +351,43 @@ internal sealed class WebSocketSession : IWebSocketSession
     }
 
     /// <summary>
-    /// Updates the last receive timestamp using high-resolution timer.
+    /// 关闭因超过 <see cref="WebSocketSessionOptions.MaxMessageSize" /> 的连接，并记录告警日志。
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void UpdateLastReceiveTimestamp() => Volatile.Write(ref _lastReceiveTimestamp, Stopwatch.GetTimestamp());
-
-    private async Task HeartbeatLoopAsync(CancellationToken token)
+    private async Task CloseForOversizedMessageAsync(long size)
     {
-        // 使用 PeriodicTimer 替代 Task.Delay,更高效
-        using var timer = new PeriodicTimer(_options.HeartbeatInterval);
+        if (_logger.IsEnabled(LogLevel.Warning))
+        {
+            _logger.LogWarning("[WebSocketSession:{Id}] Message size ({Size}) exceeded MaxMessageSize ({Max}); closing connection", Id, size, _options.MaxMessageSize);
+        }
+        await CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message too big", CancellationToken.None).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// 持久消息分发循环：从接收队列按顺序读取消息并投递给 <see cref="WebSocketHandler.OnMessageAsync" />，
+    /// 与 <see cref="ReceiveLoopAsync" /> 解耦，确保用户处理器耗时不会阻塞接收循环。
+    /// </summary>
+    private async Task DispatchLoopAsync(CancellationToken token)
+    {
         try
         {
-            while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
+            while (await _receiveChannel.Reader.WaitToReadAsync(token).ConfigureAwait(false))
             {
-                if (_socket.State != WebSocketState.Open)
+                while (!token.IsCancellationRequested && _receiveChannel.Reader.TryRead(out var message))
                 {
-                    return;
-                }
-
-                // 心跳超时检测：
-                // 仅当已发送过心跳后才检查超时，确保远端有机会响应
-                // 条件：发送心跳后超过 HeartbeatTimeout 时间，且在此期间没有收到任何消息
-                if (_options.HeartbeatTimeout > TimeSpan.Zero)
-                {
-                    var lastHeartbeatSent = Volatile.Read(ref _lastHeartbeatSentTimestamp);
-                    // 只有在已发送过心跳后才进行超时检查
-                    if (lastHeartbeatSent > 0)
+                    try
                     {
-                        var lastReceive = Volatile.Read(ref _lastReceiveTimestamp);
-                        var elapsedSinceHeartbeat = Stopwatch.GetElapsedTime(lastHeartbeatSent);
-
-                        // 超时条件：
-                        // 1. 发送心跳后已超过 HeartbeatTimeout 时间
-                        // 2. 上次收到消息的时间早于上次发送心跳的时间（即发送心跳后没有收到任何消息）
-                        if (elapsedSinceHeartbeat > _options.HeartbeatTimeout && lastReceive < lastHeartbeatSent)
-                        {
-                            if (_logger.IsEnabled(LogLevel.Warning))
-                            {
-                                var elapsedSinceReceive = Stopwatch.GetElapsedTime(lastReceive);
-                                _logger.LogWarning("[WebSocketSession:{Id}] Heartbeat timeout: no response for {ElapsedMs:N0}ms after heartbeat sent (last receive was {ReceiveMs:N0}ms ago)",
-                                    Id, elapsedSinceHeartbeat.TotalMilliseconds, elapsedSinceReceive.TotalMilliseconds);
-                            }
-                            // 超时则关闭连接
-                            await CloseAsync(WebSocketCloseStatus.ProtocolError, "Heartbeat timeout", CancellationToken.None).ConfigureAwait(false);
-                            return;
-                        }
+                        await _handler.OnMessageAsync(this, message).ConfigureAwait(false);
                     }
-                }
-
-                // 发送心跳消息(如果配置了工厂)
-                if (_options.HeartbeatMessageFactory is null)
-                {
-                    continue;
-                }
-                try
-                {
-                    var pingData = _options.HeartbeatMessageFactory();
-                    if (_socket.State == WebSocketState.Open)
+                    catch (Exception ex)
                     {
-                        // 心跳消息通过队列发送，由 SendLoop 统一处理，避免并发发送冲突
-                        // 使用 TryWrite 避免在队列满时阻塞心跳循环
-                        // 使用可配置的消息类型发送心跳
-                        if (_sendChannel.Writer.TryWrite(new(pingData, _options.HeartbeatMessageType, true)))
-                        {
-                            // 更新最后发送心跳时间戳
-                            Volatile.Write(ref _lastHeartbeatSentTimestamp, Stopwatch.GetTimestamp());
-                        }
-                        else if (_logger.IsEnabled(LogLevel.Debug))
-                        {
-                            _logger.LogDebug("[WebSocketSession:{Id}] Heartbeat skipped: send queue full", Id);
-                        }
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    if (_logger.IsEnabled(LogLevel.Debug))
-                    {
-                        _logger.LogDebug(ex, "[WebSocketSession:{Id}] Error sending heartbeat", Id);
+                        await _handler.OnErrorAsync(this, ex).ConfigureAwait(false);
                     }
                 }
             }
         }
         catch (OperationCanceledException)
         {
-            // Normal cancellation
+            // 取消是正常行为
         }
     }
 

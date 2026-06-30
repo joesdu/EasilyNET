@@ -116,8 +116,7 @@ public class ManagedWebSocketClientTest
         await using var client = new ManagedWebSocketClient(new()
         {
             ServerUri = wsUri,
-            AutoReconnect = false,
-            HeartbeatResponseMessage = ReadOnlyMemory<byte>.Empty
+            AutoReconnect = false
         });
         client.MessageReceivedAsync += async (_, e) =>
         {

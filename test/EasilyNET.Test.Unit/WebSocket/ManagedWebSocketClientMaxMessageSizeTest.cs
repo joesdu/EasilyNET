@@ -172,9 +172,7 @@ public class ManagedWebSocketClientMaxMessageSizeTest
             ServerUri = wsUri,
             AutoReconnect = false,
             MaxMessageSize = 4,
-            ReceiveBufferSize = 64,
-            // 禁用心跳响应过滤，防止 { 1,2,3,4 } 意外匹配默认 pong 配置
-            HeartbeatResponseMessage = ReadOnlyMemory<byte>.Empty
+            ReceiveBufferSize = 64
         });
         client.MessageReceived += (_, e) => messageReceived.TrySetResult(e.Data.ToArray());
         client.Error += (_, e) => errorRaised.TrySetResult(e.Exception);
@@ -208,8 +206,7 @@ public class ManagedWebSocketClientMaxMessageSizeTest
             ServerUri = wsUri,
             AutoReconnect = false,
             MaxMessageSize = 0, // 禁用大小限制
-            ReceiveBufferSize = 64,
-            HeartbeatResponseMessage = ReadOnlyMemory<byte>.Empty
+            ReceiveBufferSize = 64
         });
         client.MessageReceived += (_, e) => messageReceived.TrySetResult(e.Data.ToArray());
         client.Error += (_, e) => errorRaised.TrySetResult(e.Exception);
