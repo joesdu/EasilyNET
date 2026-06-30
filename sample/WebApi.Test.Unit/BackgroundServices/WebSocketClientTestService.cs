@@ -24,7 +24,7 @@ internal sealed class WebSocketClientTestService(ILogger<WebSocketClientTestServ
     private int _passed;
     private int _failed;
 
-    private static bool TestMode => true;
+    private static bool TestMode => false;
 
     private ManagedWebSocketClient CreateClient(Uri serverUri)
     {
