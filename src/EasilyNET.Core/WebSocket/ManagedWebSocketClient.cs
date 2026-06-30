@@ -25,7 +25,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     private readonly CancellationTokenSource _disposeCts = new();
     private readonly Task _persistentDispatchLoopTask; // 持久单一消息分发循环（解耦接收与用户回调）
     private readonly Task _persistentSendLoopTask;     // 持久单一 SendLoop
-    private readonly Channel<WebSocketMessageReceivedEventArgs> _receiveChannel;
+    private readonly Channel<ReceivedEnvelope> _receiveChannel;
     private readonly Channel<WebSocketMessage> _sendChannel;
 
     // 确保单个断开/关闭事件在一次连接生命周期内最多触发一次 Closed。连接成功时重置为 0。
@@ -77,7 +77,7 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
             SingleReader = true,
             SingleWriter = false
         };
-        _receiveChannel = Channel.CreateBounded<WebSocketMessageReceivedEventArgs>(receiveChannelOptions);
+        _receiveChannel = Channel.CreateBounded<ReceivedEnvelope>(receiveChannelOptions);
         _persistentSendLoopTask = Task.Run(PersistentSendLoop, _disposeCts.Token);
         _ = ObserveBackgroundTask(_persistentSendLoopTask, nameof(PersistentSendLoop));
         _persistentDispatchLoopTask = Task.Run(PersistentDispatchLoop, _disposeCts.Token);
@@ -677,9 +677,11 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     rentedMessageArray);
                 // 入队给专门的分发循环处理；分发循环负责调用订阅者并在完成后归还缓冲区。
                 // 这样慢处理器不会阻塞接收循环。队列满时此处会产生背压（等待空间）。
+                // 连同所属 session 一起入队：分发时据此判定该消息是否仍属于当前活动连接，
+                // 避免旧连接的残留消息在断开/重连/释放后投递给用户回调（破坏 Closed 终态语义）。
                 try
                 {
-                    await _receiveChannel.Writer.WriteAsync(args, token).ConfigureAwait(false);
+                    await _receiveChannel.Writer.WriteAsync(new(args, session), token).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -703,8 +705,13 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
     /// <summary>
     /// 持久消息分发循环：从接收队列读取消息事件，按顺序投递给同步/异步订阅者，
-    /// 完成后归还池化缓冲区。与 <see cref="ReceiveLoop" /> 解耦，确保用户回调耗时不会阻塞接收与心跳活性检测。
+    /// 完成后归还池化缓冲区。与 <see cref="ReceiveLoop" /> 解耦，确保用户回调耗时不会阻塞接收循环。
     /// </summary>
+    /// <remarks>
+    /// 投递前做一道门禁：仅当消息所属 session 仍是当前活动连接、且客户端未被释放时才投递。
+    /// 否则（已断开 / 重连为新 session / 已释放）丢弃该消息并归还缓冲区——避免旧连接的残留消息
+    /// 在 Closed 之后或跨连接投递给用户回调，保证 Closed 作为该连接生命周期的终态回调。
+    /// </remarks>
     private async Task PersistentDispatchLoop()
     {
         var token = _disposeCts.Token;
@@ -712,10 +719,16 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
         {
             while (await _receiveChannel.Reader.WaitToReadAsync(token).ConfigureAwait(false))
             {
-                while (!token.IsCancellationRequested && _receiveChannel.Reader.TryRead(out var args))
+                while (!token.IsCancellationRequested && _receiveChannel.Reader.TryRead(out var envelope))
                 {
+                    var args = envelope.Args;
                     try
                     {
+                        // 门禁：消息所属连接已不是当前活动连接（已断开/重连），或客户端已释放 → 丢弃不投递。
+                        if (IsDisposed || !IsCurrentSession(envelope.Session))
+                        {
+                            continue;
+                        }
                         // EN: Data is only valid during the callback; buffer is returned right after subscribers complete.
                         // ZH: Data 仅在回调期间有效；订阅者完成后立即归还缓冲区。
                         OnMessageReceived(args);
@@ -745,9 +758,9 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
     /// </summary>
     private void DrainReceiveChannel()
     {
-        while (_receiveChannel.Reader.TryRead(out var args))
+        while (_receiveChannel.Reader.TryRead(out var envelope))
         {
-            args.Dispose();
+            envelope.Args.Dispose();
         }
     }
 
@@ -1212,6 +1225,11 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static TimeSpan NormalizeDisposeLockTimeout(TimeSpan timeout) => timeout > TimeSpan.Zero ? timeout : TimeSpan.Zero;
+
+    /// <summary>
+    /// 接收队列中的消息信封：携带消息事件参数及其所属连接，供分发循环判定消息归属。
+    /// </summary>
+    private readonly record struct ReceivedEnvelope(WebSocketMessageReceivedEventArgs Args, ConnectionSession Session);
 
     private sealed class ConnectionSession(ClientWebSocket socket, CancellationTokenSource cancellationSource) : IDisposable
     {
