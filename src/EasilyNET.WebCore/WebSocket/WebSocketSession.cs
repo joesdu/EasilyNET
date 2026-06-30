@@ -61,6 +61,10 @@ internal sealed class WebSocketSession : IWebSocketSession
         _sendChannel = Channel.CreateBounded<WebSocketMessage>(channelOptions);
         // 将消息接收与用户回调分发解耦：接收循环只负责入队，由独立的分发循环调用 OnMessageAsync。
         // 这样慢处理器不会阻塞接收循环。
+        if (options.ReceiveDispatchQueueCapacity <= 0)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(options.ReceiveDispatchQueueCapacity), $"{nameof(options.ReceiveDispatchQueueCapacity)} must be greater than zero.");
+        }
         var receiveChannelOptions = new BoundedChannelOptions(options.ReceiveDispatchQueueCapacity)
         {
             FullMode = BoundedChannelFullMode.Wait,
