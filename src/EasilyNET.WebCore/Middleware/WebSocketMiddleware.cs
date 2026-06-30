@@ -52,6 +52,14 @@ internal sealed class WebSocketMiddleware<THandler>(
         if (context.WebSockets.IsWebSocketRequest)
         {
             // 透传协议层保活配置；属性为 null 时回退到 app.UseWebSockets(...) 的全局默认值。
+            if (options.KeepAliveInterval is { } interval && interval < TimeSpan.Zero)
+            {
+                throw new System.InvalidOperationException($"{nameof(WebSocketSessionOptions.KeepAliveInterval)} must be null or non-negative.");
+            }
+            if (options.KeepAliveTimeout is { } timeout && timeout < TimeSpan.Zero)
+            {
+                throw new System.InvalidOperationException($"{nameof(WebSocketSessionOptions.KeepAliveTimeout)} must be null or non-negative.");
+            }
             var acceptContext = new WebSocketAcceptContext
             {
                 KeepAliveInterval = options.KeepAliveInterval,
