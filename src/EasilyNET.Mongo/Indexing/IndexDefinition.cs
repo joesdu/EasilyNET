@@ -7,7 +7,7 @@ namespace EasilyNET.Mongo.Indexing;
 /// <summary>
 /// 索引定义信息
 /// </summary>
-internal sealed class IndexDefinition
+internal sealed class IndexDefinition : IEquatable<IndexDefinition>
 {
     public string Name { get; set; } = string.Empty;
 
@@ -48,6 +48,12 @@ internal sealed class IndexDefinition
                WeightsEquals(Weights, other.Weights) &&
                DefaultLanguage == other.DefaultLanguage;
     }
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => Equals(obj as IndexDefinition);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => HashCode.Combine(Name, Keys, Unique, Sparse, ExpireAfterSeconds, Collation?.Locale, Weights, DefaultLanguage);
 
     private static bool CollationEquals(Collation? c1, Collation? c2)
     {

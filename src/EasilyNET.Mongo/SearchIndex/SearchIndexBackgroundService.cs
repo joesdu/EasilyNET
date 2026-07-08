@@ -143,19 +143,33 @@ internal sealed class SearchIndexBackgroundService<T>(IServiceProvider servicePr
         foreach (var indexAttr in searchIndexAttrs)
         {
             ct.ThrowIfCancellationRequested();
-            if (existingIndexes.ContainsKey(indexAttr.Name))
-            {
-                if (logger.IsEnabled(LogLevel.Debug))
-                {
-                    logger.LogDebug("Search index {IndexName} already exists on collection {CollectionName}. Skipping.",
-                        indexAttr.Name, collectionName);
-                }
-                continue;
-            }
             var indexType = indexAttr.Type == ESearchIndexType.VectorSearch ? SearchIndexType.VectorSearch : SearchIndexType.Search;
             var definition = indexAttr.Type == ESearchIndexType.VectorSearch
                                  ? SearchIndexDefinitionFactory.GenerateVectorSearchDefinition(entityType, indexAttr, useCamelCase)
                                  : SearchIndexDefinitionFactory.GenerateSearchDefinition(entityType, indexAttr, useCamelCase);
+            if (existingIndexes.TryGetValue(indexAttr.Name, out var existingIndex))
+            {
+                // Reconcile definition drift: if the attribute-declared definition is no longer
+                // satisfied by the server-side definition, update the index (async rebuild on Atlas;
+                // the old index keeps serving queries until the new one is ready).
+                if (existingIndex.TryGetValue("latestDefinition", out var latestDefinition) &&
+                    latestDefinition is BsonDocument latestDefinitionDoc &&
+                    !SearchIndexManager.IsDefinitionSatisfiedBy(definition, latestDefinitionDoc))
+                {
+                    if (logger.IsEnabled(LogLevel.Information))
+                    {
+                        logger.LogInformation("Search index {IndexName} on collection {CollectionName} has drifted from its attribute definition. Updating.",
+                            indexAttr.Name, collectionName);
+                    }
+                    await SearchIndexManager.UpdateSearchIndexAsync(collection, indexAttr.Name, definition, logger, ct).ConfigureAwait(false);
+                }
+                else if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    logger.LogDebug("Search index {IndexName} already exists on collection {CollectionName} and is up to date. Skipping.",
+                        indexAttr.Name, collectionName);
+                }
+                continue;
+            }
             if (logger.IsEnabled(LogLevel.Information))
             {
                 logger.LogInformation("Creating search index {IndexName} (type={IndexType}) on collection {CollectionName}.",

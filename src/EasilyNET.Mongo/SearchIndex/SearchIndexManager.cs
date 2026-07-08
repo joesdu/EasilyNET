@@ -83,6 +83,30 @@ internal static class SearchIndexManager
     }
 
     /// <summary>
+    /// 判断生成的索引定义是否已被现有定义满足（子集比较）。
+    /// 服务端返回的 latestDefinition 会补充默认值字段，因此只校验我们显式声明的字段：
+    /// 声明的每个字段都必须在现有定义中存在且值相等。
+    /// 注意：从特性中移除字段不会触发更新（避免误判导致索引反复重建）。
+    /// </summary>
+    internal static bool IsDefinitionSatisfiedBy(BsonValue expected, BsonValue actual)
+    {
+        if (expected is BsonDocument expectedDoc && actual is BsonDocument actualDoc)
+        {
+            return expectedDoc.All(element => actualDoc.TryGetValue(element.Name, out var actualValue) && IsDefinitionSatisfiedBy(element.Value, actualValue));
+        }
+        if (expected is BsonArray expectedArr && actual is BsonArray actualArr)
+        {
+            return expectedArr.All(e => actualArr.Any(a => IsDefinitionSatisfiedBy(e, a)));
+        }
+        // 数值类型宽松比较：服务端可能以 Int64/Double 返回我们写入的 Int32
+        if (expected.IsNumeric && actual.IsNumeric)
+        {
+            return expected.ToDouble().Equals(actual.ToDouble());
+        }
+        return expected.Equals(actual);
+    }
+
+    /// <summary>
     /// 更新 Search Index 定义
     /// </summary>
     internal static async Task UpdateSearchIndexAsync(IMongoCollection<BsonDocument> collection, string indexName, BsonDocument definition, ILogger? logger, CancellationToken ct = default)

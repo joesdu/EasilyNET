@@ -397,12 +397,12 @@ builder.Services.AddMongoCappedCollectionCreation<MyDbContext>();
 Atlas Search 是基于 Apache Lucene 的全文搜索引擎，支持中文分词、相关性排序、自动补全。Vector Search 是 AI 语义搜索的核心能力，广泛用于
 RAG（检索增强生成）场景。
 
-通过 `[MongoSearchIndex]`、`[SearchField]`、`[VectorField]`、`[VectorFilterField]` 特性声明（详见 `EasilyNET.Mongo.Core`
-文档）：
+通过 `[MongoSearchIndex]`、`[SearchField]`、`[VectorField]`、`[VectorFilterField]`、`[AutoEmbeddingField]` 特性声明（详见
+`EasilyNET.Mongo.Core` 文档）：
 
 ```csharp
 [MongoSearchIndex(Name = "product_search")]
-[MongoSearchIndex(Name = "product_vector", Type = ESearchIndexType.VectorSearch)]
+[MongoSearchIndex(Name = "product_vector", Type = ESearchIndexType.VectorSearch, StoredSource = true)]
 public class Product
 {
     public string Id { get; set; }
@@ -415,15 +415,28 @@ public class Product
     public string Name { get; set; }
 
     // 1536 维向量（对应 OpenAI text-embedding-ada-002）
+    // Quantization: 自动向量量化（Scalar 约省 4 倍内存，Binary 约省 32 倍）
+    // MaxEdges / NumEdgeCandidates: HNSW 图调优参数（0 = 使用服务端默认值）
     [VectorField(Dimensions = 1536, Similarity = EVectorSimilarity.Cosine,
-        IndexName = "product_vector")]
+        IndexName = "product_vector", Quantization = EVectorQuantization.Scalar)]
     public float[] Embedding { get; set; }
+
+    // 自动嵌入：Atlas 在索引和查询时自动调用 Voyage AI 模型生成向量，无需自己维护嵌入管道
+    [AutoEmbeddingField("voyage-4", IndexName = "product_vector")]
+    public string Description { get; set; }
 
     // 向量搜索的预过滤字段（只在指定分类中搜索）
     [VectorFilterField(IndexName = "product_vector")]
     public string Category { get; set; }
 }
 ```
+
+> 💡 `StoredSource = true` 会在索引中存储原始文档字段，配合 `$vectorSearch` 的 `returnStoredSource: true`
+> 可以省去搜索后的全文档回表查询。
+>
+> 💡 后台服务会在启动时对比特性声明与服务端的索引定义（`latestDefinition`）：索引不存在则创建；
+> 声明的字段发生变化（如维度、相似度、量化方式）则自动调用 `updateSearchIndex` 更新（Atlas 后台重建期间旧索引仍可查询）。
+> 仅从特性中移除字段不会触发更新，避免误判导致索引反复重建。
 
 对于**未在 `MongoContext` 上声明为 `IMongoCollection<T>` 属性**的实体类型，可以通过 `CollectionName`
 显式指定集合名称，框架会通过程序集扫描自动发现并创建索引：
@@ -558,14 +571,15 @@ builder.Services.AddMongoChangeStreamHandler<OrderChangeStreamHandler>();
 
 **`ChangeStreamHandlerOptions` 参数说明**：
 
-| 属性                          | 默认值                           | 说明                   |
-|-----------------------------|-------------------------------|----------------------|
-| `MaxRetryAttempts`          | `5`                           | 断线后最大重试次数，`0` 表示无限重试 |
-| `RetryDelay`                | `2s`                          | 首次重试间隔，后续每次翻倍        |
-| `MaxRetryDelay`             | `60s`                         | 重试间隔上限               |
-| `PersistResumeToken`        | `false`                       | 是否将恢复令牌持久化到 MongoDB  |
-| `ResumeTokenCollectionName` | `"_changeStreamResumeTokens"` | 存储恢复令牌的集合名           |
-| `FullDocument`              | `UpdateLookup`                | 更新事件是否返回完整文档         |
+| 属性                           | 默认值                           | 说明                                          |
+|------------------------------|-------------------------------|---------------------------------------------|
+| `MaxRetryAttempts`           | `5`                           | 断线后最大重试次数，`0` 表示无限重试                        |
+| `RetryDelay`                 | `2s`                          | 首次重试间隔，后续每次翻倍                               |
+| `MaxRetryDelay`              | `60s`                         | 重试间隔上限                                      |
+| `PersistResumeToken`         | `false`                       | 是否将恢复令牌持久化到 MongoDB                         |
+| `ResumeTokenPersistInterval` | `0`（每个事件都写）                   | 令牌持久化写入的最小间隔，高变更量场景可设为如 `5s` 以限流写入          |
+| `ResumeTokenCollectionName`  | `"_changeStreamResumeTokens"` | 存储恢复令牌的集合名                                  |
+| `FullDocument`               | `UpdateLookup`                | 更新事件是否返回完整文档                                |
 
 ### 断点续传工作原理
 
@@ -575,8 +589,12 @@ builder.Services.AddMongoChangeStreamHandler<OrderChangeStreamHandler>();
 事件 1 → HandleChangeAsync() → 保存 Token-A
 事件 2 → HandleChangeAsync() → 保存 Token-B
 [应用重启]
-从 Token-B 恢复 → 继续处理事件 3、4、5 ...（无遗漏，无重复）
+从 Token-B 恢复（StartAfter，可跨 invalidate 事件）→ 继续处理事件 3、4、5 ...
 ```
+
+> ⚠️ 投递语义为**至少一次**：恢复令牌仅在 `HandleChangeAsync` 成功完成后才推进，出错或重连后同一事件可能被再次投递，
+> 处理逻辑应保证幂等。设置了 `ResumeTokenPersistInterval` 后，间隔内的令牌保存在内存中，
+> 并在流暂停、出错或关闭时自动刷新写入；崩溃时最多重放一个间隔内的事件。
 
 ---
 
