@@ -46,7 +46,9 @@ public abstract class MongoChangeStreamHandler<TDocument>(
     ChangeStreamHandlerOptions? options = null) : BackgroundService
 {
     private readonly ChangeStreamHandlerOptions _options = options ?? new();
+    private long _lastPersistTimestamp;
     private BsonDocument? _resumeToken;
+    private BsonDocument? _unpersistedToken;
 
     /// <summary>
     ///     <para xml:lang="en">
@@ -75,9 +77,13 @@ public abstract class MongoChangeStreamHandler<TDocument>(
     /// <summary>
     ///     <para xml:lang="en">
     ///     Process a single change stream event. Implement this method to handle changes.
+    ///     Delivery is <b>at-least-once</b>: the resume token only advances after this method completes successfully,
+    ///     so after an error or reconnect the same event may be delivered again. Implementations should be idempotent.
     ///     </para>
     ///     <para xml:lang="zh">
     ///     处理单个变更流事件。实现此方法以处理变更。
+    ///     投递语义为<b>至少一次</b>：恢复令牌仅在此方法成功完成后才会推进，
+    ///     因此在出错或重连后同一事件可能被再次投递。实现应当保证幂等性。
     ///     </para>
     /// </summary>
     /// <param name="change">
@@ -158,37 +164,79 @@ public abstract class MongoChangeStreamHandler<TDocument>(
         var resumeToken = Interlocked.CompareExchange(ref _resumeToken, null, null);
         if (resumeToken is not null)
         {
-            changeStreamOptions.ResumeAfter = resumeToken;
+            // StartAfter behaves like ResumeAfter for regular tokens, but additionally allows
+            // resuming past an invalidate event (e.g. collection drop/rename).
+            changeStreamOptions.StartAfter = resumeToken;
             logger.LogInformation("Resuming change stream for collection {CollectionName} from saved token.", collectionName);
         }
         using var cursor = pipeline is not null
                                ? await collection.WatchAsync(pipeline, changeStreamOptions, stoppingToken).ConfigureAwait(false)
                                : await collection.WatchAsync(changeStreamOptions, stoppingToken).ConfigureAwait(false);
         logger.LogInformation("Change stream started for collection {CollectionName}.", collectionName);
-        while (await cursor.MoveNextAsync(stoppingToken).ConfigureAwait(false))
+        try
         {
-            foreach (var change in cursor.Current)
+            while (await cursor.MoveNextAsync(stoppingToken).ConfigureAwait(false))
             {
-                try
+                foreach (var change in cursor.Current)
                 {
-                    await HandleChangeAsync(change, stoppingToken).ConfigureAwait(false);
-                    // Update resume token after successful processing
-                    Interlocked.Exchange(ref _resumeToken, change.ResumeToken);
-                    if (_options.PersistResumeToken)
+                    try
                     {
-                        await SaveResumeTokenAsync(change.ResumeToken, stoppingToken).ConfigureAwait(false);
+                        await HandleChangeAsync(change, stoppingToken).ConfigureAwait(false);
+                        // Update resume token after successful processing
+                        Interlocked.Exchange(ref _resumeToken, change.ResumeToken);
+                        if (_options.PersistResumeToken)
+                        {
+                            await PersistResumeTokenThrottledAsync(change.ResumeToken, stoppingToken).ConfigureAwait(false);
+                        }
+                    }
+                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Error handling change event for collection {CollectionName}. OperationType={OperationType}",
+                            collectionName, change.OperationType);
                     }
                 }
-                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Error handling change event for collection {CollectionName}. OperationType={OperationType}",
-                        collectionName, change.OperationType);
-                }
             }
+        }
+        finally
+        {
+            // Flush any token withheld by throttling so an error/shutdown never loses more
+            // progress than a single persist interval.
+            await FlushPendingResumeTokenAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task PersistResumeTokenThrottledAsync(BsonDocument resumeToken, CancellationToken ct)
+    {
+        var interval = _options.ResumeTokenPersistInterval;
+        if (interval <= TimeSpan.Zero)
+        {
+            await SaveResumeTokenAsync(resumeToken, ct).ConfigureAwait(false);
+            return;
+        }
+        var now = Environment.TickCount64;
+        if (now - Interlocked.Read(ref _lastPersistTimestamp) >= interval.TotalMilliseconds)
+        {
+            Interlocked.Exchange(ref _lastPersistTimestamp, now);
+            Interlocked.Exchange(ref _unpersistedToken, null);
+            await SaveResumeTokenAsync(resumeToken, ct).ConfigureAwait(false);
+        }
+        else
+        {
+            Interlocked.Exchange(ref _unpersistedToken, resumeToken);
+        }
+    }
+
+    private async Task FlushPendingResumeTokenAsync()
+    {
+        var pending = Interlocked.Exchange(ref _unpersistedToken, null);
+        if (pending is not null && _options.PersistResumeToken)
+        {
+            // CancellationToken.None: the flush must run even when shutdown has already cancelled stoppingToken.
+            await SaveResumeTokenAsync(pending, CancellationToken.None).ConfigureAwait(false);
         }
     }
 

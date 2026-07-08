@@ -78,6 +78,22 @@ public sealed class MongoSearchIndexAttribute : Attribute
 
     /// <summary>
     ///     <para xml:lang="en">
+    ///     Whether to store the original document fields in the search index (<c>storedSource</c>).
+    ///     For vector search indexes this enables <c>returnStoredSource</c> in <c>$vectorSearch</c> queries,
+    ///     avoiding a full-document lookup after the search stage.
+    ///     Defaults to <see langword="false" /> (the <c>storedSource</c> field is not emitted).
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     是否在搜索索引中存储原始文档字段（<c>storedSource</c>）。
+    ///     对向量搜索索引，这允许在 <c>$vectorSearch</c> 查询中使用 <c>returnStoredSource</c>，
+    ///     从而避免搜索阶段之后的全文档回表查询。
+    ///     默认为 <see langword="false" />（不输出 <c>storedSource</c> 字段）。
+    ///     </para>
+    /// </summary>
+    public bool StoredSource { get; set; }
+
+    /// <summary>
+    ///     <para xml:lang="en">
     ///     Optional. The name of the MongoDB collection to create the search index on.
     ///     When the entity is declared as a <c>IMongoCollection&lt;T&gt;</c> property on the <c>MongoContext</c>,
     ///     the collection name is resolved automatically and this property is not needed.

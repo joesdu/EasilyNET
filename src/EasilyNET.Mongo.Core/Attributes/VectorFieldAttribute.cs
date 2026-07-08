@@ -61,4 +61,50 @@ public sealed class VectorFieldAttribute : Attribute
     ///     </para>
     /// </summary>
     public string IndexName { get; set; } = "vector_index";
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Automatic vector quantization type. <see cref="EVectorQuantization.Scalar" /> reduces memory by ~4x,
+    ///     <see cref="EVectorQuantization.Binary" /> by ~32x.
+    ///     Defaults to <see cref="EVectorQuantization.None" /> (full-fidelity vectors, no quantization field emitted).
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     自动向量量化类型。<see cref="EVectorQuantization.Scalar" /> 约降低 4 倍内存占用，
+    ///     <see cref="EVectorQuantization.Binary" /> 约降低 32 倍。
+    ///     默认为 <see cref="EVectorQuantization.None" />（全精度向量，不输出 quantization 字段）。
+    ///     </para>
+    /// </summary>
+    public EVectorQuantization Quantization { get; set; } = EVectorQuantization.None;
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     HNSW graph option: the maximum number of edges (connected neighbors) per node in the graph.
+    ///     Higher values improve recall at the cost of indexing speed and memory.
+    ///     Set to <c>0</c> (default) to use the Atlas server default.
+    ///     Emitted as <c>hnswOptions.maxEdges</c> in the index definition.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     HNSW 图选项：图中每个节点的最大边数（相连邻居数）。
+    ///     数值越大召回率越高，但索引速度和内存开销也随之增加。
+    ///     设置为 <c>0</c>（默认）时使用 Atlas 服务端默认值。
+    ///     在索引定义中输出为 <c>hnswOptions.maxEdges</c>。
+    ///     </para>
+    /// </summary>
+    public int MaxEdges { get; set; }
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     HNSW graph option: the number of nearest-neighbor candidates examined during index construction.
+    ///     Higher values improve index quality at the cost of build time.
+    ///     Set to <c>0</c> (default) to use the Atlas server default.
+    ///     Emitted as <c>hnswOptions.numEdgeCandidates</c> in the index definition.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     HNSW 图选项：索引构建期间检查的最近邻候选数量。
+    ///     数值越大索引质量越高，但构建时间越长。
+    ///     设置为 <c>0</c>（默认）时使用 Atlas 服务端默认值。
+    ///     在索引定义中输出为 <c>hnswOptions.numEdgeCandidates</c>。
+    ///     </para>
+    /// </summary>
+    public int NumEdgeCandidates { get; set; }
 }

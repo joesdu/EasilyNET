@@ -27,7 +27,12 @@ internal static class SearchIndexDefinitionFactory
         {
             mappings.Add("fields", fields);
         }
-        return new("mappings", mappings);
+        var definition = new BsonDocument("mappings", mappings);
+        if (indexAttr.StoredSource)
+        {
+            definition.Add("storedSource", true);
+        }
+        return definition;
     }
 
     /// <summary>
@@ -37,8 +42,14 @@ internal static class SearchIndexDefinitionFactory
     {
         var fields = new BsonArray();
         CollectVectorFields(type, useCamelCase, null, indexAttr.Name, fields);
+        CollectAutoEmbeddingFields(type, useCamelCase, null, indexAttr.Name, fields);
         CollectVectorFilterFields(type, useCamelCase, null, indexAttr.Name, fields);
-        return new("fields", fields);
+        var definition = new BsonDocument("fields", fields);
+        if (indexAttr.StoredSource)
+        {
+            definition.Add("storedSource", true);
+        }
+        return definition;
     }
 
     private static void CollectSearchFields(Type type, bool useCamelCase, string? parentPath, string indexName, BsonDocument fields)
@@ -135,12 +146,67 @@ internal static class SearchIndexDefinitionFactory
             {
                 throw new InvalidOperationException($"Vector field '{fullPath}' must have Dimensions > 0. Current value: {vectorAttr.Dimensions}");
             }
-            fields.Add(new BsonDocument
+            if (vectorAttr.MaxEdges < 0)
+            {
+                throw new InvalidOperationException($"Vector field '{fullPath}' must have MaxEdges >= 0 (0 = server default). Current value: {vectorAttr.MaxEdges}");
+            }
+            if (vectorAttr.NumEdgeCandidates < 0)
+            {
+                throw new InvalidOperationException($"Vector field '{fullPath}' must have NumEdgeCandidates >= 0 (0 = server default). Current value: {vectorAttr.NumEdgeCandidates}");
+            }
+            var field = new BsonDocument
             {
                 { "type", "vector" },
                 { "path", fullPath },
                 { "numDimensions", vectorAttr.Dimensions },
                 { "similarity", MapVectorSimilarity(vectorAttr.Similarity) }
+            };
+            if (vectorAttr.Quantization is not EVectorQuantization.None)
+            {
+                field.Add("quantization", MapVectorQuantization(vectorAttr.Quantization));
+            }
+            if (vectorAttr.MaxEdges > 0 || vectorAttr.NumEdgeCandidates > 0)
+            {
+                var hnswOptions = new BsonDocument();
+                if (vectorAttr.MaxEdges > 0)
+                {
+                    hnswOptions.Add("maxEdges", vectorAttr.MaxEdges);
+                }
+                if (vectorAttr.NumEdgeCandidates > 0)
+                {
+                    hnswOptions.Add("numEdgeCandidates", vectorAttr.NumEdgeCandidates);
+                }
+                field.Add("hnswOptions", hnswOptions);
+            }
+            fields.Add(field);
+        }
+    }
+
+    private static void CollectAutoEmbeddingFields(Type type, bool useCamelCase, string? parentPath, string indexName, BsonArray fields)
+    {
+        foreach (var prop in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        {
+            var fieldName = useCamelCase ? prop.Name.ToLowerCamelCase() : prop.Name;
+            var fullPath = string.IsNullOrEmpty(parentPath) ? fieldName : $"{parentPath}.{fieldName}";
+            var autoEmbedAttr = prop.GetCustomAttribute<AutoEmbeddingFieldAttribute>(false);
+            if (autoEmbedAttr is null || autoEmbedAttr.IndexName != indexName)
+            {
+                continue;
+            }
+            if (prop.PropertyType != typeof(string))
+            {
+                throw new InvalidOperationException($"Auto-embedding field '{fullPath}' must be of type string. Current type: {prop.PropertyType}.");
+            }
+            if (string.IsNullOrWhiteSpace(autoEmbedAttr.Model))
+            {
+                throw new InvalidOperationException($"Auto-embedding field '{fullPath}' must specify a non-empty Model.");
+            }
+            fields.Add(new BsonDocument
+            {
+                { "type", "autoEmbed" },
+                { "modality", "text" },
+                { "path", fullPath },
+                { "model", autoEmbedAttr.Model }
             });
         }
     }
@@ -185,5 +251,13 @@ internal static class SearchIndexDefinitionFactory
             EVectorSimilarity.DotProduct => "dotProduct",
             EVectorSimilarity.Euclidean  => "euclidean",
             _                            => throw new NotSupportedException($"Unsupported vector similarity: {similarity}")
+        };
+
+    private static string MapVectorQuantization(EVectorQuantization quantization) =>
+        quantization switch
+        {
+            EVectorQuantization.Scalar => "scalar",
+            EVectorQuantization.Binary => "binary",
+            _                          => throw new NotSupportedException($"Unsupported vector quantization: {quantization}")
         };
 }

@@ -62,6 +62,27 @@ public sealed class ChangeStreamHandlerOptions
 
     /// <summary>
     ///     <para xml:lang="en">
+    ///     Minimum interval between resume-token persistence writes.
+    ///     When <see cref="TimeSpan.Zero" /> (default), the token is persisted after every successfully handled event —
+    ///     safest, but adds one MongoDB write per event. Under high change volume, set e.g. <c>TimeSpan.FromSeconds(5)</c>
+    ///     to throttle writes; tokens arriving within the interval are kept in memory and flushed when the stream
+    ///     pauses, errors, or shuts down. A larger interval means more events may be re-delivered after a crash
+    ///     (processing is at-least-once either way).
+    ///     Only used when <see cref="PersistResumeToken" /> is <see langword="true" />.
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     恢复令牌持久化写入的最小间隔。
+    ///     为 <see cref="TimeSpan.Zero" />（默认）时，每个成功处理的事件后都会持久化令牌 —
+    ///     最安全，但每个事件都会增加一次 MongoDB 写入。在高变更量场景下，可设置为例如 <c>TimeSpan.FromSeconds(5)</c>
+    ///     来限流写入；间隔内到达的令牌保存在内存中，并在流暂停、出错或关闭时刷新写入。
+    ///     间隔越大，崩溃后可能重复投递的事件越多（无论如何处理语义都是至少一次）。
+    ///     仅在 <see cref="PersistResumeToken" /> 为 <see langword="true" /> 时使用。
+    ///     </para>
+    /// </summary>
+    public TimeSpan ResumeTokenPersistInterval { get; set; } = TimeSpan.Zero;
+
+    /// <summary>
+    ///     <para xml:lang="en">
     ///     The name of the collection used to store resume tokens.
     ///     Only used when <see cref="PersistResumeToken" /> is <see langword="true" />.
     ///     Defaults to <c>"_changeStreamResumeTokens"</c>.

@@ -20,6 +20,7 @@ Fluent API、聚合管道扩展以及地理空间查询工具。业务层和 Asp
     - [MongoSearchIndexAttribute —— 搜索索引](#mongosearchindexattribute--搜索索引)
     - [SearchFieldAttribute —— 搜索字段](#searchfieldattribute--搜索字段)
     - [VectorFieldAttribute —— 向量字段](#vectorfieldattribute--向量字段)
+    - [AutoEmbeddingFieldAttribute —— 自动嵌入字段](#autoembeddingfieldattribute--自动嵌入字段)
     - [VectorFilterFieldAttribute —— 向量过滤字段](#vectorfilterfieldattribute--向量过滤字段)
 - [批量写入 Fluent API](#批量写入-fluent-api)
 - [聚合管道扩展](#聚合管道扩展)
@@ -499,6 +500,12 @@ public class KnowledgeBase
     // 小型本地模型（如 sentence-transformers all-MiniLM），384 维
     // [VectorField(Dimensions = 384, Similarity = EVectorSimilarity.Cosine)]
     // public float[] LocalEmbedding { get; set; }
+
+    // 高维向量 + 标量量化（约省 4 倍内存）+ HNSW 图调优
+    // [VectorField(Dimensions = 3072, Similarity = EVectorSimilarity.Cosine,
+    //     Quantization = EVectorQuantization.Scalar,
+    //     MaxEdges = 32, NumEdgeCandidates = 200)]
+    // public float[] LargeEmbedding { get; set; }
 }
 ```
 
@@ -509,6 +516,36 @@ public class KnowledgeBase
 | `Cosine`     | 余弦相似度（角度） | **推荐**，适合归一化的文本嵌入 |
 | `DotProduct` | 点积（投影）    | 适合已充分训练且向量未归一化的场景 |
 | `Euclidean`  | 欧几里得距离    | 图像、空间坐标等绝对距离敏感场景  |
+
+**`EVectorQuantization` 枚举说明**（自动向量量化，可选）：
+
+| 枚举值      | 内存占用     | 适用场景                        |
+|----------|----------|-----------------------------|
+| `None`   | 全精度（默认）  | 精度优先，向量量较小                  |
+| `Scalar` | 约降低 4 倍  | 通用推荐，精度损失很小                 |
+| `Binary` | 约降低 32 倍 | 大规模高维向量，且嵌入模型针对二值量化训练       |
+
+**HNSW 图调优参数**（可选，`0` 表示使用 Atlas 服务端默认值）：
+
+- `MaxEdges` — 图中每个节点的最大边数，越大召回率越高，索引内存与构建开销也越大；
+- `NumEdgeCandidates` — 构建索引时检查的最近邻候选数，越大索引质量越高，构建越慢。
+
+### AutoEmbeddingFieldAttribute —— 自动嵌入字段
+
+标记文本字段由 Atlas **自动生成向量嵌入**（Automated Embedding）：索引时对字段文本、查询时对查询字符串，
+自动调用指定的 Voyage AI 模型生成向量，**无需自己维护嵌入管道**。需要 Atlas 且开启 Automated Embedding 支持。
+
+```csharp
+[MongoSearchIndex(Name = "auto_vector", Type = ESearchIndexType.VectorSearch)]
+public class Article
+{
+    public string Id { get; set; }
+
+    // Atlas 自动为 Content 生成向量，查询时直接传入文本即可
+    [AutoEmbeddingField("voyage-4", IndexName = "auto_vector")]
+    public string Content { get; set; }
+}
+```
 
 ### VectorFilterFieldAttribute —— 向量过滤字段
 
