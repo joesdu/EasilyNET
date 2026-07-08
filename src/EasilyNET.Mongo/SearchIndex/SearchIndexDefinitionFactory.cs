@@ -146,6 +146,14 @@ internal static class SearchIndexDefinitionFactory
             {
                 throw new InvalidOperationException($"Vector field '{fullPath}' must have Dimensions > 0. Current value: {vectorAttr.Dimensions}");
             }
+            if (vectorAttr.MaxEdges < 0)
+            {
+                throw new InvalidOperationException($"Vector field '{fullPath}' must have MaxEdges >= 0 (0 = server default). Current value: {vectorAttr.MaxEdges}");
+            }
+            if (vectorAttr.NumEdgeCandidates < 0)
+            {
+                throw new InvalidOperationException($"Vector field '{fullPath}' must have NumEdgeCandidates >= 0 (0 = server default). Current value: {vectorAttr.NumEdgeCandidates}");
+            }
             var field = new BsonDocument
             {
                 { "type", "vector" },
@@ -184,6 +192,10 @@ internal static class SearchIndexDefinitionFactory
             if (autoEmbedAttr is null || autoEmbedAttr.IndexName != indexName)
             {
                 continue;
+            }
+            if (prop.PropertyType != typeof(string))
+            {
+                throw new InvalidOperationException($"Auto-embedding field '{fullPath}' must be of type string. Current type: {prop.PropertyType}.");
             }
             if (string.IsNullOrWhiteSpace(autoEmbedAttr.Model))
             {
