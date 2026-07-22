@@ -561,12 +561,22 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     var currentSession = Volatile.Read(ref _session);
                     if (currentSession is null || !IsSessionOpen(currentSession))
                     {
-                        message.CompletionSource?.TrySetException(new InvalidOperationException("WebSocket connection is not open."));
+                        var notOpen = new InvalidOperationException("WebSocket connection is not open.");
+                        message.CompletionSource?.TrySetException(notOpen);
                         if (message.RentedArray != null)
                         {
                             ArrayPool<byte>.Shared.Return(message.RentedArray);
                         }
-                        continue;
+                        if (currentSession is null)
+                        {
+                            // 无活动会话（通常已处于 Disconnected/Reconnecting），没有可上报的连接，丢弃即可。
+                            continue;
+                        }
+                        // socket 已不再 Open 但状态机仍停留在 Connected：作为接收侧漏检的兜底主动上报断线，
+                        // 否则本分支会对后续每一条消息无限重复失败，且自动重连永远不会被触发。
+                        FailPendingSends(notOpen);
+                        await HandleConnectionLoss(currentSession, notOpen).ConfigureAwait(false);
+                        break;
                     }
                     try
                     {
@@ -690,8 +700,25 @@ public sealed class ManagedWebSocketClient : IAsyncDisposable
                     throw;
                 }
             }
+            // 循环条件退出且未被取消，说明底层 socket 已不再 Open（例如运行时 Abort 后本轮恰好停在条件检查点）。
+            // 此处必须上报断线：否则接收循环静默结束，状态机会永远停留在 Connected，自动重连不会触发。
+            if (!token.IsCancellationRequested)
+            {
+                await HandleConnectionLoss(session, new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "The underlying WebSocket is no longer open.")).ConfigureAwait(false);
+            }
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // 预期：主动断开 / 释放 / 重连取消了本次会话。
+        }
+        catch (OperationCanceledException ex)
+        {
+            // 非会话取消的 OperationCanceledException：运行时 Abort 掉 ClientWebSocket（典型场景是
+            // KeepAliveTimeout 内未收到 PONG）时，挂起的 ReceiveAsync 抛出的是 OCE 而非 WebSocketException。
+            // 若与会话取消一并吞掉，断线将无人上报，状态机永远停在 Connected。
+            OnError(new(ex, "ReceiveLoop"));
+            await HandleConnectionLoss(session, ex).ConfigureAwait(false);
+        }
         catch (Exception ex)
         {
             OnError(new(ex, "ReceiveLoop"));
