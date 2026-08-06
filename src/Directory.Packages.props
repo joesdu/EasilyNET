@@ -17,7 +17,7 @@
     <PackageVersion Include="BouncyCastle.Cryptography" Version="2.7.0" />
     <PackageVersion Include="MongoDB.Analyzer" Version="2.0.0" />
     <PackageVersion Include="MongoDB.Driver" Version="3.10.0" />
-    <PackageVersion Include="RabbitMQ.Client" Version="7.2.1" />
+    <PackageVersion Include="RabbitMQ.Client" Version="7.2.2" />
     <PackageVersion Include="Spectre.Console.Json" Version="0.57.3-alpha.0.7" />
     <!--microsoft asp.net core -->
     <PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.8.0" />
