@@ -138,7 +138,7 @@ docker compose -f docker-compose.mongo.rs.yml up -d       # MongoDB replica set
 
 - Requires latest .NET SDK (preview features, no global.json pinning)
 - CI runs on ubuntu-latest with pwsh shell, installs both .NET 10 and 11 preview SDKs
-- Release triggered by git tag `*.*.*` → Pack.ps1 → Push.ps1 to NuGet (NUGET_ENV environment)
+- Release triggered by git tag `*.*.*` → Pack.ps1 → Push.ps1 to NuGet (`Release` environment, Trusted Publishing via OIDC — no long-lived API key)
 - `sample/WebApi.Test.Unit` demonstrates module orchestration via `DependsOn` attribute
 - Each `src/` project has its own `README.md` with usage details
 - Serilog + OpenTelemetry pipeline in sample for observability
