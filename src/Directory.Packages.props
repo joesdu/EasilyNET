@@ -20,7 +20,7 @@
     <PackageVersion Include="RabbitMQ.Client" Version="7.2.2" />
     <PackageVersion Include="Spectre.Console.Json" Version="0.57.3-alpha.0.7" />
     <!--microsoft asp.net core -->
-    <PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.8.0" />
+    <PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.9.0" />
     <!--microsoft source generator-->
     <!--<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.12.0-beta1.25218.8" />-->
     <!--<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />-->
