@@ -44,6 +44,6 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="11.0.0-preview.7.26381.103" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="11.0.0-preview.7.26381.103" />
     <!-- SourceLink for NuGet symbol debugging -->
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="11.0.0-preview.7.26381.103" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="11.0.100-preview.7.26381.103" />
   </ItemGroup>
 </Project>
