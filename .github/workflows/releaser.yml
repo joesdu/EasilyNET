@@ -2,6 +2,8 @@ name: Release
 permissions:
   contents: read
   pull-requests: write
+  # NuGet Trusted Publishing(OIDC) 需要请求 GitHub 身份令牌
+  id-token: write
 
 on:
   push:
@@ -24,8 +26,9 @@ jobs:
     defaults:
       run:
         shell: bash
+    # 该名称必须与 nuget.org 上 Trusted Publishing 策略中的 Environment 一致
     environment:
-      name: NUGET_ENV
+      name: Release
     steps:
       # Windows Only
       #- name: Set Timezone
@@ -79,9 +82,17 @@ jobs:
         run: ./Pack.ps1
         shell: pwsh
 
+      # 通过 OIDC 换取 nuget.org 的短期 API Key(有效期 1 小时),不再使用长期密钥
+      # user 为 nuget.org 的用户名(profile name),非邮箱
+      - name: NuGet Login (Trusted Publishing)
+        uses: NuGet/login@v1
+        id: nuget_login
+        with:
+          user: joes_du
+
       - name: Push to NuGet
         env:
-          NUGET_URL: ${{ vars.NUGET_URL }}
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_URL: https://api.nuget.org/v3/index.json
+          NUGET_API_KEY: ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
         run: ./Push.ps1
         shell: pwsh
