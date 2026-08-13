@@ -34,7 +34,7 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.10" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.10" />
     <!-- SourceLink for NuGet symbol debugging -->
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.301" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.400" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0-preview.6.26359.118" />
