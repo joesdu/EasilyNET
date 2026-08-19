@@ -111,3 +111,18 @@ public class TopicEventTwoHandlers : IEventHandler<TopicEventTwo>
 }
 
 #endregion
+#region 延迟投递
+
+/// <inheritdoc />
+public class OrderTimeoutEventHandlers(ILogger<OrderTimeoutEventHandlers> logger) : IEventHandler<OrderTimeoutEvent>
+{
+    /// <inheritdoc />
+    public Task HandleAsync(OrderTimeoutEvent @event)
+    {
+        var elapsed = DateTime.Now - @event.PublishedAt;
+        logger.LogInformation("[延迟消息]-订单 {OrderId} 于发布 {Elapsed:F1} 秒后到达", @event.OrderId, elapsed.TotalSeconds);
+        return Task.CompletedTask;
+    }
+}
+
+#endregion

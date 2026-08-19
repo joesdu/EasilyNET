@@ -135,3 +135,22 @@ public class TopicEventTwo : Event
 }
 
 #endregion
+#region 延迟投递
+
+/// <summary>
+/// 测试延迟投递的消息类型:订单超时未支付
+/// </summary>
+public class OrderTimeoutEvent : Event
+{
+    /// <summary>
+    /// 订单号
+    /// </summary>
+    public string OrderId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 发布时间,用于在处理时直观地观察实际延迟
+    /// </summary>
+    public DateTime PublishedAt { get; set; } = DateTime.Now;
+}
+
+#endregion

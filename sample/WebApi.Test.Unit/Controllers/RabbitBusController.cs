@@ -91,4 +91,49 @@ public class RabbitBusController(IBus ibus) : ControllerBase
     {
         await ibus.Publish(new TopicEventOne(), "topic.queue.3");
     }
+
+    /// <summary>
+    /// 延迟投递:消息在指定秒数之后才对消费者可见.
+    /// 底层走 DLX + 队列级 TTL 构成的二进制延迟阶梯,不依赖任何 broker 插件.
+    /// </summary>
+    /// <param name="seconds">延迟秒数</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    [HttpPost]
+    public async Task DelayedOrderTimeout(int seconds = 15, CancellationToken cancellationToken = default)
+    {
+        await ibus.PublishDelayed(new OrderTimeoutEvent
+        {
+            OrderId = $"ORDER-{DateTime.Now:HHmmss}"
+        }, TimeSpan.FromSeconds(seconds), cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// 定时投递:消息不早于指定时刻投递,等价于 DoNotDeliverBefore 语义.
+    /// </summary>
+    /// <param name="deliverAt">最早投递时间,不传则默认为 1 分钟后</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    [HttpPost]
+    public async Task ScheduledOrderTimeout(DateTimeOffset? deliverAt = null, CancellationToken cancellationToken = default)
+    {
+        await ibus.PublishAt(new OrderTimeoutEvent
+        {
+            OrderId = $"ORDER-{DateTime.Now:HHmmss}"
+        }, deliverAt ?? DateTimeOffset.Now.AddMinutes(1), cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// 批量延迟投递:一次发送多条共享同一延迟时长的消息.
+    /// </summary>
+    /// <param name="seconds">延迟秒数</param>
+    /// <param name="count">消息条数</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    [HttpPost]
+    public async Task DelayedBatch(int seconds = 30, int count = 5, CancellationToken cancellationToken = default)
+    {
+        var events = Enumerable.Range(0, count).Select(x => new OrderTimeoutEvent
+        {
+            OrderId = $"BATCH-{x}"
+        });
+        await ibus.PublishDelayedBatch(events, TimeSpan.FromSeconds(seconds), cancellationToken: cancellationToken);
+    }
 }

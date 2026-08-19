@@ -1,4 +1,5 @@
 using EasilyNET.RabbitBus.Configs;
+using EasilyNET.RabbitBus.Delayed;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Enums;
 using Polly;
@@ -227,6 +228,85 @@ public sealed class RabbitBusBuilder
         {
             Config.RetryQueueAvgEntryBytes = Math.Max(256, avgEntryBytes.Value);
         }
+        return this;
+    }
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Enable delayed delivery. It is implemented with a binary delay ladder built from ordinary topic exchanges, queue level TTL
+    ///     and dead-lettering, so it needs no broker plugin and works with quorum queues and clusters
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     启用延迟投递。实现基于由普通 topic 交换机、队列级 TTL 与死信转发构成的二进制延迟阶梯,
+    ///     无需任何 broker 插件,且可用于仲裁队列与集群
+    ///     </para>
+    /// </summary>
+    /// <param name="maxDelay">
+    ///     <para xml:lang="en">
+    ///     Maximum supported delay. It decides how many ladder levels are declared, so publishers and consumers sharing a ladder must
+    ///     use the same value. Default (null) keeps all 28 levels, covering about 8.5 years
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     支持的最大延迟。它决定声明多少个阶梯档位,因此共用同一套阶梯的生产端与消费端必须使用相同的值。
+    ///     默认(null)保留全部 28 个档位,可覆盖约 8.5 年
+    ///     </para>
+    /// </param>
+    /// <param name="prefix">
+    ///     <para xml:lang="en">Name prefix of the ladder topology. Default is "easilynet.v1.delay"</para>
+    ///     <para xml:lang="zh">阶梯拓扑的名称前缀。默认是 "easilynet.v1.delay"</para>
+    /// </param>
+    /// <param name="addressMode">
+    ///     <para xml:lang="en">How the destination of a delayed message is resolved</para>
+    ///     <para xml:lang="zh">延迟消息投递目标的解析方式</para>
+    /// </param>
+    /// <param name="useQuorumQueues">
+    ///     <para xml:lang="en">Declare the ladder queues as quorum queues. Set to false on single node brokers</para>
+    ///     <para xml:lang="zh">阶梯队列是否声明为仲裁队列。单节点环境可设为 false</para>
+    /// </param>
+    /// <param name="autoDeclareTopology">
+    ///     <para xml:lang="en">Declare the topology automatically on startup and after reconnects</para>
+    ///     <para xml:lang="zh">是否在启动及重连后自动声明拓扑</para>
+    /// </param>
+    /// <param name="queueArguments">
+    ///     <para xml:lang="en">Extra arguments merged into every ladder queue declaration</para>
+    ///     <para xml:lang="zh">合并到每个阶梯队列声明中的额外参数</para>
+    /// </param>
+    public RabbitBusBuilder WithDelayedDelivery(TimeSpan? maxDelay = null, string? prefix = null, EDelayAddressMode addressMode = EDelayAddressMode.RoutingAware, bool useQuorumQueues = true, bool autoDeclareTopology = true, Dictionary<string, object?>? queueArguments = null) =>
+        WithDelayedDelivery(delayed =>
+        {
+            if (maxDelay.HasValue)
+            {
+                delayed.LevelCount = DelayLadder.LevelCountFor(maxDelay.Value);
+            }
+            if (!string.IsNullOrWhiteSpace(prefix))
+            {
+                delayed.Prefix = prefix;
+            }
+            delayed.AddressMode = addressMode;
+            delayed.UseQuorumQueues = useQuorumQueues;
+            delayed.AutoDeclareTopology = autoDeclareTopology;
+            if (queueArguments is null)
+            {
+                return;
+            }
+            foreach (var (key, value) in queueArguments)
+            {
+                delayed.QueueArguments[key] = value;
+            }
+        });
+
+    /// <summary>
+    ///     <para xml:lang="en">Enable delayed delivery and configure it directly</para>
+    ///     <para xml:lang="zh">启用延迟投递并直接配置其细节</para>
+    /// </summary>
+    /// <param name="configure">
+    ///     <para xml:lang="en">Delayed delivery configuration action</para>
+    ///     <para xml:lang="zh">延迟投递配置操作</para>
+    /// </param>
+    public RabbitBusBuilder WithDelayedDelivery(Action<DelayedDeliveryConfig> configure)
+    {
+        Config.DelayedDelivery.Enabled = true;
+        configure.Invoke(Config.DelayedDelivery);
         return this;
     }
 
@@ -592,6 +672,28 @@ public sealed class RabbitBusBuilder
                     config.Exchange.BindingArguments[key] = value;
                 }
             });
+            return this;
+        }
+
+        /// <summary>
+        ///     <para xml:lang="en">
+        ///     Override the delay address of this event. By default the address is derived from the exchange configuration so a delayed
+        ///     publish reaches the same consumers as a normal one; an explicit address delivers straight into the configured queue and
+        ///     must be identical on the publishing and the consuming side
+        ///     </para>
+        ///     <para xml:lang="zh">
+        ///     覆盖此事件的延迟地址。默认地址由交换机配置推导,使延迟发布与普通发布抵达相同的消费者;
+        ///     显式指定的地址会让消息直接投递到所配置的队列,且生产端与消费端必须完全一致
+        ///     </para>
+        /// </summary>
+        /// <param name="address">
+        ///     <para xml:lang="en">Delay address, must not contain spaces</para>
+        ///     <para xml:lang="zh">延迟地址,不能包含空格</para>
+        /// </param>
+        public EventConfigurator<TEvent> WithDelayAddress(string address)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(address);
+            _builder.EventRegistry.Configure<TEvent>(config => config.DelayAddress = address);
             return this;
         }
 

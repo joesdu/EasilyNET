@@ -1,5 +1,6 @@
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.Configs;
+using EasilyNET.RabbitBus.Delayed;
 using EasilyNET.RabbitBus.Manager;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Enums;
@@ -14,47 +15,25 @@ internal sealed class EventBus(
     ConsumerManager consumerManager,
     EventPublisher eventPublisher,
     EventHandlerInvoker handlerInvoker,
+    DelayInfrastructure delayInfrastructure,
     ILogger<EventBus> logger,
     IOptionsMonitor<RabbitConfig> options) : IBus
 {
     private RabbitConfig Config => options.Get(Constant.OptionName);
 
-    public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, headers, cancellationToken).ConfigureAwait(false);
+    public async Task Publish<T>(T @event, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, headers, null, cancellationToken).ConfigureAwait(false);
 
-    public async Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatchInternal(events, routingKey, priority, headers, cancellationToken).ConfigureAwait(false);
+    public async Task PublishBatch<T>(IEnumerable<T> events, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatchInternal(events, routingKey, priority, headers, null, cancellationToken).ConfigureAwait(false);
 
-    public async Task Publish(object @event, Type eventType, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (@event is not IEvent evt)
-        {
-            throw new ArgumentException("Event must implement IEvent", nameof(@event));
-        }
-        var config = eventRegistry.GetConfiguration(eventType);
-        if (config is null || !config.Enabled)
-        {
-            if (logger.IsEnabled(LogLevel.Warning))
-            {
-                logger.LogWarning("Event {EventType} is not registered or disabled.", eventType.Name);
-            }
-            return;
-        }
-        try
-        {
-            await eventPublisher.Publish(config, evt, routingKey, priority, headers, cancellationToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            if (logger.IsEnabled(LogLevel.Error))
-            {
-                logger.LogError(ex, "Failed to publish event {EventType} ID {EventId}", eventType.Name, evt.EventId);
-            }
-        }
-    }
+    public async Task PublishDelayed<T>(T @event, TimeSpan delay, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, headers, delay, cancellationToken).ConfigureAwait(false);
+
+    public async Task PublishAt<T>(T @event, DateTimeOffset deliverAt, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) where T : IEvent => await PublishInternal(@event, routingKey, priority, headers, deliverAt - DateTimeOffset.UtcNow, cancellationToken).ConfigureAwait(false);
+
+    public async Task PublishDelayedBatch<T>(IEnumerable<T> events, TimeSpan delay, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) where T : IEvent => await PublishBatchInternal(events, routingKey, priority, headers, delay, cancellationToken).ConfigureAwait(false);
+
+    public async Task PublishDelayed(object @event, Type eventType, TimeSpan delay, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) => await PublishObjectInternal(@event, eventType, routingKey, priority, headers, delay, cancellationToken).ConfigureAwait(false);
+
+    public async Task Publish(object @event, Type eventType, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) => await PublishObjectInternal(@event, eventType, routingKey, priority, headers, null, cancellationToken).ConfigureAwait(false);
 
     /// <summary>
     /// 异步初始化EventBus
@@ -64,6 +43,7 @@ internal sealed class EventBus(
         try
         {
             await ValidateExchangesOnStartupAsync(ct).ConfigureAwait(false);
+            await DeclareDelayTopologyAsync(ct).ConfigureAwait(false);
             RegisterConnectionEvents(ct);
             await RegisterChannelEventsAsync(ct).ConfigureAwait(false);
             await RestartRabbit(ct).ConfigureAwait(false);
@@ -99,6 +79,7 @@ internal sealed class EventBus(
 
             // 清理过期的发布确认
             await eventPublisher.OnConnectionReconnected();
+            await DeclareDelayTopologyAsync(ct).ConfigureAwait(false);
             await RegisterChannelEventsAsync(ct).ConfigureAwait(false); // 通道可能已替换，需要重新注册
             await RestartRabbit(ct).ConfigureAwait(false);
         };
@@ -126,6 +107,41 @@ internal sealed class EventBus(
     internal async Task RunRabbit(CancellationToken cancellationToken)
     {
         await InitializeAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// 声明延迟阶梯拓扑。使用独立通道，避免声明失败(例如已存在参数不兼容的同名队列)连带关闭共享的发布通道
+    /// </summary>
+    private async Task DeclareDelayTopologyAsync(CancellationToken ct)
+    {
+        if (!delayInfrastructure.Enabled)
+        {
+            return;
+        }
+        PersistentConnection.ChannelLease? lease = null;
+        try
+        {
+            lease = await conn.CreateDedicatedChannelAsync(ct).ConfigureAwait(false);
+            await delayInfrastructure.DeclareTopologyAsync(lease.Channel, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Failed to declare the delay ladder topology. Delayed publishing will fail until the topology exists");
+            }
+        }
+        finally
+        {
+            if (lease is not null)
+            {
+                await lease.DisposeAsync().ConfigureAwait(false);
+            }
+        }
     }
 
     /// <summary>
@@ -221,7 +237,58 @@ internal sealed class EventBus(
 
     #region Internal Publish Helpers
 
-    private async Task PublishInternal<T>(T @event, string? routingKey, byte? priority, IReadOnlyDictionary<string, object?>? headers, CancellationToken ct) where T : IEvent
+    /// <summary>
+    /// 计算延迟发布计划。非正延迟等同于立即发送(返回 null);未启用延迟投递却请求延迟时快速失败
+    /// </summary>
+    private DelayPublishPlan? CreateDelayPlan(EventConfiguration config, string? routingKey, TimeSpan? delay)
+    {
+        if (delay is not { } value || DelayLadder.ToDelaySeconds(value) <= 0)
+        {
+            return null;
+        }
+        if (!delayInfrastructure.Enabled)
+        {
+            throw new InvalidOperationException("Delayed delivery is disabled. Enable it with WithDelayedDelivery() on the RabbitBus builder before publishing delayed messages.");
+        }
+        return delayInfrastructure.CreatePlan(config, routingKey, value);
+    }
+
+    private async Task PublishObjectInternal(object @event, Type eventType, string? routingKey, byte? priority, IReadOnlyDictionary<string, object?>? headers, TimeSpan? delay, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (@event is not IEvent evt)
+        {
+            throw new ArgumentException("Event must implement IEvent", nameof(@event));
+        }
+        var config = eventRegistry.GetConfiguration(eventType);
+        if (config is null || !config.Enabled)
+        {
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Event {EventType} is not registered or disabled.", eventType.Name);
+            }
+            return;
+        }
+        // 配置类错误(未启用延迟、延迟超出阶梯上限)属于调用方问题，直接抛出而不是被下面的兜底日志吞掉
+        var plan = CreateDelayPlan(config, routingKey, delay);
+        try
+        {
+            await eventPublisher.Publish(config, evt, routingKey, priority, headers, plan, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            if (logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "Failed to publish{Kind}event {EventType} ID {EventId}", plan is null ? " " : " delayed ", eventType.Name, evt.EventId);
+            }
+        }
+    }
+
+    private async Task PublishInternal<T>(T @event, string? routingKey, byte? priority, IReadOnlyDictionary<string, object?>? headers, TimeSpan? delay, CancellationToken ct) where T : IEvent
     {
         ct.ThrowIfCancellationRequested();
         var config = eventRegistry.GetConfiguration<T>();
@@ -233,9 +300,10 @@ internal sealed class EventBus(
             }
             return;
         }
+        var plan = CreateDelayPlan(config, routingKey, delay);
         try
         {
-            await eventPublisher.Publish(config, @event, routingKey, priority, headers, ct).ConfigureAwait(false);
+            await eventPublisher.Publish(config, @event, routingKey, priority, headers, plan, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -251,7 +319,7 @@ internal sealed class EventBus(
         }
     }
 
-    private async Task PublishBatchInternal<T>(IEnumerable<T> events, string? routingKey, byte? priority, IReadOnlyDictionary<string, object?>? headers, CancellationToken ct) where T : IEvent
+    private async Task PublishBatchInternal<T>(IEnumerable<T> events, string? routingKey, byte? priority, IReadOnlyDictionary<string, object?>? headers, TimeSpan? delay, CancellationToken ct) where T : IEvent
     {
         ct.ThrowIfCancellationRequested();
         // 避免多次枚举
@@ -272,9 +340,10 @@ internal sealed class EventBus(
             }
             return;
         }
+        var plan = CreateDelayPlan(config, routingKey, delay);
         try
         {
-            await eventPublisher.PublishBatch(config, list, routingKey, priority, headers, ct).ConfigureAwait(false);
+            await eventPublisher.PublishBatch(config, list, routingKey, priority, headers, plan, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

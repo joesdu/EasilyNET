@@ -13,6 +13,7 @@ EasilyNET.RabbitBus/
 ├── Abstractions/   # IDeadLetterStore (public), internal interfaces
 ├── Builder/        # RabbitBusBuilder (710 lines, fluent config API)
 ├── Configs/        # Event/handler configuration models
+├── Delayed/        # Binary delay ladder: DelayLadder (routing key math), DelayInfrastructure (topology), address resolution
 ├── Health/         # Health check integration
 ├── Manager/        # EventBus, EventPublisher, EventHandlerInvoker, PersistentConnection
 ├── Metrics/        # System.Diagnostics.Metrics instrumentation (meter: EasilyNET.RabbitBus)
@@ -37,6 +38,7 @@ Sibling `EasilyNET.RabbitBus.Core` provides: `Event` base class, `IEventHandler<
 | Consumer middleware      | Implement `IEventMiddleware<T>`, use `WithMiddleware<T>()`           |
 | Fallback handler         | Implement `IEventFallbackHandler<T>`, use `WithFallbackHandler<T>()` |
 | Per-event resilience     | `WithHandlerResilience(builder => ...)`                              |
+| Delayed / scheduled send | `Delayed/` + `WithDelayedDelivery()`, `IBus.PublishDelayed/PublishAt` |
 
 ## COMPLEXITY HOTSPOTS
 
@@ -58,7 +60,9 @@ The `Manager/` directory contains the 3 most complex files in this package:
 - `Channel<T>` for retry queue (not `ConcurrentQueue`)
 - Polly pipelines for resilience: `PublishPipeline`, `ConnectionPipeline`, `HandlerPipeline`
 - OpenTelemetry: ActivitySource `EasilyNET.RabbitBus`, auto trace context propagation via message headers
-- Delayed message exchange plugin support removed (RabbitMQ deprecated it)
+- Delayed delivery uses a binary delay ladder (topic exchanges + queue-level TTL + DLX), NOT the deprecated
+  `rabbitmq-delayed-message-exchange` plugin. Level count is a topology contract: publisher and consumer must agree.
+  See `docs/DELAYED_MESSAGING_DESIGN.md`
 
 ## ANTI-PATTERNS
 

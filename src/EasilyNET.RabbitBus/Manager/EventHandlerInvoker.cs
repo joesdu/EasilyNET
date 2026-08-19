@@ -1,10 +1,13 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 using System.Text;
 using EasilyNET.RabbitBus.Abstractions;
 using EasilyNET.RabbitBus.Configs;
+using EasilyNET.RabbitBus.Delayed;
+using EasilyNET.RabbitBus.Metrics;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -68,6 +71,7 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
             activity?.SetTag("messaging.source", ea.Exchange);
             activity?.SetTag("messaging.destination", ea.RoutingKey);
             activity?.SetTag("messaging.consumer_id", consumerIndex.ToString());
+            RecordDelayAccuracy(ea.BasicProperties.Headers, activity);
 
             // 尽量避免重复拷贝 Body
             var bodyBytes = GetBodyBytes(ea.Body);
@@ -368,6 +372,30 @@ internal sealed class EventHandlerInvoker(IServiceProvider sp, IBusSerializer se
     /// 从 RabbitMQ BasicProperties 提取消息头
     /// </summary>
     private static IReadOnlyDictionary<string, object?> ExtractHeaders(IDictionary<string, object?>? headers) => headers is null or { Count: 0 } ? new Dictionary<string, object?>() : new Dictionary<string, object?>(headers);
+
+    /// <summary>
+    /// 记录延迟投递精度（实际到达时间 - 期望投递时间）。普通消息不含该消息头，直接跳过
+    /// </summary>
+    private static void RecordDelayAccuracy(IDictionary<string, object?>? headers, Activity? activity)
+    {
+        if (headers is null || !headers.TryGetValue(DelayHeaders.DeliverAt, out var raw))
+        {
+            return;
+        }
+        var text = raw switch
+        {
+            byte[] bytes => Encoding.UTF8.GetString(bytes),
+            string str   => str,
+            _            => null
+        };
+        if (text is null || !DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var expected))
+        {
+            return;
+        }
+        var error = (DateTime.UtcNow - expected.ToUniversalTime()).TotalSeconds;
+        RabbitBusMetrics.DelayDeliveryErrorSeconds.Record(error);
+        activity?.SetTag("messaging.rabbitmq.delay_error_seconds", error);
+    }
 
     /// <summary>
     /// 从 RabbitMQ 消息头中提取父级追踪上下文（traceparent/tracestate）

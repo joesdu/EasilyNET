@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading.Channels;
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.Configs;
+using EasilyNET.RabbitBus.Delayed;
 using EasilyNET.RabbitBus.Metrics;
 using EasilyNET.RabbitBus.Utilities;
 using EasilyNET.RabbitBus.Core.Abstraction;
@@ -30,6 +31,12 @@ internal readonly struct RetryMessage
     public int RetryCount { get; init; }
 
     public DateTime NextRetryTime { get; init; }
+
+    /// <summary>
+    /// 延迟消息的期望投递时间(UTC)。为 null 表示这是一条普通消息;
+    /// 重试时会按剩余时间重新计算延迟,避免因重试而整体顺延
+    /// </summary>
+    public DateTime? DeliverAtUtc { get; init; }
 }
 
 /// <summary>
@@ -56,9 +63,10 @@ internal sealed class EventPublisher : IAsyncDisposable
 
     private readonly PersistentConnection _conn;
     private readonly CancellationTokenSource _cts = new();
+    private readonly DelayInfrastructure _delay;
     private readonly ILogger<EventBus> _logger;
     private readonly ConcurrentDictionary<ulong, TaskCompletionSource<bool>> _outstandingConfirms = [];
-    private readonly ConcurrentDictionary<ulong, (IEvent Event, string? RoutingKey, byte? Priority, int RetryCount)> _outstandingMessages = [];
+    private readonly ConcurrentDictionary<ulong, (IEvent Event, string? RoutingKey, byte? Priority, int RetryCount, DateTime? DeliverAtUtc)> _outstandingMessages = [];
     private readonly ResiliencePipeline _pipeline;
     private readonly Task _processQueueTask;
     private readonly Channel<PublishContext> _publishChannel;
@@ -70,11 +78,12 @@ internal sealed class EventPublisher : IAsyncDisposable
     private readonly SemaphoreSlim? _throttleSemaphore;
 
     // 构造函数中初始化信号量
-    public EventPublisher(PersistentConnection conn, ResiliencePipelineProvider<string> pipelineProvider, IBusSerializer serializer, ILogger<EventBus> logger, IOptionsMonitor<RabbitConfig> options)
+    public EventPublisher(PersistentConnection conn, ResiliencePipelineProvider<string> pipelineProvider, IBusSerializer serializer, ILogger<EventBus> logger, IOptionsMonitor<RabbitConfig> options, DelayInfrastructure delay)
     {
         _conn = conn;
         _serializer = serializer;
         _logger = logger;
+        _delay = delay;
         _rabbitConfig = options.Get(Constant.OptionName);
         _pipeline = pipelineProvider.GetPipeline(Constant.PublishPipelineName);
         if (_rabbitConfig is { PublisherConfirms: true, MaxOutstandingConfirms: > 0 })
@@ -168,10 +177,38 @@ internal sealed class EventPublisher : IAsyncDisposable
         return bp;
     }
 
+    /// <summary>
+    /// 为延迟消息追加诊断用消息头。阶梯本身完全依靠路由键路由，这些头仅用于排查与延迟精度统计
+    /// </summary>
+    private static IReadOnlyDictionary<string, object?>? MergeDelayHeaders(IReadOnlyDictionary<string, object?>? headers, DelayPublishPlan? delay)
+    {
+        if (delay is not { } plan)
+        {
+            return headers;
+        }
+        var merged = headers is { Count: > 0 } ? new Dictionary<string, object?>(headers) : new Dictionary<string, object?>();
+        merged[DelayHeaders.DelaySeconds] = plan.DelaySeconds;
+        merged[DelayHeaders.DeliverAt] = plan.DeliverAtUtc.ToString("O");
+        merged[DelayHeaders.DelayAddress] = plan.Address;
+        return merged;
+    }
+
+    private static void SetDelayTags(Activity? activity, DelayPublishPlan? delay)
+    {
+        if (activity is null || delay is not { } plan)
+        {
+            return;
+        }
+        activity.SetTag("messaging.rabbitmq.delay_seconds", plan.DelaySeconds);
+        activity.SetTag("messaging.rabbitmq.delay_address", plan.Address);
+        activity.SetTag("messaging.rabbitmq.delay_level_exchange", plan.LevelExchange);
+    }
+
     private async Task ProcessQueueAsync()
     {
         var reader = _publishChannel.Reader;
         var declaredExchanges = new HashSet<string>();
+        var ladderDeclared = false; // 延迟阶梯拓扑在每条通道上只声明一次
         IChannel? lastChannel = null;
         var consecutiveErrors = 0; // 连续错误计数
         try
@@ -189,14 +226,24 @@ internal sealed class EventPublisher : IAsyncDisposable
                         if (channel != lastChannel)
                         {
                             declaredExchanges.Clear();
+                            ladderDeclared = false;
                             lastChannel = channel;
                         }
 
-                        // 2. 确保交换机
-                        if (context.Config.Exchange.Type != EModel.None && !declaredExchanges.Contains(context.Config.Exchange.Name))
+                        // 2. 确保交换机。延迟消息发布到阶梯入口交换机，因此需要的是阶梯拓扑而非目标交换机
+                        if (context.Delay is null)
                         {
-                            await EnsureExchangeAsync(channel, context.Config, _cts.Token).ConfigureAwait(false);
-                            declaredExchanges.Add(context.Config.Exchange.Name);
+                            if (context.Config.Exchange.Type != EModel.None && !declaredExchanges.Contains(context.Config.Exchange.Name))
+                            {
+                                await EnsureExchangeAsync(channel, context.Config, _cts.Token).ConfigureAwait(false);
+                                declaredExchanges.Add(context.Config.Exchange.Name);
+                            }
+                        }
+                        else if (!ladderDeclared)
+                        {
+                            // 声明是幂等的，正常情况下 EventBus 启动时已完成，这里兜住"仅发布方"或通道重建的场景
+                            await _delay.DeclareTopologyAsync(channel, _cts.Token).ConfigureAwait(false);
+                            ladderDeclared = true;
                         }
 
                         // 3. 注册发布确认 (信号量已在 Publish 中获取)
@@ -204,7 +251,7 @@ internal sealed class EventPublisher : IAsyncDisposable
                         {
                             sequenceNumber = await channel.GetNextPublishSequenceNumberAsync(_cts.Token).ConfigureAwait(false);
                             _outstandingConfirms[sequenceNumber] = context.Tcs;
-                            _outstandingMessages[sequenceNumber] = (context.Event, context.RoutingKey, context.Properties.Priority, 0);
+                            _outstandingMessages[sequenceNumber] = (context.Event, context.RoutingKey, context.Properties.Priority, 0, context.Delay?.DeliverAtUtc);
                             _confirmDeadlines[sequenceNumber] = DateTime.UtcNow + TimeSpan.FromMilliseconds(_rabbitConfig.ConfirmTimeoutMs);
                             RabbitBusMetrics.OutstandingConfirms.Add(1);
                             registered = true;
@@ -216,10 +263,13 @@ internal sealed class EventPublisher : IAsyncDisposable
                         {
                             _logger.LogTrace("Publishing event: {EventName} with ID: {EventId}, Sequence: {Sequence}", item.Event.GetType().Name, item.Event.EventId, sequenceNumber);
                         }
-                        // Headers exchange ignores routing key, always use empty string
-                        var effectiveRoutingKey = item.Config.Exchange.Type == EModel.Headers
-                                                      ? string.Empty
-                                                      : item.RoutingKey ?? item.Config.Exchange.RoutingKey;
+                        // 延迟消息走阶梯入口交换机 + 阶梯路由键；Headers 交换机忽略路由键，固定使用空字符串
+                        var effectiveExchange = item.Delay?.LevelExchange ?? item.Config.Exchange.Name;
+                        var effectiveRoutingKey = item.Delay is { } plan
+                                                      ? plan.RoutingKey
+                                                      : item.Config.Exchange.Type == EModel.Headers
+                                                          ? string.Empty
+                                                          : item.RoutingKey ?? item.Config.Exchange.RoutingKey;
                         // mandatory: true so an unroutable message is returned (OnBasicReturn) and observable,
                         // instead of being silently discarded yet positively confirmed by the broker.
                         if (_rabbitConfig.PublisherConfirms)
@@ -229,17 +279,25 @@ internal sealed class EventPublisher : IAsyncDisposable
                             // under a new sequence number on a transient error (duplicate delivery) while the
                             // registered confirm never matches. Re-publishing on failure is instead handled by the
                             // confirm-timeout / nack -> retry-channel path.
-                            await channel.BasicPublishAsync(item.Config.Exchange.Name, effectiveRoutingKey, true, item.Properties, item.Body, _cts.Token).ConfigureAwait(false);
+                            await channel.BasicPublishAsync(effectiveExchange, effectiveRoutingKey, true, item.Properties, item.Body, _cts.Token).ConfigureAwait(false);
                         }
                         else
                         {
                             // No confirms: there is no sequence-number coupling, so transient-retry is safe here.
                             await _pipeline.ExecuteAsync(async ct =>
                             {
-                                await channel.BasicPublishAsync(item.Config.Exchange.Name, effectiveRoutingKey, true, item.Properties, item.Body, ct).ConfigureAwait(false);
+                                await channel.BasicPublishAsync(effectiveExchange, effectiveRoutingKey, true, item.Properties, item.Body, ct).ConfigureAwait(false);
                             }, _cts.Token).ConfigureAwait(false);
                         }
-                        RabbitBusMetrics.PublishedNormal.Add(1);
+                        if (item.Delay is { } published)
+                        {
+                            RabbitBusMetrics.PublishedDelayed.Add(1);
+                            RabbitBusMetrics.DelayRequestedSeconds.Record(published.DelaySeconds);
+                        }
+                        else
+                        {
+                            RabbitBusMetrics.PublishedNormal.Add(1);
+                        }
 
                         // 成功处理，重置错误计数
                         consecutiveErrors = 0;
@@ -381,7 +439,8 @@ internal sealed class EventPublisher : IAsyncDisposable
                     RoutingKey = messageInfo.RoutingKey,
                     Priority = messageInfo.Priority,
                     RetryCount = messageInfo.RetryCount + 1,
-                    NextRetryTime = nextRetryTime
+                    NextRetryTime = nextRetryTime,
+                    DeliverAtUtc = messageInfo.DeliverAtUtc
                 });
                 RabbitBusMetrics.RetryEnqueued.Add(1);
                 if (_logger.IsEnabled(LogLevel.Warning))
@@ -402,7 +461,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         }
     }
 
-    public async Task Publish<T>(EventConfiguration config, T @event, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) where T : IEvent
+    public async Task Publish<T>(EventConfiguration config, T @event, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, DelayPublishPlan? delay = null, CancellationToken cancellationToken = default) where T : IEvent
     {
         cancellationToken.ThrowIfCancellationRequested();
         // ReSharper disable once ExplicitCallerInfoArgument
@@ -412,6 +471,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         activity?.SetTag("messaging.destination_kind", "exchange");
         activity?.SetTag("messaging.rabbitmq.routing_key", routingKey ?? config.Exchange.RoutingKey);
         activity?.SetTag("messaging.message.id", @event.EventId);
+        SetDelayTags(activity, delay);
 
         // 先获取信号量
         await ThrottleIfNeededAsync(cancellationToken).ConfigureAwait(false);
@@ -419,9 +479,9 @@ internal sealed class EventPublisher : IAsyncDisposable
         try
         {
             var body = _serializer.Serialize(@event, @event.GetType());
-            var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), activity, headers);
+            var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), activity, MergeDelayHeaders(headers, delay));
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var context = new PublishContext(@event, routingKey, properties, body, tcs, config);
+            var context = new PublishContext(@event, routingKey, properties, body, tcs, config, delay);
             await _publishChannel.Writer.WriteAsync(context, cancellationToken).ConfigureAwait(false);
             written = true;
             if (_rabbitConfig.PublisherConfirms)
@@ -441,7 +501,7 @@ internal sealed class EventPublisher : IAsyncDisposable
         }
     }
 
-    public async Task PublishBatch<T>(EventConfiguration config, IEnumerable<T> events, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, CancellationToken cancellationToken = default) where T : IEvent
+    public async Task PublishBatch<T>(EventConfiguration config, IEnumerable<T> events, string? routingKey = null, byte? priority = 0, IReadOnlyDictionary<string, object?>? headers = null, DelayPublishPlan? delay = null, CancellationToken cancellationToken = default) where T : IEvent
     {
         var list = events.ToList();
         if (list.Count is 0)
@@ -454,7 +514,8 @@ internal sealed class EventPublisher : IAsyncDisposable
         activity?.SetTag("messaging.destination", config.Exchange.Name);
         activity?.SetTag("messaging.destination_kind", "exchange");
         activity?.SetTag("messaging.rabbitmq.routing_key", routingKey ?? config.Exchange.RoutingKey);
-        var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), activity, headers);
+        SetDelayTags(activity, delay);
+        var properties = BuildBasicProperties(config, priority.GetValueOrDefault(), activity, MergeDelayHeaders(headers, delay));
         var tcsList = new List<(TaskCompletionSource<bool> Tcs, string EventId)>(list.Count);
         foreach (var @event in list)
         {
@@ -465,7 +526,7 @@ internal sealed class EventPublisher : IAsyncDisposable
             {
                 var body = _serializer.Serialize(@event, @event.GetType());
                 var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                var context = new PublishContext(@event, routingKey, properties, body, tcs, config);
+                var context = new PublishContext(@event, routingKey, properties, body, tcs, config, delay);
                 await _publishChannel.Writer.WriteAsync(context, cancellationToken).ConfigureAwait(false);
                 written = true;
                 if (_rabbitConfig.PublisherConfirms)
@@ -561,7 +622,8 @@ internal sealed class EventPublisher : IAsyncDisposable
                         RoutingKey = messageInfo.RoutingKey,
                         Priority = messageInfo.Priority,
                         RetryCount = messageInfo.RetryCount + 1,
-                        NextRetryTime = nextRetryTime
+                        NextRetryTime = nextRetryTime,
+                        DeliverAtUtc = messageInfo.DeliverAtUtc
                     });
                     RabbitBusMetrics.RetryEnqueued.Add(1);
                 }
@@ -606,7 +668,8 @@ internal sealed class EventPublisher : IAsyncDisposable
                             RoutingKey = messageInfo.RoutingKey,
                             Priority = messageInfo.Priority,
                             RetryCount = messageInfo.RetryCount + 1,
-                            NextRetryTime = nextRetryTime
+                            NextRetryTime = nextRetryTime,
+                            DeliverAtUtc = messageInfo.DeliverAtUtc
                         });
                         RabbitBusMetrics.RetryEnqueued.Add(1);
                         break;
@@ -690,5 +753,5 @@ internal sealed class EventPublisher : IAsyncDisposable
 
     // Confirm timeout is handled by MonitorConfirmTimeoutsAsync
 
-    private record PublishContext(IEvent Event, string? RoutingKey, BasicProperties Properties, ReadOnlyMemory<byte> Body, TaskCompletionSource<bool> Tcs, EventConfiguration Config);
+    private record PublishContext(IEvent Event, string? RoutingKey, BasicProperties Properties, ReadOnlyMemory<byte> Body, TaskCompletionSource<bool> Tcs, EventConfiguration Config, DelayPublishPlan? Delay = null);
 }

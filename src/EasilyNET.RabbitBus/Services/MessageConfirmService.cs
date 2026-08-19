@@ -75,7 +75,16 @@ internal sealed class MessageConfirmService(EventPublisher eventPublisher, IBus 
                 try
                 {
                     var eventType = msg.Event.GetType();
-                    await iBus.Publish(msg.Event, eventType, msg.RoutingKey, msg.Priority, cancellationToken: stoppingToken).ConfigureAwait(false);
+                    if (msg.DeliverAtUtc is { } deliverAt)
+                    {
+                        // 延迟消息按剩余时间重投，保持原定的投递时刻；已过期则立即发布
+                        var remaining = deliverAt - DateTime.UtcNow;
+                        await iBus.PublishDelayed(msg.Event, eventType, remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero, msg.RoutingKey, msg.Priority, cancellationToken: stoppingToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await iBus.Publish(msg.Event, eventType, msg.RoutingKey, msg.Priority, cancellationToken: stoppingToken).ConfigureAwait(false);
+                    }
                     RabbitBusMetrics.PublishRetried.Add(1);
                 }
                 catch (Exception ex)
