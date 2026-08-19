@@ -18,6 +18,11 @@ internal static class RabbitBusMetrics
     public static readonly Counter<long> PublishRetried = Meter.CreateCounter<long>("rabbitmq.publish.retried.total", description: "Total messages successfully re-published from the retry queue");
     public static readonly Counter<long> PublishDiscarded = Meter.CreateCounter<long>("rabbitmq.publish.discarded.total", description: "Total messages discarded from the retry queue after exceeding max retries");
 
+    // 延迟投递相关
+    public static readonly Counter<long> PublishedDelayed = Meter.CreateCounter<long>("rabbitmq.publish.delayed.total", description: "Total delayed events published into the delay ladder");
+    public static readonly Histogram<double> DelayRequestedSeconds = Meter.CreateHistogram<double>("rabbitmq.delay.requested.seconds", "s", "Requested delay of published delayed messages");
+    public static readonly Histogram<double> DelayDeliveryErrorSeconds = Meter.CreateHistogram<double>("rabbitmq.delay.delivery.error.seconds", "s", "Difference between actual and expected delivery time of delayed messages");
+
     // Publisher Confirm
     public static readonly Counter<long> ConfirmAck = Meter.CreateCounter<long>("rabbitmq.publish.confirm.ack.total", description: "Total publisher confirms acknowledged");
     public static readonly Counter<long> ConfirmNack = Meter.CreateCounter<long>("rabbitmq.publish.confirm.nack.total", description: "Total publisher confirms negatively acknowledged");

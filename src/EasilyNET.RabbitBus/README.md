@@ -16,24 +16,42 @@
 - 处理器显式排序：通过 `order` 参数控制顺序执行时的处理器顺序
 - 自定义弹性管道：每个事件可配置独立的重试/超时策略
 - OpenTelemetry 分布式追踪：发布/消费链路自动传播 trace context
+- 延迟/定时投递：二进制延迟阶梯（DLX + 队列级 TTL），秒级精确、无队头阻塞、无需 broker 插件
 
-#### 关于延迟消息功能的移除说明
+#### 延迟消息：从插件迁移到「二进制延迟阶梯」
 
-本库已移除对 RabbitMQ 延迟消息交换机（`rabbitmq-delayed-message-exchange`）插件的支持。
+本库**已重新支持延迟消息**，但不再使用 `rabbitmq-delayed-message-exchange` 插件。
 
-**原因**：RabbitMQ 官方团队已于 2026 年 1 月 29 日宣布停止维护该插件，主要原因如下：
+**为什么放弃插件**：RabbitMQ 官方团队已于 2026 年 1 月 29 日宣布停止维护该插件：
 
 1. **严重的设计限制**：该插件基于 Mnesia 存储，存在单节点限制，无法在集群中复制延迟消息，节点故障会导致消息丢失
 2. **不适合大规模使用**：当前设计不适合处理大量延迟消息（如数十万或数百万条）
-3. **Mnesia 将被移除**：RabbitMQ 从 4.3 或 4.4 版本开始将移除 Mnesia，该插件将无法继续工作
+3. **Mnesia 已被弃用**：RabbitMQ 在 4.3 开发周期中弃用 Mnesia，该插件将无法继续工作
 4. **重新设计成本过高**：分布式设计需要从自定义交换机类型切换到自定义队列类型，需要数人年的研发投入
 
-**替代方案**：
+**现在的实现**（设计参考 [NServiceBus](https://github.com/Particular/NServiceBus) 的 RabbitMQ 传输层）：
+把延迟秒数按**二进制**编码进路由键，档位 `n` 的队列 TTL 固定为 `2^n` 秒。位为 1 就在该档位队列等待并死信到下一档，
+位为 0 就由交换机到交换机绑定直接透传。所有停留时间之和恰好等于请求的延迟。
 
-- 使用 RabbitMQ 的 [死信交换机（DLX）](https://www.rabbitmq.com/docs/dlx) + [TTL](https://www.rabbitmq.com/docs/ttl)
-  组合实现基本的延迟和重试功能
-- 使用外部调度器和适合长期存储的数据库
+- ✅ **无队头阻塞**：同一队列内所有消息 TTL 完全相同（这正是朴素「单队列 + 消息级 TTL」方案不可用的原因）
+- ✅ **秒级精确**：不存在「向上取整到预设档位」的精度损失
+- ✅ **集群安全**：阶梯队列默认使用仲裁队列（`x-queue-type=quorum`），可复制、可容忍节点故障
+- ✅ **无插件依赖**：只用原生 topic 交换机 + 队列 TTL + DLX
+- ✅ **跳数有界**：最多 `N` 跳（默认 28 档，最长约 8.5 年），与延迟长短无关
 
+```csharp
+// 1) 启用（生产端与消费端都要启用；档位数由 maxDelay 推导，两端必须一致）
+c.WithDelayedDelivery(TimeSpan.FromHours(24));
+
+// 2) 发布：事件/处理器写法与普通事件完全一致，延迟只体现在发布 API 上
+await bus.PublishDelayed(new OrderTimeoutEvent { OrderId = "12345" }, TimeSpan.FromMinutes(30));
+await bus.PublishAt(new OrderTimeoutEvent { OrderId = "12345" }, DateTimeOffset.Now.AddHours(2));
+await bus.PublishDelayedBatch(events, TimeSpan.FromMinutes(15));
+```
+
+> 完整设计（拓扑结构、延迟地址推导、边界行为、指标与运维要点）见
+> [docs/DELAYED_MESSAGING_DESIGN.md](./docs/DELAYED_MESSAGING_DESIGN.md)。
+>
 > 参考：[rabbitmq/rabbitmq-delayed-message-exchange](https://github.com/rabbitmq/rabbitmq-delayed-message-exchange)
 
 ##### 如何使用
@@ -995,7 +1013,7 @@ services.AddResiliencePipeline(Constant.HandlerPipelineName, (builder, context) 
 
 - 目标框架：`net10.0`、`net11.0`。
 - `EasilyNET.RabbitBus` 已不再依赖 ASP.NET Core 共享框架（由 `EasilyNET.RabbitBus.AspNetCore` 重命名而来），可用于任意 Host。
-- ⚠️ **延迟消息已移除**：不再支持 `rabbitmq-delayed-message-exchange` 插件（官方已于 2026-01-29 停止维护）。延迟/重试请改用 DLX + TTL 或外部调度器（详见上文「关于延迟消息功能的移除说明」）。
+- ⏱️ **延迟消息**：不再依赖 `rabbitmq-delayed-message-exchange` 插件（官方已于 2026-01-29 停止维护），改为内置「二进制延迟阶梯」（DLX + 队列级 TTL），用 `c.WithDelayedDelivery(...)` 启用（详见上文「延迟消息：从插件迁移到『二进制延迟阶梯』」）。
 
 ```bash
 dotnet add package EasilyNET.RabbitBus        # 主包（含 Core）
@@ -1040,6 +1058,7 @@ dotnet add package EasilyNET.RabbitBus.Core
 | 事件级 QoS（预取） | 覆盖全局 | `.WithEventQos(prefetchCount)` |
 | 自定义序列化（MsgPack 等） | 实现 `IBusSerializer` | `c.WithSerializer<S>()` |
 | 批量发布提吞吐 | 批量 API | `bus.PublishBatch(events)` |
+| 延迟 / 定时投递 | 二进制延迟阶梯（无需插件） | `c.WithDelayedDelivery(maxDelay)` + `bus.PublishDelayed / PublishAt` |
 | 可靠投递不丢消息 | 发布确认 + 背压 | `c.WithResilience(publisherConfirms: true)` |
 | 失败消息落库/转存 | 自定义死信存储 | 实现 `IDeadLetterStore` 并注册 |
 | 健康检查 | 已自动注册 | `app.MapHealthChecks("/health")` |
@@ -1119,9 +1138,25 @@ await bus.PublishBatch(events);
 
 // 非泛型（运行时动态类型）
 await bus.Publish(obj, typeof(TestEvent));
+
+// ── 延迟 / 定时投递（需先 c.WithDelayedDelivery(...)） ──
+// 相对延迟：30 分钟后可见
+await bus.PublishDelayed(new TestEvent { Message = "d" }, TimeSpan.FromMinutes(30));
+
+// 绝对时间：不早于该时刻投递（DoNotDeliverBefore 语义）
+await bus.PublishAt(new TestEvent { Message = "s" }, DateTimeOffset.Now.AddHours(2));
+
+// 批量延迟（共享同一延迟时长）
+await bus.PublishDelayedBatch(events, TimeSpan.FromMinutes(15));
+
+// 非泛型延迟
+await bus.PublishDelayed(obj, typeof(TestEvent), TimeSpan.FromSeconds(30));
 ```
 
 > 未注册或被禁用的事件：发布时记录警告并直接返回（不抛异常）。
+>
+> 延迟 API 的边界：延迟 ≤ 0 等同普通发布；亚秒级向上取整到 1 秒；超过阶梯上限抛
+> `ArgumentOutOfRangeException`；未启用延迟投递却调用抛 `InvalidOperationException`。
 
 ---
 
@@ -1196,6 +1231,7 @@ builder.Services.AddOpenTelemetry()
 | 发布 | `rabbitmq.publish.normal.total`、`rabbitmq.publish.retried.total`、`rabbitmq.publish.discarded.total` |
 | 确认 | `rabbitmq.publish.confirm.ack.total`、`rabbitmq.publish.confirm.nack.total`、`rabbitmq.publish.outstanding.confirms` |
 | 重试/死信 | `rabbitmq.retry.enqueued.total`、`rabbitmq.deadletter.total` |
+| 延迟投递 | `rabbitmq.publish.delayed.total`、`rabbitmq.delay.requested.seconds`、`rabbitmq.delay.delivery.error.seconds`（实际到达 − 期望投递，即延迟精度） |
 | 连接 | `rabbitmq.connection.reconnects.total`、`rabbitmq.connection.active`、`rabbitmq.channel.active`、`rabbitmq.connection.state` |
 
 ```bash
@@ -1215,7 +1251,7 @@ dotnet-counters monitor --process <pid> --counters EasilyNET.RabbitBus
 | 优先级队列 | 队列声明 `x-max-priority` |
 | 发布确认 / 背压 | 无特殊要求（开 `publisherConfirms`） |
 | 集群高可用 | 多节点 + 镜像/Quorum 队列（运维侧配置） |
-| 延迟消息 | ❌ 已移除插件支持，改用 DLX + TTL 或外部调度器 |
+| 延迟 / 定时投递 | RabbitMQ 3.10+（仲裁队列 `at-least-once` 死信策略）；无需任何插件。单节点可 `useQuorumQueues: false` 用经典队列 |
 
 连接配置支持：连接串 `Uri`、单点 `HostName/Port/...`、或多端点 `AmqpTcpEndpoints`（集群/DDNS 更稳）。
 
@@ -1232,4 +1268,6 @@ dotnet-counters monitor --process <pid> --counters EasilyNET.RabbitBus
 | 注入 Singleton 状态丢失 | Handler/Middleware/Fallback 已改为 **Scoped**；共享状态请注入独立的 Singleton 服务 |
 | 吞吐不足 | 提高 `dispatchConcurrency`、`prefetchCount`、`WithHandlerThreadCount`；高吞吐可关闭 `publisherConfirms` |
 | 内存增长 | 合理设置 `prefetchCount` 与 `maxOutstandingConfirms`；监控队列积压；调小重试队列容量 |
-| 想要延迟投递 | 插件已移除：用死信交换机（DLX）+ TTL，或外部调度器 + 持久化存储 |
+| 想要延迟投递 | `c.WithDelayedDelivery(maxDelay)` + `bus.PublishDelayed / PublishAt`（内置二进制延迟阶梯，无需插件） |
+| 延迟消息发出去但没人收到 | **消费端进程也必须启用延迟投递**（投递交换机的绑定由消费端建立）；生产端与消费端的档位数（`maxDelay` / `LevelCount`）与 `Prefix` 必须一致 |
+| 延迟超过上限报错 | 提高 `WithDelayedDelivery(maxDelay:)`（会增加档位数，属于拓扑变更），或超长定时改用外部调度器 |

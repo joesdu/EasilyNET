@@ -1,5 +1,6 @@
 using EasilyNET.Core.Misc;
 using EasilyNET.RabbitBus.Configs;
+using EasilyNET.RabbitBus.Delayed;
 using EasilyNET.RabbitBus.Utilities;
 using EasilyNET.RabbitBus.Core.Abstraction;
 using EasilyNET.RabbitBus.Core.Enums;
@@ -13,7 +14,7 @@ namespace EasilyNET.RabbitBus.Manager;
 /// <summary>
 /// 消费者管理器，负责消费者初始化和管理
 /// </summary>
-internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurationRegistry eventRegistry, EventHandlerInvoker handlerInvoker, ILogger<EventBus> logger, IOptionsMonitor<RabbitConfig> options)
+internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurationRegistry eventRegistry, EventHandlerInvoker handlerInvoker, DelayInfrastructure delayInfrastructure, ILogger<EventBus> logger, IOptionsMonitor<RabbitConfig> options)
 {
     /// <summary>
     /// 初始化所有启用的事件消费者。
@@ -86,6 +87,7 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
                                           : null;
                     await channel.QueueBindAsync(config.Queue.Name, config.Exchange.Name, config.Exchange.RoutingKey, bindingArgs, cancellationToken: linkedCts.Token).ConfigureAwait(false);
                 }
+                await BindDelayDestinationIfNeeded(config, channel, linkedCts.Token).ConfigureAwait(false);
                 await StartBasicConsume(eventType, config, channel, consumerIndex, handleReceivedEvent, linkedCts.Token).ConfigureAwait(false);
 
                 // 成功启动后重置重试计数
@@ -170,6 +172,25 @@ internal sealed class ConsumerManager(PersistentConnection conn, EventConfigurat
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// 将本事件的落点绑定到延迟投递交换机，使延迟消息在到期后能抵达与普通消息相同的消费者。
+    /// 绑定由消费端负责：这与普通交换机绑定的职责划分一致，也让不同应用各自只绑定自己关心的事件
+    /// </summary>
+    private async Task BindDelayDestinationIfNeeded(EventConfiguration config, IChannel channel, CancellationToken ct)
+    {
+        if (!delayInfrastructure.Enabled)
+        {
+            return;
+        }
+        var destination = DelayAddressResolver.ResolveBinding(config, delayInfrastructure.Config.AddressMode);
+        if (config.Exchange.Type is not EModel.Topics && DelayAddressResolver.ContainsWildcard(destination.Address) && logger.IsEnabled(LogLevel.Warning))
+        {
+            logger.LogWarning("Delay address '{Address}' of event {EventName} contains '*' or '#'. The delivery exchange is a topic exchange, so these are interpreted as wildcards and the binding may match more than intended", destination.Address, config.EventType.Name);
+        }
+        await delayInfrastructure.DeclareDeliveryExchangeAsync(channel, ct).ConfigureAwait(false);
+        await delayInfrastructure.BindDestinationAsync(channel, destination, ct).ConfigureAwait(false);
     }
 
     private static async Task DeclareExchangeIfNeeded(EventConfiguration config, IChannel channel, CancellationToken ct)

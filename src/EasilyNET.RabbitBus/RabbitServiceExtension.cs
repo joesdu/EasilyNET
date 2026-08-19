@@ -4,6 +4,7 @@ using EasilyNET.RabbitBus;
 using EasilyNET.RabbitBus.Abstractions;
 using EasilyNET.RabbitBus.Builder;
 using EasilyNET.RabbitBus.Configs;
+using EasilyNET.RabbitBus.Delayed;
 using EasilyNET.RabbitBus.Health;
 using EasilyNET.RabbitBus.Manager;
 using EasilyNET.RabbitBus.Metrics;
@@ -75,10 +76,12 @@ public static class RabbitServiceExtension
                 o.BusSerializer = config.BusSerializer;
                 o.SkipExchangeDeclare = config.SkipExchangeDeclare;
                 o.ValidateExchangesOnStartup = config.ValidateExchangesOnStartup;
+                o.DelayedDelivery = config.DelayedDelivery;
             });
             services.AddSingleton(eventRegistry);
             services.InjectConfiguredHandlers(eventRegistry);
             services.AddSingleton(config.BusSerializer);
+            services.AddSingleton<DelayInfrastructure>();
             services.AddSingleton<EventPublisher>();
             services.AddSingleton(sp => new EventHandlerInvoker(sp,
                 sp.GetRequiredService<IBusSerializer>(),

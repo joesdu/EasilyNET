@@ -128,6 +128,12 @@ public sealed class RabbitConfig
     public QosConfig Qos { get; } = new();
 
     /// <summary>
+    ///     <para xml:lang="en">Delayed delivery configuration (binary delay ladder built on DLX + queue TTL)</para>
+    ///     <para xml:lang="zh">延迟投递配置(基于 DLX + 队列级 TTL 的二进制延迟阶梯)</para>
+    /// </summary>
+    public DelayedDeliveryConfig DelayedDelivery { get; set; } = new();
+
+    /// <summary>
     ///     <para xml:lang="en">Application name for identification</para>
     ///     <para xml:lang="zh">应用程序名称用于标识</para>
     /// </summary>

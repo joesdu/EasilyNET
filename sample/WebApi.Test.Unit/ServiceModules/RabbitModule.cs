@@ -21,7 +21,10 @@ internal sealed class RabbitModule : AppModule
              .WithConsumerSettings()
              .WithResilience()
              .WithExchangeSettings(false, true)
-             .WithApplication("EasilyNET");
+             .WithApplication("EasilyNET")
+             // 启用延迟投递(DLX + 队列级 TTL 构成的二进制延迟阶梯,无需 broker 插件)
+             // maxDelay 决定声明多少个档位:24 小时需要 17 个档位;单节点开发环境使用经典队列即可
+             .WithDelayedDelivery(TimeSpan.FromHours(24), useQuorumQueues: false);
 
             // 配置自定义序列化器示例（可选）
             // c.WithSerializer<MsgPackSerializer>(); // 使用MessagePack序列化器
@@ -47,6 +50,9 @@ internal sealed class RabbitModule : AppModule
              .WithHandler<TopicEventOneHandlers>();
             c.AddEvent<TopicEventTwo>(EModel.Topics, "topic_exchange", "topic.queue.1", "topic_queue2")
              .WithHandler<TopicEventTwoHandlers>();
+            // 延迟投递:事件本身与普通事件的配置方式完全一致,延迟只体现在发布端调用的 API 上
+            c.AddEvent<OrderTimeoutEvent>(EModel.Routing, "order_exchange", "order.timeout", "order_timeout_queue")
+             .WithHandler<OrderTimeoutEventHandlers>();
             //c.IgnoreHandler<HelloWorldEvent, HelloWorldEventHandlers>();
         });
     }

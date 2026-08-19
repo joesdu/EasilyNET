@@ -104,4 +104,16 @@ public sealed class EventConfiguration
     ///     <para xml:lang="zh">处理器执行的可选自定义弹性管道构建器</para>
     /// </summary>
     public Action<ResiliencePipelineBuilder>? CustomHandlerResilience { get; set; }
+
+    /// <summary>
+    ///     <para xml:lang="en">
+    ///     Optional explicit delay address for this event, overriding the address derived from the exchange configuration. Publisher
+    ///     and consumer must agree on the value; the message is delivered straight into <see cref="Queue" /> once the delay elapsed
+    ///     </para>
+    ///     <para xml:lang="zh">
+    ///     此事件的可选显式延迟地址,会覆盖由交换机配置推导出的地址。生产端与消费端必须使用相同的值;
+    ///     延迟到期后消息将直接投递到 <see cref="Queue" />
+    ///     </para>
+    /// </summary>
+    public string? DelayAddress { get; set; }
 }
