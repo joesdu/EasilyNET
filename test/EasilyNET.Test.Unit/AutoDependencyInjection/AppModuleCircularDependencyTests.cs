@@ -1,5 +1,6 @@
-using EasilyNET.AutoDependencyInjection.Attributes;
 using EasilyNET.AutoDependencyInjection.Modules;
+// MSTest 4.4.0 引入了同名的 DependsOnAttribute, 此处使用别名消除歧义
+using DependsOnAttribute = EasilyNET.AutoDependencyInjection.Attributes.DependsOnAttribute;
 
 namespace EasilyNET.Test.Unit.AutoDependencyInjection;
 
@@ -49,7 +50,7 @@ public sealed class AppModuleCircularDependencyTests
 
         // Assert
         Assert.IsNotNull(dependencies);
-        Assert.IsFalse(dependencies.Any());
+        Assert.IsEmpty(dependencies);
     }
 
     [TestMethod]

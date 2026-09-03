@@ -89,7 +89,7 @@ public class ManagedWebSocketClientTest
         await client.DisposeAsync();
         stopwatch.Stop();
         Assert.AreEqual(WebSocketClientState.Disposed, client.State);
-        Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromSeconds(2), $"DisposeAsync exceeded expected upper bound. Actual: {stopwatch.Elapsed}.");
+        Assert.IsLessThan(TimeSpan.FromSeconds(2), stopwatch.Elapsed, $"DisposeAsync exceeded expected upper bound. Actual: {stopwatch.Elapsed}.");
         Assert.IsFalse(connectTask.IsCompleted, "ConnectAsync should still be blocked by ConfigureWebSocket until the callback is released.");
         releaseConfigureCallback.Set();
         var completedTask = await Task.WhenAny(connectTask, Task.Delay(TimeSpan.FromSeconds(2)));
