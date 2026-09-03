@@ -40,7 +40,7 @@ public class AssemblyHelperTests
         var actualAssemblies = AssemblyHelper.GetAssembliesByName(assemblyNames).Where(a => a is not null).Cast<Assembly>().ToArray();
 
         // Assert
-        Assert.IsTrue(actualAssemblies.Any(a => string.Equals(a.GetName().Name, "EasilyNET.Core", StringComparison.OrdinalIgnoreCase)));
+        Assert.Contains(a => string.Equals(a.GetName().Name, "EasilyNET.Core", StringComparison.OrdinalIgnoreCase), actualAssemblies);
     }
 
     /// <summary>

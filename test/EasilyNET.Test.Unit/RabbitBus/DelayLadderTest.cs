@@ -40,7 +40,7 @@ public class DelayLadderTest
         {
             var span = TimeSpan.FromHours(hours);
             var count = DelayLadder.LevelCountFor(span);
-            Assert.IsTrue(DelayLadder.MaxDelaySeconds(count) >= span.TotalSeconds, $"{count} 个档位无法覆盖 {span}");
+            Assert.IsGreaterThanOrEqualTo(span.TotalSeconds, DelayLadder.MaxDelaySeconds(count), $"{count} 个档位无法覆盖 {span}");
             Assert.IsTrue(count == 1 || DelayLadder.MaxDelaySeconds(count - 1) < span.TotalSeconds, $"{count} 个档位对 {span} 而言并非最小值");
         }
     }
