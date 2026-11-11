@@ -20,30 +20,30 @@
     <PackageVersion Include="RabbitMQ.Client" Version="7.3.0-beta.0" />
     <PackageVersion Include="Spectre.Console.Json" Version="0.57.3-alpha.0.29" />
     <!--microsoft asp.net core -->
-    <PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.Resilience" Version="11.0.0" />
     <!--microsoft source generator-->
     <!--<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.12.0-beta1.25218.8" />-->
     <!--<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />-->
   </ItemGroup>
   <!-- in-box Microsoft.Extensions.* 运行时包，按 TFM 取对应版本，替代 FrameworkReference Microsoft.AspNetCore.App -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.15" />
     <!-- SourceLink for NuGet symbol debugging -->
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.403" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.404" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0-rc.3.26522.148" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="11.0.0-rc.3.26522.148" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="11.0.0-rc.3.26522.148" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="11.0.0-rc.3.26522.148" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="11.0.0-rc.3.26522.148" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="11.0.0-rc.3.26522.148" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="11.0.0" />
     <!-- SourceLink for NuGet symbol debugging -->
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="11.0.100-rc.3.26522.148" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="11.0.100" />
   </ItemGroup>
 </Project>
