@@ -1,69 +1,74 @@
 #version '3.8'
+# 适配 Kiri:
+# 1. Kiri 默认以 1001:1001 运行容器，而 Bitnami 镜像要求 root 组(0)才能写 /opt/bitnami，故显式 user: "1001:0"
+# 2. Kiri 不支持容器经 host.docker.internal 回连自身发布的端口(hairpin)，rs.initiate 无法识别自身；
+#    且 Windows 侧 host.docker.internal(172.18.0.1) 连不上发布端口。
+#    因此三个节点共享同一个网络命名空间，分别监听 27017/27018/27019，副本集成员统一通告为 127.0.0.1:端口，
+#    宿主机(Windows)通过 127.0.0.1 访问发布端口即可。
+# 连接串: mongodb://joe:a123456@127.0.0.1:27017,127.0.0.1:27018,127.0.0.1:27019/?replicaSet=rs0&authSource=admin
 
 services:
   mongo_primary:
     image: bitnami/mongodb:latest
-    user: "1001:0" # Kiri 默认以 1001:1001 运行，Bitnami 镜像要求 root 组(0)才能写 /opt/bitnami
     container_name: mongo_primary
+    user: "1001:0"
     environment:
       - TZ=Asia/Chongqing
-      - MONGODB_ADVERTISED_HOSTNAME=host.docker.internal
+      - MONGODB_PORT_NUMBER=27017
+      - MONGODB_ADVERTISED_HOSTNAME=127.0.0.1
+      - MONGODB_ADVERTISED_PORT_NUMBER=27017
       - MONGODB_REPLICA_SET_MODE=primary
       - MONGODB_REPLICA_SET_NAME=rs0
       - MONGODB_ROOT_USER=joe
       - MONGODB_ROOT_PASSWORD=a123456
       - MONGODB_REPLICA_SET_KEY=HxplckY2jXSwfDRE
     ports:
+      # secondary / arbiter 共享本容器网络，端口统一在这里发布
       - "27017:27017"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-      - "gateway.docker.internal:host-gateway"
+      - "27018:27018"
+      - "27019:27019"
     volumes:
       - "mongodb_master_data:/bitnami/mongodb"
 
   mongo_secondary:
     image: bitnami/mongodb:latest
-    user: "1001:0" # Kiri 默认以 1001:1001 运行，Bitnami 镜像要求 root 组(0)才能写 /opt/bitnami
     container_name: mongo_secondary
+    user: "1001:0"
+    network_mode: "service:mongo_primary"
     depends_on:
       - mongo_primary
     environment:
       - TZ=Asia/Chongqing
-      - MONGODB_ADVERTISED_HOSTNAME=host.docker.internal
+      - MONGODB_PORT_NUMBER=27018
+      - MONGODB_ADVERTISED_HOSTNAME=127.0.0.1
+      - MONGODB_ADVERTISED_PORT_NUMBER=27018
       - MONGODB_REPLICA_SET_MODE=secondary
       - MONGODB_REPLICA_SET_NAME=rs0
+      - MONGODB_INITIAL_PRIMARY_HOST=127.0.0.1
       - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
-      - MONGODB_INITIAL_PRIMARY_HOST=host.docker.internal
       - MONGODB_INITIAL_PRIMARY_ROOT_USER=joe
       - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=a123456
       - MONGODB_REPLICA_SET_KEY=HxplckY2jXSwfDRE
-    ports:
-      - "27018:27017"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-      - "gateway.docker.internal:host-gateway"
 
   mongo_arbiter:
     image: bitnami/mongodb:latest
-    user: "1001:0" # Kiri 默认以 1001:1001 运行，Bitnami 镜像要求 root 组(0)才能写 /opt/bitnami
     container_name: mongo_arbiter
+    user: "1001:0"
+    network_mode: "service:mongo_primary"
     depends_on:
       - mongo_primary
     environment:
       - TZ=Asia/Chongqing
-      - MONGODB_ADVERTISED_HOSTNAME=host.docker.internal
+      - MONGODB_PORT_NUMBER=27019
+      - MONGODB_ADVERTISED_HOSTNAME=127.0.0.1
+      - MONGODB_ADVERTISED_PORT_NUMBER=27019
       - MONGODB_REPLICA_SET_MODE=arbiter
       - MONGODB_REPLICA_SET_NAME=rs0
+      - MONGODB_INITIAL_PRIMARY_HOST=127.0.0.1
       - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
-      - MONGODB_INITIAL_PRIMARY_HOST=host.docker.internal
       - MONGODB_INITIAL_PRIMARY_ROOT_USER=joe
       - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=a123456
       - MONGODB_REPLICA_SET_KEY=HxplckY2jXSwfDRE
-    ports:
-      - "27019:27017"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-      - "gateway.docker.internal:host-gateway"
 
 volumes:
   mongodb_master_data:
