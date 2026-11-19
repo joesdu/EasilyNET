@@ -3,6 +3,7 @@
 services:
   mongo_primary:
     image: bitnami/mongodb:latest
+    user: "1001:0" # Kiri 默认以 1001:1001 运行，Bitnami 镜像要求 root 组(0)才能写 /opt/bitnami
     container_name: mongo_primary
     environment:
       - TZ=Asia/Chongqing
@@ -22,6 +23,7 @@ services:
 
   mongo_secondary:
     image: bitnami/mongodb:latest
+    user: "1001:0" # Kiri 默认以 1001:1001 运行，Bitnami 镜像要求 root 组(0)才能写 /opt/bitnami
     container_name: mongo_secondary
     depends_on:
       - mongo_primary
@@ -43,6 +45,7 @@ services:
 
   mongo_arbiter:
     image: bitnami/mongodb:latest
+    user: "1001:0" # Kiri 默认以 1001:1001 运行，Bitnami 镜像要求 root 组(0)才能写 /opt/bitnami
     container_name: mongo_arbiter
     depends_on:
       - mongo_primary
